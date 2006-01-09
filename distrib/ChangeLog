@@ -15,6 +15,8 @@ Patches done after the last release are experimental,
 please test carefully and report your findings.
 
 2006/01/09
+4770: Change file opening mechanism, open rw only when needed (pango)
+      new verbosity option "file" to control Unix32 file handling
 4777: Display IP:port for LowID clients, GUI protocol update (zet)
 
 2006/01/07

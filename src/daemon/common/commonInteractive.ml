@@ -231,14 +231,16 @@ let file_cancel file =
           with e ->
               lprintf_nl "[cInt] Exception %s in file_cancel" (Printexc2.to_string e);
       ) subfiles;
-      (try
-          let fd = file_fd file in
-          if fd != Unix32.bad_fd then Unix32.remove (file_fd file)
-        with e ->
-            lprintf_nl "[cInt]Sys.remove %s exception %s"
-              (file_disk_name file)
-            (Printexc2.to_string e); );
-      Unix32.destroy (file_fd file);
+      try
+	let fd = file_fd file in
+	(try
+           Unix32.remove fd
+         with e ->
+           lprintf_nl "[cInt]Sys.remove %s exception %s"
+             (file_disk_name file)
+             (Printexc2.to_string e));
+	Unix32.destroy fd
+      with Not_found -> ()
   with e ->
       lprintf_nl "[cInt] Exception in file_cancel: %s" (Printexc2.to_string e)
 

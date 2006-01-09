@@ -71,7 +71,7 @@ let as_file file = as_file file.file_file
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
-let file_fd file = file.file_file.impl_file_fd
+let file_fd file = file_fd (as_file file)
 let file_disk_name file = file_disk_name (as_file file)
 let file_best_name file = file_best_name (as_file file)
 
@@ -147,7 +147,7 @@ let new_file file_id file_name file_size =
       file_nconnected_clients = 0;
     } and file_impl =  {
       dummy_file_impl with
-      impl_file_fd = t;
+      impl_file_fd = Some t;
       impl_file_size = zero;
       impl_file_downloaded = zero;
       impl_file_val = file;

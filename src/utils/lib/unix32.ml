@@ -22,114 +22,143 @@
 open Int64ops
 open Printf2
 
+let lprintf_nl =
+  (fun format ->
+     lprintf "%s[Ux32] " (log_time ()); 
+     lprintf_nl2 format)
+  
 let chunk_min_size = ref 65000L
-
+  
 let max_buffered = ref (Int64.of_int (1024 * 1024))
-
+  
 let create_dir_mask = ref "755"
-let verbose = false
+let verbose = ref false
 let max_cache_size = ref 50
-
+  
 let mini (x: int) (y: int) =
   if x > y then y else x
-
+    
 let rights = 0o664
-
+  
 let ro_flag =  [Unix.O_RDONLY]
-let rw_flag =  [Unix.O_CREAT; Unix.O_RDWR]
-
+let rw_flag =  [Unix.O_RDWR]
+let rw_creat_flag =  [Unix.O_CREAT; Unix.O_RDWR]
+  
 external external_start : string -> unit = "external_start"
 external external_exit : unit -> unit = "external_exit"
 external uname : unit -> string = "ml_uname"
-
+  
 (* CryptoPP *)
 external create_key : unit -> string = "ml_createKey"
 external load_key : string -> string = "ml_loadKey"
 external create_signature : string -> int -> int64 -> int -> int64 -> string = "ml_createSignature"
 external verify_signature : string -> int -> string -> int -> int64 -> int -> int64 -> bool = "ml_verifySignature_bytecode" "ml_verifySignature"
-
-let really_write fd s pos len =
+  
+(* let really_write fd s pos len =
   try
     Unix2.really_write fd s pos len
-  with e -> raise e
+  with e -> raise e *)
+let really_write = Unix2.really_write
 
 module FDCache = struct
     
     type t = {
         mutable fd : Unix.file_descr option;
         mutable filename : string;
-        mutable destroyed : bool;
-(*        mutable exist : bool; *)
-      }
-    
+	mutable writable : bool;
+        mutable destroyed : bool; (* could we get rid of this ? *)
+    }
+
     let cache_size = ref 0
     let cache = Fifo.create ()
-    
-    let create f =
-(*      let exist = Sys.file_exists f in *)
-      {
-        filename = f;
-        fd = None;
-        destroyed = false;
-(*        exist = exist; *)
-      }
       
     let close t =
-      if not t.destroyed then begin
-          match t.fd with
+      if not t.destroyed then
+        match t.fd with
           | Some fd ->
-(*          lprintf "close_one: closing %d\n" (Obj.magic fd); *)
-              (try Unix.close fd with _ -> ());
-              t.fd <- None;
-              decr cache_size
+              if !verbose then lprintf_nl "Close %s" t.filename;
+	      (try Unix.close fd with e -> 
+		 lprintf_nl "Exception in FDCache.close %s: %s" 
+		   t.filename
+		   (Printexc2.to_string e);
+		 raise e);
+	      t.fd <- None;
+	      decr cache_size
           | None -> ()
-        end
 
-    let check_destroyed t =
+    let is_closed t =
       if t.destroyed then
-        failwith "Unix32: Cannot use destroyed FD"
-        
-    let destroy t =
-      if not t.destroyed then begin
-          close t;
-          t.destroyed <- true
-        end
-        
+	true
+      else match t.fd with
+	| Some fd -> false
+	| None -> true
+
     let rec close_one () =
       if not (Fifo.empty cache) then
         let t = Fifo.take cache in
         match t.fd with
-          None ->
-            close_one ()
-        | Some fd ->
-            close t
+          | None ->
+	      close_one ()
+          | Some fd ->
+	      try
+		close t
+	      with _ -> close_one ()
 
-
-    let local_force_fd t writable =
+    let check_destroyed t =
+      if t.destroyed then
+        failwith (Printf.sprintf 
+	  "Unix32.check_destroyed %s: Cannot use destroyed FD" t.filename)
+        
+    let destroy t =
+      if not t.destroyed then begin
+        (try close t with _ -> ());
+        t.destroyed <- true
+      end
+        
+    let _local_force_fd creat t =
       check_destroyed t;
       let fd =
         match t.fd with
-          None ->
-            if !cache_size >= !max_cache_size then close_one ();
-            let fd =
-              if writable then begin
-                try
-                  Unix.openfile t.filename rw_flag rights
-                with Unix.Unix_error( (Unix.EACCES | Unix.EROFS) ,_,_) ->
-                  Unix.openfile t.filename ro_flag 0o400
-                end
-              else
-                Unix.openfile t.filename ro_flag 0o400
-            in
-            incr cache_size;
-(*            lprintf "local_force: opening %d\n" (Obj.magic fd);  *)
-            Fifo.put cache t;
-            t.fd <- Some fd;
-            fd
-        | Some fd -> fd
+          | Some fd -> fd
+          | None ->
+	      if !cache_size >= !max_cache_size then close_one ();
+	      let fd =
+		try
+		  if t.writable then
+                    Unix.openfile t.filename 
+		      (if creat then rw_creat_flag else rw_flag) rights
+		  else
+		    Unix.openfile t.filename ro_flag 0o400
+		with e ->
+		  lprintf_nl "Exception in FDCache._local_force_fd %s (%s): %s" 
+		    t.filename 
+		    (if t.writable then "rw" else "ro") 
+                    (Printexc2.to_string e);
+		  raise e
+	      in
+		incr cache_size;
+(*              lprintf "local_force: opening %d\n" (Obj.magic fd_rw);  *)
+		Fifo.put cache t;
+		t.fd <- Some fd;
+		fd
       in
 (*      lprintf "local_force_fd %d\n" (Obj.magic fd); *)
-      fd
+	fd
+
+    let create f writable =
+      if !verbose then lprintf_nl "Open %s (%s)" f (if writable then "rw" else "ro");
+      let t =
+	{
+         filename = f;
+	 writable = writable;
+         fd = None;
+         destroyed = false;
+        }
+      in
+      let _fd = _local_force_fd true t in
+      t
+      
+    let local_force_fd t = _local_force_fd false t
 
     let close_all () =
       while not (Fifo.empty cache) do
@@ -137,68 +166,132 @@ module FDCache = struct
       done
 
     let rename t f =
+      try
       check_destroyed t;
       close t;
       Unix2.rename t.filename f;
       destroy t
+      with e ->
+      lprintf_nl "Exception in FDCache.rename %s %s: %s"
+        t.filename
+        f
+        (Printexc2.to_string e);
+      raise e
 
     let multi_rename t f file =
+      try
       check_destroyed t;
       close t;
       (let d = (Filename.dirname (Filename.concat f file)) in
         Unix2.safe_mkdir d;
-  Unix2.chmod d (Misc.int_of_octal_string !create_dir_mask);
+        Unix2.chmod d (Misc.int_of_octal_string !create_dir_mask);
 	Unix2.can_write_to_directory d);
       Unix2.rename t.filename (Filename.concat f file);
       destroy t
+      with e ->
+      lprintf_nl "Exception in FDCache.multi_rename %s %s: %s"
+        t.filename
+        (Filename.concat f file)
+        (Printexc2.to_string e);
+      raise e
 
     let ftruncate64 t len sparse =
+      try
       check_destroyed t;
-      Unix2.c_ftruncate64 (local_force_fd t true) len sparse
+      Unix2.c_ftruncate64 (local_force_fd t) len sparse
+      with e ->
+      lprintf_nl "Exception in FDCache.ftruncate64 %s %Ld (%s): %s"
+        t.filename
+        len
+        (if sparse then "sparse" else "not sparse")
+        (Printexc2.to_string e);
+      raise e
 
-    let getsize64 t writable =
+    let getsize64 t =
+      try
       check_destroyed t;
-      let s = Unix2.c_getfdsize64 (local_force_fd t writable) in
-      if not writable then close t;
+      let was_closed = is_closed t in
+      let s = Unix2.c_getfdsize64 (local_force_fd t) in
+      if was_closed then
+        close t;
       s
+      with e ->
+      lprintf_nl "Exception in FDCache.getsize64 %s: %s"
+        t.filename
+        (Printexc2.to_string e);
+      raise e
 
     let mtime64 t =
+      try
       check_destroyed t;
       let st = Unix.LargeFile.stat t.filename in
       st.Unix.LargeFile.st_mtime
+      with e ->
+      lprintf_nl "Exception in FDCache.mtime64 %s: %s"
+        t.filename
+        (Printexc2.to_string e);
+      raise e
 
     let exists t =
+      try
       check_destroyed t;
       Sys.file_exists t.filename
+      with e ->
+      lprintf_nl "Exception in FDCache.exists %s: %s"
+        t.filename
+        (Printexc2.to_string e);
+      raise e
 
     let remove t =
+      try
       check_destroyed t;
-      if exists t then Sys.remove t.filename;
+      if exists t then
+        Sys.remove t.filename;
       destroy t
+      with e ->
+      lprintf_nl "Exception in FDCache.remove %s: %s"
+        t.filename
+        (Printexc2.to_string e);
+      raise e
 
     let read file file_pos string string_pos len =
-      let fd = local_force_fd file true in
-      (*
-        I know I am calling local_force_fd with writable = true
-        although we are reading here, but I had problems with
-        it like exceptions in really_write
-      *)
-      let _ = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
-      if verbose then lprintf "really_read %d\n" len;
+      try
+      let fd = local_force_fd file in
+      ignore(Unix2.c_seek64 fd file_pos Unix.SEEK_SET);
+      if !verbose then
+        lprintf_nl "really_read %s %Ld %d"
+          file.filename
+          file_pos
+          len;
       Unix2.really_read fd string string_pos len
+      with e ->
+      lprintf_nl "Exception in FDCache.read %s %Ld %d: %s"
+        file.filename
+        file_pos
+        len
+        (Printexc2.to_string e);
+      raise e
 
     let write file file_pos string string_pos len =
-      let fd = local_force_fd file true in
-      let _ = Unix2.c_seek64 fd file_pos Unix.SEEK_SET in
-      if verbose then lprintf "really_write %d\n" len;
-      begin
-        try
-	  really_write fd string string_pos len
-	with e ->
-	    lprintf_nl "[Unix32] Exception %s in write: file %s file_pos=%Ld len=%d string_pos=%d, string length=%d"
-	      (Printexc2.to_string e) file.filename file_pos len string_pos (String.length string);
-	    raise e
-      end
+      try
+      assert (file.writable);
+      let fd = local_force_fd file in
+      ignore(Unix2.c_seek64 fd file_pos Unix.SEEK_SET);
+      if !verbose then
+        lprintf_nl "really_write %s %Ld %d"
+          file.filename
+          file_pos
+          len;
+          really_write fd string string_pos len
+      with e ->
+      lprintf_nl "Exception in FDCache.write file %s file_pos=%Ld len=%d string_pos=%d, string length=%d: %s"
+        file.filename
+        file_pos
+        len
+        string_pos
+        (String.length string)
+        (Printexc2.to_string e);
+      raise e
 
     let copy_chunk t1 t2 pos1 pos2 len64 =
       check_destroyed t1;
@@ -215,19 +308,29 @@ module FDCache = struct
             iter (remaining -- len64) (pos1 ++ len64) (pos2 ++ len64)
           end
       in
-      iter len64 pos1 pos2
+      try
+	iter len64 pos1 pos2
+      with e ->
+	lprintf_nl "Exception in FDCache.copy_chunk %s %Ld to %s %Ld (%Ld): %s"
+	  t1.filename 
+	  pos1
+	  t2.filename
+	  pos2
+	  len64
+          (Printexc2.to_string e);
+	raise e
 
   end
 
 module type File =   sig
     type t
-    val create : string -> t
+    val create : string -> bool -> t
     val apply_on_chunk : t -> int64 -> int64 ->
       (Unix.file_descr -> int64 -> 'a) -> 'a
     val close : t -> unit
     val rename : t -> string -> unit
     val ftruncate64 : t -> int64 -> bool -> unit
-    val getsize64 : t -> bool -> int64
+    val getsize64 : t -> int64
     val mtime64 : t -> float
     val exists : t -> bool
     val remove : t -> unit
@@ -245,7 +348,7 @@ module DiskFile = struct
     let create = FDCache.create
 
     let apply_on_chunk t pos_s len_s f =
-      let fd = FDCache.local_force_fd t true in
+      let fd = FDCache.local_force_fd t in
       f fd pos_s
 
     let close = FDCache.close
@@ -270,7 +373,7 @@ let zero_chunk_fd () =
   match !zero_chunk_fd_option with
     Some fd -> fd
   | None ->
-      let fd = FDCache.create zero_chunk_name in
+      let fd = FDCache.create zero_chunk_name true in
       FDCache.ftruncate64 fd zero_chunk_len false;
       zero_chunk_fd_option := Some fd;
       fd
@@ -322,17 +425,14 @@ module MultiFile = struct
 
     let rec print_tree indent tree =
       match tree with
-        Leaf file -> lprintf "%s  - %s (%Ld,%Ld)\n"
+        Leaf file -> lprintf_nl "%s  - %s (%Ld,%Ld)"
             indent file.filename file.pos file.len
       | Node (pos, tree1, tree2) ->
-          lprintf "%scut at %Ld\n" indent pos;
+          lprintf_nl "%scut at %Ld" indent pos;
           print_tree (indent ^ "  ") tree1;
           print_tree (indent ^ "  ") tree2
 
-    let rights = 0o664
-    let access = [Unix.O_CREAT; Unix.O_RDWR]
-
-    let create dirname files =
+    let create dirname writable files =
       Unix2.safe_mkdir dirname;
       let rec iter files pos files2 =
         match files with
@@ -354,19 +454,19 @@ module MultiFile = struct
         | (filename, size) :: tail ->
             let temp_filename = Filename.concat dirname filename in
             Unix2.safe_mkdir (Filename.dirname temp_filename);
-            let fd = FDCache.create temp_filename in
-            let cur_len = ref Int64.zero in
-            if not (Unix2.is_directory temp_filename) then
-            begin
-              ignore(FDCache.local_force_fd fd true);
-              cur_len := FDCache.getsize64 fd true;
-            end;
+            let fd = FDCache.create temp_filename writable in
+            let cur_len = 
+	      if Unix2.is_directory temp_filename then 0L
+	      else begin
+		ignore(FDCache.local_force_fd fd);
+		FDCache.getsize64 fd
+	      end in
             iter tail (pos ++ size)
             ({
                 filename = filename;
                 pos = pos;
                 len = size;
-                current_len = !cur_len;
+                current_len = cur_len;
                 fd = fd;
                 tail = [];
               } :: files2)
@@ -399,7 +499,7 @@ module MultiFile = struct
     let rec fill_zeros file_out file_pos max_len =
       if max_len > zero then
         let max_possible_write = min max_len zero_chunk_len in
-        FDCache.copy_chunk (zero_chunk_fd()) file_out
+        FDCache.copy_chunk (zero_chunk_fd ()) file_out
           zero file_pos max_possible_write;
         fill_zeros file_out (file_pos ++ max_possible_write)
         (max_len -- max_possible_write)
@@ -411,45 +511,49 @@ module MultiFile = struct
       let file_begin = file.pos in
       let max_current_pos = file_begin ++ file.current_len in
       if max_current_pos >= chunk_end then
-        let fd = FDCache.local_force_fd file.fd true in
+        let fd = FDCache.local_force_fd file.fd in
         f fd (chunk_begin -- file_begin)
       else
-      let temp_file = Filename.temp_file "chunk" ".tmp" in
-      let file_out = FDCache.create temp_file in
+	let temp_file = Filename.temp_file "chunk" ".tmp" in
+	let file_out = FDCache.create temp_file true in
 
+	try
 (* first file *)
-      let in_pos = chunk_begin -- file_begin in
-      let in_len = max_current_pos -- chunk_begin in
-      FDCache.copy_chunk file.fd file_out
-        in_pos  zero in_len;
-      let zeros =
-        min (chunk_len -- in_len) (file.len -- file.current_len)
-      in
-      fill_zeros file_out in_len zeros;
-      let in_len = in_len ++ zeros in
+	  let in_pos = chunk_begin -- file_begin in
+	  let in_len = max_current_pos -- chunk_begin in
+	  FDCache.copy_chunk file.fd file_out
+            in_pos  zero in_len;
+	  let zeros =
+            min (chunk_len -- in_len) (file.len -- file.current_len) in
+	  fill_zeros file_out in_len zeros;
+	  let in_len = in_len ++ zeros in
 
 (* other files *)
-      do_on_remaining tail in_len  (chunk_len -- in_len)
-      (fun file file_pos len ->
-          let max_current_pos = min len file.current_len in
-          FDCache.copy_chunk file.fd file_out
-            zero file_pos max_current_pos;
-          let file_pos = file_pos ++ max_current_pos in
-          let zeros = len -- max_current_pos in
-          fill_zeros file_out file_pos zeros;
-          file_pos ++ zeros
-      );
-      FDCache.close file_out;
-      let fd = FDCache.local_force_fd file_out true in
-      try 
-        let v = f fd zero in
-        FDCache.close file_out;
-        Sys.remove temp_file;
-        v
-      with e -> 
+	  do_on_remaining tail in_len  (chunk_len -- in_len)
+	    (fun file file_pos len ->
+               let max_current_pos = min len file.current_len in
+	       FDCache.copy_chunk file.fd file_out
+		 zero file_pos max_current_pos;
+	       let file_pos = file_pos ++ max_current_pos in
+               let zeros = len -- max_current_pos in
+	       fill_zeros file_out file_pos zeros;
+	       file_pos ++ zeros
+	    );
+	  FDCache.close file_out;
+	  let fd = FDCache.local_force_fd file_out in
+          let v = f fd zero in
           FDCache.close file_out;
           Sys.remove temp_file;
-          raise e
+          v
+	with e ->
+	  lprintf_nl "Exception in MultiFile.apply_on_chunk %s %Ld %Ld: %s"
+	    t.dirname
+	    chunk_begin
+	    chunk_len
+            (Printexc2.to_string e);
+	  (try FDCache.close file_out with _ -> ());
+	  (try Sys.remove temp_file with _ -> ());
+	  raise e
 
     let close t =
       List.iter (fun file -> FDCache.close file.fd) t.files
@@ -459,7 +563,8 @@ module MultiFile = struct
 
     let rename t f =
       close t;
-      List.iter (fun file -> FDCache.multi_rename file.fd f file.filename) t.files
+      List.iter (fun file -> FDCache.multi_rename file.fd f file.filename) 
+	t.files
 
     let ftruncate64 t size sparse =
       t.size <- size
@@ -467,16 +572,28 @@ module MultiFile = struct
     let getsize64 t = t.size
 
     let mtime64 t =
-      let st = Unix.LargeFile.stat t.dirname in
-      st.Unix.LargeFile.st_mtime
+      try
+	let st = Unix.LargeFile.stat t.dirname in
+	st.Unix.LargeFile.st_mtime
+      with e ->
+	lprintf_nl "Exception in MultiFile.mtime64 %s: %s" 
+	  t.dirname
+          (Printexc2.to_string e);
+	raise e
 
     let exists t =
       Sys.file_exists t.dirname
 
     let remove t =
-      close t;
-      if Sys.file_exists t.dirname then
-        Unix2.remove_all_directory t.dirname
+      try
+	close t;
+	if Sys.file_exists t.dirname then
+          Unix2.remove_all_directory t.dirname
+      with e ->
+	lprintf_nl "Exception in MultiFile.remove %s: %s" 
+	  t.dirname
+          (Printexc2.to_string e);
+	raise e
 
     let file_write file in_file_pos s in_string_pos len =
       (* prevent write to zero-byte files so BT downloads finish *)
@@ -520,12 +637,12 @@ module MultiFile = struct
 
 (* other files *)
       do_on_remaining tail (string_pos + in_len)
-      (chunk_len -- first_read)
-      (fun file string_pos len64 ->
-          let len = Int64.to_int len64 in
-          f file zero string string_pos len;
-          string_pos + len
-      )
+	(chunk_len -- first_read)
+	(fun file string_pos len64 ->
+           let len = Int64.to_int len64 in
+           f file zero string string_pos len;
+           string_pos + len
+	)
 
     let read t chunk_begin string string_pos len =
       io file_read t chunk_begin string string_pos len
@@ -557,10 +674,8 @@ module SparseFile = struct
         mutable dirname : string;
         mutable size : int64;
         mutable chunks : chunk array;
+	mutable writable : bool;
       }
-    
-    let rights = 0o664
-    let access = [Unix.O_CREAT; Unix.O_RDWR]
     
     let zero_chunk () =
       {
@@ -570,10 +685,10 @@ module SparseFile = struct
         fd = zero_chunk_fd ();
       }
     
-    let create filename =
-(*      lprintf "SparseFile.create %s\n" filename; *)
+    let create filename writable =
+(*      lprintf_nl "SparseFile.create %s" filename; *)
       let dirname = filename ^ ".chunks" in
-(*      lprintf "Creating directory %s\n" dirname; *)
+(*      lprintf_nl "Creating directory %s" dirname; *)
       Unix2.safe_mkdir dirname;
       Unix2.can_write_to_directory dirname;
       {
@@ -581,60 +696,71 @@ module SparseFile = struct
         dirname = dirname;
         chunks = [||];
         size = zero;
+        writable = writable;
       }
     
     let find_read_pos t pos =
       let nchunks = Array.length t.chunks in
       let rec iter t start len =
         if len <= 0 then start else
-        let milen = len/2 in
-        let med = start + milen in
-        let chunk = t.chunks.(med) in
-        if chunk.pos <= pos && pos -- chunk.pos < chunk.len then med else
-        if chunk.pos > pos then
-          if med = start then start else
-            iter t start milen
-        else
-        let next = med+1 in
-        iter t next (start+len-next)
+          let milen = len/2 in
+          let med = start + milen in
+          let chunk = t.chunks.(med) in
+          if chunk.pos <= pos && pos -- chunk.pos < chunk.len then med 
+	  else
+            if chunk.pos > pos then
+              if med = start then start 
+	      else
+		iter t start milen
+            else
+              let next = med+1 in
+	      iter t next (start+len-next)
       in
-      iter t 0 nchunks
+	iter t 0 nchunks
     
     let find_write_pos t pos =
       let nchunks = Array.length t.chunks in
       let rec iter t start len =
-        if len <= 0 then start else
-        let milen = len/2 in
-        let med = start + milen in
-        let chunk = t.chunks.(med) in
-        if chunk.pos <= pos && pos -- chunk.pos <= chunk.len then med else
-        if chunk.pos > pos then
-          if med = start then start else
-            iter t start milen
-        else
-        let next = med+1 in
-        iter t next (start+len-next)
+        if len <= 0 then start 
+	else
+          let milen = len/2 in
+          let med = start + milen in
+          let chunk = t.chunks.(med) in
+          if chunk.pos <= pos && pos -- chunk.pos <= chunk.len then med 
+	  else
+            if chunk.pos > pos then
+              if med = start then start 
+	      else
+		iter t start milen
+            else
+              let next = med+1 in
+	      iter t next (start+len-next)
       in
-      iter t 0 nchunks
+	iter t 0 nchunks
 
-(*
+(*  (*** debugging code ***)
+
     let find_read_pos2 t pos =
       let rec iter t i len =
-        if i = len then i else
-        let chunk = t.chunks.(i) in
-        if chunk.pos ++ chunk.len > pos then i else
-          iter t (i+1) len
+        if i = len then i 
+        else
+          let chunk = t.chunks.(i) in
+          if chunk.pos ++ chunk.len > pos then i 
+          else
+            iter t (i+1) len
       in
-      iter t 0 (Array.length t.chunks)
+        iter t 0 (Array.length t.chunks)
 
     let find_write_pos2 t pos =
       let rec iter t i len =
-        if i = len then i else
-        let chunk = t.chunks.(i) in
-        if chunk.pos ++ chunk.len >= pos then i else
-          iter t (i+1) len
+        if i = len then i 
+        else
+          let chunk = t.chunks.(i) in
+          if chunk.pos ++ chunk.len >= pos then i 
+          else
+            iter t (i+1) len
       in
-      iter t 0 (Array.length t.chunks)
+        iter t 0 (Array.length t.chunks)
 
     let _ =
       let one = 1L in
@@ -642,24 +768,24 @@ module SparseFile = struct
       let three = 3L in
       for i = 0 to 3 do
         let chunks = Array.init i (fun i ->
-              let name = string_of_int i in
-              let pos = 3 * i + 1 in
-              let fd = FDCache.create name access rights in
-              lprintf " %d [%d - %d]" i pos (pos+2);
-              {
-                chunkname = name;
-                pos = Int64.of_int pos;
-                len = two;
-                fd = fd;
-              }
-          ) in
-        lprintf "\n";
+          let name = string_of_int i in
+          let pos = 3 * i + 1 in
+          let fd = FDCache.create name writable in
+          lprintf " %d [%d - %d]" i pos (pos+2);
+          {
+            chunkname = name;
+            pos = Int64.of_int pos;
+            len = two;
+            fd = fd;
+          }
+        ) in
+        lprintf_nl "";
         let t = {
-            filename = "";
-            dirname = "";
-            size = zero;
-            chunks = chunks;
-          } in
+          filename = "";
+          dirname = "";
+          size = zero;
+          chunks = chunks;
+        } in
         for j = 0 to 3 * i + 3 do
           let pos = (Int64.of_int j) in
           let i1 = find_write_pos t pos in
@@ -667,7 +793,7 @@ module SparseFile = struct
           let i2 = find_write_pos2 t pos in
           assert (i1 = i2)
         done;
-        lprintf "\n";
+        lprintf_nl "";
       done;
       exit 0
 *)
@@ -687,54 +813,59 @@ module SparseFile = struct
         
         let chunk = t.chunks.(index) in
         let in_chunk_pos = chunk_begin -- chunk.pos in
-        let fd = FDCache.local_force_fd chunk.fd true in
+        let fd = FDCache.local_force_fd chunk.fd in
         f fd in_chunk_pos
       
       else
       
-      let temp_file = Filename.temp_file "chunk" ".tmp" in
-      let file_out = FDCache.create temp_file in
+	let temp_file = Filename.temp_file "chunk" ".tmp" in
+	let file_out = FDCache.create temp_file t.writable in
       
-      let rec iter pos index chunk_begin chunk_len =
-        
-        if chunk_len > zero then
-          let chunk =
-            if index >= nchunks then 
-              let z = zero_chunk () in
-              z.pos <- chunk_begin;
-              z
-            else
-            let chunk = t.chunks.(index) in
-            let next_pos = chunk.pos in
-            if next_pos > chunk_begin then 
-              let z = zero_chunk () in
-              z.pos <- chunk_begin;
-              z.len <- min zero_chunk_len (next_pos -- chunk_begin);
-              z
-            else
-              chunk
-          in
+	let rec iter pos index chunk_begin chunk_len =
+          if chunk_len > zero then
+            let chunk =
+              if index >= nchunks then 
+		let z = zero_chunk () in
+		z.pos <- chunk_begin;
+		z
+              else
+		let chunk = t.chunks.(index) in
+		let next_pos = chunk.pos in
+		if next_pos > chunk_begin then 
+		  let z = zero_chunk () in
+		  z.pos <- chunk_begin;
+		  z.len <- min zero_chunk_len (next_pos -- chunk_begin);
+		  z
+		else
+		  chunk
+            in
           
-          let in_chunk_pos = chunk_begin -- chunk.pos in
-          let max_len = min chunk_len (chunk.len -- in_chunk_pos) in
+            let in_chunk_pos = chunk_begin -- chunk.pos in
+            let max_len = min chunk_len (chunk.len -- in_chunk_pos) in
           
-          FDCache.copy_chunk chunk.fd file_out
-            in_chunk_pos pos max_len;
-          iter (pos ++ max_len) (index+1) (chunk_begin ++ max_len)
-          (chunk_len -- max_len)
+            FDCache.copy_chunk chunk.fd file_out
+              in_chunk_pos pos max_len;
+            iter (pos ++ max_len) (index+1) (chunk_begin ++ max_len)
+              (chunk_len -- max_len)
       
-      in
-      iter zero (find_read_pos t chunk_begin) chunk_begin chunk_len;
+	in
+	  try
+	    iter zero (find_read_pos t chunk_begin) chunk_begin chunk_len;
       
-      FDCache.close file_out;
-      let fd = FDCache.local_force_fd file_out true in
-      try
-        let v = f fd zero in
-        Sys.remove temp_file;
-        v
-      with e -> 
-          Sys.remove temp_file;
-          raise e
+	    FDCache.close file_out;
+	    let fd = FDCache.local_force_fd file_out in
+            let v = f fd zero in
+            Sys.remove temp_file;
+            v
+	  with e -> 
+	    lprintf_nl "Exception in SparseFile.apply_on_chunk %s %Ld %Ld: %s"
+	      t.dirname
+	      chunk_begin
+	      chunk_len
+              (Printexc2.to_string e);
+	    (try FDCache.close file_out with _ -> ());
+	    (try Sys.remove temp_file with _ -> ());
+	    raise e
     
     let close t =
       Array.iter (fun file -> FDCache.close file.fd) t.chunks
@@ -749,10 +880,9 @@ module SparseFile = struct
       let chunk_len = t.size in
       let nchunks = Array.length t.chunks in
       
-      let file_out = FDCache.create f in
+      let file_out = FDCache.create f true in
       
       let rec iter pos index chunk_begin chunk_len =
-        
         if chunk_len > zero then
           let chunk =
             if index >= nchunks then 
@@ -760,15 +890,15 @@ module SparseFile = struct
               z.pos <- chunk_begin;
               z
             else
-            let chunk = t.chunks.(index) in
-            let next_pos = chunk.pos in
-            if next_pos > chunk_begin then 
-              let z = zero_chunk () in
-              z.pos <- chunk_begin;
-              z.len <- min zero_chunk_len (next_pos -- chunk_begin);
-              z
+              let chunk = t.chunks.(index) in
+              let next_pos = chunk.pos in
+	      if next_pos > chunk_begin then 
+		let z = zero_chunk () in
+		z.pos <- chunk_begin;
+		z.len <- min zero_chunk_len (next_pos -- chunk_begin);
+		z
               else
-              chunk
+		chunk
           in
 
           let in_chunk_pos = chunk_begin -- chunk.pos in
@@ -780,35 +910,47 @@ module SparseFile = struct
           if chunk.fd != zero_chunk_fd () then FDCache.remove chunk.fd;
 
           iter (pos ++ max_len) (index+1) (chunk_begin ++ max_len)
-          (chunk_len -- max_len)
+            (chunk_len -- max_len)
 
       in
-      iter zero 0 chunk_begin chunk_len;
-      FDCache.close file_out;
-      ()
-(*
-      Sys.rename t.dirname f;
-      List.iter (fun file ->
-          file.fd.FDCache.filename <- Filename.concat t.dirname file.filename
-      ) t.files
+	iter zero 0 chunk_begin chunk_len;
+	FDCache.close file_out;
+	()
+(* (* why is that commented off ? Does SparseFile.rename actually work ? *)
+        Sys.rename t.dirname f;
+        List.iter (fun file ->
+            file.fd.FDCache.filename <- Filename.concat t.dirname file.filename
+        ) t.files
 *)
 
     let ftruncate64 t size sparse =
       t.size <- size
 
-    let getsize64 t writable = t.size
+    let getsize64 t = t.size
 
     let mtime64 t =
-      let st = Unix.LargeFile.stat t.dirname in
-      st.Unix.LargeFile.st_mtime
+      try
+	let st = Unix.LargeFile.stat t.dirname in
+	st.Unix.LargeFile.st_mtime
+      with e ->
+	lprintf_nl "Exception in SparseFile.mtime64 %s: %s"
+	  t.dirname
+          (Printexc2.to_string e);
+	raise e
 
     let exists t =
       Sys.file_exists t.dirname
 
     let remove t =
-      close t;
+      try
+	close t;
 (*      lprintf "Removing %s\n" t.dirname; *)
-      Unix2.remove_all_directory t.dirname
+	Unix2.remove_all_directory t.dirname
+      with e ->
+	lprintf_nl "Exception in SparseFile.remove %s: %s" 
+	  t.dirname
+          (Printexc2.to_string e);
+	raise e
 
     let read t chunk_begin string string_pos chunk_len =
       let chunk_len64 = Int64.of_int chunk_len in
@@ -823,15 +965,15 @@ module SparseFile = struct
               z.pos <- chunk_begin;
               z
             else
-            let chunk = t.chunks.(index) in
-            let next_pos = chunk.pos in
-            if next_pos > chunk_begin then 
-              let z = zero_chunk () in
-              z.pos <- chunk_begin;
-              z.len <- min zero_chunk_len (next_pos -- chunk_begin);
-              z
-            else
-              chunk
+              let chunk = t.chunks.(index) in
+              let next_pos = chunk.pos in
+	      if next_pos > chunk_begin then 
+		let z = zero_chunk () in
+		z.pos <- chunk_begin;
+		z.len <- min zero_chunk_len (next_pos -- chunk_begin);
+		z
+              else
+		chunk
           in
 
           let in_chunk_pos = chunk_begin -- chunk.pos in
@@ -840,46 +982,43 @@ module SparseFile = struct
 
           FDCache.read chunk.fd in_chunk_pos string string_pos max_len;
           iter (string_pos + max_len) (index+1) (chunk_begin ++ max_len64)
-          (chunk_len64 -- max_len64)
-
+            (chunk_len64 -- max_len64)
 
       in
-      iter string_pos (find_read_pos t chunk_begin) chunk_begin chunk_len64
+	iter string_pos (find_read_pos t chunk_begin) chunk_begin chunk_len64
 
     let write t chunk_begin string string_pos len =
       let index = find_write_pos t chunk_begin in
-
       let len64 = Int64.of_int len in
-
       let nchunks = Array.length t.chunks in
 
       if index = Array.length t.chunks then begin
 (*          lprintf "Adding chunk at end\n"; *)
-          let chunk_name = Int64.to_string chunk_begin in
-          let chunk_name = Filename.concat t.dirname chunk_name in
-          let fd = FDCache.create chunk_name in
-          let chunk = {
-              chunkname = chunk_name;
-              pos = chunk_begin;
-              len = zero;
-              fd = fd;
-            } in
-          let new_array = Array.create (nchunks+1) chunk in
-          Array.blit t.chunks 0 new_array 0 nchunks;
-          t.chunks <- new_array
+        let chunk_name = Int64.to_string chunk_begin in
+        let chunk_name = Filename.concat t.dirname chunk_name in
+        let fd = FDCache.create chunk_name t.writable in
+        let chunk = {
+          chunkname = chunk_name;
+          pos = chunk_begin;
+          len = zero;
+          fd = fd;
+        } in
+        let new_array = Array.create (nchunks+1) chunk in
+        Array.blit t.chunks 0 new_array 0 nchunks;
+        t.chunks <- new_array
 
-        end else
-      if t.chunks.(index).pos > chunk_begin then begin
+      end else
+	if t.chunks.(index).pos > chunk_begin then begin
 (*          lprintf "Inserting chunk\n"; *)
           let chunk_name = Int64.to_string chunk_begin in
           let chunk_name = Filename.concat t.dirname chunk_name in
-          let fd = FDCache.create chunk_name in
+          let fd = FDCache.create chunk_name t.writable in
           let chunk = {
-              chunkname = chunk_name;
-              pos = chunk_begin;
-              len = zero;
-              fd = fd;
-            } in
+            chunkname = chunk_name;
+            pos = chunk_begin;
+            len = zero;
+            fd = fd;
+          } in
           let new_array = Array.create (nchunks+1) chunk in
           Array.blit t.chunks 0 new_array 0 index;
           Array.blit t.chunks index new_array (index+1) (nchunks-index);
@@ -893,15 +1032,15 @@ module SparseFile = struct
             if index = nchunks-1 then
               index, len, Int64.of_int len
             else
-            let max_pos = t.chunks.(index+1).pos in
-            let max_possible_len64 = max_pos -- chunk_begin in
-            let len64 = Int64.of_int len in
-            let max_len64 = min max_possible_len64 len64 in
-            let max_len = Int64.to_int max_len64 in
-            if max_len64 = max_possible_len64 then
-              index+1, max_len, max_len64
-            else
-              index, max_len, max_len64
+              let max_pos = t.chunks.(index+1).pos in
+              let max_possible_len64 = max_pos -- chunk_begin in
+              let len64 = Int64.of_int len in
+              let max_len64 = min max_possible_len64 len64 in
+              let max_len = Int64.to_int max_len64 in
+	      if max_len64 = max_possible_len64 then
+		index+1, max_len, max_len64
+              else
+		index, max_len, max_len64
           in
 
           let chunk = t.chunks.(index) in
@@ -910,9 +1049,9 @@ module SparseFile = struct
           chunk.len <- chunk.len ++ max_len64;
 
           iter next_index (chunk_begin ++ max_len64)
-          (string_pos + max_len) (len - max_len)
+            (string_pos + max_len) (len - max_len)
       in
-      iter index chunk_begin string_pos len;
+	iter index chunk_begin string_pos len;
 
       t.size <- max t.size (chunk_begin ++ len64);
 
@@ -933,6 +1072,7 @@ type file_kind =
 type file = {
     mutable file_kind : file_kind;
     mutable filename : string;
+    mutable writable : bool;
     mutable error : exn option;
     mutable buffers : (string * int * int * int64 * int64) list;
   }
@@ -940,47 +1080,55 @@ type file = {
 module H = Weak.Make(struct
       type old_t = file
       type t = old_t
-      let hash t = Hashtbl.hash t.filename
+      let hash t = Hashtbl.hash (t.filename, t.writable)
 
-      let equal x y  = x.filename = y.filename
+      let equal x y  = x.filename = y.filename && x.writable = y.writable
     end)
 
 let dummy =  {
-    file_kind = DiskFile (DiskFile.create "");
+    file_kind = Destroyed;
     filename = "";
+    writable = false;
     error = None;
     buffers = [];
   }
 
 let table = H.create 100
 
-let create f creator =
+let create f writable creator =
   try
-    let fd = H.find table { dummy with filename = f } in
+    let fd = H.find table { dummy with filename = f; writable = writable } in
 (*    lprintf "%s already exists\n" f; *)
     fd
-  with _ ->
-      let t =  {
-          file_kind = creator f;
-          filename = f;
-          error = None;
-          buffers = [];
-        } in
-      H.add table t;
-      t
-    
-    
+  with Not_found ->
+    let t = {
+      file_kind = creator f;
+      filename = f;
+      writable = writable;
+      error = None;
+      buffers = [];
+    } in
+    H.add table t;
+    t
+
+(* check if a writable descriptor on the same file exists *)
+let find_writable fd =
+  if fd.writable then Some fd
+  else
+    try
+      Some (H.find table { fd with writable = true })
+    with Not_found -> None
       
-let create_diskfile filename _ _ =
-  create filename (fun f -> DiskFile (DiskFile.create f))
+let create_diskfile filename writable =
+  create filename writable (fun f -> DiskFile (DiskFile.create f writable))
 
-let create_multifile filename _ _ files =
-  create filename (fun f ->
-      MultiFile (MultiFile.create f files))
+let create_multifile filename writable files =
+  create filename writable (fun f ->
+    MultiFile (MultiFile.create f writable files))
 
-let create_sparsefile filename =
-  create filename (fun f ->
-      SparseFile (SparseFile.create f))
+let create_sparsefile filename writable =
+  create filename writable (fun f ->
+    SparseFile (SparseFile.create f writable))
 
 let ftruncate64 t len sparse =
   match t.file_kind with
@@ -996,12 +1144,12 @@ let mtime64 t =
   | SparseFile t -> SparseFile.mtime64 t
   | Destroyed -> failwith "Unix32.mtime64 on destroyed FD"
       
-let getsize64 t writable =
+let getsize64 t =
   match t.file_kind with
-  | DiskFile t -> DiskFile.getsize64 t writable
+  | DiskFile t -> DiskFile.getsize64 t
     (* only avoid opening rw on shared files, shared files can only be DiskFile *)
   | MultiFile t -> MultiFile.getsize64 t
-  | SparseFile t -> SparseFile.getsize64 t writable
+  | SparseFile t -> SparseFile.getsize64 t
   | Destroyed -> failwith "Unix32.getsize64 on destroyed FD"
 
 let fds_size = Unix2.c_getdtablesize ()
@@ -1009,105 +1157,92 @@ let fds_size = Unix2.c_getdtablesize ()
 let buffered_bytes = ref Int64.zero
 let modified_files = ref []
 
-(*
-let _ =
-
-  lprintf "Your system supports %d file descriptors\n" fds_size;
-  lprintf "You can download files up to %s\n\n"
-    ( match Unix2.c_sizeofoff_t () with
-	|  4 -> "2GB"
-	|  _ -> Printf.sprintf "2^%d-1 bits (do the maths ;-p)"
-	     ((Unix2.c_sizeofoff_t () *8)-1)			
-    )
-*)
-
-(* at most 50 files can be opened simultaneously *)
-
-
 let filename t = t.filename
 
 let write file file_pos string string_pos len =
   if len > 0 then
-  match file.file_kind with
-  | DiskFile t -> DiskFile.write t file_pos string string_pos len
-  | MultiFile t -> MultiFile.write t file_pos string string_pos len
-  | SparseFile t -> SparseFile.write t file_pos string string_pos len
-  | Destroyed -> failwith "Unix32.write on destroyed FD"
+    match file.file_kind with
+      | DiskFile t -> DiskFile.write t file_pos string string_pos len
+      | MultiFile t -> MultiFile.write t file_pos string string_pos len
+      | SparseFile t -> SparseFile.write t file_pos string string_pos len
+      | Destroyed -> failwith "Unix32.write on destroyed FD"
   else
-    lprintf "Unix32.write: error, invalid argument len = 0\n"
+    lprintf_nl "Unix32.write: error, invalid argument len = 0"
         
 let buffer = Buffer.create 65000
 
-
 let flush_buffer t offset =
-  if verbose then lprintf "flush_buffer\n";
+  if !verbose then lprintf_nl "flush_buffer";
   let s = Buffer.contents buffer in
   Buffer.reset buffer;
   let len = String.length s in
   try
-    if verbose then lprintf "seek64 %Ld\n" offset;
+    if !verbose then lprintf_nl "seek64 %Ld" offset;
     if len > 0 then write t offset s 0 len;
 (*
     let fd, offset =  fd_of_chunk t offset (Int64.of_int len) in
     let final_pos = Unix2.c_seek64 fd offset Unix.SEEK_SET in
-    if verbose then lprintf "really_write %d\n" len;
+    if verbose then lprintf_nl "really_write %d" len;
     Unix2.really_write fd s 0 len;
 *)
     buffered_bytes := !buffered_bytes -- (Int64.of_int len);
-    if verbose then lprintf "written %d bytes (%Ld)\n" len !buffered_bytes;
+    if !verbose then lprintf_nl "written %d bytes (%Ld)" len !buffered_bytes;
   with e ->
-      lprintf "exception %s in flush_buffer\n" (Printexc2.to_string e);
-      t.buffers <- (s, 0, len, offset, Int64.of_int len) :: t.buffers;
-      raise e
+    lprintf_nl "exception %s in flush_buffer" (Printexc2.to_string e);
+    t.buffers <- (s, 0, len, offset, Int64.of_int len) :: t.buffers;
+    raise e
 
 let flush_fd t =
-  if t.buffers = [] then () else
-  let list =
-    List.sort (fun (_, _, _, o1, l1) (_, _, _, o2, l2) ->
-        let c = compare o1 o2 in
-        if c = 0 then compare l2 l1 else c)
-    t.buffers
-  in
-  if verbose then lprintf "flush_fd\n";
-  t.buffers <- list;
-  let rec iter_out () =
-    match t.buffers with
-      [] -> ()
-    | (s, pos_s, len_s, offset, len) :: tail ->
-        Buffer.reset buffer;
-        Buffer.add_substring buffer s pos_s len_s;
-        t.buffers <- tail;
-        iter_in offset len
+  match find_writable t with
+  | None -> ()
+  | Some t ->
+      if t.buffers = [] then () else
+	let list =
+	  List.sort (fun (_, _, _, o1, l1) (_, _, _, o2, l2) ->
+	    let c = compare o1 o2 in
+            if c = 0 then compare l2 l1 else c)
+	    t.buffers
+	in
+	if !verbose then lprintf_nl "flush_fd";
+	t.buffers <- list;
+	let rec iter_out () =
+	  match t.buffers with
+	  | [] -> ()
+	  | (s, pos_s, len_s, offset, len) :: tail ->
+              Buffer.reset buffer;
+              Buffer.add_substring buffer s pos_s len_s;
+              t.buffers <- tail;
+              iter_in offset len
 
-  and iter_in offset len =
-    match t.buffers with
-      [] -> flush_buffer t offset
-    | (s, pos_s, len_s, offset2, len2) :: tail ->
-        let in_offset = offset ++ len -- offset2 in
-        if in_offset = Int64.zero then begin
-            Buffer.add_substring buffer s pos_s len_s;
-            t.buffers <- tail;
-            iter_in offset (len ++ len2);
-          end else
-        if in_offset < Int64.zero then begin
-            flush_buffer t offset;
-            iter_out ()
-          end else
-        let keep_len = len2 -- in_offset in
-        if verbose then lprintf "overlap %Ld\n" keep_len;
-        t.buffers <- tail;
-        if keep_len <= Int64.zero then begin
-            buffered_bytes := !buffered_bytes -- len2;
-            iter_in offset len
-          end else begin
-            let new_pos = len2 -- keep_len in
-            Buffer.add_substring buffer s
-              (pos_s + Int64.to_int new_pos) (Int64.to_int keep_len);
-            buffered_bytes := !buffered_bytes -- new_pos;
-            iter_in offset (len ++ keep_len)
-          end
-  in
-  iter_out ()
+	and iter_in offset len =
+	  match t.buffers with
+	  | [] -> flush_buffer t offset
+	  | (s, pos_s, len_s, offset2, len2) :: tail ->
+              let in_offset = offset ++ len -- offset2 in
+              if in_offset = Int64.zero then begin
+		Buffer.add_substring buffer s pos_s len_s;
+		t.buffers <- tail;
+		iter_in offset (len ++ len2);
+              end else
+		if in_offset < Int64.zero then begin
+		  flush_buffer t offset;
+		  iter_out ()
+		end else
+		  let keep_len = len2 -- in_offset in
+		  if !verbose then lprintf_nl "overlap %Ld" keep_len;
+		  t.buffers <- tail;
+		  if keep_len <= 0L then begin
+		    buffered_bytes := !buffered_bytes -- len2;
+		    iter_in offset len
+		  end else begin
+		    let new_pos = len2 -- keep_len in
+		    Buffer.add_substring buffer s
+		      (pos_s + Int64.to_int new_pos) (Int64.to_int keep_len);
+		    buffered_bytes := !buffered_bytes -- new_pos;
+		    iter_in offset (len ++ keep_len)
+		  end
+	in
+	iter_out ()
 
 let read t file_pos string string_pos len =
   flush_fd t;
@@ -1121,41 +1256,41 @@ let read t file_pos string string_pos len =
       
 let flush _ =
   try
-    if verbose then lprintf "flush all\n";
+    if !verbose then lprintf_nl "flush all";
     let rec iter list =
       match list with
-        [] -> []
+      | [] -> []
       | t :: tail ->
           try
             flush_fd t;
             t.error <- None;
             iter tail
           with e ->
-              t.error <- Some e;
-              t :: (iter tail)
+            t.error <- Some e;
+            t :: (iter tail)
     in
-    modified_files := iter !modified_files;
-    if !buffered_bytes <> Int64.zero then
-      lprintf "[ERROR] remaining bytes after flush\n"
+      modified_files := iter !modified_files;
+      if !buffered_bytes <> 0L then
+	lprintf_nl "[ERROR] remaining bytes after flush"
   with e ->
-      lprintf "[ERROR] Exception %s in Unix32.flush\n"
+      lprintf_nl "[ERROR] Exception %s in Unix32.flush"
         (Printexc2.to_string e)
 
 let buffered_write t offset s pos_s len_s =
   let len = Int64.of_int len_s in
   match t.error with
-    None ->
+  | None ->
       if len > Int64.zero then begin
-          if not (List.memq t !modified_files) then
-            modified_files := t:: !modified_files;
-          t.buffers <- (s, pos_s, len_s, offset, len) :: t.buffers;
-          buffered_bytes := !buffered_bytes ++ len;
-          if verbose then
-            lprintf "buffering %Ld bytes (%Ld)\n" len !buffered_bytes;
+        if not (List.memq t !modified_files) then
+          modified_files := t :: !modified_files;
+        t.buffers <- (s, pos_s, len_s, offset, len) :: t.buffers;
+        buffered_bytes := !buffered_bytes ++ len;
+        if !verbose then
+          lprintf_nl "buffering %Ld bytes (%Ld)" len !buffered_bytes;
 
 (* Don't buffer more than 1 Mo *)
-          if !buffered_bytes > !max_buffered then flush ()
-        end
+        if !buffered_bytes > !max_buffered then flush ()
+      end
   | Some e ->
       raise e
 
@@ -1176,18 +1311,19 @@ let copy_chunk t1 t2 pos1 pos2 len =
       iter (remaining - len) (pos1 ++ len64) (pos2 ++ len64)
     end
   in
-  iter len pos1 pos2
+    iter len pos1 pos2
 
 let mega = megabytes 1
+
 let rec copy t1 t2 pos1 pos2 len64 = 
   if len64 > mega then begin
-      copy_chunk t1 t2 pos1 pos2 (Int64.to_int mega);
-      copy t1 t2 (pos1 ++ mega) (pos2 ++ mega) (len64 -- mega)
-    end else
+    copy_chunk t1 t2 pos1 pos2 (Int64.to_int mega);
+    copy t1 t2 (pos1 ++ mega) (pos2 ++ mega) (len64 -- mega)
+  end else
     copy_chunk t1 t2 pos1 pos2 (Int64.to_int len64)
 
-
 let close_all = FDCache.close_all
+
 let close t =
   flush_fd t;
   match t.file_kind with
@@ -1198,18 +1334,17 @@ let close t =
 
 let destroy t =
   if t.file_kind <> Destroyed then begin
-      H.remove table t;
-      (match t.file_kind with
-        | DiskFile t -> DiskFile.destroy t
-        | MultiFile t -> MultiFile.destroy t
-        | SparseFile t -> SparseFile.destroy t
-        | Destroyed -> ());
-      t.file_kind <- Destroyed
-    end
+    H.remove table t;
+    (match t.file_kind with
+     | DiskFile t -> DiskFile.destroy t
+     | MultiFile t -> MultiFile.destroy t
+     | SparseFile t -> SparseFile.destroy t
+     | Destroyed -> ());
+    t.file_kind <- Destroyed
+  end
     
-(* let create_ro filename = create_diskfile filename ro_flag 0o666 *)
-let create_rw filename = create_diskfile filename rw_flag 0o666
-let create_ro = create_rw
+let create_rw filename = create_diskfile filename true
+let create_ro filename = create_diskfile filename false
 
 let apply_on_chunk t pos len f =
   match t.file_kind with
@@ -1237,10 +1372,15 @@ let remove t =
   | SparseFile t -> SparseFile.remove t
   | Destroyed -> failwith "Unix32.remove on destroyed FD"
       
-let getsize s writable =  getsize64 (create_ro s) writable
+let getsize s =  getsize64 (create_ro s)
 let mtime s =  mtime64 (create_ro s)
 
-let file_exists s = exists (create_ro s)
+let file_exists s = 
+  (* We use this instead of Sys.file_exists, in case exists has side
+     effects ? *)
+  try 
+    exists (create_ro s)
+  with Unix.Unix_error (Unix.ENOENT, _, _) -> false
 
 let rename t f =
   flush_fd t;
@@ -1271,121 +1411,122 @@ The following functions have to be rewritten:
 * copy_chunk: remove this
 *)
     
-    type t = {
-        file : file;
-        mutable file_parts : part list;
-      }
+  type t = {
+    file : file;
+    mutable file_parts : part list;
+  }
     
-    and part = {
-        mutable part_file : file;
-        mutable part_begin : int64;
-        mutable part_len : int64;
-        mutable part_end : int64;
-        mutable part_shared : t list;
-      }
+  and part = {
+    mutable part_file : file;
+    mutable part_begin : int64;
+    mutable part_len : int64;
+    mutable part_end : int64;
+    mutable part_shared : t list;
+  }
     
-    let copy_shared_parts_out file parts =
-      List2.tail_map (fun part ->
-          if part.part_file == file then 
-            match part.part_shared with
-              [] -> part
-            | t :: tail ->
-                lprintf "Copy shared part to another file\n";
-                copy part.part_file t.file part.part_begin part.part_begin
-                  part.part_len;
-                lprintf "   Copy done.\n";
-                part.part_file <- t.file;
-                part.part_shared <- tail;
-                { part with part_file = file; part_shared = [] }
-          else part
-      ) parts
+  let copy_shared_parts_out file parts =
+    List2.tail_map (fun part ->
+      if part.part_file == file then 
+        match part.part_shared with
+        | [] -> part
+        | t :: tail ->
+            lprintf_nl "Copy shared part to another file";
+            copy part.part_file t.file part.part_begin part.part_begin
+              part.part_len;
+            lprintf_nl "   Copy done.";
+            part.part_file <- t.file;
+            part.part_shared <- tail;
+            { part with part_file = file; part_shared = [] }
+      else part
+    ) parts
     
-    let copy_shared_parts_in file parts =
-      List2.tail_map (fun part ->
-          if part.part_file != file then begin
-              lprintf "Copy shared part to another file\n";
-              copy part.part_file file part.part_begin part.part_begin
-                part.part_len;
-              lprintf "   Copy done.\n";
-              part.part_shared <- List.filter (fun t -> t.file != file) 
-              part.part_shared;
-              { part with part_file = file; part_shared = [] }
-            end else part
-      ) parts
+  let copy_shared_parts_in file parts =
+    List2.tail_map (fun part ->
+      if part.part_file != file then begin
+        lprintf_nl "Copy shared part to another file";
+        copy part.part_file file part.part_begin part.part_begin
+          part.part_len;
+        lprintf_nl "   Copy done.";
+        part.part_shared <- List.filter (fun t -> t.file != file) 
+          part.part_shared;
+        { part with part_file = file; part_shared = [] }
+      end else 
+	part
+    ) parts
     
-    let remove t =
-      t.file_parts <- copy_shared_parts_out t.file t.file_parts;
-      remove t.file
+  let remove t =
+    t.file_parts <- copy_shared_parts_out t.file t.file_parts;
+    remove t.file
     
-    let destroy t = 
-      t.file_parts <- copy_shared_parts_out t.file t.file_parts;
-      destroy t.file
+  let destroy t = 
+    t.file_parts <- copy_shared_parts_out t.file t.file_parts;
+    destroy t.file
     
-    let old_close = close
+  let old_close = close
     
-    let close t = close t.file
-    let getsize64 t  = getsize64 t.file
-    let filename t = filename t.file
+  let close t = close t.file
+  let getsize64 t  = getsize64 t.file
+  let filename t = filename t.file
     
-    let rename t file_name = 
-      t.file_parts <- copy_shared_parts_in t.file t.file_parts;
-      t.file_parts <- copy_shared_parts_out t.file t.file_parts;
-      rename t.file file_name
+  let rename t file_name = 
+    t.file_parts <- copy_shared_parts_in t.file t.file_parts;
+    t.file_parts <- copy_shared_parts_out t.file t.file_parts;
+    rename t.file file_name
     
-    let mtime64 t = mtime64 t.file
-    let flush_fd t = flush_fd t.file
+  let mtime64 t = mtime64 t.file
+  let flush_fd t = flush_fd t.file
     
-    let apply_on_parts f t file_pos s pos len =
-      List.iter (fun part ->
-          f part.part_file file_pos s pos len) t.file_parts
+  let apply_on_parts f t file_pos s pos len =
+    List.iter (fun part ->
+      f part.part_file file_pos s pos len) t.file_parts
     
-    let buffered_write t file_pos s pos len =
-      apply_on_parts buffered_write t file_pos s pos len
+  let buffered_write t file_pos s pos len =
+    apply_on_parts buffered_write t file_pos s pos len
     
-    let buffered_write_copy t file_pos s pos len =
-      apply_on_parts buffered_write_copy t file_pos s pos len
+  let buffered_write_copy t file_pos s pos len =
+    apply_on_parts buffered_write_copy t file_pos s pos len
     
-    let write t file_pos s pos len =
-      apply_on_parts write t file_pos s pos len
+  let write t file_pos s pos len =
+    apply_on_parts write t file_pos s pos len
     
-    let read t file_pos s pos len =
-      apply_on_parts read t file_pos s pos len
+  let read t file_pos s pos len =
+    apply_on_parts read t file_pos s pos len
 
 
 
 (* TODO: there is no need to create a temporary file when the wanted chunk
-overlaps different parts, but these parts are on the same physical file. *)
-    let apply_on_chunk t chunk_begin chunk_len f =
-      let chunk_end = chunk_begin ++ chunk_len in
-      let rec iter list =
-        match list with 
-          [] -> assert false
-        | part :: tail ->
-            if part.part_begin <= chunk_begin &&
-              part.part_end >= chunk_end then
+ * overlaps different parts, but these parts are on the same physical file. *)
+  let apply_on_chunk t chunk_begin chunk_len f =
+    let chunk_end = chunk_begin ++ chunk_len in
+    let rec iter list =
+      match list with 
+      | [] -> assert false
+      | part :: tail ->
+          if part.part_begin <= chunk_begin &&
+            part.part_end >= chunk_end then
               apply_on_chunk part.part_file chunk_begin chunk_len f
-            else
+          else
             if part.part_end > chunk_begin then
               make_temp_file list
             else
               iter tail
       
-      and make_temp_file list = 
-        let temp_file = Filename.temp_file "chunk" ".tmp" in
-        let file_out = create_rw temp_file in
+    and make_temp_file list = 
+      let temp_file = Filename.temp_file "chunk" ".tmp" in
+      let file_out = create_rw temp_file in
         
-        let rec fill pos chunk_begin chunk_len list =
-          if chunk_len > zero then
-            match list with
-              [] -> ()
-            | part :: tail ->
+      let rec fill pos chunk_begin chunk_len list =
+        if chunk_len > zero then
+          match list with
+          | [] -> ()
+          | part :: tail ->
                 
-                let tocopy = min chunk_len (part.part_end -- chunk_begin) in
-                copy_chunk part.part_file file_out chunk_begin pos 
-                  (Int64.to_int tocopy);
-                fill (pos ++ tocopy) (chunk_begin ++ tocopy)
+              let tocopy = min chunk_len (part.part_end -- chunk_begin) in
+              copy_chunk part.part_file file_out chunk_begin pos 
+                (Int64.to_int tocopy);
+              fill (pos ++ tocopy) (chunk_begin ++ tocopy)
                 (chunk_len -- tocopy) tail
-        in
+      in
         fill zero chunk_begin chunk_len list;
         old_close file_out;
         try
@@ -1393,18 +1534,17 @@ overlaps different parts, but these parts are on the same physical file. *)
           Sys.remove temp_file;
           v
         with e ->
-            Sys.remove temp_file;
+            (try Sys.remove temp_file with _ -> ());
             raise e
-      
+
       in
-      
-      iter t.file_parts
-    
-    let ftruncate64 t len sparse = 
+        iter t.file_parts
+
+    let ftruncate64 t len sparse =
       ftruncate64 t.file len sparse
-    
+
     let maxint64 = megabytes 1000000
-    
+
     let create file =
       let part = { 
           part_file = file;
@@ -1415,14 +1555,14 @@ overlaps different parts, but these parts are on the same physical file. *)
         } in
       { file = file; file_parts = [part] }
     
-    let create_diskfile file_name flags rights =
-      create (create_diskfile file_name flags rights)
+    let create_diskfile file_name writable =
+      create (create_diskfile file_name writable)
     
-    let create_multifile file_name flags rights files =
-      create (create_multifile file_name flags rights files)
+    let create_multifile file_name writable files =
+      create (create_multifile file_name writable files)
     
-    let create_sparsefile file_name =
-      create (create_sparsefile file_name)
+    let create_sparsefile file_name writable =
+      create (create_sparsefile file_name writable)
     
     let create_ro filename = 
       create (create_ro filename)
@@ -1444,10 +1584,12 @@ let destroyed t = t.file_kind = Destroyed
   
 type t = file
 
+(*
 let bad_fd = 
   let t = create_rw "/dev/null" in
   t.file_kind <- Destroyed;
   t
+*)
 
 type statfs = {
   f_type : int64;   (* type of filesystem *)

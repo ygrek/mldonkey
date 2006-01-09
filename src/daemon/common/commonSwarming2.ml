@@ -3220,7 +3220,7 @@ module Check = struct
     let block_sizes = [| 1000; 400; 299 |]
     let block_sizes = Array.map Int64.of_int block_sizes
 
-    let file_check_fd = Unix32.create_diskfile file Unix32.rw_flag 0o444
+    let file_check_fd = Unix32.create_diskfile file true
 
     module S = Make(struct
 
@@ -3315,7 +3315,7 @@ module Check = struct
                 let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
 
                 let file = {
-                    file_fd = Unix32.create_diskfile temp_filename Unix32.rw_flag 0o666;
+                    file_fd = Unix32.create_diskfile temp_filename true;
                     file_num = i;
                     file_name = "toto";
                     file_size = file_size;

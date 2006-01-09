@@ -183,7 +183,9 @@ let enable () =
     let enabler = ref true in
     is_enabled := true;
     network.op_network_disable <- disable enabler;
-    client_public_key := Unix32.load_key (!!client_private_key);
+    (try
+      client_public_key := Unix32.load_key (!!client_private_key)
+    with _ -> ());
     if not !!enable_donkey then enable_donkey =:= true;
     
     try
@@ -216,7 +218,7 @@ let enable () =
                 try
                   let file_disk_name = file_disk_name file in
                   if Unix32.file_exists file_disk_name &&
-                    Unix32.getsize file_disk_name false <> Int64.zero then begin
+                    Unix32.getsize file_disk_name <> Int64.zero then begin
                     (* getsize writable=false is ok because file has state FileDownloaded *)
                       lprintf_nl () "FILE DOWNLOADED"; 
                       

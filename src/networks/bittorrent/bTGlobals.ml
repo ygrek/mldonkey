@@ -55,7 +55,7 @@ let as_file file = as_file file.file_file
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
-let file_fd file = file.file_file.impl_file_fd
+let file_fd file = file_fd (as_file file)
 let file_disk_name file = file_disk_name (as_file file)
 let file_state file = file_state (as_file file)
 let file_num file = file_num (as_file file)
@@ -169,7 +169,7 @@ let create_temp_file file_temp file_files =
   let file_fd =
     if file_files <> [] then
       Unix32.create_multifile file_temp
-        [Unix.O_RDWR; Unix.O_CREAT] 0o666 file_files
+        true file_files
     else
       Unix32.create_rw file_temp
   in
@@ -226,7 +226,7 @@ let new_file file_id t torrent_diskname file_temp file_state =
           file_shared = None;
         } and file_impl =  {
           dummy_file_impl with
-          impl_file_fd = file_fd;
+          impl_file_fd = Some file_fd;
           impl_file_size = t.torrent_length;
           impl_file_downloaded = Int64.zero;
           impl_file_val = file;
@@ -291,7 +291,7 @@ let new_ft file_name =
       ft_retry = (fun _ -> ());
     } and file_impl =  {
       dummy_file_impl with
-      impl_file_fd = Unix32.bad_fd;
+      impl_file_fd = None;
       impl_file_size = zero;
       impl_file_downloaded = Int64.zero;
       impl_file_val = ft;

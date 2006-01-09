@@ -61,7 +61,7 @@ let (client_ops : client CommonClient.client_ops) =
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file.file_file.impl_file_downloaded
 let file_age file = file.file_file.impl_file_age
-let file_fd file = file.file_file.impl_file_fd
+let file_fd file = file_fd (as_file file.file_file)
 let file_disk_name file = file_disk_name (as_file file.file_file)
 let set_file_disk_name file = set_file_disk_name (as_file file.file_file)
 
@@ -187,7 +187,7 @@ let new_file file_id file_name file_size =
           file_clients = [];
         } and file_impl =  {
           dummy_file_impl with
-          impl_file_fd = Unix32.create file_temp [Unix.O_RDWR; Unix.O_CREAT] 0o666;
+          impl_file_fd = Some (Unix32.create_rw file_temp);
           impl_file_size = file_size;
           impl_file_downloaded = current_size;
           impl_file_val = file;

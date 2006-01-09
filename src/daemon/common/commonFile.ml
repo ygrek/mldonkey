@@ -52,7 +52,7 @@ type 'a file_impl = {
     mutable impl_file_ops : 'a file_ops;
     mutable impl_file_size : int64;
     mutable impl_file_age : int;
-    mutable impl_file_fd : Unix32.t;
+    mutable impl_file_fd : Unix32.t option;
     mutable impl_file_downloaded : int64;
     mutable impl_file_received : int64;
     mutable impl_file_last_received : (int64 * int) list;
@@ -121,7 +121,7 @@ let dummy_file_impl = {
     impl_file_ops = Obj.magic 0;
     impl_file_size = Int64.zero;
     impl_file_age = 0;
-    impl_file_fd = Unix32.create_diskfile "" [Unix.O_RDONLY] 0o666;
+    impl_file_fd = None;
     impl_file_downloaded = Int64.zero;
     impl_file_received = Int64.zero;
     impl_file_last_received = [];
@@ -410,19 +410,20 @@ let add_file_downloaded file n =
 let file_size file = 
   (as_file_impl file).impl_file_size
 
-let file_disk_name file =
-  Unix32.filename (as_file_impl file).impl_file_fd
-
 let file_fd file =
-  (as_file_impl file).impl_file_fd
+  match (as_file_impl file).impl_file_fd with
+    | Some fd -> fd
+    | None -> raise Not_found
+
+let file_disk_name file =
+  Unix32.filename (file_fd file)
 
 let set_file_fd file fd =
-  (as_file_impl file).impl_file_fd <- fd
+  (as_file_impl file).impl_file_fd <- Some fd
 
 let set_file_disk_name file filename =
   let orig_fd = file_fd file in
-  if orig_fd != Unix32.bad_fd then
-    Unix32.rename orig_fd filename
+  Unix32.rename orig_fd filename
 
 let file_downloaded file = (as_file_impl file).impl_file_downloaded
 

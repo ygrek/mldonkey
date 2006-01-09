@@ -93,7 +93,7 @@ let user_num  u = user_num  (as_user u.user_user)
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file.file_file)
 let file_age file = file.file_file.impl_file_age
-let file_fd file = file.file_file.impl_file_fd
+let file_fd file = file_fd (as_file file.file_file)
   
 let client_type c =
   client_type (as_client c.client_client)
@@ -268,7 +268,7 @@ let new_file file_id name file_size =
           file_clients = [];
         } and impl = {
           dummy_file_impl with
-          impl_file_fd = Unix32.create_rw file_temp;
+          impl_file_fd = Some (Unix32.create_rw file_temp);
           impl_file_size = file_size;
           impl_file_downloaded = current_size;
           impl_file_val = file;

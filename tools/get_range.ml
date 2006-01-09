@@ -53,7 +53,7 @@ let _ =
       "size" -> 
         if Array.length Sys.argv <> 3 then usage ();
         let filename = argv.(2) in
-        Printf.printf "[SIZE %Ld]\n" (Unix32.getsize filename false)
+        Printf.printf "[SIZE %Ld]\n" (Unix32.getsize filename)
         
     | "range" ->
         if Array.length Sys.argv <> 6 then usage ();

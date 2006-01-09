@@ -511,7 +511,7 @@ let find_file_to_upload gconn url =
           
           (fun pos upload_buffer spos rlen ->
               Unix32.read fd pos upload_buffer spos rlen),
-          Unix32.getsize64 fd false, []
+          Unix32.getsize64 fd, []
         else
           failwith (Printf.sprintf "Cannot find TigerTree [%s]" urn)
     | _ -> failwith "Cannot parse /uri-res/N2T request"

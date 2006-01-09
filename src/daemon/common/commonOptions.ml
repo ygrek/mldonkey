@@ -437,6 +437,7 @@ let verbosity = define_expert_option current_section ["verbosity"]
   sm : debug source management
   net : debug net
   gui : debug gui
+  file : debug file handling
   do : some download warnings
   up : some upload warnings
   unk : unknown messages
@@ -1579,7 +1580,7 @@ let _ =
       if !!log_file <> "" then
         try
 	  if Sys.file_exists !!log_file then
-	    if (Unix32.getsize !!log_file false)
+	    if (Unix32.getsize !!log_file)
 	     > (Int64ops.megabytes !!log_file_size) then begin
 	      Sys.remove !!log_file;
               lprintf_nl "Logfile %s reset: bigger than %d MB" !!log_file !!log_file_size
@@ -1693,6 +1694,7 @@ let set_all v =
   BasicSocket.debug := v;
   TcpServerSocket.debug := v;
   UdpSocket.debug := v;
+  Unix32.verbose := v;
   verbose_download := v;
   verbose_upload := v;
   verbose_unknown_messages := v;
@@ -1724,6 +1726,7 @@ let _ =
           | "verb" -> verbose := true
           | "sm" -> incr verbose_sources
           | "net" -> BasicSocket.debug := true; TcpServerSocket.debug := true; UdpSocket.debug := true
+          | "file" -> Unix32.verbose := true
           | "gui" -> GuiProto.verbose_gui_decoding := true
           | "do" -> verbose_download := true
           | "up" -> verbose_upload := true

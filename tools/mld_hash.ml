@@ -90,7 +90,7 @@ let bitprint_file fd file_size partial =
   let sha1 = Sha1.digest_subfile fd zero file_size in
   let tiger = TigerTree.digest_subfile fd zero file_size in
   lprintf "urn:bitprint:%s.%s\n" (Sha1.to_string sha1) (TigerTree.to_string tiger);
-  let file_size = Unix32.getsize64 fd false in
+  let file_size = Unix32.getsize64 fd in
   let nchunks = Int64.to_int (Int64.pred file_size // tiger_block_size) + 1 in
   let chunks = 
     let chunks = Array.create nchunks tiger in
@@ -115,8 +115,8 @@ let bitprint_file fd file_size partial =
 (*************************************************************************)
   
 let bitprint_filename filename partial =
-  let fd = Unix32.create_rw filename in
-  let file_size = Unix32.getsize64 fd false in
+  let fd = Unix32.create_ro filename in
+  let file_size = Unix32.getsize64 fd in
   let (sha1, tiger2) = bitprint_file fd file_size partial in
   lprintf "urn:bitprint:%s.%s\n" (Sha1.to_string sha1) (TigerTree.to_string tiger2);
   ()
@@ -155,8 +155,8 @@ let ed2k_hash_file fd file_size partial =
 (*************************************************************************)
 
 let sha1_hash_filename block_size filename =
-  let fd = Unix32.create_rw filename in
-  let file_size = Unix32.getsize64 fd false in
+  let fd = Unix32.create_ro filename in
+  let file_size = Unix32.getsize64 fd in
   let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
   for i = 0 to nchunks - 1 do
     let begin_pos = block_size ** (Int64.of_int i) in
@@ -175,8 +175,8 @@ let sha1_hash_filename block_size filename =
 (*************************************************************************)
   
 let ed2k_hash_filename filename partial = 
-  let fd = Unix32.create_rw filename in
-  let file_size = Unix32.getsize64 fd false in
+  let fd = Unix32.create_ro filename in
+  let file_size = Unix32.getsize64 fd in
   let md4 = ed2k_hash_file fd file_size partial in
   lprintf "ed2k://|file|%s|%Ld|%s|/\n" 
     (Url.encode (Filename.basename filename))
@@ -190,8 +190,8 @@ let ed2k_hash_filename filename partial =
 (*************************************************************************)
   
 let sig2dat_hash_filename filename partial =
-  let fd = Unix32.create_rw filename in
-  let file_size = Unix32.getsize64 fd false in
+  let fd = Unix32.create_ro filename in
+  let file_size = Unix32.getsize64 fd in
   let len64 = min 307200L file_size in
   let len = Int64.to_int len64 in
   let s = String.create len in
@@ -222,10 +222,10 @@ let check_external_functions size =
   let dummy_string = "bonjourhello1" in
   
   let create_diskfile filename size =
-    Unix32.create_diskfile filename Unix32.rw_flag 0o066
+    Unix32.create_diskfile filename true
   in
   let create_sparsefile filename size =
-    Unix32.create_sparsefile filename
+    Unix32.create_sparsefile filename true
   in
   let create_multifile filename size =    
     let rec iter pos size list =
@@ -242,7 +242,7 @@ let check_external_functions size =
         lprintf "    %-50s %Ld\n" name size;
     ) files;
     Unix32.create_multifile filename 
-      Unix32.rw_flag 0o066  files
+      true  files
   in    
   
   let (file_types : (string * (string -> int64 -> Unix32.t)
@@ -351,8 +351,8 @@ let diff_chunk args =
   let len = Int64.to_int (end_pos -- begin_pos) in
   let s1 = String.create len in
   let s2 = String.create len in
-  let fd1 = Unix32.create_rw filename1 in
-  let fd2 = Unix32.create_rw filename2 in
+  let fd1 = Unix32.create_ro filename1 in
+  let fd2 = Unix32.create_ro filename2 in
   Unix32.read fd1 begin_pos s1 0 len;
   Unix32.read fd2 begin_pos s2 0 len;
   

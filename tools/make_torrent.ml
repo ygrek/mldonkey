@@ -150,12 +150,12 @@ let _ =
               torrent.torrent_name (Filename.basename filename);
           end;
         let t = if torrent.torrent_files <> [] then
-            Unix32.create_multifile filename Unix32.ro_flag 0o666
+            Unix32.create_multifile filename false
               torrent.torrent_files
           else  Unix32.create_ro filename
         in
 
-        let length = Unix32.getsize64 t false in
+        let length = Unix32.getsize64 t in
 
         if torrent.torrent_length <> length then begin
             Printf.printf "ERROR: computed size %Ld <> torrent size %Ld\n"

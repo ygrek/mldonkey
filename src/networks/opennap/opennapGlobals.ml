@@ -203,7 +203,7 @@ let new_file file_id file_name file_size =
           dummy_file_impl with
           impl_file_ops = file_ops;
           impl_file_val = file; 
-          impl_file_fd = t;
+          impl_file_fd = Some t;
           impl_file_size = file_size;
           impl_file_downloaded = current_size;
           impl_file_age = last_time ();          
@@ -327,7 +327,7 @@ let server_remove s =
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file.file_file)
 let file_age file = file.file_file.impl_file_age
-let file_fd file = file.file_file.impl_file_fd
+let file_fd file = file_fd (as_file file.file_file)
   
   
 let shared_counter = ref (Int64.zero)

@@ -100,7 +100,7 @@ let file_priority file = file.file_file.impl_file_priority
 let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
-let file_fd file = file.file_file.impl_file_fd
+let file_fd file = file_fd (as_file file)
 let file_disk_name file = file_disk_name (as_file file)
 let file_best_name file = file_best_name (as_file file)
 
@@ -307,7 +307,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
           && file.file_diskname = file_diskname
         then
           file.file_file.impl_file_fd <-
-            Unix32.create_diskfile file.file_diskname Unix32.rw_flag 0o666;
+            Some (Unix32.create_diskfile file.file_diskname true);
       if Unix32.destroyed (file_fd file) then
           lprintf_nl () "New Edonkey file with %b && %b remaining destroyed fd %s"
             (not writable) (file.file_diskname = file_diskname) file.file_diskname;
@@ -326,14 +326,14 @@ let new_file file_diskname file_state md4 file_size filenames writable =
 (* Only if the file does not already exists *)
           not (Sys.file_exists file_diskname)
         then
-          Unix32.create_sparsefile file_diskname
+          Unix32.create_sparsefile file_diskname writable
         else
-          Unix32.create_diskfile file_diskname Unix32.rw_flag 0o666
+          Unix32.create_diskfile file_diskname writable
       in
       let file_size =
         if file_size = Int64.zero then
           try
-            Unix32.getsize file_diskname writable
+            Unix32.getsize file_diskname
           with _ ->
               failwith "Zero length file ?"
         else file_size
@@ -365,7 +365,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
           impl_file_ops = file_ops;
           impl_file_age = last_time ();
           impl_file_size = file_size;
-          impl_file_fd = t;
+          impl_file_fd = Some t;
           impl_file_best_name = Filename.basename file_diskname;
           impl_file_last_seen = last_time () - 100 * 24 * 3600;
         }

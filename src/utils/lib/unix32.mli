@@ -19,6 +19,8 @@
 
 type t
 
+val verbose : bool ref
+
 val external_start : string -> unit
 val external_exit : unit -> unit
 val uname : unit -> string
@@ -34,8 +36,9 @@ val close : t -> unit
 (* val force_fd : t -> Unix.file_descr *)
   
 (* val seek64 : t -> int64 -> Unix.seek_command -> int64  *)
-val getsize : string -> bool -> int64
-val getsize64 : t -> bool -> int64
+val getsize : string -> int64
+val getsize64 : t -> int64
+(* size, sparse flag *)
 val ftruncate64 : t -> int64 -> bool -> unit
 
 val close_all : unit -> unit
@@ -66,29 +69,29 @@ val apply_on_chunk : t -> int64 -> int64 ->
   (Unix.file_descr -> int64 -> 'a) -> 'a
   
 
-val create_diskfile : string -> Unix.open_flag list -> int -> t
+val create_diskfile : string -> bool -> t
 val create_ro : string -> t
 val create_rw : string -> t
   
 (* 
-[create_multifile dirname access rights files]: create a directory
+[create_multifile dirname writable files]: create a directory
 [dirname] containing the files in [files]. [files] is a list of tuples
 [(filename, size)] where [filename] is relative inside the directory
 [dirname] and [size] is the size of the files. 
   *)
   
 val create_multifile :     
-  string -> Unix.open_flag list -> int -> (string * int64) list -> t
+  string -> bool -> (string * int64) list -> t
 
-val create_sparsefile :  string -> t
+val create_sparsefile :  string -> bool -> t
 
 val ro_flag :  Unix.open_flag list
 val rw_flag :  Unix.open_flag list
   
 val destroy : t -> unit
   
-val bad_fd : t
-  
+val dummy : t
+
 val destroyed : t -> bool
 
 val bsize : string -> int64 option

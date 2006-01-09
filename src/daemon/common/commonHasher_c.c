@@ -328,28 +328,35 @@ static void * hasher_thread(void * arg)
 /*    fprintf(stderr,"waiting for next job\n");  */
     pthread_cond_timedwait(&cond, &mutex, &timeout);
     
-    if(!job_done){
+    if(!job_done) {
 
 /*      fprintf(stderr,"job started\n");   */
       
-      if(job_method == METHOD_MD4)
-        md4_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, p_job_result);
-      else
-        if( job_method == METHOD_MD5)
-          md5_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, p_job_result);
-        else
-          if( job_method == METHOD_SHA1)
-            sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, p_job_result);
-          else 
-            if( job_method == METHOD_TIGER){
-              long bsize = tiger_block_size(job_len);
-              tiger_tree_fd(job_fd, job_len, 0, bsize, p_job_result);
-            } else {
-              printf("commonHasher_c.c: method sha1 not implemented\n");
-              exit(2);
-            }
-            /*        fprintf(stderr,"job finished\n");  */
-            job_done = 1;
+      long bsize;
+      switch(job_method) {
+      case METHOD_MD4:
+        md4_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+      break;
+
+      case METHOD_MD5:
+        md5_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+      break;
+
+      case METHOD_SHA1:
+        sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+      break;
+
+      case METHOD_TIGER:
+        bsize = tiger_block_size(job_len);
+        tiger_tree_fd(job_fd, job_len, 0, bsize, job_result);
+      break;
+
+      default:
+      printf("commonHasher_c.c: method not implemented\n");
+      exit(2);
+      }
+      /*        fprintf(stderr,"job finished\n");  */
+      job_done = 1;
     }
   }
   

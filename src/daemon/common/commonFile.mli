@@ -27,7 +27,7 @@ type 'a file_impl = {
   mutable impl_file_ops : 'a file_ops;
   mutable impl_file_size : int64;
   mutable impl_file_age : int;
-  mutable impl_file_fd : Unix32.t;
+  mutable impl_file_fd : Unix32.t option;
   mutable impl_file_downloaded : int64;
   mutable impl_file_received : int64;
   mutable impl_file_last_received : (int64 * int) list;

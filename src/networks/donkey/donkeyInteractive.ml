@@ -1494,7 +1494,7 @@ let try_recover_temp_file filename md4 =
     ignore (Hashtbl.find files_by_md4 md4)
   with Not_found ->
       let file_diskname = Filename.concat !!temp_directory filename in
-      let size = Unix32.getsize file_diskname true in
+      let size = Unix32.getsize file_diskname in
       if size <> zero then
         let names =
             (* TODO RESULT

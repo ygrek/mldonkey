@@ -341,7 +341,7 @@ module Make(M: sig
     
     let file s =
       let digest = String.create hash_length in
-      let file_size = Unix32.getsize s false in
+      let file_size = Unix32.getsize s in
       unsafe_file digest s file_size;
       digest
     
@@ -489,7 +489,7 @@ module PreTigerTree = Make(struct
         "tigertree_unsafe64_fd"
       
       let unsafe_file digest filename file_size = 
-        let fd = Unix32.create_diskfile filename [Unix.O_RDONLY] 0o444 in
+        let fd = Unix32.create_diskfile filename false in
         Unix32.apply_on_chunk fd Int64.zero file_size 
           (fun fd pos ->
             digest_subfile digest fd pos file_size)

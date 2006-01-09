@@ -499,8 +499,8 @@ computation ??? *)
     | MD5EXT ->
         let md5ext =
           try
-            let fd = Unix32.create_rw info.shared_fullname in
-            let file_size = Unix32.getsize64 fd false in
+            let fd = Unix32.create_ro info.shared_fullname in
+            let file_size = Unix32.getsize64 fd in
             let len64 = min 307200L file_size in
             let len = Int64.to_int len64 in
             let s = String.create len in

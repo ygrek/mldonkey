@@ -387,19 +387,19 @@ let make_torrent announce filename comment is_private =
               if Unix2.is_directory fullname then
                 iter_directory list basename
               else
-                (basename, Unix32.getsize fullname false) :: list
+                (basename, Unix32.getsize fullname) :: list
             in
             iter_files left dirname tail
       in
       let files = iter_directory [] "" in
-      let t = Unix32.create_multifile filename Unix32.ro_flag 0o666 files in
+      let t = Unix32.create_multifile filename false files in
       files, t
     else
       [], Unix32.create_ro filename
   in
 
   Unix32.flush_fd t;
-  let length = Unix32.getsize64 t false in
+  let length = Unix32.getsize64 t in
   let npieces = 1+ Int64.to_int ((length -- one) // chunk_size) in
   let pieces = Array.create npieces Sha1.null in
   for i = 0 to npieces - 1 do
