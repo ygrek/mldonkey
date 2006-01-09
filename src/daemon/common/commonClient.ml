@@ -413,7 +413,7 @@ let client_print_html c o =
 	html_mods_td buf [
 	("", "sr", n.network_name);
 	("", "sr", (match info.G.client_kind with
-          Indirect_location (name, _) -> Printf.sprintf "I"
+          Indirect_location (_ , _, _, _) -> Printf.sprintf "I"
         | Known_location (ip, port) -> Printf.sprintf "D") );
 	(String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ]
 
@@ -438,9 +438,9 @@ let client_print c o =
         (shorten info.G.client_name 20)
         info.GuiTypes.client_rating
         (match info.G.client_kind with
-            Indirect_location (name, _) -> "firewalled"
+              Indirect_location (_, _, ip, port)
             | Known_location (ip, port) ->
-            Printf.sprintf "%s:%d" (Ip.to_string ip) port)
+                Printf.sprintf "%s:%d" (Ip.to_string ip) port)
     end
 
 

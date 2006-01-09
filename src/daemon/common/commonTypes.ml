@@ -700,7 +700,7 @@ and history_result = {
 
 and location_kind = 
   Known_location of Ip.t * int
-| Indirect_location of string * Md4.t
+| Indirect_location of string * Md4.t * Ip.t * int
   
 (*
 We should add information about what has already been sent to the GUI to
@@ -844,11 +844,11 @@ type arg_kind =
 | Arg_three of (string -> string -> string -> arg_handler)
 
     
-let  string_of_kind kind =
+let string_of_kind kind =
   try
     match kind with
     | Known_location (ip,port) -> Ip.to_string ip
-    | _ -> "firewalled"
+    | Indirect_location (server_ip, server_port, ip, port) -> Ip.to_string ip
   with _ -> ""
 
 let string_of_kind_geo kind =
@@ -857,9 +857,9 @@ let string_of_kind_geo kind =
     | Known_location (ip,port) -> 
         let cc,cn = Geoip.get_country ip in
         (Ip.to_string ip),cc,cn
-    | _ -> 
-        let cc,cn = !Geoip.unknown_country in
-        "firewalled",cc,cn
+    | Indirect_location (server_ip, server_port, ip, port) ->
+        let cc,cn = Geoip.get_country ip in
+        (Ip.to_string ip),cc,cn
   with _ -> "","X","Country error"
 
 type brand_stat = {

@@ -1133,7 +1133,9 @@ let _ =
         P.client_network = network.network_num;
         P.client_kind = (match c.client_kind with
             Direct_address (ip, port) -> Known_location (ip,port)
-          | _ -> Indirect_location (c.client_name,c.client_md4));
+	  | Indirect_address (server_ip, server_port, ip, port) -> 
+	      Indirect_location (c.client_name,c.client_md4, ip_of_id ip, port)
+          | _ -> Indirect_location (c.client_name,c.client_md4, Ip.null, 0));
         P.client_state = client_state c;
         P.client_type = client_type c;
         P.client_tags = []; (* c.client_tags; *)

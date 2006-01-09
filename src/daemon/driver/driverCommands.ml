@@ -2262,8 +2262,8 @@ let _ =
                   ( "0", "srh", "Client name", "Client name" ) ;
                   ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
                   ( "0", "srh", "IP address", "IP address" ) ;
-                  ( "0", "srh", "Connected time (minutes)", "CT" ) ;
 		  ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
+                  ( "0", "srh", "Connected time (minutes)", "CT" ) ;
                   ( "0", "srh", "Client brand", "CB" ) ;
                   ( "0", "srh", "Client release", "CR" ) ;
                   ] @

@@ -255,7 +255,7 @@ let _ =
   client_ops.op_client_info <- (fun c ->
       {
         P.client_network = network.network_num;
-        P.client_kind = Indirect_location (c.client_name, Md4.null);
+        P.client_kind = Indirect_location (c.client_name, Md4.null, _, _);
         P.client_state = client_state (as_client c.client_client);
         P.client_type = client_type c;
         P.client_tags = [];

@@ -398,8 +398,9 @@ let buf_kind proto buf k =
   match k with
     Known_location (ip, port) -> 
       buf_int8 buf 0; buf_ip2 proto buf ip; buf_int16 buf port
-  | Indirect_location (name, md4) ->
-      buf_int8 buf 1; buf_hostname proto buf name; buf_md4 buf md4
+  | Indirect_location (name, md4, ip, port) ->
+      buf_int8 buf 1; buf_hostname proto buf name; buf_md4 buf md4;
+        if proto > 38 then begin buf_ip2 proto buf ip; buf_int16 buf port end
       
 let buf_partial_file proto buf f =
   buf_int buf f.file_num;

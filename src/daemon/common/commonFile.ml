@@ -314,8 +314,8 @@ let default_file_print_sources_html file buf =
         let cinfo = client_info c in
         let addr = 
         (match cinfo.GuiTypes.client_kind with
-          Indirect_location (name, _) -> ""
-        | Known_location (ip, port) -> Printf.sprintf "%s:%d" (Ip.to_string ip) port 
+          Indirect_location (_, _, ip, port)
+        | Known_location (ip, port) -> Printf.sprintf "%s:%d" (Ip.to_string ip) port
         )
         in
 

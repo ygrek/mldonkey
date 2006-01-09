@@ -473,7 +473,7 @@ XML ("audios",
       
       let user = 
         let user = new_user (match !user_addr with
-              None -> Indirect_location (!user_nick, !user_uid)
+              None -> Indirect_location (!user_nick, !user_uid, Ip.null, 0)
             | Some (ip,port) -> Known_location (ip,port))
         in
         (match !user_vendor with Some v -> user.user_vendor <- v | _ -> ());

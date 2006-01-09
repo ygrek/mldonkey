@@ -63,7 +63,7 @@ module ClientOption = struct
             with _ -> ());
           (try
               if get_value "client_push" value_to_bool then
-                c.client_user.user_kind <- Indirect_location ("", client_uid)
+                c.client_user.user_kind <- Indirect_location ("", client_uid, client_ip, client_port)
             with _ -> ());
           c
       | _ -> failwith "Options: Not a client"

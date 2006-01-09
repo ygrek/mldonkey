@@ -373,7 +373,7 @@ let new_user kind =
           user_user = user_impl;
           user_uid = (match kind with
               Known_location _ -> Md4.null
-            | Indirect_location (_, uid) -> uid);
+            | Indirect_location (_, uid, _, _) -> uid);
           user_kind = kind;
 (*          user_files = []; *)
           user_speed = 0;

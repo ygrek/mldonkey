@@ -636,7 +636,7 @@ let get_file_from_source c file =
     if connection_can_try c.client_connection_control then begin
         connection_try c.client_connection_control;
         match c.client_user.user_kind with
-          Indirect_location ("", uid) ->
+          Indirect_location ("", uid, _, _) ->
             if !verbose then
               lprintf "++++++ ASKING FOR PUSH +++++++++\n";   
 

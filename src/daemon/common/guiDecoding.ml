@@ -711,7 +711,15 @@ let get_kind proto s pos =
   | 1 ->
       let name, pos = get_hostname proto s (pos+1) in
       let md4 = get_md4 s pos in
-      Indirect_location (name, md4), pos+16
+      let ip, port, pos = 
+        if proto > 38 then begin
+          let myip , pos = get_ip2 proto s (pos+16) in
+          let myport = get_int16 s pos in
+          myip, myport, (pos+2)
+        end else
+          Ip.null, 0, (pos+16)
+      in  
+      Indirect_location (name, md4, ip, port), pos
   | _ -> assert false
 
 let get_client proto s pos =

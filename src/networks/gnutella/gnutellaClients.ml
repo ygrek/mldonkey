@@ -663,7 +663,7 @@ should clearly be called). *)
       begin
         
         match c.client_user.user_kind with
-          Indirect_location (_, uid) -> 
+          Indirect_location (_, uid, _, _) -> 
             GnutellaProto.ask_for_push uid 
         | Known_location (ip, port) ->
             let token =
@@ -753,12 +753,12 @@ let push_handler cc gconn sock (first_line, headers) =
         lprintf "PARSED\n";
       end;
     let c = try
-        Hashtbl.find clients_by_uid (Indirect_location ("", uid)) 
+        Hashtbl.find clients_by_uid (Indirect_location ("", uid, ip, port)) 
       with _ ->
           try
             Hashtbl.find clients_by_uid (Known_location (ip,port))
           with _ ->
-              new_client  (Indirect_location ("", uid)) 
+              new_client  (Indirect_location ("", uid, ip, port))
     in
     c.client_host <- Some (ip, port);
     match c.client_sock with

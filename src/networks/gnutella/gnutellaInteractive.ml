@@ -390,7 +390,7 @@ let _ =
           "added Gnutella friend", true
       | "gnut://" :: "friend" :: uid :: _ ->
           let md4 = Md4.of_string uid in
-          let c = new_client (Indirect_location ("", md4)) in
+          let c = new_client (Indirect_location ("", md4, Ip.null, 0)) in
           friend_add (as_client c);
           "added Gnutella friend", true
       

@@ -353,7 +353,7 @@ ascii: [ G N U T E L L A / 0 . 6   2 0 0   O K(13)(10) U s e r - A g e n t :   G
 let update_user t =
   let module Q = QueryReply in
   let user = new_user t.Q.guid (match t.Q.dont_connect with
-        Some true ->  Indirect_location ("", t.Q.guid)
+        Some true ->  Indirect_location ("", t.Q.guid, _, _)
       | _ -> Known_location(t.Q.ip, t.Q.port))
   in
   user.user_speed <- t.Q.speed;
@@ -362,7 +362,7 @@ let update_user t =
 let update_client t =
   let module Q = QueryReply in
   let c = new_client t.Q.guid (match t.Q.dont_connect with
-        Some true ->  Indirect_location ("", t.Q.guid)
+        Some true ->  Indirect_location ("", t.Q.guid, _, _)
       | _ -> Known_location(t.Q.ip, t.Q.port))
   in
   

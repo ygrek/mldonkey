@@ -11,6 +11,10 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+2006/01/09
+4777: Display IP:port for firewalled clients,
+      GUI protocol update (zet)
+
 2006/01/07
 4769: HTML: Fix some Geoip display bugs
 

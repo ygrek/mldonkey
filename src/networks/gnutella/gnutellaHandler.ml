@@ -51,7 +51,7 @@ open GnutellaProto
 let update_user t =
   let module Q = QueryReply in
   let user = new_user (match t.Q.dont_connect with
-        Some true ->  Indirect_location ("", t.Q.guid)
+        Some true ->  Indirect_location ("", t.Q.guid, t.Q.ip, t.Q.port)
       | _ -> Known_location(t.Q.ip, t.Q.port))
   in
   user.user_speed <- t.Q.speed;
@@ -66,7 +66,7 @@ let update_user t =
 let update_client t =
   let module Q = QueryReply in
   let c = new_client (match t.Q.dont_connect with
-        Some true ->  Indirect_location ("", t.Q.guid)
+        Some true ->  Indirect_location ("", t.Q.guid, t.Q.ip, t.Q.port)
       | _ -> Known_location(t.Q.ip, t.Q.port))
   in
   
