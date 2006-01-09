@@ -11,9 +11,11 @@ ChangeLog
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
+Patches done after the last release are experimental,
+please test carefully and report your findings.
+
 2006/01/09
-4777: Display IP:port for firewalled clients,
-      GUI protocol update (zet)
+4777: Display IP:port for LowID clients, GUI protocol update (zet)
 
 2006/01/07
 4769: HTML: Fix some Geoip display bugs
@@ -242,8 +244,6 @@ A patch can be found here: http://caml.inria.fr/mantis/view.php?id=3948
 4642: HTML: Improve preview via webbrowser (pango)
 
 2005/11/19
-
-These patches are experimental, please test carefully and report your findings.
 
 4563: replace all Printf.printf occurences by Printf2.lprintf (su_blanc)
 4479: Callback mechanism for low ID users does not work (miriup)
