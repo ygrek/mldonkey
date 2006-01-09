@@ -1,18 +1,18 @@
-The release mechanism was changed in a way that minor updates like
-this one will not get a release tag in CVS, also the version
-number reported by MLDonkey will stay the same.
+The release mechanism was changed in a way that minor updates
+will not get a release tag in CVS, also the version number reported
+by MLDonkey will stay the same.
+
+Patches done after the last release are experimental,
+please test carefully and report your findings.
 
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
-ChangeLog
-=========
-
 To compile MLDonkey on MinGW follow this guide:
 http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 
-Patches done after the last release are experimental,
-please test carefully and report your findings.
+ChangeLog
+=========
 
 2006/01/09
 4770: Change file opening mechanism, open rw only when needed (pango)
