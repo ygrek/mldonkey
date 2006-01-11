@@ -612,7 +612,7 @@ lprintf "\n";
     if be then 
       (
        if !verbose then
-         lprintf_nl "Big Endian not supported yet";
+         lprintf_nl () "Big Endian not supported yet";
        raise Exit
       );
     let module M = G2_LittleEndian in
@@ -1129,7 +1129,7 @@ let parse_udp_packet ip port buf =
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->
             if !verbose then
-              lprintf_nl "no correct pkt_len, pkt_pos";
+              lprintf_nl () "no correct pkt_len, pkt_pos";
             0, 1
       in
       let name_len = ((cb lsr 3) land 7) + 1 in
@@ -1513,7 +1513,7 @@ let print_string s buf =
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->
             if !verbose then
-              lprintf_nl "no correct pkt_len, pkt_pos";
+              lprintf_nl () "no correct pkt_len, pkt_pos";
             0, 1
       in
       let name_len = ((cb lsr 3) land 7) + 1 in

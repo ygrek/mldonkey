@@ -44,6 +44,16 @@ open GnutellaTypes
 open GnutellaOptions
 open GnutellaNetwork
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[Gnutella] "
+    (log_time ()); lprintf_nl2
+
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[Gnutella] "
+    (log_time ()); lprintf
+
 let should_update_shared_files = ref false
 
   

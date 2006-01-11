@@ -242,7 +242,7 @@ let cached_qrt_table = ref ""
 
 let update_shared_words () = 
   if !verbose_share then
-    lprintf_nl "update_shared_words";
+    lprintf_nl () "update_shared_words";
   all_shared_words := [];
   cached_qrt_table := "";
   let module M = CommonUploads in
@@ -257,7 +257,7 @@ let update_shared_words () =
     List.iter (fun sh ->
         let info = IndexedSharedFiles.get_result sh.shared_info in
         if !verbose_share then
-          lprintf_nl "CODED name: %s" sh.M.shared_codedname;
+          lprintf_nl () "CODED name: %s" sh.M.shared_codedname;
         register_words sh.M.shared_codedname;
         List.iter (fun uid ->
             words := WordSet.add (Uid.to_string uid) !words
@@ -315,12 +315,12 @@ let parse_headers c first_line headers =
           List.assoc "x-gnutella-alternate-location" headers in
         let locations = String2.split locations ',' in
         
-        lprintf_nl "Alternate locations";
+        lprintf_nl () "Alternate locations";
         let urls = List.map (fun s ->
               match String2.split_simplify s ' ' with
-                [] -> lprintf_nl "Cannot parse : %s" s; ""
+                [] -> lprintf_nl () "Cannot parse : %s" s; ""
               | url :: _ ->
-                  lprintf_nl "  Location: %s" url; url
+                  lprintf_nl () "  Location: %s" url; url
           ) locations in
         lprint_newline ();
         
@@ -523,7 +523,7 @@ let find_file_to_upload gconn url =
       match url.Url.args with
         [(urn,_)] ->
           if !verbose_msg_clients then
-            lprintf_nl "Found /uri-res/N2R request";
+            lprintf_nl () "Found /uri-res/N2R request";
           find_by_uid (Uid.of_string urn)
       
       | _ -> failwith "Cannot parse /uri-res/N2R request"
@@ -534,7 +534,7 @@ let find_file_to_upload gconn url =
     let num = String.sub file 5 (pos - 5) in
     let filename = String.sub file (pos+1) (String.length file - pos - 1) in
     if !verbose_msg_clients then
-      lprintf_nl "Download of file %s, filename = %s" num filename;
+      lprintf_nl () "Download of file %s, filename = %s" num filename;
     let num = int_of_string num in
     Hashtbl.find shareds_by_id  num
   in

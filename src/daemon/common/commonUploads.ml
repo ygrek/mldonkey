@@ -33,6 +33,16 @@ open TcpBufferedSocket
 open CommonGlobals
 open CommonOptions
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[cUp] "
+    (log_time ()); lprintf_nl2
+
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[cUp] "
+    (log_time ()); lprintf
+
 (*
 PROBLEMS: most of the time, users won't share their files on all networks.
 We should provide a different directory than incoming/, where files
@@ -439,7 +449,7 @@ let rec start_job_for sh (wanted_id, handler) =
             CommonHasher.compute_sha1 (Unix32.filename sh.shared_fd)
             zero info.shared_size (fun job ->
                 if job.CommonHasher.job_error then begin
-                    lprintf_nl "[cUp] Error during hashing of %s" info.shared_fullname;
+                    lprintf_nl () "Error during hashing of %s" info.shared_fullname;
                     current_job := None;
                   end else
                   begin
@@ -527,7 +537,7 @@ computation ??? *)
                 pos (min (size -- pos) chunk_size)
               (fun job ->
                   if job.CommonHasher.job_error then begin
-                      lprintf_nl "[cUp] Error during hashing of %s" info.shared_fullname;
+                      lprintf_nl () "Error during hashing of %s" info.shared_fullname;
                       current_job := None;
                     end else begin
 
@@ -561,7 +571,7 @@ computation ??? *)
                   pos (min (size -- pos) chunk_size)
               (fun job ->
                     if job.CommonHasher.job_error then begin
-                      lprintf_nl "[cUp] Error during hashing of %s"
+                      lprintf_nl () "Error during hashing of %s"
                       info.shared_fullname;
                         current_job := None;
                       end else begin
@@ -598,7 +608,7 @@ let shared_files_timer _ =
             [] ->  waiting_shared_files := tail;
           | uid :: tail ->
               if !verbose_share then
-                lprintf_nl "[cUp] shared_files_timer: starting job";
+                lprintf_nl () "shared_files_timer: starting job";
               sh.shared_uids_wanted <- tail;
               current_job := Some sh;
               start_job_for sh uid
@@ -818,7 +828,7 @@ let ready_for_upload c =
 
 let add_pending_slot c =
   if client_has_a_slot c then begin
-      if !verbose_upload then lprintf_nl "[cUp] Avoided inserting an uploader in pending slots!"
+      if !verbose_upload then lprintf_nl () "Avoided inserting an uploader in pending slots!"
     end
   else
   if not (Intmap.mem (client_num c) !pending_slots_map) then
@@ -901,7 +911,7 @@ let dynamic_refill_upload_slots () =
   let open_slots n =
     let i = ref n in
     if !verbose_upload then
-      lprintf_nl "[cUp] try to allocate %d more slots" n;
+      lprintf_nl () "try to allocate %d more slots" n;
     while !i > 0 do
       find_pending_slot ();
       decr i
@@ -916,7 +926,7 @@ let dynamic_refill_upload_slots () =
     (* max_hard_upload_rate lowered manually,... *)
     mini estimated_capacity (!!max_hard_upload_rate * 1024) in
   if !verbose_upload then
-    lprintf_nl "[cUp] usage: %d(%d) capacity: %d"
+    lprintf_nl () "usage: %d(%d) capacity: %d"
       (short_delay_upload_usage ())
       (upload_usage ())
       estimated_capacity;
@@ -926,13 +936,13 @@ let dynamic_refill_upload_slots () =
 (* enough free bw for another slot *)
     if short_delay_upload_usage () + slot_bw < estimated_capacity then begin
       if !verbose_upload then
-	lprintf_nl "[cUp] uplink not fully used";
+	lprintf_nl () "uplink not fully used";
       incr not_saturated_count
     end else reset_state ();
 
     if len < min_upload_slots then begin
       if !verbose_upload then
-	lprintf_nl "[cUp] too few upload slots";
+	lprintf_nl () "too few upload slots";
       open_slots (min_upload_slots - len);
       reset_state ()
     end else if !not_saturated_count >= 2 then begin
@@ -1012,10 +1022,10 @@ let queue_download_request f len =
 let upload_download_timer () =
   (try download_engine ()
     with e ->
-        lprintf_nl "[cUp] Exception %s in download_engine" (Printexc2.to_string e)
+        lprintf_nl () "Exception %s in download_engine" (Printexc2.to_string e)
   );
   (try next_uploads ()
-  with e -> lprintf_nl "[cUp] exc %s in upload" (Printexc2.to_string e))
+  with e -> lprintf_nl () "exc %s in upload" (Printexc2.to_string e))
 
 let words_of_filename =
   let extension_list = [
@@ -1038,7 +1048,7 @@ let words_of_filename =
   let get_name_keywords file_name =
     match remove_short (String2.stem file_name) [] with
       [] | [_] ->
-        lprintf_nl "[cUp] Not enough keywords to recover %s" file_name;
+        lprintf_nl () "Not enough keywords to recover %s" file_name;
         [file_name]
     | l -> l
   in

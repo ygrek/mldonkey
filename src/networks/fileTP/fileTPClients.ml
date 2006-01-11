@@ -63,7 +63,7 @@ let disconnect_client c r =
   | Connection sock ->
       (try
           if !verbose_msg_clients then
-              lprintf_nl "Disconnected from source";
+              lprintf_nl () "Disconnected from source";
           c.client_requests <- [];
           connection_failed c.client_connection_control;
           set_client_disconnected c r;

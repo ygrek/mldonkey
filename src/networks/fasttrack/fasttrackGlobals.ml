@@ -44,6 +44,16 @@ open FasttrackNetwork
 open FasttrackTypes
 open FasttrackOptions
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[Fasttrack] "
+    (log_time ()); lprintf_nl2
+
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[Fasttrack] "
+    (log_time ()); lprintf
+
 let search_num = ref 0
 
 let should_update_shared_files = ref false

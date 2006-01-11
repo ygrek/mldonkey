@@ -314,7 +314,7 @@ let download_file url referer =
   let file = new_file (Md4.random ()) u.Url.full_file zero in
   
   if !verbose then
-    lprintf_nl "[FILETP]: DOWNLOAD FILE %s" (file_best_name  file); 
+    lprintf_nl () "DOWNLOAD FILE %s" (file_best_name  file); 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
@@ -421,7 +421,7 @@ let commands = [
           | _ -> raise Not_found);
 
           if !verbose then
-            lprintf_nl "[FILETP]: MIRROR [%s] [%s]" !num !url;
+            lprintf_nl () "MIRROR [%s] [%s]" !num !url;
           let u = Url.of_string !url in
           let r = Url.of_string !referer in
 
@@ -432,10 +432,10 @@ let commands = [
           let num = int_of_string !num in
           Hashtbl.iter (fun _ file ->
               if !verbose then
-                lprintf_nl "[FILETP]: COMPARE %d/%d" (file_num file) num;
+                lprintf_nl () "COMPARE %d/%d" (file_num file) num;
               if file_num file = num then begin
                   if !verbose then
-                    lprintf_nl "[FILETP]: Try HEAD from mirror";
+                    lprintf_nl () "Try HEAD from mirror";
 
 
                   download_file_from_mirror file u r;
@@ -462,7 +462,7 @@ let commands = [
             _s ""
         | Not_found ->
             if !verbose then
-              lprintf_nl "[FILETP]: Not enough parameters";
+              lprintf_nl () "Not enough parameters";
             let buf = o.conn_buf in
             if o.conn_output = HTML then
               html_mods_table_one_row buf "serversTable" "servers" [

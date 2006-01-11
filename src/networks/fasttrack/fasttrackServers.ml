@@ -385,7 +385,7 @@ let rec find_ultrapeer queue =
 let ft_boot () =
   let imesh_ip = Ip.addr_of_string "fm2.imesh.com" in
   let (h : host) =
-    if !verbose then lprintf_nl "FT: Bootstrapping from Imesh %s" (Ip.string_of_addr imesh_ip);
+    if !verbose then lprintf_nl () "Bootstrapping from Imesh %s" (Ip.string_of_addr imesh_ip);
     H.new_host imesh_ip 1214 IndexServer
   in
   connect_server h
@@ -400,7 +400,7 @@ let try_connect_ultrapeer connect =
         if !!bootstrap_from_imesh then
 	  let imesh_ip = Ip.addr_of_string "fm2.imesh.com" in
           let (_ : host) =
-	    if !verbose then lprintf_nl "FT: Bootstrapping from Imesh %s" (Ip.string_of_addr imesh_ip);
+	    if !verbose then lprintf_nl () "Bootstrapping from Imesh %s" (Ip.string_of_addr imesh_ip);
             H.new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
           find_ultrapeer peers_waiting_queue
         else raise Not_found

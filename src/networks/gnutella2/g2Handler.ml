@@ -429,7 +429,7 @@ XML ("audios",
                   xml_info := Some xml
                 with e ->
                     if !verbose_unknown_messages then
-                      lprintf_nl "Exception %s while parsing: \n%s"
+                      lprintf_nl () "Exception %s while parsing: \n%s"
                         (Printexc2.to_string e) xml
               
               end
@@ -451,7 +451,7 @@ XML ("audios",
                 ) user_files files
               end else begin
                 if !verbose_unknown_messages then
-                  lprintf_nl "ERROR: Not enough XML entries %d/%d"
+                  lprintf_nl () "ERROR: Not enough XML entries %d/%d"
                     (List.length files) (List.length user_files);
                 user_files 
               end

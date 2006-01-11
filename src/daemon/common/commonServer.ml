@@ -25,6 +25,16 @@ open Options
 open CommonUser
 open CommonTypes
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[cSe] "
+    (log_time ()); lprintf_nl2
+
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[cSe] "
+    (log_time ()); lprintf
+
 module G = GuiTypes
 
 type 'a server_impl = {
@@ -56,7 +66,7 @@ and 'a server_ops = {
 let ni n m =
   let s = Printf.sprintf "Server.%s not implemented by %s"
       m n.network_name in
-  lprintf_nl "%s" s;
+  lprintf_nl () "%s" s;
   s
 
 let fni n m =  failwith (ni n m)
@@ -190,36 +200,36 @@ let new_server_ops network =
   s
 
 let check_server_implementations () =
-  lprintf_nl "\n----- Methods not implemented for CommonServer ----\n";
+  lprintf_nl () "----- Methods not implemented for CommonServer ----";
   List.iter (fun (c, cc) ->
       let n = c.op_server_network.network_name in
-      lprintf_nl "\n  Network %s\n" n;
+      lprintf_nl ()"  Network %s" n;
       if c.op_server_remove == cc.op_server_remove then
-        lprintf_nl "op_server_remove";
+        lprintf_nl () "op_server_remove";
       if c.op_server_to_option == cc.op_server_to_option then
-        lprintf_nl "op_server_to_option";
+        lprintf_nl () "op_server_to_option";
       if c.op_server_info == cc.op_server_info then
-        lprintf_nl "op_server_info";
+        lprintf_nl () "op_server_info";
       if c.op_server_sort == cc.op_server_sort then
-        lprintf_nl "op_server_sort";
+        lprintf_nl () "op_server_sort";
       if c.op_server_connect == cc.op_server_connect then
-        lprintf_nl "op_server_connect";
+        lprintf_nl () "op_server_connect";
       if c.op_server_disconnect == cc.op_server_disconnect then
-        lprintf_nl "op_server_disconnect";
+        lprintf_nl () "op_server_disconnect";
       if c.op_server_find_user == cc.op_server_find_user then
-        lprintf_nl "op_server_find_user";
+        lprintf_nl () "op_server_find_user";
       if c.op_server_query_users == cc.op_server_query_users then
-        lprintf_nl "op_server_query_users";
+        lprintf_nl () "op_server_query_users";
       if c.op_server_users == cc.op_server_users then
-        lprintf_nl "op_server_users";
+        lprintf_nl () "op_server_users";
       if c.op_server_cid == cc.op_server_cid then
-        lprintf_nl "op_server_cid";
+        lprintf_nl () "op_server_cid";
       if c.op_server_low_id == cc.op_server_low_id then
-        lprintf_nl "op_server_low_id";
+        lprintf_nl () "op_server_low_id";
       if c.op_server_rename == cc.op_server_rename then
-        lprintf_nl "op_server_rename";
+        lprintf_nl () "op_server_rename";
       if c.op_server_set_preferred == cc.op_server_set_preferred then
-        lprintf_nl "op_server_set_preferred";
+        lprintf_nl () "op_server_set_preferred";
   ) !servers_ops;
   lprint_newline ()
 
@@ -311,7 +321,7 @@ let server_print s o =
   try
     let info =
       try server_info s with e ->
-          lprintf "Exception %s in server_info (%s)\n"
+          lprintf_nl () "Exception %s in server_info (%s)\n"
             (Printexc2.to_string e) n.network_name;
           raise e in
 
@@ -449,5 +459,5 @@ let server_print s o =
       end;
 
   with e ->
-      lprintf "Exception %s in CommonServer.server_print\n"
+      lprintf_nl () "Exception %s in CommonServer.server_print"
         (Printexc2.to_string e)
