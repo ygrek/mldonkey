@@ -636,9 +636,6 @@ EOCP
         *)         ;;
 esac
 
-AC_MSG_CHECKING(Additionnal includes)
-AC_MSG_RESULT($CONFIG_INCLUDES)
-
 OCAMLLIB=`$OCAMLC -where`
 
 if test -f $OCAMLLIB/lablgl.cma; then
@@ -650,77 +647,113 @@ if test -f $OCAMLLIB/lablgl.$OCAMLLIB_EXT; then
 fi
 AC_MSG_NOTICE(checking for activated networks)
   if test "$DONKEY" = "yes"; then
-    AC_CHECK_FILE(../src/networks/donkey,DONKEY=yes, [
+    AC_MSG_CHECKING(eDonkey)
+    if test -d ../src/networks/donkey; then
+      AC_MSG_RESULT(yes)
+#      AC_MSG_CHECKING(eDonkey server)
+#      if test -d ../src/networks/server; then
+#        AC_MSG_RESULT(no)
+#        DONKEY_SERVER=no
+#      else
+#        AC_MSG_RESULT(no)
+#        DONKEY_SERVER=no
+#      fi
+    else
       DONKEY=no
-    ])
-  fi
-
-  if test "$OPEN_NAPSTER" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/opennap,OPEN_NAPSTER=yes, [
-      OPEN_NAPSTER=no
-    ])
-  fi
-
-#  if test "$DIRECT_CONNECT" = "yes" ; then
-#    AC_CHECK_FILE(../src/networks/direct_connect,DIRECT_CONNECT=yes, [
-      DIRECT_CONNECT=no
-#    ])
-#  fi
-
-  if test "$GNUTELLA" = "yes"; then
-       AC_CHECK_FILE(../src/networks/gnutella,GNUTELLA=yes, [
-         GNUTELLA=no
-       ])
-  fi
-
-  if test "$GNUTELLA2" = "yes"; then
-       AC_CHECK_FILE(../src/networks/gnutella2,GNUTELLA2=yes, [
-         GNUTELLA2=no
-       ])
+      AC_MSG_RESULT(no)
+    fi
   fi
 
   if test "$BITTORRENT" = "yes"; then
-    AC_CHECK_FILE(../src/networks/bittorrent,BITTORRENT=yes, [
+    AC_MSG_CHECKING(BitTorrent)
+    if test -d ../src/networks/bittorrent; then
+      AC_MSG_RESULT(yes)
+    else
       BITTORRENT=no
-    ])
+      AC_MSG_RESULT(no)
+    fi
   fi
 
   if test "$FILETP" = "yes"; then
-    AC_CHECK_FILE(../src/networks/fileTP,FILETP=yes, [
+    AC_MSG_CHECKING(FileTP)
+    if test -d ../src/networks/fileTP; then
+      AC_MSG_RESULT(yes)
+    else
       FILETP=no
-    ])
+      AC_MSG_RESULT(no)
+    fi
+  fi
+
+  if test "$GNUTELLA" = "yes"; then
+    AC_MSG_CHECKING(Gnutella)
+    if test -d ../src/networks/gnutella; then
+      AC_MSG_RESULT(yes)
+    else
+      GNUTELLA=no
+      AC_MSG_RESULT(no)
+    fi
+  fi
+
+  if test "$GNUTELLA2" = "yes"; then
+    AC_MSG_CHECKING(G2)
+    if test -d ../src/networks/gnutella2; then
+      AC_MSG_RESULT(yes)
+    else
+      GNUTELLA2=no
+      AC_MSG_RESULT(no)
+    fi
+  fi
+
+  if test "$FASTTRACK" = "yes"; then
+    AC_MSG_CHECKING(Fasttrack)
+    if test -d ../src/networks/fasttrack; then
+      AC_MSG_RESULT(yes)
+    else
+      FASTTRACK=no
+      AC_MSG_RESULT(no)
+    fi
+  fi
+
+  if test "$DIRECT_CONNECT" = "yes"; then
+    AC_MSG_CHECKING(DirectConnect)
+    if test -d ../src/networks/direct_connect; then
+      AC_MSG_RESULT(yes)
+    else
+      DIRECT_CONNECT=no
+      AC_MSG_RESULT(no)
+    fi
   fi
 
   if test "$SOULSEEK" = "yes"; then
-       AC_CHECK_FILE(../src/networks/soulseek,SOULSEEK=yes, [
-         SOULSEEK=no
-       ])
+    AC_MSG_CHECKING(Soulseek)
+    if test -d ../src/networks/soulseek; then
+      AC_MSG_RESULT(yes)
+    else
+      SOULSEEK=no
+      AC_MSG_RESULT(no)
+    fi
   fi
 
-  if test "$OPENFT" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/openFT,OPENFT=yes, [
+  if test "$OPEN_NAPSTER" = "yes"; then
+    AC_MSG_CHECKING(OpenNapster)
+    if test -d ../src/networks/opennap; then
+      AC_MSG_RESULT(yes)
+    else
+      OPEN_NAPSTER=no
+      AC_MSG_RESULT(no)
+    fi
+  fi
+
+  if test "$OPENFT" = "yes"; then
+    AC_MSG_CHECKING(OpenFT)
+    if test -d ../src/networks/openFT; then
+      AC_MSG_RESULT(yes)
+    else
       OPENFT=no
-    ])
+      AC_MSG_RESULT(no)
+    fi
   fi
 
-  if test "$FASTTRACK" = "yes" ; then
-    AC_CHECK_FILE(../src/networks/fasttrack,FASTTRACK=yes, [
-      FASTTRACK=no
-    ])
-  fi
-
-if test "$DONKEY" = "yes" ; then
-
-  AC_CHECK_FILE(../src/networks/donkey,[
-    DONKEY=yes
-    AC_CHECK_FILE(../src/networks/server,DONKEY_SERVER=yes, [
-      DONKEY_SERVER=no
-    ])
-  ], [
-      DONKEY=no
-      DONKEY_SERVER=no
-  ])
-fi
 
 if test "$USE_PTHREAD" = "no"; then
  PTHREAD_LIBS=""
@@ -881,9 +914,13 @@ else
 fi
 
 if test "$IM" = "yes" ; then
-  AC_CHECK_FILE(../src/im,IM=yes, [
-  IM=no
-  ])
+  AC_MSG_CHECKING(IM)
+  if test -d ../src/im; then
+    AC_MSG_RESULT(yes)
+    IM=yes
+  else
+    IM=no
+  fi
 else
    IM=no
 fi

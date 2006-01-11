@@ -14,6 +14,9 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 ChangeLog
 =========
 
+2006/01/11
+4782: Configure: Replace AC_CHECK_FILE with "test -d" to allow cross-compile
+
 2006/01/09
 4770: Change file opening mechanism, open rw only when needed (pango)
       new verbosity option "file" to control Unix32 file handling
