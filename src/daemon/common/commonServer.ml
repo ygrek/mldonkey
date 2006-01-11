@@ -105,7 +105,6 @@ let _ =
   )
 
 let server_must_update s =
-(*  lprintf "server_must_update ?\n";  *)
   let impl = as_server_impl s in
   if impl.impl_server_update <> 0 then
     CommonEvent.add_event (Server_info_event s);
@@ -117,7 +116,6 @@ let server_must_update_state s =
     begin
       impl.impl_server_update <- - impl.impl_server_update;
       CommonEvent.add_event (Server_info_event s);
-(*      lprintf "server_must_update YES\n";  *)
     end
 
 let server_update_num impl =
@@ -246,10 +244,6 @@ let server_state c =
   let impl = as_server_impl c in
   impl.impl_server_state
 
-let server_num c =
-  let impl = as_server_impl c in
-  impl.impl_server_num
-
 let set_server_state c state =
   let impl = as_server_impl c in
   if impl.impl_server_state <> state then begin
@@ -289,25 +283,6 @@ let servers_get_all () =
   !list
 
 let servers_by_num = ()
-
-(*
-type server_info = {
-    server_num : int;
-    server_network : int;
-
-    mutable server_ip : Ip.t;
-    mutable server_port : int;
-    mutable server_score : int;
-    mutable server_tags : CommonTypes.tag list;
-    mutable server_nusers : int;
-    mutable server_nfiles : int;
-    mutable server_state : host_state;
-    mutable server_name : string;
-    mutable server_description : string;
-    mutable server_users : int list option;
-  }
-    *)
-
 
 let server_banner s o =
   let buf = o.conn_buf in

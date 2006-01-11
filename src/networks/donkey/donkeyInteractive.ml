@@ -1165,15 +1165,6 @@ let _ =
   network.op_network_connect_servers <- (fun _ ->
       force_check_server_connections true  )
 
-let disconnect_server s r =
-  match s.server_sock with
-    NoConnection -> ()
-  | ConnectionWaiting token ->
-      cancel_token token;
-      s.server_sock <- NoConnection
-  | Connection sock ->
-      TcpBufferedSocket.shutdown sock r
-
 let ip_of_server_cid s =
   match s.server_cid with
     None -> Ip.null
@@ -1181,7 +1172,7 @@ let ip_of_server_cid s =
 
 let _ =
   server_ops.op_server_remove <- (fun s ->
-      DonkeyComplexOptions.remove_server s.server_ip s.server_port
+      DonkeyGlobals.remove_server s.server_ip s.server_port
   );
   server_ops.op_server_connect <- connect_server;
   server_ops.op_server_disconnect <- (fun s ->

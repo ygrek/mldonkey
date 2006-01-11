@@ -598,12 +598,6 @@ let safe_add_server ip port =
     with _ ->
         ignore (DonkeyGlobals.new_server ip port !!initial_score)
         
-let remove_server ip port =
-  try
-    let _ = DonkeyGlobals.find_server ip port in
-    DonkeyGlobals.remove_server ip port
-  with _ -> ()
-
 let config_files_loaded = ref false  
       
 let load _ =

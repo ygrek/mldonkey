@@ -32,7 +32,6 @@ open CommonClient
 open CommonServer
 open CommonNetwork
 open CommonOptions
-open CommonTypes
 open CommonFile
 open CommonGlobals
 open CommonSearch
@@ -336,13 +335,18 @@ let file_add impl state =
       lprintf_nl "[cInt] Exception in file_add: %s" (Printexc2.to_string e)
 
 let server_remove server =
+  begin
+    match server_state server with
+      NotConnected _ -> ()
+    | _ -> server_disconnect server
+  end;
   try
     let impl = as_server_impl server in
     if impl.impl_server_state <> RemovedHost then begin
         set_server_state server RemovedHost;
         (try impl.impl_server_ops.op_server_remove impl.impl_server_val
           with _ -> ());
-        servers =:= Intmap.remove (server_num server) !!servers;
+        servers =:= Intmap.remove (server_num server) !!servers
       end
   with e ->
       lprintf_nl "[cInt] Exception in server_remove: %s" (Printexc2.to_string e)

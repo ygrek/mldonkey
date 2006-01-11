@@ -512,8 +512,7 @@ let remove_server ip port =
         NoConnection -> ()
       | ConnectionWaiting token -> cancel_token token
       | Connection sock ->
-          TcpBufferedSocket.shutdown sock Closed_by_user);
-    server_remove (as_server s.server_server)
+          TcpBufferedSocket.shutdown sock Closed_by_user)
   with _ -> ()
 
 let dummy_client =

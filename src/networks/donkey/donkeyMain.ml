@@ -102,7 +102,7 @@ let disable enabler () =
       is_enabled := false;
       enabler := false;
       if !!enable_donkey then enable_donkey =:= false;
-      Hashtbl2.safe_iter (fun s -> disconnect_server s Closed_by_user)
+      Hashtbl2.safe_iter (fun s -> DonkeyServers.disconnect_server s Closed_by_user)
       servers_by_key;
       H.iter (fun c -> DonkeyClient.disconnect_client c Closed_by_user) 
       clients_by_kind;

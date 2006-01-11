@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/01/11
+4781: Disconnect connected server before removing
 4782: Configure: Replace AC_CHECK_FILE with "test -d" to allow cross-compile
 
 2006/01/09

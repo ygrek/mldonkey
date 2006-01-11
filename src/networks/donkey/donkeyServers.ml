@@ -229,10 +229,6 @@ let disconnect_server s reason =
     | Connection sock ->
         decr nservers;
         TcpBufferedSocket.close sock reason;
-        (*
-          lprintf "%s:%d CLOSED received by server\n"
-          (Ip.to_string s.server_ip) s.server_port;
-        *)
         connection_failed (s.server_connection_control);
         s.server_sock <- NoConnection;
         s.server_score <- s.server_score - 1;
@@ -644,7 +640,7 @@ position to the min_left_servers position.
   end;
 
   List.iter (fun s ->
-    remove_server s.server_ip s.server_port
+    DonkeyGlobals.remove_server s.server_ip s.server_port
   ) !to_remove;
 
   if !to_remove <> [] || !verbose then
