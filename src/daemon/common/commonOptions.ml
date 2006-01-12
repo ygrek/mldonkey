@@ -816,8 +816,8 @@ let web_infos = define_option current_section ["web_infos"]
     IMPORTANT: Put the URL and the kind between quotes.
     EXAMPLE:
  web_infos = [
-  (\"server.met\", 96, \"http://www.primusnet.ch/users/komintern/ed2k/min/server.met\");
-  (\"guarding.p2p\", 96, \"http://homepage.ntlworld.com/tim.leonard1/guarding.p2p\");
+  (\"server.met\", 0, \"http://www.gruk.org/server.met.gz\");
+  (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/antip2p.txt\");
   (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
   (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
  ]
@@ -852,13 +852,6 @@ let geoip_dat = define_expert_option current_section ["geoip_dat"]
 let _ =
   option_hook ip_blocking_descriptions (fun _ ->
     Ip_set.store_blocking_descriptions := !!ip_blocking_descriptions
-  );
-  option_hook ip_blocking (fun _ ->
-    try
-      Ip_set.bl := if !!ip_blocking <> "" then
-      	             Ip_set.load !!ip_blocking
-        	   else Ip_set.bl_empty
-    with _ -> ()
   );
   option_hook geoip_dat (fun _ ->
     try

@@ -548,6 +548,7 @@ type server = (*[]*){
     mutable server_max_users : int;
     mutable server_name : string;
     mutable server_description : string;
+    mutable server_version : string;
     mutable server_banner : string;
     mutable server_users: user list;
     mutable server_next_udp : int;

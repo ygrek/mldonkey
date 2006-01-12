@@ -617,7 +617,10 @@ let buf_server proto buf s =
   buf_int64_28 proto buf s.server_nusers;
   buf_int64_28 proto buf s.server_nfiles;
   buf_host_state proto buf s.server_state;
-  buf_string buf s.server_name;
+  if s.server_version = "" then
+    buf_string buf s.server_name
+  else
+    buf_string buf (Printf.sprintf "%s (%s)" s.server_name s.server_version);
   buf_string buf s.server_description;
   if proto > 28 then 
     buf_bool buf s.server_preferred

@@ -981,6 +981,7 @@ let _ =
   network.op_network_parse_url <- op_network_parse_url;
   network.op_network_share <- (fun fullname codedname size -> ());
   network.op_network_forget_search <- (fun s -> ());
+  network.op_network_connect_servers <- (fun s -> ());
   network.op_network_search <- (fun ss buf -> ());
   network.op_network_download <- (fun r -> dummy_file);
   network.op_network_recover_temp <- (fun s -> ());

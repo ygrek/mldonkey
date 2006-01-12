@@ -14,6 +14,10 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 ChangeLog
 =========
 
+2006/01/12
+4787: EDK: Show server version (ported from Mulus - thx to Knocker),
+      disconnect blocked server after loading IP blocklist
+
 2006/01/11
 4790: Some logging stuff
 4781: Disconnect connected server before removing

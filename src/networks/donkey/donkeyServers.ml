@@ -289,6 +289,14 @@ let client_to_server s t sock =
         end
 
   | M.MessageReq msg ->
+
+     (try
+	let prefix = String.sub msg 0 15 in
+	if prefix = "server version " then begin
+	  s.server_version <- String.sub msg 15 4;
+	end;
+      with _-> ());
+
       if !last_message_sender <> server_num s then begin
           let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------"
               s.server_name (Ip.to_string s.server_ip) s.server_port in
@@ -766,8 +774,6 @@ let update_master_servers _ =
   let make_master s =
     (* normal servers don't have our SHARE, so send list if it becomes a master *)
     do_if_connected s.server_sock (fun sock ->
-        if !verbose then
-          lprintf_nl () "master servers: new master: %s, sending shared files" (Ip.to_string s.server_ip);
         s.server_master <- true;
         incr nmasters;
 

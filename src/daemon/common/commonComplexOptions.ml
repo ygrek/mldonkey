@@ -1272,6 +1272,14 @@ let diskinfo html buf =
     Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
 
 let _ =
+  option_hook ip_blocking (fun _ ->
+    (try
+      Ip_set.bl := if !!ip_blocking <> "" then
+                     Ip_set.load !!ip_blocking
+                   else Ip_set.bl_empty
+    with _ -> ());
+    CommonServer.check_blocked_servers ()
+  );
   option_hook max_opened_connections (fun _ ->
   if !verbose then lprintf_nl ()
     "checking max_opened_connections = %d for validity" !!max_opened_connections;

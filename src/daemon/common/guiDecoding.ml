@@ -693,6 +693,7 @@ let get_server proto s pos =
     server_banner = "";
     server_users = None;
     server_preferred = preferred;
+    server_version = "";
   }, pos
 
 let get_client_type s pos = 

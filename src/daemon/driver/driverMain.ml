@@ -170,8 +170,9 @@ let _ =
 	close_in ic
   );
   CommonWeb.add_web_kind "guarding.p2p" (fun _ filename ->
-      Ip_set.bl := Ip_set.load filename
+      Ip_set.bl := Ip_set.load filename;
 (*      Ip_set.bl := Ip_set.load_merge !Ip_set.bl filename *)
+      CommonServer.check_blocked_servers ()
   )
 
 

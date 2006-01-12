@@ -336,6 +336,7 @@ let _ =
           P.server_users = None;
           P.server_banner = "";
           P.server_preferred = false;
+	  P.server_version = "";
           } else
         raise Not_found
   );

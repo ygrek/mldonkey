@@ -473,6 +473,7 @@ let new_server ip port score =
         server_max_users = 0;
         server_name = "";
         server_description = "";
+	server_version = "";
         server_banner = "";
         server_users = [];
         server_master = false;

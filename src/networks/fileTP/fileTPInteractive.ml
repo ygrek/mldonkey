@@ -475,12 +475,10 @@ let commands = [
 
 let _ =
   CommonNetwork.register_commands commands;
-  (* Shut up "Network.share not implemented by FileTP" *)
   network.op_network_share <- (fun fullname codedname size -> ());
-  (* Same with Network.search and Network.forget_search... *)
   network.op_network_search <- (fun ss buf -> ());
   network.op_network_download <- (fun r -> dummy_file);
   file_ops.op_file_commit <- (fun file new_name -> ());
   network.op_network_forget_search <- (fun s -> ());
-  (* and Network.recover_temp *)
+  network.op_network_connect_servers <- (fun s -> ());
   network.op_network_recover_temp <- (fun s -> ())

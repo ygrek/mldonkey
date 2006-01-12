@@ -294,6 +294,25 @@ let servers_get_all () =
 
 let servers_by_num = ()
 
+let check_blocked_servers () =
+  try
+    server_iter (fun s ->
+      if server_blocked s then
+        begin
+          let impl = as_server_impl s in
+          let info = server_info s in
+          (match impl.impl_server_state with
+             NotConnected _ -> ()
+    	   | _ -> server_disconnect s;
+              lprintf_nl () "Disconnected server %s (%s:%d), IP is now blocked"
+                info.G.server_name
+                (Ip.string_of_addr info.G.server_addr)
+                info.G.server_port);
+      end;
+      server_must_update s)
+  with e ->
+    lprintf_nl () "Exception in check_blocked_servers: %s" (Printexc2.to_string e)
+
 let server_banner s o =
   let buf = o.conn_buf in
   let info = server_info s in
@@ -305,7 +324,7 @@ let server_print_html_header buf ext =
 		( "1", "srh", "Server number", "#" ) ;
 		( "0", "srh", "Connect|Disconnect", "C/D" ) ;
 		( "0", "srh", "Remove", "Rem" ) ;
-    ( "0", "srh", "Preferred", "P" ) ;
+		( "0", "srh", "Preferred", "P" ) ;
 		( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ;
 		( "0", "srh", "Network name", "Network" ) ;
 		( "0", "srh", "Connection status", "Status" ) ;
@@ -313,6 +332,7 @@ let server_print_html_header buf ext =
 		( "1", "srh ar", "Number of connected users", "Users" ) ;
 		( "1", "srh ar br", "Number of files indexed on server", "Files" ) ;
 		( "0", "srh", "Server name", "Name" ) ;
+		( "0", "srh", "Server version", "Version" ) ;
 		( "0", "srh", "Server details", "Details" ) ]
 
 let server_print s o =
@@ -343,6 +363,7 @@ let server_print s o =
     \\<td class=\\\"sr ar\\\"\\>%Ld\\</td\\>
     \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
     (html_mods_cntr ())
 	  (
@@ -355,20 +376,21 @@ let server_print s o =
         | _ -> "")
 	  )
 	  snum
-      (if server_blocked s then
-        Printf.sprintf "\\<TD class=\\\"srb\\\"----\\</TD\\>"
-       else
+      (
+        if server_blocked s && (match impl.impl_server_state with
+				 NotConnected _ -> true
+			       | _ -> false) then "\\<td class=\\\"srb\\\"\\>blk\\</td\\>" else
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\" title=\\\"Connect|Disconnect\\\"
         onClick=\\\"parent.fstatus.location.href='submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
-      (match impl.impl_server_state with
-        NotConnected _ -> "c"
-      | _ -> "x")
-      snum
-      (match impl.impl_server_state with
-        NotConnected _ -> "Conn"
-      | _ -> "Disc")
+        (match impl.impl_server_state with
+           NotConnected _ -> "c"
+         | _ -> "x")
+        snum
+        (match impl.impl_server_state with
+           NotConnected _ -> "Conn"
+         | _ -> "Disc")
       )
       (
         Printf.sprintf
@@ -423,10 +445,10 @@ let server_print s o =
        else "\\>"
       )
       n.network_name
-      (if server_blocked s then
-	"IP blocked"
-      else
-	(string_of_connection_state impl.impl_server_state))
+      (match impl.impl_server_state with
+        NotConnected _ -> if server_blocked s then "IP blocked"
+			  else (string_of_connection_state impl.impl_server_state)
+      | _ -> (string_of_connection_state impl.impl_server_state))
       (Ip.string_of_addr info.G.server_addr)
       (Printf.sprintf "%s%s"
        (string_of_int info.G.server_port)
@@ -435,6 +457,7 @@ let server_print s o =
       info.G.server_nusers
       info.G.server_nfiles
       info.G.server_name
+      info.G.server_version
       info.G.server_description
 
 	end

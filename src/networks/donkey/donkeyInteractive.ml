@@ -1090,6 +1090,7 @@ let _ =
           P.server_banner = s.server_banner;
           P.server_users = None;
           P.server_preferred = s.server_preferred;
+	  P.server_version = s.server_version;
         }
       else raise Not_found
   )
@@ -1160,10 +1161,6 @@ let _ =
   );
   client_ops.op_client_debug <- (fun c debug ->
       c.client_debug <- debug)
-
-let _ =
-  network.op_network_connect_servers <- (fun _ ->
-      force_check_server_connections true  )
 
 let ip_of_server_cid s =
   match s.server_cid with
