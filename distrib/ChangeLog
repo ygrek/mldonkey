@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/01/12
+4792: GeoIP: Add license (distrib/GeoIP_LICENSE.txt, runinfo)
+      This product includes GeoLite data created by MaxMind,
+      available from http://maxmind.com/
 4776: EDK: Avoid LowID if max_indirect_connections is reached (thx to zet)
 4787: EDK: Show server version (ported from Mulus - thx to Knocker),
       disconnect blocked server after loading IP blocklist

@@ -1,0 +1,74 @@
+There are two licenses, one for the C library software, and one for
+the database.
+
+SOFTWARE LICENSE (C library)
+
+The GeoIP C Library is licensed under the GPL.  For details see
+the COPYING file.
+
+OPEN DATA LICENSE (GeoLite Free Country Database)
+
+Copyright (c) 2005 MaxMind LLC.  All Rights Reserved.
+
+All advertising materials and documentation mentioning features or use of
+this database must display the following acknowledgment:
+"This product includes GeoLite data created by MaxMind, available from
+http://maxmind.com/"
+
+Redistribution and use with or without modification, are permitted provided
+that the following conditions are met:
+1. Redistributions must retain the above copyright notice, this list of
+conditions and the following disclaimer in the documentation and/or other
+materials provided with the distribution. 
+2. All advertising materials and documentation mentioning features or use of
+this database must display the following acknowledgement:
+"This product includes GeoLite data created by MaxMind, available from
+http://maxmind.com/"
+3. "MaxMind" may not be used to endorse or promote products derived from this
+database without specific prior written permission.
+
+THIS DATABASE IS PROVIDED BY MAXMIND.COM ``AS IS'' AND ANY 
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL MAXMIND.COM BE LIABLE FOR ANY 
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES 
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS 
+DATABASE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Some parts of this software distribution are derived from the APNIC, ARIN and
+RIPE databases (copyright details below). The author of this module makes no
+claims of ownership on those parts.
+
+APNIC conditions of use:
+
+The files are freely available for download and use on the condition that APNIC
+will not be held responsible for any loss or damage arising from the application
+of the information contained in these reports.
+
+APNIC endeavours to the best of its ability to ensure the accuracy of these
+reports; however, APNIC makes no guarantee in this regard.
+
+In particular, it should be noted that these reports seek to indicate the
+country where resources were first allocated or assigned. It is not intended
+that these reports be considered as an authoritative statement of the location
+in which any specific resource may currently be in use.
+
+ARIN database copyright:
+
+Copyright (c) American Registry for Internet Numbers. All rights reserved.
+
+RIPE database copyright:
+
+The information in the RIPE Database is available to the public for agreed
+Internet operation purposes, but is under copyright. The copyright statement is:
+
+"Except for agreed Internet operational purposes, no part of this publication
+may be reproduced, stored in a retrieval system, or transmitted, in any form or
+by any means, electronic, mechanical, recording, or otherwise, without prior
+permission of the RIPE NCC on behalf of the copyright holders. Any use of this
+material to target advertising or similar activities is explicitly forbidden and
+may be prosecuted. The RIPE NCC requests to be notified of any such activities
+or suspicions thereof."

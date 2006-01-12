@@ -39,3 +39,5 @@ bogeyman
 
 Fasttrack plugin from giFT-fasttrack:
 Markus Kern
+
+This product includes GeoLite data created by MaxMind, available from http://maxmind.com/

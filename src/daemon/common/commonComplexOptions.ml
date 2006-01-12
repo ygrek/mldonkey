@@ -1165,6 +1165,7 @@ let runinfo html buf =
       ^   (if Autoconf.gnutella2 = "yes" && !!enable_gnutella2 then " G2" else "")
       ^   (if Autoconf.filetp = "yes" && !!enable_fileTP then " FileTP" else "")
       ^  "\nServer usage: " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
+      ^  (if !Geoip.active then "\nThis product includes GeoLite data created by MaxMind, available from http://maxmind.com/" else "")
       ^ (let uname = Unix32.uname () in
           if uname <> "" then Printf.sprintf "\nSystem info: %s" uname else "")
       ^ "\nUptime: " ^ Date.time_to_string (last_time () - start_time) "verbose"
