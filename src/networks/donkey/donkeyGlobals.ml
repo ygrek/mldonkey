@@ -182,6 +182,7 @@ let servers_list = ref ([] : server list)
 let current_files = ref ([] : file list)
 let xs_servers_list = ref ([] : server list)
 let connected_server_list = ref ([]  : server list)
+let connecting_server_list = ref ([] : server list)
 
 let (banned_ips : (Ip.t, int) Hashtbl.t) = Hashtbl.create 113
 let (old_requests : (int * int, request_record) Hashtbl.t) =
@@ -245,6 +246,15 @@ let hashtbl_remove table key v =
     if vv == v then
       Hashtbl.remove table key
   with _ -> ()
+
+let add_connecting_server c =
+  connecting_server_list := c :: !connecting_server_list
+
+let remove_connecting_server c =
+  connecting_server_list := List2.removeq c !connecting_server_list
+
+let connecting_server_ips () =
+  List.rev_map (fun s -> s.server_ip) !connecting_server_list
 
 let add_connected_server c =
   connected_server_list := c :: !connected_server_list
@@ -775,6 +785,7 @@ end;
   Printf.bprintf buf "  servers_list: %d\n" (List.length !servers_list);
   Printf.bprintf buf "  xs_servers_list: %d\n" (List.length !xs_servers_list);
   Printf.bprintf buf "  connected_server_list: %d\n" (List.length !connected_server_list);
+  Printf.bprintf buf "  connecting_server_list: %d\n" (List.length !connecting_server_list);
   Printf.bprintf buf "  udp_servers_list: %d\n" (List.length !udp_servers_list);
   Printf.bprintf buf "  interesting_clients: %d\n" (List.length !interesting_clients);
   Printf.bprintf buf "  shared_files: %d\n" (List.length !shared_files);

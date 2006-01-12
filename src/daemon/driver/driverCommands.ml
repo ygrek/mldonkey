@@ -1644,6 +1644,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option max_hard_upload_rate;
 			strings_of_option max_hard_download_rate;
 			strings_of_option max_opened_connections;
+			strings_of_option max_indirect_connections;
 			strings_of_option max_connections_per_second;
 			strings_of_option max_concurrent_downloads;
                       ]

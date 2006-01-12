@@ -1333,5 +1333,6 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
   TcpBufferedSocket.set_max_opened_connections
     (fun _ -> !!max_opened_connections);
 
-  Unix32.max_cache_size := total_files - 20
+  Unix32.max_cache_size := total_files - 20;
+  calc_real_max_indirect_connections ()
 )

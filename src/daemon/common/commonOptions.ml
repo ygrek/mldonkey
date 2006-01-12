@@ -442,7 +442,7 @@ let verbosity = define_expert_option current_section ["verbosity"]
   up : some upload warnings
   unk : unknown messages
   ov : overnet
-  loc : debug source research
+  loc : debug source research/master servers
   share: debug sharing
   md4 : md4 computation
   connect : debug connections
@@ -483,7 +483,7 @@ let max_opened_connections = define_option current_section
 
 let max_indirect_connections = define_option current_section
     ["max_indirect_connections"]
-  "Amount of indirect connections in percent (max 50) of max_opened_connections, additional to max_opened_connections"
+  "Amount of indirect connections in percent (min 30, max 70) of max_opened_connections"
   int_option 20
 
 let max_upload_slots = define_option current_section ["max_upload_slots"]
@@ -1558,7 +1558,20 @@ on the top right corner of this window!
 Instead use the kill command in Telnet or HTML,
 the kill function of a GUI or CTRL+C.\n\n"
 
+let real_max_indirect_connections = ref 0
+
+let calc_real_max_indirect_connections () =
+  real_max_indirect_connections :=
+    !!max_opened_connections * !!max_indirect_connections / 100
+
 let _ =
+  option_hook max_indirect_connections (fun _ ->
+    begin
+      if !!max_indirect_connections > 70 then max_indirect_connections =:= 70
+      else if !!max_indirect_connections < 30 then max_indirect_connections =:= 30
+    end;
+    calc_real_max_indirect_connections ()
+  );
   option_hook global_login (fun _ ->
       let len = String.length !!global_login in
       let prefix = "mldonkey_" in

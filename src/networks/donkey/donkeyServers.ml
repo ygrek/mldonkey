@@ -241,6 +241,7 @@ let disconnect_server s reason =
           | _ -> ());
         s.server_banner <- "";
         s.server_sent_all_queries <- false;
+        remove_connecting_server s;
         remove_connected_server s
 
 
@@ -276,6 +277,7 @@ let client_to_server s t sock =
           (* disconnect after (connected_server_timeout) seconds of silence *)
           set_rtimeout sock !!connected_server_timeout;
           set_server_state s Connected_initiating;
+          remove_connecting_server s;
           s.server_score <- s.server_score + 5;
           connection_ok (s.server_connection_control);
 
@@ -510,13 +512,9 @@ let connect_server s =
                     C.tags = !client_to_server_tags;
                   }
                 );
+                add_connecting_server s;
                 add_connected_server s;
               with e ->
-                (*
-                  lprintf "%s:%d IMMEDIAT DISCONNECT \n"
-                  (Ip.to_string s.server_ip) s.server_port;
-                  lprintf "DISCONNECTED IMMEDIATLY\n";
-                 *)
                 disconnect_server s (Closed_for_exception e)
           )
           in
@@ -746,7 +744,7 @@ let compare_servers s2 s1 =
 
 (* check connected servers *)
 let update_master_servers _ =
-  if !verbose then
+  if !verbose_location then
     lprintf_nl () "master servers: start re-computing";
   let server_list = List.sort compare_servers (connected_servers ()) in
   let masters = ref [] in
@@ -757,7 +755,7 @@ let update_master_servers _ =
       if s.server_master then
         match s.server_sock with
         | Connection _ ->
-            if !verbose then begin
+            if !verbose_location then begin
 	      if !tag2 then begin
                 lprintf_n () "master servers (old):";
 		tag1 := false;
@@ -794,7 +792,7 @@ let update_master_servers _ =
        connections *)
     if !nconnected_servers > max_allowed_connected_servers then
       begin
-        if !verbose then
+        if !verbose_location then
             lprintf_nl () "master servers: disconnect %s" (Ip.to_string s.server_ip);
         nconnected_servers := !nconnected_servers - 3;
         do_if_connected  s.server_sock (fun sock ->
@@ -813,7 +811,7 @@ let update_master_servers _ =
             last_time ()
             - connection_last_conn s.server_connection_control
           in
-          if !verbose then
+          if !verbose_location then
               lprintf_nl () "master servers: Checking ip:%s, users: %Ld, ct:%d"
 	        (Ip.to_string s.server_ip) s.server_nusers connection_time;
           if not s.server_master
@@ -825,7 +823,7 @@ let update_master_servers _ =
               begin
                 if (!nmasters < max_allowed_connected_servers) then
                   begin
-                    if !verbose then
+                    if !verbose_location then
                         lprintf_nl () "master servers: raising  %s"
                                   (Ip.to_string s.server_ip);
                     make_master s
@@ -844,7 +842,7 @@ let update_master_servers _ =
                              )
                           then
                             begin
-                              if !verbose then
+                              if !verbose_location then
                                 lprintf_nl ()
                                   "master servers: raising %s, disconnected %s"
                                   (Ip.to_string s.server_ip) (Ip.to_string ss.server_ip);
@@ -858,7 +856,7 @@ let update_master_servers _ =
               end
         )
     ) server_list;
-  if !verbose then
+  if !verbose_location then
       lprintf_nl () "master servers: %d connected %d masters - re-computing completed"
         !nconnected_servers !nmasters
 

@@ -2395,31 +2395,65 @@ let query_locations_reply s t =
     ) t.Q.locs;
   with Not_found -> ()
       
+let rec matches_3 l ip =
+  let rec iter l (a,b,c,d) =
+    match l with
+      [] -> Ip.null
+    | ip :: _ when 
+      let (w,x,y,z) = Ip.to_ints ip in
+      w=a && x=b && y=c -> ip
+    | _ :: t -> iter t (a,b,c,d)
+  in
+  iter l (Ip.to_ints ip)
+
 let client_connection_handler overnet t event =
-(*  lprintf "[REMOTE CONN]\n"; *)
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
-      let from_ip = (Ip.of_inet_addr from_ip) in
-      if !DonkeySources.indirect_connections <
-         !!max_opened_connections * !!max_indirect_connections / 100 &&
-        (match Ip_set.match_ip !Ip_set.bl from_ip with
-                   None -> true
-                 | Some br ->
-                     if !verbose_connect then
-                       lprintf "DKOV: %s:%d blocked: %s\n"
-                         (Ip.to_string from_ip) from_port br.blocking_description;
-                     false) then
+      let from_ip = Ip.of_inet_addr from_ip in
+      let s_from_ip = Ip.to_string from_ip in
+      let is_ip_blocked = Ip_set.ip_blocked from_ip in
+      let too_many_indirect_connections =
+        !DonkeySources.indirect_connections >
+        !real_max_indirect_connections
+      in
+
+      let connecting_server = matches_3 (connecting_server_ips()) from_ip in
+      let is_connecting_server = connecting_server <> Ip.null in
+
+      let accept_connection = not is_ip_blocked 
+        && (not too_many_indirect_connections || is_connecting_server)
+      in
+
+      if !verbose_connect || (!verbose && (too_many_indirect_connections || is_connecting_server)) then
+        lprintf_nl () "incoming connection from %s:%d %s: (%d/%d)%s"
+          s_from_ip from_port
+          (if accept_connection then "accepted" else
+	     if is_ip_blocked then "blocked" else "denied")
+          !DonkeySources.indirect_connections 
+          !real_max_indirect_connections
+          (if is_connecting_server then
+            ( try 
+                let s = Hashtbl.find servers_by_key from_ip in
+                Printf.sprintf " %s (%s)" s.server_name (Ip.to_string s.server_ip)
+              with _ ->
+		try 
+                  let s = Hashtbl.find servers_by_key connecting_server in
+                  Printf.sprintf " %s (%s)" s.server_name (Ip.to_string s.server_ip)
+                with _ -> "Unknown server"
+            )
+           else ""
+          );
+
+      if accept_connection then
+
         begin
-(*          lprintf "+++++++++++++++++++++++++++++++++++++++++++++++\n"; *)
           (try
               let c = ref None in
               incr DonkeySources.indirect_connections;
-(*              lprintf "INDIRECT CONNECTION.........\n"; *)
               let token = create_token connection_manager in
               let sock = 
                 TcpBufferedSocket.create token "donkey client connection" s 
                   (client_handler2 c) 
-(*client_msg_to_string*)
               in
               init_connection sock from_ip;
               accept_connection_bandwidth sock;
@@ -2434,7 +2468,6 @@ let client_connection_handler overnet t event =
                   90.
               );
               (try
-                  
                   set_reader sock 
                     (DonkeyProtoCom.client_handler2 c (read_first_message overnet)
                     (client_to_client []));
@@ -2447,11 +2480,8 @@ let client_connection_handler overnet t event =
                   (Printexc2.to_string e);
                 Unix.close s)
         end     
-      
-      else begin
-          (* lprintf "***** CONNECTION PREVENTED by limitations *****\n"; *)
+      else
           Unix.close s
-        end;
   | _ -> 
       ()      
 
