@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/01/14
+4796: Windows: Log proper warning when MaxUserPort is reached (thx to Enig)
 4795: Mailer: Fix Subject encoding (bogeyman)
 4716: BT: new command "tracker" to add trackers (bogeyman)
 

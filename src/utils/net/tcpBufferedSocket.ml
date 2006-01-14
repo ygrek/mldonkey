@@ -1374,17 +1374,20 @@ let connect token name host port handler =
         forecast_upload t 0;    (* The TCP ACK packet *)
         t
     | Unix.Unix_error (Unix.ENETUNREACH,_,_) as e ->
+        (* log nothing here, but later in donkeyClient.ml *)
 	close t Closed_connect_failed;
         raise e
     | e ->
-        lprintf "For host %s:%d   "
-            (Unix.string_of_inet_addr host) port;
         close t Closed_connect_failed;
         raise e
   with
-    Unix.Unix_error (Unix.ENETUNREACH,_,_) as e -> raise e
+    Unix.Unix_error (Unix.ENETUNREACH,_,_) as e -> raise e (* avoid logging *)
+  | Unix.Unix_error (Unix.ENOBUFS,_,_) as e ->
+      if Autoconf.windows then lprintf_nl
+        "No more free buffers, read http://support.microsoft.com/kb/q196271/ to fix this problem";
+      raise e
   | e ->
-      lprintf "EXCEPTION %s  before connect to host %s:%d\n"
+      lprintf_nl "Exception (%s) before connect to host %s:%d"
           (Printexc2.to_string e) (Unix.string_of_inet_addr host) port;
       raise e
 
