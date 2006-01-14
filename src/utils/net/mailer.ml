@@ -30,50 +30,48 @@ type mail = {
     mail_body : string;
   }
 
-let rfc2047_encode h encoding  s =
+let rfc2047_encode h encoding s =
   let beginning = "=?" ^ encoding ^"?q?" in
   let ending = "?=" in
   let space = " " in
   let crlf = "\r\n" in
   let maxlen = 75 in (* max lenght of a line *)
-  let willbelines = ((String.length h + String.length s) * 3 / 
-      (maxlen - (String.length beginning + String.length ending)) +1) in
-  let res = String.create (willbelines * maxlen) in
+  let buf = Buffer.create 1500 in
   let pos = ref 0 in
-  let rl = ref 0 in
+  let rl = ref 1 in
   let hexa_digit x =
     if x >= 10 then Char.chr (Char.code 'A' + x - 10)
     else Char.chr (Char.code '0' + x) in
   let copy tanga = begin
-      for ii=0 to (String.length tanga -1) do
-        res.[!pos] <- tanga.[ii]; incr pos;
-      done;
+        Buffer.add_string buf tanga;
+        pos := !pos + String.length tanga;
     end;
   in    
   copy h; 
   copy beginning;
+  let newline () = 
+    incr rl;
+    copy ending;
+    copy crlf;
+    copy space;
+    copy beginning;
+  in
   for i=0 to (String.length s)-1 do
-     let l = (!pos / (maxlen-String.length ending)) in
-    if l > !rl then begin
-      incr rl;
-      copy ending;
-      copy crlf;
-      copy space;
-      copy beginning;
-    end ;
-   match s.[i] with
-    | 'a'..'z' | 'A'..'Z' | '0'..'9' ->
-        res.[!pos] <- s.[i]; incr pos
-    | ' ' -> res.[!pos] <- '_'; incr pos 
-    | c ->
-        res.[!pos] <- '=';
-        res.[!pos+1] <- hexa_digit (Char.code c / 16);
-        res.[!pos+2] <- hexa_digit (Char.code c mod 16);
-        pos := !pos + 3
-    ;	
+    let l = (!rl * (maxlen-String.length ending)) - 1 in
+    if l < !pos then newline ();
+    match s.[i] with
+      | 'a'..'z' | 'A'..'Z' | '0'..'9' ->
+          Buffer.add_char buf s.[i]; incr pos
+      | ' ' -> Buffer.add_char buf '_'; incr pos 
+      | c ->
+          if l < !pos + 2 then newline ();
+          Buffer.add_char buf '=';
+          Buffer.add_char buf (hexa_digit (Char.code c / 16));
+          Buffer.add_char buf (hexa_digit (Char.code c mod 16));
+          pos := !pos + 3;	
   done;
   copy ending;
-  String.sub res 0 !pos
+  Buffer.contents buf
  
  
 let simple_connect hostname port = (* from netbase.ml *)
