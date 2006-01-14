@@ -14,6 +14,9 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 ChangeLog
 =========
 
+2006/01/14
+4716: BT: new command "tracker" to add trackers (bogeyman)
+
 2006/01/12
 4792: GeoIP: Add license (distrib/GeoIP_LICENSE.txt, runinfo)
       This product includes GeoLite data created by MaxMind,

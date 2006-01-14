@@ -931,6 +931,52 @@ let commands =
        _s ""
     ), _s " :\t\t\t\tstops all bittorrent downloads, use this if you want to make sure that the stop signal actualy gets to the tracker\n\t\t\t\twhen shuting mlnet down, but you have to wait till the stops get to the tracker and not wait too long,\n\t\t\t\tso mldonkey reconnects to the tracker :)";
 
+    "tracker", "Network/Bittorrent", Arg_multiple (fun args o ->
+        try
+          let num = ref "" in
+          let urls = ref [] in
+          (match args with
+          | nums :: [] -> raise Not_found
+          | nums :: rest -> num := nums; urls := rest
+          | _ -> raise Not_found);
+
+          let num = int_of_string !num in
+          Hashtbl.iter (fun _ file ->
+              if file_num file = num then begin
+                  if !verbose then
+                    lprintf_nl () "adding trackers for file %i" num;
+                  set_trackers file !urls;
+                  raise Exit
+                end
+          ) files_by_uid;
+         let buf = o.conn_buf in
+          if o.conn_output = HTML then
+            html_mods_table_one_row buf "serversTable" "servers" [
+              ("", "srh", "file not found"); ]
+          else
+            Printf.bprintf buf "file not found";
+          _s ""
+        with
+        | Exit -> 
+            let buf = o.conn_buf in
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", "tracker added"); ]
+            else
+              Printf.bprintf buf "tracker added";
+            _s ""
+        | _ ->
+            if !verbose then
+              lprintf_nl () "Not enough or wrong parameters.";
+            let buf = o.conn_buf in
+            if o.conn_output = HTML then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", "Not enough or wrong parameters."); ]
+            else
+              Printf.bprintf buf "Not enough or wrong parameters.";
+            _s ""        
+    ), " <num> <url> <url>... :\t\t\tadd urls as trackers for num.";
+
 (* TODO : add some code from make_torrent
     "print_torrent", Arg_one (fun filename o ->
 
