@@ -15,7 +15,9 @@ ChangeLog
 =========
 
 2006/01/15
-4797: EDK: Always put server connect requests in connection queue
+4797: EDK: Always put server connect requests in connection queue,
+      whether max_opened_connections is reached or not
+      Connection will be established later when a socket is available
 
 2006/01/14
 4796: Windows: Log proper warning when MaxUserPort is reached (thx to Enig)
