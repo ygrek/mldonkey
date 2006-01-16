@@ -28,6 +28,7 @@ open CommonGlobals
 
 open DonkeyTypes
 open DonkeyMftp
+open Int64ops
 
 module QueryReplyUdp  = struct
 
@@ -50,31 +51,31 @@ module QueryReplyUdp  = struct
 
     let parse len s =
       let rec iter pos list =
-	if pos < len then
+  if pos < len then
           let file, pos = get_file s pos in
           let pos = pos + 2 in
-	  iter pos (file :: list)
-	else List.rev list
+    iter pos (file :: list)
+  else List.rev list
       in
       iter 1 []
 
     let bprint oc t =
       Printf.bprintf oc "FOUND:\n";
       List.iter (fun t ->
-	Printf.bprintf oc "%s\n" (Md4.to_string t.f_md4);
-	Printf.bprintf oc "%s\n" (Ip.to_string t.f_ip);
-	Printf.bprintf oc "%d\n" t.f_port;
-	Printf.bprintf oc "TAGS:\n";
-	bprint_tags oc t.f_tags;
+  Printf.bprintf oc "%s\n" (Md4.to_string t.f_md4);
+  Printf.bprintf oc "%s\n" (Ip.to_string t.f_ip);
+  Printf.bprintf oc "%d\n" t.f_port;
+  Printf.bprintf oc "TAGS:\n";
+  bprint_tags oc t.f_tags;
          Printf.bprintf oc "\n"
       ) t
 
     let write buf t =
       List.iter (fun file ->
-	buf_md4 buf file.f_md4;
-	buf_ip buf file.f_ip;
-	buf_port buf file.f_port;
-	buf_tags buf file.f_tags names_of_tag
+  buf_md4 buf file.f_md4;
+  buf_ip buf file.f_ip;
+  buf_port buf file.f_port;
+  buf_tags buf file.f_tags names_of_tag
       ) t
 
   end
@@ -108,9 +109,8 @@ module PingServerUdp = struct (* client -> serveur pour identification ? *)
 
     let parse len s =
       try
-	get_uint64_32 s 1(*, get_int8 s 2, get_int8 s 3*)
-      with _ ->
-	Int64.zero
+        get_uint64_32 s 1 (*, get_int8 s 2, get_int8 s 3*)
+      with _ -> 0L
 
     let bprint oc t =
       Printf.bprintf oc "PING %s\n" (Int64.to_string t)
@@ -136,22 +136,25 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
 
     type t = {
         challenge  : int64;
-        users      : int;
-        files      : int;
-        soft_limit : int option;
-        hard_limit : int option;
-        max_users  : int option;
+        users      : int64;
+        files      : int64;
+        soft_limit : int64 option;
+        hard_limit : int64 option;
+        max_users  : int64 option;
         flags      : int option;
+        lowid_users : int64 option;
       }
 (*           <E3><97><users><files><softLimit><hardLimit><maxUsers><flags> *)
     let parse len s =
       let challenge = get_uint64_32 s 1 in
-      let users = get_int s 5 in
-      let files = get_int s 9 in
-      let max_users  = if len >= 16 then Some (get_int s 13) else None in
-      let soft_limit = if len >= 20 then Some (get_int s 17) else None in
-      let hard_limit = if len >= 24 then Some (get_int s 21) else None in
-      let flags      = if len >= 28 then Some (get_int s 25) else None in
+      let users = get_uint64_32 s 5 in
+      let files = get_uint64_32 s 9 in
+      let max_users  = if len >= 17 then Some (get_uint64_32 s 13) else None in
+      let soft_limit = if len >= 21 then Some (get_uint64_32 s 17) else None in
+      let hard_limit = if len >= 25 then Some (get_uint64_32 s 21) else None in
+      let flags      = if len >= 29 then Some (get_int s 25) else None in
+      let lowid_users = if len >= 33 then Some (get_uint64_32 s 29) else None in
+
       {
         challenge = challenge;
         users = users;
@@ -160,30 +163,31 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
         hard_limit = hard_limit;
         max_users = max_users;
         flags = flags;
+        lowid_users = lowid_users;
       }
 
     let bprint oc t =
       Printf.bprintf oc "PING REPLY\n";
-      Printf.bprintf oc "   %d users %d files\n" t.users t.files;
-      (match t.soft_limit with Some x -> Printf.bprintf oc "   Soft limit: %d\n" x | None -> ());
-      (match t.hard_limit with Some x -> Printf.bprintf oc "   Hard limit: %d\n" x | None -> ());
-      (match t.max_users with Some x -> Printf.bprintf oc "   Max nusers: %d\n" x | None -> ());
+      Printf.bprintf oc "   %Ld users %Ld files\n" t.users t.files;
+      (match t.soft_limit with Some x -> Printf.bprintf oc "   Soft limit: %Ld\n" x | None -> ());
+      (match t.hard_limit with Some x -> Printf.bprintf oc "   Hard limit: %Ld\n" x | None -> ());
+      (match t.max_users with Some x -> Printf.bprintf oc "   Max nusers: %Ld\n" x | None -> ());
       (match t.flags with Some x -> Printf.bprintf oc "   Flags: %x\n" x | None -> ());
       Printf.bprintf oc "\n"
 
     let write buf t =
       buf_int64_32 buf t.challenge;
-      buf_int buf t.users;
-      buf_int buf t.files;
+      buf_int64_32 buf t.users;
+      buf_int64_32 buf t.files;
       (match t.soft_limit, t.hard_limit, t.max_users, t.flags with
           None, None, None, None -> ()
         | _ ->
-            buf_int buf (
-              match t.soft_limit with Some x -> x | None -> 0);
-            buf_int buf (
-              match t.hard_limit with Some x -> x | None -> 0);
-            buf_int buf (
-              match t.max_users with Some x -> x | None -> 0);
+            buf_int64_32 buf (
+              match t.soft_limit with Some x -> x | None -> 0L);
+            buf_int64_32 buf (
+              match t.hard_limit with Some x -> x | None -> 0L);
+            buf_int64_32 buf (
+              match t.max_users with Some x -> x | None -> 0L);
             match t.flags with Some x -> buf_int buf x | None -> ()
       )
   end
@@ -193,22 +197,33 @@ module ServerDescUdp = struct
     ip : Ip.t;
   }
 
+  let invalid_len = Int64.of_int 0xF0FF
+
   let parse len s =
     try
       let ip = get_ip s 1 in
-	{
-	  ip = ip
-	}
+  {
+    ip = ip
+  }
     with _ ->
       {
-	  ip = Ip.null
+    ip = Ip.null
       }
 
   let bprint b t =
     Printf.bprintf b "ServerDescUdpReq %s\n" (Ip.to_string t.ip)
 
+(*
+// eserver 16.45+ supports a new OP_SERVER_DESC_RES answer, if the OP_SERVER_DESC_REQ contains a uint32
+// challenge, the server returns additional info with OP_SERVER_DESC_RES. To properly distinguish the
+// old and new OP_SERVER_DESC_RES answer, the challenge has to be selected carefully. The first 2 bytes
+// of the challenge (in network byte order) MUST NOT be a valid string-len-int16!
+*)
+
   let write buf t =
-    buf_ip buf t.ip
+    let rand16 = Int64.of_int (Random.int 65535) in
+    let challenge = (left64 rand16 16) ++ invalid_len in
+    buf_int64_32 buf challenge
 
 end
 
@@ -216,15 +231,51 @@ module ServerDescReplyUdp = struct
   type t = {
     name : string;
     desc : string;
+    tags : tag list;
   }
 
-  let parse len s =
+
+  let names_of_tag = [
+    "\001", Field_UNKNOWN "servername";
+    "\011", Field_UNKNOWN "description";
+    "\012", Field_UNKNOWN "ping";
+    "\013", Field_UNKNOWN "fail";
+    "\014", Field_UNKNOWN "preference";
+    "\015", Field_UNKNOWN "port";
+    "\016", Field_UNKNOWN "ip";
+    "\133", Field_UNKNOWN "dynip";
+    "\135", Field_UNKNOWN "maxusers";
+    "\136", Field_UNKNOWN "softfiles";
+    "\137", Field_UNKNOWN "hardfiles";
+    "\144", Field_UNKNOWN "lastping";
+    "\145", Field_UNKNOWN "version";
+    "\146", Field_UNKNOWN "udpflags";
+    "\147", Field_UNKNOWN "auxportslist";
+    "\148", Field_UNKNOWN "lowidusers";
+  ]
+
+  let parse1 len s = 
     let name, pos = get_string s 1 in
     let desc, pos = get_string s pos in
      {
+       tags = [];
        name = name;
        desc = desc;
      }
+
+  let parse2 len s =
+    let stags,pos = get_tags s 5 names_of_tag in
+    { 
+      tags = stags;
+      name = "";
+      desc = "";
+    }
+
+  let parse len s =
+    let challenge = get_uint64_32 s 1 in
+    let test = right64 (left64 challenge 48) 48 in
+    let f = if test = ServerDescUdp.invalid_len then parse2 else parse1 in
+    f len s
 
   let bprint b t =
     Printf.bprintf b  "ServerDescReplyUdpReq\n";
@@ -245,14 +296,14 @@ module ServerListUdp = struct
   let parse len s =
     try
       let ip = get_ip s 1 in
-	{
-	  ip = ip;
-	}
+  {
+    ip = ip;
+  }
     with _ ->
       {
-	ip = Ip.null
+  ip = Ip.null
       }
-	
+  
   let bprint b t =
     Printf.bprintf b  "ServerListUdp %s\n" (Ip.to_string t.ip)
 
@@ -271,9 +322,9 @@ module QueryLocationUdp = struct
   let parse len s =
     let rec iter pos list =
       if pos < len then
-	iter (pos+16) (get_md4 s pos :: list)
+  iter (pos+16) (get_md4 s pos :: list)
       else
-	List.rev list
+  List.rev list
     in
     iter 1 []
 
@@ -361,8 +412,8 @@ module QueryUdp = DonkeyProtoServer.Query
   let parse len s =
     let rec iter list pos =
       if len > pos then
-	let t, pos = parse_query s pos in
-	iter (t :: list) pos
+  let t, pos = parse_query s pos in
+  iter (t :: list) pos
       else List.rev list
     in
     iter [] 1

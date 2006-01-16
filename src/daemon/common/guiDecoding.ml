@@ -677,6 +677,19 @@ let get_server proto s pos =
   let name, pos = get_string s pos in
   let description, pos = get_string s pos in
   let preferred = if proto > 28 then get_bool s pos else false in
+  let pos=pos+1 in
+  let ve,ma,lo,so,ha,pi,pos = 
+    if proto > 39 then
+      let ve,pos = get_string s pos in
+      let ma,pos = get_int64 s pos, (pos+8) in
+      let lo,pos = get_int64 s pos, (pos+8) in
+      let so,pos = get_int64 s pos, (pos+8) in
+      let ha,pos = get_int64 s pos, (pos+8) in
+      let pi,pos = get_int s pos, (pos+4) in
+      ve,ma,lo,so,ha,pi,pos
+    else
+      "",0L,0L,0L,0L,0,pos
+  in
   {
     server_num = num;
     server_network = net;
@@ -693,7 +706,12 @@ let get_server proto s pos =
     server_banner = "";
     server_users = None;
     server_preferred = preferred;
-    server_version = "";
+    server_version = ve; 
+    server_max_users = ma;
+    server_lowid_users = lo;
+    server_soft_limit = so;
+    server_hard_limit = ha;
+    server_ping = pi;
   }, pos
 
 let get_client_type s pos = 

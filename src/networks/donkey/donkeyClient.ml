@@ -161,7 +161,7 @@ let request_for c file sock =
             end;
           if !verbose then
               lprintf_nl () "warning no. %d, connecting too fast (last connect %d sec. ago): %s"
-	        record.nwarnings old_time (full_client_identifier c);
+          record.nwarnings old_time (full_client_identifier c);
           if !!send_warning_messages then
             client_send c ( M.SayReq  (
                 "[AUTOMATED WARNING] Your client is connecting too fast, it will get banned"))
@@ -245,19 +245,19 @@ let disconnect_client c reason =
       c.client_source.DonkeySources.source_sock <- NoConnection
   | Connection sock ->
       (try
-	  let log_print cc =
+    let log_print cc =
             lprintf_nl () "Client[%d] %s disconnected, connected %s%s%s"
-	      (client_num cc)
-	      (full_client_identifier cc)
-	      (Date.time_to_string (last_time () - cc.client_connect_time) "verbose")
-	      (if cc.client_uploaded > 0L then
-		Printf.sprintf ", send %s" (size_of_int64 cc.client_uploaded) else "")
-	      (if cc.client_downloaded > 0L then
-		Printf.sprintf ", rec %s" (size_of_int64 cc.client_downloaded) else "")
-	  in
-	  if c.client_debug ||
-	    (!verbose && (c.client_uploaded > 0L || c.client_downloaded > 0L)) then
-	    log_print c;
+        (client_num cc)
+        (full_client_identifier cc)
+        (Date.time_to_string (last_time () - cc.client_connect_time) "verbose")
+        (if cc.client_uploaded > 0L then
+    Printf.sprintf ", send %s" (size_of_int64 cc.client_uploaded) else "")
+        (if cc.client_downloaded > 0L then
+    Printf.sprintf ", rec %s" (size_of_int64 cc.client_downloaded) else "")
+    in
+    if c.client_debug ||
+      (!verbose && (c.client_uploaded > 0L || c.client_downloaded > 0L)) then
+      log_print c;
 
           c.client_comp <- None;
           (try if c.client_checked then count_seen c with _ -> ());
@@ -891,13 +891,13 @@ let received_client_bitmap c file chunks =
     else
     if Bitv.length chunks <> file.file_nchunks then begin
         if !verbose then
-	    lprintf_nl () "number of chunks is different %d/%d for %s(%s), size %Ld on %s"
+      lprintf_nl () "number of chunks is different %d/%d for %s(%s), size %Ld on %s"
               (Bitv.length chunks)
               file.file_nchunks 
-	      (file_best_name file)
+        (file_best_name file)
               (Md4.to_string file.file_md4) 
               (file_size file)
-	      (full_client_identifier c);
+        (full_client_identifier c);
         Bitv.create file.file_nchunks false
 (* What should we do ?
 
@@ -1452,12 +1452,12 @@ other one for unlimited sockets.  *)
             let file = find_file t.Q.md4 in
               received_client_bitmap c file t.Q.chunks
           with e ->
-	    client_send c (M.NoSuchFileReq t.Q.md4);
-	    if !verbose then lprintf_nl ()
-	      "QueryChunksReply: Client (%s) asked for file_md4 %s, Exception %s"
-	      (full_client_identifier c)
-	      (Md4.to_string t.Q.md4)
-	      (Printexc2.to_string e)
+      client_send c (M.NoSuchFileReq t.Q.md4);
+      if !verbose then lprintf_nl ()
+        "QueryChunksReply: Client (%s) asked for file_md4 %s, Exception %s"
+        (full_client_identifier c)
+        (Md4.to_string t.Q.md4)
+        (Printexc2.to_string e)
       end
   
   | M.QueryChunkMd4ReplyReq t ->
@@ -1473,7 +1473,7 @@ other one for unlimited sockets.  *)
         if file.file_computed_md4s = [||] then begin
         if file.file_nchunks = 1 then begin
             lprintf_nl () "[ERROR] file %s has only one chunk, ignoring QueryChunkMd4ReplyReq"
-	      (file_best_name file);
+        (file_best_name file);
             file.file_computed_md4s <- [|file.file_md4|];
             match file.file_swarmer with
               None -> ()
@@ -1483,17 +1483,17 @@ other one for unlimited sockets.  *)
           end else
         if t.Q.chunks = [||] then
             lprintf_nl () "[ERROR] received empty chunks md4 message for %s from %s"
-	      (file_best_name file) (full_client_identifier c)
+        (file_best_name file) (full_client_identifier c)
         else
         if Array.length t.Q.chunks <> file.file_nchunks then begin
             if !verbose then
-	      lprintf_nl () "[ERROR] number of chunks does not match, received md4s %d/should be %d, for %s(%s):%Ld bytes from %s"
-	        (Array.length t.Q.chunks)
-		file.file_nchunks
-		(file_best_name file)
-		(Md4.to_string file.file_md4)
-		(file_size file)
-		(full_client_identifier c)
+        lprintf_nl () "[ERROR] number of chunks does not match, received md4s %d/should be %d, for %s(%s):%Ld bytes from %s"
+          (Array.length t.Q.chunks)
+    file.file_nchunks
+    (file_best_name file)
+    (Md4.to_string file.file_md4)
+    (file_size file)
+    (full_client_identifier c)
 (* What should we do ?
 
 1) Try to recover the correct size of the file: we can use 
@@ -1513,7 +1513,7 @@ is checked for the file.
             let md4 = DonkeyShare.md4_of_array md4s in
             if md4 <> file.file_md4 then begin
                 lprintf_nl () "[ERROR] Chunks md4s do not match file_md4 for %s(%s) from %s"
-		  (file_best_name file) (Md4.to_string file.file_md4) (full_client_identifier c);
+      (file_best_name file) (Md4.to_string file.file_md4) (full_client_identifier c);
               end else begin
                 file.file_computed_md4s <- md4s;
                 match file.file_swarmer with
@@ -1585,7 +1585,7 @@ is checked for the file.
       if comp.comp_len > comp.comp_total then begin
           if !verbose_unknown_messages then
             lprintf_nl () "eMule compressed data, ignoring, more data (%d) than compressed (%d) from %s for %s"
-	      comp.comp_len comp.comp_total (full_client_identifier c) (Md4.to_string comp.comp_md4);
+        comp.comp_len comp.comp_total (full_client_identifier c) (Md4.to_string comp.comp_md4);
           c.client_comp <- None;
         end
   
@@ -1689,7 +1689,7 @@ is checked for the file.
             client_send c (M.NoSuchFileReq md4);
             if !verbose_unexpected_messages then
               lprintf_nl () "donkeyClient: QueryFileReq: Client %s queried unpublished file %s"
-	        (full_client_identifier c) (Md4.to_string md4)
+          (full_client_identifier c) (Md4.to_string md4)
         | e -> 
             lprintf_nl () "Exception %s in QueryFileReq"
               (Printexc.to_string e)
@@ -2428,7 +2428,7 @@ let client_connection_handler overnet t event =
         lprintf_nl () "incoming connection from %s:%d %s: (%d/%d)%s"
           s_from_ip from_port
           (if accept_connection then "accepted" else
-	     if is_ip_blocked then "blocked" else "denied")
+       if is_ip_blocked then "blocked" else "denied")
           !DonkeySources.indirect_connections 
           !real_max_indirect_connections
           (if is_connecting_server then
@@ -2436,7 +2436,7 @@ let client_connection_handler overnet t event =
                 let s = Hashtbl.find servers_by_key from_ip in
                 Printf.sprintf " %s (%s)" s.server_name (Ip.to_string s.server_ip)
               with _ ->
-		try 
+                try 
                   let s = Hashtbl.find servers_by_key connecting_server in
                   Printf.sprintf " %s (%s)" s.server_name (Ip.to_string s.server_ip)
                 with _ -> "Unknown server"
@@ -2601,5 +2601,5 @@ a FIFO from where they are removed after 30 minutes. What about using
       with e -> 
         if !verbose then
           lprintf_nl () "remove_location for file_md4 %s: exception %s"
-	    file_uid (Printexc2.to_string e)
+      file_uid (Printexc2.to_string e)
   )

@@ -465,3 +465,27 @@ let clear_upload_slots () =
 	end
     with _ -> ()
   ) !uploaders
+
+let impl_client_info impl =
+  let module T = GuiTypes in
+  {
+     T.client_num = impl.impl_client_num;
+     T.client_state = impl.impl_client_state;
+     T.client_type = impl.impl_client_type;
+  
+     T.client_tags = [];
+     T.client_name = "";
+     T.client_network = 0;
+     T.client_files = None;
+     T.client_rating = 0;
+     T.client_chat_port = 0;
+     T.client_connect_time = BasicSocket.last_time ();
+     T.client_kind = Indirect_location ("", Md4.Md4.null, Ip.null, 0);
+     T.client_software = "";
+     T.client_release = "";
+     T.client_emulemod = "";
+     T.client_downloaded = 0L;
+     T.client_uploaded = 0L;
+     T.client_upload = None;
+     T.client_sui_verified = None;
+  }

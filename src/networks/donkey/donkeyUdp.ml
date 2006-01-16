@@ -100,7 +100,7 @@ when receiving an old ping.
 
   if server_send_multiple_replies s then
               Udp.QueryUdpReq ss.search_query
-	  else *)
+    else *)
               Udp.QueryMultipleUdpReq ss.search_query);
   ) before;
 
@@ -121,7 +121,7 @@ start removed by savannah patch #3616
     let files = ref [] in
     List.iter (fun file ->
       if file_state file = FileDownloading then
-	files := file :: !files) !current_files;
+  files := file :: !files) !current_files;
 
     if !files <> [] then
 
@@ -131,23 +131,23 @@ start removed by savannah patch #3616
 
     while !nservers < !!max_udp_sends &&
       match !udp_servers_list with
-	[] -> false
+  [] -> false
       | s :: tail ->
-	  udp_servers_list := tail;
+    udp_servers_list := tail;
             (match s.server_sock with
                 Connection _ -> ()
               | _ ->
-	      if
-		connection_last_conn s.server_connection_control + 3600*8 > last_time () &&
-		s.server_next_udp <= last_time () then begin
-		  (if server_accept_multiple_getsources s then
-		    new_servers := s :: !new_servers
-		  else
-		    old_servers := s :: !old_servers);
-		  incr nservers;
-		end
+        if
+    connection_last_conn s.server_connection_control + 3600*8 > last_time () &&
+    s.server_next_udp <= last_time () then begin
+      (if server_accept_multiple_getsources s then
+        new_servers := s :: !new_servers
+      else
+        old_servers := s :: !old_servers);
+      incr nservers;
+    end
             );
-	  true do
+    true do
       ()
     done;
 
@@ -155,15 +155,15 @@ start removed by savannah patch #3616
       let md4s = List.map (fun file -> file.file_md4) !files in
 
       List.iter (fun s ->
-	let module Udp = DonkeyProtoUdp in
-	udp_server_send s (Udp.QueryLocationUdpReq md4s);
-	s.server_next_udp <- last_time () + !!min_reask_delay
+  let module Udp = DonkeyProtoUdp in
+  udp_server_send s (Udp.QueryLocationUdpReq md4s);
+  s.server_next_udp <- last_time () + !!min_reask_delay
       ) !new_servers
     end;
 
     if !old_servers <> [] then
       List.iter (fun file ->
-	if file_state file = FileDownloading then begin
+  if file_state file = FileDownloading then begin
 (*(* USELESS NOW *)
    Intmap.iter (fun _ c ->
    try connect_client !!client_ip [file] c with _ -> ())
@@ -186,13 +186,13 @@ start removed by savannah patch #3616
                       match s.server_sock with
                       | Connection _ -> ()
                       | _ -> udp_query_locations file s
-	    ) !old_servers;
-	  end
+      ) !old_servers;
+    end
     ) !current_files;
 
     List.iter (fun s ->
         s.server_next_udp <- last_time () + !!min_reask_delay
-	      ) !old_servers;
+        ) !old_servers;
     if !udp_servers_list = [] then
           udp_servers_list := Hashtbl2.to_list servers_by_key;
 
@@ -242,10 +242,10 @@ let udp_client_handler t p =
       | _ -> raise Not_found
   in
   match t with
-      Udp.QueryLocationReplyUdpReq t ->
-        (* lprintf "Received location by UDP\n"; *)
-        let  s = udp_from_server p in
-        List.iter (query_locations_reply s) t
+  | Udp.QueryLocationReplyUdpReq t ->
+      (* lprintf "Received location by UDP\n"; *)
+      let  s = udp_from_server p in
+      List.iter (query_locations_reply s) t
 
   | Udp.QueryReplyUdpReq t ->
       (* lprintf "Received file by UDP\n"; *)
@@ -261,15 +261,46 @@ let udp_client_handler t p =
       let module M = Udp.PingServerReplyUdp in
       let s = udp_from_server p in
       UdpSocket.declare_pong s.server_ip;
+      let now = Unix.gettimeofday() in
+      s.server_ping <- int_of_float ((now -. s.server_last_ping) *. 1000.);
       s.server_last_message <- last_time ();
-      s.server_nfiles <- Int64.of_int t.M.files;
-      s.server_nusers <- Int64.of_int t.M.users;
+      s.server_nfiles <- t.M.files;
+      s.server_nusers <- t.M.users;
       (match t.M.max_users with
            Some x -> s.server_max_users <- x
          | None -> ());
       (match t.M.flags with
            Some x -> s.server_flags <- x
          | None -> ());
+      (match t.M.lowid_users with
+           Some x -> s.server_lowid_users <- x
+         | None -> ());
+      (match t.M.soft_limit with
+           Some x -> s.server_soft_limit <- x
+         | None -> ());
+      (match t.M.hard_limit with
+           Some x -> s.server_hard_limit <- x
+         | None -> ());
+      server_must_update s
+
+  | Udp.ServerDescReplyUdpReq t ->
+      let module M = Udp.ServerDescReplyUdp in
+      let s = udp_from_server p in
+      List.iter (fun tag ->
+          match tag with
+              { tag_name = Field_UNKNOWN "version"; tag_value = Uint64 i } ->
+                let i = Int64.to_int i in
+                s.server_version <- Printf.sprintf "%d.%d" (i lsr 16) (i land 0xFFFF);
+            | { tag_name = Field_UNKNOWN "servername"; tag_value = String name } ->
+                s.server_name <- name
+            | { tag_name = Field_UNKNOWN "description"; tag_value = String desc } ->
+                s.server_description <- desc
+            | _ -> ()
+      ) t.M.tags;
+
+      if s.server_tags = [] then
+         s.server_tags <- t.M.tags;
+
       server_must_update s
 
   | Udp.EmuleReaskFilePingUdpReq t -> ()

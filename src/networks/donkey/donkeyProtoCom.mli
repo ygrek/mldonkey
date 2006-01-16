@@ -78,3 +78,4 @@ val new_string :  DonkeyProtoClient.t -> string -> unit
 val tag_file : file -> CommonTypes.tag list
 
 val udp_server_send : server -> DonkeyProtoUdp.t -> unit
+val udp_server_send_ping : server -> DonkeyProtoUdp.t -> unit

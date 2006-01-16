@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/01/16
+4801: EDK: add more server info fields (html and guiprot) (zet)
 4798: Fix thread recognition on *BSD
 
 2006/01/15

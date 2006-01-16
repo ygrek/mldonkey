@@ -129,3 +129,4 @@ val propose_filenames : unit -> unit
 val propose_filename : CommonTypes.file -> unit
 
 val forceable_download : CommonTypes.result_info list ref
+val impl_file_info : 'a file_impl -> GuiTypes.file_info

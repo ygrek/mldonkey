@@ -1033,36 +1033,27 @@ let _ =
           | Some swarmer -> Int64Swarmer.compute_last_seen swarmer
         in
         let v =
-          {
-            P.file_fields = Fields_file_info.all;
+            { (impl_file_info file.file_file) with
 
-            P.file_comment = file_comment (as_file file);
-            P.file_name = file_best_name file;
-            P.file_num = (file_num file);
             P.file_network = network.network_num;
             P.file_names = file.file_filenames;
             P.file_md4 = file.file_md4;
-            P.file_size = file_size file;
-            P.file_downloaded = file_downloaded file;
             P.file_all_sources = file.file_sources.DonkeySources.manager_all_sources;
             P.file_active_sources = file.file_sources.DonkeySources.manager_active_sources;
-            P.file_state = file_state file;
-            P.file_sources = None;
-            P.file_download_rate = file_download_rate file.file_file;
-            P.file_chunks = (match file.file_swarmer with
-                None -> "" | Some swarmer ->
-                  Int64Swarmer.verified_bitmap swarmer);
-            P.file_priority = file_priority  file;
+            P.file_chunks = 
+                  (match file.file_swarmer with
+                   | None -> "" 
+                   | Some swarmer -> Int64Swarmer.verified_bitmap swarmer);
             P.file_availability =
-            [network.network_num,(match file.file_swarmer with
-                  None -> "" | Some swarmer ->
-                    Int64Swarmer.availability swarmer)];
+              [
+                network.network_num,
+                (match file.file_swarmer with
+                  | None -> "" 
+                  | Some swarmer -> Int64Swarmer.availability swarmer)
+              ];
             P.file_format = file.file_format;
             P.file_chunks_age = last_seen;
-            P.file_age = file_age file;
-            P.file_last_seen = file.file_file.impl_file_last_seen;
             P.file_uids = [Uid.create (Ed2k file.file_md4)];
-            P.file_sub_files = [];
           } in
         v
       with e ->
@@ -1074,23 +1065,26 @@ let _ =
 let _ =
   server_ops.op_server_info <- (fun s ->
       if !!enable_donkey then
-        {
-          P.server_num = (server_num s);
+        { (impl_server_info s.server_server) with
+
           P.server_network = network.network_num;
           P.server_addr = Ip.addr_of_ip s.server_ip;
           P.server_port = s.server_port;
           P.server_realport = (match s.server_realport with Some x -> x | None -> 0);
           P.server_score = s.server_score;
-          P.server_tags = []; (* s.server_tags; *)
           P.server_nusers = s.server_nusers;
           P.server_nfiles = s.server_nfiles;
-          P.server_state = server_state s;
           P.server_name = s.server_name;
           P.server_description = s.server_description;
           P.server_banner = s.server_banner;
-          P.server_users = None;
           P.server_preferred = s.server_preferred;
 	  P.server_version = s.server_version;
+          P.server_max_users = s.server_max_users;
+          P.server_soft_limit = s.server_soft_limit;
+          P.server_hard_limit = s.server_hard_limit;
+          P.server_lowid_users = s.server_lowid_users;
+          P.server_ping = s.server_ping;
+
         }
       else raise Not_found
   )
@@ -1130,7 +1124,8 @@ let get_ips_cc_cn c =
 
 let _ =
   client_ops.op_client_info <- (fun c ->
-      {
+      { (impl_client_info c.client_client) with
+
         P.client_network = network.network_num;
         P.client_kind = (match c.client_kind with
             Direct_address (ip, port) -> Known_location (ip,port)
@@ -1139,12 +1134,8 @@ let _ =
           | _ -> Indirect_location (c.client_name,c.client_md4, Ip.null, 0));
         P.client_state = client_state c;
         P.client_type = client_type c;
-        P.client_tags = []; (* c.client_tags; *)
         P.client_name = c.client_name;
-        P.client_files = None;
-        P.client_num = (client_num c);
         P.client_rating = c.client_rating;
-        P.client_chat_port = 0 ;
         P.client_connect_time = c.client_connect_time;
         P.client_software = brand_to_string_short c.client_brand;
         P.client_release = c.client_emule_proto.emule_release;

@@ -166,20 +166,24 @@ let cut_messages parse f sock nread =
     done
   with Not_found -> ()
 
-let udp_send t ip port msg =
+let really_udp_send t ip port msg isping =
 
   if !verbose_udp then begin
-      lprintf_nl () "Message UDP to %s:%d\n%s" (Ip.to_string ip) port
-        (DonkeyProtoUdp.print msg);
+      lprintf_nl () "Message UDP%s to %s:%d\n%s" 
+        (if isping then "(PING)" else "") (Ip.to_string ip) 
+        port (DonkeyProtoUdp.print msg);
     end;
 
   try
     Buffer.reset buf;
     DonkeyProtoUdp.write buf msg;
     let s = Buffer.contents buf in
-    UdpSocket.write t false s ip port
+    UdpSocket.write t isping s ip port
   with e ->
       lprintf_nl () "Exception %s in udp_send" (Printexc2.to_string e)
+
+let udp_send t ip port msg =
+  really_udp_send t ip port msg false
 
 let udp_handler f sock event =
   let module M = DonkeyProtoUdp in
@@ -396,3 +400,6 @@ let client_send_files sock msg =
 
 let udp_server_send s t =
   udp_send (get_udp_sock ()) s.server_ip (s.server_port+4) t
+
+let udp_server_send_ping s t =
+  really_udp_send (get_udp_sock ()) s.server_ip (s.server_port+4) t true

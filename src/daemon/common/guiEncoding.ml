@@ -617,13 +617,18 @@ let buf_server proto buf s =
   buf_int64_28 proto buf s.server_nusers;
   buf_int64_28 proto buf s.server_nfiles;
   buf_host_state proto buf s.server_state;
-  if s.server_version = "" then
-    buf_string buf s.server_name
-  else
-    buf_string buf (Printf.sprintf "%s (%s)" s.server_name s.server_version);
+  buf_string buf s.server_name;
   buf_string buf s.server_description;
   if proto > 28 then 
-    buf_bool buf s.server_preferred
+    buf_bool buf s.server_preferred;
+  if proto > 39 then begin
+    buf_string buf s.server_version;
+    buf_int64 buf s.server_max_users;
+    buf_int64 buf s.server_lowid_users;
+    buf_int64 buf s.server_soft_limit;
+    buf_int64 buf s.server_hard_limit;
+    buf_int buf s.server_ping;
+  end
 
 let buf_client proto buf c =
   buf_int buf c.client_num;

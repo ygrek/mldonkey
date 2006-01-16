@@ -162,22 +162,16 @@ let _ =
   
 let _ =
   server_ops.op_server_info <- (fun s ->
-      {
-        P.server_num = (server_num s);
+      { (impl_server_info s.server_server) with
+
         P.server_network = network.network_num;
         P.server_addr = Ip.addr_of_ip s.server_ip;
         P.server_port = s.server_port;
-	P.server_realport = 0;
-        P.server_score = 0;
-        P.server_tags = [];
         P.server_nusers = s.server_nusers;
         P.server_nfiles = s.server_nfiles;
-        P.server_state = server_state s;
         P.server_name = s.server_desc;
         P.server_description = s.server_net;
-        P.server_users = None;
-        P.server_banner = "";
-	P.server_preferred = false;
+
         }
   )
 

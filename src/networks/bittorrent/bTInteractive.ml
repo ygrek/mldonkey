@@ -391,22 +391,12 @@ let op_file_info file =
   let last_seen = match file.file_swarmer with
       None -> [| last_time () |]
     | Some swarmer -> Int64Swarmer.compute_last_seen swarmer in
-  {
-    P.file_fields = P.Fields_file_info.all;
 
-    P.file_comment = file_comment (as_file file);
+    { (impl_file_info file.file_file) with
+
     P.file_name = file.file_name;
-    P.file_num = (file_num file);
     P.file_network = network.network_num;
     P.file_names = [file.file_name, P.noips()];
-    P.file_md4 = Md4.null;
-    P.file_size = file_size file;
-    P.file_downloaded = file_downloaded file;
-    P.file_all_sources = 0;
-    P.file_active_sources = 0;
-    P.file_state = file_state file;
-    P.file_sources = None;
-    P.file_download_rate = file_download_rate file.file_file;
     P.file_chunks = (match file.file_swarmer with
         None -> "" | Some swarmer ->
           Int64Swarmer.verified_bitmap swarmer);
@@ -414,11 +404,8 @@ let op_file_info file =
     [network.network_num,(match file.file_swarmer with
           None -> "" | Some swarmer ->
             Int64Swarmer.availability swarmer)];
-    P.file_format = FormatNotComputed 0;
+
     P.file_chunks_age = last_seen;
-    P.file_age = file_age file;
-    P.file_last_seen = file.file_file.impl_file_last_seen;
-    P.file_priority = file_priority (as_file file);
     P.file_uids = [Uid.create (BTUrl file.file_id)];
     P.file_sub_files = file.file_files;
   }
@@ -707,27 +694,19 @@ let op_network_parse_url url =
 let op_client_info c =
   let module P = GuiTypes in
   let (ip,port) = c.client_host in
-  {
+  { (impl_client_info c.client_client) with
+
     P.client_network = network.network_num;
     P.client_kind = Known_location (ip,port);
     P.client_state = client_state (as_client c);
     P.client_type = client_type c;
-    P.client_tags = [];
-    P.client_name =
-    (Printf.sprintf "%s:%d" (Ip.to_string ip) port);
-    P.client_files = None;
-    P.client_num = (client_num c);
-    P.client_rating = 0;
-    P.client_chat_port = 0 ;
-    P.client_connect_time = BasicSocket.last_time ();
+    P.client_name = (Printf.sprintf "%s:%d" (Ip.to_string ip) port);
     P.client_software = (brand_to_string c.client_brand);
     P.client_release = c.client_release;
-    P.client_emulemod = "";
     P.client_downloaded = c.client_downloaded;
     P.client_uploaded = c.client_uploaded;
     P.client_upload = Some (c.client_file.file_name);
-    P.client_sui_verified = None;
-(*          P.client_sock_addr = (Ip.to_string ip); *)
+
   }
 
 let op_client_connect c =

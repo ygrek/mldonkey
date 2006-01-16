@@ -480,10 +480,8 @@ let new_server ip port score =
         server_tags = [];
         server_nfiles = Int64.zero;
         server_nusers = Int64.zero;
-        server_max_users = 0;
         server_name = "";
         server_description = "";
-	server_version = "";
         server_banner = "";
         server_users = [];
         server_master = false;
@@ -495,6 +493,14 @@ let new_server ip port score =
         server_id_requests = Fifo.create ();
         server_flags = 0;
         server_has_zlib = false;
+        server_version = "";
+        server_lowid_users = 0L;
+        server_soft_limit = 0L;
+        server_hard_limit = 0L;
+        server_max_users = 0L;
+        server_last_ping = 0.;
+        server_ping = 0;
+
       }
       and server_impl =
         {

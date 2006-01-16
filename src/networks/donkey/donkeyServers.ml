@@ -273,7 +273,7 @@ let client_to_server s t sock =
           disconnect_server s (Closed_for_error "Low ID")
         else begin
           s.server_cid <- Some t.M.SetID.ip;
-	  s.server_realport <- t.M.SetID.port;
+          s.server_realport <- t.M.SetID.port;
           (* disconnect after (connected_server_timeout) seconds of silence *)
           set_rtimeout sock !!connected_server_timeout;
           set_server_state s Connected_initiating;
@@ -292,19 +292,21 @@ let client_to_server s t sock =
 
   | M.MessageReq msg ->
 
-     (try
-	let prefix = String.sub msg 0 15 in
-	if prefix = "server version " then begin
-	  s.server_version <- String.sub msg 15 4;
-	end;
-      with _-> ());
+      (* This is stupid *)
+      if s.server_version = "" then begin
+        try
+          let prefix = String.sub msg 0 15 in
+          if prefix = "server version " then 
+            s.server_version <- String.sub msg 15 4
+        with _ -> ()
+      end;
 
       if !last_message_sender <> server_num s then begin
           let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------"
               s.server_name (Ip.to_string s.server_ip) s.server_port in
           CommonEvent.add_event (Console_message_event (Printf.sprintf "%s\n" server_header));
           if !CommonOptions.verbose_msg_servers then
-	    lprintf_nl () "%s" server_header;
+      lprintf_nl () "%s" server_header;
           last_message_sender := server_num s
         end;
       s.server_banner <- s.server_banner ^ Printf.sprintf "%s\n" msg;
@@ -529,7 +531,7 @@ let rec connect_one_server restart =
   (*  lprintf "connect_one_server\n";  *)
   if can_open_connection connection_manager then
     match !servers_list with
-	[] ->
+  [] ->
           if restart then begin
             servers_list := [];
             Hashtbl.iter (fun _ s ->
@@ -542,7 +544,7 @@ let rec connect_one_server restart =
                 lprintf_nl () "Please import servers from a server.met file.";
                 lprintf_nl () "Let MLDonkey use a file configured in web_infos";
                 lprintf_nl () "or enter this link into MLDonkey:";
-		lprintf_nl () "ed2k://|serverlist|http://www.gruk.org/server.met.gz|/"
+    lprintf_nl () "ed2k://|serverlist|http://www.gruk.org/server.met.gz|/"
               end;
 
               raise Not_found;
@@ -716,7 +718,6 @@ Each client issues 1 packet/4hour, so 100000 clients means 25000/hour,
 7 packets/second = 7 * 40 bytes = 280 B/s ...
 *)
 
-let udp_ping = String.create 6
 
 let udp_walker_timer () =
   match !udp_walker_list with
@@ -729,8 +730,19 @@ let udp_walker_timer () =
         end
   | s :: tail ->
       udp_walker_list := tail;
-      UdpSocket.write (get_udp_sock ())
-                  true udp_ping s.server_ip (s.server_port + 4)
+      let c = Int64.of_int (Random.int 65535) in
+      let challenge = 1437204480L ++ c in (* 0x55AA0000 *)
+      s.server_last_ping <- Unix.gettimeofday ();
+      udp_server_send_ping s (DonkeyProtoUdp.PingServerUdpReq challenge);
+
+      let module M = DonkeyProtoUdp in
+      let module E = M.ServerDescUdp in
+      udp_server_send s (M.ServerDescUdpReq {
+        E.ip = Ip.null;
+      })
+
+(*      UdpSocket.write (get_udp_sock ())
+                  true udp_ping s.server_ip (s.server_port + 4) *)
 
 (* sort the servers by preferred first
    then users count with decreasing order
@@ -755,13 +767,13 @@ let update_master_servers _ =
         match s.server_sock with
         | Connection _ ->
             if !verbose_location then begin
-	      if !tag2 then begin
+        if !tag2 then begin
                 lprintf_n () "master servers (old):";
-		tag1 := false;
-		tag2 := false
-	      end;
-	      lprintf " %s" (Ip.to_string s.server_ip)
-	    end;
+    tag1 := false;
+    tag2 := false
+        end;
+        lprintf " %s" (Ip.to_string s.server_ip)
+      end;
             masters := s :: !masters
         | _ -> s.server_master <- false
   ) server_list;
@@ -812,7 +824,7 @@ let update_master_servers _ =
           in
           if !verbose_location then
               lprintf_nl () "master servers: Checking ip:%s, users: %Ld, ct:%d"
-	        (Ip.to_string s.server_ip) s.server_nusers connection_time;
+          (Ip.to_string s.server_ip) s.server_nusers connection_time;
           if not s.server_master
             && (s.server_preferred
                  || connection_time > !!become_master_delay
@@ -863,13 +875,6 @@ let update_master_servers _ =
 open LittleEndian
 
 let _ =
-  udp_ping.[0] <- char_of_int 0xe3;
-  udp_ping.[1] <- char_of_int 0x96;
-  udp_ping.[2] <- char_of_int (Random.int 256);
-  udp_ping.[3] <- char_of_int (Random.int 256);
-  udp_ping.[4] <- char_of_int 0xAA;
-  udp_ping.[5] <- char_of_int 0x55;
-
   CommonWeb.add_redirector_info "DKSV" (fun buf ->
       buf_list (fun buf s ->
           buf_ip buf s.server_ip;

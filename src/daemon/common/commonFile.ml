@@ -95,6 +95,7 @@ it will happen soon. *)
     mutable op_file_proposed_filenames : ('a -> string list);
   }
 
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         as_file...                                    *)
@@ -978,3 +979,32 @@ let forceable_download = ref []
 
 let com_files_by_num = files_by_num
 let files_by_num = ()
+
+let impl_file_info impl =
+  let module T = GuiTypes in
+  {
+    T.file_fields = T.Fields_file_info.all;
+    T.file_comment = impl.impl_file_comment;
+    T.file_name = impl.impl_file_best_name;
+    T.file_num = impl.impl_file_num;
+    T.file_size = impl.impl_file_size;
+    T.file_downloaded = impl.impl_file_downloaded;
+    T.file_state = impl.impl_file_state;
+    T.file_download_rate = file_download_rate impl;
+    T.file_priority = impl.impl_file_priority;
+    T.file_age = impl.impl_file_age;
+    T.file_last_seen = impl.impl_file_last_seen;
+
+    T.file_network = 0;
+    T.file_names = [];
+    T.file_md4 = Md4.null;
+    T.file_all_sources = 0;
+    T.file_active_sources = 0;
+    T.file_sources = None;
+    T.file_chunks = "";
+    T.file_availability = [];
+    T.file_format = FormatNotComputed 0;
+    T.file_chunks_age = [||];
+    T.file_uids = [];
+    T.file_sub_files = [];
+  }

@@ -545,16 +545,17 @@ type server = (*[]*){
     mutable server_tags : CommonTypes.tag list;
     mutable server_nusers : int64;
     mutable server_nfiles : int64;
-    mutable server_max_users : int;
     mutable server_name : string;
     mutable server_description : string;
-    mutable server_version : string;
     mutable server_banner : string;
     mutable server_users: user list;
     mutable server_next_udp : int;
     mutable server_master : bool;
     mutable server_preferred : bool;
     mutable server_last_message : int; (* used only by mldonkey server *)
+
+    mutable server_last_ping : float;
+    mutable server_ping : int;
 
     mutable server_id_requests : file option Fifo.t;
 
@@ -564,6 +565,11 @@ type server = (*[]*){
     mutable server_has_zlib : bool;
 
     mutable server_flags : int;
+    mutable server_version : string;
+    mutable server_lowid_users : int64;
+    mutable server_soft_limit : int64;
+    mutable server_hard_limit : int64;
+    mutable server_max_users : int64;
   }
 
 

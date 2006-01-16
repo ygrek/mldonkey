@@ -91,6 +91,32 @@ let dummy_server_impl = {
 
 let dummy_server = as_server dummy_server_impl
 
+let impl_server_info impl =
+  let module T = GuiTypes in
+  {
+    T.server_num = impl.impl_server_num;
+    T.server_state = impl.impl_server_state;
+
+    T.server_network = 0;
+    T.server_addr = Ip.addr_of_ip Ip.null;
+    T.server_port = 0;
+    T.server_realport = 0;
+    T.server_score = 0;
+    T.server_tags = [];
+    T.server_nusers = 0L;
+    T.server_nfiles = 0L;
+    T.server_name = "";
+    T.server_description = "";
+    T.server_users = None;
+    T.server_banner = "";
+    T.server_preferred = false;
+    T.server_version = "";
+    T.server_max_users = 0L;
+    T.server_soft_limit = 0L;
+    T.server_hard_limit = 0L;
+    T.server_lowid_users = 0L;
+    T.server_ping = 0;
+  }
 
 let server_num s =
   let s = as_server_impl s in
@@ -303,7 +329,7 @@ let check_blocked_servers () =
           let info = server_info s in
           (match impl.impl_server_state with
              NotConnected _ -> ()
-    	   | _ -> server_disconnect s;
+         | _ -> server_disconnect s;
               lprintf_nl () "Disconnected server %s (%s:%d), IP is now blocked"
                 info.G.server_name
                 (Ip.string_of_addr info.G.server_addr)
@@ -321,19 +347,24 @@ let server_banner s o =
 
 let server_print_html_header buf ext =
     html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) [
-		( "1", "srh", "Server number", "#" ) ;
-		( "0", "srh", "Connect|Disconnect", "C/D" ) ;
-		( "0", "srh", "Remove", "Rem" ) ;
-		( "0", "srh", "Preferred", "P" ) ;
-		( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ;
-		( "0", "srh", "Network name", "Network" ) ;
-		( "0", "srh", "Connection status", "Status" ) ;
-		( "0", "srh br", "IP address", "IP address" ) ;
-		( "1", "srh ar", "Number of connected users", "Users" ) ;
-		( "1", "srh ar br", "Number of files indexed on server", "Files" ) ;
-		( "0", "srh", "Server name", "Name" ) ;
-		( "0", "srh", "Server version", "Version" ) ;
-		( "0", "srh", "Server details", "Details" ) ]
+    ( "1", "srh", "Server number", "#" ) ;
+    ( "0", "srh", "Connect|Disconnect", "C/D" ) ;
+    ( "0", "srh", "Remove", "Rem" ) ;
+    ( "0", "srh", "Preferred", "P" ) ;
+    ( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ;
+    ( "0", "srh", "Network name", "Network" ) ;
+    ( "0", "srh", "Connection status", "Status" ) ;
+    ( "0", "srh br", "IP address", "IP address" ) ;
+    ( "1", "srh ar", "Number of connected users", "Users" ) ;
+    ( "1", "srh ar br", "Max number of users", "MaxUsers" ) ;
+    ( "1", "srh ar br", "LowID users", "LowID" ) ;
+    ( "1", "srh ar br", "Number of files indexed on server", "Files" ) ;
+    ( "1", "srh ar", "Soft file limit", "Soft" ) ;
+    ( "1", "srh ar br", "Hard file limit", "Hard" ) ;
+    ( "0", "srh ar br", "Ping (ms)", "Ping" ) ;
+    ( "0", "srh", "Server version", "Version" ) ;
+    ( "0", "srh", "Server name", "Name" ) ;
+    ( "0", "srh", "Server details", "Details" ) ]
 
 let server_print s o =
   let impl = as_server_impl s in
@@ -346,9 +377,9 @@ let server_print s o =
           raise e in
 
     let buf = o.conn_buf in
-	
-	if use_html_mods o then begin
-	let snum = (server_num s) in
+  
+  if use_html_mods o then begin
+  let snum = (server_num s) in
 
     Printf.bprintf buf "
     \\<tr class=\\\"dl-%d\\\"\\>
@@ -362,24 +393,29 @@ let server_print s o =
     \\<td class=\\\"sr br\\\"\\>%s:%s\\</td\\>
     \\<td class=\\\"sr ar\\\"\\>%Ld\\</td\\>
     \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
-    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+    \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
+    \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
+    \\<td class=\\\"sr ar\\\"\\>%Ld\\</td\\>
+    \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
+    \\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
+    \\<td class=\\\"sr br\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
     (html_mods_cntr ())
-	  (
+    (
         Printf.sprintf "%s"
         (match impl.impl_server_state with
         Connected _ -> Printf.sprintf "title=\\\"Server Banner\\\"
-						onMouseOver=\\\"mOvr(this);\\\"
-						onMouseOut=\\\"mOut(this);\\\"
-						onClick=\\\"location.href='submit?q=server_banner+%d'\\\"" snum
+            onMouseOver=\\\"mOvr(this);\\\"
+            onMouseOut=\\\"mOut(this);\\\"
+            onClick=\\\"location.href='submit?q=server_banner+%d'\\\"" snum
         | _ -> "")
-	  )
-	  snum
+    )
+    snum
       (
         if server_blocked s && (match impl.impl_server_state with
-				 NotConnected _ -> true
-			       | _ -> false) then "\\<td class=\\\"srb\\\"\\>blk\\</td\\>" else
+         NotConnected _ -> true
+             | _ -> false) then "\\<td class=\\\"srb\\\"\\>blk\\</td\\>" else
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\" title=\\\"Connect|Disconnect\\\"
@@ -447,38 +483,44 @@ let server_print s o =
       n.network_name
       (match impl.impl_server_state with
         NotConnected _ -> if server_blocked s then "IP blocked"
-			  else (string_of_connection_state impl.impl_server_state)
+        else (string_of_connection_state impl.impl_server_state)
       | _ -> (string_of_connection_state impl.impl_server_state))
       (Ip.string_of_addr info.G.server_addr)
       (Printf.sprintf "%s%s"
        (string_of_int info.G.server_port)
-       (if info.G.server_realport <> 0 then
-          "(" ^ (string_of_int info.G.server_realport) ^ ")" else ""))
+       (if info.G.server_realport <> 0 
+          then "(" ^ (string_of_int info.G.server_realport) ^ ")" 
+          else ""))
       info.G.server_nusers
+      info.G.server_max_users
+      info.G.server_lowid_users
       info.G.server_nfiles
-      info.G.server_name
+      info.G.server_soft_limit
+      info.G.server_hard_limit
+      info.G.server_ping
       info.G.server_version
+      info.G.server_name
       info.G.server_description
 
-	end
+  end
    else
-	begin
+  begin
 
         Printf.bprintf buf "[%-10s%5d] %15s:%-10s %s\n%45sUsers:%-8Ld Files:%-8Ld State:%s\n"
           (n.network_name)
           (server_num s)
           (Ip.string_of_addr info.G.server_addr)
           (Printf.sprintf "%s%s"
-	   (string_of_int info.G.server_port)
-           (if info.G.server_realport <> 0 then
-	      "(" ^ (string_of_int info.G.server_realport) ^ ")" else ""))
+          (string_of_int info.G.server_port)
+          (if info.G.server_realport <> 0 
+            then "(" ^ (string_of_int info.G.server_realport) ^ ")" 
+            else ""))
           (info.G.server_name) ("")
           (info.G.server_nusers)
           (info.G.server_nfiles)
-          (if server_blocked s then
-	    "IP blocked"
-          else
-	    (string_of_connection_state impl.impl_server_state));
+          (if server_blocked s 
+            then "IP blocked" 
+            else (string_of_connection_state impl.impl_server_state));
       end;
 
   with e ->

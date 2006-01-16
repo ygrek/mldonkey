@@ -173,6 +173,12 @@ type server_info = {
     mutable server_banner : string;
     mutable server_preferred : bool;
     mutable server_version : string;
+    mutable server_max_users : int64;
+    mutable server_soft_limit : int64;
+    mutable server_hard_limit : int64;
+    mutable server_lowid_users : int64;
+    mutable server_ping : int;
+
   } 
 
 type room_info = {
