@@ -14,6 +14,9 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 ChangeLog
 =========
 
+2006/01/16
+4798: Fix thread recognition on *BSD
+
 2006/01/15
 4797: EDK: Always put server connect requests in connection queue,
       whether max_opened_connections is reached or not

@@ -787,7 +787,7 @@ static void store_in_job(value job_v)
   End_roots();
 }
 
-#if !defined(HAVE_PTHREAD) || !(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT)
+#if !defined(HAVE_PTHREAD) || (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT))
 
 value ml_ip_job_start(value job_v)
 {
