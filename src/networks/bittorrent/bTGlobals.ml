@@ -180,22 +180,29 @@ let create_temp_file file_temp file_files =
         file_temp);
   file_fd
 
-let set_trackers file file_trackers =
-  file.file_trackers <- (List.map (fun url -> {
-          tracker_url = url;
-          tracker_interval = 600;
-          tracker_min_interval = 600;
-          tracker_last_conn = 0;
-          tracker_last_clients_num = 0;
-          tracker_torrent_downloaded = 0;
-          tracker_torrent_complete = 0;
-          tracker_torrent_incomplete = 0;
-          tracker_torrent_total_clients_count = 0;
-          tracker_torrent_last_dl_req = 0;
-          tracker_id = "";
-          tracker_key = "";
-	  tracker_enabled = true
-        } ) file_trackers) @ file.file_trackers
+let rec set_trackers file file_trackers =
+  match file_trackers with
+    | [] -> ()
+    | url :: q ->
+	if not (List.exists (fun tracker -> 
+			       tracker.tracker_url = url
+			    ) file.file_trackers) then 
+	  file.file_trackers <- {
+            tracker_url = url;
+            tracker_interval = 600;
+            tracker_min_interval = 600;
+            tracker_last_conn = 0;
+            tracker_last_clients_num = 0;
+            tracker_torrent_downloaded = 0;
+            tracker_torrent_complete = 0;
+            tracker_torrent_incomplete = 0;
+            tracker_torrent_total_clients_count = 0;
+            tracker_torrent_last_dl_req = 0;
+            tracker_id = "";
+            tracker_key = "";
+	    tracker_enabled = true
+          } :: file.file_trackers;
+	set_trackers file q
 
 let new_file file_id t torrent_diskname file_temp file_state =
   try
