@@ -14,7 +14,7 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 ChangeLog
 =========
 
-2006/01/19
+2006/01/19: version 2.7.3 = tag release-2-7-3
 4791: web_infos: New type geoip.dat, save files to local disk,
       re-download only if file on server is newer
 - now all files except type "rss" in web_infos are saved to local disk
