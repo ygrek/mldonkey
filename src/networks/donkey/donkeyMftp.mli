@@ -51,6 +51,4 @@ module type Request =
     val print : t -> unit
     val write : Buffer.t -> t -> unit
   end
-val find_tag :  CommonTypes.field ->
-    CommonTypes.tag list -> CommonTypes.tag_value
 val file_common_tags : (string * CommonTypes.field) list

@@ -14,6 +14,9 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 ChangeLog
 =========
 
+2006/01/19
+4810: Update search results with highest avail/completesources tags (zet)
+
 2006/01/16
 4803: BT: force uniqueness of added trackers by "trackers" command (pango)
 4801: EDK: add more server info fields (html and guiprot) (zet)

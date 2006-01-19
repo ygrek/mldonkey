@@ -53,9 +53,31 @@ let set_result_name r name =
       r.result_names <- r.result_names @ [name]
     end
 
+let int64_of_tagvalue v = 
+  match v with 
+   | Uint64 n -> n
+   | _ -> 0L
+
+(* Update specific tags to highest value *)
+let rec find_tag2 new_tag tags =
+  match tags with
+    [] -> raise Not_found
+  | tag :: tail -> begin
+    match tag with 
+      { tag_name = (Field_Availability | Field_Completesources); tag_value = tag_value } 
+        when tag.tag_name = new_tag.tag_name ->
+            let x = int64_of_tagvalue tag_value in
+            let y = int64_of_tagvalue new_tag.tag_value in
+            if y > x then tag.tag_value <- Uint64 y;
+            true
+    | { tag_name = tag_name; tag_value = _ } when tag_name = new_tag.tag_name -> false
+    | _ -> find_tag2 new_tag tail
+  end
+
 let set_result_tag r tag =
   try
-    ignore (CommonGlobals.find_tag tag.tag_name r.result_tags)
+    let updated = find_tag2 tag r.result_tags in
+    if updated then r.result_modified <- true;
   with Not_found ->
       r.result_modified <- true;
       r.result_tags <- r.result_tags @ [tag]
@@ -95,6 +117,7 @@ let update_result_num r =
           let rr = IndexedResults.get_result rs in
           List.iter (set_result_name rr) r.result_names;
           List.iter (set_result_tag rr) r.result_tags;
+          IndexedResults.update_result rs rr;
           rs
         with Not_found -> iter tail
   in

@@ -195,13 +195,6 @@ module type Request = sig
     val write: Buffer.t -> t -> unit
   end
   
-let rec find_tag v tags =
-  match tags with
-    [] -> raise Not_found
-  | { tag_name = tag_name; tag_value = tag_value } :: _ 
-    when tag_name = v -> tag_value
-  | _ :: tags -> find_tag v tags
-
 let file_common_tags = [
     "\001", Field_Filename;
     "\002", Field_Size;

@@ -1080,7 +1080,7 @@ let old_print_search buf o results =
                     Printf.bprintf buf "%s\n" (shorten name !!max_name_len);
                     List.iter (fun s ->
                         if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
-                        Printf.bprintf buf "       %s\n" s
+                        Printf.bprintf buf "       %s\n" (shorten s !!max_name_len)
                     ) names;
               end;
               if r.result_done then

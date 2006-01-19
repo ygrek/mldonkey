@@ -60,7 +60,11 @@ let search_find num = Hashtbl.find searches_by_num num
 let search_add_result_in s r =
   try
     let (c,_) = Intmap.find r.stored_result_num s.search_results in
-    incr c
+    incr c;
+
+    let ri = IndexedResults.get_result r in 
+    if ri.result_modified then
+      List.iter (fun f -> f r) s.op_search_new_result_handlers
   with _ ->
       s.search_results <- Intmap.add r.stored_result_num (ref 1, r)
       s.search_results;
