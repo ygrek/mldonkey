@@ -1,3 +1,24 @@
+(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
+(*
+    This file is part of mldonkey.
+
+    mldonkey is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    mldonkey is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with mldonkey; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*)
+
+open Printf2
+
 type date_format =
   Second
 | Minute
@@ -13,6 +34,7 @@ type date_format =
 | Dot
 | Minus
 | Zone
+| Gmt
 
 let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
                 "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec"|]
@@ -39,6 +61,7 @@ let string_of_date formats tm date =
       | Dot -> s ^ "."
       | Minus -> s ^ "-"
       | Zone -> Printf.sprintf "%s%s" s (Rss_date.mk_timezone date)
+      | Gmt -> s ^ "GMT"
   ) "" formats
 
   
@@ -61,6 +84,42 @@ let reverse date =
 let mail_string date =
     string_of_date [WeekDay;Comma;Space;Day;Space;Month;Space;Year;Space;Hour;Colon;Minute;Colon;Second;Space;Zone]
       (Unix.localtime date) date
+
+let apache_string date =
+    string_of_date [WeekDay;Comma;Space;Day;Space;Month;Space;Year;Space;Hour;Colon;Minute;Colon;Second;Space;Gmt]
+      (Unix.localtime date) date
+
+let time_of_string date =
+  let month =
+    match String.sub date 8 3 with
+      "Jan" -> 0
+    | "Feb" -> 1
+    | "Mar" -> 2
+    | "Apr" -> 3
+    | "May" -> 4
+    | "Jun" -> 5
+    | "Jul" -> 6
+    | "Aug" -> 7
+    | "Sep" -> 8
+    | "Oct" -> 9
+    | "Nov" -> 10
+    | "Dec" -> 11
+    | _ -> 0
+  in
+  begin
+    try
+      let time = fst(Unix.mktime{ 
+      Unix.tm_isdst = false;
+      Unix.tm_wday = 0;
+      Unix.tm_yday = 0;
+      Unix.tm_sec = int_of_string (String.sub date 23 2);
+      Unix.tm_min = int_of_string (String.sub date 20 2);
+      Unix.tm_hour = int_of_string (String.sub date 17 2);
+      Unix.tm_mday = int_of_string (String.sub date 5 2);
+      Unix.tm_mon = month;
+      Unix.tm_year = int_of_string (String.sub date 12 4) - 1900}) in time
+    with e -> failwith (Printf.sprintf "date error %s" (Printexc2.to_string e))
+  end
 
 let hour_in_secs = 3600
 let day_in_secs = 24 * hour_in_secs

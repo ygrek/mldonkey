@@ -44,8 +44,8 @@ type request = {
     req_user_agent : string;
     req_accept : string;
     req_proxy : (string * int) option;
-
     req_url : url;
+    mutable req_save_to_file_time : float;
     req_request : http_request;
     req_referer : Url.url option;
     req_retry : int;
@@ -62,7 +62,7 @@ let lprintf_nl () =
 let basic_request = {
     req_url = Url.of_string "http://www.mldonkey.net/";
     req_referer = None;
-
+    req_save_to_file_time = 0.;
     req_request = GET;
     req_proxy = None;
     req_headers = [];
@@ -261,13 +261,9 @@ let rec get_page r content_handler f =
           lprintf_nl () "[%s]=[%s]" name value;
         ) headers;
     in
-    (* print_headers (); *)
+    if !verbose then print_headers ();
     match ans_code with
       200 ->
-        (*
-        lprintf "ans_code: %d\n" ans_code;
-        print_headers ();
-        *)
         TcpBufferedSocket.set_closer sock
             (fun _ _ -> 
               (* lprintf "default_headers_handler closer\n"; *)
@@ -391,14 +387,14 @@ let wget r f =
           lprintf_nl () "Empty content for url %s"
             (Url.to_string r.req_url);
         end;
-      let ext = (String.lowercase (Filename2.extension r.req_url.Url.short_file)) in
-      let filename = Filename.temp_file "http_" (if ext = "" then ".tmp" else ext) in
+      let filename = Filename.basename r.req_url.Url.short_file in
       let oc = open_out_bin filename in
       output_string oc s;
       close_out oc;
+      if r.req_save_to_file_time <> 0. then
+	Unix.utimes filename r.req_save_to_file_time r.req_save_to_file_time;
       try
-        (f filename : unit);
-        Sys.remove filename
+        (f filename : unit)
       with e ->  lprintf_nl ()
             "Exception %s in loading downloaded file %s"
             (Printexc2.to_string e) filename;
@@ -411,8 +407,6 @@ let whead r f =
   
   get_page r
     (fun maxlen headers ->
-     if !verbose then
-      lprintf_nl () "headers...";
       (try f headers with _ -> ());
       fun sock nread -> 
         close sock Closed_by_user

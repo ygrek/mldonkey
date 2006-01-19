@@ -1166,10 +1166,12 @@ let runinfo html buf =
       ^   (if Autoconf.filetp = "yes" && !!enable_fileTP then " FileTP" else "")
       ^  "\nServer usage: " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
       ^  (if !Geoip.active then "\nThis product includes GeoLite data created by MaxMind, available from http://maxmind.com/" else "")
+      ^  (let r1,r2 = Ip_set.block_stats () in if r1 = 0 then
+	    "\nIP blocking disabled" else Printf.sprintf "\nIP blocking enabled: %d ranges loaded - optimized to %d" r1 r2)
       ^ (let uname = Unix32.uname () in
           if uname <> "" then Printf.sprintf "\nSystem info: %s" uname else "")
       ^ "\nUptime: " ^ Date.time_to_string (last_time () - start_time) "verbose"
-      ^ "\nLanguage: " ^ Charset.default_language
+      ^ " - Language: " ^ Charset.default_language
       ^ " - locale: " ^ Charset.locstr
       ^ " - UTC offset: " ^ Rss_date.mk_timezone (Unix.time ())
       ^ "\n max_string_length: " ^ string_of_int Sys.max_string_length

@@ -168,7 +168,6 @@ let bl_optimizedp bl =
   in bl_fold_left check () bl
 
 let load_merge bl filename remove =
-  lprintf_nl () "creating block table from %s" filename;
   let guardian_regexp = Str.regexp "^\\(.*\\): *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)-\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)" in
   let ipfilter_regexp = Str.regexp "^\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *- *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *, *[0-9]+ *, *\\(.*\\)$" in
 
@@ -347,7 +346,7 @@ let print_list buf bl =
           let nright = print_list_aux right in
           nleft + 1 + nright in
 
-  let _ = print_list_aux bl in
+  ignore(print_list_aux bl);
   if !ranges_1 = 0 then
     Printf.bprintf buf "%d ranges loaded\n" !ranges_1
   else
@@ -359,6 +358,8 @@ let ip_blocked ip =
   match match_ip !bl ip with
     None -> false
   | Some br -> true
+
+let block_stats () = (!ranges_1, !ranges_2)
 
 (*
 open Benchmark

@@ -173,7 +173,9 @@ let _ =
       Ip_set.bl := Ip_set.load filename;
 (*      Ip_set.bl := Ip_set.load_merge !Ip_set.bl filename *)
       CommonServer.check_blocked_servers ()
-  )
+  );
+  CommonWeb.add_web_kind "geoip.dat" (fun _ filename ->
+      Geoip.init (Geoip.unpack filename))
 
 
 
@@ -481,7 +483,7 @@ or getting a binary compiled with glibc %s.\n\n")
   Options.prune_file downloads_ini;
   Options.prune_file users_ini;
 (*  Options.prune_file downloads_expert_ini; *)
-  add_timer 10. (fun _ -> try CommonWeb.load_web_infos true with _ -> ());
+  add_timer 5. (fun _ -> try CommonWeb.load_web_infos true with _ -> ());
   lprintf_nl ()  (_b "To command: telnet %s %d")
 	(if !!telnet_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!telnet_bind_addr)  !!telnet_port;

@@ -54,8 +54,56 @@ let mldonkey_wget url f =
       Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
       H.req_max_retry = 20;
     } in
-
-  H.wget r f
+    let r1 = {
+      r with
+      H.req_request = H.HEAD;
+    } in
+    let date  = ref None in
+    begin try
+    H.whead r1 (fun headers ->
+      List.iter (fun (name, content) ->
+	if String.lowercase name = "last-modified" then
+          try
+	    date := Some content
+	  with _ -> ()
+    ) headers;
+    match !date with
+      None -> H.wget r f
+    | Some date ->
+	let html_time =
+	  begin try
+	    let t = Date.time_of_string date in
+	      r.H.req_save_to_file_time <- t;
+	      Unix.gmtime t
+	  with e ->
+	    let t = Unix.time () in
+	      r.H.req_save_to_file_time <- t;
+	      Unix.gmtime t
+	  end
+	in
+	if not (Sys.file_exists (Filename.basename r.H.req_url.Url.short_file)) then
+	  H.wget r f
+	else
+	  begin
+            let file = Filename.basename r.H.req_url.Url.short_file in
+	    let file_date = Unix.LargeFile.stat file in
+	    let file_time = Unix.gmtime file_date.Unix.LargeFile.st_mtime in
+	      if html_time <= file_time then
+	        begin
+	        lprintf_nl "[cWeb] using local version of %s, HTML header (%s)" file date;
+	        (f file : unit)
+	        end
+	      else
+	        begin
+	          lprintf_nl "[cWeb] downloading newer %s, HTML header (%s)" file date;
+	          H.wget r f
+	        end
+	  end
+      )
+    with e -> 
+      lprintf_nl "[cWeb] Exception %s while loading %s"
+        (Printexc2.to_string e) url
+    end
 
 let load_url can_fail kind url =
   let f =
@@ -64,7 +112,7 @@ let load_url can_fail kind url =
     with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
   in
   try
-    lprintf_nl "[cWeb] %s loading from %s" kind url;
+    lprintf_nl "[cWeb=%s] saving %s" kind url;
     mldonkey_wget url f
   with e ->
     if can_fail then
@@ -79,8 +127,7 @@ let load_file kind file =
     (List.assoc kind !file_kinds) file file
   with e ->
       lprintf_nl "[cWeb] Exception %s while loading kind %s"
-        (Printexc2.to_string e)
-      kind
+        (Printexc2.to_string e) kind
 
 (*************************************************************************)
 (*                                                                       *)
@@ -316,6 +363,7 @@ let rss_feeds = Hashtbl.create 10
 let _ =
   add_web_kind "rss" (fun url filename ->
       let c = Rss.channel_of_file filename in
+      (try Sys.remove filename with _ -> ());
       let feed =
         try Hashtbl.find rss_feeds url with
           Not_found ->

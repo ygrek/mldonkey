@@ -21,6 +21,7 @@
 open Unix
 open Ip
 open Int64ops
+open Printf2
 
 let country_begin = 16776960
 let state_begin_rev0 = 16700000
@@ -121,6 +122,56 @@ let database_type = ref databaseInfo_COUNTRY_EDITION
 let database_segments = ref 0
 let record_length = ref 0
 
+let unpack filename =
+  let ext = String.lowercase (Filename2.extension filename) in
+    let last_ext = String.lowercase (Filename2.last_extension filename) in
+    let real_ext = if last_ext = ".zip" then
+      last_ext
+    else
+      ext
+    in
+    match real_ext with
+      ".zip" ->
+	begin
+	  try
+	    let ic = Zip.open_in filename in
+	      try
+		let file = Zip.find_entry ic "GeoIP.dat" in
+		  Zip.close_in ic;
+		ignore(Misc.archive_extract filename "zip");
+		(try Sys.remove "GeoIP.dat" with _ -> ());
+		Unix2.rename file.Zip.filename "GeoIP.dat";
+		"GeoIP.dat"
+	      with e ->
+		Zip.close_in ic;
+		lprintf_nl "Exception %s while extracting geoip.dat"
+		  (Printexc2.to_string e);
+		raise Not_found
+	  with e ->
+	    lprintf_nl "Exception %s while opening %s"
+	      (Printexc2.to_string e) filename;
+	    raise Not_found
+	end
+    | ".dat.gz" | ".dat.bz2" | ".gz" | ".bz2" ->
+	begin
+	  let filetype =
+	    if ext = ".bz2" || ext = ".dat.bz2" then
+	      "bz2"
+	    else
+	      "gz"
+	  in try
+	    let s = Misc.archive_extract filename filetype in
+	    (try Sys.remove "GeoIP.dat" with _ -> ());
+	    Unix2.rename s "GeoIP.dat";
+	    "GeoIP.dat"
+          with e ->
+            lprintf_nl "Exception %s while extracting"
+	      (Printexc2.to_string e);
+	    raise Not_found
+        end
+(* if file is not a supported archive type try loading that file anyway *)
+    | _ -> filename
+
 let close () =
   try 
     if !active then close_in !file;
@@ -198,6 +249,7 @@ let init filename =
     end;
 
     active := true; 
+    lprintf_nl "[GeoIP] database loaded"
   with _ -> 
     active := false
 

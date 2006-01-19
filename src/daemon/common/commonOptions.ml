@@ -831,6 +831,8 @@ let web_infos = define_option current_section ["web_infos"]
       "http://www.gruk.org/server.met.gz");
     ("contact.dat", 168,
       "http://download.overnet.org/contact.dat");
+    ("geoip.dat", 0,
+      "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
   ]
 
 let rss_feeds = define_expert_option current_section ["rss_feeds"]
@@ -855,7 +857,7 @@ let _ =
   );
   option_hook geoip_dat (fun _ ->
     try
-      Geoip.init !!geoip_dat;
+      Geoip.init (Geoip.unpack !!geoip_dat);
     with _ -> ()
   )
 
@@ -1461,7 +1463,7 @@ let max_displayed_results = define_expert_option current_section
 
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 8
+    int_option 9
 
 
 (*************************************************************************)
@@ -1924,5 +1926,12 @@ let rec update_options () =
       (* update to 20 because of dynamic_loop_delay patch *)
       loop_delay =:= 20;
       update 8
+
+  | 8 ->
+      web_infos =:= !!web_infos @ [
+          ("geoip.dat", 0,
+            "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
+        ];
+      update 9
 
   | _ -> ()

@@ -15,6 +15,16 @@ ChangeLog
 =========
 
 2006/01/19
+4791: web_infos: New type geoip.dat, save files to local disk,
+      re-download only if file on server is newer
+- now all files except type "rss" in web_infos are saved to local disk
+  if not present or server version is newer
+- MLDonkey uses HTML header last-modified to check if a file has been updated
+- downloaded file timestamp is changed to last-modified time
+- show number of IP blocking ranges in runinfo
+- new web_infos kind: geoip.dat
+- automatically add geoip.dat to web_infos
+- support for *.gz|bz2|zip compressed GeoIP.dat files
 4811: EDK: Print warning when starting a file too big for filesystem,
       clean Ux32 logging
 4810: Update search results with highest avail/completesources tags (zet)
