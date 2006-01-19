@@ -325,7 +325,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
   with _ ->
       if !verbose_share then
         lprintf_nl () "New file with md4: %s" (Md4.to_string md4);
-      let _ = Unix32.file_exists file_diskname in
+      ignore (Unix32.file_exists file_diskname);
 
       let t =
         if
@@ -350,7 +350,19 @@ let new_file file_diskname file_state md4 file_size filenames writable =
       in
 
       if file_size <> zero && writable then (* do not truncate if not writable *)
-        Unix32.ftruncate64 t file_size !!create_file_sparse;
+        begin
+	  try
+            Unix32.ftruncate64 t file_size !!create_file_sparse
+	  with e ->
+	    (try
+	      Unix32.remove t
+	     with e ->
+		lprintf_nl () "Unix32.remove %s exception %s"
+		  (file_diskname) (Printexc2.to_string e));
+	    Unix32.destroy t;
+	    failwith (Printf.sprintf "file size %s is too big, exception: %s"
+	      (size_of_int64 file_size) (Printexc2.to_string e))
+	end;
 
       let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
       let md4s = if file_size <= block_size then

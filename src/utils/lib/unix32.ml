@@ -130,7 +130,7 @@ module FDCache = struct
 		  else
 		    Unix.openfile t.filename ro_flag 0o400
 		with e ->
-		  lprintf_nl "Exception in FDCache._local_force_fd %s (%s): %s" 
+		  if !verbose then lprintf_nl "Exception in FDCache._local_force_fd %s (%s): %s" 
 		    t.filename 
 		    (if t.writable then "rw" else "ro") 
                     (Printexc2.to_string e);
@@ -172,7 +172,7 @@ module FDCache = struct
       Unix2.rename t.filename f;
       destroy t
       with e ->
-      lprintf_nl "Exception in FDCache.rename %s %s: %s"
+      if !verbose then lprintf_nl "Exception in FDCache.rename %s %s: %s"
         t.filename
         f
         (Printexc2.to_string e);
@@ -189,7 +189,7 @@ module FDCache = struct
       Unix2.rename t.filename (Filename.concat f file);
       destroy t
       with e ->
-      lprintf_nl "Exception in FDCache.multi_rename %s %s: %s"
+      if !verbose then lprintf_nl "Exception in FDCache.multi_rename %s %s: %s"
         t.filename
         (Filename.concat f file)
         (Printexc2.to_string e);
@@ -200,7 +200,7 @@ module FDCache = struct
       check_destroyed t;
       Unix2.c_ftruncate64 (local_force_fd t) len sparse
       with e ->
-      lprintf_nl "Exception in FDCache.ftruncate64 %s %Ld (%s): %s"
+      if !verbose then lprintf_nl "Exception in FDCache.ftruncate64 %s %Ld (%s): %s"
         t.filename
         len
         (if sparse then "sparse" else "not sparse")
@@ -216,7 +216,7 @@ module FDCache = struct
         close t;
       s
       with e ->
-      lprintf_nl "Exception in FDCache.getsize64 %s: %s"
+      if !verbose then lprintf_nl "Exception in FDCache.getsize64 %s: %s"
         t.filename
         (Printexc2.to_string e);
       raise e
@@ -227,7 +227,7 @@ module FDCache = struct
       let st = Unix.LargeFile.stat t.filename in
       st.Unix.LargeFile.st_mtime
       with e ->
-      lprintf_nl "Exception in FDCache.mtime64 %s: %s"
+      if !verbose then lprintf_nl "Exception in FDCache.mtime64 %s: %s"
         t.filename
         (Printexc2.to_string e);
       raise e
@@ -237,7 +237,7 @@ module FDCache = struct
       check_destroyed t;
       Sys.file_exists t.filename
       with e ->
-      lprintf_nl "Exception in FDCache.exists %s: %s"
+      if !verbose then lprintf_nl "Exception in FDCache.exists %s: %s"
         t.filename
         (Printexc2.to_string e);
       raise e
@@ -249,7 +249,7 @@ module FDCache = struct
         Sys.remove t.filename;
       destroy t
       with e ->
-      lprintf_nl "Exception in FDCache.remove %s: %s"
+      if !verbose then lprintf_nl "Exception in FDCache.remove %s: %s"
         t.filename
         (Printexc2.to_string e);
       raise e
@@ -265,7 +265,7 @@ module FDCache = struct
           len;
       Unix2.really_read fd string string_pos len
       with e ->
-      lprintf_nl "Exception in FDCache.read %s %Ld %d: %s"
+      if !verbose then lprintf_nl "Exception in FDCache.read %s %Ld %d: %s"
         file.filename
         file_pos
         len
@@ -284,7 +284,7 @@ module FDCache = struct
           len;
           really_write fd string string_pos len
       with e ->
-      lprintf_nl "Exception in FDCache.write file %s file_pos=%Ld len=%d string_pos=%d, string length=%d: %s"
+      if !verbose then lprintf_nl "Exception in FDCache.write file %s file_pos=%Ld len=%d string_pos=%d, string length=%d: %s"
         file.filename
         file_pos
         len
@@ -311,7 +311,7 @@ module FDCache = struct
       try
 	iter len64 pos1 pos2
       with e ->
-	lprintf_nl "Exception in FDCache.copy_chunk %s %Ld to %s %Ld (%Ld): %s"
+	if !verbose then lprintf_nl "Exception in FDCache.copy_chunk %s %Ld to %s %Ld (%Ld): %s"
 	  t1.filename 
 	  pos1
 	  t2.filename
@@ -546,7 +546,7 @@ module MultiFile = struct
           Sys.remove temp_file;
           v
 	with e ->
-	  lprintf_nl "Exception in MultiFile.apply_on_chunk %s %Ld %Ld: %s"
+	  if !verbose then lprintf_nl "Exception in MultiFile.apply_on_chunk %s %Ld %Ld: %s"
 	    t.dirname
 	    chunk_begin
 	    chunk_len
@@ -576,7 +576,7 @@ module MultiFile = struct
 	let st = Unix.LargeFile.stat t.dirname in
 	st.Unix.LargeFile.st_mtime
       with e ->
-	lprintf_nl "Exception in MultiFile.mtime64 %s: %s" 
+	if !verbose then lprintf_nl "Exception in MultiFile.mtime64 %s: %s" 
 	  t.dirname
           (Printexc2.to_string e);
 	raise e
@@ -590,7 +590,7 @@ module MultiFile = struct
 	if Sys.file_exists t.dirname then
           Unix2.remove_all_directory t.dirname
       with e ->
-	lprintf_nl "Exception in MultiFile.remove %s: %s" 
+	if !verbose then lprintf_nl "Exception in MultiFile.remove %s: %s" 
 	  t.dirname
           (Printexc2.to_string e);
 	raise e
@@ -858,7 +858,7 @@ module SparseFile = struct
             Sys.remove temp_file;
             v
 	  with e -> 
-	    lprintf_nl "Exception in SparseFile.apply_on_chunk %s %Ld %Ld: %s"
+	    if !verbose then lprintf_nl "Exception in SparseFile.apply_on_chunk %s %Ld %Ld: %s"
 	      t.dirname
 	      chunk_begin
 	      chunk_len
@@ -933,7 +933,7 @@ module SparseFile = struct
 	let st = Unix.LargeFile.stat t.dirname in
 	st.Unix.LargeFile.st_mtime
       with e ->
-	lprintf_nl "Exception in SparseFile.mtime64 %s: %s"
+	if !verbose then lprintf_nl "Exception in SparseFile.mtime64 %s: %s"
 	  t.dirname
           (Printexc2.to_string e);
 	raise e
@@ -947,7 +947,7 @@ module SparseFile = struct
 (*      lprintf "Removing %s\n" t.dirname; *)
 	Unix2.remove_all_directory t.dirname
       with e ->
-	lprintf_nl "Exception in SparseFile.remove %s: %s" 
+	if !verbose then lprintf_nl "Exception in SparseFile.remove %s: %s" 
 	  t.dirname
           (Printexc2.to_string e);
 	raise e
@@ -1188,7 +1188,7 @@ let flush_buffer t offset =
     buffered_bytes := !buffered_bytes -- (Int64.of_int len);
     if !verbose then lprintf_nl "written %d bytes (%Ld)" len !buffered_bytes;
   with e ->
-    lprintf_nl "exception %s in flush_buffer" (Printexc2.to_string e);
+    if !verbose then lprintf_nl "exception %s in flush_buffer" (Printexc2.to_string e);
     t.buffers <- (s, 0, len, offset, Int64.of_int len) :: t.buffers;
     raise e
 
@@ -1273,7 +1273,7 @@ let flush _ =
       if !buffered_bytes <> 0L then
 	lprintf_nl "[ERROR] remaining bytes after flush"
   with e ->
-      lprintf_nl "[ERROR] Exception %s in Unix32.flush"
+      if !verbose then lprintf_nl "[ERROR] Exception %s in Unix32.flush"
         (Printexc2.to_string e)
 
 let buffered_write t offset s pos_s len_s =
