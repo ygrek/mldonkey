@@ -21,9 +21,6 @@ val load : unit -> unit
 val save : unit -> unit
 val save_sources : unit -> unit
 val backup_options : unit -> unit
-val buildinfo : bool -> Buffer.t -> unit
-val runinfo : bool -> Buffer.t -> unit
-val diskinfo : bool -> Buffer.t -> unit
   
 val done_files :  CommonTypes.file list Options.option_record
 val files :  CommonTypes.file list Options.option_record
@@ -43,6 +40,8 @@ val shared_directories :
   
 val incoming_files : unit -> CommonTypes.shared_directory
 val incoming_directories : unit -> CommonTypes.shared_directory
+val search_incoming_files : unit -> CommonTypes.shared_directory
+val search_incoming_directories : unit -> CommonTypes.shared_directory
   
 val sharing_only_directory : CommonTypes.sharing_strategy
 

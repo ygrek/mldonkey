@@ -452,27 +452,27 @@ let _ =
 
     "sysinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
-        ignore(CommonComplexOptions.buildinfo (o.conn_output = HTML) buf);
-        ignore(CommonComplexOptions.runinfo (o.conn_output = HTML) buf);
-        ignore(CommonComplexOptions.diskinfo (o.conn_output = HTML) buf);
+        ignore(buildinfo (o.conn_output = HTML) buf);
+        ignore(runinfo (o.conn_output = HTML) buf);
+        ignore(diskinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey core build, runtime and disk information";
 
     "buildinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
-        ignore(CommonComplexOptions.buildinfo (o.conn_output = HTML) buf);
+        ignore(buildinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey core build information";
 
     "runinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
-        ignore(CommonComplexOptions.runinfo (o.conn_output = HTML) buf);
+        ignore(runinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey runtime information";
 
     "diskinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
-        ignore(CommonComplexOptions.diskinfo (o.conn_output = HTML) buf);
+        ignore(diskinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey disk information";
 
@@ -1162,7 +1162,7 @@ let _ =
         let buf = o.conn_buf in
 	if Autoconf.has_gd then
 	  begin
-	    CommonGraphics.really_remove_files ();
+	    DriverGraphics.G.really_remove_files ();
 	    Printf.bprintf buf "Gd files were removed"
 	  end
 	else

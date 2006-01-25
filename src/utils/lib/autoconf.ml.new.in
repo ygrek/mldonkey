@@ -36,11 +36,11 @@ let check_array s pos =
 
 let has_iconv = if "@ICONV@" = "yes" then true else false
 
-let has_gd = @HAS_GD@
-let has_gd_png = @HAS_GD_PNG@
-let has_gd_jpg = @HAS_GD_JPG@
+let has_gd = if "@GD@" = "yes" then true else false
+let has_gd_png = if "@GD_PNG@" = "yes" then true else false
+let has_gd_jpg = if "@GD_JPG@" = "yes" then true else false
 
-let has_bzip2 = @HAS_BZIP2@
+let bzip2 = if "@BZIP2@" = "yes" then true else false
 
 let zlib__uncompress_string2 s = Zlib.uncompress_string2 s
 let zlib__compress_string s = Zlib.compress_string s

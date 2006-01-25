@@ -14,6 +14,14 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 ChangeLog
 =========
 
+2006/01/25
+4820: Move CommonGraphics to DriverGraphics, check libgd version
+      Configure: Check if libgd > 2.0.14 is installed
+      NetBSD: added paths for libgd package
+      NetBSD: adjusted stat command to properly read SCM date
+      move build-, run-, and diskinfo command to driver module
+      (thanks to SchAmane)
+
 2006/01/19: version 2.7.3 = tag release-2-7-3
 4791: web_infos: New type geoip.dat, save files to local disk,
       re-download only if file on server is newer

@@ -1617,5 +1617,189 @@ let print_gdstats buf o =
     )
   else
     (* fake call if no gd *)
-    CommonGraphics.do_draw_pic "" "" "" download_history download_history
+    DriverGraphics.G.do_draw_pic "" "" "" download_history download_history
 
+let buildinfo html buf =
+  let s =
+  (
+        "MLNet Multi-Network p2p client version " ^ Autoconf.current_version
+      ^ (if Autoconf.scm_version <> "" then "\nSCM version info: " ^ Autoconf.scm_version else "")
+      ^ "\nNetworks: " ^ !networks_string
+      ^ "\nOcaml version: " ^ Sys.ocaml_version
+      ^ "\nBuild on: " ^ Autoconf.build_system ^ " (" ^ Unix2.endianness () ^ ")"
+      ^ (if Autoconf.glibc_version = "" then "" 
+          else
+            let real_glibc_version = MlUnix.glibc_version_num () in
+            if real_glibc_version = "" || real_glibc_version = Autoconf.glibc_version 
+              then " with glibc " ^ Autoconf.glibc_version
+            else 
+              Printf.sprintf " (Warning: glibc version mismatch, %s present on your system, MlDonkey was compiled with %s)"
+              real_glibc_version Autoconf.glibc_version)  
+      ^ (if Autoconf.configure_arguments <> "" then
+           "\nConfigure arguments: " ^ Autoconf.configure_arguments else "")
+      ^ (if !patches_string <> "" then "\n" ^ !patches_string else "")
+      ^ "\nFeatures:"
+          ^ (if BasicSocket.has_threads () then " threads" else " no-threads")
+          ^ (let s = Zlib.zlib_version_num () in Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else ""))
+          ^ (if Autoconf.bzip2 then
+	       begin
+	         let s =
+	           (* catch the exception in the case Bzip2.bzlib_version_num returns an empty string *)
+	           try
+	             List.hd(String2.split_simplify
+		   (Misc2.bzlib_version_num ()) ',') 
+		   with e -> ""
+		 in
+	         Printf.sprintf " bzip2%s" (if s <> "" then "-" ^ s else "")
+	       end
+	     else " no-bzip2")
+          ^ (if Autoconf.has_gd && Autoconf.has_gd_png && Autoconf.has_gd_jpg then
+	       Printf.sprintf " gd(jpg/png%s)"
+	         (let s = DriverGraphics.G.png_version_num () in
+		    if s <> "" then "-" ^ s else "")
+	     else "")
+          ^ (if Autoconf.has_gd && Autoconf.has_gd_png && not Autoconf.has_gd_jpg then
+	       Printf.sprintf " gd(png%s)"
+	         (let s = DriverGraphics.G.png_version_num () in
+		    if s <> "" then "-" ^ s else "")
+	     else "")
+	  ^ (if Autoconf.has_gd && not Autoconf.has_gd_png && Autoconf.has_gd_jpg then " gd(jpg)" else "")
+	  ^ (if not Autoconf.has_gd then " no-gd" else "")
+          ^ (if Autoconf.has_iconv then " iconv" else " no-iconv")
+          ^ (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
+  )
+  in
+  if html then
+    begin
+      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+      html_mods_table_header buf "versionTable" "results" [];
+      Printf.bprintf buf "\\<tr\\>";
+      html_mods_td buf [ ("", "srh", "Buildinfo"); ];
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" s); ];
+      Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+    end
+  else
+    Printf.bprintf buf "Buildinfo:\n%s\n" s
+  
+let runinfo html buf =
+  let s =
+  (
+        "Enabled Networks: " 
+      ^   (if Autoconf.donkey = "yes" && !!enable_donkey then " Donkey" else "")
+      ^   (if Autoconf.donkey = "yes" && !!enable_overnet then " Overnet" else "")
+      ^   (if Autoconf.donkey = "yes" && !!enable_kademlia then " Kademlia" else "")             
+      ^   (if Autoconf.bittorrent = "yes" && !!enable_bittorrent then " BitTorrent" else "")
+      ^   (if Autoconf.fasttrack = "yes" && !!enable_fasttrack then " Fasttrack" else "")
+      ^   (if Autoconf.gnutella = "yes" && !!enable_gnutella then " Gnutella" else "")
+      ^   (if Autoconf.gnutella2 = "yes" && !!enable_gnutella2 then " G2" else "")
+      ^   (if Autoconf.filetp = "yes" && !!enable_fileTP then " FileTP" else "")
+      ^  "\nServer usage: " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
+      ^  (if !Geoip.active then "\nThis product includes GeoLite data created by MaxMind, available from http://maxmind.com/" else "")
+      ^  (let r1,r2 = Ip_set.block_stats () in if r1 = 0 then
+	    "\nIP blocking disabled" else Printf.sprintf "\nIP blocking enabled: %d ranges loaded - optimized to %d" r1 r2)
+      ^ (let uname = Unix32.uname () in
+          if uname <> "" then Printf.sprintf "\nSystem info: %s" uname else "")
+      ^ "\nUptime: " ^ Date.time_to_string (last_time () - start_time) "verbose"
+      ^ " - Language: " ^ Charset.default_language
+      ^ " - locale: " ^ Charset.locstr
+      ^ " - UTC offset: " ^ Rss_date.mk_timezone (Unix.time ())
+      ^ "\n max_string_length: " ^ string_of_int Sys.max_string_length
+      ^ " - word_size: " ^ string_of_int Sys.word_size
+      ^ " - max_array_length: " ^ string_of_int Sys.max_array_length
+      ^ "\n max file descriptors: " ^ string_of_int (Unix2.c_getdtablesize ())
+      ^ " - max useable file size: " ^ 
+	    (match Unix2.c_sizeofoff_t () with
+	     | 4 -> "2GB"
+	     |  _ -> Printf.sprintf "2^%d-1 bits (do the maths ;-p)" ((Unix2.c_sizeofoff_t () *8)-1)
+	     )
+  )    
+  in
+  if html then
+    begin
+      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+      html_mods_table_header buf "versionTable" "results" [];
+      Printf.bprintf buf "\\<tr\\>";
+      html_mods_td buf [ ("", "srh", "Runinfo"); ];
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" s); ];
+      Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+    end
+  else
+    Printf.bprintf buf "Runinfo:\n%s\n" s
+
+let diskinfo html buf =
+  let list = ref [] in
+  ignore (search_incoming_files ());
+  ignore (search_incoming_directories ());
+  List.iter (fun dir ->
+     list := (dir.shdir_dirname, (Printf.sprintf "shared (%s)" dir.shdir_strategy))
+     :: !list) !!shared_directories;
+  list := (!!temp_directory, "temp/downloading") :: !list;
+  list := (Sys.getcwd (), "core/ini files") :: !list;
+
+  let len_dir = ref 9 in
+  let len_strategy = ref 29 in (* "shared (incoming_directories)" *)
+  List.iter ( fun (dir, strategy) ->
+    len_dir := maxi !len_dir (String.length dir);
+    len_strategy := maxi !len_strategy (String.length strategy)
+  ) !list;
+  let fill_dir = String.make (!len_dir - 9) ' ' in
+  let fill_dir_line = String.make (!len_dir - 9) '-' in
+  let fill_strategy = String.make (!len_strategy - 4) ' ' in
+  let fill_strategy_line = String.make (!len_strategy - 4) '-' in
+  let counter = ref 0 in
+  if html then
+      html_mods_table_header buf "sharesTable" "shares" [
+       ( "0", "srh", "Directory", "Directory" ) ;
+       ( "0", "srh", "Directory type", "Type" ) ;
+       ( "1", "srh ar", "HDD used", "used" ) ;
+       ( "1", "srh ar", "HDD free", "free" ) ;
+       ( "1", "srh ar", "% free", "% free" ) ;
+       ( "0", "srh", "Filesystem", "FS" ) ]
+  else
+    begin
+      Printf.bprintf buf "Diskinfo:\n";
+      Printf.bprintf buf "Directory%s|Type%s|    used|    free|%%free|Filesystem\n"
+        fill_dir fill_strategy;
+      Printf.bprintf buf "---------%s+----%s+--------+--------+-----+----------\n"
+        fill_dir_line fill_strategy_line;
+    end;
+  List.iter (fun (dir, strategy) ->
+	incr counter;
+	let diskused =
+    	  match Unix32.diskused dir with
+	  | None -> Printf.sprintf "---"
+	  | Some du -> size_of_int64 du
+	in
+	let diskfree =
+    	  match Unix32.diskfree dir with
+	  | None -> Printf.sprintf "---"
+	  | Some df -> size_of_int64 df
+	in
+	let percentfree =
+    	  match Unix32.percentfree dir with
+	  | None -> Printf.sprintf "---"
+	  | Some p -> Printf.sprintf "%d%%" p
+	in
+	let filesystem = Unix32.filesystem dir in
+	if html then
+	  begin
+	    Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+	    (if !counter mod 2 == 0 then "dl-1" else "dl-2")
+	    dir strategy diskused diskfree percentfree filesystem
+	  end
+	else
+	  Printf.bprintf buf "%-*s|%-*s|%8s|%8s|%5s|%-s\n"
+	    (maxi !len_dir (!len_dir - String.length dir)) dir
+	    (maxi !len_strategy (!len_strategy - String.length strategy)) strategy
+	    diskused diskfree percentfree filesystem
+    	) !list;
+  if html then
+    Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"

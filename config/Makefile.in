@@ -151,19 +151,6 @@ endif
 LIBS_flags += -cclib -lz
 CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zip.ml $(CDK)/gzip.ml $(CDK)/zlibstubs.c $(CDK)/tar.ml
 
-ifeq ("$(GD)", "yes")
-  LIBS_flags += -cclib -lgd -cclib -lfreetype -cclib -lm
-  LIBS_flags += -ccopt -W -ccopt -Wall -ccopt -Wno-unused
-  ifeq ("$(GD_JPG)", "yes")
-    LIBS_flags += -cclib -ljpeg
-  endif
-  ifeq ("$(GD_PNG)", "yes")
-    LIBS_flags += -cclib -lpng
-    LIBS_flags += -ccopt -DHAVE_JPEG
-  endif
-  CDK_SRCS +=  $(CDK)/gd.ml $(CDK)/gdstubs.c
-endif
-
 CDK_SRCS += $(LIB)/autoconf.ml
 
 
@@ -173,18 +160,8 @@ CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(CDK)/printf2.ml \
   $(CDK)/netbase.ml $(CDK)/filepath.ml $(CDK)/string2.ml \
   $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
   $(CDK)/file.ml $(CDK)/unix2.ml \
-  $(CDK)/heap_c.c $(CDK)/array2.ml $(CDK)/sort2.ml \
-  \
-  $(XML)/xml_types.ml \
-  $(XML)/xml_parser.mly $(XML)/xml_lexer.mll $(XML)/xml_dtd.ml \
-  $(XML)/xmlParser.ml $(XML)/xml.ml \
-  \
-  $(RSS)/rss_messages.ml $(RSS)/rss_date.ml \
-  $(RSS)/rss_types.ml  $(RSS)/rss_io.ml  $(RSS)/rss.ml
+  $(CDK)/heap_c.c $(CDK)/array2.ml $(CDK)/sort2.ml
   
-#  $(CDK)/xmllex.mll $(CDK)/xmlyacc.mly $(CDK)/xml.ml \
-#  $(LIB)/htmlgen.ml
-
 ifneq ("$(PTHREAD_CFLAGS)" , "")
   CFLAGS += $(PTHREAD_CFLAGS)
   LIBS_flags += -ccopt "$(PTHREAD_CFLAGS)"
@@ -212,6 +189,7 @@ LIB_SRCS=   \
   $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml $(LIB)/host.ml  \
   $(LIB)/misc2.ml $(LIB)/misc.ml $(LIB)/unix32.ml  $(LIB)/md4.ml \
   $(LIB)/avifile.ml $(LIB)/http_lexer.mll $(LIB)/url.ml \
+  $(RSS)/rss_date.ml \
   $(LIB)/date.ml  $(LIB)/fst_hash.c \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
   $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/sha1_c.c \
@@ -240,7 +218,16 @@ CHAT_SRCS = $(CHAT)/chat_messages.ml\
         $(CHAT)/chat_options.ml\
         $(CHAT)/chat_config.ml
 
-COMMON_SRCS+=$(COMMON)/commonTypes.ml \
+XML_SRCS= \
+  $(XML)/xml_types.ml $(XML)/xml_parser.mly $(XML)/xml_lexer.mll \
+  $(XML)/xml_dtd.ml $(XML)/xmlParser.ml $(XML)/xml.ml
+
+RSS_SRCS= \
+  $(RSS)/rss_messages.ml $(RSS)/rss_types.ml  $(RSS)/rss_io.ml  $(RSS)/rss.ml
+
+COMMON_SRCS = \
+  $(XML_SRCS) $(RSS_SRCS) \
+  $(COMMON)/commonTypes.ml \
   $(COMMON)/guiTypes.ml \
   $(COMMON)/guiProto.ml \
   $(COMMON)/commonEvent.ml \
@@ -258,8 +245,7 @@ COMMON_SRCS+=$(COMMON)/commonTypes.ml \
   $(COMMON)/commonHasher.ml \
   $(COMMON)/commonHosts.ml \
   $(COMMON)/commonIndexing.ml \
-  $(COMMON)/commonHasher_c.c \
-  $(COMMON)/commonGraphics.ml
+  $(COMMON)/commonHasher_c.c
 
 COMMON_CLIENT_SRCS= \
   $(COMMON)/commonUser.ml \
@@ -549,7 +535,27 @@ SUBDIRS += $(SRC_OPENFT)
 CORE_SRCS += $(OPENFT_SRCS)
 endif
 
-DRIVER_SRCS= \
+ifeq ("$(GD)", "yes")
+  GD_LIBS_flags += -cclib -lgd -cclib -lfreetype -cclib -lm
+  GD_LIBS_flags += -ccopt -W -ccopt -Wall -ccopt -Wno-unused
+  ifeq ("$(GD_JPG)", "yes")
+    GD_LIBS_flags += -cclib -ljpeg
+  endif
+  ifeq ("$(GD_PNG)", "yes")
+    GD_LIBS_flags += -cclib -lpng
+    GD_LIBS_flags += -ccopt -DHAVE_JPEG
+  endif
+  DRIVER_SRCS= \
+    $(CDK)/gd.ml \
+    $(CDK)/gdstubs.c \
+    $(DRIVER)/driverGraphics_gd.ml
+else
+  DRIVER_SRCS= \
+    $(DRIVER)/driverGraphics_nogd.ml
+endif
+
+DRIVER_SRCS+= \
+  $(DRIVER)/driverGraphics.ml  \
   $(DRIVER)/driverInteractive.ml  \
   $(DRIVER)/driverCommands.ml  \
   $(DRIVER)/driverLink.ml \
@@ -1512,17 +1518,17 @@ $1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
-	$(OCAMLOPT) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -o $[[@]]  $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
+	$(OCAMLOPT) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) $($5_LIBS_opt) $($5_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
  
-$2.byte: $($1_OBJS) $($1_CMOS)  $($1_CMAS)
-	$(OCAMLC) -cc "$(CXX)" -linkall -o $[[@]]  $($1_OBJS) $(LIBS_byte) $(LIBS_flags)  $($3_LIBS_byte) $($3_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
+$2.byte: $($1_OBJS) $($1_CMOS) $($1_CMAS)
+	$(OCAMLC) -cc "$(CXX)" -linkall -o $[[@]] $($1_OBJS) $(LIBS_byte) $(LIBS_flags) $($3_LIBS_byte) $($3_LIBS_flags) $($5_LIBS_byte) $($5_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
  
-$2.static:  $($1_OBJS) $($1_CMXS)  $($1_CMXAS)
-	$(OCAMLOPT) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags)  $($3_LIBS_flags)  $($3_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
+$2.static: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
+	$(OCAMLOPT) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_flags) $($3_STATIC_LIBS_opt) $($5_LIBS_flags) $($5_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
 ]])
 
-EXPAND(mldonkey,mldonkey,NO,mldonkey)
-EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui)
+EXPAND(mldonkey,mldonkey,NO,mldonkey,GD)
+EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui,GD)
 EXPAND(MLPROGRESS, mlprogress,GTK, MLPROGRESS)
 EXPAND(MLDONKEYGUI,mlgui,GTK,MLDONKEYGUI)
 
@@ -1530,18 +1536,18 @@ ifeq ("$(GUI)", "oldgui")
  EXPAND(MLDONKEYGUI2,mlgui2,GTK,MLDONKEYGUI2)
 endif
 
-EXPAND(mldc,mldc,NO,mldc)
-EXPAND(mldc+gui,mldc+gui,GTK,mldc+gui)
-EXPAND(mlnap,mlnap,NO,mlnap)
-EXPAND(mlnap+gui,mlnap+gui,GTK,mlnap+gui)
-EXPAND(MLNET,mlnet,NO,MLNET)
-EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui)
-EXPAND(mlgnut,mlgnut,NO,mlgnut)
-EXPAND(mlbt,mlbt,NO,mlbt)
-EXPAND(mlgnut+gui,mlgnut+gui,GTK,mlgnut+gui)
-EXPAND(mlbt+gui,mlbt+gui,GTK,mlbt+gui)
-EXPAND(mlslsk,mlslsk,NO,mlslsk)
-EXPAND(mlslsk+gui,mlslsk+gui,GTK,mlslsk+gui)
+EXPAND(mldc,mldc,NO,mldc,GD)
+EXPAND(mldc+gui,mldc+gui,GTK,mldc+gui,GD)
+EXPAND(mlnap,mlnap,NO,mlnap,GD)
+EXPAND(mlnap+gui,mlnap+gui,GTK,mlnap+gui,GD)
+EXPAND(MLNET,mlnet,NO,MLNET,GD)
+EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui,GD)
+EXPAND(mlgnut,mlgnut,NO,mlgnut,GD)
+EXPAND(mlbt,mlbt,NO,mlbt,GD)
+EXPAND(mlgnut+gui,mlgnut+gui,GTK,mlgnut+gui,GD)
+EXPAND(mlbt+gui,mlbt+gui,GTK,mlbt+gui,GD)
+EXPAND(mlslsk,mlslsk,NO,mlslsk,GD)
+EXPAND(mlslsk+gui,mlslsk+gui,GTK,mlslsk+gui,GD)
 EXPAND(MLDONKEY_IM,mlim,GTK,MLDONKEY_IM)
 EXPAND(STARTER,mlguistarter,GTK)
 EXPAND(MLCHAT,mlchat,GTK,MLCHAT)
@@ -1668,7 +1674,7 @@ clean:
 	rm -f *.cm? donkey_* *.byte *.cm?? $(TARGETS) *~ TAGS *.o core *.static *.a
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
-	rm -f mldonkey mlgui mlnet.exe mlgui.exe
+	rm -f mldonkey mlgui mlnet.exe mlgui.exe mldonkeytop mldonkeytop.exe
 	rm -f svg_converter svg_converter.byte mld_hash make_torrent copysources get_range subconv dp500
 	rm -f svg_converter.exe mld_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe dp500.exe
 	(for i in $(SUBDIRS); do \
@@ -1693,7 +1699,7 @@ releaseclean: clean moreclean
 	rm -f packages/rpm/Makefile
 	rm -f packages/slackware/mldonkey.options
 	rm -f packages/windows/mlnet.nsi
-	rm -f src/daemon/common/commonGraphics.ml
+	rm -f src/daemon/driver/driverGraphics.ml
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new
 	rm -f src/utils/lib/gAutoconf.ml

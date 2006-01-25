@@ -25,7 +25,6 @@ open CommonNetwork
 open CommonSearch
 open CommonTypes
 open CommonGlobals
-open CommonGraphics
 open CommonShared
 open GuiTypes
 open CommonComplexOptions
@@ -33,6 +32,7 @@ open CommonFile
 open Options
 open BasicSocket
 open TcpBufferedSocket
+open DriverGraphics
 open DriverInteractive
 open CommonOptions
 
@@ -1147,106 +1147,106 @@ let http_handler o t r =
             html_open_page buf t r true;
             Buffer.add_string buf !!motd_html;
 	    Buffer.add_string buf "<p><pre>";
-	    ignore (CommonComplexOptions.buildinfo false buf);
+	    ignore (buildinfo false buf);
 	    Buffer.add_string buf "\n";
-	    ignore (CommonComplexOptions.runinfo false buf);
+	    ignore (runinfo false buf);
 	    Buffer.add_string buf "</pre>\n"
 
         | "bw_updown.png" ->
             (match http_error_no_gd "png" with
               false ->
-                do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
+                G.do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
                 http_send_bin r buf "bw_updown.png"
             | true -> raise Not_found)
 
         | "bw_updown.jpg" ->
             (match http_error_no_gd "jpg" with
               false ->
-                do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
+                G.do_draw_pic "Traffic" "s(kb)" "t(h:m:s)" download_history upload_history;
                 http_send_bin r buf "bw_updown.jpg"
             | true -> raise Not_found)
 
         | "bw_download.png" ->
             (match http_error_no_gd "png" with
               false ->
-                do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
+                G.do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
                 http_send_bin r buf "bw_download.png"
             | true -> raise Not_found)
 
         | "bw_download.jpg" ->
             (match http_error_no_gd "jpg" with
               false ->
-                do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
+                G.do_draw_down_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_history;
                 http_send_bin r buf "bw_download.jpg"
             | true -> raise Not_found)
 
         | "bw_upload.png" ->
             (match http_error_no_gd "png" with
               false ->
-                do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
+                G.do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
                 http_send_bin r buf "bw_upload.png"
             | true -> raise Not_found)
 
         | "bw_upload.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
-                do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
+                G.do_draw_up_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_history;
                 http_send_bin r buf "bw_upload.jpg"
             | true -> raise Not_found)
 
         | "bw_h_updown.png" ->
             (match http_error_no_gd "png" with
             | false ->
-                do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
+                G.do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
                 http_send_bin r buf "bw_h_updown.png"
             | true -> raise Not_found)
 
         | "bw_h_updown.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
-                do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
+                G.do_draw_h_pic "Traffic" "s(kb)" "t(h:m:s)" download_h_history upload_h_history;
                 http_send_bin r buf "bw_h_updown.jpg"
             | true -> raise Not_found)
 
         | "bw_h_download.png" ->
             (match http_error_no_gd "png" with
             | false ->
-                do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
+                G.do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
                 http_send_bin r buf "bw_h_download.png"
             | true -> raise Not_found)
 
         | "bw_h_download.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
-                do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
+                G.do_draw_down_h_pic "Traffic" "download" "s(kb)" "t(h:m:s)" download_h_history;
                 http_send_bin r buf "bw_h_download.jpg"
             | true -> raise Not_found)
 
         | "bw_h_upload.png" ->
             (match http_error_no_gd "png" with
             | false ->
-                do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
+                G.do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
                 http_send_bin r buf "bw_h_upload.png"
             | true -> raise Not_found)
 
         | "bw_h_upload.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
-                do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
+                G.do_draw_up_h_pic "Traffic" "upload" "s(kb)" "t(h:m:s)" upload_h_history;
                 http_send_bin r buf "bw_h_upload.jpg"
             | true -> raise Not_found)
 
         | "tag.png" ->
             (match http_error_no_gd "png" with
             | false ->
-                do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
+                G.do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
                 http_send_bin r buf "tag.png"
             | true -> raise Not_found)
 
         | "tag.jpg" ->
             (match http_error_no_gd "jpg" with
             | false ->
-                do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
+                G.do_draw_tag !!html_mods_vd_gfx_tag_title download_history upload_history;
                 http_send_bin r buf "tag.jpg"
             | true -> raise Not_found)
 

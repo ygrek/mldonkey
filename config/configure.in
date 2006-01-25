@@ -54,6 +54,8 @@ case $host in
     ;;
   *netbsd*)
     SYSTEM=netbsd
+    CPPFLAGS="${CPPFLAGS} -I/usr/pkg/include"
+    LDFLAGS="${LDFLAGS} -L/usr/pkg/lib"
     ;;
   *linux*)
     SYSTEM=linux
@@ -107,7 +109,7 @@ if test -f ./CVS/Entries ; then
       AC_CHECK_PROG(CUT, cut, cut)
       if test "$ac_cv_prog_CUT" = "cut"; then
         SUB_VERSION3="CVS"
-	if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "darwin"]; then
+	if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "darwin"] || [ test "$SYSTEM" = "netbsd"]; then
 	  SCM_VERSION=`$STAT -f "%Sm" ./CVS/Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\4-\1-\2 \3/'`
 	else
 	  if [ test "$SYSTEM" = "openbsd"]; then
@@ -237,8 +239,8 @@ AC_ARG_ENABLE(iconv,       [  --disable-iconv         disable the use of iconv f
 GD=yes
 AC_ARG_ENABLE(gd,       [  --disable-gd            disable the use of gd], [GD="$enableval"])
 
-USE_BZIP2=yes
-AC_ARG_ENABLE(bzip2,       [  --disable-bzip2         disable the use of bzip2], [USE_BZIP2="$enableval"])
+BZIP2=yes
+AC_ARG_ENABLE(bzip2,       [  --disable-bzip2         disable the use of bzip2], [BZIP2="$enableval"])
 
 ifelse(AC_ACVERSION, [2.13], [],
 [dnl Large file enabled
@@ -546,21 +548,17 @@ AC_CHECK_LIB(z,inflate,,[AC_MSG_FAILURE([Zlib missing, did you install zlib and 
 AC_CHECK_HEADERS(zlib.h,,[AC_MSG_FAILURE([Zlib missing, did you install zlib and zlib-developer packages?])])
 AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1,)])
 
-BZIP2=no
-HAS_BZIP2=false
-if test "$USE_BZIP2" != "no"; then
-  AC_CHECK_HEADERS(bzlib.h,[AC_CHECK_LIB(bz2,BZ2_bzReadOpen,[BZIP2=yes],)])
+if test "$BZIP2" != "no"; then
+  AC_CHECK_HEADERS(bzlib.h,[AC_CHECK_LIB(bz2,BZ2_bzReadOpen,[BZIP2=yes],[BZIP2=no])])
 fi
 
 if test "$BZIP2" = "yes"; then
-  HAS_BZIP2=true
   cp -f ../src/utils/lib/misc2_bz2.ml ../src/utils/lib/misc2.ml
   cp -f ../src/utils/cdk/tar_bz2.ml ../src/utils/cdk/tar.ml
   cp -f ../src/utils/cdk/tar_bz2.mli ../src/utils/cdk/tar.mli
   AC_CHECK_LIB(bz2,BZ2_bzlibVersion,[AC_DEFINE(HAVE_BZLIBVERSION, 1,)])
   AC_DEFINE(USE_BZIP2, 1, [Define to 1 if you have bzip2 support.])
 else
-  AC_MSG_WARN(Your system lacks bzip2 support)
   cp -f ../src/utils/lib/misc2_no_bz2.ml ../src/utils/lib/misc2.ml
   cp -f ../src/utils/cdk/tar_no_bz2.ml ../src/utils/cdk/tar.ml
   cp -f ../src/utils/cdk/tar_no_bz2.mli ../src/utils/cdk/tar.mli
@@ -956,9 +954,6 @@ fi
 
 # testing for gd support
 
-HAS_GD=false
-HAS_GD_JPG=false
-HAS_GD_PNG=false
 GD_JPG=no
 GD_PNG=no
 if test "$GD" != "no"; then
@@ -968,11 +963,26 @@ if test "$GD" != "no"; then
 
   AC_CHECK_PROG(GDLIBCONFIG, gdlib-config, gdlib-config)
   if test "$ac_cv_prog_GDLIBCONFIG" = "gdlib-config"; then
-    GDLIBCONFIG=`$GDLIBCONFIG --libs`
-    GDLIBS="$LIBS -lgd $GDLIBCONFIG"
+    GDLIBLIBS=`$GDLIBCONFIG --libs`
+    GDLIBS="$LIBS -lgd $GDLIBLIBS"
     LIBS=$GDLIBS
+    AC_MSG_CHECKING(for libgd > 2.0.14)
+    GDVERSION=`$GDLIBCONFIG --version`
+    GDMAJORVERSION=`$GDLIBCONFIG --majorversion`
+    GDMINORVERSION=`$GDLIBCONFIG --minorversion`
+    GDREVISION=`$GDLIBCONFIG --revision`
+    if [ [ $GDMAJORVERSION = 2 ] && [ $GDMINORVERSION = 0 ] && [ $GDREVISION -gt 14 ]]; then
+	AC_MSG_RESULT($GDVERSION)
+	LIBGD=yes
+    else
+	AC_MSG_RESULT(no (found $GDVERSION))
+	LIBGD=no
+    fi
+  else
+    LIBGD=yes
   fi
 
+  if test "$LIBGD" = "yes"; then
   AC_MSG_CHECKING(for gdImageCreate in -lgd)
   AC_TRY_LINK([#include <gd.h>],
   [gdImageCreate (0,0);],
@@ -983,6 +993,7 @@ if test "$GD" != "no"; then
   if test "$LIBGD" = "no"; then
     AC_MSG_NOTICE([not found, trying another method])
     AC_CHECK_LIB(gd, gdImageCreate, [LIBGD=yes], [LIBGD=no])
+  fi
   fi
 
   if test "$LIBGD" = "yes"; then
@@ -1010,13 +1021,11 @@ if test "$GD" != "no"; then
       AC_MSG_CHECKING(for png support in libgd)
       if test "$LIBGD_PNG" = "yes"; then
         GD=yes
-        HAS_GD_PNG=true
 	GD_PNG=yes
         AC_MSG_RESULT(yes)
 	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1,)])
         AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
       else
-        HAS_GD_PNG=false
         AC_MSG_RESULT(no)
       fi
     fi
@@ -1044,12 +1053,10 @@ if test "$GD" != "no"; then
       AC_MSG_CHECKING(for jpeg support in libgd)
       if test "$LIBGD_JPG" = "yes"; then
         GD=yes
-  	HAS_GD_JPG=true
 	GD_JPG=yes
         AC_DEFINE(HAVE_GD_JPG, 1, [Define to 1 if you have jpg support in libgd.])
         AC_MSG_RESULT(yes)
       else
-  	HAS_GD_JPG=false
         AC_MSG_RESULT(no)
       fi
     fi
@@ -1059,11 +1066,9 @@ if test "$GD" != "no"; then
   LIBS=$SAVE_LIBS
 fi
 if test "$GD" != "no"; then
-  HAS_GD=true
-  cp -f ../src/daemon/common/commonGraphics.gd.ml ../src/daemon/common/commonGraphics.ml
+  GDGRAPHICS=DriverGraphics_gd
 else
-  HAS_GD=false
-  cp -f ../src/daemon/common/commonGraphics.nogd.ml ../src/daemon/common/commonGraphics.ml
+  GDGRAPHICS=DriverGraphics_nogd
 fi
 
 MD4ARCH=$arch
@@ -1123,10 +1128,6 @@ AC_SUBST(LABLGL_CMA)
 AC_SUBST(LABLGL_CMXA)
 AC_SUBST(MD4ARCH)
 AC_SUBST(MD4COMP)
-AC_SUBST(BZIP2)
-AC_SUBST(GD)
-AC_SUBST(GD_JPG)
-AC_SUBST(GD_PNG)
 AC_SUBST(ICONV)
 
 AC_SUBST(OPEN_NAPSTER)
@@ -1165,10 +1166,11 @@ AC_SUBST(TMK)
 AC_SUBST(GTKCFLAGS)
 AC_SUBST(GTKLLIBS)
 AC_SUBST(GTKLFLAGS)
-AC_SUBST(HAS_GD)
-AC_SUBST(HAS_GD_PNG)
-AC_SUBST(HAS_GD_JPG)
-AC_SUBST(HAS_BZIP2)
+AC_SUBST(GD)
+AC_SUBST(GD_JPG)
+AC_SUBST(GD_PNG)
+AC_SUBST(GDGRAPHICS)
+AC_SUBST(BZIP2)
 
 BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"
 AC_SUBST(BUILD_SYSTEM)
@@ -1182,6 +1184,7 @@ AC_OUTPUT(\
   Makefile.config \
   mldonkey.rc \
   $AUTOCONF.new $GTK_AUTOCONF.new \
+   ../src/daemon/driver/driverGraphics.ml \
    ../packages/rpm/mldonkey.spec \
    ../packages/rpm/Makefile \
    ../packages/slackware/mldonkey.options \
