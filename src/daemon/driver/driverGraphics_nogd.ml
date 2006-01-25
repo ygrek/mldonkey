@@ -19,9 +19,31 @@
 
 open Options
 
-open CommonGlobals
 open CommonOptions
 open Printf2
+
+module type Graphics =
+sig
+  val do_draw_pic :
+    string -> string -> string -> int Fifo.t -> int Fifo.t -> unit
+  val do_draw_down_pic :
+    string -> string -> string -> string -> int Fifo.t -> unit
+  val do_draw_up_pic :
+    string -> string -> string -> string -> int Fifo.t -> unit
+  val do_draw_h_pic :
+    string -> string -> string -> int Fifo.t -> int Fifo.t -> unit
+  val do_draw_down_h_pic :
+    string -> string -> string -> string -> int Fifo.t -> unit
+  val do_draw_up_h_pic :
+    string -> string -> string -> string -> int Fifo.t -> unit
+  val do_draw_tag : string -> int Fifo.t -> int Fifo.t -> unit
+  val really_remove_files : unit -> unit
+  val remove_files : unit -> unit
+  val png_version_num : unit -> string
+end
+
+
+module Graphics : Graphics = struct
 
 let disable_gfx_support () =
   if !!html_mods_vd_gfx then
@@ -29,7 +51,7 @@ let disable_gfx_support () =
     html_mods_vd_gfx_tag =:= false
 
 let show_nogd_debug_msg () =
-  lprintf "Warning: Gd support was not compiled (install libgd-dev to enable it)\n"
+  if !verbose then lprintf_nl "Warning: Gd support was not compiled (install libgd-dev to enable it)"
 
 let remove_files () =
 (
@@ -84,3 +106,5 @@ let do_draw_tag title gdown gup =
 )
 
 let png_version_num () = ""
+
+end

@@ -19,10 +19,33 @@
 
 
 open Options
-
+open Gd
 open CommonGlobals
 open CommonOptions
 open Printf2
+
+module type Graphics =
+sig
+  val do_draw_pic :
+    string -> string -> string -> int Fifo.t -> int Fifo.t -> unit
+  val do_draw_down_pic :
+    string -> string -> string -> string -> int Fifo.t -> unit
+  val do_draw_up_pic :
+    string -> string -> string -> string -> int Fifo.t -> unit
+  val do_draw_h_pic :
+    string -> string -> string -> int Fifo.t -> int Fifo.t -> unit
+  val do_draw_down_h_pic :
+    string -> string -> string -> string -> int Fifo.t -> unit
+  val do_draw_up_h_pic :
+    string -> string -> string -> string -> int Fifo.t -> unit
+  val do_draw_tag : string -> int Fifo.t -> int Fifo.t -> unit
+  val really_remove_files : unit -> unit
+  val remove_files : unit -> unit
+  val png_version_num : unit -> string
+end
+
+
+module Graphics : Graphics = struct
 
 (* some thoughts
 type gfx_settings = {
@@ -725,3 +748,5 @@ let png_version_num () =
 	    (Int32.of_string(release_version))
     with e -> ""
   end
+
+end
