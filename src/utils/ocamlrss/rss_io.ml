@@ -399,7 +399,7 @@ let xml_of_text_input t =
 
 let xmls_of_text_input_opt = xmls_of_opt_f xml_of_text_input
 
-let xml_of_item i =
+let xml_of_item ~date_fmt i =
   Element ("item", [], 
 	   (List.flatten
 	      [ opt_element i.item_title "title" ;
@@ -410,7 +410,7 @@ let xml_of_item i =
 		    None -> None
 		  | Some d -> 
 		      err_date d;
-		      Some (Rss_date.format ~fmt: default_date_format d))
+		      Some (Rss_date.format ~fmt: date_fmt d))
 		  "pubDate" ;
 		opt_element i.item_author "author" ;
 		xmls_of_categories i.item_categories ;
@@ -422,7 +422,7 @@ let xml_of_item i =
 	   )
 	  )
 
-let xml_of_channel ch =
+let xml_of_channel ~date_fmt ch =
   let f v s = Element (s, [], [PCData v]) in
   let xml_ch =
     Element ("channel", [], 
@@ -441,14 +441,14 @@ let xml_of_channel ch =
 		       None -> None
 		     | Some d ->
 			 err_date d ;
-			 Some (Rss_date.format ~fmt: default_date_format d))
+			 Some (Rss_date.format ~fmt: date_fmt d))
 		     "pubDate" ;
 		   opt_element 
 		     (match ch.ch_last_build_date with
 		       None -> None
 		     | Some d ->
 			 err_date d ;
-			 Some (Rss_date.format ~fmt: default_date_format d))
+			 Some (Rss_date.format ~fmt: date_fmt d))
 		     "lastBuildDate" ;
 		   xmls_of_categories ch.ch_categories ;
 		   opt_element ch.ch_generator "generator" ;
@@ -458,7 +458,7 @@ let xml_of_channel ch =
 		     "ttl";
 		   xmls_of_image_opt ch.ch_image ;
 		   xmls_of_text_input_opt ch.ch_text_input ;
-		   List.map xml_of_item ch.ch_items ;
+		   List.map (xml_of_item ~date_fmt) ch.ch_items ;
 		 ] 
 	      )
 	     )
@@ -466,7 +466,8 @@ let xml_of_channel ch =
   in
   Element ("rss", ["version", "2.0"], [xml_ch])
 
-let print_channel fmt ch =
-  let xml = xml_of_channel ch in
+
+let print_channel ?(date_fmt=default_date_format) fmt ch =
+  let xml = xml_of_channel ~date_fmt ch in
   Format.fprintf fmt "<?xml version=\"1.0\" encoding=\"ISO-8859-1\" ?>\n";
   Format.fprintf fmt "%s" (Xml.to_string_fmt xml )

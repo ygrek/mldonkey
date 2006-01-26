@@ -25,7 +25,7 @@
 (** Messages and string constants. *)
 
 let software = "ocaml-rss"
-let software_version = "0.1"
+let software_version = "0.4"
 
 (** {2 Messages} *)
 

@@ -30,4 +30,5 @@ val init : Lexing.lexbuf -> unit
 val close : Lexing.lexbuf -> unit
 val token : Lexing.lexbuf -> token
 val dtd : Lexing.lexbuf -> dtd
+val pos : Lexing.lexbuf -> pos
 val restore : pos -> unit

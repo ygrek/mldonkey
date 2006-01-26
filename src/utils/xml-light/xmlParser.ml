@@ -108,7 +108,7 @@ and
 let read_xml s =
 	match s.xparser.prove, pop s with
 	| true, Xml_lexer.DocType (root, DTDFile file) ->
-		let pos = pos s.source in
+		let pos = Xml_lexer.pos s.source in
 		let dtd = s.xparser.resolve file in
 		Xml_lexer.restore pos;
 		let x = read_node s in

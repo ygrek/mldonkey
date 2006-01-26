@@ -35,84 +35,85 @@ type date = Rss_date.t = {
 
 let since_epoch = Rss_date.since_epoch
 let float_to_date t = Rss_date.create t
+let string_of_date ?(fmt="%d %b %Y") date = Rss_date.format ~fmt date
 
 type email = string (** can be, for example: foo@bar.com (Mr Foo Bar) *)
 type url = string
 type category = Rss_types.category =
     {
-      cat_name : string ;
-      cat_domain : url option ;
+      mutable cat_name : string ;
+      mutable cat_domain : url option ;
     } 
       
 type image = Rss_types.image =
     {
-      image_url : url ;
-      image_title : string ;
-      image_link : url ;
-      image_height : int option ;
-      image_width : int option ;
-      image_desc : string option ;
+      mutable image_url : url ;
+      mutable image_title : string ;
+      mutable image_link : url ;
+      mutable image_height : int option ;
+      mutable image_width : int option ;
+      mutable image_desc : string option ;
     } 
 
 type text_input = Rss_types.text_input =
     {
-      ti_title : string ; (** The label of the Submit button in the text input area. *)
-      ti_desc : string ; (** Explains the text input area. *)
-      ti_name : string ; (** The name of the text object in the text input area. *)
-      ti_link : string ; (** The URL of the CGI script that processes text input requests. *)
+      mutable ti_title : string ; (** The label of the Submit button in the text input area. *)
+      mutable ti_desc : string ; (** Explains the text input area. *)
+      mutable ti_name : string ; (** The name of the text object in the text input area. *)
+      mutable ti_link : string ; (** The URL of the CGI script that processes text input requests. *)
     } 
 
 type enclosure = Rss_types.enclosure =
     {
-      encl_url : url ; (** URL of the enclosure *)
-      encl_length : int ; (** size in bytes *)
-      encl_type : string ; (** MIME type *)
+      mutable encl_url : url ; (** URL of the enclosure *)
+      mutable encl_length : int ; (** size in bytes *)
+      mutable encl_type : string ; (** MIME type *)
     } 
 
 type guid = Rss_types.guid =
     {
-      guid_name : string ; (** can be a permanent url, if permalink is true *)
-      guid_permalink : bool ; (** default is true when no value was specified *)
+      mutable guid_name : string ; (** can be a permanent url, if permalink is true *)
+      mutable guid_permalink : bool ; (** default is true when no value was specified *)
     } 
 
 type source = Rss_types.source = 
     {
-      src_name : string ;
-      src_url : url ;
+      mutable src_name : string ;
+      mutable src_url : url ;
     } 
 
 type item = Rss_types.item =
     {
-      item_title : string option;
-      item_link : url option;
-      item_desc : string option;
-      item_pubdate : date option ;
-      item_author : email option ;
-      item_categories : category list ;
-      item_comments : url option ; 
-      item_enclosure : enclosure option ;
-      item_guid : guid option ; 
-      item_source : source option ;
+      mutable item_title : string option;
+      mutable item_link : url option;
+      mutable item_desc : string option;
+      mutable item_pubdate : date option ;
+      mutable item_author : email option ;
+      mutable item_categories : category list ;
+      mutable item_comments : url option ;
+      mutable item_enclosure : enclosure option ;
+      mutable item_guid : guid option ;
+      mutable item_source : source option ;
     } 
 
 type channel = Rss_types.channel =
     {
-      ch_title : string ;
-      ch_link : url ;
-      ch_desc : string ;
-      ch_language : string option ;
-      ch_copyright : string option ;
-      ch_managing_editor : email option ;
-      ch_webmaster : email option ;
-      ch_pubdate : date option ;
-      ch_last_build_date : date option ;
-      ch_categories : category list ;
-      ch_generator : string option ;
-      ch_docs : url option ;
-      ch_ttl : int option ;
-      ch_image : image option ;
-      ch_text_input : text_input option ;
-      ch_items : item list ;
+      mutable ch_title : string ;
+      mutable ch_link : url ;
+      mutable ch_desc : string ;
+      mutable ch_language : string option ;
+      mutable ch_copyright : string option ;
+      mutable ch_managing_editor : email option ;
+      mutable ch_webmaster : email option ;
+      mutable ch_pubdate : date option ;
+      mutable ch_last_build_date : date option ;
+      mutable ch_categories : category list ;
+      mutable ch_generator : string option ;
+      mutable ch_docs : url option ;
+      mutable ch_ttl : int option ;
+      mutable ch_image : image option ;
+      mutable ch_text_input : text_input option ;
+      mutable ch_items : item list ;
     } 
 
 let item ?title
@@ -179,9 +180,9 @@ let channel_of_string = Rss_io.channel_of_string
 
 let print_channel = Rss_io.print_channel
 
-let print_file file ch =
+let print_file ?date_fmt file ch =
   let oc = open_out file in
   let fmt = Format.formatter_of_out_channel oc in
-  print_channel fmt ch;
+  print_channel ?date_fmt fmt ch;
   Format.pp_print_flush fmt ();
   close_out oc

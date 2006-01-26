@@ -1,3 +1,5 @@
+(* moved from xml.ml *)
+
 type xml = 
 	| Element of (string * (string * string) list * xml list)
 	| PCData of string
@@ -21,11 +23,7 @@ type error_msg =
 	| EndOfTagExpected of string
 	| EOFExpected
 
-  
-  
-  
-  
-(********** DTD **********)
+(* moved from dtd.ml, renamed to xml_dtd.ml *)
 
 type dtd_child =
 	| DTDTag of string
@@ -51,6 +49,8 @@ type dtd_attr_type =
 	| DTDCData
 	| DTDNMToken
 	| DTDEnum of string list
+	| DTDID
+	| DTDIDRef
 
 type dtd_item =
 	| DTDAttribute of string * string * dtd_attr_type * dtd_attr_default
@@ -58,12 +58,14 @@ type dtd_item =
 
 type dtd = dtd_item list
 
+type ('a,'b) hash = ('a,'b) Hashtbl.t
+
 type checked = {
-	c_elements : (string,dtd_element_type) Hashtbl.t;
-	c_attribs : (string,(string,(dtd_attr_type * dtd_attr_default)) Hashtbl.t) Hashtbl.t;
+	c_elements : (string,dtd_element_type) hash;
+	c_attribs : (string,(string,(dtd_attr_type * dtd_attr_default)) hash) hash;
 }
 
-(********** LEXER **********)
+(* moved from xml_lexer.mll *)
   
   
 type error = error_msg * error_pos
@@ -93,15 +95,3 @@ type dtd_decl =
 	| DTDData of dtd
 
 type pos = int * int * int * int
-
-(********  WHY ???? it's a shame to use global vars for that ! *)
-let last_pos = ref 0
-and current_line = ref 0
-and current_line_start = ref 0
-
-let pos lexbuf =
-  !current_line ,	!current_line_start ,
-  !last_pos ,
-  Lexing.lexeme_start lexbuf
-  
- 

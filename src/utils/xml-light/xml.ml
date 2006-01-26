@@ -30,7 +30,7 @@ exception No_attribute of string
 let default_parser = XmlParser.make()
 
 let pos source =
-	let line, lstart, min, max = pos source in
+	let line, lstart, min, max = Xml_lexer.pos source in
 	{
 		eline = line;
 		eline_start = lstart;
@@ -127,33 +127,7 @@ let fold f v = function
 
 let tmp = Buffer.create 200
 
-let count_escapes text =
-  let l = String.length text in
-  let nescapes = ref 0 in
-  let nbars = ref 0 in
-  for p = 0 to l-1 do 
-    match text.[p] with
-    | '>'
-    | '<'
-    | '&'
-    | '\''
-    | '"' -> 
-        nbars := 0;
-        incr nescapes
-    | ']' -> 
-        if !nbars = 1 then nescapes := -100000;
-        incr nbars
-    | _ -> nbars := 0
-  done;
-  !nescapes
-
 let buffer_pcdata text =
-  let n = count_escapes text in
-  if n > 3 then begin
-      Buffer.add_string tmp "<![CDATA[";
-      Buffer.add_string tmp text;
-      Buffer.add_string tmp "]]";
-    end else
   let l = String.length text in
   for p = 0 to l-1 do 
     match text.[p] with

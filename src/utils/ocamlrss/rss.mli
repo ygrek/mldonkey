@@ -39,85 +39,85 @@ type date = {
 
 val since_epoch : date -> float
 val float_to_date : float -> date
-
+val string_of_date : ?fmt: string -> date -> string
 
 type email = string (** can be, for example: foo\@bar.com (Mr Foo Bar) *)
 type url = string
 type category = 
     {
-      cat_name : string ;
-      cat_domain : url option ;
+      mutable cat_name : string ;
+      mutable cat_domain : url option ;
     } 
       
 type image = 
     {
-      image_url : url ;
-      image_title : string ;
-      image_link : url ;
-      image_height : int option ;
-      image_width : int option ;
-      image_desc : string option ;
+      mutable image_url : url ;
+      mutable image_title : string ;
+      mutable image_link : url ;
+      mutable image_height : int option ;
+      mutable image_width : int option ;
+      mutable image_desc : string option ;
     } 
 
 type text_input = 
     {
-      ti_title : string ; (** The label of the Submit button in the text input area. *)
-      ti_desc : string ; (** Explains the text input area. *)
-      ti_name : string ; (** The name of the text object in the text input area. *)
-      ti_link : string ; (** The URL of the CGI script that processes text input requests. *)
+      mutable ti_title : string ; (** The label of the Submit button in the text input area. *)
+      mutable ti_desc : string ; (** Explains the text input area. *)
+      mutable ti_name : string ; (** The name of the text object in the text input area. *)
+      mutable ti_link : string ; (** The URL of the CGI script that processes text input requests. *)
     } 
 
 type enclosure = 
     {
-      encl_url : url ; (** URL of the enclosure *)
-      encl_length : int ; (** size in bytes *)
-      encl_type : string ; (** MIME type *)
+      mutable encl_url : url ; (** URL of the enclosure *)
+      mutable encl_length : int ; (** size in bytes *)
+      mutable encl_type : string ; (** MIME type *)
     } 
 
 type guid = 
     {
-      guid_name : string ; (** can be a permanent url, if permalink is true *)
-      guid_permalink : bool ; (** default is true when no value was specified *)
+      mutable guid_name : string ; (** can be a permanent url, if permalink is true *)
+      mutable guid_permalink : bool ; (** default is true when no value was specified *)
     } 
 
 type source = 
     {
-      src_name : string ;
-      src_url : url ;
+      mutable src_name : string ;
+      mutable src_url : url ;
     } 
 
 type item = 
     {
-      item_title : string option; (** Optional title *)
-      item_link : url option; (** Optional link *)
-      item_desc : string option; (** Optional description *)
-      item_pubdate : date option ; (** Date of publication *)
-      item_author : email option ; (** Author of the item *)
-      item_categories : category list ;
-      item_comments : url option ; (** Url of comments about this item *)
-      item_enclosure : enclosure option ;
-      item_guid : guid option ; 
-      item_source : source option ;
+      mutable item_title : string option; (** Optional title *)
+      mutable item_link : url option; (** Optional link *)
+      mutable item_desc : string option; (** Optional description *)
+      mutable item_pubdate : date option ; (** Date of publication *)
+      mutable item_author : email option ; (** Author of the item *)
+      mutable item_categories : category list ;
+      mutable item_comments : url option ; (** Url of comments about this item *)
+      mutable item_enclosure : enclosure option ;
+      mutable item_guid : guid option ;
+      mutable item_source : source option ;
     } 
 
 type channel = 
     {
-      ch_title : string ; (** Mandatory title *)
-      ch_link : url ; (** Mandatory link of the site *)
-      ch_desc : string ; (** Mandatory description *)
-      ch_language : string option ; (** Language of the news *)
-      ch_copyright : string option ; (** Copyright note *)
-      ch_managing_editor : email option ; (** Managing editor of the news *)
-      ch_webmaster : email option ; (** The webmasterof the site *)
-      ch_pubdate : date option ; (** Publication date of the channel *)
-      ch_last_build_date : date option ; (** When the channel was last built *)
-      ch_categories : category list ; 
-      ch_generator : string option ; (** The tool used to generate this channel *)
-      ch_docs : url option ; (** An url to a RSS reference *)
-      ch_ttl : int option ; (** Time to live, in minutes *)
-      ch_image : image option ; 
-      ch_text_input : text_input option ; 
-      ch_items : item list ;
+      mutable ch_title : string ; (** Mandatory title *)
+      mutable ch_link : url ; (** Mandatory link of the site *)
+      mutable ch_desc : string ; (** Mandatory description *)
+      mutable ch_language : string option ; (** Language of the news *)
+      mutable ch_copyright : string option ; (** Copyright note *)
+      mutable ch_managing_editor : email option ; (** Managing editor of the news *)
+      mutable ch_webmaster : email option ; (** The webmasterof the site *)
+      mutable ch_pubdate : date option ; (** Publication date of the channel *)
+      mutable ch_last_build_date : date option ; (** When the channel was last built *)
+      mutable ch_categories : category list ;
+      mutable ch_generator : string option ; (** The tool used to generate this channel *)
+      mutable ch_docs : url option ; (** An url to a RSS reference *)
+      mutable ch_ttl : int option ; (** Time to live, in minutes *)
+      mutable ch_image : image option ;
+      mutable ch_text_input : text_input option ;
+      mutable ch_items : item list ;
     } 
 
 (** {2 Building items and channels} *)
@@ -162,5 +162,5 @@ val channel_of_string : string -> channel
 
 (** {2 Writing channels} *)
 
-val print_channel : Format.formatter -> channel -> unit
-val print_file : string -> channel -> unit
+val print_channel : ?date_fmt: string -> Format.formatter -> channel -> unit
+val print_file : ?date_fmt: string -> string -> channel -> unit

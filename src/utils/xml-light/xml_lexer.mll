@@ -32,6 +32,10 @@ type token =
 	| DocType of (string * dtd_decl)
 	| Eof
 
+let last_pos = ref 0
+and current_line = ref 0
+and current_line_start = ref 0
+
 let tmp = Buffer.create 200
 
 let idents = Hashtbl.create 0
@@ -51,6 +55,11 @@ let init lexbuf =
 
 let close lexbuf =
 	Buffer.reset tmp
+
+let pos lexbuf =
+	!current_line ,	!current_line_start ,
+	!last_pos ,
+	lexeme_start lexbuf
 
 let restore (cl,cls,lp,_) =
 	current_line := cl;
@@ -76,7 +85,8 @@ let break = ['\r']
 let space = [' ' '\t']
 let identchar =  ['A'-'Z' 'a'-'z' '_' '0'-'9' ':' '-']
 let entitychar = ['A'-'Z' 'a'-'z']
-let pcchar = [^ '\r' '\n' '<' '&'] (* '>' *)
+let pcchar = [^ '\r' '\n' '<' '>' '&']
+let cdata_start = ['c''C']['d''D']['a''A']['t''T']['a''A']
 
 rule token = parse
   | newline
@@ -89,12 +99,6 @@ rule token = parse
       last_pos := lexeme_end lexbuf;
       token lexbuf
     }
-  | "<![CDATA["
-      {
-      last_pos := lexeme_end lexbuf;
-      Buffer.reset tmp;
-      PCData (cdata lexbuf)
-    }
   | "<!DOCTYPE"
       {
       last_pos := lexeme_start lexbuf;
@@ -104,6 +108,12 @@ rule token = parse
       let data = dtd_data lexbuf in
       DocType (root, data)
     }
+	| "<![" cdata_start '['
+		{
+			last_pos := lexeme_start lexbuf;
+			Buffer.reset tmp;
+			PCData (cdata lexbuf)
+		}		
   | "<!--"
       {
       last_pos := lexeme_start lexbuf;
@@ -194,6 +204,28 @@ and header = parse
   | _
       { header lexbuf }		
 
+and cdata = parse
+	| [^ ']' '\n']+
+		{
+			Buffer.add_string tmp (lexeme lexbuf);
+			cdata lexbuf
+		}
+	| newline 
+		{
+			newline lexbuf;
+			Buffer.add_string tmp (lexeme lexbuf);
+			cdata lexbuf
+		}
+	| "]]>"
+		{ Buffer.contents tmp }
+	| ']'
+		{
+			Buffer.add_string tmp (lexeme lexbuf);
+			cdata lexbuf
+		}
+	| eof
+		{ error lexbuf ECloseExpected }
+
 and pcdata = parse
   | pcchar+
       {
@@ -212,15 +244,6 @@ and pcdata = parse
     }
   | ""
       { Buffer.contents tmp }
-
-and cdata = parse
-  | "]]"
-      { Buffer.contents tmp }
-  | _
-      {
-      Buffer.add_string tmp (lexeme lexbuf);
-      cdata lexbuf
-    }
 
 and entity = parse
   | entitychar+ ';'
@@ -402,7 +425,6 @@ and dtd_item = parse
   | "<!"
       {
       ignore_spaces lexbuf;
-      (* Printf.printf "?????"; print_newline (); *)
       let t = dtd_item_type lexbuf in
       let name = (try ident_name lexbuf with Error EIdentExpected -> raise (DTDError EInvalidDTDDecl)) in
       ignore_spaces lexbuf;
@@ -415,7 +437,10 @@ and dtd_item = parse
 
 and dtd_attributes = parse
   | '>'
-      { [] }
+		{
+			ignore_spaces lexbuf;
+			[]
+		}
   | ""
       {
       let attrname = (try ident_name lexbuf with Error EIdentExpected -> raise (DTDError EInvalidDTDAttribute)) in
@@ -519,6 +544,16 @@ and dtd_attr_type = parse
       ignore_spaces lexbuf;
       DTDNMToken
     }
+	| "ID"
+		{
+			ignore_spaces lexbuf;
+		 	DTDID
+		}
+	| "IDREF"
+		{
+			ignore_spaces lexbuf;
+			DTDIDRef
+		}
   | '('
       {
       ignore_spaces lexbuf;
@@ -606,4 +641,3 @@ and dtd_attr_string = parse
     }
   | _ | eof
       { dtd_error lexbuf EInvalidDTDAttribute }
-    
