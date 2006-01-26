@@ -408,7 +408,7 @@ let commands = [
             else
               Printf.bprintf buf "%s" error;
             _s ""
-    ), " <url> <referer> :\t\t\t\tstart downloading this URL";
+    ), "<url> <referer> :\t\t\tstart downloading this URL";
 
     "mirror", "Network/FileTP", Arg_multiple (fun args o ->
         try
@@ -470,7 +470,7 @@ let commands = [
             else
               Printf.bprintf buf "Not enough parameters";
             _s ""        
-    ), " <num> <url> <referer> :\t\t\tadd url as mirror for num";
+    ), "<num> <url> <referer> :\t\tadd URL as mirror for num";
     ]
 
 let _ =

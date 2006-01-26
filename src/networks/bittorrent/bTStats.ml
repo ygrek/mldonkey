@@ -98,7 +98,7 @@ let _ =
     "client_stats_bt", "Network/Bittorrent",Arg_none (fun o ->
         print_stats o Old;
         ""
-    ), ":\t\t\t\tshow breakdown of download/upload by clients brand";
+    ), ":\t\t\tshow breakdown of download/upload by clients brand";
 
     "csbt", "Network/Bittorrent",Arg_none (fun o ->
         print_stats o New;

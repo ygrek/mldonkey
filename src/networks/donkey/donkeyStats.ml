@@ -207,7 +207,7 @@ let _ =
        start_session := BasicSocket.last_time ();
 
        "done"
-    ), ":\t\t\t\t\treset session statistics";
+    ), ":\t\t\t\treset session statistics";
   ]
 
 (* 

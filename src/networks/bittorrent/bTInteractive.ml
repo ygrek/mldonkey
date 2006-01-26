@@ -825,7 +825,7 @@ let commands =
           else
             Printf.bprintf buf "Not enough parameters\n";
       ""
-    ), _s " <filename> <comment>:\t\tgenerate the corresponding <filename> .torrent file with <comment> in torrents/tracked/.\n\t\t\t\t\tThe file is automatically tracked, and seeded if in incoming/";
+    ), _s "<filename> <comment> :\tgenerate the corresponding <filename> .torrent file with <comment> in torrents/tracked/.\n\t\t\t\t\tThe file is automatically tracked, and seeded if in incoming/";
 
     "torrents", "Network/Bittorrent", Arg_none (fun o ->
       let buf = o.conn_buf in
@@ -859,7 +859,7 @@ let commands =
           else
             Printf.bprintf buf "Tracker not activated (tracker_port = 0)\n";
         _s ""
-    ), _s " :\t\t\t\tprint all .torrent files on this server";
+    ), _s ":\t\t\t\tprint all .torrent files on this server";
 
     "seeded_torrents", "Network/Bittorrent", Arg_none (fun o ->
       List.iter (fun file ->
@@ -868,12 +868,12 @@ let commands =
       ) !current_files;
       _s "done"
 
-    ), _s " :\t\t\tprint all seeded .torrent files on this server";
+    ), _s ":\t\t\tprint all seeded .torrent files on this server";
 
     "reshare_torrents", "Network/Bittorrent", Arg_none (fun o ->
       share_files ();
       _s "done"
-    ), _s " :\t\t\trecheck torrents/* directories for changes";
+    ), _s ":\t\t\trecheck torrents/* directories for changes";
 
     "rm_old_torrents", "Network/Bittorrent", Arg_none (fun o ->
       let files_outdated = Unix2.list_directory old_directory in
@@ -897,7 +897,7 @@ let commands =
             Sys.remove (Filename.concat old_directory file)
       ) files_outdated;
       _s ""
-    ), _s " :\t\t\t\tremove all old .torrent files";
+    ), _s ":\t\t\tremove all old .torrent files";
 
     "stop_all_bt", "Network/Bittorrent", Arg_none (fun o ->
       List.iter (fun file -> BTClients.file_stop file ) !current_files;
@@ -908,7 +908,7 @@ let commands =
       else
         Printf.bprintf buf "started sending stops...\n";
        _s ""
-    ), _s " :\t\t\t\tstops all bittorrent downloads, use this if you want to make sure that the stop signal actualy gets to the tracker\n\t\t\t\twhen shuting mlnet down, but you have to wait till the stops get to the tracker and not wait too long,\n\t\t\t\tso mldonkey reconnects to the tracker :)";
+    ), _s ":\t\t\t\tstops all bittorrent downloads, use this if you want to make sure that the stop signal actualy gets to the tracker\n\t\t\t\t\twhen shuting mlnet down, but you have to wait till the stops get to the tracker and not wait too long,\n\t\t\t\t\tso mldonkey reconnects to the tracker :)";
 
     "tracker", "Network/Bittorrent", Arg_multiple (fun args o ->
         try
@@ -954,13 +954,13 @@ let commands =
             else
               Printf.bprintf buf "Not enough or wrong parameters.";
             _s ""        
-    ), " <num> <url> <url>... :\t\t\tadd urls as trackers for num.";
+    ), "<num> <url> <url>... :\t\tadd URLs as trackers for num";
 
 (* TODO : add some code from make_torrent
     "print_torrent", Arg_one (fun filename o ->
 
         ".torrent file printed"
-    ), " <filename.torrent> : print the content of filename"
+    ), "<filename.torrent> :\t\tprint the content of filename"
  *)
 
   ]

@@ -661,7 +661,7 @@ let commands = [
         with e ->
             Printf.sprintf "error %s while loading temp files" (
               Printexc2.to_string e)
-    ), "<temp_dir> :\t\t\timport the old edonkey temp directory";
+    ), "<temp_dir> :\t\timport the old edonkey temp directory";
 
 (*
     "load_old_history", Arg_none (fun o ->
@@ -690,7 +690,7 @@ let commands = [
     end
   else
     Printf.sprintf "ED2K_update_server_list_met is disabled, ignoring..."
-    ), "<filename|URL> :\t\t\tadd the servers from a server.met file or URL";
+    ), "<filename|URL> :\t\tadd the servers from a server.met file or URL";
 
     "id", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -943,7 +943,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
         set_simple_option donkey_ini "client_md4" (Md4.to_string (mldonkey_md4 (Md4.random ())));
         if Autoconf.donkey_sui = "yes" then set_simple_option donkey_ini "client_private_key" (DonkeySui.SUI.create_key ());
         "reset client_md4/client_private_key"
-    ), ":\t\t\t\t\treset client_md4/client_private_key to random values";
+    ), ":\t\t\t\treset client_md4/client_private_key to random values";
 
     "bp", Arg_multiple (fun args o ->
         List.iter (fun arg ->
@@ -951,7 +951,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
             port_black_list =:=  port :: !!port_black_list;
         ) args;
         "done"
-    ), "<port1> <port2> ... :\t\t\tadd these Ports to the port black list";
+    ), "<port1> <port2> ... :\t\tadd these ports to the port black list";
 
     "send_servers", Arg_none (fun o ->
         CommonWeb.connect_redirector ();

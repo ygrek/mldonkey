@@ -329,7 +329,8 @@ let _ =
 	   "removing " ^ arg ^ " -> " ^ old_def
 	 with _ -> "Alias not found");
 
-    ), ":\t\t\t\t\t$bdelete an command alias  example: \"unalias ca\"$n";
+    ), ":\t\t\t\t$bdelete a command alias\n"
+       ^"\t\t\t\t\texample: \"unalias ca\"$n";
 
     "q", Arg_none (fun o ->
         raise CommonTypes.CommandCloseSocket
@@ -351,8 +352,8 @@ let _ =
           web_infos =:=  v :: !!web_infos;
         CommonWeb.load_url true kind url;
         "url added to web_infos. downloading now"
-    ), "<kind> <url> :\t\t\tload this file from the web.
-\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
+    ), "<kind> <url> :\t\t\tload this file from the web\n"
+       ^"\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
 
     "recover_temp", Arg_none (fun o ->
         networks_iter (fun r ->
@@ -497,7 +498,7 @@ let _ =
               end
         ) activities;
         ""
-    ), " <minutes> :\t\t\tprint activity in the last <minutes> minutes";
+    ), "<minutes> :\t\t\tprint activity in the last <minutes> minutes";
 
     "message_log", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -675,7 +676,7 @@ formID.msgText.value=\\\"\\\";
 	    end
         else
           _s "Only 'admin' is allowed to do that"
-    ), "<user> :\t\tremove a mldonkey user";
+    ), "<user> :\t\t\tremove a mldonkey user";
 
 
     "users", Arg_none (fun o ->
@@ -755,7 +756,7 @@ formID.msgText.value=\\\"\\\";
         else
             Printf.bprintf buf "%s" whoami;
         ""
-    ), ":\t\t\t\tPrint logged-in user name";
+    ), ":\t\t\t\tprint logged-in user name";
 
     "calendar_add", Arg_two (fun hour action o ->
         let buf = o.conn_buf in
@@ -954,7 +955,7 @@ let _ =
             ) args;
             Printf.sprintf (_b "%d friends removed") (List.length args)
           end
-    ), "<client numbers> :\t\tremove friend (use arg 'all' for all friends)";
+    ), "<client numbers> :\tremove friend (use arg 'all' for all friends)";
 
     "friends", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1097,7 +1098,7 @@ let _ =
             !CommonUploads.has_upload !CommonUploads.upload_credit
 
         else ""
-    ), "<m> :\t\t\t\t\tdisable upload during <m> minutes (multiple of 5)";
+    ), "<m> :\t\t\t\tdisable upload during <m> minutes (multiple of 5)";
 
     "bw_stats", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -1156,7 +1157,7 @@ let _ =
             Printf.bprintf buf "Only available on HTML interface"
 	else
 	  Printf.bprintf buf "Gd support was not compiled";
-      _s ""), ":\t\t\t\t\tdisplay graphical transfer statistics";
+      _s ""), ":\t\t\t\tdisplay graphical transfer statistics";
 
     "gdremove", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1214,19 +1215,19 @@ let _ =
         let buf = o.conn_buf in
         print_network_modules buf o;
         ""
-    ) , " :\t\t\t\tprint all networks";
+    ) , ":\t\t\t\tprint all networks";
 
     "enable", Arg_one (fun num o ->
         let n = network_find_by_num (int_of_string num) in
         network_enable n;
         _s "network enabled"
-    ) , " <num> :\t\t\t\tenable a particular network";
+    ) , "<num> :\t\t\t\tenable a particular network";
 
     "disable", Arg_one (fun num o ->
         let n = network_find_by_num (int_of_string num) in
         network_disable n;
         _s "network disabled"
-    ) , " <num> :\t\t\t\tdisable a particular network";
+    ) , "<num> :\t\t\t\tdisable a particular network";
 
     ]
 
@@ -1264,7 +1265,7 @@ let _ =
               ) args;
         end;
         ""
-    ), "<num1> <num2> ...:\t\tforget searches <num1> <num2> ...";
+    ), "<num1> <num2> ... :\t\tforget searches <num1> <num2> ...";
 
     "vr", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -1436,7 +1437,7 @@ let _ =
             end) in
             _s output
 	  end;
-    ), ":\t\t\t\tforce download of an already downloaded file";
+    ), ":\t\t\tforce download of an already downloaded file";
 
     ]
 
@@ -1493,7 +1494,7 @@ let _ =
 	        _s "options, sources and backup saved"
 	| _ -> DriverInteractive.save_config ();
 	       CommonComplexOptions.save_sources (); _s "options and sources saved"
-        ), "<options|sources|backup (empty for options + sources)>:\t\tsave options and/or sources or backup";
+        ), "[<options|sources|backup>] :\tsave options and/or sources or backup (empty for options and sources)";
 
     "vo", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -2065,7 +2066,7 @@ let _ =
 
           end;
         ""
-    ), ":\t\t\t\t\tprint shared directories";
+    ), ":\t\t\t\tprint shared directories";
 
     "share", Arg_multiple (fun args o ->
         let (prio, arg, strategy) = match args with
@@ -2464,7 +2465,7 @@ let _ =
         | "what" | "w" ->
             files_to_cancel o
         | _ -> failwith "Invalid argument"
-    ), " <yes|no|what>:\t\t\tconfirm cancellation";
+    ), "<yes|no|what> :\t\t\tconfirm cancellation";
 
     "test_recover", Arg_one (fun num o ->
 
@@ -2479,7 +2480,7 @@ let _ =
             downloaded := !downloaded ++ (end_pos -- begin_pos);
         ) segments;
         Printf.sprintf "Downloaded: %Ld\n" !downloaded
-    ), " <num> :\t\t\tprint the segments downloaded in file";
+    ), "<num> :\t\t\tprint the segments downloaded in file";
 
 
     "cancel", Arg_multiple (fun args o ->
@@ -2599,7 +2600,7 @@ let _ =
         else
           Printf.bprintf buf "Commited";
         ""
-    ) , ":\t\t\t\t\t$bmove downloaded files to incoming directory$n";
+    ) , ":\t\t\t\t$bmove downloaded files to incoming directory$n";
 
     "vd", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -2801,7 +2802,7 @@ let _ =
             Printf.sprintf "done"
         end) in
         _s output
-    ), "<file> :\t\t\t\tdownload all the links contained in the file";
+    ), "<file> :\t\t\tdownload all the links contained in the file";
 
   ]
 
@@ -2904,7 +2905,7 @@ let _ =
         let file2 = file_find (int_of_string f2) in
         Int64Swarmer.merge file1 file2;
         "The two files are now merged"
-    ), " <num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)";
+    ), "<num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)";
 
     "open_log", Arg_none (fun o ->
         if !!log_file <> "" then
@@ -3020,7 +3021,7 @@ let _ =
         ""
 
 
-    ), " :\t\t\t\t\tprint RSS feeds";
+    ), ":\t\t\t\t\tprint RSS feeds";
 
     "html_theme", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
@@ -3045,7 +3046,7 @@ let _ =
             "\\<script type=\\\"text/javascript\\\"\\>top.window.location.reload();\\</script\\>"
           end
 
-    ), "<theme>:\t\t\tselect html_theme";
+    ), "<theme> :\t\t\tselect html_theme";
 
     "mem_stats", Arg_one (fun level o ->
         let buf = o.conn_buf in

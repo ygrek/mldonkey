@@ -1571,7 +1571,7 @@ let _ =
            Fifo.put pb p;
          done;
          ""
-    ), ("<bucket_nr> :\t\t\tdumps a bucket");
+    ), ("<bucket_nr> :\t\tdumps a bucket");
 
     "dump_known_peers", Arg_none (fun o ->
          let buf = o.conn_buf in
@@ -1615,7 +1615,7 @@ let _ =
            command_prefix_to_net ^ " store");
           ]);
         "";
-    ), (":\t\t\t\t" ^ command_prefix_to_net ^ " Stats commands");
+    ), (":\t\t\t" ^ command_prefix_to_net ^ " Stats commands");
 
     "stats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1706,7 +1706,7 @@ let _ =
             Printf.bprintf o.conn_buf "Loading %s\n" url;
             CommonWeb.load_url true web_info url) urls;
         "web boot started"
-    ), "<urls> :\t\t\t\tdownload .ocl URLS (no arg load default)";
+    ), "<urls> : \t\t\tdownload .ocl URLs (no arg load default)";
 
     "load", Arg_one (fun filename o ->
         try
@@ -1717,7 +1717,7 @@ let _ =
     ), "<filename> :\t\t\tload the peers from a contact.dat file";
 
     "md4", Arg_none (fun o -> "MD4 is " ^ (Md4.to_string !!overnet_md4);
-    ), ":\t\t\t\t\tget client MD4 address on the Overnet/Kademlia network";
+    ), ":\t\t\t\tget client MD4 address on the Overnet/Kademlia network";
 
     "store", Arg_none (fun o ->
         let buf = o.conn_buf in

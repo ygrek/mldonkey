@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/01/26
+4827: longhelp cleanup (anhi)
 4823: EDK: CryptoPP optional, disable with --disable-donkeysui
       Makefile: link CryptoPP stuff only in binaries which need it
       Buildinfo: show compiler versions

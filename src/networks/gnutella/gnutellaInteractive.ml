@@ -523,7 +523,7 @@ let commands = [
               (Queue.length waiting_udp_queue);
           end;
         ""
-    ), " :\t\t\t\tprint stats on Gnutella network";
+    ), ":\t\t\t\tprint stats on Gnutella network";
 
     ]
   
