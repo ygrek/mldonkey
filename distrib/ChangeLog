@@ -14,6 +14,14 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 ChangeLog
 =========
 
+2006/01/26
+4823: EDK: CryptoPP optional, disable with --disable-donkeysui
+      Makefile: link CryptoPP stuff only in binaries which need it
+      Buildinfo: show compiler versions
+      Configure: display compiler versions (schlumpf)
+      Configure: if iconv checking fails continue with disabled iconv
+      Configure: do not use bzip2 if bzip.h is not found (FLI4L buildroot)
+
 2006/01/25
 4820: Move CommonGraphics to DriverGraphics, check libgd version
       Configure: Check if libgd > 2.0.14 is installed

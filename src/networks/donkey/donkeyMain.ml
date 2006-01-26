@@ -183,8 +183,9 @@ let enable () =
     let enabler = ref true in
     is_enabled := true;
     network.op_network_disable <- disable enabler;
+    if Autoconf.donkey_sui = "yes" then
     (try
-      client_public_key := Unix32.load_key (!!client_private_key)
+      client_public_key := DonkeySui.SUI.load_key (!!client_private_key)
     with _ -> ());
     if not !!enable_donkey then enable_donkey =:= true;
     
@@ -294,8 +295,10 @@ be useful when users want to share files that they had already previously
       
       Options.option_hook global_login reset_tags;
       Options.option_hook login reset_tags;
-      Options.option_hook enable_sui reset_tags;
-
+      Options.option_hook enable_sui ( fun _ ->
+	if Autoconf.donkey_sui = "no" && !!enable_sui then enable_sui =:= false;
+	reset_tags ());
+				
 (**** START TIMERS ****)
       add_session_option_timer enabler check_client_connections_delay 
         (fun _ ->

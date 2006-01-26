@@ -48,12 +48,6 @@ external external_start : string -> unit = "external_start"
 external external_exit : unit -> unit = "external_exit"
 external uname : unit -> string = "ml_uname"
   
-(* CryptoPP *)
-external create_key : unit -> string = "ml_createKey"
-external load_key : string -> string = "ml_loadKey"
-external create_signature : string -> int -> int64 -> int -> int64 -> string = "ml_createSignature"
-external verify_signature : string -> int -> string -> int -> int64 -> int -> int64 -> bool = "ml_verifySignature_bytecode" "ml_verifySignature"
-  
 (* let really_write fd s pos len =
   try
     Unix2.really_write fd s pos len

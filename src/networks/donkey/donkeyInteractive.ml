@@ -941,7 +941,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
 
     "reset_md4", Arg_none (fun _ ->
         set_simple_option donkey_ini "client_md4" (Md4.to_string (mldonkey_md4 (Md4.random ())));
-        set_simple_option donkey_ini "client_private_key" (Unix32.create_key ());
+        if Autoconf.donkey_sui = "yes" then set_simple_option donkey_ini "client_private_key" (DonkeySui.SUI.create_key ());
         "reset client_md4/client_private_key"
     ), ":\t\t\t\t\treset client_md4/client_private_key to random values";
 

@@ -159,3 +159,6 @@
 
 /* Define to 1 if you have the <gnu/libc-versions.h> header file. */
 #undef HAVE_GNU_LIBC_VERSION_H
+
+/* Define to 1 if you want to use CryptoPP */
+#undef HAVE_CRYPTOPP

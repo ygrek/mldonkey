@@ -13,17 +13,9 @@ MINOR_VERSION=7
 SUB_VERSION=3   # range 0-7 due to eMule limitations
 
 AC_PROG_CC
+CC_VERSION=`$CC -dumpversion`
 AC_EXEEXT
 AC_PROG_CPP
-AC_PROG_CXX
-
-AC_CHECK_TOOL(NEWCXX, [$CXX], [$CXX], [no])
-if test x"$NEWCXX" = x"no"
-then
-  AC_MSG_ERROR("No valid c++ compiler found")
-else
-  CXX=$NEWCXX
-fi
 
 AC_CANONICAL_HOST
 
@@ -165,6 +157,8 @@ DIRECT_CONNECT=no
 SOULSEEK=no
 OPENFT=no
 DONKEY=yes
+DONKEY_SUI=yes
+DONKEY_SUI_FILE=DonkeySui2
 BITTORRENT=yes
 FASTTRACK=yes
 FILETP=yes
@@ -183,6 +177,7 @@ if test ! "$MULTINET" = "yes"; then
   RELEASENAME="$RELEASENAME-nomultinet"
 fi
 AC_ARG_ENABLE(donkey,        [  --disable-donkey        allows you to remove support for eDonkey], [DONKEY="$enableval"])
+AC_ARG_ENABLE(donkeysui,     [  --disable-donkeysui     allows you to remove support for eMule SecureUserIdent], [DONKEY_SUI="$enableval"])
 AC_ARG_ENABLE(bittorrent,    [  --disable-bittorrent    allows you to remove support for Bittorent], [BITTORRENT="$enableval"])
 AC_ARG_ENABLE(filetp,        [  --disable-filetp        allows you to remove support for fileTP], [FILETP="$enableval"])
 AC_ARG_ENABLE(gnutella, [  --disable-gnutella      allows you to remove support for Gnutella], [GNUTELLA="$enableval"])
@@ -549,7 +544,7 @@ AC_CHECK_HEADERS(zlib.h,,[AC_MSG_FAILURE([Zlib missing, did you install zlib and
 AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1,)])
 
 if test "$BZIP2" != "no"; then
-  AC_CHECK_HEADERS(bzlib.h,[AC_CHECK_LIB(bz2,BZ2_bzReadOpen,[BZIP2=yes],[BZIP2=no])])
+  AC_CHECK_HEADERS(bzlib.h,[AC_CHECK_LIB(bz2,BZ2_bzReadOpen,[BZIP2=yes],[BZIP2=no])],[BZIP2=no])
 fi
 
 if test "$BZIP2" = "yes"; then
@@ -569,8 +564,9 @@ AC_CHECK_HEADERS(byteswap.h,,)
 if test "$ICONV" = "yes"; then
   AM_ICONV
   if test "$am_cv_func_iconv" != "yes"; then
-    AC_MSG_FAILURE([iconv() is missing, did you install the libraries and the developer packages for libiconv?])
-  fi
+    AC_DEFINE(DISABLE_ICONV, 1, [Define to 1 if you want to replace iconv and related with stubs.])
+    ICONV=no
+  else
   LIBS="$LIBS $LIBICONV"
   AC_CHECK_FUNCS([locale_charset],,
   AC_TRY_LINK([#include <langinfo.h>],
@@ -580,8 +576,10 @@ if test "$ICONV" = "yes"; then
   AC_CHECK_LIB(charset,locale_charset)
   AC_CHECK_HEADERS([libcharset.h])
   AC_CHECK_HEADERS([locale.h])
+  fi
 else
   AC_DEFINE(DISABLE_ICONV, 1, [Define to 1 if you want to replace iconv and related with stubs.])
+  ICONV=no
 fi
 
 # On linux plaforms, we will have to check that includes from kernel are
@@ -596,8 +594,7 @@ case $host in
              AC_CHECK_HEADER(linux/types.h,[CONFIG_INCLUDES="-I /usr/src/linux/include"])
              CPPFLAGS=$OLD_CPPFLAGS]
            )
-	   AC_CHECK_HEADERS(gnu/libc-version.h,,)
-           AC_MSG_CHECKING(for GNU C Library version)
+	   AC_CHECK_HEADERS(gnu/libc-version.h,[AC_MSG_CHECKING(for GNU C Library version)
 
 cat >try.c <<'EOCP'
 /* Find out version of GNU C library.  __GLIBC__ and __GLIBC_MINOR__
@@ -629,7 +626,7 @@ EOCP
            $CC -o try ./try.c
            GLIBC_VERSION="`./try`"
            AC_MSG_RESULT($GLIBC_VERSION)
-           rm -f try try.*
+           rm -f try try.*],)
         ;;
         *)         ;;
 esac
@@ -643,11 +640,31 @@ fi
 if test -f $OCAMLLIB/lablgl.$OCAMLLIB_EXT; then
   LABLGL_CMXA=lablgl.$OCAMLLIB_EXT
 fi
+
+CXX_VERSION=
 AC_MSG_NOTICE(checking for activated networks)
   if test "$DONKEY" = "yes"; then
     AC_MSG_CHECKING(eDonkey)
     if test -d ../src/networks/donkey; then
       AC_MSG_RESULT(yes)
+      if test "$DONKEY_SUI" = "yes"; then
+	AC_PROG_CXX
+
+	AC_CHECK_TOOL(NEWCXX, [$CXX], [no])
+	AC_MSG_CHECKING(eMule SUI)
+	if test x"$NEWCXX" = x"no"
+	then
+	  AC_MSG_RESULT(no)
+	  CXX=
+	  DONKEY_SUI=no
+	else
+	  AC_MSG_RESULT(yes)
+	  CXX=$NEWCXX
+	  CXX_VERSION=`$CXX -dumpversion`
+	  DONKEY_SUI_FILE=DonkeySui1
+	  AC_DEFINE(HAVE_CRYPTOPP, 1,)
+	fi
+      fi
 #      AC_MSG_CHECKING(eDonkey server)
 #      if test -d ../src/networks/server; then
 #        AC_MSG_RESULT(no)
@@ -658,6 +675,7 @@ AC_MSG_NOTICE(checking for activated networks)
 #      fi
     else
       DONKEY=no
+      DONKEY_SUI=no
       AC_MSG_RESULT(no)
     fi
   fi
@@ -1140,7 +1158,8 @@ AC_SUBST(SOULSEEK)
 AC_SUBST(OPENFT)
 AC_SUBST(FASTTRACK)
 AC_SUBST(DONKEY)
-AC_SUBST(OPEN_DONKEY)
+AC_SUBST(DONKEY_SUI)
+AC_SUBST(DONKEY_SUI_FILE)
 AC_SUBST(DONKEY_SERVER)
 
 AC_SUBST(GUI)
@@ -1175,6 +1194,8 @@ AC_SUBST(BZIP2)
 BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"
 AC_SUBST(BUILD_SYSTEM)
 AC_SUBST(GLIBC_VERSION)
+AC_SUBST(CC_VERSION)
+AC_SUBST(CXX_VERSION)
 AC_SUBST(CONFIGURE_ARGUMENTS)
 AC_SUBST(CONFIGURE_RUN)
 
@@ -1184,6 +1205,7 @@ AC_OUTPUT(\
   Makefile.config \
   mldonkey.rc \
   $AUTOCONF.new $GTK_AUTOCONF.new \
+   ../src/networks/donkey/donkeySui.ml \
    ../src/daemon/driver/driverGraphics.ml \
    ../packages/rpm/mldonkey.spec \
    ../packages/rpm/Makefile \
@@ -1206,7 +1228,11 @@ echo " completed."
 echo -e "\nNetwork modules:"
 echo -n " - eDonkey           "
 if test "$DONKEY" = "yes"; then
-  echo "enabled"
+  if test "$DONKEY_SUI" = "yes"; then
+    echo "enabled (eMule SUI enabled)"
+  else
+    echo "enabled (eMule SUI disabled)"
+  fi
 else
   echo "        disabled"
 fi
@@ -1331,8 +1357,17 @@ if test "$LABLGTK_CONFIG" = "yes"; then
   fi
 fi
 
-echo -e "\nNow execute '$GNU_MAKE' to start compiling with Ocaml $OCAMLVERSION. Good luck!"
+echo -e "\nCompilers:"
+echo -e " - Ocaml version     $OCAMLVERSION"
+echo -e " - $CC version       $CC_VERSION"
+if test "x$CXX" != "x"; then
+  echo -e " - $CXX version       $CXX_VERSION"
+fi
+echo -e "\nNow execute '$GNU_MAKE' to start compiling. Good luck!"
+
 echo -e "\nTo compile a static code execute:     $GNU_MAKE mlnet.static"
 echo      "To produce a release tarball execute: $GNU_MAKE release.mlnet.static"
 echo      "To clean the build directory execute: $GNU_MAKE maintainerclean"
-echo -e "\nCompiling CryptoPP.cc can take several minutes, on slow machines up to half an hour."
+if test "$DONKEY_SUI" = "yes"; then
+  echo -e "\nCompiling CryptoPP.cc can take several minutes, on slow machines up to half an hour."
+fi

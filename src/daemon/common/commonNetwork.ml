@@ -278,10 +278,19 @@ let new_network shortname name flags =
   networks := r :: !networks;
   Hashtbl.add networks_by_name r.network_name r;
   Hashtbl.add networks_by_num r.network_num r;
+  let s =
+    if r.network_name = "Donkey" then
+      if Autoconf.donkey_sui = "yes" then
+        "Donkey (SUI)"
+      else
+        "Donkey (noSUI)"
+    else
+      r.network_name
+  in
   if !networks_string = "" then
-    networks_string := r.network_name
+    networks_string := s
   else
-    networks_string := Printf.sprintf "%s  %s" !networks_string r.network_name;
+    networks_string := Printf.sprintf "%s  %s" !networks_string s;
 (*  lprintf_nl "Network %s registered" r.network_name; *)
   r
   

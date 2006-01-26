@@ -26,7 +26,7 @@ endif
 NO_LIBS_byte=
 NO_LIBS_opt=
 NO_STATIC_LIBS_opt=
-
+NO_CMXA=
 
 LIBS_byte=-custom unix.cma str.cma
 LIBS_opt= unix.cmxa str.cmxa
@@ -101,9 +101,6 @@ SUBDIRS=$(CDK) $(CHAT) $(CHAT_GUI) $(LIB) $(RSS) $(XML) $(NET) tools \
 INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES) $(GTKCFLAGS)
-
-# CryptoPP doesn't like -fomit-frame-pointer
-CXXFLAGS:=$(CXXFLAGS) -fno-omit-frame-pointer
 
 # use_tags$(EXE) 
 TARGETS= mlnet$(EXE) 
@@ -194,7 +191,6 @@ LIB_SRCS=   \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
   $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/sha1_c.c \
   $(LIB)/tiger.c \
-  $(LIB)/CryptoPP.cc \
   $(LIB)/stubs_c.c  $(LIB)/set2.ml $(LIB)/queues.ml \
   $(LIB)/charsetstubs.c $(LIB)/charset.ml
 
@@ -302,11 +298,19 @@ Makefile: config/Makefile.in
 
 MAIN_SRCS=$(COMMON)/commonMain.ml
 
-DONKEY_SRCS= \
+ifeq ("$(DONKEY_SUI)", "yes")
+  CRYPTOPP_LIBS_flags += -cc $(CXX) $(CXXFLAGS) -ccopt -fno-omit-frame-pointer
+  DONKEY_SRCS += $(LIB)/CryptoPP.cc $(LIB)/CryptoPP_stubs.c $(SRC_DONKEY)/donkeySui1.ml $(SRC_DONKEY)/donkeySui.ml
+else
+  DONKEY_SRCS += $(SRC_DONKEY)/donkeySui2.ml $(SRC_DONKEY)/donkeySui.ml
+endif
+
+DONKEY_SRCS += \
   \
   $(SRC_DONKEY)/donkeyTypes.ml \
   $(SRC_DONKEY)/donkeyOptions.ml \
-  $(SRC_DONKEY)/donkeyMftp.ml $(SRC_DONKEY)/donkeyImport.ml \
+  $(SRC_DONKEY)/donkeyMftp.ml \
+  $(SRC_DONKEY)/donkeyImport.ml \
   $(SRC_DONKEY)/donkeyOpenProtocol.ml \
   $(SRC_DONKEY)/donkeyProtoClient.ml \
   $(SRC_DONKEY)/donkeyProtoServer.ml  \
@@ -315,7 +319,7 @@ DONKEY_SRCS= \
   \
   $(SRC_DONKEY)/donkeyGlobals.ml \
   $(SRC_DONKEY)/donkeyProtoCom.ml  \
- \
+  \
   $(SRC_DONKEY)/donkeyComplexOptions.ml \
   $(SRC_DONKEY)/donkeySupernode.ml \
   $(SRC_DONKEY)/donkeyShare.ml \
@@ -336,9 +340,6 @@ DONKEY_SRCS= \
   $(SRC_DONKEY)/donkeySearch.ml \
   $(SRC_DONKEY)/donkeyInteractive.ml \
   $(SRC_DONKEY)/donkeyMain.ml
-
-#  $(SRC_DONKEY)/donkeySourcesMisc.ml \
-#  $(SRC_DONKEY)/donkeySources.ml  \
 
 
 OPENNAP_SRCS= \
@@ -1408,18 +1409,15 @@ SUBDIRS += src/networks/$3
 
 CORE_SRCS += $($2_SRCS)
 
-## TARGETS += $1$(EXE)
-
-ifneq ("$(GUI)" , "no")
-
-## BUNDLE_TARGETS += $1+gui$(EXE)
-
 endif
-endif
-
 
 $1_CMXA= cdk.cmxa common.cmxa client.cmxa $1.cmxa driver.cmxa
+
+ifeq ("$2", "DONKEY")
+$1_SRCS+= $(CRYPTOPP_SRCS) $(MAIN_SRCS)
+else
 $1_SRCS= $(MAIN_SRCS)
+endif
 
 EXPAND_LIB($2,$1)
 
@@ -1497,8 +1495,6 @@ HASH_FILES_SRCS = \
 
 ######################################################################
 
-NO_CMXA=
-
 define([[EXPAND]],[[
 $1_ZOG := $(filter %.zog, $($1_SRCS)) 
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
@@ -1518,17 +1514,17 @@ $1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
-	$(OCAMLOPT) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) $($5_LIBS_opt) $($5_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_opt) $($3_LIBS_flags) $($5_LIBS_opt) $($5_LIBS_flags) $($6_LIBS_opt) $($6_LIBS_flags) -I build $($1_CMXAS) $($1_CMXS) 
  
 $2.byte: $($1_OBJS) $($1_CMOS) $($1_CMAS)
-	$(OCAMLC) -cc "$(CXX)" -linkall -o $[[@]] $($1_OBJS) $(LIBS_byte) $(LIBS_flags) $($3_LIBS_byte) $($3_LIBS_flags) $($5_LIBS_byte) $($5_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
+	$(OCAMLC) -linkall -o $[[@]] $($1_OBJS) $(LIBS_byte) $(LIBS_flags) $($3_LIBS_byte) $($3_LIBS_flags) $($5_LIBS_byte) $($5_LIBS_flags) $($6_LIBS_byte) $($6_LIBS_flags) -I build $($1_CMAS) $($1_CMOS) 
  
 $2.static: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
-	$(OCAMLOPT) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_flags) $($3_STATIC_LIBS_opt) $($5_LIBS_flags) $($5_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
+	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] $($1_OBJS) $(LIBS_opt) $(LIBS_flags) $($3_LIBS_flags) $($3_STATIC_LIBS_opt) $($5_LIBS_flags) $($5_STATIC_LIBS_opt) $($6_LIBS_flags) $($6_STATIC_LIBS_opt) -I build $($1_CMXAS) $($1_CMXS)
 ]])
 
-EXPAND(mldonkey,mldonkey,NO,mldonkey,GD)
-EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui,GD)
+EXPAND(mldonkey,mldonkey,NO,mldonkey,GD,CRYPTOPP)
+EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui,GD,CRYPTOPP)
 EXPAND(MLPROGRESS, mlprogress,GTK, MLPROGRESS)
 EXPAND(MLDONKEYGUI,mlgui,GTK,MLDONKEYGUI)
 
@@ -1540,12 +1536,18 @@ EXPAND(mldc,mldc,NO,mldc,GD)
 EXPAND(mldc+gui,mldc+gui,GTK,mldc+gui,GD)
 EXPAND(mlnap,mlnap,NO,mlnap,GD)
 EXPAND(mlnap+gui,mlnap+gui,GTK,mlnap+gui,GD)
-EXPAND(MLNET,mlnet,NO,MLNET,GD)
-EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui,GD)
+EXPAND(MLNET,mlnet,NO,MLNET,GD,CRYPTOPP)
+EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui,GD,CRYPTOPP)
 EXPAND(mlgnut,mlgnut,NO,mlgnut,GD)
-EXPAND(mlbt,mlbt,NO,mlbt,GD)
 EXPAND(mlgnut+gui,mlgnut+gui,GTK,mlgnut+gui,GD)
+EXPAND(mlg2,mlg2,NO,mlg2,GD)
+EXPAND(mlg2+gui,mlg2+gui,GTK,mlg2+gui,GD)
+EXPAND(mlbt,mlbt,NO,mlbt,GD)
 EXPAND(mlbt+gui,mlbt+gui,GTK,mlbt+gui,GD)
+EXPAND(mlfasttrack,mlfasttrack,NO,mlfasttrack,GD)
+EXPAND(mlfasttrack+gui,mlfasttrack+gui,GTK,mlfasttrack+gui,GD)
+EXPAND(mlfileTP,mlfiletp,NO,mlfileTP,GD)
+EXPAND(mlfileTP+gui,mlfiletp+gui,GTK,mlfileTP+gui,GD)
 EXPAND(mlslsk,mlslsk,NO,mlslsk,GD)
 EXPAND(mlslsk+gui,mlslsk+gui,GTK,mlslsk+gui,GD)
 EXPAND(MLDONKEY_IM,mlim,GTK,MLDONKEY_IM)
@@ -1596,7 +1598,7 @@ TOP_CMAS=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cma)
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
 
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
-	$(OCAMLMKTOP) -cc "$(CXX)" -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS) 
+	$(OCAMLMKTOP) -linkall $(PLUGIN_FLAG) -o $@  $(TOP_OBJS) $(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) $(CRYPTOPP_LIBS_byte) $(CRYPTOPP_LIBS_flags) -I build $(TOP_CMAS) $(TOP_CMOS)
 
 
 
@@ -1700,6 +1702,7 @@ releaseclean: clean moreclean
 	rm -f packages/slackware/mldonkey.options
 	rm -f packages/windows/mlnet.nsi
 	rm -f src/daemon/driver/driverGraphics.ml
+	rm -f src/networks/donkey/donkeySui.ml
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new
 	rm -f src/utils/lib/gAutoconf.ml

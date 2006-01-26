@@ -1626,6 +1626,8 @@ let buildinfo html buf =
       ^ (if Autoconf.scm_version <> "" then "\nSCM version info: " ^ Autoconf.scm_version else "")
       ^ "\nNetworks: " ^ !networks_string
       ^ "\nOcaml version: " ^ Sys.ocaml_version
+      ^ " - C compiler version: " ^ Autoconf.cc_version
+      ^ (if Autoconf.cxx_version <> "" then " - C++ compiler version: " ^ Autoconf.cxx_version else "")
       ^ "\nBuild on: " ^ Autoconf.build_system ^ " (" ^ Unix2.endianness () ^ ")"
       ^ (if Autoconf.glibc_version = "" then "" 
           else

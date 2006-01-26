@@ -6,6 +6,8 @@ let minor_version = "@MINOR_VERSION@"
 let sub_version = "@SUB_VERSION@"
 let scm_version = "@SCM_VERSION@"
 let glibc_version = "@GLIBC_VERSION@"
+let cc_version = "@CC_VERSION@"
+let cxx_version = "@CXX_VERSION@"
 let build_system = "@BUILD_SYSTEM@"
 let configure_arguments = "@CONFIGURE_ARGUMENTS@"
 
@@ -22,6 +24,7 @@ let fasttrack = "@FASTTRACK@"
 let filetp = "@FILETP@"
 let bittorrent = "@BITTORRENT@"
 let donkey = "@DONKEY@"
+let donkey_sui = "@DONKEY_SUI@"
   
 exception OutOfBoundsAccess
 let outofboundsaccess = OutOfBoundsAccess

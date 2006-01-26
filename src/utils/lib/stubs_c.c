@@ -1179,13 +1179,6 @@ external_start (value version)
 
 }
 
-// Crypto 
-void crypto_exit();
-void createKey(char buf[]);
-unsigned long loadKey(char privateKeyBase64[], char buf[]);
-int createSignature(byte *buf, int maxLen, byte *key, int keyLen, uint32_t cInt, uint8_t ipType, uint32_t ip);
-int verifySignature(byte *key, int keyLen, byte *sig, int sigLen, uint32_t cInt, uint8_t ipType, uint32_t ip);
-
 value
 external_exit (void) 
 {
@@ -1207,7 +1200,9 @@ external_exit (void)
 	pthread_win32_process_detach_np();
 #endif
 
-	crypto_exit();
+#if defined(HAVE_CRYPTOPP)
+//	crypto_exit();
+#endif
 	return Val_unit;
 }
 
@@ -1217,70 +1212,6 @@ ml_uname(void) {
 	buf[0] = '\0';
 	os_uname(buf);
 	return caml_copy_string(buf);
-}
-
-
-// return private key Base64Encoded
-value 
-ml_createKey() {
-	char buf[4096];
-	createKey(buf);
-	return caml_copy_string(buf);
-}
-
-// return public key
-value 
-ml_loadKey(value privatekey) {
-  char *s = String_val(privatekey);
-	char buf[4096];
-	unsigned long len =	loadKey(s, buf);
-
-  value res;
-  res = caml_alloc_string(len);
-  memmove(String_val(res), buf, len);
-
-	return res;
-}
-
-value
-ml_createSignature(value m_key, value m_keyLen, value m_cInt, value m_ipType, value m_ip) {
-
-	byte *key = (byte*) String_val(m_key);
-	int keyLen = Int_val(m_keyLen);
-	uint32_t cInt = Int64_val(m_cInt);
-	int ipType = Int_val(m_ipType);
-	uint32_t ip = Int64_val(m_ip);
-
-	byte buf[4096];
-
-	int len = createSignature(buf, 200, key, keyLen, cInt, ipType, ip);
-
-  value res;
-  res = caml_alloc_string(len);
-  memmove(String_val(res), buf, len);
-
-	return res;
-}
-
-value 
-ml_verifySignature(value m_key, value m_keyLen, value m_sig, value m_sigLen, value m_cInt, value m_ipType, value m_ip) {
-
-	byte* key = (byte*) String_val(m_key);
-	int keyLen = Int_val(m_keyLen);
-	byte* sig = (byte*) String_val(m_sig);
-	int sigLen = Int_val(m_sigLen);
-	uint32_t cInt = Int64_val(m_cInt);
-	int ipType = Int_val(m_ipType);
-	uint32_t ip = Int64_val(m_ip);
-	
-	return Val_bool( 
-			verifySignature(key, keyLen, sig, sigLen, cInt, ipType, ip)
-	);
-}
-
-value
-ml_verifySignature_bytecode(value *argv, int argn) {
-	return ml_verifySignature(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 }
 
 value ml_check_endianness(void)

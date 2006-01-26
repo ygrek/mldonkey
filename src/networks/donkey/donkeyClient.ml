@@ -1001,7 +1001,7 @@ let send_signature c =
     end;
 
     let pubkey = get_pubkey c in
-    let signature = Unix32.create_signature pubkey (String.length pubkey) c.client_req_challenge !ip_type !ip in
+    let signature = DonkeySui.SUI.create_signature pubkey (String.length pubkey) c.client_req_challenge !ip_type !ip in
     
     if !verbose_msg_clients then begin
       lprintf_nl () "%s [send_signature] [sigLen: %d] [keyLen: %d] [reqChall: %Ld] [ipType: %d] [ip: %Ld]" (full_client_identifier c) (String.length signature) (String.length pubkey) c.client_req_challenge !ip_type !ip;
@@ -1736,7 +1736,7 @@ is checked for the file.
         lprintf_nl () "%s [ESigReq] [verify_signature] [keyLen: %d] [sigLen: %d] [sentChall: %Ld] [ipType %d] [ip: %Ld]" (full_client_identifier c) (String.length pubKey) (String.length t.Q.signature) c.client_sent_challenge !ip_type !id;
       end;
 
-      let verified = Unix32.verify_signature pubKey (String.length pubKey) t.Q.signature (String.length t.Q.signature) c.client_sent_challenge !ip_type !id in
+      let verified = DonkeySui.SUI.verify_signature pubKey (String.length pubKey) t.Q.signature (String.length t.Q.signature) c.client_sent_challenge !ip_type !id in
       c.client_sui_verified <- Some verified;
       c.client_sent_challenge <- Int64.zero;
       client_must_update c;

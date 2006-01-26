@@ -161,7 +161,7 @@ let client_md4 = define_option donkey_section ["client_md4"]
     "The MD4 of this client" Md4.option (mldonkey_md4 (Md4.random ()))
 
 let client_private_key = define_option donkey_section ["client_private_key"]
-    "The RSA private key of this client" string_option (Unix32.create_key ())
+    "The RSA private key of this client" string_option (DonkeySui.SUI.create_key ())
 
 let enable_sui = define_option donkey_section ["enable_sui"]
     "Enable secure user identification support" bool_option true
