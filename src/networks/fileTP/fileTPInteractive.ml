@@ -479,6 +479,8 @@ let _ =
   network.op_network_search <- (fun ss buf -> ());
   network.op_network_download <- (fun r -> dummy_file);
   file_ops.op_file_commit <- (fun file new_name -> ());
+  file_ops.op_file_print_html <- (fun file buf -> ());
+  file_ops.op_file_print_sources_html <- (fun file buf -> ());
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_connect_servers <- (fun s -> ());
   network.op_network_recover_temp <- (fun s -> ())

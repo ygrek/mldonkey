@@ -115,6 +115,9 @@ let _ =
     lprintf_nl "ulimit for open files is set to %d, at least 150 is required, exiting..." ulof;
     exit 2
   end;
+  if not (Sys.file_exists file_basedir) then begin
+    lprint_newline ();
+    lprintf_nl "creating new MLDonkey base directory in %s\n" file_basedir end;
   (try
      Unix2.safe_mkdir file_basedir
    with e ->
