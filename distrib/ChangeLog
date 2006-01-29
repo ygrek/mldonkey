@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/01/29
+4826: improve error message due to corrupt config files (schlumpf)
 4821: improve display of sysinfo (schlumpf)
 
 2006/01/26

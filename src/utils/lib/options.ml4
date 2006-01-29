@@ -267,6 +267,9 @@ let really_load filename sections =
             e ->
             Printf.eprintf "Syntax error while parsing file %s at pos %d:(%s)\n"
                 filename (Stream.count s) (Printexc2.to_string e);
+            Printf.eprintf "it seems that %s is corrupt,\n" filename;
+            Printf.eprintf "try to use a backup from %s\n"
+               (Filename.concat (Sys.getcwd ()) "old_config");
               exit 70
         in
         Hashtbl.clear once_values;
