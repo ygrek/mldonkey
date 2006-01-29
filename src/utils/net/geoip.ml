@@ -139,9 +139,10 @@ let unpack filename =
 		let file = Zip.find_entry ic "GeoIP.dat" in
 		  Zip.close_in ic;
 		ignore(Misc.archive_extract filename "zip");
-		(try Sys.remove "GeoIP.dat" with _ -> ());
-		Unix2.rename file.Zip.filename "GeoIP.dat";
-		"GeoIP.dat"
+		let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
+		(try Sys.remove geo_file with _ -> ());
+		Unix2.rename file.Zip.filename geo_file;
+		geo_file
 	      with e ->
 		Zip.close_in ic;
 		lprintf_nl "Exception %s while extracting geoip.dat"
@@ -160,10 +161,11 @@ let unpack filename =
 	    else
 	      "gz"
 	  in try
+	    let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
 	    let s = Misc.archive_extract filename filetype in
-	    (try Sys.remove "GeoIP.dat" with _ -> ());
-	    Unix2.rename s "GeoIP.dat";
-	    "GeoIP.dat"
+	    (try Sys.remove geo_file with _ -> ());
+	    Unix2.rename s geo_file;
+	    geo_file
           with e ->
             lprintf_nl "Exception %s while extracting"
 	      (Printexc2.to_string e);

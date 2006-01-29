@@ -678,6 +678,8 @@ AC_MSG_NOTICE(checking for activated networks)
       DONKEY_SUI=no
       AC_MSG_RESULT(no)
     fi
+  else
+    DONKEY_SUI=no
   fi
 
   if test "$BITTORRENT" = "yes"; then

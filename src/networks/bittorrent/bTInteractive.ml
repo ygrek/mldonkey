@@ -610,6 +610,7 @@ let load_torrent_from_web r ft =
       if ft_state ft = FileDownloading then begin
           load_torrent_file filename;
           file_cancel (as_ft ft);
+	  (try Sys.remove filename with _ -> ())
         end)
 
 let valid_torrent_extension url =

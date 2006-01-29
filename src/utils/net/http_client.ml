@@ -387,7 +387,10 @@ let wget r f =
           lprintf_nl () "Empty content for url %s"
             (Url.to_string r.req_url);
         end;
-      let filename = Filename.basename r.req_url.Url.short_file in
+      let webinfos_dir = "web_infos" in
+        Unix2.safe_mkdir webinfos_dir;
+	Unix2.can_write_to_directory webinfos_dir;
+      let filename = Filename.concat webinfos_dir (Filename.basename r.req_url.Url.short_file) in
       let oc = open_out_bin filename in
       output_string oc s;
       close_out oc;

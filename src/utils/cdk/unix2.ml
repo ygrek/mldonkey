@@ -162,7 +162,7 @@ let rec can_write_to_directory dirname =
   let temp_file = Filename.concat dirname "tmp_" ^ random () ^ "_mld.tmp" in
   try
     (let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o600 temp_file in
-      output_string oc "accesstest";
+      output_string oc "mldonkey accesstest - this file can be deleted";
       close_out oc);
     (try Sys.remove temp_file with _ -> ())
   with

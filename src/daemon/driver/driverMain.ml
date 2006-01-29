@@ -381,6 +381,8 @@ let load_config () =
   ) !!CommonComplexOptions.shared_directories;
   Unix2.safe_mkdir "searches";
   Unix2.can_write_to_directory "searches";
+  Unix2.safe_mkdir "web_infos";
+  Unix2.can_write_to_directory "web_infos";
   Unix2.safe_mkdir !!temp_directory;
   Unix2.can_write_to_directory !!temp_directory
 

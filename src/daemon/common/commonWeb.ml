@@ -81,11 +81,11 @@ let mldonkey_wget url f =
 	      Unix.gmtime t
 	  end
 	in
-	if not (Sys.file_exists (Filename.basename r.H.req_url.Url.short_file)) then
+	let file = Filename.concat "web_infos" (Filename.basename r.H.req_url.Url.short_file) in
+	if not (Sys.file_exists file) then
 	  H.wget r f
 	else
 	  begin
-            let file = Filename.basename r.H.req_url.Url.short_file in
 	    let file_date = Unix.LargeFile.stat file in
 	    let file_time = Unix.gmtime file_date.Unix.LargeFile.st_mtime in
 	      if html_time <= file_time then
