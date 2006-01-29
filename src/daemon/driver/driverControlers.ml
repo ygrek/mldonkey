@@ -133,7 +133,7 @@ let eval auth cmd o =
                 ("", "sr", "\\<a href=\\\"submit?q=" ^ !ncmd ^
                   "\\\"\\>" ^ !ncmd ^ "\\</a\\>");
                 ("", "srw", Str.global_replace (Str.regexp "\n") "\\<br\\>" !nhelp);
-                ("", "sr", "\\<a href=\\\"http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=" ^ !ncmd ^
+                ("", "sr", "\\<a href=\\\"http://mldonkey.sourceforge.net/" ^ (String2.upp_initial !ncmd) ^
                   "\\\"\\>wiki\\</a\\>"); ];
               Printf.bprintf buf "\\</tr\\>\n";
           )

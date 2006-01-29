@@ -409,7 +409,7 @@ The core therefore is unable to get eDonkey serverlists and loading
 .torrent files via dllink from websites is also impossible.
 If you are using MLDonkey in a chroot environment you should
 consider reading this article to get DNS support back:
-http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Chroot\n\n");
+http://mldonkey.sourceforge.net/Chroot\n\n");
   (
     let real_glibc_version = MlUnix.glibc_version_num () in
       if real_glibc_version <> Autoconf.glibc_version

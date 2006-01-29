@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/01/29
+4830: Update Wiki links
+      New Wiki URL: http://mldonkey.sourceforge.net
+      New Forum URL: http://mldonkey.sourceforge.net/forums
 4843: HTML: Improve output of rss command
 4842: Some logfile stuff
 4841: Create new dir web_infos for web_infos files,

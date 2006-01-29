@@ -677,7 +677,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage</TD>
 <TD class=\"bu bbig\" title=\"Wiki (User updated FAQ/documentation)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://mldonkey.berlios.de/modules.php?name=Wiki'\">Wiki</TD>
+onClick=\"top.output.location.href='http://mldonkey.sourceforge.net'\">Wiki</TD>
 <TD class=\"bu bbig\" title=\"Support forums (english/german)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Support forums</TD>

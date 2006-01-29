@@ -630,7 +630,7 @@ let parse_software s =
   let default = (Brand_unknown, "") in
   let rec iter l =
     match l with
-      [] -> lprintf_nl () "Unknown BT client software version, report the next line to http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=UnknownBtClients%s\nBTUC:\"%s\"" Autoconf.current_version (String.escaped s);
+      [] -> lprintf_nl () "Unknown BT client software version, report the next line to http://mldonkey.sourceforge.net/UnknownBtClients%s\nBTUC:\"%s\"" Autoconf.current_version (String.escaped s);
             default
       | d :: t -> match (d s) with 
                   | None -> iter t
