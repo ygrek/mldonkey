@@ -1622,13 +1622,13 @@ let print_gdstats buf o =
 let buildinfo html buf =
   let s =
   (
-        "MLNet Multi-Network p2p client version " ^ Autoconf.current_version
-      ^ (if Autoconf.scm_version <> "" then "\nSCM version info: " ^ Autoconf.scm_version else "")
-      ^ "\nNetworks: " ^ !networks_string
-      ^ "\nOcaml version: " ^ Sys.ocaml_version
+        "Version:\t MLNet Multi-Network p2p client version " ^ Autoconf.current_version
+      ^ (if Autoconf.scm_version <> "" then "\nSCM version:\t " ^ Autoconf.scm_version else "")
+      ^ "\nNetworks:\t " ^ !networks_string
+      ^ "\nOcaml version:\t " ^ Sys.ocaml_version
       ^ " - C compiler version: " ^ Autoconf.cc_version
       ^ (if Autoconf.cxx_version <> "" then " - C++ compiler version: " ^ Autoconf.cxx_version else "")
-      ^ "\nBuild on: " ^ Autoconf.build_system ^ " (" ^ Unix2.endianness () ^ ")"
+      ^ "\nBuild on:\t " ^ Autoconf.build_system ^ " (" ^ Unix2.endianness () ^ ")"
       ^ (if Autoconf.glibc_version = "" then "" 
           else
             let real_glibc_version = MlUnix.glibc_version_num () in
@@ -1638,10 +1638,10 @@ let buildinfo html buf =
               Printf.sprintf " (Warning: glibc version mismatch, %s present on your system, MlDonkey was compiled with %s)"
               real_glibc_version Autoconf.glibc_version)  
       ^ (if Autoconf.configure_arguments <> "" then
-           "\nConfigure arguments: " ^ Autoconf.configure_arguments else "")
-      ^ (if !patches_string <> "" then "\n" ^ !patches_string else "")
-      ^ "\nFeatures:"
-          ^ (if BasicSocket.has_threads () then " threads" else " no-threads")
+           "\nConfigure args:\t " ^ Autoconf.configure_arguments else "")
+      ^ (if !patches_string <> "" then "\nPatches:/t " ^ !patches_string else "")
+      ^ "\nFeatures:\t "
+          ^ (if BasicSocket.has_threads () then "threads" else "no-threads")
           ^ (let s = Zlib.zlib_version_num () in Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else ""))
           ^ (if Autoconf.bzip2 then
 	       begin
@@ -1682,12 +1682,14 @@ let buildinfo html buf =
       Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
     end
   else
-    Printf.bprintf buf "Buildinfo:\n%s\n" s
+    Printf.bprintf buf "\n\t--Buildinfo--\n%s\n" s
   
 let runinfo html buf =
+  let dis_mess = "disabled, to enable adjust web_infos in downloads.ini for automatic download" in
   let s =
   (
-        "Enabled Networks: " 
+	"Uptime:\t\t " ^ Date.time_to_string (last_time () - start_time) "verbose"
+      ^ "\nEnabled nets:\t"
       ^   (if Autoconf.donkey = "yes" && !!enable_donkey then " Donkey" else "")
       ^   (if Autoconf.donkey = "yes" && !!enable_overnet then " Overnet" else "")
       ^   (if Autoconf.donkey = "yes" && !!enable_kademlia then " Kademlia" else "")             
@@ -1696,20 +1698,20 @@ let runinfo html buf =
       ^   (if Autoconf.gnutella = "yes" && !!enable_gnutella then " Gnutella" else "")
       ^   (if Autoconf.gnutella2 = "yes" && !!enable_gnutella2 then " G2" else "")
       ^   (if Autoconf.filetp = "yes" && !!enable_fileTP then " FileTP" else "")
-      ^  "\nServer usage: " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
-      ^  (if !Geoip.active then "\nThis product includes GeoLite data created by MaxMind, available from http://maxmind.com/" else "")
-      ^  (let r1,r2 = Ip_set.block_stats () in if r1 = 0 then
-	    "\nIP blocking disabled" else Printf.sprintf "\nIP blocking enabled: %d ranges loaded - optimized to %d" r1 r2)
-      ^ (let uname = Unix32.uname () in
-          if uname <> "" then Printf.sprintf "\nSystem info: %s" uname else "")
-      ^ "\nUptime: " ^ Date.time_to_string (last_time () - start_time) "verbose"
-      ^ " - Language: " ^ Charset.default_language
+      ^ "\nServer usage:\t " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
+      ^ "\nGeoip:\t\t " ^ (if !Geoip.active then "enabled, GeoLite data created by MaxMind, available from http://maxmind.com/"
+          else dis_mess)
+      ^ "\nIP blocking:\t " ^ (let r1,r2 = Ip_set.block_stats () in
+          if r1 = 0 then dis_mess else Printf.sprintf "enabled, %d ranges loaded - optimized to %d" r1 r2)
+      ^ "\nSystem info:\t " ^ (let uname = Unix32.uname () in
+          if uname <> "" then Printf.sprintf "%s" uname else "unknown")
+      ^ "\n\t\t language: " ^ Charset.default_language
       ^ " - locale: " ^ Charset.locstr
       ^ " - UTC offset: " ^ Rss_date.mk_timezone (Unix.time ())
-      ^ "\n max_string_length: " ^ string_of_int Sys.max_string_length
+      ^ "\n\t\t max_string_length: " ^ string_of_int Sys.max_string_length
       ^ " - word_size: " ^ string_of_int Sys.word_size
       ^ " - max_array_length: " ^ string_of_int Sys.max_array_length
-      ^ "\n max file descriptors: " ^ string_of_int (Unix2.c_getdtablesize ())
+      ^ "\n\t\t max file descriptors: " ^ string_of_int (Unix2.c_getdtablesize ())
       ^ " - max useable file size: " ^ 
 	    (match Unix2.c_sizeofoff_t () with
 	     | 4 -> "2GB"
@@ -1728,7 +1730,7 @@ let runinfo html buf =
       Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
     end
   else
-    Printf.bprintf buf "Runinfo:\n%s\n" s
+    Printf.bprintf buf "\n\t--Runinfo--\n%s\n" s
 
 let diskinfo html buf =
   let list = ref [] in
@@ -1761,7 +1763,7 @@ let diskinfo html buf =
        ( "0", "srh", "Filesystem", "FS" ) ]
   else
     begin
-      Printf.bprintf buf "Diskinfo:\n";
+      Printf.bprintf buf "\n\t--Diskinfo--\n";
       Printf.bprintf buf "Directory%s|Type%s|    used|    free|%%free|Filesystem\n"
         fill_dir fill_strategy;
       Printf.bprintf buf "---------%s+----%s+--------+--------+-----+----------\n"

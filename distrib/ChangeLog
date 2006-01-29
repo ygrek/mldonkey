@@ -14,6 +14,9 @@ http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
 ChangeLog
 =========
 
+2006/01/29
+4821: improve display of sysinfo (schlumpf)
+
 2006/01/26
 4816: Update Ocaml-RSS and Xml-light to current versions
 4827: longhelp cleanup (anhi)
