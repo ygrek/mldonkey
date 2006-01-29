@@ -362,6 +362,7 @@ let rss_feeds = Hashtbl.create 10
 
 let _ =
   add_web_kind "rss" (fun url filename ->
+      lprintf_nl "[cWeb=rss] parsing feed %s" url;
       let c = Rss.channel_of_file filename in
       (try Sys.remove filename with _ -> ());
       let feed =

@@ -2987,10 +2987,13 @@ let _ =
             let r = feed.CW.rss_value in
             if o.conn_output = HTML then begin
                 Printf.bprintf buf "\\</pre\\>\\<div class=\\\"cs\\\"\\>";
-                html_mods_table_header buf "rssTable" "results" [];
+                html_mods_table_header buf "rssTable" "results" [
+                   ( "0", "sr", "Content", "Content" ) ;
+                   ( "0", "sr", "MLDonkey Download", "Download" ) ];
                 Printf.bprintf buf "\\<tr\\>";
                 html_mods_td buf [
-                  (r.Rss.ch_title ^ " : " ^ url ^ (Printf.sprintf ", loaded %d hours ago" (feed.CW.rss_date / 3600)), "srh", r.Rss.ch_title); ];
+                  (r.Rss.ch_title ^ " : " ^ url ^ (Printf.sprintf ", loaded %d hours ago" (((last_time ()) - feed.CW.rss_date) / 3600)), "srh", r.Rss.ch_title);
+                  ("", "srh", "") ];
                 Printf.bprintf buf "\\</tr\\>"
               end
             else begin
@@ -3007,7 +3010,11 @@ let _ =
                   if o.conn_output = HTML then begin
                       Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
                       html_mods_td buf [
-                        (title, "sr", "\\<a href=\\\"submit?q=dllink+" ^ (Url.encode link) ^ "\\\"\\ title=\\\"" ^ link ^ "\\\"\\>" ^ title ^ "\\</a\\>"); ];
+                        (title, "sr", "\\<a href=\\\"" ^ link ^ "\\\"\\>" ^ title ^ "\\</a\\>");
+                        (title, "sr", "\\<a href=\\\"submit?q=dllink+" ^ (Url.encode link) ^
+			  "\\\"\\ title=dllink\\\"\\>dllink\\</a\\>  \\<a href=\\\"submit?q=http+" ^
+			  (Url.encode link) ^ "\\\"\\ title=http\\\"\\>http\\</a\\>")
+		      ];
                       Printf.bprintf buf "\\</tr\\>"
                     end
                   else begin

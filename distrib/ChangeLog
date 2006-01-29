@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/01/29
+4843: HTML: Improve output of rss command
 4842: Some logfile stuff
 4841: Create new dir web_infos for web_infos files,
       BT: do not save .torrent or announce.*
