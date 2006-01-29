@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/01/29
+4844: Fix Solaris compile broken since DonkeySUI patch
 4830: Update Wiki links
       New Wiki URL: http://mldonkey.sourceforge.net
       New Forum URL: http://mldonkey.sourceforge.net/forums

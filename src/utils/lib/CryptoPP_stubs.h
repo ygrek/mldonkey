@@ -17,12 +17,17 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#ifndef _CRYPTOPP_STUBS_H
-#define _CRYPTOPP_STUBS_H
+
+#include "../../../config/config.h"
+
+#if defined (HAVE_STDINT_H)
+#include <stdint.h>
+#endif
+#if defined (HAVE_INTTYPES_H)
+#include <inttypes.h>
 #endif
 
 typedef unsigned char byte;
-
 
 void crypto_exit();
 void createKey(char buf[]);
