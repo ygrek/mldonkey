@@ -565,6 +565,17 @@ or getting a binary compiled with glibc %s.\n\n")
     (Sys.Signal_handle (fun _ -> lprintf_nl () "Received SIGTERM, stopping MLDonkey...";
         CommonInteractive.clean_exit 0));
 
+  MlUnix.set_signal  Sys.sigusr1
+    (Sys.Signal_handle (fun _ -> lprintf_nl () "Received SIGUSR1, saving options...";
+        DriverInteractive.save_config ()));
+
+  MlUnix.set_signal  Sys.sigusr2
+    (Sys.Signal_handle (fun _ ->
+	lprintf_n () "Received SIGUSR2, starting garbage collection...";
+	Gc.compact ();
+	lprintf " finished";
+	lprint_newline ()));
+
   if !verbose then lprintf_nl () (_b "Activated system signal handling")
 
 let _ =

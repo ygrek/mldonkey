@@ -15,7 +15,8 @@ ChangeLog
 =========
 
 2006/02/02
-4850: Fixed bitprint hashing for files > 4GB
+4851: Support system signals SIGUSR1 & SIGUSR2
+4850: Fixed bitprint hashing for files > 4GB (thx to zet)
       mld_hash: implement SIGINT and SIGTERM signals
 
 2006/01/29
