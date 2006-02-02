@@ -587,11 +587,11 @@ ML_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
 *******************************************************************/
 #include "tiger.h"
 
-static void tiger_tree_fd(OS_FD fd, size_t len, size_t pos, size_t block_size, char *digest)
+static void tiger_tree_fd(OS_FD fd, OFF_T len, OFF_T pos, OFF_T block_size, char *digest)
 {
   static char tiger_buffer[BLOCK_SIZE+1];
   if(block_size == BLOCK_SIZE){
-    size_t length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
+    OFF_T length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
     char *s = tiger_buffer+1;
     size_t toread = length;
     char *curs = s;

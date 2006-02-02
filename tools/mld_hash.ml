@@ -87,7 +87,9 @@ let tiger_of_array array =
 (*************************************************************************)
 
 let bitprint_file fd file_size partial =
+  lprintf "Calculating SHA1\n";
   let sha1 = Sha1.digest_subfile fd zero file_size in
+  lprintf "Calculating TigerTree\n";
   let tiger = TigerTree.digest_subfile fd zero file_size in
   lprintf "urn:bitprint:%s.%s\n" (Sha1.to_string sha1) (TigerTree.to_string tiger);
   let file_size = Unix32.getsize64 fd in
@@ -100,7 +102,7 @@ let bitprint_file fd file_size partial =
       let end_pos = min end_pos file_size in
       let len = end_pos -- begin_pos in
       let tiger = TigerTree.digest_subfile fd begin_pos len in
-      if !partial then lprintf "  Partial %3d : %s\n" i (TigerTree.to_string tiger);
+      if !partial then lprintf "  Partial %4d/%4d : %s\n" i nchunks (TigerTree.to_string tiger);
       chunks.(i) <- tiger
     done;
     chunks
@@ -140,7 +142,7 @@ let ed2k_hash_file fd file_size partial =
       let end_pos = min end_pos file_size in
       let len = end_pos -- begin_pos in
       let md4 = Md4.digest_subfile fd begin_pos len in
-      if !partial then lprintf "  Partial %3d : %s\n" i (Md4.to_string md4);
+      if !partial then lprintf "  Partial %4d/%4d : %s\n" i nchunks (Md4.to_string md4);
       let md4 = Md4.direct_to_string md4 in
       String.blit md4 0 chunks (i*16) 16;
     done;
@@ -164,7 +166,7 @@ let sha1_hash_filename block_size filename =
     let end_pos = min end_pos file_size in
     let len = end_pos -- begin_pos in
     let md4 = Sha1.digest_subfile fd begin_pos len in
-    lprintf "  Partial %3d (%Ld-%Ld) : %s\n" i begin_pos end_pos
+    lprintf "  Partial %4d/%4d (%Ld-%Ld) : %s\n" i nchunks begin_pos end_pos
       (Sha1.to_string md4);
   done
 
@@ -175,6 +177,7 @@ let sha1_hash_filename block_size filename =
 (*************************************************************************)
   
 let ed2k_hash_filename filename partial = 
+  lprintf "Calculating ed2k of %s\n" filename;
   let fd = Unix32.create_ro filename in
   let file_size = Unix32.getsize64 fd in
   let md4 = ed2k_hash_file fd file_size partial in
@@ -190,6 +193,7 @@ let ed2k_hash_filename filename partial =
 (*************************************************************************)
   
 let sig2dat_hash_filename filename partial =
+  lprintf "Calculating sig2dat of %s\n" filename;
   let fd = Unix32.create_ro filename in
   let file_size = Unix32.getsize64 fd in
   let len64 = min 307200L file_size in
@@ -198,7 +202,7 @@ let sig2dat_hash_filename filename partial =
   Unix32.read fd zero s 0 len;
   let md5ext = Md5Ext.string s in
   lprintf "sig2dat://|File: %s|Length: %Ld Bytes|UUHash: %s|/\n"
-    filename file_size (Md5Ext.to_string md5ext);
+    (Url.encode (Filename.basename filename)) file_size (Md5Ext.to_string md5ext);
   lprintf "    Hash: %s\n" (Md5Ext.to_hexa_case false md5ext);
   ()
 
@@ -210,14 +214,6 @@ let sig2dat_hash_filename filename partial =
   
 let check_external_functions size = 
   let partial = ref true in
-  let nchunks = 1024 in
-(*
-  let chunk_sizes = [
-      10 (* 10 KB *); 1000 (* ~ 1 MB *) ; 
-(*      50000 (* ~ 50 MB *) ;   *)
-(*      100000 (* ~ 100 MB *); 3000000 (* ~ 3 GB *)  *)
-    ]
-  in *)
   let test_string_len = 43676 in
   let dummy_string = "bonjourhello1" in
   
@@ -283,11 +279,6 @@ let check_external_functions size =
       waves
   in
   let waves = iter zero [] in
-  
-  lprintf "Waves: \n";
-  List.iter (fun (pos,len) ->
-      lprintf " %Ld[%d]," pos len;
-  ) waves;
   lprintf "\n";
   List.iter (fun (name,f,f') ->
       let filename = Printf.sprintf "test.%s.%d" name size in
@@ -313,26 +304,26 @@ let check_external_functions size =
         lprintf "Computing ed2k hash\n";
         let md4 = ed2k_hash_file file file_size partial in
         lprintf "ed2k://|file|%s|%Ld|%s|\n" 
-          (Url.encode filename)
-          file_size
-          (Md4.to_string md4);
+          (Url.encode filename) file_size (Md4.to_string md4);
         
         lprintf "Computing bitprint hash\n";
         let (sha1, tiger2) = bitprint_file file file_size partial in
         lprintf "urn:bitprint:%s.%s\n" (Sha1.to_string sha1) (TigerTree.to_string tiger2);
         
+	Unix32.close file;
         lprintf (_b "Renaming...\n");
-        Unix32.rename file (filename ^ ".final");            
-        
+        Unix32.rename file (filename ^ ".final");
+
         lprintf (_b "Removing %s\n") filename;
         Unix32.remove file;
-        
         let file = f' (filename ^ ".final") file_size in
+	Unix32.close file;
         Unix32.remove file;
+	(try Sys.remove "zero_chunk" with _ -> ());
         
         lprintf "done\n"
       with e ->
-          lprintf (_b "   **********    Exception %s in check_external_functions %s.%d KB\n")
+          lprintf (_b "Exception %s in check_external_functions %s.%d KB\n")
             (Printexc2.to_string e) name size)
   file_types
 
@@ -410,11 +401,19 @@ let chunk_size = ref zero
   
 let _ =
 (*  set_strings_file "mlnet_strings"; *)
+  MlUnix.set_signal  Sys.sigint
+    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGINT, stopping mld_hash...";
+        exit 0));
+
+  MlUnix.set_signal  Sys.sigterm
+    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGTERM, stopping mld_hash...";
+        exit 0));
+
   let partial = ref false in
   Arg2.parse2 [
     "-diff_chunk", Arg2.Array (4, diff_chunk), 
     "<filename1> <filename2> <begin_pos> <end_pos> : compute diff between the two files";
-    "-hash", Arg2.String ( (:=) hash), _s " <hash> : Set hash type you want to compute (ed2k, sig2dat,bp)";
+    "-hash", Arg2.String ( (:=) hash), _s " <hash> : Set hash type you want to compute (ed2k, sig2dat, bp)";
     "-sha1", Arg2.String (fun size ->
         hash := "sha1";
         chunk_size := Int64.of_string size;

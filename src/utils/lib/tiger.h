@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include "../../utils/lib/os_stubs.h"
 #ifndef _TIGER_H
 #define _TIGER_H
 
@@ -30,6 +31,6 @@ typedef unsigned char byte;
 #define TREE_DEPTH 10
 
 
-void tiger_hash(char prefix, char *s, long len, unsigned char *digest);
-unsigned long tiger_block_size(unsigned long len);
+void tiger_hash(char prefix, char *s, OFF_T len, unsigned char *digest);
+OFF_T tiger_block_size(OFF_T len);
 #endif

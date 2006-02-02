@@ -469,12 +469,10 @@ module Tiger = Make(struct
         "tiger_unsafe_string"
         
       let unsafe_file digest filename = 
-        Printf2.lprintf "Tiger.unsafe_file not implemented\n";
-        exit 70
+        failwith "Tiger.unsafe_file not implemented"
         
-      let digest_subfile digest fd pos len = 
-        Printf2.lprintf "Tiger.digest_subfile not implemented\n";
-        exit 70
+      let digest_subfile _ _ _ _ = 
+        failwith "Tiger.digest_subfile not implemented"
     
       module Base = Base32
         

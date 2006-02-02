@@ -17,6 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
+#include "../../utils/lib/os_stubs.h"
 #include "tiger.h"
 #include <caml/config.h>
 
@@ -775,7 +776,7 @@ char hexa(int i)
 #define MAX_TIGER_CHUNK_SIZE 1024
 static word64 tiger_buffer[MAX_TIGER_CHUNK_SIZE];
 
-void tiger_hash(char prefix, char *s, long len, unsigned char *digest)
+void tiger_hash(char prefix, char *s, OFF_T len, unsigned char *digest)
 {
   char *buffer = (char*) tiger_buffer;
   word64 ndigest[3];
@@ -818,14 +819,13 @@ void tiger_tree_string(char *s, size_t len, size_t pos, size_t block_size, char 
 
 #include "tiger.h"
 #include "md4.h"
-
 #include "caml/mlvalues.h"
 #include "caml/fail.h"
 #include "caml/alloc.h"
 
-unsigned long tiger_block_size(unsigned long len)
+OFF_T tiger_block_size(OFF_T len)
 {
-  unsigned long block_size = BLOCK_SIZE;
+  OFF_T block_size = BLOCK_SIZE;
   while(block_size < len) block_size *= 2;
   return block_size;
 }
