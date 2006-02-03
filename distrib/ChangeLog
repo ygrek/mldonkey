@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/03
+4863: GUI: Prevent kill by users other than admin
 4862: EDK: Fix broken import of eMule temp Files (import_temp) (schlumpf)
 4860: Multiuser: print warning if admin password is empty
 - user admin is re-created if deleted, it has to be present in any case because

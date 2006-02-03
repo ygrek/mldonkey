@@ -673,7 +673,18 @@ let gui_reader (gui: gui_record) t _ =
                     network_extend_search r s e)
           
           | P.KillServer -> 
-              CommonInteractive.clean_exit 0
+	      if gui.gui_conn.conn_user == default_user then
+		CommonInteractive.clean_exit 0
+	      else
+	        begin
+                  let o = gui.gui_conn in
+                  let buf = o.conn_buf in
+                  Buffer.reset buf; 
+                  Buffer.add_string buf "\nOnly 'admin' is allowed to kill MLDonkey\n";
+                  gui_send gui (P.Console (
+                      DriverControlers.dollar_escape o false
+                        (Buffer.contents buf)))
+		end
           
           | P.Search_query s ->
               
