@@ -412,10 +412,8 @@ let import_temp temp_dir =
                     size := v
                 | _ -> ()
             ) f.P.tags;
-            let _ = query_download !filenames !size f.P.md4 None
-              (Some filename) (Some (List.rev f.P.absents)) true;
-            in
-            ()
+            ignore (really_query_download !filenames !size f.P.md4 None
+              (Some filename) (Some (List.rev f.P.absents)));
       with _ -> ()
   ) list
 
