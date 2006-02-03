@@ -343,7 +343,7 @@ let _ =
 	    _s "exit"
 	  end
         else
-          _s "Only 'admin' is allowed to do that"
+          _s "Only 'admin' is allowed to kill MLDonkey"
         ), ":\t\t\t\t\t$bsave and kill the server$n";
 
     "add_url", Arg_two (fun kind url o ->
@@ -654,7 +654,7 @@ formID.msgText.value=\\\"\\\";
               users =:= (user, Md4.string pass) :: !!users;
               _s "User added"
         else
-          _s "Only 'admin' is allowed to do that"
+          _s "Only 'admin' is allowed to add users"
     ), "<user> <passwd> :\t\tadd new mldonkey user/change user password";
 
     "remove_user", Arg_one (fun user o ->
@@ -675,7 +675,7 @@ formID.msgText.value=\\\"\\\";
 	          _s (Printf.sprintf "user %s not found" user)
 	    end
         else
-          _s "Only 'admin' is allowed to do that"
+          _s "Only 'admin' is allowed to remove users"
     ), "<user> :\t\t\tremove a mldonkey user";
 
 
@@ -739,7 +739,7 @@ formID.msgText.value=\\\"\\\";
           end;
         ""
         else
-          _s "Only 'admin' is allowed to do that"
+          _s "Only 'admin' is allowed to list users"
     ), ":\t\t\t\t\tprint users";
 
     "whoami", Arg_none (fun o ->
@@ -1452,34 +1452,20 @@ let _ =
     [
 
     "set", Arg_two (fun name value o ->
+	if (o.conn_user == default_user) || !!enable_user_config then begin
         try
           try
             CommonInteractive.set_fully_qualified_options name value;
             Printf.sprintf "option %s value changed" name
 
-(*
-            let pos = String.index name '-' in
-            let prefix = String.sub name 0 pos in
-            let name = String.sub name (pos+1) (String.length name - pos-1) in
-            networks_iter (fun n ->
-                match n.network_config_file with
-                  None -> ()
-                | Some opfile ->
-                    List.iter (fun p ->
-                        if p = prefix then begin
-                            set_simple_option opfile name value;
-                            Printf.bprintf buf "option %s :: %s value changed"
-                            n.network_name name
-
-                          end)
-                    n.network_prefixes
-);
-  *)
           with _ ->
               Options.set_simple_option downloads_ini name value;
               Printf.sprintf "option %s value changed" name
         with e ->
             Printf.sprintf "Error %s" (Printexc2.to_string e)
+	  end
+	else
+	  _s "Only 'admin' is allowed to change options"
     ), "<option_name> <option_value> :\t$bchange option value$n";
 
     "save", Arg_multiple (fun args o ->
@@ -1807,6 +1793,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                   | 8 ->
                       [
 			strings_of_option term_ansi;
+			strings_of_option enable_user_config;
 			strings_of_option messages_filter;
 			strings_of_option max_displayed_results;
 			strings_of_option max_name_len;
@@ -1972,7 +1959,7 @@ let _ =
          Printf.bprintf buf "bavail %s\n" (print_i64o (Unix32.bavail arg));
          Printf.bprintf buf "fnamelen %s\n" (print_i64o (Unix32.fnamelen arg));
          Printf.bprintf buf "filesystem %s\n" (Unix32.filesystem arg);
-	 let print_i64o_amount = function 
+	 let print_i64o_amount = function
 	   | None -> "Unknown"
 	   | Some v -> Printf.sprintf "%Ld - %s" v (size_of_int64 v) in
          Printf.bprintf buf "disktotal %s\n" (print_i64o_amount (Unix32.disktotal arg));

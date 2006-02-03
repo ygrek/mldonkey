@@ -1430,8 +1430,13 @@ let http_handler o t r =
 
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf t r true;
-                  CommonInteractive.set_fully_qualified_options name value;
-                  Buffer.add_string buf "Option value changed"
+		  if (o.conn_user == default_user) || !!enable_user_config then
+		    begin
+                      CommonInteractive.set_fully_qualified_options name value;
+                      Buffer.add_string buf "Option value changed"
+		    end
+		  else
+                    Buffer.add_string buf "Only 'admin' is allowed to change options"
 
               | args ->
                   List.iter (fun (s,v) ->

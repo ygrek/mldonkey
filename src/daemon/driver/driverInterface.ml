@@ -615,7 +615,18 @@ let gui_reader (gui: gui_record) t _ =
               ) list
           
           | P.SetOption (name, value) ->
-              CommonInteractive.set_fully_qualified_options name value
+	      if (gui.gui_conn.conn_user == default_user) || !!enable_user_config then
+		CommonInteractive.set_fully_qualified_options name value
+	      else
+	        begin
+                  let o = gui.gui_conn in
+                  let buf = o.conn_buf in
+                  Buffer.reset buf; 
+                  Buffer.add_string buf "\nOnly 'admin' is allowed to change options\n";
+                  gui_send gui (P.Console (
+                      DriverControlers.dollar_escape o false
+                        (Buffer.contents buf)))
+		end
           
           | P.CloseSearch (num, forget) ->
               let s = List.assoc num gui.gui_searches in
