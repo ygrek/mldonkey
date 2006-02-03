@@ -3012,8 +3012,8 @@ let _ =
                       html_mods_td buf [
                         (title, "sr", "\\<a href=\\\"" ^ link ^ "\\\"\\>" ^ title ^ "\\</a\\>");
                         (title, "sr", "\\<a href=\\\"submit?q=dllink+" ^ (Url.encode link) ^
-			  "\\\"\\ title=dllink\\\"\\>dllink\\</a\\>  \\<a href=\\\"submit?q=http+" ^
-			  (Url.encode link) ^ "\\\"\\ title=http\\\"\\>http\\</a\\>")
+			  "\\\"\\ title=\\\"\\dllink\\\"\\>dllink\\</a\\>  \\<a href=\\\"submit?q=http+" ^
+			  (Url.encode link) ^ "\\\"\\ title=\\\"\\http\\\"\\>http\\</a\\>")
 		      ];
                       Printf.bprintf buf "\\</tr\\>"
                     end
