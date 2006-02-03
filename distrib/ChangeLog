@@ -9,7 +9,7 @@ All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
 To compile MLDonkey on MinGW follow this guide:
-http://mldonkey.sourceforge.net/Windows
+http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 
 ChangeLog
 =========
