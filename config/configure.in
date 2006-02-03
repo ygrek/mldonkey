@@ -229,7 +229,7 @@ AC_ARG_ENABLE(pthread, [  --disable-pthread       allows you to disable pthread 
 AC_ARG_ENABLE(pthread-lib, [  --enable-pthread-lib    legacy option], [USE_PTHREAD="$enableval"])
 
 ICONV=yes
-AC_ARG_ENABLE(iconv,       [  --disable-iconv         disable the use of iconv for compiling on broken windows environments], [ICONV="$enableval"])
+AC_ARG_ENABLE(iconv,       [  --disable-iconv         disable the use of iconv], [ICONV="$enableval"])
 
 GD=yes
 AC_ARG_ENABLE(gd,       [  --disable-gd            disable the use of gd], [GD="$enableval"])
@@ -561,7 +561,7 @@ fi
 
 AC_CHECK_HEADERS(byteswap.h,,)
 
-if test "$ICONV" = "yes"; then
+if [ [ "$ICONV" = "yes" ] && [ "$SYSTEM" != "mingw" ] ]; then
   AM_ICONV
   if test "$am_cv_func_iconv" != "yes"; then
     AC_DEFINE(DISABLE_ICONV, 1, [Define to 1 if you want to replace iconv and related with stubs.])
@@ -1319,11 +1319,13 @@ else
   echo "        disabled"
 fi
 
+if test "$SYSTEM" != "mingw"; then
 echo -n " - iconv             "
 if test "$ICONV" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
+fi
 fi
 
 echo -n " - graphical stats   "

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/03
+4856: configure: disable iconv by default on MinGW
 4853: Fix HTML errors on rss command output (unease)
 
 2006/02/02
