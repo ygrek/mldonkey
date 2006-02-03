@@ -37,7 +37,44 @@ open CommonOptions
 open CommonTypes
 open Int64ops
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s"
+    (log_time ()); lprintf_nl2
 
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s"
+    (log_time ()); lprintf
+
+let verify_user_admin () =
+  let warning =
+    "SECURITY WARNING: user admin has an empty password, use command: add_user admin password\n"
+  in
+  let found = ref false in
+  let empty_password = ref false in
+  List.iter (fun (user,pass) ->
+    if user = "admin" then begin
+      found := true;
+      if pass = Md4.string "" then
+        empty_password := true
+    end
+  ) !!users;
+  if not !found then begin
+    lprintf_nl () "SECURITY INFO: user 'admin' has to be present, creating...";
+    users =:= ("admin", Md4.string "") :: !!users;
+    empty_password := true
+  end;
+  if !empty_password then
+    begin
+      lprintf_n () "%s" warning;
+      warning
+    end
+  else ""
+
+let real_startup_message () =
+  !startup_message ^ (verify_user_admin ())
+      
 (* ripped from gui_downloads *)
 
 let calc_file_eta f =

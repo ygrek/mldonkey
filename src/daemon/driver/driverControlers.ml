@@ -601,10 +601,11 @@ let telnet_handler t event =
 
         before_telnet_output o sock;
         TcpBufferedSocket.write_string sock
-	   (Printf.sprintf "Welcome to MLDonkey %s" Autoconf.current_version);
+	   (Printf.sprintf "Welcome to MLDonkey %s\n" Autoconf.current_version);
+        TcpBufferedSocket.write_string sock (DriverInteractive.real_startup_message ());
 
         TcpBufferedSocket.write_string sock (dollar_escape o false
-            "\n$cWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
+            "$cWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
 
         after_telnet_output o sock
 	end
@@ -1146,7 +1147,9 @@ let http_handler o t r =
         | "oneframe.html" ->
             html_open_page buf t r true;
             Buffer.add_string buf !!motd_html;
-	    Buffer.add_string buf "<p><pre>";
+	    Buffer.add_string buf "<p><pre><b><h3>";
+            Buffer.add_string buf (DriverInteractive.real_startup_message ());
+	    Buffer.add_string buf "</b></h3>";
 	    ignore (buildinfo false buf);
 	    Buffer.add_string buf "\n";
 	    ignore (runinfo false buf);

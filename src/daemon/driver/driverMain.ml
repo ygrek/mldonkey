@@ -275,6 +275,7 @@ let load_config () =
   (try
       Options.load downloads_ini;
       Options.load users_ini;
+      ignore (DriverInteractive.verify_user_admin ())
     with e ->
         lprintf_nl () "Exception %s during options load" (Printexc2.to_string e);
         exit 70);

@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/02/03
+4860: Multiuser: print warning if admin password is empty
+- user admin is re-created if deleted, it has to be present in any case because
+  some commands are only available for admin,  like users, remove_user and kill
+- create structure for startup messages, displayed on GUI, HTML, Telnet
 4859: Multiuser: Only user "admin" is allowed to change options
       if the new option enable_user_config (default true) is set to false
 4858: HTML: Update some links to mldonkey.sf.net

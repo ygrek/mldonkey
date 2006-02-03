@@ -386,7 +386,8 @@ let gui_initialize gui =
   gui.gui_initialized <- true;
   networks_iter_all (fun n ->
       gui_send gui (Network_info (network_info n)));
-  gui_send gui (Console (DriverControlers.text_of_html !!motd_html));
+  gui_send gui (Console ((DriverControlers.text_of_html !!motd_html) ^ "\n"));
+  gui_send gui (Console (DriverInteractive.real_startup_message ()));
   
   
   if gui.gui_poll then begin

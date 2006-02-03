@@ -26,6 +26,8 @@ open Options
 open Unix
 
 
+let startup_message = ref ""
+
 let bin_dir = Filename.dirname Sys.argv.(0)
 
 let hidden_dir_prefix =
@@ -117,7 +119,9 @@ let _ =
   end;
   if not (Sys.file_exists file_basedir) then begin
     lprint_newline ();
-    lprintf_nl "creating new MLDonkey base directory in %s\n" file_basedir end;
+    lprintf_nl "creating new MLDonkey base directory in %s\n" file_basedir;
+    startup_message := (Printf.sprintf "MLDonkey created a new home directory in %s\n" file_basedir)
+  end;
   (try
      Unix2.safe_mkdir file_basedir
    with e ->
@@ -128,7 +132,8 @@ let _ =
   Unix.chdir file_basedir;
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
-    && not Autoconf.windows && not (Autoconf.system = "morphos") && not (Sys.file_exists "/dev/urandom") then begin
+    && not Autoconf.windows && not (Autoconf.system = "morphos") &&
+       not (Autoconf.donkey_sui = "yes") && not (Sys.file_exists "/dev/urandom") then begin
       lprintf "%s" (exit_message_dev "urandom");
       if Autoconf.system = "hpux" then
         lprintf_nl "For HP-UX get urandom support from http://www.josvisser.nl/hpux11-random";
@@ -1316,7 +1321,7 @@ let commands_frame_height = define_expert_option current_section ["commands_fram
 
 let motd_html = define_expert_option current_section ["motd_html"]
     "Message printed at startup (automatically downloaded from the previous
-    URL directory" string_option "<br><div align=\"center\"><h3>Welcome to MLdonkey</h3></div>"
+    URL directory" string_option "<br><div align=\"center\"><h3>Welcome to MLDonkey</h3></div>"
 
 let compaction_delay = define_expert_option current_section ["compaction_delay"]
     "Force compaction every <n> hours (in [1..24])"
