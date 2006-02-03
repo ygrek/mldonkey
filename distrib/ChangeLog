@@ -9,12 +9,13 @@ All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
 To compile MLDonkey on MinGW follow this guide:
-http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
+http://mldonkey.sourceforge.net/Windows
 
 ChangeLog
 =========
 
 2006/02/03
+4858: HTML: Update some links to mldonkey.sf.net
 4857: SIGUSR1 & SIGUSR2 don´t exist on Windows
 4856: configure: disable iconv by default on MinGW
 4853: Fix HTML errors on rss command output (unease)
@@ -664,7 +665,7 @@ how we fill buckets. But for now this works and produce less traffic.
 Lots of improvements for MinGW, this platform now supports
 files > 2GB, threads and libgd generated statistics.
 Here you will find compilation instructions:
-http://mldonkey.berlios.de/modules.php?name=Wiki&pagename=Windows
+http://mldonkey.sourceforge.net/Windows
 
 4342: Large_file support for mld_hash and MinGW MLDonkey core (zet)
 4358: Add thread support for MinGW (zet)

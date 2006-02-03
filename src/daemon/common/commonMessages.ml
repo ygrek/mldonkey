@@ -672,15 +672,15 @@ onClick=\"mSub('output','sysinfo')\">Sysinfo</TD>
 <TD class=\"bu bbig\" title=\"View ChangeLog\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&amp;content-type=text/vnd.viewcvs-markup'\">ChangeLog</TD>
-<TD class=\"bu bbig\" title=\"HomePage\"
+<TD class=\"bu bbig\" title=\"Homepage\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://www.mldonkey.net/'\">Homepage</TD>
-<TD class=\"bu bbig\" title=\"Wiki (User updated FAQ/documentation)\"
+onClick=\"top.output.location.href='http://mldonkey.sourceforge.net'\">Homepage</TD>
+<TD class=\"bu bbig\" title=\"Support forum english\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://mldonkey.sourceforge.net'\">Wiki</TD>
-<TD class=\"bu bbig\" title=\"Support forums (english/german)\"
+onClick=\"top.output.location.href='http://mldonkey.sourceforge.net/forums'\">English support</TD>
+<TD class=\"bu bbig\" title=\"Support forum german\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://www.mldonkeyworld.com/'\">Support forums</TD>
+onClick=\"top.output.location.href='http://mldonkey.org/phpbb2'\">German forum</TD>
 <TD class=\"bu bbig\" title=\"View core log\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','log')\">Log</TD>
