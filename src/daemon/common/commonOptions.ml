@@ -108,15 +108,22 @@ If you are using a chroot environment, create it inside the chroot.\n" file
 
 let _ =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
+  let ulof_old = Unix2.c_getdtablesize () in
   lprintf_nl "Language %s, locale %s, ulimit for open files %d"
-    Charset.default_language Charset.locstr (Unix2.c_getdtablesize ());
-  lprintf_nl "MLDonkey is working in %s" file_basedir;
+    Charset.default_language Charset.locstr ulof_old;
 
+  let nofile = Unix2.ml_getrlimit Unix2.RLIMIT_NOFILE in
+    if nofile.Unix2.rlim_max > 0 && nofile.Unix2.rlim_max > nofile.Unix2.rlim_cur then
+      Unix2.ml_setrlimit Unix2.RLIMIT_NOFILE nofile.Unix2.rlim_max;
   let ulof = Unix2.c_getdtablesize () in
+  if ulof_old <> ulof then
+    lprintf_nl "raised ulimit for open files from %d to %d" ulof_old ulof;
   if ulof < 150 then begin
     lprintf_nl "ulimit for open files is set to %d, at least 150 is required, exiting..." ulof;
     exit 2
   end;
+
+  lprintf_nl "MLDonkey is working in %s" file_basedir;
   if not (Sys.file_exists file_basedir) then begin
     lprint_newline ();
     lprintf_nl "creating new MLDonkey base directory in %s\n" file_basedir;

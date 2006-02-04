@@ -162,3 +162,15 @@
 
 /* Define to 1 if you want to use CryptoPP */
 #undef HAVE_CRYPTOPP
+
+/* Define to 1 if you have <sys/time.h> */
+#undef HAVE_SYS_TIME_H
+
+/* Define to 1 if you have <sys/resource.h> */
+#undef HAVE_SYS_RESOURCE_H
+
+/* Define to 1 if you have getrlimit() */
+#undef HAVE_GETRLIMIT
+
+/* Define to 1 if you have setrlimit() */
+#undef HAVE_SETRLIMIT

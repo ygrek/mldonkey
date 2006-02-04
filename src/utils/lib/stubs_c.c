@@ -28,6 +28,14 @@
 #include <inttypes.h>
 #endif
 
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
 #define lseek XXXXXXXXX
 #define read XXXXXXXXX
 #define ftruncate XXXXXXXXX
@@ -1224,4 +1232,200 @@ value ml_check_endianness(void)
   v = copy_string ("little endian");
 #endif
   CAMLreturn (v);
+}
+
+value ml_getrlimit(value resource) {
+#ifdef HAVE_GETRLIMIT
+  CAMLparam1(resource);
+  CAMLlocal1(retval);
+  int r;
+  struct rlimit lim;
+
+  switch (Int_val(resource)) {
+  case 0:
+#ifdef RLIMIT_CPU
+    r = RLIMIT_CPU;
+#else
+    r = -1;
+#endif
+    break;
+  case 1:
+#ifdef RLIMIT_FSIZE
+    r = RLIMIT_FSIZE;
+#else
+    r = -1;
+#endif
+    break;
+  case 2:
+#ifdef RLIMIT_DATA
+    r = RLIMIT_DATA;
+#else
+    r = -1;
+#endif
+    break;
+  case 3:
+#ifdef RLIMIT_STACK
+    r = RLIMIT_STACK;
+#else
+    r = -1;
+#endif
+    break;
+  case 4:
+#ifdef RLIMIT_CORE
+    r = RLIMIT_CORE;
+#else
+    r = -1;
+#endif
+    break;
+  case 5:
+#ifdef RLIMIT_RSS
+    r = RLIMIT_RSS;
+#else
+    r = -1;
+#endif
+    break;
+  case 6:
+#ifdef RLIMIT_NPROC
+    r = RLIMIT_NPROC;
+#else
+    r = -1;
+#endif
+    break;
+  case 7:
+#ifdef RLIMIT_NOFILE
+    r = RLIMIT_NOFILE;
+#elif RLIMIT_OFILE
+    r = RLIMIT_OFILE:
+#else
+    r = -1;
+#endif
+    break;
+  case 8:
+#ifdef RLIMIT_MEMLOCK
+    r = RLIMIT_MEMLOCK;
+#else
+    r = -1;
+#endif
+    break;
+  case 9:
+#ifdef RLIMIT_AS
+    r = RLIMIT_AS;
+#else
+    r = -1;
+#endif
+    break;
+  default:
+    errno = EINVAL;
+    uerror("getrlimit", Nothing);    
+  }
+
+  if (getrlimit(r, &lim) < 0) 
+    uerror("getrlimit", Nothing);
+
+  
+  retval = alloc_tuple(2);
+  Field(retval, 0) = Val_int(lim.rlim_cur);
+  Field(retval, 1) = Val_int(lim.rlim_max);
+
+  CAMLreturn(retval);
+
+#else
+  failwith("getrlimit unimplemented");
+#endif
+}
+
+value ml_setrlimit(value resource, value rlimit) {
+#ifdef HAVE_SETRLIMIT
+  int r;
+  struct rlimit lim;
+
+  switch (Int_val(resource)) {
+  case 0:
+#ifdef RLIMIT_CPU
+    r = RLIMIT_CPU;
+#else
+    r = -1;
+#endif
+    break;
+  case 1:
+#ifdef RLIMIT_FSIZE
+    r = RLIMIT_FSIZE;
+#else
+    r = -1;
+#endif
+    break;
+  case 2:
+#ifdef RLIMIT_DATA
+    r = RLIMIT_DATA;
+#else
+    r = -1;
+#endif
+    break;
+  case 3:
+#ifdef RLIMIT_STACK
+    r = RLIMIT_STACK;
+#else
+    r = -1;
+#endif
+    break;
+  case 4:
+#ifdef RLIMIT_CORE
+    r = RLIMIT_CORE;
+#else
+    r = -1;
+#endif
+    break;
+  case 5:
+#ifdef RLIMIT_RSS
+    r = RLIMIT_RSS;
+#else
+    r = -1;
+#endif
+    break;
+  case 6:
+#ifdef RLIMIT_NPROC
+    r = RLIMIT_NPROC;
+#else
+    r = -1;
+#endif
+    break;
+  case 7:
+#ifdef RLIMIT_NOFILE
+    r = RLIMIT_NOFILE;
+#elif RLIMIT_OFILE
+    r = RLIMIT_OFILE:
+#else
+    r = -1;
+#endif
+    break;
+  case 8:
+#ifdef RLIMIT_MEMLOCK
+    r = RLIMIT_MEMLOCK;
+#else
+    r = -1;
+#endif
+    break;
+  case 9:
+#ifdef RLIMIT_AS
+    r = RLIMIT_AS;
+#else
+    r = -1;
+#endif
+    break;
+  default:
+    errno = EINVAL;
+    uerror("getrlimit", Nothing);    
+  }
+
+  lim.rlim_cur = Int_val(Field(rlimit, 0));
+  lim.rlim_max = Int_val(Field(rlimit, 1));
+
+  if (setrlimit(r, &lim) < 0) 
+    uerror("setrlimit", Nothing);
+
+  return Val_unit;
+
+#else
+  failwith("getrlimit unimplemented");
+#endif
 }

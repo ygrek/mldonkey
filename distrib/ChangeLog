@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/02/04
+4867: Use setrlimit to raise allowed ulimit open files
+
 2006/02/03
 4863: GUI/Multiuser: Prevent kill by users other than admin
 4862: EDK: Fix broken import of eMule temp Files (import_temp) (schlumpf)

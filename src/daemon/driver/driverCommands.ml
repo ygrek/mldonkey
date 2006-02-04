@@ -1973,6 +1973,31 @@ let _ =
          _s ""
      ), "debug command (example: disk .)";
 
+     "rlimit", Arg_none (fun o ->
+         let buf = o.conn_buf in
+	 let cpu = Unix2.ml_getrlimit Unix2.RLIMIT_CPU in
+	 let fsize = Unix2.ml_getrlimit Unix2.RLIMIT_FSIZE in
+	 let data = Unix2.ml_getrlimit Unix2.RLIMIT_DATA in
+	 let stack = Unix2.ml_getrlimit Unix2.RLIMIT_STACK in
+	 let core = Unix2.ml_getrlimit Unix2.RLIMIT_CORE in
+	 let rss = Unix2.ml_getrlimit Unix2.RLIMIT_RSS in
+	 let nprof = Unix2.ml_getrlimit Unix2.RLIMIT_NPROF in
+	 let nofile = Unix2.ml_getrlimit Unix2.RLIMIT_NOFILE in
+	 let memlock = Unix2.ml_getrlimit Unix2.RLIMIT_MEMLOCK in
+         let rlimit_as = Unix2.ml_getrlimit Unix2.RLIMIT_AS in
+         Printf.bprintf buf "cpu %d %d\n" cpu.Unix2.rlim_cur cpu.Unix2.rlim_max;
+         Printf.bprintf buf "fsize %d %d\n" fsize.Unix2.rlim_cur fsize.Unix2.rlim_max;
+         Printf.bprintf buf "data %d %d\n" data.Unix2.rlim_cur data.Unix2.rlim_max;
+         Printf.bprintf buf "stack %d %d\n" stack.Unix2.rlim_cur stack.Unix2.rlim_max;
+         Printf.bprintf buf "core %d %d\n" core.Unix2.rlim_cur core.Unix2.rlim_max;
+         Printf.bprintf buf "rss %d %d\n" rss.Unix2.rlim_cur rss.Unix2.rlim_max;
+         Printf.bprintf buf "nprof %d %d\n" nprof.Unix2.rlim_cur nprof.Unix2.rlim_max;
+         Printf.bprintf buf "nofile %d %d\n" nofile.Unix2.rlim_cur nofile.Unix2.rlim_max;
+         Printf.bprintf buf "memlock %d %d\n" memlock.Unix2.rlim_cur memlock.Unix2.rlim_max;
+         Printf.bprintf buf "as %d %d\n" rlimit_as.Unix2.rlim_cur rlimit_as.Unix2.rlim_max;
+         _s ""
+     ), "debug command";
+
     "shares", Arg_none (fun o ->
 
         let buf = o.conn_buf in

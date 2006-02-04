@@ -173,3 +173,42 @@ let rec can_write_to_directory dirname =
         lprintf_nl "%s does not exist and can not be created, exiting..." dirname; exit 73)
   | Sys_error s -> lprintf_nl "%s for directory %s" s dirname; exit 73
   | e -> lprintf_nl "%s for directory %s" (Printexc2.to_string e) dirname; exit 73
+
+(** The resource type to query or set with [getrlimit] or [setrlimit] *)
+type rlimit_resource = RLIMIT_CPU (** CPU time in seconds *)
+                       | RLIMIT_FSIZE (** Maximum file size *)
+                       | RLIMIT_DATA (** Max data size *)
+                       | RLIMIT_STACK (** Max stack size *)
+                       | RLIMIT_CORE (** Max core file size *)
+                       | RLIMIT_RSS (** Max resident set size *)
+                       | RLIMIT_NPROF (** Max number of processes *)
+                       | RLIMIT_NOFILE (** Max number of open files *)
+                       | RLIMIT_MEMLOCK (** Max locked-in-memory address space *)
+                       | RLIMIT_AS (** Address space limit *)
+
+type rlimit = {
+  rlim_cur: int;
+  rlim_max: int
+}
+
+let dummy_rlimit = {
+  rlim_cur = -1;
+  rlim_max = -1
+}
+
+external getrlimit: rlimit_resource -> rlimit = "ml_getrlimit"
+external setrlimit: rlimit_resource -> rlimit -> unit = "ml_setrlimit"
+
+let ml_getrlimit resource =
+  try
+    getrlimit resource
+  with _ -> dummy_rlimit
+
+let ml_setrlimit resource n =
+  let new_rlimit = {
+    rlim_cur = n;
+    rlim_max = n
+  } in
+  try
+    setrlimit resource new_rlimit
+  with _ -> ()

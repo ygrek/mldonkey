@@ -512,13 +512,17 @@ AC_CHECK_SIZEOF(char)
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(float)
 AC_CHECK_SIZEOF(double)
+AC_CHECK_FUNCS(setrlimit getrlimit)
 
 # various header files
 AC_CHECK_HEADERS([sys/utsname.h])
 AC_CHECK_HEADERS(arpa/inet.h,,)
-AC_CHECK_HEADERS([sys/types.h netinet/in_systm.h netinet/in.h netinet/ip.h],,,
+AC_CHECK_HEADERS([sys/types.h sys/time.h sys/resource.h netinet/in_systm.h netinet/in.h netinet/ip.h],,,
 [#ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
 #endif
 #ifdef HAVE_NETINET_IN_SYSTM_H
 #include <netinet/in_systm.h>
