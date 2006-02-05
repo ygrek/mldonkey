@@ -46,8 +46,6 @@ case $host in
     ;;
   *netbsd*)
     SYSTEM=netbsd
-    CPPFLAGS="${CPPFLAGS} -I/usr/pkg/include"
-    LDFLAGS="${LDFLAGS} -L/usr/pkg/lib"
     ;;
   *linux*)
     SYSTEM=linux
@@ -984,12 +982,17 @@ if test "$GD" != "no"; then
   GD=no
   LIBGD=no
   SAVE_LIBS=$LIBS
-
+  SAVE_CFLAGS=$CFLAGS
+  SAVE_LDFLAGS=$LDFLAGS
   AC_CHECK_PROG(GDLIBCONFIG, gdlib-config, gdlib-config)
   if test "$ac_cv_prog_GDLIBCONFIG" = "gdlib-config"; then
-    GDLIBLIBS=`$GDLIBCONFIG --libs`
-    GDLIBS="$LIBS -lgd $GDLIBLIBS"
-    LIBS=$GDLIBS
+    GD_LIBS=`$GDLIBCONFIG --libs`
+    GD_LIBS2="$LIBS -lgd $GD_LIBS"
+    LIBS=$GD_LIBS2
+    GD_CFLAGS=`$GDLIBCONFIG --cflags`
+    CFLAGS="$CFLAGS $GD_CFLAGS"
+    GD_LDFLAGS=`$GDLIBCONFIG --ldflags`
+    LDFLAGS="$LDFLAGS $GD_LDFLAGS"
     AC_MSG_CHECKING(for libgd > 2.0.14)
     GDVERSION=`$GDLIBCONFIG --version`
     GDMAJORVERSION=`$GDLIBCONFIG --majorversion`
@@ -1029,7 +1032,7 @@ if test "$GD" != "no"; then
       AC_MSG_NOTICE(png support not available)
     else
       LIBGD_PNG=no
-      LIBS=$GDLIBS
+      LIBS=$GD_LIBS2
       AC_MSG_CHECKING(for gdImagePng in -lgd)
       AC_TRY_LINK([#include <gd.h>],
       [gdImagePng (0,0);],
@@ -1061,7 +1064,7 @@ if test "$GD" != "no"; then
       AC_MSG_NOTICE(jpeg support not available)
     else
       LIBGD_JPG=no
-      LIBS=$GDLIBS
+      LIBS=$GD_LIBS2
       AC_MSG_CHECKING(for gdImageJpeg in -lgd)
       AC_TRY_LINK([#include <gd.h>],
       [gdImageJpeg (0,0,0);],
@@ -1088,6 +1091,8 @@ if test "$GD" != "no"; then
     AC_MSG_NOTICE(libgd not available)
   fi
   LIBS=$SAVE_LIBS
+  CFLAGS=$SAVE_CFLAGS
+  LDFLAGS=$SAVE_LDFLAGS
 fi
 if test "$GD" != "no"; then
   GDGRAPHICS=DriverGraphics_gd
@@ -1195,6 +1200,9 @@ AC_SUBST(GD)
 AC_SUBST(GD_JPG)
 AC_SUBST(GD_PNG)
 AC_SUBST(GDGRAPHICS)
+AC_SUBST(GD_LIBS)
+AC_SUBST(GD_CFLAGS)
+AC_SUBST(GD_LDFLAGS)
 AC_SUBST(BZIP2)
 
 BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"

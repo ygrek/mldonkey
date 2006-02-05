@@ -100,7 +100,7 @@ SUBDIRS=$(CDK) $(CHAT) $(CHAT_GUI) $(LIB) $(RSS) $(XML) $(NET) tools \
 
 INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 
-CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES) $(GTKCFLAGS)
+CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES) $(GTKCFLAGS) $(GD_CFLAGS)
 
 # use_tags$(EXE) 
 TARGETS= mlnet$(EXE) 
@@ -145,7 +145,6 @@ ifeq ("$(BZIP2)", "yes")
   CDK_SRCS +=  $(CDK)/bzlib.ml $(CDK)/bzip2.ml
 endif
 
-LIBS_flags += -cclib -lz
 CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zip.ml $(CDK)/gzip.ml $(CDK)/zlibstubs.c $(CDK)/tar.ml
 
 CDK_SRCS += $(LIB)/autoconf.ml
@@ -537,15 +536,7 @@ CORE_SRCS += $(OPENFT_SRCS)
 endif
 
 ifeq ("$(GD)", "yes")
-  GD_LIBS_flags += -cclib -lgd -cclib -lfreetype -cclib -lm
-  GD_LIBS_flags += -ccopt -W -ccopt -Wall -ccopt -Wno-unused
-  ifeq ("$(GD_JPG)", "yes")
-    GD_LIBS_flags += -cclib -ljpeg
-  endif
-  ifeq ("$(GD_PNG)", "yes")
-    GD_LIBS_flags += -cclib -lpng
-    GD_LIBS_flags += -ccopt -DHAVE_JPEG
-  endif
+  GD_LIBS_flags=-cclib "-lgd $(GD_LIBS)" -ccopt "$(GD_LDFLAGS)"
   DRIVER_SRCS= \
     $(CDK)/gd.ml \
     $(CDK)/gdstubs.c \
