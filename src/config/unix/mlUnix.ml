@@ -108,6 +108,6 @@ external glibc_version : unit -> string = "glibc_version"
 let glibc_version_num () =
   begin
     try
-      let s = Printf.sprintf "%s" (glibc_version ()) in s
+      glibc_version ()
     with e -> ""
   end

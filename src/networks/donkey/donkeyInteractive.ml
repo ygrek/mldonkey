@@ -554,8 +554,7 @@ let parse_donkey_url url =
             CommonInteractive.start_download file;
             "", true
           with e ->
-            let s = Printf.sprintf "%s" (Printexc2.to_string e) in
-	      s, false
+            (Printexc2.to_string e), false
           end
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
@@ -1106,8 +1105,7 @@ let get_ips_cc_cn c =
     match c.client_kind with
       Direct_address (ip,port) -> 
         let cc,cn = Geoip.get_country ip in
-        Printf.sprintf "%s" (Ip.to_string ip)
-        ,cc,cn
+        (Ip.to_string ip),cc,cn
     | _ ->  
         let cc,cn = !Geoip.unknown_country in
         (string_of_client_addr c),cc,cn
@@ -1364,7 +1362,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
           html_mods_td buf ([
             ("", "sr", (match c.client_download with
                   None -> ""
-                | Some _ -> Printf.sprintf "%s" (
+                | Some _ -> (
                       let qfiles = c.client_file_queue in
                       let (qfile, qchunks,_) =  List.hd qfiles in
                       if (qfile == file) then

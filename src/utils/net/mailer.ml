@@ -97,7 +97,7 @@ let read_response ic =
     bad_response ()
 
 let make_mail mail new_style =
-  let mail_date = Printf.sprintf "%s" (Date.mail_string (Unix.time ())) in
+  let mail_date = Date.mail_string (Unix.time ()) in
   
   if new_style then
 	Printf.sprintf 

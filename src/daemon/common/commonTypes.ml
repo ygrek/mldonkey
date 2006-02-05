@@ -657,14 +657,14 @@ let ogg_tag_to_string ogg_tag =
 | Ogg_audio_avgbytespersec r -> Printf.sprintf "%.0f kbps" (r *. 8. /. 1000.)
 | Ogg_vorbis_version r -> Printf.sprintf "vorbis version: %.0f" r
 | Ogg_vorbis_sample_rate r -> Printf.sprintf "%.0f Hz" r
-| Ogg_vorbis_bitrates l -> Printf.sprintf "%s" (vorbis_bitrates_to_string l)
+| Ogg_vorbis_bitrates l -> vorbis_bitrates_to_string l
 | Ogg_vorbis_blocksize_0 n -> Printf.sprintf "blocksize_0: %d" (int_of_float (2. ** float_of_int n))
 | Ogg_vorbis_blocksize_1 n -> Printf.sprintf "blocksize_1: %d" (int_of_float (2. ** float_of_int n))
 | Ogg_video_width r -> Printf.sprintf "width: %.0f pixels" r
 | Ogg_video_height r -> Printf.sprintf "height: %.0f pixels" r
 | Ogg_video_sample_rate r -> Printf.sprintf "%.3f fps" r
 | Ogg_aspect_ratio r -> Printf.sprintf "1:%0.5f" r
-| Ogg_theora_cs cs -> Printf.sprintf "%s" (theora_cs_to_string cs)
+| Ogg_theora_cs cs -> theora_cs_to_string cs
 | Ogg_theora_quality n -> Printf.sprintf "%d [quality]" n
 | Ogg_theora_avgbytespersec n -> Printf.sprintf "%d kbps" (n / 1000)
 

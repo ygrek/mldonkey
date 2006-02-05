@@ -145,7 +145,7 @@ let op_file_print_html file buf =
          tracker_string := (if tracker.tracker_enabled then "" else "*") ^ 
 	   !tracker_string ^ (shorten tracker.tracker_url !!max_name_len) ^ " "
       ) file.file_trackers;
-      Printf.sprintf "%s" !tracker_string)) ];
+      !tracker_string)) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
@@ -242,13 +242,13 @@ let op_file_print_html file buf =
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
 		("Tracker id", "sr br", "Tracker id");
-		("", "sr", Printf.sprintf "%s" t.tracker_id) ]
+		("", "sr", t.tracker_id) ]
             end;
 	    if String.length t.tracker_key > 0 then begin
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
 		("Tracker key", "sr br", "Tracker key");
-		("", "sr", Printf.sprintf "%s" t.tracker_key) ]
+		("", "sr", t.tracker_key) ]
 	    end 
 	  end in
   print_first_tracker file.file_trackers;

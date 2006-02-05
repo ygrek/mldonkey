@@ -402,15 +402,12 @@ let server_print s o =
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
     (html_mods_cntr ())
-    (
-        Printf.sprintf "%s"
-        (match impl.impl_server_state with
+    (match impl.impl_server_state with
         Connected _ -> Printf.sprintf "title=\\\"Server Banner\\\"
             onMouseOver=\\\"mOvr(this);\\\"
             onMouseOut=\\\"mOut(this);\\\"
             onClick=\\\"location.href='submit?q=server_banner+%d'\\\"" snum
         | _ -> "")
-    )
     snum
       (
         if server_blocked s && (match impl.impl_server_state with

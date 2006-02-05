@@ -226,7 +226,7 @@ lose them during the first connection... *)
     end;  *)
   let headers =
 (*      Printf.bprintf buf "User-Agent: %s\r\n" user_agent; *)
-    ("X-Kazaa-Network", Printf.sprintf "%s" FasttrackNetwork.network_name) ::
+    ("X-Kazaa-Network", FasttrackNetwork.network_name) ::
     ("Connection", "Keep-Alive") ::
     ("X-Kazaa-Username", client_name ()) ::
     ("Connection", "Keep-Alive") ::

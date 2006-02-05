@@ -1741,7 +1741,7 @@ let runinfo html buf =
       ^ "\nIP blocking:\t " ^ (let r1,r2 = Ip_set.block_stats () in
           if r1 = 0 then dis_mess else Printf.sprintf "enabled, %d ranges loaded - optimized to %d" r1 r2)
       ^ "\nSystem info:\t " ^ (let uname = Unix32.uname () in
-          if uname <> "" then Printf.sprintf "%s" uname else "unknown")
+          if uname <> "" then uname else "unknown")
       ^ "\n\t\t language: " ^ Charset.default_language
       ^ " - locale: " ^ Charset.locstr
       ^ " - UTC offset: " ^ Rss_date.mk_timezone (Unix.time ())

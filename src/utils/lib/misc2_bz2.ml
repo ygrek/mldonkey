@@ -47,6 +47,6 @@ let bz2_extract filename =
 let bzlib_version_num () =
   begin
     try
-      let s = Printf.sprintf "%s" (Bzlib.bzlib_version ()) in s
+      Bzlib.bzlib_version ()
     with e -> ""
   end

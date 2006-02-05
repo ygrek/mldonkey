@@ -33,7 +33,7 @@ external zlib_version : unit -> string = "camlzip_zlibversion"
 let zlib_version_num () =
   begin
     try
-      let s = Printf.sprintf "%s" (zlib_version ()) in s
+      zlib_version ()
     with e -> ""
   end
 

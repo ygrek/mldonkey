@@ -1365,9 +1365,9 @@ let _ =
               begin
                 if use_html_mods o then
                   custom_commands := !custom_commands @ [ ( "bu bbig",
-                  Printf.sprintf "%s" name,
+                  name,
                   Printf.sprintf "top.output.location.href='submit\\?custom=%s'" (Url.encode name),
-                  Printf.sprintf "%s" name ) ; ]
+                  name ) ; ]
                 else
                   Printf.bprintf buf
                     "\\<a href=\\\"submit\\?custom=%s\\\" $O\\> %s \\</a\\>\n"

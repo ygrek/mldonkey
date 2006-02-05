@@ -199,7 +199,7 @@ let lprintf fmt =
   (fmt : ('a,unit, unit) format )
 
 let lprintf_nl fmt =
-  cprintf (fun s -> try !lprintf_handler ((Printf.sprintf "%s" (log_time ()))^s^"\n") with _ -> ())
+  cprintf (fun s -> try !lprintf_handler ((log_time ())^s^"\n") with _ -> ())
   (fmt : ('a,unit, unit) format )
 
 let lprintf_nl2 fmt =

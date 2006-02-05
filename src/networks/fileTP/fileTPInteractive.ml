@@ -400,7 +400,7 @@ let commands = [
               Printf.bprintf buf "Not enough parameters";
             _s ""
 	| e ->
-	    let error = Printf.sprintf "%s" (Printexc2.to_string e) in
+	    let error = Printexc2.to_string e in
             let buf = o.conn_buf in
             if o.conn_output = HTML then
               html_mods_table_one_row buf "serversTable" "servers" [
