@@ -454,7 +454,7 @@ let _ =
     "sysinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
         ignore(buildinfo (o.conn_output = HTML) buf);
-        ignore(runinfo (o.conn_output = HTML) buf);
+        ignore(runinfo (o.conn_output = HTML) buf o);
         ignore(diskinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey core build, runtime and disk information";
@@ -467,7 +467,7 @@ let _ =
 
     "runinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
-        ignore(runinfo (o.conn_output = HTML) buf);
+        ignore(runinfo (o.conn_output = HTML) buf o);
         ""
     ), ":\t\t\t\tprint mldonkey runtime information";
 

@@ -1721,11 +1721,15 @@ let buildinfo html buf =
   else
     Printf.bprintf buf "\n\t--Buildinfo--\n%s\n" s
   
-let runinfo html buf =
+let runinfo html buf o =
   let dis_mess = "disabled, to enable adjust web_infos in downloads.ini for automatic download" in
+  let ui_user = o.conn_user.ui_user_name in
   let s =
   (
-	"Uptime:\t\t " ^ Date.time_to_string (last_time () - start_time) "verbose"
+        "User:\t\t " ^ ui_user
+      ^   (if List.assoc ui_user !!users = Md4.string "" then " (Warning: empty Password)"
+           else " (PW Protected)")
+      ^	  " - uptime: " ^ Date.time_to_string (last_time () - start_time) "verbose"
       ^ "\nEnabled nets:\t"
       ^   (if Autoconf.donkey = "yes" && !!enable_donkey then " Donkey" else "")
       ^   (if Autoconf.donkey = "yes" && !!enable_overnet then " Overnet" else "")

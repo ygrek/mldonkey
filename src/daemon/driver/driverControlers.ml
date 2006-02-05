@@ -1152,7 +1152,7 @@ let http_handler o t r =
 	    Buffer.add_string buf "</b></h3>";
 	    ignore (buildinfo false buf);
 	    Buffer.add_string buf "\n";
-	    ignore (runinfo false buf);
+	    ignore (runinfo false buf o);
 	    Buffer.add_string buf "</pre>\n"
 
         | "bw_updown.png" ->
