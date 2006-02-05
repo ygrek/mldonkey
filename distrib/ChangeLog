@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/02/04
+4856: reverse patch: configure: disable iconv by default on MinGW
+      it is not necessary anymore
+
+2006/02/04
 4867: Use setrlimit to raise allowed ulimit open files
 
 2006/02/03
@@ -27,7 +31,7 @@ ChangeLog
 4859: Multiuser: Only user "admin" is allowed to change options
       if the new option enable_user_config (default true) is set to false
 4858: HTML: Update some links to mldonkey.sf.net
-4857: SIGUSR1 & SIGUSR2 don´t exist on Windows
+4857: SIGUSR1 & SIGUSR2 do not exist on Windows
 4856: configure: disable iconv by default on MinGW
 4853: Fix HTML errors on rss command output (unease)
 
