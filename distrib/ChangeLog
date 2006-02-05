@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2006/02/04
+2006/02/05
 4856: reverse patch: configure: disable iconv by default on MinGW
       it is not necessary anymore
 
