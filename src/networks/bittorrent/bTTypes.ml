@@ -96,6 +96,7 @@ type brand =
 | Brand_torrenttopia
 | Brand_greedbt
 | Brand_btgetit
+| Brand_ktorrent
 
 let brand_list = [ 
    ( Brand_unknown          , "unknown"                , "unk" ) ;
@@ -147,6 +148,7 @@ let brand_list = [
    ( Brand_torrenttopia     , "TorrentTopia"           , "tt" ) ;
    ( Brand_greedbt          , "GreedBT"                , "gbt" ) ;
    ( Brand_btgetit          , "BTGetit"                , "btg" ) ;
+   ( Brand_ktorrent         , "KTorrent"               , "kto" ) ;
   ] 
 
 let brand_count = List.length brand_list

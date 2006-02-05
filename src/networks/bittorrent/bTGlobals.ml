@@ -376,6 +376,7 @@ let decode_az_style s =
       | "lt" -> Brand_libtorrent
       | "MP" -> Brand_moopolice
       | "UT" -> Brand_utorrent
+      | "KT" -> Brand_ktorrent
       | _ -> Brand_unknown
     in
     if brand = Brand_unknown then None else
