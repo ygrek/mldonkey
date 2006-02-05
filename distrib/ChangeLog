@@ -15,7 +15,8 @@ ChangeLog
 =========
 
 2006/02/05
-4869: Remove redirector code
+4869: Remove obsolete redirector code
+      http://mldonkey.sourceforge.net/Redirector
 4856: reverse patch: configure: disable iconv by default on MinGW
       it is not necessary anymore
 
