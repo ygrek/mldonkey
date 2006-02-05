@@ -376,21 +376,3 @@ i.e. the table can only retain at most 1 MB of data after every call
             Hashtbl.add neighbours cnum nb
       ) list)
   [keep_glru; keep_history; keep_slru]
-
-open LittleEndian
-
-let _ =
-  CommonWeb.add_redirector_info "DKNB" (fun buf ->
-      compute_stats ();
-      let len = Array.length ngood_propositions in
-      buf_int buf len;
-      for i = 0 to len - 1 do
-        buf_int64 buf ngood_propositions.(i);
-        buf_int64 buf nbad_propositions.(i)
-      done;
-      let len = Fifo.length propositions in
-      buf_int buf len;
-      let len = ref 0 in
-      Hashtbl.iter (fun _ _ -> incr len) neighbours;
-      buf_int buf !len
-  )

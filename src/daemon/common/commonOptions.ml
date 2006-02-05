@@ -468,7 +468,6 @@ let verbosity = define_expert_option current_section ["verbosity"]
   hs : http_server messages
   act : debug activity
   bw : debug bandwidth
-  redir : debug redirector
   unexp : debug unexpected messages
 "
     string_option ""
@@ -900,28 +899,6 @@ let socket_keepalive = define_expert_option current_section ["socket_keepalive"]
   This implies some bandwidth-cost (with 200 connections ~10-20%)"
     bool_option !BasicSocket.socket_keepalive
 
-let network_update_url =
-  define_expert_option current_section ["network_update_url"]
-    "URL where mldonkey can download update information on the network"
-    string_option ""
-
-let enable_mlnet_redirector =
-  define_option current_section ["enable_mlnet_redirector"]
-    "Enable the mlnet redirector"
-    bool_option true
-
-let mlnet_redirector = define_expert_option current_section ["redirector"]
-    "IP:port of the network redirector"
-    addr_option ("129.104.11.42", 3999)
-
-(* The former redirector is dead, so use a new one. *)
-let _ =
-  option_hook mlnet_redirector (fun _ ->
-      let (ip, port) = !!mlnet_redirector in
-      if ip = "128.93.52.5" then
-        mlnet_redirector =:=  ("129.104.11.42", 3999)
-  )
-
 let http_proxy_server = define_option current_section ["http_proxy_server"]
     "Direct HTTP queries to HTTP proxy" string_option ""
 let http_proxy_port = define_option current_section ["http_proxy_port"]
@@ -1080,12 +1057,6 @@ let config_files_security_space = define_expert_option current_section
     ["config_files_security_space"]
   "How many megabytes should MLdonkey keep for saving configuration files."
     int_option 10
-
-let propagate_servers = define_expert_option current_section ["propagate_servers"]
-  "Send an UDP packet to a central servers with the list of servers you
-  are currently connected to, for the central server to be able to
-    generate accurate server lists." bool_option false
-
 
 
 
@@ -1673,10 +1644,6 @@ let _ =
   option_hook packet_frame_size (fun _ ->
       TcpBufferedSocket.packet_frame_size := !!packet_frame_size
   );
-  option_hook network_update_url (fun _ ->
-      if !!network_update_url =
-        "http://savannah.nongnu.org/download/mldonkey/network/" then
-        network_update_url =:= "");
   option_hook minor_heap_size (fun _ ->
       let gc_control = Gc.get () in
       Gc.set { gc_control with Gc.minor_heap_size =
@@ -1709,7 +1676,6 @@ let verbose_udp = ref false
 let verbose_supernode = ref false
 let verbose_swarming = ref false
 let verbose_activity = ref false
-let verbose_redirector = ref false
 let verbose_unexpected_messages = ref false
 
 let set_all v =
@@ -1737,7 +1703,6 @@ let set_all v =
   Http_client.verbose := v;
   Http_server.verbose := v;
   verbose_activity := v;
-  verbose_redirector := v;
   verbose_unexpected_messages := v
 
 let _ =
@@ -1771,7 +1736,6 @@ let _ =
           | "hs" -> Http_server.verbose := true
           | "act" -> verbose_activity := true
           | "bw" -> incr BasicSocket.verbose_bandwidth
-          | "redir" -> verbose_redirector := true
           | "unexp" -> verbose_unexpected_messages := true
 
           | "all" ->

@@ -950,12 +950,6 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
         ) args;
         "done"
     ), "<port1> <port2> ... :\t\tadd these ports to the port black list";
-
-    "send_servers", Arg_none (fun o ->
-        CommonWeb.connect_redirector ();
-        "done"
-    ), ":\t\t\t\tsend the list of connected servers to the redirector";
-
   ]
 
 let _ =

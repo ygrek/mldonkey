@@ -1053,19 +1053,3 @@ let words_of_filename =
     | l -> l
   in
   get_name_keywords
-
-open LittleEndian
-
-let _ =
-  CommonWeb.add_redirector_info "SHARED" (fun buf ->
-      let module S = CommonShared in
-      let total_shared = ref Int64.zero in
-      let total_uploaded = ref Int64.zero in
-      S.shared_iter (fun s ->
-          let i = S.as_shared_impl s in
-          total_uploaded := !total_uploaded ++ i.S.impl_shared_uploaded;
-          total_shared := !total_shared ++ i.S.impl_shared_size
-      );
-      buf_int64 buf !total_shared;
-      buf_int64 buf !total_uploaded;
-  )

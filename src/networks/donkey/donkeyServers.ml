@@ -875,13 +875,6 @@ let update_master_servers _ =
 open LittleEndian
 
 let _ =
-  CommonWeb.add_redirector_info "DKSV" (fun buf ->
-      buf_list (fun buf s ->
-          buf_ip buf s.server_ip;
-          buf_int16 buf s.server_port;
-      ) buf (connected_servers ())
-  );
-
   server_ops.op_server_sort <- ( fun s ->
     (3600 * s.server_score) + connection_last_conn s.server_connection_control
   )

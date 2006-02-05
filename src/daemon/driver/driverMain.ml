@@ -89,7 +89,6 @@ let hourly_timer timer =
      && !CommonWeb.hours mod !!backup_options_delay = 0 then
        CommonComplexOptions.backup_options ();
   DriverControlers.check_calendar ();
-  CommonWeb.connect_redirector ();
   CommonFile.propose_filenames ()
 
 

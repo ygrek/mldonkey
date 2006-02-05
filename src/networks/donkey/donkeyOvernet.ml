@@ -1861,19 +1861,6 @@ let forget_search ss =
       | _ -> true) !overnet_searches
   end    
 
-let _ =
-  CommonWeb.add_redirector_info Proto.redirector_section (fun buf ->
-      update_buckets ();
-      let peers = get_any_peers 32 in
-      buf_int buf (List.length peers);
-      List.iter (fun p ->
-          buf_ip buf p.peer_ip;
-          buf_int16 buf p.peer_port;
-          buf_int16 buf p.peer_tcpport;
-      )
-      peers;
-  )
-
 let cancel_recover_file file =
    begin
 (* reset the Hashtbls and Fifos *)
