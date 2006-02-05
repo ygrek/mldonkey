@@ -145,7 +145,7 @@ ifeq ("$(BZIP2)", "yes")
   CDK_SRCS +=  $(CDK)/bzlib.ml $(CDK)/bzip2.ml
 endif
 
-CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zip.ml $(CDK)/gzip.ml $(CDK)/zlibstubs.c $(CDK)/tar.ml
+CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zip.ml $(CDK)/gzip.ml $(CDK)/zlibstubs.c $(CDK)/tar.mlcpp
 
 CDK_SRCS += $(LIB)/autoconf.ml
 
@@ -183,7 +183,7 @@ LIB_SRCS=   \
   $(LIB)/intset.ml \
   $(LIB)/hole_tab.ml $(LIB)/store.ml \
   $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml $(LIB)/host.ml  \
-  $(LIB)/misc2.ml $(LIB)/misc.ml $(LIB)/unix32.ml  $(LIB)/md4.ml \
+  $(LIB)/misc2.mlcpp $(LIB)/misc.ml $(LIB)/unix32.ml  $(LIB)/md4.ml \
   $(LIB)/avifile.ml $(LIB)/http_lexer.mll $(LIB)/url.ml \
   $(RSS)/rss_date.ml \
   $(LIB)/date.ml  $(LIB)/fst_hash.c \
@@ -1700,7 +1700,6 @@ releaseclean: clean moreclean
 	rm -f src/utils/lib/gAutoconf.ml.new
 	rm -f src/utils/lib/misc2.ml
 	rm -f src/utils/cdk/tar.ml
-	rm -f src/utils/cdk/tar.mli
 	rm -f icons/tux/*.ml_icons
 	rm -f icons/tux/*.ml
 	rm -f icons/kde/*.ml_icons

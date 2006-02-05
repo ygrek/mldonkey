@@ -18,6 +18,7 @@
 *)
 
 let bz2_extract filename =
+#ifdef USE_BZIP2
   if Autoconf.system = "openbsd" then
     failwith "bz2 not supported on this platform"
   else begin
@@ -43,10 +44,17 @@ let bz2_extract filename =
 	    file_out
     with e -> (try Sys.remove !file with _ -> ()); raise e
   end
+#else
+  failwith "bz2 not supported"
+#endif
 
 let bzlib_version_num () =
+#ifdef USE_BZIP2
   begin
     try
       Bzlib.bzlib_version ()
     with e -> ""
   end
+#else
+  ""
+#endif

@@ -57,6 +57,7 @@ class gzin_chan i = object
   method close () = Gzip.close_in i
 end
 
+#ifdef USE_BZIP2
 class bzin_chan i = object
   method really_input str pos len =
     try Bzip2.really_input i str pos len with
@@ -67,13 +68,19 @@ class bzin_chan i = object
   method dispose () = Bzip2.dispose i
   method close () = Bzip2.close_in i
 end
+#endif
 
 
 let open_inchan comp chan = 
   match comp with
     | `Plain -> new in_chan chan
     | `Gzip -> new gzin_chan (Gzip.open_in_chan chan)
-    | `Bzip2 -> new bzin_chan (Bzip2.open_in_chan chan)
+    | `Bzip2 -> 
+#ifdef USE_BZIP2
+	new bzin_chan (Bzip2.open_in_chan chan)
+#else
+	failwith "bzip2 not supported"
+#endif
 
 let pick_comp_type filename = function
   | `Gzip -> `Gzip
@@ -82,8 +89,10 @@ let pick_comp_type filename = function
   | `Guess ->
       if Filename.check_suffix filename ".tar" then
 	`Plain
+#ifdef USE_BZIP2
       else if Filename.check_suffix filename ".bz2" then
 	`Bzip2
+#endif
       else if Filename.check_suffix filename ".gz"
 	|| Filename.check_suffix filename ".Z"
 	|| Filename.check_suffix filename ".tgz" then
@@ -116,7 +125,7 @@ let c_string raw start =
   let nul = String.index_from raw start '\000' in
     String.sub raw start (nul - start)
 
-(* Numbers are /supposed/ to be 0 padded, octal, with a trailing "\000 ". About the only thing that's universal about this is octal. *)
+(* Numbers are /supposed/ to be 0 padded, octal, with a trailing "\000". About the only thing that s universal about this is octal. *)
 let trim_spaces str pos len =
   let start = ref pos 
   and stop = ref (pos + len - 1) in
@@ -279,18 +288,25 @@ class gzout_chan o = object
   method close () = Gzip.close_out o
 end
 
+#ifdef USE_BZIP2
 class bzout_chan o = object
   method output str pos len = Bzip2.output o str pos len
   method flush () = Bzip2.flush o
   method close () = Bzip2.close_out o
 end
+#endif
 
 
 let open_outchan comp chan = 
   match comp with
     | `Plain -> new out_chan chan
     | `Gzip -> new gzout_chan (Gzip.open_out_chan chan)
-    | `Bzip2 -> new bzout_chan (Bzip2.open_out_chan chan)
+    | `Bzip2 -> 
+#ifdef USE_BZIP2
+	new bzout_chan (Bzip2.open_out_chan chan)
+#else
+	failwith "bzip2 not supported"
+#endif
 
 type t_out = {
   ochan: out_chan;

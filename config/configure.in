@@ -550,15 +550,8 @@ if test "$BZIP2" != "no"; then
 fi
 
 if test "$BZIP2" = "yes"; then
-  cp -f ../src/utils/lib/misc2_bz2.ml ../src/utils/lib/misc2.ml
-  cp -f ../src/utils/cdk/tar_bz2.ml ../src/utils/cdk/tar.ml
-  cp -f ../src/utils/cdk/tar_bz2.mli ../src/utils/cdk/tar.mli
   AC_CHECK_LIB(bz2,BZ2_bzlibVersion,[AC_DEFINE(HAVE_BZLIBVERSION, 1,)])
   AC_DEFINE(USE_BZIP2, 1, [Define to 1 if you have bzip2 support.])
-else
-  cp -f ../src/utils/lib/misc2_no_bz2.ml ../src/utils/lib/misc2.ml
-  cp -f ../src/utils/cdk/tar_no_bz2.ml ../src/utils/cdk/tar.ml
-  cp -f ../src/utils/cdk/tar_no_bz2.mli ../src/utils/cdk/tar.mli
 fi
 
 AC_CHECK_HEADERS(byteswap.h,,)
