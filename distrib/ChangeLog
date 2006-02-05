@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/05
+4876: EDK: Remove obsolete option random_order_download
 4875: conditional bzip2 support using cpp (pango)
 4870: runinfo: add connected_user and check empty PW (schlumpf)
 4872: Fix gd detection on NetBSD, use data from gdlib-config

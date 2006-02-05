@@ -206,11 +206,6 @@ let dynamic_upload_threshold =
     "Uploaded zones (1 zone = 180 kBytes) needed to enable the dynamic upload lifetime"
     int_option 10
 
-let random_order_download =
-  define_option donkey_section ["random_order_download"]
-  "Should we try to download chunks in random order (false = linearly) ?"
-    bool_option true
-
 let connected_server_timeout =
   define_expert_option donkey_section ["connected_server_timeout"]
     "How long can a silent server stay connected"
@@ -329,7 +324,6 @@ let gui_donkey_options_panel =
     "Max Sources Per Download", shortname max_sources_per_file, "T";
     "Port", shortname donkey_port, "T";
     "Login", shortname login, "T";
-    "Download Chunks in Random order", shortname random_order_download, "B";
     "Sources Per Chunk", shortname sources_per_chunk, "T";
     "Prevent Re-download of Cancelled Files", shortname keep_cancelled_in_old_files, "B";
     "Prevent Re-download of Downloaded Files", shortname keep_downloaded_in_old_files, "B";
