@@ -80,7 +80,7 @@ let fni  n m =  failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
 
 let lprintf_nl () =
-  lprintf "%s[cShared]: "
+  lprintf "%s[cSha] "
   (log_time ()); lprintf_nl2
     
 let shared_calculate_total_bytes () =
@@ -258,7 +258,7 @@ let shared_scan_directory shared_dir local_dir =
             try
               if Unix2.is_directory full_name then begin
 	        if strategy.sharing_recursive then
-	          if Sys.os_type <> "Win32" then (* Win32 means MinGW here as it does not supports inode nums *)
+	          if Autoconf.system <> "mingw" then
 	          begin
 		    let inode = ((Unix.stat full_name).Unix.st_ino) in
 		      if inode = incoming_files_inode then

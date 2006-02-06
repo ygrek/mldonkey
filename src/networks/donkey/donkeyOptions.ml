@@ -78,14 +78,6 @@ let local_index_add_cmd = define_expert_option donkey_section
     string_option "" (* (cmd_basedir ^ "local_index_add") *)
 *)
 
-let compute_md4_delay = define_expert_option donkey_section ["compute_md4_delay"]
-    "The delay between computations of the md4 of chunks"
-  float_option 1.
-
-let _ =
-  option_hook compute_md4_delay (fun _ ->
-      if !!compute_md4_delay < 0.1 then compute_md4_delay =:= 0.1)
-
 let server_black_list = define_option donkey_section
     ["server_black_list"] "A list of server IP to remove from server list.
     Servers on this list can't be added, and will eventually be removed"

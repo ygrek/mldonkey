@@ -69,15 +69,10 @@ let _ =
           try
             let fd = Unix.openfile job.job_name [Unix.O_RDONLY] 0o444 in
             current_job := Some (job, fd);
-            if !verbose_md4 then begin
-                lprintf_nl "[cHa] Starting job %s %Ld %Ld %s" job.job_name
-                  job.job_begin job.job_len
-                  (match job.job_method with
-                    MD5 -> "MD5"
-                  | TIGER -> "TIGER"
-                  | SHA1 -> "SHA1"
-                  | MD4 -> "MD4");
-              end;
+            if !verbose_md4 then lprintf_nl "[cHa] Starting %s job %s %Ld %Ld" 
+              (match job.job_method with
+		MD5 -> "MD5" | TIGER -> "TIGER" | SHA1 -> "SHA1" | MD4 -> "MD4")
+                  job.job_name job.job_begin job.job_len;
             job_start job fd;
           with e ->
               lprintf_nl "[cHa] Exception %s in starting job"

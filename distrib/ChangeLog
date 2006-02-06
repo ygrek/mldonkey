@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/02/06
+4849: EDK: Fix hashing of newly shared files
+- avoid hashing shared files twice
+- avoid problems while hashing big files
+- remove obsolete compute_md4_delay option
 4878: Addition to patch 4875 (conditional bzip2 support using cpp)
 
 2006/02/05

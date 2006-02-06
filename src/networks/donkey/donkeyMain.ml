@@ -79,7 +79,13 @@ let second_timer timer =
         if !verbose_sources > 2 then 
           lprintf_nl () "Exception %s while checking sources" 
             (Printexc2.to_string e)
-  )
+  );
+  DonkeyServers.udp_walker_timer ()
+
+let five_second_timer timer =
+  DonkeyServers.walker_timer ();
+  DonkeyOneFile.check_files_downloaded ();
+  DonkeyShare.check_shared_files ()
 
 let min_timer timer =
   DonkeySources.clean_sources (); (* Moved here from fivemin_timer. *)
@@ -311,19 +317,14 @@ be useful when users want to share files that they had already previously
       
       add_session_option_timer enabler check_connections_delay 
         DonkeyServers.check_server_connections;
-      add_session_option_timer enabler compute_md4_delay 
-        (fun _ ->
-          DonkeyOneFile.check_files_downloaded ();
-          DonkeyShare.check_shared_files ()
-      );
-      add_session_timer enabler 5.0 DonkeyServers.walker_timer;
-      add_session_timer enabler 1.0 DonkeyServers.udp_walker_timer;
+
       
       add_session_timer enabler 3600. hourly_timer;
       add_session_timer enabler 60. min_timer;
       add_session_timer enabler 300. fivemin_timer;
       add_session_timer enabler 900. quarter_timer;
       add_session_timer enabler 1. second_timer;
+      add_session_timer enabler 5. five_second_timer;
       add_session_option_timer enabler remove_old_servers_delay 
           DonkeyServers.remove_old_servers;
 
