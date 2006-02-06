@@ -1,3 +1,4 @@
+#include "../../../config/config.h"
 
 exception Error of string
 

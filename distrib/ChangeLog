@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/02/06
+4878: Addition to patch 4875 (conditional bzip2 support using cpp)
+
 2006/02/05
 4877: BT: Recognize Ktorrent clients (CruX, zet)
 4876: EDK: Remove obsolete option random_order_download
