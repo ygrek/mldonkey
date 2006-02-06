@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/02/06
+4879: EDK: Support for sources in ed2k:// links
+- example:
+ed2k://|file|a.txt|1|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|/|sources,1.0.0.0:4662|/
 4849: EDK: Fix hashing of newly shared files
 - avoid hashing shared files twice
 - avoid problems while hashing big files

@@ -2685,6 +2685,16 @@ let _ =
 
     "dllink", Arg_multiple (fun args o ->
         let query_networks url =
+	let print_result buf o result =
+	  List.iter (fun s ->
+	    if o.conn_output = HTML then
+	      begin
+		Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+		html_mods_td buf [ ("", "sr", s); ]
+	      end
+	    else
+	      Printf.bprintf buf "%s\n" s) (List.rev result);
+	in
 	let result = ref [] in
           if not (networks_iter_until_true (fun n ->
 		try
@@ -2713,14 +2723,7 @@ let _ =
 		    end
 		  else
                     Printf.bprintf buf "Unable to match URL : %s\n" url;
-		  List.iter (fun s ->
-		    if o.conn_output = HTML then
-		      begin
-			Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-                        html_mods_td buf [ ("", "sr", s); ]
-		      end
-		    else
-                      Printf.bprintf buf "%s\n" s) (List.rev !result);
+    	    	    print_result buf o !result;
 		  if o.conn_output = HTML then
 	            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
                 Buffer.contents buf) in
@@ -2734,6 +2737,7 @@ let _ =
                 html_mods_td buf [ ("", "srh", "Added link"); ];
                 Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
                 html_mods_td buf [ ("", "sr", url); ];
+		print_result buf o !result;
                 Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
                 Buffer.contents buf
               end

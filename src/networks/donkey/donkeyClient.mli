@@ -43,3 +43,5 @@ val client_send_if_possible : DonkeyTypes.client -> TcpBufferedSocket.t ->
 val clean_requests : unit -> unit
 
 val disconnect_client : DonkeyTypes.client -> BasicSocket.close_reason -> unit
+
+val add_source : DonkeyTypes.file -> Ip.t -> int -> Ip.t -> int -> unit

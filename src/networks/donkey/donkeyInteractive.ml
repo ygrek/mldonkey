@@ -531,8 +531,47 @@ let recover_md4s md4 =
 
 
 let parse_donkey_url url =
-  match String2.split ((*String.escaped*) url) '|' with
+  let url = Str.global_replace (Str.regexp "|sources,") "|sources|" url in
+  match String2.split (String.escaped url) '|' with
 (* TODO RESULT *)
+  | "ed2k://" :: "file" :: name :: size :: md4 :: "/" :: "sources" :: sources :: _
+  | "file" :: name :: size :: md4 :: "/" :: "sources" :: sources :: _ ->
+(*  ed2k://|file|Wikipedia_3.3_noimages.iso|2666311680|747735CD46B61DA92973E9A8840A9C99|/|sources,62.143.4.124:4662|/  *)
+      if Int64.of_string size >= 4294967295L then
+	"Files > 4GB are not allowed", false
+      else
+        begin
+	  let md4 = if String.length md4 > 32 then
+            String.sub md4 0 32 else md4 in
+	  let new_sources = ref [] in
+          let s = String2.split sources ',' in
+            List.iter (fun s ->
+              begin try
+	        match String2.split s ':' with
+                 [ip;port] ->
+                    let source_ip = Ip.of_string ip in
+                    let source_port = int_of_string port in
+		    new_sources := (source_ip, source_port) :: !new_sources
+	        | _ -> ()
+	      with _ -> ()
+          end) s;
+          begin
+	    try
+              let file = query_download [name] (Int64.of_string size)
+                (Md4.of_string md4) None None None false in
+	      let new_file = find_file (Md4.of_string md4) in
+	      CommonInteractive.start_download file;
+	      if !new_sources <> [] then
+	        begin
+	          List.iter (fun (source_ip, source_port) ->
+    		    add_source new_file source_ip source_port Ip.null 0
+    	          ) !new_sources;
+    	          (Printf.sprintf "added %d sources to new download" (List.length !new_sources)), true
+    	        end
+    	      else "", true
+    	    with e -> (Printexc2.to_string e), false
+    	  end
+    	end
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
       if Int64.of_string size >= 4294967295L then
