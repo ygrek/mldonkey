@@ -147,9 +147,15 @@ let get_port s pos =
 let get_string = get_string16
   
 let get_tag (names_of_tag : (string * field) list) s pos =
-  let t = get_uint8 s pos in
-  let name, pos2 = get_string s (pos+1) in
+  let t2 = get_uint8 s pos in
+  let name, pos2 = 
+    if t2 land 0x80 = 0x80 then
+      String.sub s (pos+1) 1, pos+2
+    else
+      get_string s (pos+1)
+  in
 (*  lprintf "tag name = %s" (String.escaped name);   *)
+  let t = t2 land 0x7f in
   let v, pos = match t with
     | 2 -> let v, pos = get_string s pos2 in
         String v, pos
@@ -161,6 +167,8 @@ let get_tag (names_of_tag : (string * field) list) s pos =
         Uint16 v, pos2 + 2
     | 9 -> let v = get_uint8 s pos2 in
         Uint8 v, pos2 + 1
+    | _ when t >= 0x11 & t <= 0x20 -> let v = String.sub s pos2 (t-0x10) in
+        String v, pos2 + t - 0x10
     | _ -> 
         if !verbose_unknown_messages then
           lprintf "get_tags: unknown tag %d at pos %d\n" t pos;
