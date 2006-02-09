@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/02/09
+4885: EDK: Show correct IP of indirect clients in uploader list
+
 2006/02/06
 4879: EDK: Support for sources in ed2k:// links
 - example:

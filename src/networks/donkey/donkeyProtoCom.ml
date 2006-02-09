@@ -90,7 +90,7 @@ let client_send c m =
       lprintf_nl () "Sent to client[%d] %s(%s) %s" (client_num c)
         c.client_name (brand_to_string c.client_brand)
       (match c.client_kind with
-          Indirect_address (server_ip, server_port, ip, port) ->
+          Indirect_address (server_ip, server_port, ip, port, real_ip) ->
 	    Printf.sprintf "[%s:%d]" (Ip.to_string (ip_of_id ip)) port
         | Direct_address (ip,port) -> Printf.sprintf "[%s:%d]" (Ip.to_string ip) port
         | Invalid_address _ -> ""

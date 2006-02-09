@@ -689,8 +689,8 @@ let string_of_client c =
   Printf.sprintf "client[%d] %s(%s) %s" (client_num c)
   c.client_name (brand_to_string c.client_brand)
   (match c.client_kind with
-      Indirect_address (server_ip, server_port, ip, port) ->
-        Printf.sprintf  " I[%s:%d]" (Ip.to_string (ip_of_id ip)) port;
+      Indirect_address (server_ip, server_port, ip, port, real_ip) ->
+        Printf.sprintf  " I[%s:%d]" (Ip.to_string real_ip) port;
     | Direct_address (ip,port) ->
         Printf.sprintf  " D[%s:%d]" (Ip.to_string ip) port;
     | Invalid_address _ -> ""
@@ -916,7 +916,7 @@ let _ =
 let client_id c =
   match c.client_kind with
     Direct_address (ip, port) -> (ip, port, zero)
-  | Indirect_address (server_ip, server_port, id, port) ->
+  | Indirect_address (server_ip, server_port, id, port, real_ip) ->
      (server_ip, server_port, id)
   | Invalid_address _ -> (Ip.null, 0, zero)
 

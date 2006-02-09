@@ -84,7 +84,7 @@ let add_source file ip port serverIP serverPort =
                         (* without server, we can't request a callback *)
                         let s = Hashtbl.find servers_by_key serverIP in
                         if serverPort = s.server_port then
-                            Indirect_address ( serverIP, serverPort, id_of_ip ip, port )
+                            Indirect_address ( serverIP, serverPort, id_of_ip ip, port, ip )
                         else
                             raise Not_found
                     with _ ->
@@ -2141,7 +2141,7 @@ let read_first_message overnet m sock =
                 Invalid_address (!name, Md4.to_string t.CR.md4)
             | Some (ip,port) ->
                 if Ip.usable ip then
-                    Indirect_address (ip, port, id_of_ip t.CR.ip, t.CR.port)
+                    Indirect_address (ip, port, id_of_ip t.CR.ip, t.CR.port, (peer_ip sock))
                 else
                     Invalid_address (!name, Md4.to_string t.CR.md4)
         else
@@ -2545,7 +2545,7 @@ let _ =
             let c = new_client s_uid in        
             reconnect_client c
         | Invalid_address _ -> ()
-        | Indirect_address (server_ip, server_port, id, port) ->
+        | Indirect_address (server_ip, server_port, id, port, real_ip) ->
 
        if low_id server_ip && Ip.reachable server_ip then
               query_id server_ip server_port id; 
