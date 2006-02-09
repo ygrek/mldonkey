@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/09
+4892: Fix make when CXXFLAGS is defined (mikex)
 4894: EDK: Support "new ed2k meta tags" to allow browsing
       shared directories of newer eMule clients (sam_dennis)
 4891: Configure: Override system-installed Ocaml and force local compile
