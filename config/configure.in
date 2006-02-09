@@ -189,7 +189,10 @@ AC_ARG_ENABLE(fasttrack,     [  --disable-fasttrack     allows you to remove sup
 BATCH=no
 AC_ARG_ENABLE(batch, [  --enable-batch          reply YES to all queries in this script], [BATCH="$enableval"])
 
-AC_ARG_ENABLE(ocamlver, [  --enable-ocamlver=VER   allows you to change the required version of ocaml to VER], [REQUIRED_OCAML="$enableval"])
+FORCE_OCAML=no
+AC_ARG_ENABLE(force-ocaml, [  --enable-force-ocaml    force usage of self-compiled Ocaml], [FORCE_OCAML="$enableval"])
+
+AC_ARG_ENABLE(ocamlver, [  --enable-ocamlver=VER   force usage of specific Ocaml version (3.08.1|CVS), ], [REQUIRED_OCAML="$enableval"])
 
 FORCE_MINGW=no
 AC_ARG_ENABLE(mingw, [  --enable-mingw          forces compilation with MINGW on Cygwin], [FORCE_MINGW="$enableval"])
@@ -320,7 +323,7 @@ esac
 
 
 BUILD_OCAML=no
-if test -z "$OCAMLC"; then
+if [ test -z "$OCAMLC" ] || [ test "$REQUIRED_OCAML" = "CVS" ]; then
    BUILD_OCAML=yes
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
@@ -345,11 +348,10 @@ if test -z "$ac_cv_prog_WGET"; then
   ac_cv_prog_WGET="$ac_cv_path_WGET"
 fi
 WGET="$ac_cv_prog_WGET"
-
-if test "$BUILD_OCAML" = "yes"; then
+if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
 
   echo "********  Objective-Caml $REQUIRED_OCAML is required  *********" 1>&2;
-  if test "$WGET" = ""; then
+  if [ test "$WGET" = "" ] && [ test "$REQUIRED_OCAML" != "CVS" ]; then
     echo "********          wget is missing          *********" 1>&2;
     echo "********       cannot download Ocaml       *********" 1>&2;
     exit 1
@@ -361,21 +363,36 @@ if test "$BUILD_OCAML" = "yes"; then
   case "$i" in
    y* | Y*)
       cd $PATCH_DIR
-      if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then
-        echo Downloading ...
-        $WGET http://caml.inria.fr/pub/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$DOWNLOAD_OCAML".tar.gz
-      fi
-      if test ! -f ocaml-"$DOWNLOAD_OCAML".tar.gz; then exit 1; fi
+      if [ test "$REQUIRED_OCAML" = "CVS" ]; then
+        rm -rf $BUILD_DIR
+        mkdir -p $BUILD_DIR
+	cd $BUILD_DIR
+	cvs -d:pserver:anoncvs:""@camlcvs.inria.fr:/caml login
+	cvs -z3 -d:pserver:anoncvs@camlcvs.inria.fr:/caml co -P ocaml
+	cd ocaml
+      else
+        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+          echo Downloading ...
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$REQUIRED_OCAML".tar.gz
+        fi
+        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.08/ocaml-"$REQUIRED_OCAML".tar.gz
+	fi
+        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.07/ocaml-"$REQUIRED_OCAML".tar.gz
+	fi
+        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
 
-      echo Uncompressing ...
-      mkdir -p $BUILD_DIR
-      cd $BUILD_DIR
-      rm -rf ocaml-"$REQUIRED_OCAML"
-      gzip -cd $PATCH_DIR/ocaml-"$DOWNLOAD_OCAML".tar.gz | tar vxf -
-      cd ocaml-"$DOWNLOAD_OCAML"
-      if test -f $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch; then
-        echo Patching ...
-        patch -p1 < $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch
+        echo Uncompressing ...
+        mkdir -p $BUILD_DIR
+        cd $BUILD_DIR
+        rm -rf ocaml-"$REQUIRED_OCAML"
+        gzip -cd $PATCH_DIR/ocaml-"$REQUIRED_OCAML".tar.gz | tar vxf -
+        cd ocaml-"$REQUIRED_OCAML"
+        if test -f $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch; then
+          echo Patching ...
+          patch -p1 < $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch
+        fi
       fi
       echo Configuring ...
       ./configure -prefix $LOCAL_DIR -host $host -cc $CC
@@ -394,7 +411,11 @@ if test "$BUILD_OCAML" = "yes"; then
         fi
       fi
       cd $BUILD_DIR
-      rm -rf ocaml-"$REQUIRED_OCAML"
+      if [ test "$REQUIRED_OCAML" = "CVS" ]; then
+        rm -rf ocaml
+      else
+        rm -rf ocaml-"$REQUIRED_OCAML"
+      fi
       cd $CONFIG_DIR
       echo Ocaml locally installed for mldonkey
 
@@ -463,14 +484,16 @@ case "$OCAMLVERSION" in
     3.08.4*) ;;
     3.08.3*) ;;
     *)
+      if [ test "$REQUIRED_OCAML" != "CVS" ]; then
         REBUILD_OCAML=yes
-        ;;
-  esac
-    if test "$REBUILD_OCAML" = "yes"; then
-      echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2;
-      echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
-      exit 1;
-    fi
+      fi
+      ;;
+esac
+if test "$REBUILD_OCAML" = "yes"; then
+  echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2;
+  echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
+  exit 1;
+fi
 
 
 if test "$OCAMLOPT" = "no"; then

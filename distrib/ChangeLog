@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/02/09
+4891: Configure: Override system-installed Ocaml and force local compile
+  Use ./configure --enable-force-ocaml to force MLDonkey to compile Ocaml,
+  regardless if the system has Ocaml already installed or not.
+  --enable-ocamlver=CVS uses a CVS checkout of Ocaml HEAD.
 4885: EDK: Show correct IP of indirect clients in uploader list
 
 2006/02/06
