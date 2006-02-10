@@ -1,6 +1,6 @@
 
 AC_REVISION(norev)
-AC_PREREQ(2.53)
+AC_PREREQ(2.55)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 

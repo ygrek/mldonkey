@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2206/02/10
+4904: Configure: Raise required autoconf version to 2.55 due to AC_MSG_FAILURE
+
 2006/02/09
 4892: Fix make when CXXFLAGS is defined (mikex)
 4894: EDK: Support "new ed2k meta tags" to allow browsing
