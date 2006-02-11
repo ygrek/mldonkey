@@ -2043,7 +2043,7 @@ rpm: sourcedist
 	$(OCAMLC) -verbose -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" $(LIBS_flags) -c $<
 
 .cc.o :
-	$(CXX) $(CXXFLAGS) -o $*.o "-I$(OCAMLLIB)" -c $<
+	$(CXX) $(CXXFLAGS) -fno-omit-frame-pointer -o $*.o "-I$(OCAMLLIB)" -c $<
 
 .cmo.byte:
 	$(OCAMLC) -o $*.byte $(LIBS) $<
