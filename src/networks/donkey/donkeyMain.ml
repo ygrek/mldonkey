@@ -62,8 +62,7 @@ let hourly_timer timer =
   DonkeyClient.clean_groups ();
   DonkeyClient.clean_requests ();
   Hashtbl.clear udp_servers_replies;
-  DonkeyThieves.clean_thieves ();
-  DonkeyNeighbours.recover_downloads !current_files
+  DonkeyThieves.clean_thieves ()
     
 let quarter_timer timer =
   clean_join_queue_tables ()

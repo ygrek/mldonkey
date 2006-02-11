@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/11
+4903: EDK: Remove obsolete donkeyNeighbours (thx to sam_dennis)
 4907: EDK: Fixed copy/paste error in emule miscoptions1 reading (sam_dennis)
 
 2006/02/10

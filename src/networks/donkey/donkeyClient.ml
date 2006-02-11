@@ -819,7 +819,6 @@ let is_valid_client md4 =
   - do *not* ask for sources, we can't be sure, the client is still downloading the file!
 *)
 let client_has_file c file =
-  DonkeyNeighbours.new_neighbour c file;
   DonkeySources.set_request_result c.client_source file.file_sources File_found
 
 (*

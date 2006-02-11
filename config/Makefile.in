@@ -324,7 +324,6 @@ DONKEY_SRCS += \
   $(SRC_DONKEY)/donkeyShare.ml \
   $(SRC_DONKEY)/donkeyReliability.ml \
   $(SRC_DONKEY)/donkeyThieves.ml \
-  $(SRC_DONKEY)/donkeyNeighbours.ml \
   $(SRC_DONKEY)/donkeyStats.ml \
   $(SRC_DONKEY)/donkeyOneFile.ml \
   \

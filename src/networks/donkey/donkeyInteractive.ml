@@ -265,8 +265,6 @@ let really_query_download filenames size md4 location old_file absents =
 (*  !file_change_hook file; *)
 (*  set_file_size file (file_size file); *)
 
-  DonkeyNeighbours.recover_downloads [file];
-
   List.iter (fun s ->
       add_query_location file s
   ) (connected_servers());
