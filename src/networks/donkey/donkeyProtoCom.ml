@@ -398,6 +398,27 @@ let client_send_files sock msg =
   str_int s 6 nfiles;
   write_string sock s
 
+let client_send_dir sock dir files =
+  let max_len = !!client_buffer_size - 100 -
+    TcpBufferedSocket.remaining_to_write sock in
+  Buffer.reset buf;
+  buf_int8 buf 227;
+  buf_int buf 0;
+  buf_int8 buf 96; (* ViewFilesDirReply *)
+  buf_string buf dir;
+  buf_int buf 0;
+  let pos = Buffer.length buf in
+  let nfiles, prev_len = DonkeyProtoClient.ViewFilesReply.write_files_max buf (
+      make_tagged (Some sock) files)
+    0 max_len in
+  let s = Buffer.contents buf in
+  let s = String.sub s 0 prev_len in
+  let len = String.length s - 5 in begin
+    str_int s 1 len;
+    str_int s (pos-4) nfiles;
+  end;
+  write_string sock s
+
 let udp_server_send s t =
   udp_send (get_udp_sock ()) s.server_ip (s.server_port+4) t
 

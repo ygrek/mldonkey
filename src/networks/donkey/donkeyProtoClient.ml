@@ -533,6 +533,7 @@ module AvailableSlot = NoArg(struct let m = "AvailableSlot" end)
 module ReleaseSlot = NoArg(struct let m = "ReleaseSlot" end)
 module CloseSlot = NoArg(struct let m = "CloseSlot" end)
 module ViewFiles = NoArg(struct let m = "VIEW FILES" end)
+module ViewDirs = NoArg(struct let m = "VIEW DIRS" end)
 
 module ViewFilesReply = struct
 
@@ -605,6 +606,83 @@ module ViewFilesReply = struct
             write_files_max buf files (nfiles+1) max_len
           else
             nfiles, prev_len
+  end
+
+module ViewDirsReply = struct
+
+    type t = string list
+
+    let rec get_dirs s pos n =
+      if n = 0 then [], pos else
+      let dir, pos = get_string16 s pos in
+      let dirs, pos = get_dirs s pos (n-1) in
+      dir :: dirs, pos
+
+    let parse len s =
+      let dirs, pos = get_dirs s 2 (get_int16 s 0) in
+      dirs
+
+    let print t =
+      lprintf_nl "VIEW DIRS REPLY:";
+      List.iter (fun dir ->
+          lprintf_nl "DIR: %s" dir;) t
+
+    let write buf t =
+      buf_int buf (List.length t);
+      List.iter (fun dir ->
+        buf_string buf dir;) t
+
+  end
+
+module ViewFilesDir = struct
+
+    type t = string
+
+    let print t =
+      lprintf_nl "VIEW FILES DIR: %s" t
+
+    let parse len s =
+      let dir, pos = get_string s 1 in
+      dir
+
+    let write buf t =
+      buf_string buf t
+
+  end
+
+module ViewFilesDirReply = struct
+
+    type t = string * tagged_file list
+
+    let names_of_tag = file_common_tags
+
+    let parse len s =
+      let dir, pos = get_string s 1 in
+      let n = get_int s (pos+1) in
+      let files, pos = ViewFilesReply.get_files s (pos+5) n in
+      dir, files
+
+    let print t =
+      lprintf_nl "VIEW FILES DIR REPLY:";
+      let dir, files = t in begin
+        lprintf_nl "DIR: %s" dir;
+        List.iter (fun file ->
+            lprintf_nl "FILE:";
+            lprintf_nl "  MD4: %s" (Md4.to_string file.f_md4);
+            lprintf_nl "  ip: %s" (Ip.to_string file.f_ip);
+            lprintf_nl "  port: %d" file.f_port;
+            lprintf "  tags: ";
+            print_tags file.f_tags;
+            lprint_newline ();) files
+      end
+
+    let write buf t =
+      let dir, files = t in begin
+        buf_string buf dir;
+        buf_int buf (List.length files);
+        ViewFilesReply.write_files buf files
+      end
+
   end
 
 module OtherLocations = struct
@@ -984,6 +1062,10 @@ type t =
 | QueryChunkMd4ReplyReq of QueryChunkMd4Reply.t
 | ViewFilesReq of ViewFiles.t
 | ViewFilesReplyReq of ViewFilesReply.t
+| ViewDirsReq of ViewDirs.t
+| ViewDirsReplyReq of ViewDirsReply.t
+| ViewFilesDirReq of ViewFilesDir.t
+| ViewFilesDirReplyReq of ViewFilesDirReply.t
 | QueueReq of OtherLocations.t
 | UnknownReq of int * string
 | OtherLocationsReq of OtherLocations.t
@@ -1026,6 +1108,10 @@ let rec print t =
     | QueryChunkMd4ReplyReq t -> QueryChunkMd4Reply.print t
     | ViewFilesReplyReq t -> ViewFilesReply.print t
     | ViewFilesReq t -> ViewFiles.print t
+    | ViewDirsReq t -> ViewDirs.print t
+    | ViewDirsReplyReq t -> ViewDirsReply.print t
+    | ViewFilesDirReq t -> ViewFilesDir.print t
+    | ViewFilesDirReplyReq t -> ViewFilesDirReply.print t
     | QueueReq t -> OtherLocations.print t
     | OtherLocationsReq t  -> OtherLocations.print t
     | SayReq t -> Say.print t
@@ -1254,6 +1340,12 @@ and parse emule_version magic s =
           | 88 -> QueryFileReq (QueryFile.parse emule_version len s)
           | 89 -> QueryFileReplyReq (QueryFileReply.parse len s)
           | 92 -> QueueRankReq (QueueRank.parse len s)
+          | 93 -> ViewDirsReq (ViewDirs.parse len s)
+          | 94 -> ViewFilesDirReq (ViewFilesDir.parse len s)
+          (*
+          | 95 -> ViewDirsReplyReq (ViewDirsReply.parse len s)
+          | 96 -> ViewFilesDirReplyReq (ViewFilesDirReply.parse len s)
+          *)
           | 250 -> SourcesReq (Sources.parse len s)
 
           | _ -> raise Not_found
@@ -1373,6 +1465,18 @@ let write emule buf t =
     | ViewFilesReplyReq t ->
         buf_int8 buf 75;
         ViewFilesReply.write buf t
+    | ViewDirsReq t ->
+        buf_int8 buf 93;
+        ViewDirs.write buf t
+    | ViewDirsReplyReq t ->
+        buf_int8 buf 95;
+        ViewDirsReply.write buf t
+    | ViewFilesDirReq t ->
+        buf_int8 buf 94;
+        ViewFilesDir.write buf t
+    | ViewFilesDirReplyReq t ->
+        buf_int8 buf 96;
+        ViewFilesDirReply.write buf t
     | OtherLocationsReq t ->
         buf_int8 buf 72;
         OtherLocations.write buf t

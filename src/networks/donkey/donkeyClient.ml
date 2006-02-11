@@ -1633,6 +1633,38 @@ is checked for the file.
           lprintf_nl () "Sending %d Files in ViewFilesReqReply" (List.length !published_files);
       client_send_files sock !published_files
   
+  (*TODO: real directory support*)
+  | M.ViewDirsReq t when !CommonUploads.has_upload = 0 && 
+    (match !!allow_browse_share with
+        1 -> client_friend_tag land client_type c <> 0
+      | 2 -> true
+      | _ -> false) -> 
+      let published_dirs = ["FIXME"] in
+      if !verbose_msg_clients then
+          lprintf_nl () "Sending %d Dirs in ViewDirsReplyReq" (List.length published_dirs);
+      client_send c (M.ViewDirsReplyReq published_dirs)
+  
+  (*TODO: real directory support*)
+  (*TODO: "!Incomplete Files" support*)
+  | M.ViewFilesDirReq t when !CommonUploads.has_upload = 0 && 
+    (match !!allow_browse_share with
+        1 -> client_friend_tag land client_type c <> 0
+      | 2 -> true
+      | _ -> false) -> 
+      let files = DonkeyShare.all_shared () in
+      let published_files = ref [] in
+      List.iter (fun f ->
+          let filename = file_best_name f in
+          if not (String2.starts_with filename "hidden.") then
+            published_files := f :: !published_files
+      ) files;
+(*
+       lprintf "ASK VIEW FILES\n"; 
+       *)
+      if !verbose_msg_clients then
+          lprintf_nl () "Sending %d Files in ViewFilesReqReply" (List.length !published_files);
+      client_send_dir sock t !published_files
+
   | M.QueryFileReq t ->
       let md4 = t.M.QueryFile.md4 in
       c.client_requests_received <- c.client_requests_received + 1;

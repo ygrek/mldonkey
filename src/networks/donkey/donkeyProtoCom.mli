@@ -72,6 +72,8 @@ val server_send_share :
   bool -> TcpBufferedSocket.t  -> file list -> unit
 val client_send_files :
     TcpBufferedSocket.t -> file list -> unit
+val client_send_dir :
+    TcpBufferedSocket.t -> string -> file list -> unit
 
 val new_string :  DonkeyProtoClient.t -> string -> unit
 

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/11
+4902: EDK: Stub respond to directory browsing requests (sam_dennis)
 4905: Update for patch 4823: add another -fno-fomit-frame-pointer
       in config/Makefile.in to avoid breaking CryptoPP (mikeX)
 4903: EDK: Remove obsolete donkeyNeighbours (thx to sam_dennis)
