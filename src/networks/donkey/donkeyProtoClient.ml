@@ -82,8 +82,8 @@ let update_emule_proto_from_miscoptions1 m o =
   m.emule_extendedrequest <- (o lsr 8) land 0xf;
   m.emule_comments <- (o lsr 4) land 0xf;
   m.emule_noviewshared <- (o lsr 2) land 0x1;
-  m.emule_udpver <- (o lsr 1) land 0x1;
-  m.emule_udpver <- (o lsr 0) land 0x1
+  m.emule_multipacket <- (o lsr 1) land 0x1;
+  m.emule_supportpreview <- (o lsr 0) land 0x1
 
 let extendedrequest e =
   min e.emule_extendedrequest mldonkey_emule_proto.emule_extendedrequest

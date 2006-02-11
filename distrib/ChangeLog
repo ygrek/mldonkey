@@ -14,7 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2206/02/10
+2006/02/11
+4907: EDK: Fixed copy/paste error in emule miscoptions1 reading (sam_dennis)
+
+2006/02/10
 4904: Configure: Raise required autoconf version to 2.55 due to AC_MSG_FAILURE
 
 2006/02/09
