@@ -2018,7 +2018,7 @@ rpm: sourcedist
 	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
 
 .mlcpp.ml:
-	cpp $< > $@
+	cpp -P $< $(FIX_BROKEN_CPP) > $@
 
 .mll.ml :
 	$(OCAMLLEX) $<

@@ -22,6 +22,7 @@ AC_CANONICAL_HOST
 OS_FILES=unix
 OS_FILES2=unix
 SYSTEM=unknown
+FIX_BROKEN_CPP=
 case $host in
   *mingw*)
     SYSTEM=mingw
@@ -73,6 +74,18 @@ case $host in
     ;;
   *darwin*|*rhapsody*|*macosx*)
     SYSTEM=macosx
+    AC_CHECK_PROG(SED, sed, sed)
+    if test "$ac_cv_prog_SED" = "sed"; then
+      FIX_BROKEN_CPP="| sed -n '/^\#pragma/!p'"
+    else
+      AC_CHECK_PROG(GREP, grep, grep)
+      if test "$ac_cv_prog_GREP" = "grep"; then
+        FIX_BROKEN_CPP="| grep -v '^\#pragma'"
+      fi
+    fi
+    if test "xFIX_BROKEN_CPP" = "x"; then
+      AC_MSG_FAILURE([Apple cpp produces broken files, your system lacks sed or grep to fix it])
+    fi
     ;;
 esac
 if test "x$SYSTEM" = "xunknown"; then
@@ -99,7 +112,7 @@ if test -f ./CVS/Entries ; then
       AC_CHECK_PROG(CUT, cut, cut)
       if test "$ac_cv_prog_CUT" = "cut"; then
         SUB_VERSION3="CVS"
-	if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "darwin"] || [ test "$SYSTEM" = "netbsd"]; then
+	if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "macosx"] || [ test "$SYSTEM" = "netbsd"]; then
 	  SCM_VERSION=`$STAT -f "%Sm" ./CVS/Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\4-\1-\2 \3/'`
 	else
 	  if [ test "$SYSTEM" = "openbsd"]; then
@@ -1149,6 +1162,7 @@ AC_SUBST(LDFLAGS)
 AC_SUBST(CC)
 AC_SUBST(CPP)
 AC_SUBST(CXX)
+AC_SUBST(FIX_BROKEN_CPP)
 AC_SUBST(CONFIG_INCLUDES)
 
 AC_SUBST(EXTRA_DIRS)
