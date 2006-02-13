@@ -90,7 +90,7 @@ case $host in
     ;;
 esac
 if test "x$SYSTEM" = "xunknown"; then
-  echo "Unknown build system, please notify MLdonkey developer team"
+  echo "Unknown build system, please report to the MLDonkey development team at http://mldonkey.sourceforge.net/forums/"
   exit 1
 fi
 
