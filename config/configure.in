@@ -1,6 +1,6 @@
 
 AC_REVISION(norev)
-AC_PREREQ(2.55)
+AC_PREREQ(2.53)
 AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
@@ -35,7 +35,7 @@ case $host in
     SYSTEM=cygwin
     OS_FILES2=cygwin
     ;;
-  *freebsd*)
+  *freebsd*|*dragonfly*)
     SYSTEM=freebsd
     CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
     LDFLAGS="${LDFLAGS} -L/usr/local/lib"
@@ -84,12 +84,14 @@ case $host in
       fi
     fi
     if test "xFIX_BROKEN_CPP" = "x"; then
-      AC_MSG_FAILURE([Apple cpp produces broken files, your system lacks sed or grep to fix it])
+      echo "Apple cpp produces broken files, your system lacks sed or grep to fix it"
+      exit 1
     fi
     ;;
 esac
 if test "x$SYSTEM" = "xunknown"; then
-  AC_MSG_FAILURE([Unknown build system, please notify MLdonkey developer team])
+  echo "Unknown build system, please notify MLdonkey developer team"
+  exit 1
 fi
 
 if test -d .svn; then
@@ -577,8 +579,8 @@ AC_CHECK_HEADERS([sys/param.h sys/mount.h],,,
 #endif
 ])
 
-AC_CHECK_LIB(z,inflate,,[AC_MSG_FAILURE([Zlib missing, did you install zlib and zlib-developer packages?])])
-AC_CHECK_HEADERS(zlib.h,,[AC_MSG_FAILURE([Zlib missing, did you install zlib and zlib-developer packages?])])
+AC_CHECK_LIB(z,inflate,,[echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1])
+AC_CHECK_HEADERS(zlib.h,,[echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1])
 AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1,)])
 
 if test "$BZIP2" != "no"; then
@@ -603,7 +605,7 @@ if test "$ICONV" = "yes"; then
   AC_TRY_LINK([#include <langinfo.h>],
   [char* cs = nl_langinfo(CODESET);],
   AC_MSG_NOTICE(found nl_langinfo(CODESET)),
-  [AC_MSG_FAILURE(Your iconv implementation is incomplete)]))
+  [echo "Your iconv implementation is incomplete"; exit 1]))
   AC_CHECK_LIB(charset,locale_charset)
   AC_CHECK_HEADERS([libcharset.h])
   AC_CHECK_HEADERS([locale.h])

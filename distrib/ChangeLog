@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/02/13
+4908: Configure: Fix for Beos, allow use of Dragonfly BSD
+
 2006/02/11
 4883: Mac OS X: Fix for broken Apple cpp-3.3
 4902: EDK: Stub respond to directory browsing requests (sam_dennis)
