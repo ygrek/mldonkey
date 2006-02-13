@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/13
+4906: MinGW: improve uname output (Schlumpf)
 4908: Configure: Fix for Beos, allow use of Dragonfly BSD
 
 2006/02/11

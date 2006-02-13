@@ -147,11 +147,18 @@ void gettimeofday(struct timeval* p, void* tz /* IGNORED */){
 
 // http://msdn.microsoft.com/library/default.asp?url=/library/en-us/sysinfo/base/getting_the_system_version.asp
 #define BUFSIZE 80
+#define SM_SERVERR2 89
+typedef void (WINAPI *PGNSI)(LPSYSTEM_INFO);
+
 
 void os_uname(char buf[])
 {
    OSVERSIONINFOEX osvi;
    BOOL bOsVersionInfoEx;
+   SYSTEM_INFO si;
+   PGNSI pGNSI;
+   char tbuf[4096];
+   char pbuf[32];
    char binull='\0';
 
    // Try calling GetVersionEx using the OSVERSIONINFOEX structure.
@@ -173,8 +180,28 @@ void os_uname(char buf[])
       case VER_PLATFORM_WIN32_NT:
 
       // Test for the specific product.
+      if ( osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 0 )
+      {
+	     if( osvi.wProductType == VER_NT_WORKSTATION )
+              strcat (buf, "Microsoft Windows Vista \0");
+         else strcat (buf, "Windows Server \"Longhorn\" \0" );
+      }    
+
       if ( osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 2 )
-         strcat(buf, "Microsoft Windows Server 2003, \0");
+      {
+         // Use GetProcAddress to avoid load issues on Windows 2000
+         pGNSI = (PGNSI) GetProcAddress (GetModuleHandle("kernel32.dll"), "GetNativeSystemInfo");
+         if(NULL != pGNSI)
+             pGNSI(&si);
+
+         if( GetSystemMetrics(SM_SERVERR2) )
+            strcat (buf, "Microsoft Windows Server 2003 \"R2\" \0");
+         else if( osvi.wProductType == VER_NT_WORKSTATION && si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
+         {
+            strcat (buf, "Microsoft Windows XP Professional x64 Edition \0");
+         }
+         else strcat (buf, "Microsoft Windows Server 2003, \0");
+      }
 
       if ( osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 1 )
          strcat(buf, "Microsoft Windows XP \0");
@@ -189,7 +216,7 @@ void os_uname(char buf[])
       if( bOsVersionInfoEx )
       {
          // Test for the workstation type.
-         if ( osvi.wProductType == VER_NT_WORKSTATION )
+         if ( osvi.wProductType == VER_NT_WORKSTATION  &&  si.wProcessorArchitecture != PROCESSOR_ARCHITECTURE_AMD64 ) 
          {
             if( osvi.dwMajorVersion == 4 )
                strcat(buf, "Workstation 4.0 \0" );
@@ -202,17 +229,38 @@ void os_uname(char buf[])
          else if ( osvi.wProductType == VER_NT_SERVER || 
                    osvi.wProductType == VER_NT_DOMAIN_CONTROLLER )
          {
-            if(osvi.dwMajorVersion==5 && osvi.dwMinorVersion==2)
+            if(osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 2)
             {
-               if( osvi.wSuiteMask & VER_SUITE_DATACENTER )
-                  strcat(buf, "Datacenter Edition \0" );
-               else if( osvi.wSuiteMask & VER_SUITE_ENTERPRISE )
-                  strcat(buf, "Enterprise Edition \0" );
-               else if ( osvi.wSuiteMask == VER_SUITE_BLADE )
-                  strcat(buf, "Web Edition \0" );
-               else strcat(buf, "Standard Edition \0" );
-            }
-            else if(osvi.dwMajorVersion==5 && osvi.dwMinorVersion==0)
+               if ( si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_IA64 )
+               {
+                   if( osvi.wSuiteMask & VER_SUITE_DATACENTER )
+                      strcat (buf, "Datacenter Edition for Itanium-based Systems \0" );
+                   else if( osvi.wSuiteMask & VER_SUITE_ENTERPRISE )
+                      strcat (buf, "Enterprise Edition for Itanium-based Systems \0" );
+               }
+
+               else if ( si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 )
+               {
+                   if( osvi.wSuiteMask & VER_SUITE_DATACENTER )
+                      strcat (buf, "Datacenter x64 Edition \0" );
+                   else if( osvi.wSuiteMask & VER_SUITE_ENTERPRISE )
+                      strcat (buf, "Enterprise x64 Edition \0" );
+                   else strcat (buf, "Standard x64 Edition \0" );
+               }
+
+               else
+               {
+                   if( osvi.wSuiteMask & VER_SUITE_DATACENTER )
+                      strcat (buf, "Datacenter Edition \0" );
+                   else if( osvi.wSuiteMask & VER_SUITE_ENTERPRISE )
+                      strcat (buf, "Enterprise Edition \0" );
+                   else if ( osvi.wSuiteMask == VER_SUITE_BLADE )
+                      strcat (buf, "Web Edition \0" );
+                   else strcat (buf, "Standard Edition \0" );
+               }
+            }            
+
+            else if(osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 0)
             {
                if( osvi.wSuiteMask & VER_SUITE_DATACENTER )
                   strcat(buf, "Datacenter Server \0" );
@@ -255,11 +303,20 @@ void os_uname(char buf[])
             strcat(buf, "Server \0" );
          if ( lstrcmpi( "SERVERNT", szProductType) == 0 )
             strcat(buf, "Advanced Server \0" );
-         printf( "%d.%d", (int)osvi.dwMajorVersion, (int)osvi.dwMinorVersion );
+         sprintf(tbuf, "%d.%d %c", (int)osvi.dwMajorVersion, (int)osvi.dwMinorVersion, binull );
       }
 
-      // Display service pack (if any) and build number.
-			char tbuf[4096];
+      // Display service pack (if any), build number and processor count (if it`s > 1).
+
+   	  GetSystemInfo(&si);
+	  
+      if( si.dwNumberOfProcessors > 1)
+         
+          sprintf(pbuf, "(CPUs: %lu)%c", si.dwNumberOfProcessors, binull);
+      else
+          pbuf[0] = binull;
+                 
+
       if( osvi.dwMajorVersion == 4 && lstrcmpi( osvi.szCSDVersion, "Service Pack 6" ) == 0 )
       { 
          HKEY hKey;
@@ -271,16 +328,16 @@ void os_uname(char buf[])
             0, KEY_QUERY_VALUE, &hKey );
          if( lRet == ERROR_SUCCESS )
 								 
-            sprintf(tbuf, "Service Pack 6a (Build %lu)%c", osvi.dwBuildNumber & 0xFFFF, binull );
+            sprintf(tbuf, "Service Pack 6a (Build %lu) %s", osvi.dwBuildNumber & 0xFFFF, pbuf );
          else // Windows NT 4.0 prior to SP6a
          {
-            sprintf(tbuf, "%s (Build %lu)%c",osvi.szCSDVersion, osvi.dwBuildNumber & 0xFFFF, binull);
+            sprintf(tbuf, "%s (Build %lu) %s",osvi.szCSDVersion, osvi.dwBuildNumber & 0xFFFF, pbuf);
          }
          RegCloseKey( hKey );
       }
       else // not Windows NT 4.0 
       {
-         sprintf(tbuf, "%s (Build %lu)%c", osvi.szCSDVersion, osvi.dwBuildNumber & 0xFFFF, binull);
+         sprintf(tbuf, "%s (Build %lu) %s", osvi.szCSDVersion, osvi.dwBuildNumber & 0xFFFF, pbuf);
       }
 
       strcat(buf, tbuf);
@@ -292,7 +349,7 @@ void os_uname(char buf[])
       if (osvi.dwMajorVersion == 4 && osvi.dwMinorVersion == 0)
       {
           strcat (buf, "Microsoft Windows 95 ");
-          if (osvi.szCSDVersion[1]=='C' || osvi.szCSDVersion[1]=='B')
+          if (osvi.szCSDVersion[1] == 'C' || osvi.szCSDVersion[1] == 'B')
              strcat(buf, "OSR2 \0" );
       } 
 
