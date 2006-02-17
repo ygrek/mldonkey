@@ -706,12 +706,12 @@ let load_sources () =
 let check_result r tags =
   if r.result_names = [] || r.result_size = Int64.zero then begin
       if !verbose then begin
-          lprintf_n () "BAD RESULT:";
+          lprintf_n () "Bad search result: ";
           List.iter (fun tag ->
-              lprintf "[%s] = [%s]" (string_of_field tag.tag_name)
-                (string_of_tag_value tag.tag_value);
-              lprint_newline ();
+              lprintf "[%s] = [%s] " (string_of_field tag.tag_name)
+                (string_of_tag_value tag.tag_value)
           ) tags;
+	  lprint_newline ();
         end;
       false
     end

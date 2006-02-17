@@ -647,7 +647,7 @@ let parse_compatible_client num old_brand =
     | 6 -> Brand_hydranode
     | 10 -> Brand_mldonkey3
     | 20 -> Brand_lphant
-    | _ -> lprintf_nl () "unknown compatibleclient %d (please report to dev team)" num; Brand_unknown
+    | _ -> Brand_unknown
 
 let parse_mod_version s c =
   let rec iter i len =
@@ -700,7 +700,7 @@ let update_emule_proto_from_tags c tags =
           for_int_tag tag (fun i ->
             c.client_brand <- parse_compatible_client i c.client_brand;
             if c.client_brand = Brand_unknown then
-              lprintf_nl () "[compatibleclient] Brand_unknown %s" (full_client_identifier c);
+              lprintf_nl () "unknown compatibleclient %d (%s) (please report to dev team)" i (full_client_identifier c)
           )
       | Field_UNKNOWN "compression" ->
           for_int_tag tag (fun i ->
@@ -2609,27 +2609,30 @@ a FIFO from where they are removed after 30 minutes. What about using
   DonkeySources.functions.DonkeySources.function_add_location <- (fun
       s_uid file_uid ->
       try
-        let c = new_client s_uid in
         let file = find_file (Md4.of_string file_uid) in
+        let c = new_client s_uid in
         
         CommonFile.file_add_source (CommonFile.as_file file.file_file) 
         (CommonClient.as_client c.client_client);
       
-      with e -> 
-        if !verbose then begin
-          lprintf_nl () "add_location: exception %s" (Printexc2.to_string e);
-        end
+      with
+	Not_found -> ()
+      | e -> 
+        if !verbose then
+          lprintf_nl () "add_location: exception %s" (Printexc2.to_string e)
   );
   
   DonkeySources.functions.DonkeySources.function_remove_location <- (fun
       s_uid file_uid ->
       try
-        let c = new_client s_uid in
         let file = find_file (Md4.of_string file_uid) in
+        let c = new_client s_uid in
         CommonFile.file_remove_source (CommonFile.as_file file.file_file)
         (CommonClient.as_client c.client_client);
         
-      with e -> 
+      with
+	Not_found -> ()
+      | e -> 
         if !verbose then
           lprintf_nl () "remove_location for file_md4 %s: exception %s"
       file_uid (Printexc2.to_string e)

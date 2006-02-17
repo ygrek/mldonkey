@@ -97,9 +97,6 @@ type header =
 | Authorization of auth
 
 
-exception ProcessForked
-exception ThreadForked
-
 type options = {
     referer : Url.url option;
     content_length : int;

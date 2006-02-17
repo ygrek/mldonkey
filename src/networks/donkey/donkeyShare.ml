@@ -197,6 +197,8 @@ thread. Moreover, we don't want to open all the filedescs for all the
 files being shared !
 *)
 
+exception Wrong_file_size
+
 let computation = ref false
 
 (*   Compute (at most) one MD4 chunk if needed. *)
@@ -208,14 +210,10 @@ let check_shared_files () =
     | sh :: files ->
         let rec job_creater _ =
           try
-            if not (Sys.file_exists sh.shared_name) then begin
-                lprintf_nl () "Shared file doesn't exist";
+            if not (Sys.file_exists sh.shared_name) then
                 raise Not_found;
-              end;
-            if Unix32.getsize sh.shared_name <> sh.shared_size then begin
-                lprintf_nl () "Bad shared file size";
-                raise Not_found;
-              end;
+            if Unix32.getsize sh.shared_name <> sh.shared_size then
+                raise Wrong_file_size;
             computation := true;
             let end_pos = sh.shared_pos ++ block_size in
             let end_pos = if end_pos > sh.shared_size then sh.shared_size
@@ -252,8 +250,9 @@ let check_shared_files () =
                 else
                   job_creater ())
           with e ->
-              lprintf_nl () "Exception %s prevents sharing"
-                (Printexc2.to_string e);
+	      shared_files := files;
+              lprintf_nl () "Exception %s prevents sharing of %s"
+                (Printexc2.to_string e) sh.shared_name
         in
         job_creater ()
 
@@ -286,9 +285,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
 
 	  let found = ref false in
 	  List.iter (fun sh -> if sh.shared_name = fullname then found := true) !shared_files;
-	  if !found then
-	    lprintf_nl () "avoid sharing %s" fullname
-	  else begin
+	  if not !found then begin
           let rec impl = {
               impl_shared_update = 1;
               impl_shared_fullname = fullname;

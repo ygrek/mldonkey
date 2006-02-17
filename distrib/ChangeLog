@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/17
+4915: Log: Small cleanups
 4918: some syntax and comment cleanups in stubs_c.c (Schlumpf)
 
 2006/02/13

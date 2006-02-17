@@ -185,7 +185,6 @@ let file_commit file =
               Unix2.chmod new_name (Misc.int_of_octal_string !!create_dir_mask);
             let best_name = file_best_name file in
             Unix32.destroy (file_fd file);
-            if !verbose then lprintf_nl () " file_commit: destroyed";
             if Unix2.is_directory file_name then Unix2.remove_all_directory file_name;
             let impl = as_file_impl file in
 
@@ -208,7 +207,6 @@ anymore. *)
             done_files =:= List2.removeq file !!done_files;
             files =:= List2.removeq file !!files;
 
-            if !verbose then lprintf_nl () "file_commit: going to secondaries...";
             List.iter (fun file ->
 (* Commit the file first, and share it after... *)
                 try

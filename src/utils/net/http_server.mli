@@ -21,8 +21,6 @@ and header =
     Unknown of string * string
   | Referer of Url.url
   | Authorization of auth
-exception ProcessForked
-exception ThreadForked
 type options = {
     referer : Url.url option;
     content_length : int;

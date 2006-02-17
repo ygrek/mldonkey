@@ -136,8 +136,6 @@ let declare_completed_file file =
   file_completed (as_file file);
   Int64Swarmer.remove_swarmer file.file_swarmer;
   file.file_swarmer <- None;
-  
-  
   unshare_file file;
   ignore (CommonShared.new_shared "completed" 0 (
       file_best_name file )

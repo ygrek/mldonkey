@@ -236,7 +236,7 @@ receiving a private message from this client in driver/driverInterface.ml.
         op_room_close = (fun room -> 
             set_room_state (as_room room.room_impl) RoomOpened);  
         op_room_messages = (fun _ -> fni network "room_messages");
-        op_room_users = (fun _ -> fni network "room_users");
+        op_room_users = (fun _ -> failwith "not implemented");
         op_room_name = (fun _ -> fni network "room_name");
         op_room_info = (let module P = GuiTypes in
           fun r -> 

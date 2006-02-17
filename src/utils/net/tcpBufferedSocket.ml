@@ -1021,7 +1021,6 @@ let close_after_write t =
 (*      lprintf "close_after_write: CLOSE\n";  - log output removed  *)
         shutdown t Closed_by_user)
 
-exception Http_proxy_error of string
 let http_proxy = ref None
 
 let set_reader t f =
