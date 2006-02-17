@@ -24,17 +24,24 @@
 #include <ctype.h>
 #include <caml/config.h>
 #include <caml/signals.h>
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/memory.h>
+#include <caml/fail.h>
+#include <caml/custom.h>
+#include <caml/callback.h>
+
 #ifdef __MORPHOS__
 #include <inttypes.h>
-#endif
+#endif  /* __MORPHOS__ */
 
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
-#endif
+#endif /* HAVE_SYS_TIME_H */
 
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
-#endif
+#endif /* HAVE_SYS_RESOURCE_H */
 
 #define lseek XXXXXXXXX
 #define read XXXXXXXXX
@@ -62,7 +69,8 @@
 
 /* Stubs that could be used by epoll */
 
-value ml_change_fd_event_setting(value task_v){
+value ml_change_fd_event_setting(value task_v)
+{
   int fd = Socket_val(Field(task_v,FD_TASK_FD));
   int must_read = ((Field(task_v, FD_TASK_RLEN) != Val_int(0)) &&
     (Field(Field(task_v, FD_TASK_READ_ALLOWED),0) == Val_true));
@@ -72,7 +80,8 @@ value ml_change_fd_event_setting(value task_v){
   return Val_unit;
 }
 
-value ml_add_fd_to_event_set(value task_v){
+value ml_add_fd_to_event_set(value task_v)
+{
   int fd = Socket_val(Field(task_v,FD_TASK_FD));
   int must_read = ((Field(task_v, FD_TASK_RLEN) != Val_int(0)) &&
     (Field(Field(task_v, FD_TASK_READ_ALLOWED),0) == Val_true));
@@ -82,13 +91,12 @@ value ml_add_fd_to_event_set(value task_v){
   return Val_unit;
 }
 
-value ml_remove_fd_from_event_set(value task_v){
+value ml_remove_fd_from_event_set(value task_v)
+{
   int fd = Socket_val(Field(task_v,FD_TASK_FD));
 
   return Val_unit;
 }
-
-
 
 
 #if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H) && !defined(__MINGW32__)
@@ -151,14 +159,14 @@ value try_poll(value fdlist, value timeout) /* ML */
       if (ufds[pos].revents){
         value v = pfds[pos];
 /*        int fd = Socket_val(Field(v,FD_TASK_FD)); */
-      /*  printf("TESTING %d AT %d\n", fd, pos); */
-      /*  fprintf(stderr, "FOR FD in POLL %d[%d]\n", fd, ufds[pos].revents); */
+/*        printf("TESTING %d AT %d\n", fd, pos); */
+/*        fprintf(stderr, "FOR FD in POLL %d[%d]\n", fd, ufds[pos].revents); */
         value flags = Val_int(0);
         retcode--;
         if (ufds[pos].revents & (POLLIN|POLLERR|POLLHUP))  flags |= 2;
         if (ufds[pos].revents & POLLOUT) flags |= 4;
-        /*        if (ufds[pos].revents & POLLNVAL) */
-        /*        Field(v, FD_TASK_CLOSED) = Val_true; */
+/*                if (ufds[pos].revents & POLLNVAL) */
+/*                Field(v, FD_TASK_CLOSED) = Val_true; */
         Field(v,FD_TASK_FLAGS) = flags;
       }
     }
@@ -166,7 +174,8 @@ value try_poll(value fdlist, value timeout) /* ML */
   return Val_unit;
 }
 
-#endif
+#endif /* defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H) && !defined(__MINGW32__) */
+
 
 value try_select(value fdlist, value timeout) /* ML */
 {
@@ -246,7 +255,6 @@ value ml_use_poll(value use)
 
 value ml_select(value fd_list, value timeout)
 {
-
 #if defined(HAVE_POLL) && defined(HAVE_SYS_POLL_H) && !defined(__MINGW32__)
     if (use_poll) 
       return try_poll(fd_list, timeout);
@@ -255,7 +263,6 @@ value ml_select(value fd_list, value timeout)
 #else
     return try_select(fd_list, timeout);
 #endif
-
 }
 
 /*******************************************************************
@@ -264,13 +271,12 @@ value ml_select(value fd_list, value timeout)
                          ml_getdtablesize
 
 
- *******************************************************************/
+********************************************************************/
 
 value ml_getdtablesize(value unit)
 {
   int dtablesize = os_getdtablesize();
   int maxselectfds = FD_SETSIZE;
-
   int maxfd = dtablesize;
 
   if (maxselectfds < maxfd) {
@@ -283,7 +289,7 @@ value ml_getdtablesize(value unit)
 #else
 
       maxfd = maxselectfds;
-		  // printf("[Info] File descriptor limit: MIN(process: %d, select(): %d) = %d\n", dtablesize, maxselectfds, maxfd);
+/*		   printf("[Info] File descriptor limit: MIN(process: %d, select(): %d) = %d\n", dtablesize, maxselectfds, maxfd); */
 
 #endif
   }
@@ -346,7 +352,7 @@ value ml_setsock_iptos_throughput(value sock_v)
   return Val_unit;
 }
 
-#endif
+#endif /* defined(HAVE_NETINET_IP_H) && !defined(__MINGW32__) */
 
 
 /*******************************************************************
@@ -482,7 +488,7 @@ value ml_ints_of_string(value s_v)
   goto ok;
 
   error:
-  /* printf("Error while parsing[%s]\n",s); */
+/*   printf("Error while parsing[%s]\n",s); */
   raise_not_found();
 /*  a1 = a2 = a3 = a4 = 0; */
 
@@ -661,40 +667,31 @@ value ml_setlcnumeric(value no)
   return Val_unit;
 }
 
-/******************************************************************/
+/*******************************************************************
 
 
-/*        Asynchronous resolution of DNS names in threads         */
+          Asynchronous resolution of DNS names in threads         
 
 
-/******************************************************************/
+*******************************************************************/
 
+/*
+#include <signals.h>
+#include "unixsupport.h"
 
-
-
-
-
-
-
-#include <caml/mlvalues.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
-#include <caml/fail.h>
-///#include <signals.h>
-//#include "unixsupport.h"
-
-// #include "socketaddr.h"
+#include "socketaddr.h"
+*/
 #ifndef _WIN32
-// #include <sys/types.h>
+/* #include <sys/types.h> */
 #include <netdb.h>
-#endif
+#endif /* ndef _WIN32 */
 
 #define NETDB_BUFFER_SIZE 10000
 
 #ifdef _WIN32
 #define GETHOSTBYADDR_IS_REENTRANT 1
 #define GETHOSTBYNAME_IS_REENTRANT 1
-#endif
+#endif /* _WIN32 */
 
 static char volatile ip_job_result[256];
 static int volatile job_naddresses = 0;
@@ -748,12 +745,12 @@ static int ml_gethostbyname(char *hostname)
 #else
 #ifdef GETHOSTBYNAME_IS_REENTRANT
   enter_blocking_section();
-#endif
+#endif  /* GETHOSTBYNAME_IS_REENTRANT */
   hp = gethostbyname(hostname);
 #ifdef GETHOSTBYNAME_IS_REENTRANT
   leave_blocking_section();
-#endif
-#endif
+#endif /* GETHOSTBYNAME_IS_REENTRANT */
+#endif /* HAS_GETHOSTBYNAME_R == 5 */
 
   if (hp == (struct hostent *) NULL) return 0;
 
@@ -790,7 +787,7 @@ static void store_in_job(value job_v)
   adr = alloc_one_addr(ip_job_result);
   addr_list = alloc_small(1, 0);
   Field(addr_list, 0) = adr;
-#endif
+#endif  /* h_addr */
   modify(&Field(job_v,1), addr_list);
   End_roots();
 }
@@ -816,9 +813,11 @@ value ml_ip_job_done(value job_v)
 
 
 value ml_has_pthread(value unit)
-{ return Val_false; }
+{ 
+  return Val_false; 
+}
 
-#else
+#else  /* !defined(HAVE_PTHREAD) || (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT)) */
 
 #include <string.h>
 #include <pthread.h>
@@ -858,12 +857,12 @@ static void * hasher_thread(void * arg)
 #if !defined(PTW32_STATIC_LIB)	
   sigset_t mask;
 
-  /* Block all signals so that we don't try to execute a Caml signal handler */
+/*   Block all signals so that we don't try to execute a Caml signal handler */
   sigfillset(&mask);
   pthread_sigmask(SIG_BLOCK, &mask, NULL);
   
   nice(19);
-#endif
+#endif  /* !defined(PTW32_STATIC_LIB) */
   
   pthread_mutex_lock(&mutex);
 
@@ -921,14 +920,22 @@ value ml_ip_job_start(value job_v)
 }
 
 value ml_has_pthread(value unit)
-{ return Val_true; }
+{
+  return Val_true; 
+}
 
-#endif
+#endif  /* !defined(HAVE_PTHREAD) || (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT)) */
 
-#include <caml/custom.h>
-#include <caml/callback.h>
+/*******************************************************************
+
+
+                         statfs
+
+
+*******************************************************************/
 
 #if defined(__MINGW32__)
+
 /* taken from www.greatchief.plus.com/gpc/os-hacks.h */
 #define _fullpath(res,path,size) \
   (GetFullPathNameW ((path), (size), (res), NULL) ? (res) : NULL)
@@ -1032,6 +1039,7 @@ static int statfs (const unsigned char *path, struct statfs *buf)
     return retval;
 }
 
+
 static value
 copy_statfs (struct statfs *buf)
 {
@@ -1064,17 +1072,18 @@ statfs_statfs (value pathv)
   CAMLreturn (bufv);
 }
 
-#else /* defined(__MINGW32__) */
+#else  /* defined(__MINGW32__) */
 
 #if (defined HAVE_SYS_PARAM_H && HAVE_SYS_MOUNT_H)
 #  include <sys/param.h>
 #  include <sys/mount.h>
 #  define HAVE_STATS 1
-#endif
+#endif  /* (defined HAVE_SYS_PARAM_H && HAVE_SYS_MOUNT_H) */
+
 #ifdef HAVE_SYS_VFS_H
 #  include <sys/vfs.h>
 #  define HAVE_STATS 1
-#endif
+#endif  /* HAVE_SYS_VFS_H */
 
 #ifdef HAVE_STATS
 static value
@@ -1082,7 +1091,7 @@ static value
 copy_statfs (struct statvfs *buf)
 #else
 copy_statfs (struct statfs *buf)
-#endif
+#endif  /* ((defined (sun) || defined (__sun__))) || (defined(__NetBSD__) && (__NetBSD_Version__ > 299000000)) || defined (__hpux__) */
 {
   CAMLparam0 ();
   CAMLlocal2 (bufv, v);
@@ -1091,7 +1100,7 @@ copy_statfs (struct statfs *buf)
   v = copy_int64 (-1); caml_modify (&Field (bufv, 0), v);
 #else
   v = copy_int64 (buf->f_type); caml_modify (&Field (bufv, 0), v);
-#endif /* ((defined (sun) || defined (__sun__))) || (defined(__FreeBSD__) && __FreeBSD_version >= 503001) || defined(__OpenBSD__) || defined(__NetBSD__) */
+#endif  /* ((defined (sun) || defined (__sun__))) || (defined(__FreeBSD__) && __FreeBSD_version >= 503001) || defined(__OpenBSD__) || defined(__NetBSD__) */
   v = copy_int64 (buf->f_bsize); caml_modify (&Field (bufv, 1), v);
   v = copy_int64 (buf->f_blocks); caml_modify (&Field (bufv, 2), v);
   v = copy_int64 (buf->f_bfree); caml_modify (&Field (bufv, 3), v);
@@ -1126,7 +1135,7 @@ copy_statfs (struct statfs *buf)
 #endif /*  ((defined (sun) || defined (__sun__))) || defined (__hpux__) */
   CAMLreturn (bufv);
 }
-#endif
+#endif /* HAVE_STATS */
 
 CAMLprim value
 statfs_statfs (value pathv)
@@ -1141,28 +1150,37 @@ statfs_statfs (value pathv)
 #else
   struct statfs buf;
   if (statfs (path, &buf) == -1)
-#endif
+#endif  /* ((defined (sun) || defined (__sun__))) || (defined(__NetBSD__) && (__NetBSD_Version__ > 299000000)) || defined (__hpux__) */
     raise_constant(*(value *)caml_named_value("error"));
   bufv = copy_statfs (&buf);
   CAMLreturn (bufv);
 #else
   raise_constant(*(value *)caml_named_value("not supported"));
-#endif
+#endif  /* HAVE_STATS */
 }
-#endif /* defined(__MINGW32__) */
+#endif  /* defined(__MINGW32__) */
 
 
 #if defined(__MINGW32__)
 static HWND myHWND = NULL;
 #endif
 
+/*******************************************************************
+
+
+                         external_start
+                         external_exit
+
+
+*******************************************************************/
+
 value
 external_start (value version)
 {
 
-// Disable close button on console
+/* Disable close button on console */
 #if defined(__MINGW32__)
-  char *buf = "[MLDonkey TitleSearch]\0"; // if multiple instances
+  char *buf = "[MLDonkey TitleSearch]\0"; /* if multiple instances */
   char *title = String_val (version);
   SetConsoleTitle((LPCTSTR)buf);
   myHWND = FindWindowEx(NULL, NULL, NULL, (LPCTSTR)buf);
@@ -1178,7 +1196,7 @@ external_start (value version)
     SetMenuItemInfo(hmenu, SC_CLOSE, FALSE, &CloseItem);
     DrawMenuBar(myHWND);
   }
-#endif
+#endif  /* defined(__MINGW32__) */
 
 #if defined(HAVE_PTHREAD) && defined(PTW32_STATIC_LIB)
 	pthread_win32_process_attach_np();
@@ -1190,7 +1208,7 @@ external_start (value version)
 value
 external_exit (void) 
 {
-// Revert console system menu
+/* Revert console system menu */
 #if defined(__MINGW32__)
   if (myHWND != NULL) {
     HMENU hmenu = GetSystemMenu(myHWND, FALSE);
@@ -1202,27 +1220,45 @@ external_exit (void)
     EnableMenuItem(hmenu, SC_CLOSE, MF_BYCOMMAND | MF_ENABLED);
     DrawMenuBar(myHWND);
   }
-#endif
+#endif  /* defined(__MINGW32__) */
 
 #if defined(HAVE_PTHREAD) && defined(PTW32_STATIC_LIB)
 	pthread_win32_process_detach_np();
 #endif
 
 #if defined(HAVE_CRYPTOPP)
-//	crypto_exit();
+/*	crypto_exit(); */
 #endif
 	return Val_unit;
 }
 
+/*******************************************************************
+
+
+                         ml_uname
+
+
+*******************************************************************/
+
 value
-ml_uname(void) {
+ml_uname(void) 
+{
 	char buf[4096];
 	buf[0] = '\0';
 	os_uname(buf);
 	return caml_copy_string(buf);
 }
 
-value ml_check_endianness(void)
+/*******************************************************************
+
+
+                         ml_check_endianness
+
+
+*******************************************************************/
+
+value 
+ml_check_endianness(void)
 {
   CAMLparam0 ();
   CAMLlocal1 (v);
@@ -1234,7 +1270,17 @@ value ml_check_endianness(void)
   CAMLreturn (v);
 }
 
-value ml_getrlimit(value resource) {
+/*******************************************************************
+
+
+                         rlimit
+
+
+*******************************************************************/
+
+value 
+ml_getrlimit(value resource) 
+{
 #ifdef HAVE_GETRLIMIT
   CAMLparam1(resource);
   CAMLlocal1(retval);
@@ -1334,7 +1380,9 @@ value ml_getrlimit(value resource) {
 #endif
 }
 
-value ml_setrlimit(value resource, value rlimit) {
+value 
+ml_setrlimit(value resource, value rlimit) 
+{
 #ifdef HAVE_SETRLIMIT
   int r;
   struct rlimit lim;
@@ -1429,3 +1477,4 @@ value ml_setrlimit(value resource, value rlimit) {
   failwith("getrlimit unimplemented");
 #endif
 }
+
