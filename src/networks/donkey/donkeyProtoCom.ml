@@ -119,10 +119,6 @@ let servers_send socks m =
   List.iter (fun s -> write_string s m) socks
 
 let client_handler2 c ff f =
-  let emule_version = match !c with
-      None -> emule_proto ();
-    | Some c -> c.client_emule_proto
-  in
   let msgs = ref 0 in
   fun sock nread ->
 
@@ -130,6 +126,10 @@ let client_handler2 c ff f =
     let b = TcpBufferedSocket.buf sock in
     try
       while b.len >= 5 do
+        let emule_version = match !c with
+            None -> emule_proto ();
+          | Some c -> c.client_emule_proto
+        in
         let opcode = get_uint8 b.buf b.pos in
         let msg_len = get_int b.buf (b.pos+1) in
         if b.len >= 5 + msg_len then
