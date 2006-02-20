@@ -1,48 +1,16 @@
 
 
-#include <errno.h>
-#include <stdio.h>
-#include <caml/mlvalues.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
-#include <caml/custom.h>
-#include <caml/callback.h>
-#include <caml/fail.h>
-#include <signal.h>
-
-#ifdef HAS_SIGNALS_H
-#include <signals.h>
-#endif
-
-#include <sys/types.h>
-#include <sys/time.h>
-
-#ifdef HAS_SYS_SELECT_H
-#include <sys/select.h>
-#endif
-
-#include <stdio.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
-#ifdef HAS_UNISTD
-#include <unistd.h>
-#else
-#define SEEK_SET 0
-#define SEEK_CUR 1
-#define SEEK_END 2
-#endif
-
-#if defined(__OpenBSD__) || defined(__FreeBSD__)
-#include <string.h>
-#endif
-
-#if !defined(__MINGW32__) && !defined(__BEOS__)
-#include <sys/mman.h>
-#endif
-
-#include "../../../config/config.h"
 #include "../../utils/lib/os_stubs.h"
+
+
+
+/*******************************************************************
+
+
+                         os_lseek
+
+
+*******************************************************************/
 
 OFF_T os_lseek(OS_FD fd, OFF_T pos, int dir)
 {
@@ -53,6 +21,14 @@ OFF_T os_lseek(OS_FD fd, OFF_T pos, int dir)
   return result;
 }
 
+/*******************************************************************
+
+
+                         os_read
+
+
+*******************************************************************/
+
 ssize_t os_read(OS_FD fd, char *buf, size_t len)
 {
   ssize_t result = read(fd, buf, len);
@@ -62,8 +38,15 @@ ssize_t os_read(OS_FD fd, char *buf, size_t len)
   return result;
 }
  
+/*******************************************************************
 
-// TODO: write whole file if sparse disabled
+
+                         os_ftruncate
+
+
+*******************************************************************/
+
+/* TODO: write whole file if sparse disabled */
 void os_ftruncate(OS_FD fd, OFF_T len, /* bool */ int sparse)
 {
   int64 cursize;
@@ -83,10 +66,26 @@ void os_ftruncate(OS_FD fd, OFF_T len, /* bool */ int sparse)
     }
 }
 
+/*******************************************************************
+
+
+                         os_getdtablesize
+
+
+*******************************************************************/
+
 int os_getdtablesize()
 {
   return getdtablesize();
 }
+
+/*******************************************************************
+
+
+                         os_getfdsize
+
+
+*******************************************************************/
 
 int64 os_getfdsize(OS_FD fd)
 {
@@ -98,6 +97,14 @@ int64 os_getfdsize(OS_FD fd)
   return buf.st_size;
 }
 
+/*******************************************************************
+
+
+                         os_getfilesize
+
+
+*******************************************************************/
+
 int64 os_getfilesize(char *path)
 {
   struct stat buf;
@@ -108,34 +115,69 @@ int64 os_getfilesize(char *path)
   return buf.st_size;
 }
 
+/*******************************************************************
+
+
+                         os_set_nonblock
+
+
+*******************************************************************/
+
 void os_set_nonblock(OS_SOCKET fd)
 {
 
 }
 
+/*******************************************************************
+
+
+                         glibc_version
+
+
+*******************************************************************/
+
 value glibc_version(void)
 {
   CAMLparam0 ();
   CAMLlocal1 (v);
+
 #ifdef HAVE_GNU_LIBC_VERSION_H
-#  include <gnu/libc-version.h>
+#include <gnu/libc-version.h>
+
   v = copy_string (gnu_get_libc_version());
   CAMLreturn (v);
+  
 #else
+
   raise_constant(*(value *)caml_named_value("not supported"));
+  
 #endif
 }
 
+/*******************************************************************
+
+
+                         os_uname
+
+
+*******************************************************************/
+
 #ifdef HAVE_SYS_UTSNAME_H
 #include <sys/utsname.h>
-void os_uname(char buf[]) {
+
+void os_uname(char buf[]) 
+{
 	struct utsname uts;
   uname(&uts);
 	sprintf(buf, "%s %s %s %s %s", 
    uts.sysname, uts.nodename, uts.release, uts.version, uts.machine);
 }
+
 #else
-void os_uname(char buf[]) {
-// Do nothing to buf
+
+void os_uname(char buf[]) 
+{
+/* Do nothing to buf */
 }
+
 #endif

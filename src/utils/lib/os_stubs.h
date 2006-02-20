@@ -1,12 +1,19 @@
-#if !defined(_OCAMLFD_H)
-#define _OCAMLFD_H
 
-#if defined(__MINGW32__)
+#include "../../../config/config.h"
 
-#if !defined(PTW32_STATIC_LIB)
+/*******************************************************************
+
+
+                         MINGW specific
+
+
+*******************************************************************/
+
+#ifdef __MINGW32__
+
+#ifndef PTW32_STATIC_LIB
 #define PTW32_STATIC_LIB
 #endif
-
 
 #define FD_SETSIZE 1024
 
@@ -28,10 +35,15 @@ typedef SOCKET OS_SOCKET;
 typedef unsigned int uint;
 extern void win32_maperr(unsigned long errcode);
 
+/*******************************************************************
 
 
-#else
+                         UNIX specific
 
+
+*******************************************************************/
+
+#else  /* __MINGW32__ */
 
 #define Fd_val(v) Int_val(v)
 #define Socket_val(v) Int_val(v)
@@ -39,43 +51,58 @@ extern void win32_maperr(unsigned long errcode);
 typedef int OS_FD;
 typedef int OS_SOCKET;
 
+#if defined(__OpenBSD__) || defined(__FreeBSD__)
+#include <string.h>
 #endif
 
-#include "caml/mlvalues.h"
-#include "caml/fail.h"
-#include "caml/alloc.h"
-#include "caml/memory.h"
+#ifndef __BEOS__
+#include <sys/mman.h>
+#endif
+
+#endif  /* __MINGW32__ */
+
+/*******************************************************************
 
 
-#include <errno.h>
-#include <stdio.h>
+                         COMMON used 
+
+
+*******************************************************************/
+
+#include <caml/config.h>
+#include <caml/signals.h>
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>
 #include <caml/memory.h>
+#include <caml/fail.h>
+#include <caml/custom.h>
+#include <caml/callback.h>
+
+#include <errno.h>
+#include <stdio.h>
 #include <signal.h>
+#include <fcntl.h>
+
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/stat.h>
 
 #ifdef HAS_SIGNALS_H
 #include <signals.h>
 #endif
 
-#include <sys/types.h>
+#ifdef HAS_SYS_SELECT_H
+#include <sys/select.h>
+#endif
 
-// off_t is long on mingw, long long everywhere else
+
+/* off_t is long on mingw, long long everywhere else */
 #ifdef _OFF64_T_
 typedef off64_t OFF_T;
 #else
 typedef off_t OFF_T;
 #endif
 
-#include <sys/time.h>
-
-#ifdef HAS_SYS_SELECT_H
-#include <sys/select.h>
-#endif
-
-#include <stdio.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 #ifdef HAS_UNISTD
 #include <unistd.h>
@@ -93,13 +120,6 @@ typedef off_t OFF_T;
 #define SEEK_END 2
 #endif
 
-#if defined(__OpenBSD__) || defined(__FreeBSD__)
-#include <string.h>
-#endif
-
-#if !defined(__MINGW32__) && !defined(__BEOS__)
-#include <sys/mman.h>
-#endif
 
 
 #define Nothing ((value) 0)
@@ -125,4 +145,3 @@ extern void os_uname(char buf[]);
 extern unsigned char hash_buffer[HASH_BUFFER_LEN];
 
 
-#endif

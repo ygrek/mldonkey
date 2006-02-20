@@ -17,27 +17,15 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include "../../../config/config.h"
 #include "../../utils/lib/os_stubs.h"
 
 #include <string.h> 
 #include <ctype.h>
-#include <caml/config.h>
-#include <caml/signals.h>
-#include <caml/mlvalues.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
-#include <caml/fail.h>
-#include <caml/custom.h>
-#include <caml/callback.h>
+
 
 #ifdef __MORPHOS__
 #include <inttypes.h>
 #endif  /* __MORPHOS__ */
-
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif /* HAVE_SYS_TIME_H */
 
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
@@ -47,7 +35,6 @@
 #define read XXXXXXXXX
 #define ftruncate XXXXXXXXX
 
-#define UNIX_BUFFER_SIZE 16384
 
 
 /*******************************************************************

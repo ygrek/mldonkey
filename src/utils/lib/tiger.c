@@ -19,7 +19,6 @@
 
 #include "../../utils/lib/os_stubs.h"
 #include "tiger.h"
-#include <caml/config.h>
 
 /* The following macro denotes that an optimization    */
 /* for Alpha is required. It is used only for          */
@@ -817,11 +816,7 @@ void tiger_tree_string(char *s, size_t len, size_t pos, size_t block_size, char 
 
 ***************************************************************************/
 
-#include "tiger.h"
 #include "md4.h"
-#include "caml/mlvalues.h"
-#include "caml/fail.h"
-#include "caml/alloc.h"
 
 OFF_T tiger_block_size(OFF_T len)
 {

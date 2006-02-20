@@ -1,15 +1,16 @@
-#include <caml/mlvalues.h>
-#include <caml/alloc.h>
-#include <caml/memory.h>
-#include <caml/custom.h>
-#include <caml/callback.h>
-#include <caml/fail.h>
+
 
 #include "../../utils/lib/os_stubs.h"
 
-#ifdef HAS_SIGNALS_H
-#include <signals.h>
-#endif
+
+
+/*******************************************************************
+
+
+                         os_read
+
+
+*******************************************************************/
 
 #define UNIX_BUFFER_SIZE 16384
 
@@ -32,6 +33,14 @@ extern ssize_t os_read(OS_FD fd, char *buf, size_t len)
   }
   return numread;
 }
+
+/*******************************************************************
+
+
+                         os_ftruncate
+
+
+*******************************************************************/
 
 #include <winioctl.h>
 
@@ -62,10 +71,26 @@ void os_ftruncate(OS_FD fd, OFF_T size, /* bool */ int sparse)
     }
 }
 
+/*******************************************************************
+
+
+                         os_getdtablesize
+
+
+*******************************************************************/
+
 int os_getdtablesize()
 {
   return 32767;
 }
+
+/*******************************************************************
+
+
+                         os_getfdsize
+                         
+
+*******************************************************************/
 
 int64 os_getfdsize(OS_FD fd)
 {
@@ -75,6 +100,14 @@ int64 os_getfdsize(OS_FD fd)
   ret = GetFileSize(fd, &len_high);
   return ((int64) len_high << 32 | ret);
 }
+
+/*******************************************************************
+
+
+                         os_getfilesize
+
+
+*******************************************************************/
 
 int64 os_getfilesize(char *path)
 {
@@ -97,6 +130,14 @@ int64 os_getfilesize(char *path)
   }
 }
 
+/*******************************************************************
+
+
+                         os_lseek
+
+
+*******************************************************************/
+
 OFF_T os_lseek(OS_FD fd, OFF_T ofs, int cmd)
 {
   DWORD ret;
@@ -115,6 +156,14 @@ OFF_T os_lseek(OS_FD fd, OFF_T ofs, int cmd)
   return ((OFF_T) ofs_high << 32 | ret);
 }
 
+/*******************************************************************
+
+
+                         os_set_nonblock
+
+
+*******************************************************************/
+
 #include <winsock2.h>
 
 void os_set_nonblock(OS_SOCKET fd)
@@ -130,6 +179,13 @@ void os_set_nonblock(OS_SOCKET fd)
   }
 }
 
+/*******************************************************************
+
+
+                         gettimeofday
+
+
+*******************************************************************/
 
 //http://lists.gnu.org/archive/html/bug-gnu-chess/2004-01/msg00020.html
 void gettimeofday(struct timeval* p, void* tz /* IGNORED */){
@@ -144,6 +200,13 @@ void gettimeofday(struct timeval* p, void* tz /* IGNORED */){
    return;
 }
 
+/*******************************************************************
+
+
+                         os_uname
+
+
+*******************************************************************/
 
 // http://msdn.microsoft.com/library/default.asp?url=/library/en-us/sysinfo/base/getting_the_system_version.asp
 #define BUFSIZE 80

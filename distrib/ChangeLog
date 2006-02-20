@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/02/20
+4920: Cleanup included header files in C code (Schlumpf)
+
 2006/02/17
 4910: EDK: Use updated protocol information when parsing
       consecutive messages (sam_dennis)
