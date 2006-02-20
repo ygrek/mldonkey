@@ -111,3 +111,5 @@ let glibc_version_num () =
       glibc_version ()
     with e -> ""
   end
+  
+let set_console_title buf = ()  (* fake function for DriverMain.mingw_second_timer *)

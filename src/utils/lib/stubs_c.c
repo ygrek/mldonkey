@@ -1147,11 +1147,6 @@ statfs_statfs (value pathv)
 }
 #endif  /* defined(__MINGW32__) */
 
-
-#if defined(__MINGW32__)
-static HWND myHWND = NULL;
-#endif
-
 /*******************************************************************
 
 
@@ -1161,17 +1156,19 @@ static HWND myHWND = NULL;
 
 *******************************************************************/
 
+#if defined(__MINGW32__)
+static HWND myHWND = NULL;
+#endif
+
 value
-external_start (value version)
+external_start (void)
 {
 
 /* Disable close button on console */
 #if defined(__MINGW32__)
   char *buf = "[MLDonkey TitleSearch]\0"; /* if multiple instances */
-  char *title = String_val (version);
   SetConsoleTitle((LPCTSTR)buf);
   myHWND = FindWindowEx(NULL, NULL, NULL, (LPCTSTR)buf);
-  SetConsoleTitle((LPCTSTR)title);
 
   if (myHWND != NULL) {
     HMENU hmenu = GetSystemMenu(myHWND, FALSE);

@@ -21,7 +21,7 @@ type t
 
 val verbose : bool ref
 
-val external_start : string -> unit
+val external_start : unit -> unit
 val external_exit : unit -> unit
 val uname : unit -> string
 val os_supported : unit -> bool

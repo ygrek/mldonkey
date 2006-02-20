@@ -73,6 +73,7 @@ let max_filedescs = 50
 let chroot _ = ()
 
 external set_nonblock: Unix.file_descr -> unit = "ml_set_nonblock"
+external set_console_title : string -> unit = "os_set_console_title"
 
 let mini (x: int) y = if x < y then x else y
 

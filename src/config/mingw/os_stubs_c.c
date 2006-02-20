@@ -463,3 +463,19 @@ int os_os_supported()
      return 1;
    }
 }
+
+/*******************************************************************
+
+
+                      os_set_console_title
+
+
+ *******************************************************************/
+
+value os_set_console_title(value buf)
+{
+   char *pbuf = String_val (buf);
+
+   SetConsoleTitle((LPCTSTR)pbuf);
+   return Val_unit;
+}

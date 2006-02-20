@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/20
+4921: MinGW: show current DL & UL stats in console title (Schlumpf)
 4909: Print warning messages when run on supported operating systems (Schlumpf)
       currently for example Windows 95/98/ME
 4920: Cleanup included header files in C code (Schlumpf)

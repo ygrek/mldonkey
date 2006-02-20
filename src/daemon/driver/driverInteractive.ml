@@ -951,6 +951,12 @@ let print_bw_stats buf =
   (size_of_int64 !nshared_bytes)
   (size_of_int64 !upload_counter)
 
+let console_topic () =
+  Printf.sprintf "(DL: %.1f | UL: %.1f) MLNet %s"
+    (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0)
+    (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0)
+    Autoconf.current_version
+
 let display_active_file_list buf o list =
   display_vd := true;
 

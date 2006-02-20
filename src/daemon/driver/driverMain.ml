@@ -475,6 +475,10 @@ or getting a binary compiled with glibc %s.\n\n")
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
 
+  if Autoconf.system = "mingw" then
+    add_infinite_timer 1. (fun timer ->
+        MlUnix.set_console_title (DriverInteractive.console_topic ()));
+
   List.iter
     CommonShared.shared_add_directory
   !!CommonComplexOptions.shared_directories;
@@ -606,7 +610,7 @@ for config files at the end. *)
         lprintf_nl () (_b "Exiting...");
         exit 73;
   end;
-  Unix32.external_start (CommonGlobals.version());
+  Unix32.external_start ();
 
   (
     let pid_filename =
