@@ -55,9 +55,6 @@ typedef int OS_SOCKET;
 #include <string.h>
 #endif
 
-#ifndef __BEOS__
-#include <sys/mman.h>
-#endif
 
 #endif  /* __MINGW32__ */
 
@@ -103,6 +100,9 @@ typedef off64_t OFF_T;
 typedef off_t OFF_T;
 #endif
 
+#if !defined(__MINGW32__) && !defined(__BEOS__)
+#include <sys/mman.h>
+#endif
 
 #ifdef HAS_UNISTD
 #include <unistd.h>
