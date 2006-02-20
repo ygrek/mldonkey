@@ -24,6 +24,7 @@ val verbose : bool ref
 val external_start : string -> unit
 val external_exit : unit -> unit
 val uname : unit -> string
+val os_supported : unit -> bool
 
 val create_dir_mask : string ref
 val close : t -> unit

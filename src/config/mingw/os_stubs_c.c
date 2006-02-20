@@ -437,3 +437,29 @@ void os_uname(char buf[])
    return; 
 }
 
+/*******************************************************************
+
+
+                          os_os_supported
+
+
+*******************************************************************/
+
+int os_os_supported()
+{
+   OSVERSIONINFO pVersion;
+   pVersion.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+   int check = GetVersionEx(&pVersion);
+
+   if ( check != 0 )
+   {
+   if ( pVersion.dwPlatformId == VER_PLATFORM_WIN32_NT )
+       return 1;
+     else
+       return 0;
+   }
+   else  /* expect an NT system because GetVersionEx failed */
+   {
+     return 1;
+   }
+}

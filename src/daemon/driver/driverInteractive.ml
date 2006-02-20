@@ -71,9 +71,18 @@ let verify_user_admin () =
       warning
     end
   else ""
+  
+let check_supported_os () =
+  let uname = Unix32.uname () in
+  let message = Printf.sprintf "MLDonkey is not able to run faultless under %s" uname; in
+  if uname <> "" && not (Unix32.os_supported ()) then begin
+    lprintf_nl () "%s" message;
+    message;
+  end
+  else ""
 
 let real_startup_message () =
-  !startup_message ^ (verify_user_admin ())
+  !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ())
       
 (* ripped from gui_downloads *)
 
@@ -1745,7 +1754,9 @@ let runinfo html buf o =
       ^ "\nIP blocking:\t " ^ (let r1,r2 = Ip_set.block_stats () in
           if r1 = 0 then dis_mess else Printf.sprintf "enabled, %d ranges loaded - optimized to %d" r1 r2)
       ^ "\nSystem info:\t " ^ (let uname = Unix32.uname () in
-          if uname <> "" then uname else "unknown")
+          if uname <> "" then uname ^
+	    (if not (Unix32.os_supported ()) then " - \nWARNING:\t not supported operating system" else "")
+          else "unknown")
       ^ "\n\t\t language: " ^ Charset.default_language
       ^ " - locale: " ^ Charset.locstr
       ^ " - UTC offset: " ^ Rss_date.mk_timezone (Unix.time ())

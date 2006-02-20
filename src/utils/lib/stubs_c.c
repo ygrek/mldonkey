@@ -1465,3 +1465,21 @@ ml_setrlimit(value resource, value rlimit)
 #endif
 }
 
+/*******************************************************************
+
+
+                         ml_os_supported
+
+
+*******************************************************************/
+
+value ml_os_supported(value unit)
+{
+	int buf = os_os_supported();
+		
+	if ( buf == 1 )
+	  return Val_true;
+	else
+	  return Val_false;
+}
+

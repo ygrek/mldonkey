@@ -47,6 +47,7 @@ let rw_creat_flag =  [Unix.O_CREAT; Unix.O_RDWR]
 external external_start : string -> unit = "external_start"
 external external_exit : unit -> unit = "external_exit"
 external uname : unit -> string = "ml_uname"
+external os_supported : unit -> bool = "ml_os_supported"
   
 (* let really_write fd s pos len =
   try

@@ -181,3 +181,16 @@ void os_uname(char buf[])
 }
 
 #endif
+
+/*******************************************************************
+
+
+                         os_os_supported
+
+
+*******************************************************************/
+
+int os_os_supported()
+{
+	  return 1;  /* return always 1 to expect an supported os */
+}

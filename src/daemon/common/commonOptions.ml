@@ -137,6 +137,19 @@ let _ =
      exit 2);
   Unix2.can_write_to_directory file_basedir;
   Unix.chdir file_basedir;
+  
+  let uname = Unix32.uname () in
+  if uname = "" then
+    begin
+      lprintf_nl "Unknown operating system, please report to the MLDonkey development team";
+      lprintf_nl "at http://savannah.nongnu.org/bugs/?group=mldonkey"
+    end
+  else
+    if not (Unix32.os_supported ()) then begin
+      lprintf_nl "WARNING: MLDonkey is not suuported on %s" uname;
+      if Autoconf.windows then
+        lprintf_nl "WARNING: MLDonkey is only supported on Windows NT/2000/XP/Server 2003."
+    end;
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
     && not Autoconf.windows && not (Autoconf.system = "morphos") &&
