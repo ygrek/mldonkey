@@ -399,9 +399,9 @@ let _ =
   (
     let hostname = "www.mldonkey.net" in
     try
-      ignore(Ip.from_name hostname)
-    with
-     e ->
+      ignore(Ip.from_name hostname);
+      DriverInteractive.dns_works := true
+    with e ->
         lprintf (_b "\nDNS resolution does not work! Looking up %s failed with %s.")
            hostname (Printexc2.to_string e);
 	lprintf "

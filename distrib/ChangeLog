@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/02/21
+4926: Runinfo: Warn about not-working DNS resolution,
+      /dev/urandom detection was not disabled if --disable-donkeysui is used
+
 2006/02/20
 4922: OpenBSD: Small change for patch 4920
 4921: MinGW: show current DL & UL stats in console title (Schlumpf)

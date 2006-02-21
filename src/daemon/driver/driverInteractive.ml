@@ -81,8 +81,11 @@ let check_supported_os () =
   end
   else ""
 
+let dns_works = ref false
+  
 let real_startup_message () =
-  !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ())
+  !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ()) 
+  ^ (if not !dns_works then "DNS resolution does not work" else "")
       
 (* ripped from gui_downloads *)
 
@@ -1735,7 +1738,7 @@ let buildinfo html buf =
     end
   else
     Printf.bprintf buf "\n\t--Buildinfo--\n%s\n" s
-  
+
 let runinfo html buf o =
   let dis_mess = "disabled, to enable adjust web_infos in downloads.ini for automatic download" in
   let ui_user = o.conn_user.ui_user_name in
@@ -1759,6 +1762,10 @@ let runinfo html buf o =
           else dis_mess)
       ^ "\nIP blocking:\t " ^ (let r1,r2 = Ip_set.block_stats () in
           if r1 = 0 then dis_mess else Printf.sprintf "enabled, %d ranges loaded - optimized to %d" r1 r2)
+      ^ (if not !dns_works then
+	    Printf.sprintf "\nDNS:\t\t DNS resolution not available, web_infos %s not work"
+	      (if Autoconf.bittorrent = "yes" then "and BT does" else "do")
+	 else "")
       ^ "\nSystem info:\t " ^ (let uname = Unix32.uname () in
           if uname <> "" then uname ^
 	    (if not (Unix32.os_supported ()) then " - \nWARNING:\t not supported operating system" else "")
