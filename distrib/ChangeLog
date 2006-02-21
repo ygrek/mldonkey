@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/02/21
+4928: BT: Fix invalid encoding in announce URL (darkfader)
 4929: Do not print password_empty warning if enable_user_config true
 4926: Runinfo: Warn about not-working DNS resolution,
       /dev/urandom detection was not disabled if --disable-donkeysui is used
