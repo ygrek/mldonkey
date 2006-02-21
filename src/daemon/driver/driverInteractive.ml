@@ -65,7 +65,7 @@ let verify_user_admin () =
     users =:= ("admin", Md4.string "") :: !!users;
     empty_password := true
   end;
-  if !empty_password then
+  if !empty_password && not !!enable_user_config then
     begin
       lprintf_n () "%s" warning;
       warning
