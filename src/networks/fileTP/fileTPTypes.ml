@@ -29,8 +29,10 @@ type client = {
     client_client : client CommonClient.client_impl;
     mutable client_port : int;
     mutable client_hostname : string;
+    mutable client_referer : string;
     mutable client_downloads : download list;
     mutable client_in_queues : file list;
+    mutable client_downloaded : int64;
     mutable client_connection_control : connection_control;
     mutable client_sock : tcp_connection;
     mutable client_requests : download list;
@@ -53,7 +55,6 @@ and file = {
 and download = {
     download_file : file;
     download_url : Url.url;
-    download_referer : Url.url;
     mutable download_chunks : (int64 * int64) list;
     mutable download_uploader : Int64Swarmer.uploader option;
     mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;

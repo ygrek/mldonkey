@@ -81,10 +81,15 @@ end_pos !counter_pos b.len to_read;
 
             let swarmer = Int64Swarmer.uploader_swarmer up in
 
+            let old_downloaded =
+              Int64Swarmer.downloaded swarmer in
+
             Int64Swarmer.received up
               !counter_pos b.buf b.pos to_read_int;
             let new_downloaded =
               Int64Swarmer.downloaded swarmer in
+
+	    c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
 
             if new_downloaded = file_size file then
               download_finished file;
@@ -359,7 +364,6 @@ let ftp_connect token c f =
             disconnect_client c s
 
         | CONNECTED ->
-          lprintf "CONNECTED !!! Asking for range...\n";
           f sock
         | _ -> ()
     )

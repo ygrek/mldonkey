@@ -48,12 +48,12 @@ open FileTPClients
 
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
-  lprintf "%s[HTTP] "
+  lprintf "%s[FileTP] "
     (log_time ()); lprintf_nl2
 
 (* prints a new logline with date, module and does not start newline *)
 let lprintf_n () =
-  lprintf "%s[HTTP] "
+  lprintf "%s[FileTP] "
     (log_time ()); lprintf
 
 (*************************************************************************)
@@ -68,8 +68,6 @@ let http_send_range_request c range sock d =
   let real_url =
     (Str.global_replace (Str.regexp " ") "%20" url.Url.full_file) in
 
-  let referer = d.download_referer in
-  
   let (x,y) = range in
   let range = Printf.sprintf "%Ld-%Ld" x (Int64.pred y) in
 
@@ -85,7 +83,7 @@ let http_send_range_request c range sock d =
                     name); *)
   Printf.bprintf buf "Host: %s\r\n" c.client_hostname;
   Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
-  Printf.bprintf buf "Referer: %s\r\n" (Url.to_string referer);
+  Printf.bprintf buf "Referer: %s\r\n" c.client_referer;
   Printf.bprintf buf "Range: bytes=%s\r\n" range;
   Printf.bprintf buf "Connection: Keep-Alive\r\n";
   Printf.bprintf buf "\r\n";
@@ -165,31 +163,6 @@ let rec client_parse_header c gconn sock header =
           end;
       end;
 
-    (* I think this is already handeled with the new headder check before
-       download start code
-    (* If the header contains a redirection *)
-    if (code = 302) then begin
-      let (newurl, _) = List.assoc "location" headers in
-
-      remove_file file;
-      file_cancel (as_file file);
-      let u = Url.of_string newurl in
-
-      c.client_hostname <- u.Url.server;
-      c.client_port <- u.Url.port;
-
-      let file = new_file (Md4.random ()) u.Url.full_file zero in
-
-      lprintf_nl () "DOWNLOAD FILE %s" (file_best_name  file);
-      if not (List.memq file !current_files) then begin
-    current_files := file :: !current_files;
-      end;
-      add_download file c u r;
-      FileTPClients.get_file_from_source c file;
-
-     end;
-    *)
-
     if  code < 200 || code > 299 then
       failwith "Bad HTTP code";
 
@@ -254,7 +227,6 @@ let rec client_parse_header c gconn sock header =
     (try
         let (len,_) = List.assoc "content-length" headers in
         let len = Int64.of_string len in
-        if !verbose then lprintf_nl () "Specified length: %Ld" len;
         if len <> end_pos -- start_pos then
           begin
             failwith (Printf.sprintf "ERROR: bad computed range: %Ld-%Ld/%Ld \n%s\n"
@@ -265,10 +237,6 @@ let rec client_parse_header c gconn sock header =
             (String.escaped header)
     );
 
-    if !verbose then lprintf_nl () "Receiving range: %Ld-%Ld (len = %Ld)\n%s"
-      start_pos end_pos (end_pos -- start_pos)
-    (String.escaped header)
-    ;
     set_client_state c (Connected_downloading (file_num file));
     let counter_pos = ref start_pos in
 (* Send the next request *)
@@ -286,9 +254,6 @@ let rec client_parse_header c gconn sock header =
         let to_read = min (end_pos -- !counter_pos)
           (Int64.of_int b.len) in
 
-        if !verbose then lprintf_nl () "Reading: end_pos %Ld counter_pos %Ld len %d = to_read %Ld"
-end_pos !counter_pos b.len to_read;
-
         let to_read_int = Int64.to_int to_read in
 (*
         if !verbose then lprintf "CHUNK: %s\n"
@@ -298,6 +263,9 @@ end_pos !counter_pos b.len to_read;
         in
 (*        List.iter (fun (_,_,r) -> Int64Swarmer.free_range r)
         d.download_ranges; *)
+
+        let old_downloaded =
+          Int64Swarmer.downloaded swarmer in
 
         begin
           try
@@ -315,6 +283,8 @@ end_pos !counter_pos b.len to_read;
               Int64Swarmer.alloc_range r) d.download_ranges; *)
         let new_downloaded =
           Int64Swarmer.downloaded swarmer in
+
+        c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
 
         (match d.download_ranges with
             [] -> lprintf_nl () "EMPTY Ranges!"
@@ -423,7 +393,6 @@ by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should no
   even in this case... *)
 
         | CONNECTED ->
-          if !verbose then lprintf_nl () "CONNECTED !!! Asking for range...";
           f sock
         | _ -> ()
     )

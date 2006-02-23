@@ -127,6 +127,7 @@ let set_file_size file size =
       Int64Swarmer.set_verified swarmer (fun _ _ ->
           file_must_update (as_file file);
       );
+      file_must_update (as_file file)
       (*
       Int64Swarmer.set_writer swarmer (fun offset s pos len ->
 
@@ -182,7 +183,7 @@ let new_file file_id file_name file_size =
       Hashtbl.add files_by_uid file_id file;
       file
 
-let new_client proto hostname port =
+let new_client proto hostname port referer =
   let key = (hostname,port) in
   try
     Hashtbl.find clients_by_uid key
@@ -190,18 +191,13 @@ let new_client proto hostname port =
       let rec c = {
           client_client = impl;
           client_sock = NoConnection;
-(*          client_name = name;
-          client_kind = None; *)
           client_requests = [];
-(*
-client_pos = Int32.zero;
-client_error = false;
-  *)
-
           client_connection_control = new_connection_control (());
           client_downloads = [];
           client_hostname = hostname;
+          client_referer = referer;
           client_port = port;
+	  client_downloaded = zero;
           client_reconnect = false;
           client_in_queues = [];
           client_connected_for = None;
@@ -216,10 +212,9 @@ client_error = false;
       Hashtbl.add clients_by_uid key c;
       c
     
-let add_download file c url referer =
+let add_download file c url =
 (*  let r = new_result file.file_name (file_size file) in *)
 (*  add_source r c.client_user index; *)
-  if !verbose then lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
       (*
@@ -228,7 +223,6 @@ let add_download file c url referer =
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
           download_url = url;
-          download_referer = referer;
           download_chunks = chunks;
           download_uploader = None;
           download_ranges = [];

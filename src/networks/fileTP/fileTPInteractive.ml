@@ -83,8 +83,8 @@ let _ =
         P.file_md4 = Md4.null;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
-        P.file_all_sources = 0;
-        P.file_active_sources = 0;
+        P.file_all_sources = (List.length file.file_clients);
+        P.file_active_sources = (List.length file.file_clients);
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
@@ -125,10 +125,10 @@ let _ =
         P.client_rating = 0;
         P.client_chat_port = 0 ;
         P.client_connect_time = BasicSocket.last_time ();
-        P.client_software = "";
+        P.client_software = "TP";
         P.client_release = "";
         P.client_emulemod = "";
-        P.client_downloaded = zero;
+        P.client_downloaded = c.client_downloaded;
         P.client_uploaded = zero;
         P.client_upload = None;
         P.client_sui_verified = None;
@@ -149,7 +149,7 @@ let _ =
         let cinfo = client_info cc in
         client_print cc o;
         Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
-          "fT" (* cinfo.GuiTypes.client_software *)
+          cinfo.GuiTypes.client_software
           (Int64.to_string cinfo.GuiTypes.client_downloaded)
         (Int64.to_string cinfo.GuiTypes.client_uploaded);
         Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
@@ -159,6 +159,13 @@ let _ =
         let buf = o.conn_buf in
         let cc = as_client c in
         let cinfo = client_info cc in
+	let client_ip, client_port =
+	  match cinfo.GuiTypes.client_kind with
+	    Indirect_location (_, _, ip, port)
+	  | Known_location (ip, port) -> ip, port
+	in
+        let ccode,cname = Geoip.get_country (fst (client_ip,client_port)) in
+
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
 
@@ -173,8 +180,8 @@ let _ =
           ((string_of_connection_state (client_state cc)), "sr",
             (short_string_of_connection_state (client_state cc)));
           ("", "sr", cinfo.GuiTypes.client_name);
-          ("", "sr", "TP"); (* cinfo.GuiTypes.client_software *)
-          ("", "sr", ""); (* cinfo.GuiTypes.client_release *)
+          ("", "sr", cinfo.GuiTypes.client_software);
+          ("", "sr", cinfo.GuiTypes.client_release);
           ] @
           (if !show_emulemods_column then [("", "sr", "")] else [])
           @ [
@@ -183,81 +190,15 @@ let _ =
               (((last_time ()) - cinfo.GuiTypes.client_connect_time) / 60));
           ("", "sr", "D");
           ("", "sr", "N");
-          ("", "sr", (string_of_client_addr c));
-          ] @ (if !Geoip.active then [("?", "sr", "?")] else []) @ [
+          ("", "sr", Printf.sprintf "%s:%d" (Ip.to_string client_ip) client_port);
+          ] @ (if !Geoip.active then [(cname, "sr", ccode)] else []) @ [
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
           ("", "sr", info.GuiTypes.file_name); ]);
         true
     )
 
-(* As in bittorrent: make an initial connection just to know the complete
-  size of the file and disconnect immediatly after. *)
-
-  (*
-let rec start_download_file_from_mirror proto file url u result_size =
-  (*
-  lprintf "RECEIVED HEADERS\n";
-  let content_length = ref None in
-  List.iter (fun (name, content) ->
-      if String.lowercase name = "content-length" then
-        try
-          content_length := Some (Int64.of_string content)
-        with _ ->
-            lprintf "bad content length [%s]\n" content;
-  ) headers;
-  match !content_length with
-    None -> failwith "Unable to mirror download (HEAD failed)"
-  | Some result_size -> *)
-      if !verbose then
-        lprintf_nl "[FILETP]: STARTING DOWNLOAD WITH SIZE %Ld" result_size;
-      if file_size file <> result_size then
-        if !verbose then
-          lprintf_nl "[FILETP]: Error, unable to mirror download (files have different sizes)"
-      else
-      let client_hostname = url.Url.server in
-      let client_port = url.Url.port in
-      let c = new_client proto client_hostname client_port in
-      add_download file c url.Url.full_file referer.Url.full_file;
-      FileTPClients.get_file_from_source c file; 
-      ()  
-
-let test_mirrors file urls =
-  List.iter (fun url ->
-      try
-        let u = Url.of_string url in
-        let proto = match u.Url.proto with
-          | "http" -> FileTPHTTP.proto
-          | "ftp" -> FileTPFTP.proto
-          | "ssh" -> FileTPSSH.proto
-          | s -> failwith
-              (Printf.sprintf "Unknown URL protocol [%s]" s)
-        in
-        proto.proto_check_size u url
-          (start_download_file_from_mirror proto file)
-        (*
-        let module H = Http_client in
-        let r = {
-            H.basic_request with
-            H.req_url = u;
-            H.req_proxy = !CommonOptions.http_proxy;
-            H.req_request = H.HEAD;
-            H.req_user_agent = user_agent;
-          } in
-
-H.whead r (start_download_file_from_mirror file u)
-  *)
-      with _ -> ()) urls
-
-let
-let download_file_from_mirror file url =
-  test_mirrors file [url];
-  find_mirrors file url
-    *)
-
-
-
-let rec download_file_from_mirror file u r =
+let rec download_file_from_mirror file u referer =
 
   let proto = match u.Url.proto with
     | "http" -> FileTPHTTP.proto
@@ -269,8 +210,8 @@ let rec download_file_from_mirror file u r =
 
   let client_hostname = u.Url.server in
   let client_port = u.Url.port in
-  let c = new_client proto client_hostname client_port in
-  add_download file c u r;
+  let c = new_client proto client_hostname client_port referer in
+  add_download file c u;
   FileTPClients.get_file_from_source c file; 
   ()
 
@@ -294,7 +235,7 @@ and find_mirrors file u =
           let suffix = String.sub url namelen (urllen - namelen) in
           List.iter (fun name ->
               download_file_from_mirror file (Url.of_string
-                (name ^ suffix)) (Url.of_string name)) mirrors
+                (name ^ suffix)) name) mirrors
         else
           iter2 mirrors tail
   in
@@ -304,7 +245,6 @@ let previous_url = ref ""
   
 let download_file url referer = 
   let u = Url.of_string url in
-  let r = Url.of_string referer in
 
   if List.mem u !!old_files && !previous_url <> url then begin
       previous_url := url;
@@ -314,12 +254,12 @@ let download_file url referer =
   let file = new_file (Md4.random ()) u.Url.full_file zero in
   
   if !verbose then
-    lprintf_nl () "DOWNLOAD FILE %s" (file_best_name  file); 
+    lprintf_nl () "Started new download: %s from %s" (file_best_name file) url; 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
   
-  download_file_from_mirror file u r;
+  download_file_from_mirror file u referer;
   find_mirrors file u
 
 (* I think this is a real bad idea, we should check this by ensuring that the
@@ -423,7 +363,6 @@ let commands = [
           if !verbose then
             lprintf_nl () "MIRROR [%s] [%s]" !num !url;
           let u = Url.of_string !url in
-          let r = Url.of_string !referer in
 
           if List.mem u !!old_files && !previous_url <> !url then begin
               previous_url := !url;
@@ -438,7 +377,7 @@ let commands = [
                     lprintf_nl () "Try HEAD from mirror";
 
 
-                  download_file_from_mirror file u r;
+                  download_file_from_mirror file u !referer;
                   find_mirrors file u;
 
                   raise Exit
@@ -479,6 +418,8 @@ let _ =
   network.op_network_search <- (fun ss buf -> ());
   network.op_network_download <- (fun r -> dummy_file);
   file_ops.op_file_commit <- (fun file new_name -> ());
+  file_ops.op_file_pause <- (fun file -> ());
+  file_ops.op_file_resume <- (fun file -> ());
   file_ops.op_file_print_html <- (fun file buf -> ());
   file_ops.op_file_print_sources_html <- (fun file buf -> ());
   network.op_network_forget_search <- (fun s -> ());

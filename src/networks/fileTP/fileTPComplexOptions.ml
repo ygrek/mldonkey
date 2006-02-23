@@ -40,21 +40,12 @@ module ClientOption = struct
           let get_value name conv = conv (List.assoc name assocs) in
           let client_hostname = get_value "client_hostname" value_to_string in
           let client_port = get_value "client_port" value_to_int in
+          let client_referer = try
+	      get_value "client_referer" value_to_string with _ -> "" in
           let client_proto = try
               get_value "client_proto" value_to_string with _ -> "http" in
           let proto = find_proto client_proto in
-          let c = new_client proto client_hostname client_port in
-
-(*
-          (try
-              c.client_user.user_speed <- get_value "client_speed" value_to_int
-            with _ -> ());
-
-          (try
-              if get_value "client_push" value_to_bool then
-                c.client_user.user_kind <- Indirect_location ("", client_uid)
-with _ -> ());
-  *)
+          let c = new_client proto client_hostname client_port client_referer in
           c
       | _ -> failwith "Options: Not a client"
 
@@ -63,10 +54,7 @@ with _ -> ());
         "client_hostname", string_to_value c.client_hostname;
         "client_port", int_to_value c.client_port;
         "client_proto", string_to_value c.client_proto.proto_string;
-(*
-            "client_speed", int_to_value u.user_speed;
-"client_push", bool_to_value false;
-  *)
+        "client_referer", string_to_value c.client_referer;
       ]
 
     let t =
@@ -102,7 +90,7 @@ let value_to_file file_size file_state assocs =
   (try
       ignore (get_value "file_sources" (value_to_list (fun v ->
               match v with
-              | SmallList [c; index] | List [c;index] ->
+              | SmallList [c; index] | List [c; index] ->
                   let s = ClientOption.value_to_client c in
                   add_download file s (Url.of_string (value_to_string index))
               | _ -> failwith "Bad source"
@@ -121,9 +109,7 @@ let file_to_value file =
       "file_id", string_to_value (Md4.to_string file.file_id);
       "file_sources",
       list_to_value (fun c ->
-          lprintf "SAVING: find_client...\n";
           let n = (find_download file c.client_downloads).download_url in
-          lprintf "SAVING: find_client...done...saving\n";
           SmallList [ClientOption.client_to_value c;
             string_to_value (Url.to_string n)]
       ) file.file_clients;

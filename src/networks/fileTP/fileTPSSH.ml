@@ -91,13 +91,19 @@ let segment_received c num s pos =
         match d.download_uploader with
           None -> assert false
         | Some up ->
-
+			  
             let swarmer = Int64Swarmer.uploader_swarmer up in
+
+            let old_downloaded =
+              Int64Swarmer.downloaded swarmer in
+
             Int64Swarmer.received up
               pos s 0 (String.length s);
 
             let new_downloaded =
               Int64Swarmer.downloaded swarmer in
+
+	    c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
 
             if new_downloaded = file_size file then
               download_finished file;

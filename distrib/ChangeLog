@@ -15,6 +15,13 @@ ChangeLog
 =========
 
 2006/02/23
+4934: FileTP: Small improvements
+- fix download restart bug when core is restarted, sources where not loaded
+- save referer values to files.ini
+- display amount of transfered data in downloaders list
+- display source IP and Countrycode in HTML downloaders list
+- display filesize in GUI
+- display number of sources in GUI
 4933: BT: Display number of sources in GUI
 
 2006/02/21

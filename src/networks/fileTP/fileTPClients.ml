@@ -340,7 +340,6 @@ let manage_hosts () =
            file.file_nconnected_clients; *)
           while file.file_nconnected_clients < max_nconnected_clients do
             let (_,c) = Queue.take file.file_clients_queue in
-              if !verbose then lprintf "One client\n";
             c.client_in_queues <- List2.removeq file c.client_in_queues;
 
             if file_size file = zero then
