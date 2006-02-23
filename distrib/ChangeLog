@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/02/23
+4933: BT: Display number of sources in GUI
+
 2006/02/21
 4928: BT: Fix invalid encoding in announce URL (darkfader)
 4929: Do not print password_empty warning if enable_user_config true

@@ -61,10 +61,19 @@ let lprintf_n () =
     (log_time ()); lprintf
 
 let op_file_all_sources file =
-(*      lprintf "file_sources\n"; *)
   let list = ref [] in
   Hashtbl.iter (fun _ c ->
       list := (as_client c) :: !list
+  ) file.file_clients;
+  !list
+
+let op_file_active_sources file =
+  let list = ref [] in
+  Hashtbl.iter (fun _ c ->
+      let as_c = as_client c in
+      match client_state as_c with
+        Connected_downloading _ -> list := as_c :: !list
+      | _ -> ()
   ) file.file_clients;
   !list
 
@@ -408,6 +417,8 @@ let op_file_info file =
     P.file_chunks_age = last_seen;
     P.file_uids = [Uid.create (BTUrl file.file_id)];
     P.file_sub_files = file.file_files;
+    P.file_active_sources = List.length (op_file_active_sources file);
+    P.file_all_sources = (Hashtbl.length file.file_clients);
   }
 
 let op_ft_info ft =
@@ -992,7 +1003,7 @@ let _ =
 
   file_ops.op_file_all_sources <- op_file_all_sources;
   file_ops.op_file_files <- op_file_files;
-  file_ops.op_file_active_sources <- op_file_all_sources;
+  file_ops.op_file_active_sources <- op_file_active_sources;
   file_ops.op_file_debug <- op_file_debug;
   file_ops.op_file_commit <- op_file_commit;
   file_ops.op_file_print_html <- op_file_print_html;
