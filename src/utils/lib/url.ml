@@ -161,7 +161,7 @@ let put_args s args =
   if args = [] then s else
   let res = Buffer.create 256 in
   Buffer.add_string res s;
-  Buffer.add_char res '?';
+  Buffer.add_char res (if String.contains s '?' then '&' else '?');
   let rec manage_args = function
     | [] -> assert false
     | [a, ""] ->

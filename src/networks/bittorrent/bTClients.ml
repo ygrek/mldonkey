@@ -186,9 +186,7 @@ let connect_trackers file event f =
                   (t.tracker_last_conn - last_time()) file.file_name;
 
               let module H = Http_client in
-              let url = 
-	        (t.tracker_url ^ if not (Str.string_match (Str.regexp "\\?") t.tracker_url 0) then "&" else "")
-              in
+              let url = t.tracker_url in
               let r = {
                   H.basic_request with
                   H.req_url = Url.of_string ~args: args url;

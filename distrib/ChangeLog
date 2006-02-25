@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/02/25
+4928: BT: Fix invalid encoding in announce URL (darkfader)
+- removed old, broken version and added new version
+
 2006/02/23
 4934: FileTP: Small improvements
 - fix download restart bug when core is restarted, sources where not loaded
