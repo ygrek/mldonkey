@@ -19,7 +19,6 @@ ChangeLog
 due to older problems with HTML interface:
 - renamed command add_user to useradd
 - renamed command remove_user to userdel
-
 - user name is printed in browser title when bwstats is active
 -------------------------------------------------------------------------------
 2006/02/26: version 2.7.4 = tag release-2-7-4
