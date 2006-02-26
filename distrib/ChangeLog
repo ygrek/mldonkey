@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2006/02/25
+2006/02/25: version 2.7.4 = tag release-2-7-4
 4928: BT: Fix invalid encoding in announce URL (darkfader)
 - removed old, broken version and added new version
 
