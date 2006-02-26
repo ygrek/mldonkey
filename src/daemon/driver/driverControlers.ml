@@ -35,6 +35,7 @@ open TcpBufferedSocket
 open DriverGraphics
 open DriverInteractive
 open CommonOptions
+open CommonUserDb
 
 (* prints a new logline with date, module and starts newline *)
 let lprintf_nl () =
@@ -1419,7 +1420,6 @@ let http_handler o t r =
                     | "vd" | "vo" | "voo" | "upstats" | "shares" | "share"
                     | "unshare" | "stats" | "users" -> drop_pre := true;
                     | _ -> ());
-
                   Printf.bprintf buf "%s\n"
                     (if use_html_mods o && !drop_pre then s else "\n<pre>\n" ^ s ^ "</pre>");
 

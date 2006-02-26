@@ -34,6 +34,7 @@ open TcpBufferedSocket
 open CommonTypes
 open CommonGlobals
 open CommonOptions
+open CommonUserDb
 open CommonTypes
 open Int64ops
 
@@ -48,24 +49,19 @@ let lprintf_n () =
     (log_time ()); lprintf
 
 let verify_user_admin () =
-  let warning =
-    "SECURITY WARNING: user admin has an empty password, use command: add_user admin password\n"
-  in
-  let found = ref false in
-  let empty_password = ref false in
-  List.iter (fun (user,pass) ->
-    if user = "admin" then begin
-      found := true;
-      if pass = Md4.string "" then
-        empty_password := true
-    end
-  ) !!users;
-  if not !found then begin
-    lprintf_nl () "SECURITY INFO: user 'admin' has to be present, creating...";
-    users =:= ("admin", Md4.string "") :: !!users;
-    empty_password := true
+  let empty_pwd = ref false in
+  begin try
+    if user2_password "admin" = Md4.string "" then
+      empty_pwd := true
+    with e ->
+      lprintf_nl () "SECURITY INFO: user 'admin' has to be present, creating...";
+      empty_pwd := true;
+      ignore (user2_add "admin" blank_password "")
   end;
-  if !empty_password && not !!enable_user_config then
+  let warning =
+    "SECURITY WARNING: user admin has an empty password, use command: useradd admin password\n"
+  in
+  if !empty_pwd && not !!enable_user_config then
     begin
       lprintf_n () "%s" warning;
       warning
@@ -1745,7 +1741,7 @@ let runinfo html buf o =
   let s =
   (
         "User:\t\t " ^ ui_user
-      ^   (if List.assoc ui_user !!users = Md4.string "" then " (Warning: empty Password)"
+      ^   (if empty_password ui_user then " (Warning: empty Password)"
            else " (PW Protected)")
       ^	  " - uptime: " ^ Date.time_to_string (last_time () - start_time) "verbose"
       ^ "\nEnabled nets:\t"

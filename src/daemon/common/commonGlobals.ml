@@ -503,14 +503,6 @@ let find_ui_user user =
   in
   iter !ui_users
 
-
-let valid_password user pass =
-  let pass = Md4.Md4.string pass in
-  try
-    let password = List.assoc user !!users in
-    password = pass
-  with _ -> false
-
 (* control_: means that it is the limited bandwidth, not the unlimited one
   used by the interfaces. tcp_: the full bandwidth (limited+unlimited) *)
 

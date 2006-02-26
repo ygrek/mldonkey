@@ -40,6 +40,7 @@ open CommonTypes
 open CommonFile
 open CommonComplexOptions
 open CommonOptions
+open CommonUserDb
 open CommonInteractive
 open CommonEvent
 
@@ -637,45 +638,62 @@ formID.msgText.value=\\\"\\\";
             else
               _s "Usage: message <client num> <msg>\n";
 
-    ), ":\t\t\t\tmessage [<client num> <msg>]";
+    ), ":\t\t\t\t[<client num> <msg>]";
 
+    "useradd", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+	let print_result o result =
+          if o.conn_output = HTML then
+            html_mods_table_one_row buf "serversTable" "servers" [
+              ("", "srh", result); ]
+          else
+            Printf.bprintf buf "%s" result
+	in
+	let add_new_user user pass mail =
+          if o.conn_user == default_user
+	    || o.conn_user == (find_ui_user user) then
+	    try
+	      ignore (user2_find user);
+	      ignore (user2_add user (Md4.string pass) "");
+	      print_result o (Printf.sprintf "Password of user %s changed" user)
+            with _ ->
+	      ignore (user2_add user (Md4.string pass) "");
+	      print_result o (Printf.sprintf "User %s added" user)
+          else
+	    print_result o "Only 'admin' is allowed to add users"
+	in begin
+        match args with
+	  user :: pass :: mail :: _ ->
+	    add_new_user user pass mail
+	| user :: pass :: _ ->
+	    add_new_user user pass "";
+	| _ -> print_result o "Wrong syntax: use 'useradd user pass <mail>'"
+	end;
+	_s ""
+    ), "<user> <passwd> [<mail>] :\t\tadd new mldonkey user/change user password";
 
-    "add_user", Arg_two (fun user pass o ->
-        if o.conn_user == default_user
-	   || o.conn_user == (find_ui_user user) then
-          try
-            let p = List.assoc user !!users in
-            let pass = Md4.string pass in
-(* In place replacement....heurk *)
-            String.blit (Md4.direct_to_string pass) 0
-              (Md4.direct_to_string p) 0 16;
-            _s "Password changed"
-          with _ ->
-              users =:= (user, Md4.string pass) :: !!users;
-              _s "User added"
-        else
-          _s "Only 'admin' is allowed to add users"
-    ), "<user> <passwd> :\t\tadd new mldonkey user/change user password";
-
-    "remove_user", Arg_one (fun user o ->
+    "userdel", Arg_one (fun user o ->
+        let buf = o.conn_buf in
+	let print_result o result =
+          if o.conn_output = HTML then
+            html_mods_table_one_row buf "serversTable" "servers" [
+              ("", "srh", result); ]
+          else
+            Printf.bprintf buf "%s" result
+	in
         if o.conn_user == default_user then
 	  if user = "admin" then
-	    _s "User 'admin' can not be removed"
+	    print_result o "User 'admin' can not be removed"
 	  else
-	    begin
-	      let found = ref false in
-		users =:= List.filter (fun (s,_) ->
-		let diff = s <> user in
-		  if not diff then found := true;
-		  diff
-		) !!users;
-	        if !found then
-		  _s (Printf.sprintf "user %s removed" user)
-	        else
-	          _s (Printf.sprintf "user %s not found" user)
-	    end
+	    try
+	      ignore (user2_find user);
+	      ignore (user2_remove user);
+              print_result o (Printf.sprintf "User %s removed" user)
+            with _ ->
+              print_result o (Printf.sprintf "User %s not found" user)
         else
-          _s "Only 'admin' is allowed to remove users"
+          print_result o "Only 'admin' is allowed to remove users";
+	_s ""
     ), "<user> :\t\t\tremove a mldonkey user";
 
 
@@ -693,7 +711,7 @@ formID.msgText.value=\\\"\\\";
                    var getdir = prompt('Input: <user> <pass>','user pass')
                    var reg = new RegExp (' ', 'gi') ;
                    var outstr = getdir.replace(reg, '+');
-                   parent.fstatus.location.href='submit?q=add_user+' + outstr;
+                   parent.fstatus.location.href='submit?q=useradd+' + outstr;
                    setTimeout('window.location.reload()',1000);
                     }\\\"\\>Add User\\</a\\>
 \\</td\\>
@@ -707,35 +725,33 @@ formID.msgText.value=\\\"\\\";
 
             let counter = ref 0 in
 
-            List.iter (fun (user,_) ->
+            user2_iter (fun name user ->
                 incr counter;
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
                 (if !counter mod 2 == 0 then "dl-1" else "dl-2");
-		if user <> "admin" then Printf.bprintf buf "
+		if user.user_name <> "admin" then Printf.bprintf buf "
         \\<td title=\\\"Click to remove user\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
         onClick=\\\'javascript:{
-        parent.fstatus.location.href=\\\"submit?q=remove_user+\\\\\\\"%s\\\\\\\"\\\";
+        parent.fstatus.location.href=\\\"submit?q=userdel+\\\\\\\"%s\\\\\\\"\\\";
         setTimeout(\\\"window.location.reload()\\\",1000);}'
-        class=\\\"srb\\\"\\>Remove\\</td\\>" user
+        class=\\\"srb\\\"\\>Remove\\</td\\>" user.user_name
 		else Printf.bprintf buf "
         \\<td title=\\\"\\\"
         class=\\\"srb\\\"\\>------\\</td\\>";
 		Printf.bprintf buf
-		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" user
-            )
-            !!users;
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" user.user_name
+            );
 
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
           end
         else
           begin
             Printf.bprintf buf "Users:\n";
-            List.iter (fun (user,_) ->
+            user2_iter (fun name user ->
                 Printf.bprintf buf "  %s\n"
-                user)
-            !!users;
+                user.user_name);
           end;
         ""
         else
@@ -745,17 +761,12 @@ formID.msgText.value=\\\"\\\";
     "whoami", Arg_none (fun o ->
         let buf = o.conn_buf in
 	let whoami = o.conn_user.ui_user_name in
-        if o.conn_output = HTML then
-          begin
-            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-            html_mods_table_header buf "versionTable" "results" [];
-            Printf.bprintf buf "\\<tr\\>";
-            html_mods_td buf [ ("", "srh", whoami); ];
-            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-          end
+        if use_html_mods o then
+          html_mods_table_one_row buf "serversTable" "servers" [
+            ("", "srh", whoami); ]
         else
-            Printf.bprintf buf "%s" whoami;
-        ""
+          Printf.bprintf buf "%s" whoami;
+        _s ""
     ), ":\t\t\t\tprint logged-in user name";
 
     "calendar_add", Arg_two (fun hour action o ->
@@ -1133,8 +1144,8 @@ let _ =
 
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
 
-            Printf.bprintf buf "\\<script type=\\\"text/javascript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | %s'\\</script\\>"
-              dlkbs ulkbs (CommonGlobals.version ())
+            Printf.bprintf buf "\\<script type=\\\"text/javascript\\\"\\>window.parent.document.title='(D:%.1f) (U:%.1f) | %s | %s'\\</script\\>"
+              dlkbs ulkbs o.conn_user.ui_user_name (CommonGlobals.version ())
           end
         else
           DriverInteractive.print_bw_stats buf;

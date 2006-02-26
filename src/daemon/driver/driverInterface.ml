@@ -40,7 +40,8 @@ open BasicSocket
 open TcpBufferedSocket
 open CommonOptions
 open CommonGlobals
-  
+open CommonUserDb
+
 module P = GuiProto
 let lprintf_nl () =
   lprintf "%s[dIface] "

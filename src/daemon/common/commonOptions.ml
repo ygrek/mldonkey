@@ -268,11 +268,9 @@ let users_section = file_section users_ini ["Users"] "User accounts on the core"
 let empty_password = Md4.string ""
 
 let users = define_option users_section ["users"]
-  "The users that are defined on this core. The default user is
-called 'admin', and uses an empty password. To create new users,
-login as admin in mldonkey, and use the 'add_user' command."
+  "old option, kept for compatibility reasons."
     (list_option (tuple2_option (string_option, Md4.option)))
-    [ "admin", empty_password ]
+    []
 
 let empty_password user =
   try
