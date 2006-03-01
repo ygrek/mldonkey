@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/01
+4930: giFT GUI: Authentication support (pango)
+- login with giFTcurs now has to be done like this: giFTcurs -p user:password
+
 2006/02/26
 4938: Improve MLDonkey system user database
 due to older problems with HTML interface:

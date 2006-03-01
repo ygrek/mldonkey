@@ -1070,8 +1070,22 @@ search.op_search_end_reply_handlers;
           | P.GetVersion ->
               gui_send gui (P.Version Autoconf.current_version)
 
-          | P.GiftAttach _ ->
-              gui_send gui (P.GiftServerAttach ("mldonkey", "1.1"))
+          | P.GiftAttach (profile, version, client) ->
+	      let user, pass =
+		try
+		  let index = String.index profile ':' in
+		    String.sub profile 0 (index), 
+		    String.sub profile (index+1) (String.length profile - index - 1)
+		with Not_found -> profile, "" in
+		(match gui.gui_sock with
+		  | Some sock when not (valid_password user pass) ->
+		      set_lifetime sock 5.;
+		      lprintf "BAD PASSWORD\n"; 
+		      TcpBufferedSocket.close sock (Closed_for_error "Bad Password")
+		  | _ ->
+		      gui.gui_auth <- true;
+		      gui.gui_conn.conn_user <- find_ui_user user;
+		      gui_send gui (P.GiftServerAttach ("mldonkey", "1.1")))
           | P.GiftStats ->
               let list = ref [] in
               networks_iter (fun n ->
