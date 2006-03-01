@@ -234,67 +234,66 @@ let load_merge bl filename remove =
     optimized_bl
 
 let load filename =
-   lprintf_nl () "loading %s" filename;
-   if Sys.file_exists filename then
-   let ext = String.lowercase (Filename2.extension filename) in
+  lprintf_nl () "loading %s" filename;
+  if Sys.file_exists filename then
     let last_ext = String.lowercase (Filename2.last_extension filename) in
-    let real_ext = if last_ext = ".zip" then
-      last_ext
-    else
-      ext
-    in
-      match real_ext with
-        ".zip" ->
-	   begin
-	   try
-	     let ic = Zip.open_in filename in
-	     try
-	       let file = Zip.find_entry ic "guarding.p2p" in
-	         Zip.close_in ic;
-		 lprintf_nl () "guarding.p2p found in zip file";
-		 let _ = Misc.archive_extract filename "zip" in
-		 load_merge bl_empty file.Zip.filename true
-	       with e ->
-		 begin
-		   try
-		     let file = Zip.find_entry ic "guarding_full.p2p" in
-		       Zip.close_in ic;
-		       lprintf_nl () "guarding_full.p2p found in zip file";
-		       let _ = Misc.archive_extract filename "zip" in
-		       load_merge bl_empty file.Zip.filename true
-		     with e ->
-		       Zip.close_in ic;
-		       lprintf_nl () "Exception %s while extracting guarding.p2p/guarding_full.p2p from %s"
-			 (Printexc2.to_string e) filename;
-		       lprintf_nl () "One of the mentioned files has to be present in the zip file";
-		       bl_empty
-		 end
-	     with e ->
-	       lprintf_nl () "Exception %s while opening %s"
-		 (Printexc2.to_string e) filename;
-	       bl_empty
-	   end
-       | ".bz2" | ".p2p.bz2" | ".gz" | ".p2p.gz" ->
-	   begin
-	     let filetype =
-	       if ext = ".bz2" || ext = ".p2p.bz2" then "bz2" else "gz" in
-	     try
-		 let s = Misc.archive_extract filename filetype in
-		   load_merge bl_empty s true
-	       with e ->
-		 lprintf_nl () "Exception %s while extracting from %s"
-		   (Printexc2.to_string e) filename;
-		   bl_empty
-	   end
-       | ".tar.bz2" | ".p2p.tar.bz2" | ".tar.gz" | ".p2p.tar.gz" ->
+    if last_ext = ".zip" then
+      let filenames_list = 
+	["guarding.p2p"; "guarding_full.p2p"; "ipfilter.dat"] in
+      (try
+	let ic = Zip.open_in filename in
+	try
+	  let rec find_in_zip l =
+	    match l with
+	      | [] -> raise Not_found
+	      | h :: q ->
+		  try
+		    let file = Zip.find_entry ic h in
+		    lprintf_nl () "%s found in zip file" h;
+		    ignore(Misc.archive_extract filename "zip");
+		    load_merge bl_empty file.Zip.filename true
+		  with Not_found ->
+		    find_in_zip q in
+	  let bl = find_in_zip filenames_list in
+	  Zip.close_in ic;
+	  bl
+	with e ->
+	  Zip.close_in ic;
+	  lprintf_nl () "Exception %s while extracting %s from %s"
+	    (Printexc2.to_string e) 
+	    (String.concat "/" filenames_list)
+	    filename;
+	  lprintf_nl () "One of the mentioned files has to be present in the zip file";
+	  bl_empty
+      with e ->
+	lprintf_nl () "Exception %s while opening %s"
+	  (Printexc2.to_string e)
+	  filename;
+	bl_empty)
+    else     
+      let ext = String.lowercase (Filename2.extension filename) in
+      match ext with
+	| ".bz2" | ".p2p.bz2" | ".dat.bz2" 
+	| ".gz"  | ".p2p.gz"  | ".dat.gz" ->
+	    let filetype =
+	      if String2.check_suffix ext ".bz2" then "bz2" else "gz" in
+	    (try
+	      let s = Misc.archive_extract filename filetype in
+	      load_merge bl_empty s true
+	    with e ->
+	      lprintf_nl () "Exception %s while extracting from %s"
+		(Printexc2.to_string e) filename;
+	      bl_empty)
+        | ".tar.bz2" | ".p2p.tar.bz2" | ".dat.tar.bz2"
+        | ".tar.gz" | ".p2p.tar.gz" | ".dat.tar.gz" ->
 	    lprintf_nl () "tar files are not (yet) supported, please untar %s" filename;
 	    bl_empty
-       | _ -> load_merge bl_empty filename false
-   else
-     begin
-       lprintf_nl () "file %s not found" filename;
-       bl_empty
-     end
+        | _ -> load_merge bl_empty filename false
+  else
+    begin
+      lprintf_nl () "file %s not found" filename;
+      bl_empty
+    end
 
 let of_list l =
   let rec of_list_aux l bl =

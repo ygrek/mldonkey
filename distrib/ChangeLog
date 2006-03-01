@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/03/01
+4939: Support for compressed ipfilter.dat files (.gz, .bz2 or .zip) (pango)
 4930: giFT GUI: Authentication support (pango)
 - login with giFTcurs now has to be done like this: giFTcurs -p user:password
 
