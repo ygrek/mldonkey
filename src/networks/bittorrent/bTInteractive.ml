@@ -661,15 +661,14 @@ let op_network_parse_url url =
             H.req_proxy = !CommonOptions.http_proxy;
             H.req_user_agent = get_user_agent ();
             H.req_referer = (
-              let referers = !!BTOptions.referers in
               let (rule_search,rule_value) =
                 try (List.find(fun (rule_search,rule_value) ->
                         Str.string_match (Str.regexp rule_search) real_url 0
-                    ) referers )
+                    ) !!referers )
                 with Not_found -> ("",real_url) in
               Some (Url.of_string rule_value) );
             H.req_headers = (try
-              let cookies = List.assoc u.Url.server !!BTOptions.cookies in
+              let cookies = List.assoc u.Url.server !!cookies in
               [ ( "Cookie", List.fold_left (fun res (key, value) ->
                       if res = "" then
                         key ^ "=" ^ value

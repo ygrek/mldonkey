@@ -910,6 +910,14 @@ let socket_keepalive = define_expert_option current_section ["socket_keepalive"]
   This implies some bandwidth-cost (with 200 connections ~10-20%)"
     bool_option !BasicSocket.socket_keepalive
 
+let referers = define_option current_section ["referers"]
+    "Cookies send with a http request (used for .torrent files and web_infos)"
+    (list_option (tuple2_option (string_option, string_option))) [(".*suprnova.*", "http://www.suprnova.org/")]
+
+let cookies = define_option current_section ["cookies"]
+    "Cookies send with a http request (used for .torrent files and web_infos)"
+    (list_option (tuple2_option (string_option, list_option (tuple2_option (string_option, string_option))))) []
+
 let http_proxy_server = define_option current_section ["http_proxy_server"]
     "Direct HTTP queries to HTTP proxy" string_option ""
 let http_proxy_port = define_option current_section ["http_proxy_port"]

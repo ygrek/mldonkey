@@ -118,14 +118,6 @@ let min_tracker_reask_interval = define_option bittorrent_section ["min_tracker_
 let client_timeout = define_option bittorrent_section ["client_timeout"]
   "Timeout on client connections" float_option 90.
 
-let cookies = define_option bittorrent_section ["cookies"]
-    "Cookies send with http request to get .torrent file"
-    (list_option (tuple2_option (string_option, list_option (tuple2_option (string_option, string_option))))) []
-
-let referers = define_option bittorrent_section ["referers"]
-    "Referer sent with http request to get .torrent file"
-    (list_option (tuple2_option (string_option, string_option))) [(".*suprnova.*", "http://www.suprnova.org/")]
-
 let user_agent = define_option bittorrent_section ["user_agent"]
     "User agent string (default = \"default\")"
     string_option "default"

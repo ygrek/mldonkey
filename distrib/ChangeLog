@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/03/05
+4946: System-wide cookies and referers option
+- MLDonkey will not move data from bittorrent.ini to downloads.ini
+- This data will be used in web_infos, dllink and BT module.
 4951: GUI: Update server country codes after loading GeoIP data
 4949: Gzip/Bzip2: Close opened FD after opening an invalid archive file
 4945: BT: Automatically start new torrents downloads
