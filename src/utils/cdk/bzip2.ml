@@ -24,7 +24,10 @@ let open_in_chan ic =
     in_size = Int32.zero }
 
 let open_in filename =
-  open_in_chan (Pervasives.open_in_bin filename)
+  let ic = Pervasives.open_in_bin filename in
+  try
+    open_in_chan ic
+  with e -> Pervasives.close_in ic; raise e
 
 let read_byte iz =
   if iz.in_avail = 0 then begin

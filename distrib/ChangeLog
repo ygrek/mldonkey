@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/03/05
+4949: Gzip/Bzip2: Close opened FD after opening an invalid archive file
 4945: BT: Automatically start new torrents downloads
 - new directory $MLDONKEY_DIR/torrents/incoming, all files present
   in this dir are started automatically, its scanned every 10 seconds.
