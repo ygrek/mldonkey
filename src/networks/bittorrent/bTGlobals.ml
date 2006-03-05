@@ -723,6 +723,7 @@ let remove_tracker url file =
     ) file.file_trackers
 
 let torrents_directory = "torrents"
+let new_torrents_directory = Filename.concat torrents_directory "incoming"
 let downloads_directory = Filename.concat torrents_directory "downloads"
 let tracked_directory = Filename.concat torrents_directory "tracked"
 let seeded_directory = Filename.concat torrents_directory "seeded"

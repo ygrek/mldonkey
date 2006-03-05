@@ -59,11 +59,13 @@ let enable () =
     Unix2.safe_mkdir tracked_directory;
     Unix2.safe_mkdir downloads_directory;
     Unix2.safe_mkdir old_directory;
+    Unix2.safe_mkdir new_torrents_directory;
     Unix2.can_write_to_directory torrents_directory;
     Unix2.can_write_to_directory seeded_directory;
     Unix2.can_write_to_directory tracked_directory;
     Unix2.can_write_to_directory downloads_directory;
     Unix2.can_write_to_directory old_directory;
+    Unix2.can_write_to_directory new_torrents_directory;
     is_enabled := true;
     if !!BTTracker.tracker_port = !!client_port then
       begin
@@ -79,6 +81,9 @@ let enable () =
               (Printexc2.to_string e));
     add_session_timer enabler 300. (fun _ ->
         BTInteractive.share_files ();
+    );
+    add_session_timer enabler 10. (fun _ ->
+        BTInteractive.scan_new_torrents_directory ();
     );
     add_timer 10. BTInteractive.share_files;
     add_session_timer enabler 600. BTInteractive.retry_all_ft;

@@ -602,6 +602,16 @@ let share_files _ =
         end
   ) shared_files_copy
 
+let scan_new_torrents_directory () =
+  let filenames = Unix2.list_directory new_torrents_directory in
+  List.iter (fun file ->
+    let file = Filename.concat new_torrents_directory file in
+    try
+      load_torrent_file file;
+      (try Sys.remove file with _ -> ())
+    with e -> lprintf_nl () "Error %s in scan_new_torrents_directory" (Printexc2.to_string e)
+  ) filenames
+
 let retry_all_ft () =
   Hashtbl.iter (fun _ ft ->
       try ft.ft_retry ft with e ->

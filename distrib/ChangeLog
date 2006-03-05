@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/05
+4945: BT: Automatically start new torrents downloads
+- new directory $MLDONKEY_DIR/torrents/incoming, all files present
+  in this dir are started automatically, its scanned every 10 seconds.
+
 2006/03/01
 4939: Support for compressed ipfilter.dat files (.gz, .bz2 or .zip) (pango)
 4930: giFT GUI: Authentication support (pango)
