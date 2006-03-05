@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/03/05
+4951: GUI: Update server country codes after loading GeoIP data
 4949: Gzip/Bzip2: Close opened FD after opening an invalid archive file
 4945: BT: Automatically start new torrents downloads
 - new directory $MLDONKEY_DIR/torrents/incoming, all files present

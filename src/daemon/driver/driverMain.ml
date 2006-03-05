@@ -174,7 +174,8 @@ let _ =
       CommonServer.check_blocked_servers ()
   );
   CommonWeb.add_web_kind "geoip.dat" (fun _ filename ->
-      Geoip.init (Geoip.unpack filename))
+      Geoip.init (Geoip.unpack filename);
+      CommonServer.server_must_update_all ())
 
 
 

@@ -339,6 +339,13 @@ let check_blocked_servers () =
   with e ->
     lprintf_nl () "Exception in check_blocked_servers: %s" (Printexc2.to_string e)
 
+let server_must_update_all () =
+  try
+    server_iter (fun s ->
+      server_must_update s)
+  with e ->
+    lprintf_nl () "Exception in server_must_update_all: %s" (Printexc2.to_string e)
+
 let server_banner s o =
   let buf = o.conn_buf in
   let info = server_info s in
