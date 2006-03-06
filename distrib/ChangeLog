@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/03/06
+4954: New function Unix32.owner to read user and group entry of a file 
+- to debug use command debug_fileinfo <file>
+- renamed debug command "disk" to "debug_disk"
+- renamed debug command "rlimit" to "debug_rlimit"
 4950: Close unneeded file descriptors
 
 2006/03/05

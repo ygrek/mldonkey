@@ -1955,7 +1955,7 @@ let _ =
         _s ""
     ), ":\t\t\t\tcheck shared files for removal";
 
-     "disk", Arg_one (fun arg o ->
+     "debug_disk", Arg_one (fun arg o ->
          let buf = o.conn_buf in
 	 let print_i64o = function
 	   | None -> "Unknown"
@@ -1981,7 +1981,23 @@ let _ =
          _s ""
      ), "debug command (example: disk .)";
 
-     "rlimit", Arg_none (fun o ->
+     "debug_fileinfo", Arg_one (fun arg o ->
+         let buf = o.conn_buf in
+	 (try
+	    let s = Unix.stat arg in
+            Printf.bprintf buf "st_dev %d\n" s.Unix.st_dev;
+            Printf.bprintf buf "st_ino %d\n" s.Unix.st_ino;
+            Printf.bprintf buf "st_uid %d\n" s.Unix.st_uid;
+            Printf.bprintf buf "st_gid %d\n" s.Unix.st_gid;
+            Printf.bprintf buf "st_size %d\n" s.Unix.st_size;
+	    let user,group = Unix32.owner arg in
+            Printf.bprintf buf "username %s\n" user;
+            Printf.bprintf buf "groupname %s\n" group;
+	  with e -> Printf.bprintf buf "Error %s when opening %s\n" (Printexc2.to_string e) arg);
+         _s ""
+     ), "debug command (example: file .)";
+
+     "debug_rlimit", Arg_none (fun o ->
          let buf = o.conn_buf in
 	 let cpu = Unix2.ml_getrlimit Unix2.RLIMIT_CPU in
 	 let fsize = Unix2.ml_getrlimit Unix2.RLIMIT_FSIZE in

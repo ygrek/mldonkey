@@ -212,6 +212,19 @@ module FDCache = struct
         (Printexc2.to_string e);
       raise e
 
+    let owner t =
+      try
+      check_destroyed t;
+      let s = Unix.fstat (local_force_fd t) in
+      let user = Unix.getpwuid s.Unix.st_uid in
+      let group = Unix.getgrgid s.Unix.st_gid in
+      user.Unix.pw_name, group.Unix.gr_name
+      with e ->
+      if !verbose then lprintf_nl "Exception in FDCache.owner %s: %s"
+        t.filename
+        (Printexc2.to_string e);
+      raise e
+
     let mtime64 t =
       try
       check_destroyed t;
@@ -349,6 +362,7 @@ module DiskFile = struct
     let ftruncate64 = FDCache.ftruncate64
 
     let getsize64 = FDCache.getsize64
+    let owner = FDCache.owner
     let mtime64 = FDCache.mtime64
     let exists = FDCache.exists
     let remove = FDCache.remove
@@ -1405,6 +1419,22 @@ let file_exists s =
       if not old_fd_exists then close fd;
       exists
     with Unix.Unix_error (Unix.ENOENT, _, _) -> false
+
+let owner_fd t =
+  match t.file_kind with
+  | DiskFile t -> DiskFile.owner t
+  | MultiFile t -> "", ""
+  | SparseFile t -> "", ""
+  | Destroyed -> "", ""
+
+let owner s =
+  try
+    let old_fd_exists = fd_exists s in
+    let fd = create_ro s in
+    let user,group = owner_fd fd in
+    if not old_fd_exists then close fd;
+    user,group
+  with _ -> "", ""
 
 let rename t f =
   flush_fd t;

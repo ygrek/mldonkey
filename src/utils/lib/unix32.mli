@@ -44,6 +44,7 @@ val rename : t -> string -> unit
 val max_cache_size : int ref
 val mtime : string -> float
 val mtime64 : t -> float
+val owner : string -> (string * string)
   
 val flush : unit -> unit
 val flush_fd : t -> unit
