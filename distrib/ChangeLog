@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/06
+4950: Close unneeded file descriptors
+
 2006/03/05
 4946: System-wide cookies and referers option
 - MLDonkey will not move data from bittorrent.ini to downloads.ini

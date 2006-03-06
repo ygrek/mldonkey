@@ -1597,7 +1597,7 @@ let _ =
   option_hook log_file (fun _ ->
       if !!log_file <> "" then
         try
-	  if Sys.file_exists !!log_file then
+	  if Unix32.file_exists !!log_file then
 	    if (Unix32.getsize !!log_file)
 	     > (Int64ops.megabytes !!log_file_size) then begin
 	      Sys.remove !!log_file;

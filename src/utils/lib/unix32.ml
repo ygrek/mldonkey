@@ -205,11 +205,7 @@ module FDCache = struct
     let getsize64 t =
       try
       check_destroyed t;
-      let was_closed = is_closed t in
-      let s = Unix2.c_getfdsize64 (local_force_fd t) in
-      if was_closed then
-        close t;
-      s
+      Unix2.c_getfdsize64 (local_force_fd t)
       with e ->
       if !verbose then lprintf_nl "Exception in FDCache.getsize64 %s: %s"
         t.filename
@@ -331,8 +327,8 @@ module type File =   sig
     val remove : t -> unit
     val read : t -> int64 -> string -> int -> int -> unit
     val write : t -> int64 -> string -> int -> int -> unit
-      
     val destroy : t -> unit
+    val is_closed : t -> bool
   end
 
 
@@ -359,6 +355,7 @@ module DiskFile = struct
     let read = FDCache.read
     let write = FDCache.write
     let destroy = FDCache.destroy
+    let is_closed = FDCache.is_closed
   end
 
 let zero_chunk_len = 65536L
@@ -653,6 +650,7 @@ module MultiFile = struct
       (try Unix.utimes t.dirname time time with _ -> ());
       ()
 
+    let is_closed _ = false
   end
 
 module SparseFile = struct
@@ -679,6 +677,8 @@ module SparseFile = struct
         len = zero_chunk_len;
         fd = zero_chunk_fd ();
       }
+
+    let is_closed _ = false
     
     let create filename writable =
 (*      lprintf_nl "SparseFile.create %s" filename; *)
@@ -1090,6 +1090,18 @@ let dummy =  {
 
 let table = H.create 100
 
+let destroyed t = t.file_kind = Destroyed
+  
+let fd_exists f =
+  try
+    let fd = H.find table { dummy with filename = f } in
+    match fd.file_kind with
+    | DiskFile fd -> not (DiskFile.is_closed fd)
+    | MultiFile fd -> not (MultiFile.is_closed fd)
+    | SparseFile fd -> not (SparseFile.is_closed fd)
+    | Destroyed -> false
+  with Not_found -> false
+
 let create f writable creator =
   try
     let fd = H.find table { dummy with filename = f; writable = writable } in
@@ -1367,15 +1379,32 @@ let remove t =
   | SparseFile t -> SparseFile.remove t
   | Destroyed -> failwith "Unix32.remove on destroyed FD"
       
-let getsize s =  getsize64 (create_ro s)
-let mtime s =  mtime64 (create_ro s)
+let getsize s =
+  let old_fd_exists = fd_exists s in
+  let fd = create_ro s in
+  let size = getsize64 fd in
+  if not old_fd_exists then close fd;
+  size
 
-let file_exists s = 
-  (* We use this instead of Sys.file_exists, in case exists has side
-     effects ? *)
-  try 
-    exists (create_ro s)
-  with Unix.Unix_error (Unix.ENOENT, _, _) -> false
+let mtime s =
+  let old_fd_exists = fd_exists s in
+  let fd = create_ro s in
+  let time = mtime64 fd in
+  if not old_fd_exists then close fd;
+  time
+
+let file_exists s =
+  let old_fd_exists = fd_exists s in
+    try
+      let fd = create_ro s in
+      let exists =
+        try
+          exists fd
+        with Unix.Unix_error (Unix.ENOENT, _, _) -> false
+      in
+      if not old_fd_exists then close fd;
+      exists
+    with Unix.Unix_error (Unix.ENOENT, _, _) -> false
 
 let rename t f =
   flush_fd t;
@@ -1565,6 +1594,8 @@ The following functions have to be rewritten:
     let create_rw filename = 
       create (create_rw filename)
 
+    let is_closed = FDCache.is_closed
+
 (*
 (* the new part (shared_begin, shared_len) is shared between t1 and t2.
 It will be kept inside t1, and used by t2. The problem is what happens
@@ -1575,8 +1606,6 @@ when these two files have already been partially downloaded ? This
       ()
 *)      
   end
-let destroyed t = t.file_kind = Destroyed
-  
 type t = file
 
 (*

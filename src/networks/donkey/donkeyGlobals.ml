@@ -325,7 +325,6 @@ let new_file file_diskname file_state md4 file_size filenames writable =
   with _ ->
       if !verbose_share then
         lprintf_nl () "New file with md4: %s" (Md4.to_string md4);
-      ignore (Unix32.file_exists file_diskname);
 
       let t =
         if
@@ -334,7 +333,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
 (* Only if the option is set *)
           !!emulate_sparsefiles &&
 (* Only if the file does not already exists *)
-          not (Sys.file_exists file_diskname)
+          not (Unix32.file_exists file_diskname)
         then
           Unix32.create_sparsefile file_diskname writable
         else
