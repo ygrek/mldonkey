@@ -26,7 +26,8 @@ let list_directory filename =
   try
     while true do
       let file = readdir dir in 
-      if file <> "." && file <> ".." then begin
+      if file <> "." && file <> ".." &&
+	not (file = ".DS_Store" && Autoconf.system = "macosx") then begin
           list := file :: !list 
         end;
     done;

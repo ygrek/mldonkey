@@ -606,6 +606,7 @@ let scan_new_torrents_directory () =
   let filenames = Unix2.list_directory new_torrents_directory in
   List.iter (fun file ->
     let file = Filename.concat new_torrents_directory file in
+    if not (Unix2.is_directory file) then
     try
       load_torrent_file file;
       (try Sys.remove file with _ -> ())

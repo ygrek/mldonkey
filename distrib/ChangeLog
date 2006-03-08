@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/08
+4960: Ignore .DS_Store on MacOSX, BT: ignore dirs in torrents/incoming (pango)
+
 2006/03/06
 4954: New function Unix32.owner to read user and group entry of a file 
 - to debug use command debug_fileinfo <file>
