@@ -2013,10 +2013,10 @@ rpm: sourcedist
 	./svg_converter.byte $@
 
 .ml.cmx :
-	$(OCAMLOPT) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLOPT) $(DEVFLAGS) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
 
 .ml.cmo :
-	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLC) $(DEVFLAGS) $(OFLAGS) $(INCLUDES) -c $<
 
 .mlcpp.ml:
 	cpp -P $< $(FIX_BROKEN_CPP) > $@
