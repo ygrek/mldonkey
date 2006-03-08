@@ -590,7 +590,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onclick=\"servers();\">Import Server.met</TD>
 <TD class=\"bu bbig\" title=\"Open Serverlist\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('fstatus','bw_stats');top.output.location.href='http://www.gruk.org/list.php'\">Serverlist</TD>
+onClick=\"mSub('fstatus','bw_stats');top.output.location.href='http://www.jd2k.com/liste.php'\">Serverlist</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab4\" style=\"display: none\">

@@ -841,7 +841,7 @@ let web_infos = define_option current_section ["web_infos"]
     IMPORTANT: Put the URL and the kind between quotes.
     EXAMPLE:
  web_infos = [
-  (\"server.met\", 0, \"http://www.gruk.org/server.met.gz\");
+  (\"server.met\", 0, \"http://www.jd2k.com/server.met\");
   (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/antip2p.txt\");
   (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
   (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
@@ -853,7 +853,7 @@ let web_infos = define_option current_section ["web_infos"]
     ("guarding.p2p", 96,
       "http://www.bluetack.co.uk/config/antip2p.txt");
     ("server.met", 0,
-      "http://www.gruk.org/server.met.gz");
+      "http://www.jd2k.com/server.met");
     ("contact.dat", 168,
       "http://download.overnet.org/contact.dat");
     ("geoip.dat", 0,
@@ -1473,7 +1473,7 @@ let max_displayed_results = define_expert_option current_section
 
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 9
+    int_option 10
 
 
 (*************************************************************************)
@@ -1936,5 +1936,17 @@ let rec update_options () =
             "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
         ];
       update 9
+
+  | 9 ->
+      web_infos_remove
+        [
+          ("server.met", 0,
+            "http://www.gruk.org/server.met.gz");
+        ];
+      web_infos =:= !!web_infos @ [
+          ("server.met", 0,
+            "http://www.jd2k.com/server.met");
+        ];
+      update 10
 
   | _ -> ()

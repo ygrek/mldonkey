@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/03/08
+4961: EDK: New default URL for server list download
 4960: Ignore .DS_Store on MacOSX, BT: ignore dirs in torrents/incoming (pango)
 
 2006/03/06
