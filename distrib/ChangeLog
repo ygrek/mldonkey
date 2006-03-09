@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/09
+4962: BT: New command "startbt" to force the start of a torrent download (jave)
+
 2006/03/08
 4963: Re-apply $DEVFLAGS to Makefile.in (pango)
 4961: EDK: New default URL for server list download

@@ -921,6 +921,22 @@ let commands =
       _s ""
     ), _s ":\t\t\tremove all old .torrent files";
 
+    "startbt", "Network/Bittorrent", Arg_one (fun url o ->
+      let buf = o.conn_buf in
+      if Sys.file_exists url then
+        begin
+          load_torrent_file url;
+          Printf.bprintf buf "loaded file %s\n" url
+	end
+      else
+        begin
+          let url = "Location: " ^ url in
+          let result = fst (op_network_parse_url url) in
+          Printf.bprintf buf "%s\n" result
+	end;
+      _s ""
+     ),  "<url>:\t [<URL|file>] start BT download";
+
     "stop_all_bt", "Network/Bittorrent", Arg_none (fun o ->
       List.iter (fun file -> BTClients.file_stop file ) !current_files;
       let buf = o.conn_buf in
