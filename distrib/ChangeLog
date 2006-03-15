@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/03/15
+4972: FileTP: Allow ftp:// downloads via dllink command
 4971: BT: Allow read-only access for shared files
 4967: CommonUserDb: Keep old user database updated for easy downgrades
 

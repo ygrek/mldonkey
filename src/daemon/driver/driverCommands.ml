@@ -2829,6 +2829,9 @@ let _ =
             _s output
             )
         else
+          if (String2.starts_with url "ftp") then
+	    query_networks (Printf.sprintf "Location: %s" url)
+	  else
             query_networks url
         ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
 

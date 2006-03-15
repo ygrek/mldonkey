@@ -287,11 +287,11 @@ let get_regexp_string text r =
    It returns true if this file can be handled by fileTP,
    and false otherwise.
  *)
-let rec op_network_parse_url url =
+let op_network_parse_url url =
   let location_regexp = "Location: \\(.*\\)" in
   let real_url = get_regexp_string url (Str.regexp location_regexp) in
   if !verbose then
-    lprintf "real url: %s\n" real_url;
+    lprintf_nl () "real url: %s\n" real_url;
   if (is_http_torrent url real_url) then "", false
   else
     if (String2.check_prefix real_url "http://") then (
@@ -300,16 +300,17 @@ let rec op_network_parse_url url =
          if (length > 0) then begin
            download_file real_url ""; "started FileTP download", true
          end
-         else "test1", false
+         else "can not parse Content-Length", false
        with Not_found -> 
            "Unknown file length. Use a web browser", false
     )
-    else if (String2.check_prefix url "ftp://") || (String2.check_prefix url "ssh://") then (
-      download_file url "";
-      "started FileTP download", true
-    )
+    else 
+      if (String2.check_prefix real_url "ftp://") ||
+         (String2.check_prefix real_url "ssh://") then (
+      download_file real_url "";
+      "started FileTP download", true)
     else
-      "test2", false
+      "invalid URL", false
 
 let _ =
   network.op_network_parse_url <- op_network_parse_url
