@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/15
+4967: CommonUserDb: Keep old user database updated for easy downgrades
+
 2006/03/09
 4962: BT: New command "startbt" to force the start of a torrent download (jave)
 

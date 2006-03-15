@@ -23,15 +23,82 @@ open Options
 open CommonTypes
 open CommonOptions
 
+(* prints a new logline with date, module and starts newline *)
+let lprintf_nl () =
+  lprintf "%s[cUd] "
+    (log_time ()); lprintf_nl2
+
+(* prints a new logline with date, module and does not start newline *)
+let lprintf_n () =
+  lprintf "%s[cUd] "
+    (log_time ()); lprintf
+
 type userdb = {
     user_name : string;
     user_pass : Md4.t;
     user_mail : string;
   }
 
-let users2 = Hashtbl.create 10
-
 let blank_password = Md4.string ""
+
+module UserOption = struct
+
+    let value_to_user v =
+      match v with
+        Options.Module assocs ->
+          let get_value name conv = conv (List.assoc name assocs) in
+	  let value_to_md4 v = Md4.of_string (value_to_string v) in
+          let uname =
+            try
+              get_value "user_name" value_to_string
+            with _ -> failwith "empty username"
+          in          
+          let upass =
+            try
+              get_value "user_pass" value_to_md4
+            with _ -> blank_password
+          in          
+          let umail =
+	    try
+              get_value "user_mail" value_to_string
+            with _ -> ""
+          in
+	  { user_name = uname;
+	    user_pass = upass;
+	    user_mail = umail; }
+
+      | _ -> failwith "Options: not a valid user"
+
+    let user_to_value user =
+      Options.Module [
+        "user_name", string_to_value user.user_name;
+        "user_pass", string_to_value (Md4.to_string user.user_pass);
+        "user_mail", string_to_value user.user_mail; ]
+
+    let t = define_option_class "Users" value_to_user user_to_value
+
+  end
+
+let users_ini = create_options_file "users.ini"
+
+let users_section = file_section users_ini ["Users"] "User accounts on the core"
+let users2_section = file_section users_ini ["Users"] "User accounts on the core (new format)"
+
+let users = define_option users_section ["users"]
+  "Depreciated option, kept for compatibility reasons - used by MLDonkey < 2.7.5"
+    (list_option (tuple2_option (string_option, Md4.option)))
+    []
+
+let userlist = define_option users2_section ["users2"]
+  "The users that are defined on this core. The default user is
+called 'admin', and uses an empty password. To create new users,
+login as admin in mldonkey, and use the 'useradd' command."
+    (list_option UserOption.t)
+    [ { user_name = "admin";
+        user_pass = blank_password;
+        user_mail = "" } ]
+
+let users2 = Hashtbl.create 10
 
 let user2_iter f =
   Hashtbl.iter f users2
@@ -73,57 +140,8 @@ let valid_password user pass =
 let empty_password user =
   try
     let p = user2_password user in
-     p  = blank_password
+     p = blank_password
   with _ -> false
-
-module UserOption = struct
-
-    let value_to_user v =
-      match v with
-        Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-	  let value_to_md4 v = Md4.of_string (value_to_string v) in
-          let uname =
-            try
-              get_value "user_name" value_to_string
-            with _ -> failwith "empty username"
-          in          
-          let upass =
-            try
-              get_value "user_pass" value_to_md4
-            with _ -> blank_password
-          in          
-          let umail =
-	    try
-              get_value "user_mail" value_to_string
-            with _ -> ""
-          in
-	  { user_name = uname;
-	    user_pass = upass;
-	    user_mail = umail; }
-
-      | _ -> failwith "Options: not a valid user"
-
-    let user_to_value user =
-      Options.Module [
-        "user_name", string_to_value user.user_name;
-        "user_pass", string_to_value (Md4.to_string user.user_pass);
-        "user_mail", string_to_value user.user_mail; ]
-
-    let t = define_option_class "Users" value_to_user user_to_value
-
-  end
-
-let users2_section = file_section users_ini ["Users"] "User accounts on the core (new format)"
-
-let userlist = define_option users2_section ["users2"]
-  "The users that are defined on this core. The default user is
-called 'admin', and uses an empty password. To create new users,
-login as admin in mldonkey, and use the 'useradd' command."
-    (list_option UserOption.t)
-    [ { user_name = "admin";
-        user_pass = blank_password;
-        user_mail = "" } ]
 
 let _ =
   set_after_load_hook users_ini (fun _ ->
@@ -132,15 +150,17 @@ let _ =
       ) !!userlist;
       userlist =:= [];
       if !!users <> [] then begin
-        lprintf_nl "[cUd] converting %d users to new format" (List.length !!users);
+        lprintf_nl () "converting %d users to new format" (List.length !!users);
         List.iter (fun (user,pass) -> ignore (user2_add user pass "")) !!users;
 	users =:= []
       end
   );
   set_before_save_hook users_ini (fun _ ->
       user2_iter (fun _ user ->
-          userlist =:= (user2_find user.user_name)
-          :: !!userlist
+          userlist =:= (user2_find user.user_name) :: !!userlist;
+          users =:= (user.user_name, (user2_password user.user_name)) :: !!users
       )
   );
-  set_after_save_hook users_ini (fun _ -> userlist =:= [])
+  set_after_save_hook users_ini (fun _ ->
+      userlist =:= [];
+      users =:= [])

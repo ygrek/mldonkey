@@ -32,6 +32,7 @@ open CommonClient
 open CommonServer
 open CommonNetwork
 open CommonOptions
+open CommonUserDb
 open CommonFile
 open CommonGlobals
 open CommonSearch

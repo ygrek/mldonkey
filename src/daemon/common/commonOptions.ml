@@ -257,25 +257,10 @@ let searches_ini = create_options_file "searches.ini"
 let results_ini = create_options_file "results.ini"
 let files_ini = create_options_file "files.ini"
 let friends_ini = create_options_file "friends.ini"
-let users_ini = create_options_file "users.ini"
 
 let messages_log = ref "messages.log"
 
 let servers_section = file_section servers_ini [] ""
-
-let users_section = file_section users_ini ["Users"] "User accounts on the core"
-
-let empty_password = Md4.string ""
-
-let users = define_option users_section ["users"]
-  "old option, kept for compatibility reasons."
-    (list_option (tuple2_option (string_option, Md4.option)))
-    []
-
-let empty_password user =
-  try
-    (List.assoc user !!users) = empty_password
-  with _ -> false
 
 let ip_list_option = list_option Ip.option
 

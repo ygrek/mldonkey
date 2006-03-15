@@ -28,6 +28,7 @@ open CommonInteractive
 open CommonDownloads
 open CommonTypes
 open CommonOptions
+open CommonUserDb
 open CommonGlobals
 open CommonNetwork
 
