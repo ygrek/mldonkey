@@ -164,14 +164,19 @@ let check_if_interesting file c =
 let add_torrent_infos file trackers =
   file.file_trackers <- trackers @ file.file_trackers
 
-let create_temp_file file_temp file_files =
-  if !verbose then lprintf_nl () "create_temp_file %s" file_temp;
+let create_temp_file file_temp file_files file_state =
+  if !verbose then lprintf_nl () "create_temp_file %s - %s" file_temp (string_of_state file_state);
+  let writable =
+    if file_state = FileShared then
+      false
+    else
+      true
+  in
   let file_fd =
     if file_files <> [] then
-      Unix32.create_multifile file_temp
-        true file_files
+      Unix32.create_multifile file_temp writable file_files
     else
-      Unix32.create_rw file_temp
+      Unix32.create_diskfile file_temp writable
   in
   if Unix32.destroyed file_fd then
     failwith
@@ -208,7 +213,7 @@ let new_file file_id t torrent_diskname file_temp file_state =
   try
     Hashtbl.find files_by_uid file_id
   with Not_found ->
-      let file_fd = create_temp_file file_temp t.torrent_files in
+      let file_fd = create_temp_file file_temp t.torrent_files file_state in
       let rec file = {
           file_tracker_connected = false;
           file_file = file_impl;

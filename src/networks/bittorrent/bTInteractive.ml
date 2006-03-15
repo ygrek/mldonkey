@@ -110,7 +110,7 @@ let op_file_commit file new_name =
 
 (* During the commit operation, for security, the file_fd is destroyed. So
   we create it again to be able to share this file again. *)
-      set_file_fd (as_file file) (create_temp_file new_name file.file_files);
+      set_file_fd (as_file file) (create_temp_file new_name file.file_files (file_state file));
 
       if Unix32.destroyed (file_fd file) then
         lprintf_nl () "op_file_commit: FD is destroyed... could not repair!";
