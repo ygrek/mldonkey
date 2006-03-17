@@ -311,7 +311,7 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
         let user, pass =
           match args with
             [] -> failwith "Usage: auth <user> <password>"
-          | [s1] -> "admin", s1
+          | [s1] -> admin_user, s1
           | user :: pass :: _ -> user, pass
         in
         if valid_password user pass then begin
@@ -577,7 +577,7 @@ let telnet_handler t event =
           "telnet connection"
           s in
         let telnet = {
-            telnet_auth = ref (empty_password "admin");
+            telnet_auth = ref (empty_password admin_user);
             telnet_iac = false;
             telnet_wait = 0;
             telnet_buffer = Buffer.create 100;
@@ -1022,7 +1022,7 @@ let http_handler o t r =
   CommonInteractive.display_bw_stats := false;
   clear_page buf;
 
-  let user = if r.options.login = "" then "admin" else r.options.login in
+  let user = if r.options.login = "" then admin_user else r.options.login in
   if not (valid_password user r.options.passwd) then begin
       clear_page buf;
       need_auth r !!http_realm

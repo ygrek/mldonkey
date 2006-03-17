@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/03/17
+4980: Multiuser: internal admin_user variable
 4979: Fix hashing large number of files
 
 2006/03/15

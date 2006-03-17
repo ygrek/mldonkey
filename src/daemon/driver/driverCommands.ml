@@ -682,7 +682,7 @@ formID.msgText.value=\\\"\\\";
             Printf.bprintf buf "%s" result
 	in
         if o.conn_user == default_user then
-	  if user = "admin" then
+	  if user = admin_user then
 	    print_result o "User 'admin' can not be removed"
 	  else
 	    try
@@ -729,7 +729,7 @@ formID.msgText.value=\\\"\\\";
                 incr counter;
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
                 (if !counter mod 2 == 0 then "dl-1" else "dl-2");
-		if user.user_name <> "admin" then Printf.bprintf buf "
+		if user.user_name <> admin_user then Printf.bprintf buf "
         \\<td title=\\\"Click to remove user\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"

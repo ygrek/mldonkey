@@ -39,6 +39,8 @@ type userdb = {
     user_mail : string;
   }
 
+let admin_user = "admin"
+
 let blank_password = Md4.string ""
 
 module UserOption = struct
@@ -94,7 +96,7 @@ let userlist = define_option users2_section ["users2"]
 called 'admin', and uses an empty password. To create new users,
 login as admin in mldonkey, and use the 'useradd' command."
     (list_option UserOption.t)
-    [ { user_name = "admin";
+    [ { user_name = admin_user;
         user_pass = blank_password;
         user_mail = "" } ]
 

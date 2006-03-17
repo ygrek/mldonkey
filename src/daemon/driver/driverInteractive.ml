@@ -51,12 +51,12 @@ let lprintf_n () =
 let verify_user_admin () =
   let empty_pwd = ref false in
   begin try
-    if user2_password "admin" = Md4.string "" then
+    if user2_password admin_user = blank_password then
       empty_pwd := true
     with e ->
       lprintf_nl () "SECURITY INFO: user 'admin' has to be present, creating...";
       empty_pwd := true;
-      ignore (user2_add "admin" blank_password "")
+      ignore (user2_add admin_user blank_password "")
   end;
   let warning =
     "SECURITY WARNING: user admin has an empty password, use command: useradd admin password\n"
