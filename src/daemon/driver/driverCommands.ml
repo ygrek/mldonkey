@@ -2789,7 +2789,7 @@ let _ =
                     try (List.find(fun (rule_search,rule_value) ->
                             Str.string_match (Str.regexp rule_search) u.Url.server 0
                         ) !!referers )
-                    with Not_found -> ("",u.Url.server) in
+                    with Not_found -> ("",Url.to_string u) in
                   Some (Url.of_string rule_value) );
                 H.req_headers = (try
                   let cookies = List.assoc u.Url.server !!cookies in
