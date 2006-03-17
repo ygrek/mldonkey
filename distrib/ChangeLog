@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/17
+4979: Fix hashing large number of files
+
 2006/03/15
 4972: FileTP: Allow ftp:// downloads via dllink command
 4971: BT: Allow read-only access for shared files

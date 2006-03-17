@@ -321,19 +321,20 @@ let shared_add_directory shared_dir =
 (* TODO: We need to be able to unshare whole directories that still exist ! *)
   
 let shared_check_files () =
-  let list = ref [] in
-  (* check shared files, store removed files in !list *)
-  H.iter (fun s ->
+  if !waiting_directories = [] then begin
+    let list = ref [] in
+    (* check shared files, store removed files in !list *)
+    H.iter (fun s ->
       let name = shared_fullname s in
       if not (Unix32.file_exists name) then list := s :: !list
-  ) shareds_by_num;
-  (* unshare removed files *)
-  List.iter (fun s -> shared_unshare s) !list;
-  files_scanned_size := zero;
-  files_scanned := 0;
-  List.iter (fun s -> shared_add_directory s) 
-  !!CommonComplexOptions.shared_directories;
-  shared_calculate_total_bytes ()
+    ) shareds_by_num;
+    (* unshare removed files *)
+    List.iter shared_unshare !list;
+    files_scanned_size := zero;
+    files_scanned := 0;
+    List.iter shared_add_directory !!CommonComplexOptions.shared_directories;
+    shared_calculate_total_bytes ()
+  end
   
 let impl_shared_info impl =
   let module T = GuiTypes in
