@@ -45,10 +45,11 @@ let _ =
         match !current_job with
         | None -> raise Not_found
         | Some (job, fd) ->
-(*            lprintf "job done\n";  *)
             if job_done job then begin
-                if !verbose_md4 then
-                  lprintf_nl "[cHa] Job finished";
+                if !verbose_md4 then lprintf_nl "[cHa] Finished %s job %s %Ld %Ld"
+		  (match job.job_method with
+		    MD5 -> "MD5" | TIGER -> "TIGER" | SHA1 -> "SHA1" | MD4 -> "MD4")
+		  job.job_name job.job_begin job.job_len;
                 current_job := None;
                 Unix.close fd;
                 (try job.job_handler job with e ->
@@ -69,10 +70,6 @@ let _ =
           try
             let fd = Unix.openfile job.job_name [Unix.O_RDONLY] 0o444 in
             current_job := Some (job, fd);
-            if !verbose_md4 then lprintf_nl "[cHa] Starting %s job %s %Ld %Ld" 
-              (match job.job_method with
-		MD5 -> "MD5" | TIGER -> "TIGER" | SHA1 -> "SHA1" | MD4 -> "MD4")
-                  job.job_name job.job_begin job.job_len;
             job_start job fd;
           with e ->
               lprintf_nl "[cHa] Exception %s in starting job"

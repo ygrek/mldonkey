@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/18
+4985: Log file clean-up for verbosity = "md4"
+
 2006/03/17
 4981: Dllink: Fix wrong referer in HEAD request
 4980: Multiuser: internal admin_user variable

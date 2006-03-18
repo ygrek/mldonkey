@@ -219,7 +219,11 @@ let check_shared_files () =
             let end_pos = if end_pos > sh.shared_size then sh.shared_size
               else end_pos in
             let len = end_pos -- sh.shared_pos in
-            if !verbose_md4 then lprintf_nl () "compute next md4 of %s" sh.shared_name;
+            if !verbose_md4 then
+	      lprintf_nl () "Hash chunk %Ld/%Ld of %s"
+	        ((Int64.div sh.shared_pos block_size) ++ one)
+		((Int64.div sh.shared_size block_size) ++ one)
+		sh.shared_name;
 
             M.compute_md4 (Unix32.filename sh.shared_fd) sh.shared_pos len
               (fun job ->
@@ -228,7 +232,6 @@ let check_shared_files () =
                     lprintf_nl () "Error prevent sharing %s" sh.shared_name
                   end else
                 let _ = () in
-		if !verbose_md4 then lprintf_nl () "computed md4 of %s" sh.shared_name;
                 let new_md4 = job.M.job_result in
 
                 sh.shared_list <- new_md4 :: sh.shared_list;
