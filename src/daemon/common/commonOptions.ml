@@ -1084,6 +1084,26 @@ let create_file_sparse = define_option current_section ["create_file_sparse"]
     "Create new files as sparse, only valid on MinGW for files on NTFS drives"
     bool_option true
 
+let hdd_temp_minfree = define_option current_section ["hdd_temp_minfree"]
+    "Mininum free space in MB on temp_directory, minimum 50" int_option 50
+
+let hdd_temp_stop_core = define_option current_section ["hdd_temp_stop_core"]
+    "If true core shuts down when free space on temp dir is below hdd_temp_minfree,
+    otherwise all downloads are paused and a warning email is sent."
+    bool_option false
+
+let hdd_coredir_minfree = define_option current_section ["hdd_coredir_minfree"]
+    "Mininum free space in MB on core directory, minimum 20" int_option 50
+
+let hdd_coredir_stop_core = define_option current_section ["hdd_coredir_stop_core"]
+    "If true core shuts down when free space on core dir is below hdd_coredir_minfree,
+    otherwise all downloads are paused and a warning email is sent."
+    bool_option true
+
+let hdd_send_warning_interval = define_option current_section ["hdd_send_warning_interval"]
+    "Send a warning mail each <interval> hours for each directory, 0 to deactivate mail warnings."
+    int_option 1
+
 let previewer = define_expert_option current_section ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
     is name of file as searched on eDonkey" string_option
@@ -1611,6 +1631,12 @@ let _ =
   option_hook log_size (fun _ ->
       lprintf_max_size := !!log_size
   );
+  option_hook hdd_temp_minfree (fun _ ->
+      if !!hdd_temp_minfree < 50 then
+        hdd_temp_minfree =:= 50);
+  option_hook hdd_coredir_minfree (fun _ ->
+      if !!hdd_coredir_minfree < 20 then
+        hdd_coredir_minfree =:= 20);
   option_hook compaction_overhead (fun _ ->
       let gc_control = Gc.get () in
       Gc.set { gc_control with Gc.max_overhead = !!compaction_overhead };

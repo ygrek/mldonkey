@@ -1734,6 +1734,11 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                       [
 			strings_of_option previewer;
 			strings_of_option temp_directory;
+			strings_of_option hdd_temp_minfree;
+			strings_of_option hdd_temp_stop_core;
+			strings_of_option hdd_coredir_minfree;
+			strings_of_option hdd_coredir_stop_core;
+			strings_of_option hdd_send_warning_interval;
 			strings_of_option file_started_cmd;
 			strings_of_option file_completed_cmd;
 			strings_of_option allow_browse_share;
@@ -1978,6 +1983,10 @@ let _ =
 	   | Some p -> Printf.sprintf "%d%%" p in
          Printf.bprintf buf "percentused %s\n" (print_percento (Unix32.percentused arg));
          Printf.bprintf buf "percentfree %s\n" (print_percento (Unix32.percentfree arg));
+	 let stat = Unix.stat arg in
+         Printf.bprintf buf "\nstat_device %d\n" stat.Unix.st_dev;
+         Printf.bprintf buf "stat_inode %d\n" stat.Unix.st_ino;
+
          _s ""
      ), "debug command (example: disk .)";
 

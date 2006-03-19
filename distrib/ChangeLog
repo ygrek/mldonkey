@@ -14,6 +14,31 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/19
+4917: HDD space check
+- New options:
+  hdd_send_warning_interval
+    Send a warning mail each <interval> hours for each directory,
+    0 to deactivate mail warnings.
+
+  hdd_temp_minfree
+    Mininum free space in MB on temp_directory, minimum 50
+  hdd_temp_stop_core, default false
+    If true core shuts down when free space on temp dir is below
+    hdd_temp_minfree, otherwise all downloads are queued and a
+    warning email is sent.
+
+  hdd_coredir_minfree
+    Mininum free space in MB on core or log directory, minimum 20
+  hdd_coredir_stop_core, default true
+    If true core shuts down when free space on core dir is below
+    hdd_coredir_minfree, otherwise all ini file saving is stopped
+    until core shutdown and a warning email is sent.
+    Logging is sent to RAM when log dir is full.
+
+The hard-coded minimum values can not be circumvented, MLDonkey will always
+perform these HDD space checks once a minute.
+
 2006/03/18
 4985: Log file clean-up for verbosity = "md4"
 

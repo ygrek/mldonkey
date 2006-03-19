@@ -91,6 +91,40 @@ let canonize_basename name =
   else
     Buffer.contents buf
 
+let last_sent_dir_warning = Hashtbl.create 10
+
+let all_temp_queued = ref false
+
+let send_dirfull_warning dir line1 =
+  lprintf_nl () "WARNING: Directory %s is full, %s" dir line1;
+  Printf.fprintf Pervasives.stderr "\nWARNING: Directory %s is full, %s\n" dir line1;
+  Pervasives.flush Pervasives.stderr;
+  if !!hdd_send_warning_interval <> 0 then
+    let current_time = last_time () in
+    let time_threshold =
+      current_time - !!hdd_send_warning_interval * Date.hour_in_secs in
+    let send_mail_again =
+      try
+        let last = Hashtbl.find last_sent_dir_warning dir in
+	last < time_threshold
+      with Not_found -> true in
+
+    if send_mail_again then begin
+      Hashtbl.replace last_sent_dir_warning dir current_time;
+      CommonEvent.add_event (Console_message_event
+        (Printf.sprintf "\nWARNING: %s is full, %s\n" dir line1));
+      if !!mail <> "" then
+        let module M = Mailer in
+        let subject = Printf.sprintf "[mldonkey] AUTOMATED WARNING: %s is full" dir in
+        let mail = {
+          M.mail_to = !!mail; M.mail_from = !!mail;
+	  M.mail_subject = subject; M.mail_body = line1;
+        } in
+	try
+          M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
+	with _ -> ()
+    end
+
 let file_commited_name incoming_dir file =
   let best_name = file_best_name file in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
@@ -158,39 +192,57 @@ file has already been moved to the incoming/ directory under its new
 name.
 *)
 
+exception Incoming_full
+
 let file_commit file =
   let impl = as_file_impl file in
   if impl.impl_file_state = FileDownloaded then
     let subfiles = file_files file in
     match subfiles with
       file :: secondary_files ->
-        let file_name = file_disk_name file in
-        let incoming =
-          if Unix2.is_directory file_name then
-            incoming_directories ()
-          else
-            incoming_files ()
-        in
-        let new_name = file_commited_name
+       (try
+	  let file_name = file_disk_name file in
+	  let incoming =
+            if Unix2.is_directory file_name then
+              incoming_directories ()
+            else
+              incoming_files ()
+          in
+
+(* check if temp_directory and incoming are on different partitions *)
+	  if (Unix.stat incoming.shdir_dirname).Unix.st_dev <>
+	     (Unix.stat !!temp_directory).Unix.st_dev
+	  then
+	    begin
+	      match Unix32.diskfree incoming.shdir_dirname with
+	        Some v -> if v < (file_size file) then begin
+		    send_dirfull_warning incoming.shdir_dirname
+		      (Printf.sprintf "can not commit %s" (file_best_name file));
+		    raise Incoming_full
+		  end
+	      | _ -> ()
+	    end;
+
+	  let new_name = file_commited_name
             incoming.shdir_dirname file in
-        if Unix2.is_directory file_name then
-          Unix2.safe_mkdir new_name;
-        (try
+	    if Unix2.is_directory file_name then begin
+	      Unix2.safe_mkdir new_name;
+	      Unix2.chmod new_name (Misc.int_of_octal_string !!create_dir_mask)
+	    end;
+
 (*          the next line really moves the file *)
             set_file_disk_name file new_name;
 
             if !!file_completed_cmd <> "" then
 	      script_for_file file incoming.shdir_dirname new_name;
 
-            if Unix2.is_directory new_name then
-              Unix2.chmod new_name (Misc.int_of_octal_string !!create_dir_mask);
             let best_name = file_best_name file in
             Unix32.destroy (file_fd file);
-            if Unix2.is_directory file_name then Unix2.remove_all_directory file_name;
-            let impl = as_file_impl file in
 
-(* When the commit action is called, the file is supposed not to exist
-anymore. *)
+            if Unix2.is_directory file_name then Unix2.remove_all_directory file_name;
+
+            let impl = as_file_impl file in
+(* When the commit action is called, the file is supposed not to exist anymore. *)
             impl.impl_file_ops.op_file_commit impl.impl_file_val new_name;
 
             begin
@@ -220,7 +272,7 @@ anymore. *)
                 with e ->
                     lprintf_nl () "Exception %s in file_commit secondaries" (Printexc2.to_string e);
             ) secondary_files
-          with e ->
+        with e ->
               lprintf_nl () "Exception in file_commit: %s" (Printexc2.to_string e))
     | _ -> assert false
 
@@ -899,73 +951,84 @@ open CommonFile
 
 let force_download_quotas () =
   let files = List.sort (fun f1 f2 ->
-        let v = file_priority f2 - file_priority f1 in
-        if v <> 0 then v else begin
-          (**
-            * [egs] do not start downloading
-            * a small file against an already active download
-            **)
-          let d1 = file_downloaded f1 in
-          let d2 = file_downloaded f2 in
-            if (d1=0L ) && (d2 > 0L)
-            then 1
-            else if ( d2=0L ) && (d1 > 0L)
-            then -1
-            else begin
-              (* Try to download in priority files with fewer bytes missing
-               Rationale: once completed, it may allow to recover some disk space *)
-              let r1 = file_size f1 -- d1 in
-              let r2 = file_size f2 -- d2 in
-                if r1 = r2 then 0 else
-                  if r2 < r1 then 1 else -1
-            end
-        end
-  )
-    !!CommonComplexOptions.files in
+    let v = file_priority f2 - file_priority f1 in
+    if v <> 0 then v else
+      (**
+	 * [egs] do not start downloading
+         * a small file against an already active download
+      **)
+      let d1 = file_downloaded f1 in
+      let d2 = file_downloaded f2 in
+      if d1 = 0L && d2 > 0L then 1
+      else 
+	if d1 > 0L && d2 = 0L then -1
+        else 
+          (* Try to download in priority files with fewer bytes missing
+             Rationale: once completed, it may allow to recover some disk space *)
+          let r1 = file_size f1 -- d1 in
+          let r2 = file_size f2 -- d2 in
+          if r1 = r2 then 0 else
+            if r2 < r1 then 1 else -1
+    ) !!CommonComplexOptions.files in
 
+  (** move running and queued downloads from [list] to [files]
+      accumulator, until a drop of priority (or end of list) is
+      encountered; Then submit the batches of downloads with same
+      priority to [iter_line].
+
+      @param ndownloads number of running downloads no longer in [list]
+      @param nqueued number of queued downloads in [files]
+  *)
   let rec iter list priority files ndownloads nqueued =
     match list, files with
-      [], [] -> ()
+    | [], [] -> ()
     | [], _ ->
         iter_line list priority files ndownloads nqueued
     | f :: tail , _ :: _ when file_priority f < priority ->
         iter_line list priority files ndownloads nqueued
     | f :: tail, files ->
         match file_state f with
-          FileDownloading ->
+        | FileDownloading ->
             iter tail (file_priority f) (f :: files) (ndownloads+1) nqueued
         | FileQueued ->
             iter tail (file_priority f) (f :: files) ndownloads (nqueued+1)
         | _ ->
             iter tail (file_priority f) files ndownloads nqueued
 
+  (** queue or unqueue downloads from [files] list to match quotas *)
   and iter_line list priority files ndownloads nqueued =
     if ndownloads > !!max_concurrent_downloads then
       match files with
-        [] -> assert false
+      | [] -> assert false
       | f :: tail ->
           match file_state f with
-            FileDownloading ->
+          | FileDownloading ->
               set_file_state f FileQueued;
               iter_line list priority tail (ndownloads-1) nqueued
           | _ -> iter_line list priority tail ndownloads (nqueued-1)
     else
     if ndownloads < !!max_concurrent_downloads && nqueued > 0 then
       match files with
-        [] -> assert false
+      | [] -> assert false
       | f :: tail ->
           match file_state f with
-            FileQueued ->
+	  | FileQueued ->
               set_file_state f FileDownloading;
               iter_line list priority tail (ndownloads+1) (nqueued-1)
           | _ -> iter_line list priority tail ndownloads nqueued
     else
-      iter list priority [] ndownloads nqueued
+      iter list priority [] ndownloads 0
 
   in
-  iter files max_int [] 0 0
+  if not !all_temp_queued then
+    iter files max_int [] 0 0
+  else
+    List.iter (fun f ->
+      if file_state f = FileDownloading then
+	set_file_state f FileQueued
+    ) files
 
 let _ =
   option_hook max_concurrent_downloads (fun _ ->
-      force_download_quotas ()
+      ignore (force_download_quotas ())
   )

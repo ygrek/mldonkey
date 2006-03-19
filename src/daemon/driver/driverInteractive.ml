@@ -82,7 +82,49 @@ let dns_works = ref false
 let real_startup_message () =
   !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ()) 
   ^ (if not !dns_works then "DNS resolution does not work" else "")
-      
+
+let hdd_check () =
+  let dir_full dir mb =
+    match Unix32.diskfree dir with
+    | None -> false
+    | Some v -> v < megabytes mb
+  in
+
+  if dir_full !!temp_directory !!hdd_temp_minfree then
+    if !!hdd_temp_stop_core then begin
+      send_dirfull_warning !!temp_directory "MLDonkey temp directory partition full, shutting down...";
+      CommonInteractive.clean_exit 0
+      end
+    else begin
+      send_dirfull_warning !!temp_directory "MLDonkey queues all downloads";
+      all_temp_queued := true
+    end
+  else
+    begin
+      all_temp_queued := false;
+      try Hashtbl.remove last_sent_dir_warning !!temp_directory with _ -> ()
+    end;
+
+  let core_dir = Sys.getcwd () in
+  if dir_full core_dir !!hdd_coredir_minfree then
+    if !!hdd_coredir_stop_core then begin
+      send_dirfull_warning core_dir "MLDonkey base directory partition full, shutting down...";
+      CommonInteractive.clean_exit 0
+      end
+    else
+      begin
+        send_dirfull_warning core_dir "MLDonkey base directory partition full, stop saving ini files...";
+        allow_saving_ini_files := false
+      end
+  else
+    allow_saving_ini_files := true;
+
+  let log_dir = Filename.dirname !!log_file in
+  if dir_full log_dir !!hdd_coredir_minfree then begin
+    send_dirfull_warning log_dir "MLDonkey logdirectory partition full, redirect log to RAM...";
+    close_log ()
+  end
+
 (* ripped from gui_downloads *)
 
 let calc_file_eta f =
@@ -228,6 +270,7 @@ let save_config () =
         Printf2.lprintf "Exception %s while flushing\n" (Printexc2.to_string e)
   );
   if !initialization_completed then (
+    if !allow_saving_ini_files then begin
       Options.save_with_help downloads_ini;
       Options.save_with_help_private users_ini;
       CommonComplexOptions.save ();
@@ -236,6 +279,7 @@ let save_config () =
           List.iter (fun opfile ->
               Options.save_with_help opfile
           ) r.network_config_file);
+    end
     ) else (
       Printf2.lprintf "Initialization not completed, bypassing state saving\n"
     );

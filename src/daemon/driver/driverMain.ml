@@ -68,19 +68,15 @@ let do_daily () =
   incr CommonWeb.days
 
 let minute_timer () =
+  DriverInteractive.hdd_check ();
   CommonShared.shared_check_files ();
   CommonUploads.upload_credit_timer ();
   CommonInteractive.force_download_quotas ();
   CommonResult.dummy_result.result_time <- last_time ();
   (try
       Int64Swarmer.verify_some_chunks ()
-    with _ -> ()
-  );
-  CommonClient.clear_upload_slots ();
-  if !!auto_commit then
-    List.iter (fun file ->
-        file_commit file
-    ) !!CommonComplexOptions.done_files
+    with _ -> ());
+  CommonClient.clear_upload_slots ()
 
 let hourly_timer timer =
   incr CommonWeb.hours;
@@ -92,6 +88,11 @@ let hourly_timer timer =
   DriverControlers.check_calendar ();
   CommonFile.propose_filenames ()
 
+let ten_second_timer timer =
+  if !!auto_commit then
+    List.iter (fun file ->
+        file_commit file
+    ) !!CommonComplexOptions.done_files
 
 let second_timer timer =
   (try
@@ -276,7 +277,8 @@ let load_config () =
   (try
       Options.load downloads_ini;
       Options.load users_ini;
-      ignore (DriverInteractive.verify_user_admin ())
+      ignore (DriverInteractive.verify_user_admin ());
+      DriverInteractive.hdd_check ()
     with e ->
         lprintf_nl () "Exception %s during options load" (Printexc2.to_string e);
         exit 70);
@@ -474,6 +476,7 @@ or getting a binary compiled with glibc %s.\n\n")
   start_interfaces ();
 
   add_infinite_timer 60. minute_timer;
+  add_infinite_timer 10. ten_second_timer;
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
 
@@ -656,6 +659,7 @@ for config files at the end. *)
       (* In case we have no more space on filesystem for
          config files, remove the security space file *)
       Sys.remove security_space_filename;
+      CommonComplexOptions.allow_saving_ini_files := true;
       DriverInteractive.save_config ();
       CommonComplexOptions.save_sources ();
       CommonComplexOptions.backup_options ();

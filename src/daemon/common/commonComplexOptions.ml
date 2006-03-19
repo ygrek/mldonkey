@@ -940,7 +940,10 @@ let load () =
   known_uids =:= [];
   Options.load friends_ini
 
+let allow_saving_ini_files = ref true
+
 let save () =
+  if !allow_saving_ini_files then begin
   networks_iter (fun n -> network_save_complex_options n);
 
   Options.save_with_help files_ini;
@@ -963,10 +966,13 @@ let save () =
         results =:= [];
     end;
   lprintf_nl () "Options correctly saved"
+  end
 
 let save_sources () =
+  if !allow_saving_ini_files then begin
   networks_iter (fun n -> network_save_sources n);
   lprintf_nl () "Sources correctly saved"
+  end
 
 open Zip
 
