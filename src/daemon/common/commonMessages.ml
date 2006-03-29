@@ -652,9 +652,6 @@ onClick=\"mSub('fstatus','version');mSub('fstatus','close_fds')\">Close files</T
 <TD class=\"bu bbig\" title=\"View all clients\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','version');mSub('output','vc+all')\">View clients</TD>
-<TD class=\"bu bbig\" title=\"View web infos\"
-onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('fstatus','version');mSub('output','vwi')\">View web infos</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab6\" style=\"display: none\">

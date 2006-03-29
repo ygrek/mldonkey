@@ -1737,7 +1737,8 @@ let _ =
   )
 
 let _ =
-  CommonWeb.add_web_kind "server.met" (fun url filename ->
+  CommonWeb.add_web_kind "server.met" "List of donkey servers" 
+    (fun url filename ->
     if !!enable_donkey && !!update_server_list_server_met then
       begin
         lprintf_n () "server.met loaded from %s" url;
@@ -1759,7 +1760,8 @@ let _ =
       else
         lprintf_nl () "ED2K_update_server_list_met is disabled, ignoring..."
   );
-  CommonWeb.add_web_kind "comments.met" (fun _ filename ->
+  CommonWeb.add_web_kind "comments.met" "List of edonkey files comments" 
+    (fun _ filename ->
 (* TODO      DonkeyIndexer.load_comments filename; *)
       lprintf_nl () "COMMENTS ADDED";
   );

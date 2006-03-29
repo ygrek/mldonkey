@@ -503,6 +503,7 @@ module P = struct
     let command_prefix = "kad_"
 
     let web_info = "kad"
+    let web_info_descr = "Kad network boot peers"
   end
 
 module Kademlia = Make(P)

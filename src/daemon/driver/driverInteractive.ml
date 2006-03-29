@@ -1912,3 +1912,19 @@ let diskinfo html buf =
     	) !list;
   if html then
     Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
+
+let print_option_help o option =
+  let buf = o.conn_buf in
+  let help_text = get_help option in
+  if use_html_mods o then
+    begin
+      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+      html_mods_table_header buf "versionTable" "results" [];
+      Printf.bprintf buf "\\<tr\\>";
+      html_mods_td buf [ ("", "srh", "Helptext"); ];
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" help_text); ];
+      Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+    end
+  else
+    Printf.bprintf buf "\n\t--Helptext--\n%s\n" help_text

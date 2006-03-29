@@ -41,8 +41,9 @@ let hours = ref 0
 
 let file_kinds = ref []
 
-let add_web_kind kind f =
-  file_kinds := (kind,f) :: !file_kinds
+let add_web_kind kind descr f =
+  let kind_record = { f = f; description = descr } in
+  file_kinds := (kind, kind_record) :: !file_kinds
 
 let mldonkey_wget url f =
   let module H = Http_client in
@@ -125,7 +126,7 @@ let mldonkey_wget url f =
 let load_url can_fail kind url =
   let f =
     try
-      (List.assoc kind !file_kinds) url
+      (List.assoc kind !file_kinds).f url
     with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
   in
   try
@@ -141,7 +142,7 @@ let load_url can_fail kind url =
 
 let load_file kind file =
   try
-    (List.assoc kind !file_kinds) file file
+    (List.assoc kind !file_kinds).f file file
   with e ->
       lprintf_nl "[cWeb] Exception %s while loading kind %s"
         (Printexc2.to_string e) kind
@@ -173,7 +174,8 @@ let rss_feeds = Hashtbl.create 10
 
 
 let _ =
-  add_web_kind "rss" (fun url filename ->
+  add_web_kind "rss" "Syndication feeds to get periodically updated data" 
+    (fun url filename ->
       lprintf_nl "[cWeb=rss] parsing feed %s" url;
       let c = Rss.channel_of_file filename in
       (try Sys.remove filename with _ -> ());

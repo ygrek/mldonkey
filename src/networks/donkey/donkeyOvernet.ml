@@ -313,6 +313,7 @@ module Make(Proto: sig
         UdpSocket.t -> UdpSocket.event -> unit
 
       val web_info : string
+      val web_info_descr : string
     end) = struct
 
     open Proto
@@ -1883,7 +1884,7 @@ let cancel_recover_file file =
    end   
 
 let _ =
-  CommonWeb.add_web_kind web_info (fun _ filename ->
+  CommonWeb.add_web_kind web_info web_info_descr (fun _ filename ->
       let s = File.to_string filename in
       let s = String2.replace s '"' "" in
       let lines = String2.split_simplify s '\n' in
@@ -1905,7 +1906,8 @@ let _ =
 
   (* Add this kind of web_info only for overnet *)
   if Proto.redirector_section = "DKKO" then
-      CommonWeb.add_web_kind "contact.dat" (fun url filename ->
+    CommonWeb.add_web_kind "contact.dat" "List of Overnet boot peers" 
+      (fun url filename ->
         if !!enable_overnet && !!overnet_update_nodes then
           let n = load_contact_dat filename in
             lprintf_nl () "contact.dat loaded from %s, added %d peers" url n;

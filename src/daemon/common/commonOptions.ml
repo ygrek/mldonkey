@@ -1478,7 +1478,7 @@ let max_displayed_results = define_expert_option current_section
 
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 10
+    int_option 11
 
 
 (*************************************************************************)
@@ -1849,19 +1849,23 @@ let _ =
   option_hook allow_local_network (fun _ ->
       Ip.allow_local_network := !!allow_local_network)
 
+let web_infos_exists url =
+  List.exists (fun (_, _, weburl) ->
+    weburl = url) !!web_infos
+
+let web_infos_remove outdated_web_infos =
+  web_infos =:=
+  List.fold_left (fun acc owi ->
+    let (kind2, _, url2) = owi in
+    List.filter (fun (_,_,url) -> url <> url2) acc
+  ) !!web_infos outdated_web_infos
+
+let web_infos_add kind period url =
+  let web_info = (kind,period,url) in
+  if web_infos_exists url then web_infos_remove [web_info];
+  web_infos =:=  web_info :: !!web_infos
+
 let rec update_options () =
-  let web_infos_remove outdated_web_infos =
-    let web_infos_filter n =
-      List.filter
-        (fun (kind, _, url) ->
-          let (kind2, _, url2) = (List.nth outdated_web_infos n) in
-          kind <> kind2 && url <> url2
-        ) !!web_infos
-    in
-    for n = 0 to (List.length outdated_web_infos) - 1 do
-      web_infos =:= web_infos_filter n;
-    done;
-  in
   let update v =
       lprintf_nl "Updating options to version %i" v;
       options_version =:= v;
@@ -1908,10 +1912,7 @@ let rec update_options () =
           ("ocl", 24,
             "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl");
         ];
-      web_infos =:= !!web_infos @ [
-          ("contact.dat", 168,
-            "http://www.overnet.org/download/contact.dat");
-        ];
+      web_infos_add "contact.dat" 168 "http://www.overnet.org/download/contact.dat";
       update 4
 
   | 4 ->
@@ -1920,10 +1921,7 @@ let rec update_options () =
           ("server.met", 24,
             "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
         ];
-      web_infos =:= !!web_infos @ [
-          ("server.met", 0,
-            "http://www.gruk.org/server.met.gz");
-        ];
+      web_infos_add "server.met" 0 "http://www.gruk.org/server.met.gz";
       update 5
 
   | 5 ->
@@ -1942,22 +1940,30 @@ let rec update_options () =
       update 8
 
   | 8 ->
-      web_infos =:= !!web_infos @ [
-          ("geoip.dat", 0,
-            "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
-        ];
+      web_infos_add "geoip.dat" 0 "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz";
       update 9
 
   | 9 ->
-      web_infos_remove
-        [
-          ("server.met", 0,
-            "http://www.gruk.org/server.met.gz");
-        ];
-      web_infos =:= !!web_infos @ [
-          ("server.met", 0,
-            "http://www.jd2k.com/server.met");
-        ];
+      if web_infos_exists "http://www.gruk.org/server.met.gz" then
+      begin
+        web_infos_remove
+          [
+	    ("server.met", 0, "http://www.gruk.org/server.met.gz")
+          ];
+	web_infos_add "server.met" 0 "http://www.jd2k.com/server.met";
+      end;
       update 10
+
+  | 10 ->
+      if web_infos_exists "http://www.overnet.org/download/contact.dat" then
+      begin
+        web_infos_remove
+          [
+	    ("contact.dat", 672,
+	      "http://www.overnet.org/download/contact.dat");
+          ];
+	web_infos_add "contact.dat" 168 "http://download.overnet.org/contact.dat";
+      end;
+      update 11
 
   | _ -> ()

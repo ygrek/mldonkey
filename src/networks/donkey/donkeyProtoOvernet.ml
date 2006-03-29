@@ -464,6 +464,7 @@ module Proto = struct
     let command_prefix = "ov_"
     let source_brand = true
     let web_info = "ocl"
+    let web_info_descr = "Overnet network boot peers"
   end
 
 module Overnet_initial = Make(Proto)

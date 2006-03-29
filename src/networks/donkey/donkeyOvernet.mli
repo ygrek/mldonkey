@@ -120,6 +120,7 @@ module Make(Proto: sig
         UdpSocket.t -> UdpSocket.event -> unit
         
       val web_info : string
+      val web_info_descr : string
     end) : sig
     
     val overnet_search : CommonTypes.search -> unit

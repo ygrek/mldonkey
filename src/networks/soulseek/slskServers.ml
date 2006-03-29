@@ -207,6 +207,7 @@ let ask_for_files () =
 
 let servers_line = "--servers"
 let slsk_kind =  "slsk_server_list"
+let slsk_kind_descr = "List of Soulseek servers (?)"
 
 let load_server_list_last = ref 0
 let load_server_list _ filename  = 
@@ -261,7 +262,7 @@ let can_retry () =
   update_server_list ()
 
 let _ =
-  CommonWeb.add_web_kind slsk_kind load_server_list;
+  CommonWeb.add_web_kind slsk_kind slsk_kind_descr load_server_list;
   option_hook login can_retry;
   option_hook global_login can_retry;
   option_hook password can_retry

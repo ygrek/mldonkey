@@ -186,34 +186,6 @@ let list_options oo list =
   if oo.conn_output = HTML then
     Printf.bprintf  buf "\\</table\\>"
 
-let list_web_infos o list =
-  let buf = o.conn_buf in
-  if o.conn_output = HTML then begin
-      html_mods_table_header buf "web_infoTable" "vo" [
-        ( "0", "srh", "Option type", "Type" ) ;
-        ( "0", "srh", "Option delay", "Delay" ) ;
-        ( "0", "srh", "Option value", "Value" ) ] ;
-      let counter = ref 0 in
-      List.iter (fun (kind, period, url) ->
-          incr counter;
-          if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-          else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-          Printf.bprintf buf "
-              \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-	      \\<td class=\\\"sr\\\"\\>%d\\</td\\>"  url kind period;
-          Printf.bprintf buf "
-              \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-              \\</tr\\>" url
-      ) list;
-      Printf.bprintf buf "\\</table\\>\\</div\\>"
-    end
-  else begin
-      Printf.bprintf buf "kind / period / url :\n";
-      List.iter (fun (kind, period, url) ->
-          Printf.bprintf buf "%s ; %d ; %s\n"  kind period url
-      )list
-    end
-
 let list_calendar o list =
   let buf = o.conn_buf in
   if o.conn_output = HTML then begin
@@ -347,14 +319,22 @@ let _ =
           _s "Only 'admin' is allowed to kill MLDonkey"
         ), ":\t\t\t\t\t$bsave and kill the server$n";
 
-    "add_url", Arg_two (fun kind url o ->
-        let v = (kind, 1, url) in
-        if not (List.mem v !!web_infos) then
-          web_infos =:=  v :: !!web_infos;
-        CommonWeb.load_url true kind url;
+    "urladd", Arg_two (fun kind url o ->
+	web_infos_add kind 1 url;
+	CommonWeb.load_url true kind url;
         "url added to web_infos. downloading now"
     ), "<kind> <url> :\t\t\tload this file from the web\n"
        ^"\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
+
+    "urlremove", Arg_one (fun url o ->
+    	if web_infos_exists url then
+	  begin
+	    web_infos_remove [("",0,url)];
+            "removed URL from web_infos"
+	  end
+	else
+            "URL does not exists in web_infos"
+    ), "<url> :\t\t\tremove URL from web_infos";
 
     "recover_temp", Arg_none (fun o ->
         networks_iter (fun r ->
@@ -455,7 +435,9 @@ let _ =
     "sysinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
         ignore(buildinfo (o.conn_output = HTML) buf);
+        Printf.bprintf buf "\\<P\\>";
         ignore(runinfo (o.conn_output = HTML) buf o);
+        Printf.bprintf buf "\\<P\\>";
         ignore(diskinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey core build, runtime and disk information";
@@ -786,12 +768,13 @@ formID.msgText.value=\\\"\\\";
         if use_html_mods o then begin
             Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>
                 \\<table class=main cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>";
-	    if List.length !!calendar = 0 then
+	    if !!calendar = [] then
               html_mods_table_one_row buf "serversTable" "servers" [
                 ("", "srh", "no jobs defined"); ]
 	    else
               list_calendar o !!calendar;
-            Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
+            Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\<P\\>";
+	    print_option_help o calendar
           end
         else
 	  if List.length !!calendar = 0 then
@@ -1503,6 +1486,7 @@ let _ =
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
+\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
@@ -1838,6 +1822,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
+\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
@@ -1875,14 +1860,84 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
     "vwi", Arg_none (fun o ->
         let buf = o.conn_buf in
         if use_html_mods o then begin
-            Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>
-                \\<table class=main cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>";
-            list_web_infos o !!web_infos;
-            Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
+            Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
+\\<tr\\>\\<td\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
+                   var getdir = prompt('Input: <kind> <URL>','server.met URL')
+                   parent.fstatus.location.href='submit?q=urladd+' + encodeURIComponent(getdir);
+                   setTimeout('window.location.reload()',1000);
+                    }\\\"\\>Add URL\\</a\\>
+\\</td\\>
+\\</tr\\>\\</table\\>
+\\</td\\>\\</tr\\>
+\\<tr\\>\\<td\\>";
+
+            if !!web_infos = [] then
+              html_mods_table_one_row buf "serversTable" "servers" [
+                ("", "srh", "no jobs defined"); ]
+	    else begin
+
+    	      html_mods_table_header buf "web_infoTable" "vo" [
+	        ( "0", "srh ac", "Click to remove URL", "Remove" ) ;
+	        ( "0", "srh", "Option type", "Type" ) ;
+	        ( "0", "srh", "Option delay", "Delay" ) ;
+	        ( "0", "srh", "Option value", "Value" ) ] ;
+
+              let counter = ref 0 in
+
+              List.iter (fun (kind, period, url) ->
+                incr counter;
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                (if !counter mod 2 == 0 then "dl-1" else "dl-2");
+		Printf.bprintf buf "
+        \\<td title=\\\"Click to remove URL\\\"
+        onMouseOver=\\\"mOvr(this);\\\"
+        onMouseOut=\\\"mOut(this);\\\"
+        onClick=\\\'javascript:{
+	parent.fstatus.location.href=\\\"submit?q=urlremove+\\\\\\\"%s\\\\\\\"\\\"
+        setTimeout(\\\"window.location.reload()\\\",1000);}'
+        class=\\\"srb\\\"\\>Remove\\</td\\>" (Url.encode url);
+          Printf.bprintf buf "
+              \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
+	      \\<td class=\\\"sr\\\"\\>%d\\</td\\>"  url kind period;
+          Printf.bprintf buf "
+              \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+              \\</tr\\>" url
+              ) !!web_infos;
+	    end;
+            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
+
+    	    html_mods_table_header buf "web_infoTable" "vo" [
+	      ( "0", "srh", "Web kind", "Kind" );
+	      ( "0", "srh", "Description", "Type" ) ];
+
+            let counter = ref 0 in
+            List.iter (fun (kind, data) ->
+                incr counter;
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                (if !counter mod 2 == 0 then "dl-1" else "dl-2");
+		Printf.bprintf buf "
+              \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+	      \\<td class=\\\"sr\\\"\\>%s\\</td\\>" kind data.description
+            ) !CommonWeb.file_kinds;
+
+            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
+	    print_option_help o web_infos
+
           end
-        else begin
-            list_web_infos o !!web_infos
-          end;
+        else
+	    begin
+	      Printf.bprintf buf "kind / period / url :\n";
+	      List.iter (fun (kind, period, url) ->
+	          Printf.bprintf buf "%s ; %d ; %s\n"  kind period url
+	      ) !!web_infos;
+	      Printf.bprintf buf "\nAllowed values for kind:\n";
+	      List.iter (fun (kind, data) ->
+	          Printf.bprintf buf "%s - %s\n" kind data.description
+	      ) !CommonWeb.file_kinds
+	    end;
         ""
     ), ":\t\t\t\t\tprint web_infos options";
 
@@ -2098,7 +2153,8 @@ let _ =
             )
             !!shared_directories;
   
-            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
+            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
+	    print_option_help o shared_directories
           end
         else
           begin

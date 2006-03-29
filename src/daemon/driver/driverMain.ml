@@ -141,11 +141,13 @@ let start_interfaces () =
 
 
 let _ =
-  CommonWeb.add_web_kind "motd.html" (fun _ filename ->
+  CommonWeb.add_web_kind "motd.html" "Information of the day in HTML format" 
+    (fun _ filename ->
       lprintf_nl () (_b "motd.html changed");
     motd_html =:= File.to_string filename
   );
-  CommonWeb.add_web_kind "motd.conf" (fun _ filename ->
+  CommonWeb.add_web_kind "motd.conf" "Setup changes of the day" 
+    (fun _ filename ->
     let ic = open_in filename in
     try
       while true do
@@ -170,12 +172,15 @@ let _ =
 	(Printexc2.to_string e);
 	close_in ic
   );
-  CommonWeb.add_web_kind "guarding.p2p" (fun _ filename ->
+  CommonWeb.add_web_kind "guarding.p2p" 
+    "IP blocking lists (ipfilter and guardian v2 formats)" 
+    (fun _ filename ->
       Ip_set.bl := Ip_set.load filename;
 (*      Ip_set.bl := Ip_set.load_merge !Ip_set.bl filename *)
       CommonServer.check_blocked_servers ()
   );
-  CommonWeb.add_web_kind "geoip.dat" (fun _ filename ->
+  CommonWeb.add_web_kind "geoip.dat" "IP to country mapping database" 
+    (fun _ filename ->
       Geoip.init (Geoip.unpack filename);
       CommonServer.server_must_update_all ())
 

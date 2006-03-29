@@ -878,3 +878,8 @@ let dummy_stats =
     brand_download = 0L;
     brand_upload = 0L;
   }
+
+type kind_type = {
+  f : string -> string -> unit;
+  description : string
+}
