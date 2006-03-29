@@ -474,7 +474,7 @@ and remove clients whose server is deconnected. *)
       ()
 
 let connect_server s =
-  if !!enable_servers && not (Ip_set.ip_blocked s.server_ip)
+  if !!enable_servers && not (!Ip.banned s.server_ip <> None)
     && (not !!connect_only_preferred_server || s.server_preferred)
   then
     match s.server_sock with

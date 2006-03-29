@@ -1144,7 +1144,7 @@ let get_ips_cc_cn c =
         let cc,cn = Geoip.get_country ip in
         (Ip.to_string ip),cc,cn
     | _ ->  
-        let cc,cn = !Geoip.unknown_country in
+        let cc,cn = Geoip.unknown_country in
         (string_of_client_addr c),cc,cn
   with _ -> ("X","??","Country Error")
 

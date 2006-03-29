@@ -1729,8 +1729,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option auto_commit;
 			strings_of_option create_dir_mask;
 			strings_of_option create_file_sparse;
-			strings_of_option ip_blocking;
-			strings_of_option ip_blocking_descriptions;
 			strings_of_option log_file;
 			strings_of_option log_file_size;
 			strings_of_option log_size;
@@ -1783,9 +1781,10 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option tcpip_packet_size;
 			strings_of_option mtu_packet_size;
 			strings_of_option minimal_packet_size;
-			strings_of_option http_proxy_tcp;
-			strings_of_option http_proxy_server;
-			strings_of_option http_proxy_port;
+			strings_of_option ip_blocking;
+			strings_of_option ip_blocking_descriptions;
+			strings_of_option ip_blocking_countries;
+			strings_of_option ip_blocking_countries_block;
                       ])
                   | 8 ->
                       [
@@ -3218,22 +3217,22 @@ let _ =
         if o.conn_output = HTML then
           let mybuf = Buffer.create 1000 in
           let mytable = ref [] in
-          Ip_set.print_list mybuf !Ip_set.bl;
+	  Ip_set.print_list mybuf !CommonBlocking.ip_blocking_list;
           let listtmp = String2.split (Buffer.contents mybuf) '\n' in
            (List.iter (fun s ->
              mytable := !mytable @ [ ("", "srh", s); ]
             ) listtmp);
           html_mods_table_one_col buf "serversTable" "servers" !mytable
         else
-          Ip_set.print_list buf !Ip_set.bl;
+	  Ip_set.print_list buf !CommonBlocking.ip_blocking_list;
       _s ""
     ), ":\t\t\t\tdisplay the list of blocked IP ranges that were hit";
 
     "block_test", Arg_one (fun arg o ->
       let ip = Ip.of_string arg in
-      _s (match match_ip_aux !Ip_set.bl ip with
+      _s (match !Ip.banned ip with
           None -> "Not blocked"
-        | Some br ->
-          Printf.sprintf "Blocked, %s\n" br.blocking_description)
+        | Some reason ->
+          Printf.sprintf "Blocked, %s\n" reason)
     ), "<ip> :\t\t\tcheck whether an IP is blocked";
   ]

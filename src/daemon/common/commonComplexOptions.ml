@@ -1096,13 +1096,24 @@ let backup_options () =
   lprintf_nl () "Options backup as %s correctly saved" format
              
 let _ =
+  CommonBlocking.add_update_hook CommonServer.check_blocked_servers;
+  CommonBlocking.add_update_hook CommonServer.server_must_update_all;
   option_hook ip_blocking (fun _ ->
-    (try
-      Ip_set.bl := if !!ip_blocking <> "" then
-                     Ip_set.load !!ip_blocking
-                   else Ip_set.bl_empty
-    with _ -> ());
-    CommonServer.check_blocked_servers ()
+    try
+      CommonBlocking.set_ip_blocking_list !!ip_blocking
+    with _ -> ()
+  );
+  option_hook ip_blocking_countries (fun _ ->
+    CommonBlocking.set_ip_blocking_countries !!ip_blocking_countries
+  );
+  option_hook ip_blocking_countries_block (fun _ ->
+    CommonBlocking.set_ip_blocking_countries_block !!ip_blocking_countries_block;
+    CommonBlocking.set_ip_blocking_countries !!ip_blocking_countries
+  );
+  option_hook geoip_dat (fun _ ->
+    try
+      CommonBlocking.set_geoip_dat !!geoip_dat
+    with _ -> ()
   );
   option_hook max_opened_connections (fun _ ->
   if !verbose then lprintf_nl ()

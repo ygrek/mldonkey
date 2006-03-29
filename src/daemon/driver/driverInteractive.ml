@@ -1811,8 +1811,9 @@ let runinfo html buf o =
       ^ "\nServer usage:\t " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
       ^ "\nGeoip:\t\t " ^ (if !Geoip.active then "enabled, GeoLite data created by MaxMind, available from http://maxmind.com/"
           else dis_mess)
-      ^ "\nIP blocking:\t " ^ (let r1,r2 = Ip_set.block_stats () in
-          if r1 = 0 then dis_mess else Printf.sprintf "enabled, %d ranges loaded - optimized to %d" r1 r2)
+      ^ (Printf.sprintf "\nIP blocking local: %d ranges, web: %d ranges"
+          (Ip_set.bl_length !CommonBlocking.ip_blocking_list)
+          (Ip_set.bl_length !CommonBlocking.web_ip_blocking_list))
       ^ (if not !dns_works then
 	    Printf.sprintf "\nDNS:\t\t DNS resolution not available, web_infos %s not work"
 	      (if Autoconf.bittorrent = "yes" then "and BT does" else "do")

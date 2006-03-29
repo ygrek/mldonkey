@@ -171,19 +171,7 @@ let _ =
     | e -> lprintf_nl () (_b "Error while reading motd.conf(%s): %s") filename
 	(Printexc2.to_string e);
 	close_in ic
-  );
-  CommonWeb.add_web_kind "guarding.p2p" 
-    "IP blocking lists (ipfilter and guardian v2 formats)" 
-    (fun _ filename ->
-      Ip_set.bl := Ip_set.load filename;
-(*      Ip_set.bl := Ip_set.load_merge !Ip_set.bl filename *)
-      CommonServer.check_blocked_servers ()
-  );
-  CommonWeb.add_web_kind "geoip.dat" "IP to country mapping database" 
-    (fun _ filename ->
-      Geoip.init (Geoip.unpack filename);
-      CommonServer.server_must_update_all ())
-
+  )
 
 
 let save_mlsubmit_reg () =

@@ -2442,7 +2442,7 @@ let client_connection_handler overnet t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
       let s_from_ip = Ip.to_string from_ip in
-      let is_ip_blocked = Ip_set.ip_blocked from_ip in
+      let is_ip_blocked = !Ip.banned from_ip <> None in
       let too_many_indirect_connections =
         !DonkeySources.indirect_connections >
         !real_max_indirect_connections

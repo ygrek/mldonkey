@@ -141,6 +141,8 @@ let pred (a4,a3,a2,a1) =
   else
     (255,255,255,255) (* or exception ? *)
 
+let banned = ref (fun (ip:t) -> None)
+
 let localhost = of_string "127.0.0.1"
 
 let to_sockaddr ip port =

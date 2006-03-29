@@ -15,6 +15,14 @@ ChangeLog
 =========
 
 2006/03/29
+4931: CommonBlocking: Block/allow IPs by country codes (requires GeoIP) (pango)
+- new options:
+  - ip_blocking_countries, insert country codes here
+  - ip_blocking_countries_block true|false
+      false: use ip_blocking_countries as block list,
+             all other countries are allowed
+      true:  use ip_blocking_countries as allow list,
+             all other countries are blocked
 4995: HTML: Fix friends filelist display
 4996: HTML: Add/remove for web_infos (vwi), update old contact.dat URL
 - web_infos, rename command add_url to urladd, new command urlremove

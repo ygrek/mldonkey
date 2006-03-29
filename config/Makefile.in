@@ -250,12 +250,13 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonFile.ml \
   $(COMMON)/commonNetwork.ml \
   $(COMMON)/commonResult.ml \
+  $(COMMON)/commonWeb.ml \
+  $(COMMON)/commonBlocking.ml  \
   $(COMMON)/commonComplexOptions.ml \
   $(COMMON)/commonShared.ml \
   $(COMMON)/commonRoom.ml \
   $(COMMON)/commonSearch.ml \
   $(COMMON)/commonMultimedia.ml \
-  $(COMMON)/commonWeb.ml \
   $(COMMON)/commonInteractive.ml \
   $(COMMON)/commonChunks.ml \
   $(COMMON)/commonSwarming.ml \

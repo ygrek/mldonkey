@@ -115,7 +115,13 @@ let country_name_array = [|
   "Satellite Provider";"Other";
 |]
 
-let unknown_country = ref ("--", "N/A")
+let country_index = Hashtbl.create 10
+let _ =
+  Array.iteri (fun i cc -> 
+    Hashtbl.add country_index cc i
+  ) country_code_array
+
+let unknown_country = ("--", "N/A")
 let file = ref (Obj.magic 0)
 let active = ref false
 let database_type = ref databaseInfo_COUNTRY_EDITION 
@@ -298,13 +304,12 @@ let get_country_code ip =
   end
 
 let get_country ip = 
-  if not !active then !unknown_country
+  if not !active then unknown_country
   else begin
     try 
       let ret = (seek_country ip) - country_begin in
-      if ret = 0 then !unknown_country 
+      if ret = 0 then unknown_country 
         else country_code_array.(ret), country_name_array.(ret);
     with _ -> 
-      !unknown_country
+      unknown_country
   end
-

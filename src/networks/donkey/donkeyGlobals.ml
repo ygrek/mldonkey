@@ -459,11 +459,11 @@ let is_black_address ip port =
 (* lprintf "is black ="; *)
     not (Ip.reachable ip) || (Ip.matches ip !!server_black_list) ||
     (List.mem port !!port_black_list) ||
-    (match Ip_set.match_ip !Ip_set.bl ip with
+    (match !Ip.banned ip with
         None -> false
-      | Some br ->
+      | Some reason ->
           if !verbose_connect then
-            lprintf_nl () "%s:%d blocked: %s" (Ip.to_string ip) port br.Ip_set.blocking_description;
+            lprintf_nl () "%s:%d blocked: %s" (Ip.to_string ip) port reason;
           true))
 
 let new_server ip port score =

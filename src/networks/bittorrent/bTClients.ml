@@ -1082,12 +1082,12 @@ be put in a fifo and dequeued according to
 let connect_client c =
   if can_open_connection connection_manager &&
     (let (ip,port) = c.client_host in
-     match Ip_set.match_ip !Ip_set.bl ip with
+     match !Ip.banned ip with
        None -> true
-     | Some br ->
+     | Some reason ->
          if !verbose_connect then
            lprintf_nl () "%s:%d blocked: %s"
-             (Ip.to_string ip) port br.blocking_description;
+             (Ip.to_string ip) port reason;
          false)
   then
   match c.client_sock with
@@ -1186,12 +1186,12 @@ let listen () =
                 to bypass the max_connection parameter
               *)
               if can_open_connection connection_manager &&
-                (match Ip_set.match_ip !Ip_set.bl ip with
+                (match !Ip.banned ip with
                    None -> true
-                 | Some br ->
+                 | Some reason ->
                      if !verbose_connect then
                        lprintf_nl () "%s:%d blocked: %s"
-                         (Ip.to_string ip) from_port br.blocking_description;
+                         (Ip.to_string ip) from_port reason;
                      false)
               then
                 begin
@@ -1407,12 +1407,12 @@ let get_sources_from_tracker file =
                           !peer_id <> !!client_uid &&
                           !peer_ip != Ip.null &&
                           !port <> 0 &&
-                          (match match_ip !Ip_set.bl !peer_ip with
+                          (match !Ip.banned !peer_ip with
                               None -> true
-                            | Some br ->
+                            | Some reason ->
                                 if !verbose_connect then
                                   lprintf_nl () "%s:%d blocked: %s"
-                                    (Ip.to_string !peer_ip) !port br.blocking_description;
+                                    (Ip.to_string !peer_ip) !port reason;
                                 false)
                         then
                           let _ = new_client file !peer_id (!peer_ip,!port)

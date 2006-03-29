@@ -802,11 +802,11 @@ let handler config t event =
     (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
       if Ip.matches from_ip config.addrs &&
-        (match Ip_set.match_ip !Ip_set.bl from_ip with
+        (match !Ip.banned from_ip with
            None -> true
-         | Some br ->
+         | Some reason ->
              lprintf_http_nl () "%s:%d blocked: %s\n"
-               (Ip.to_string from_ip) from_port br.blocking_description;
+               (Ip.to_string from_ip) from_port reason;
              false) then
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple

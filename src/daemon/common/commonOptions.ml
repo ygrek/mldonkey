@@ -266,6 +266,8 @@ let ip_list_option = list_option Ip.option
 
 let int_list_option = list_option int_option
 
+let country_list_option = list_option string_option
+
 let allow_browse_share_option = define_option_class "Integer"
     (fun v ->
       match v with
@@ -301,7 +303,10 @@ let _ =
   (fun s ->
       let list = String2.tokens s in
       List.map (fun i -> int_of_string i) list
-  )
+  );
+  Options.set_string_wrappers country_list_option
+  (String.concat " ")
+  String2.tokens
 
 let is_not_spam = ref (fun _ -> true)
 
@@ -857,6 +862,17 @@ let ip_blocking = define_expert_option current_section ["ip_blocking"]
   Zip files must contain either a file named guarding.p2p or guarding_full.p2p."
     string_option ""
 
+let ip_blocking_countries = define_expert_option current_section ["ip_blocking_countries"]
+    "List of countries to block connections from/to (requires Geoip).
+  Names are in ISO 3166 format, see http://www.maxmind.com/app/iso3166
+  You can also at your own risk use \"Unknown\" for IPs Geoip won't recognize."
+    country_list_option []
+
+let ip_blocking_countries_block = define_expert_option current_section
+   ["ip_blocking_countries_block"]
+    "false: use ip_blocking_countries as block list, all other countries are allowed
+  true: use ip_blocking_countries as allow list, all other countries are blocked" bool_option false
+
 let geoip_dat = define_expert_option current_section ["geoip_dat"]
     "Location of GeoIP.dat (Get one from http://www.maxmind.com/download/geoip/database/)"
     string_option ""
@@ -864,11 +880,6 @@ let geoip_dat = define_expert_option current_section ["geoip_dat"]
 let _ =
   option_hook ip_blocking_descriptions (fun _ ->
     Ip_set.store_blocking_descriptions := !!ip_blocking_descriptions
-  );
-  option_hook geoip_dat (fun _ ->
-    try
-      Geoip.init (Geoip.unpack !!geoip_dat);
-    with _ -> ()
   )
 
 let tcpip_packet_size = define_expert_option current_section ["tcpip_packet_size"]

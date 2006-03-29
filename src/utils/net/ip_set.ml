@@ -19,8 +19,6 @@ module H = Weak.Make(struct
       end)
 
 let descriptions = H.create 13
-let ranges_1 = ref 0 (* ranges in blocklist file *)
-let ranges_2 = ref 0 (* ranges after optimization *)
 
 let shared_description s =
   (* Currently trims strings left and right;
@@ -112,8 +110,7 @@ let rec match_ip_aux bl ip =
 	  Some br
 
 let match_ip bl ip =
-  let m = if Ip.local_ip ip then None else
-  match_ip_aux bl ip in
+  let m = match_ip_aux bl ip in
   (match m with
       Some br ->
 	br.blocking_hits <- br.blocking_hits + 1
@@ -221,8 +218,6 @@ let load_merge bl filename remove =
     if remove then (try Sys.remove filename with _ -> ());
     let optimized_bl = bl_optimize !bl in
     lprintf_nl () "%d ranges loaded - optimized to %d" !nranges (bl_length optimized_bl);
-    ranges_1 := !nranges;
-    ranges_2 := bl_length optimized_bl;
 (*    bl_optimizedp optimized_bl;
     for i=0 to 999999 do
       let random_ip = Ip.of_ints (Random.int 256, Random.int 256, Random.int 256, Random.int 256) in
@@ -345,20 +340,8 @@ let print_list buf bl =
           let nright = print_list_aux right in
           nleft + 1 + nright in
 
-  ignore(print_list_aux bl);
-  if !ranges_1 = 0 then
-    Printf.bprintf buf "%d ranges loaded\n" !ranges_1
-  else
-    Printf.bprintf buf "%d ranges loaded - optimized to %d\n" !ranges_1 !ranges_2
-
-let bl = ref BL_Empty
-
-let ip_blocked ip =
-  match match_ip !bl ip with
-    None -> false
-  | Some br -> true
-
-let block_stats () = (!ranges_1, !ranges_2)
+  let nranges = print_list_aux bl in
+  Printf.bprintf buf "%d ranges\n" nranges
 
 (*
 open Benchmark
@@ -385,7 +368,4 @@ let _ =
   Heap.add_memstat "Ip_set" (fun level buf ->
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) descriptions;
-      Printf.bprintf buf "  descriptions: %d\n" !counter;
-      Printf.bprintf buf "  ranges: %d\n" (bl_length !bl);  
-  )
-
+      Printf.bprintf buf "  descriptions: %d\n" !counter)

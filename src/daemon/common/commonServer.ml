@@ -265,7 +265,7 @@ let server_find (num : int) =
 
 let server_blocked s =
   let info = server_info s in
-    Ip_set.ip_blocked (Ip.ip_of_addr info.G.server_addr)
+  !Ip.banned (Ip.ip_of_addr info.G.server_addr) <> None
 
 let server_connect s =
   if not (server_blocked s) then
