@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/03/29
+4995: HTML: Fix friends filelist display
 4996: HTML: Add/remove for web_infos (vwi), update old contact.dat URL
 - web_infos, rename command add_url to urladd, new command urlremove
 - prints option help texts for web_infos and calendar command

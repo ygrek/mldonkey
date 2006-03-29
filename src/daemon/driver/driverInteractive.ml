@@ -1440,7 +1440,7 @@ let print_results stime buf o results =
   let files = ref [] in
   (try
       List.iter (fun (rs, r,avail) ->
-          if !!display_downloaded_results || not r.result_done  then begin
+          if !!display_downloaded_results || not r.result_done then begin
               incr counter;
               nsources := !nsources + avail;
               totalsize := !totalsize ++ r.result_size ** (Int64.of_int avail);
@@ -1456,7 +1456,6 @@ let print_results stime buf o results =
                       (if new_result then "N" else " ")
                     !counter);
 
-
                 (if use_html_mods o then
                     "\\<td class=\\\"sr ar\\\"\\>" ^  size_of_int64 r.result_size ^ "\\</td\\>"
                   else Int64.to_string r.result_size
@@ -1465,6 +1464,20 @@ let print_results stime buf o results =
                 (if use_html_mods o then
                     "\\<td class=\\\"sr ar\\\"\\>" ^  (string_of_int avail) ^ "\\</td\\>"
                   else (string_of_int avail)
+                );
+
+                (if r.result_done then
+                   begin
+	                if use_html_mods o then
+        	            "\\<td class=\\\"sr ar\\\"\\>D\\</td\\>"
+                	  else "dled"
+                   end
+                 else
+                   begin
+	                if use_html_mods o then
+        	            "\\<td class=\\\"sr ar\\\"\\> \\</td\\>"
+                	  else " "
+                   end
                 );
 
                 (Printf.sprintf "%s%s%s"
@@ -1476,8 +1489,6 @@ let print_results stime buf o results =
 
                   ( shorten (
                       let names = r.result_names in
-                      let names = if r.result_done then
-                          ["ALREADY DOWNLOADED "] @ names else names in
                       let names = match  r.result_comment with
                           "" -> names
                         |  comment ->
@@ -1506,7 +1517,6 @@ let print_results stime buf o results =
                   )
                 );
 
-
                 (let buf = Buffer.create 100 in
 
                   if use_html_mods o then Buffer.add_string buf "\\<td class=\\\"sr\\\"\\>";
@@ -1518,7 +1528,7 @@ let print_results stime buf o results =
                             String s -> s
                           | Uint64 i -> Int64.to_string i
                           | Fint64 i -> Int64.to_string i
-                          | _ -> "???"
+                          | _ -> ""
                         ))
                   ) r.result_tags;
                   Buffer.contents buf);
@@ -1541,6 +1551,7 @@ let print_results stime buf o results =
 		( "1", "srh", "Number", "#" ) ;
 		( "1", "srh ar", "Size", "Size" ) ;
 		( "0", "srh ar", "Availability", "A" )  ;
+		( "0", "srh ar", "Status, D = already downloaded", "S" )  ;
 		( "0", "srh", "Filename", "Name" ) ;
 		( "0", "srh", "Tag", "Tag" ) ;
 		( "0", "srh", "MD4", "MD4" ) ];
@@ -1552,11 +1563,12 @@ let print_results stime buf o results =
 
   else
 
-    print_table buf [| Align_Left; Align_Right; Align_Right; Align_Left; Align_Left; Align_Left|]
+    print_table buf [| Align_Left; Align_Right; Align_Right; Align_Right; Align_Left; Align_Left; Align_Left|]
       [|
       "[ Num ]";
       "Size";
       "Avail";
+      "Status";
       "Names";
       "Tags";
       "MD4";
@@ -1579,7 +1591,6 @@ let print_search buf s o =
     ) !results in
 
   Printf.bprintf buf "Result of search %d\n" s.search_num;
-  Printf.bprintf buf "Reinitialising download selectors\n";
   Printf.bprintf buf "%d results (%s)\n" s.search_nresults
     (if s.search_waiting = 0 then "done" else
       (string_of_int s.search_waiting) ^ " waiting");
