@@ -81,7 +81,6 @@ TODO: s_last_seen is useless, only t_last_seen is useful, at least in the
 
 *)
 
-
 type chunk = {
     chunk_uid : uid_type;
     chunk_size : int64;
@@ -123,7 +122,8 @@ and swarmer = {
 (*    mutable s_last_seen : int array; *)
 
     mutable s_blocks : block_v array;
-    mutable s_block_pos : int64 array;
+    mutable s_block_pos : int64 array; (** offset of the beginning of
+					   each block *)
   }
 
 and block_v =
@@ -137,7 +137,9 @@ and block = {
     mutable block_num : int;
     mutable block_begin : Int64.t;
     mutable block_end : Int64.t;
-    mutable block_ranges : range;
+    mutable block_ranges : range; (** (first ?) [range] of the double-linked
+				      list of ranges associated to the
+				      [block] *)
     mutable block_remaining : int64;
   }
 
@@ -159,10 +161,14 @@ and uploader = {
     mutable up_declared : bool;
 
     mutable up_chunks : chunks;
-    mutable up_complete_blocks : int array;
+    mutable up_complete_blocks : int array; (** block numbers *)
     mutable up_ncomplete : int;
 
-    mutable up_partial_blocks : (int * int64 * int64) array;
+    mutable up_partial_blocks : (int * int64 * int64) array; (** block
+								 number,
+								 begin_pos,
+								 end_pos
+								 *)
     mutable up_npartial : int;
 
     mutable up_block : block option;
@@ -223,11 +229,7 @@ let dummy_swarmer = {
     s_nuploading = [||];
   }
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         print_uploader                                *)
-(*                                                                       *)
-(*************************************************************************)
+(** (debug) output an [uploader] to current log *)
 
 let print_uploader up =
   lprintf_n () "  interesting complete_blocks: %d\n     " up.up_ncomplete;
@@ -239,11 +241,9 @@ let print_uploader up =
   ) up.up_partial_blocks;
   lprint_newline ()
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         last_seen                                     *)
-(*                                                                       *)
-(*************************************************************************)
+(** sets [t.t_last_seen] of the verified blocks to current time, and 
+    associated file's [t.t_file] last seen value to the oldest of the
+    remaining last seen values *)
 
 let compute_last_seen t =
   let last_seen_total = ref (BasicSocket.last_time ()) in
@@ -256,11 +256,9 @@ let compute_last_seen t =
   set_file_last_seen t.t_file !last_seen_total;
   t.t_last_seen
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         create_swarmer                                *)
-(*                                                                       *)
-(*************************************************************************)
+(** if a swarmer is already associated with that [file_name], return it;
+    Otherwise create a new one with default values (including a default
+    [range_size] instead of the provided value ??) *)
 
 let create_swarmer file_name file_size range_size =
 
@@ -298,11 +296,8 @@ let create_swarmer file_name file_size range_size =
       HS.add swarmers_by_name s;
       s
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         compute_block_end (internal)                  *)
-(*                                                                       *)
-(*************************************************************************)
+(** (internal) return the offset of the end of the [i]th block of
+    swarmer [s] *)
 
 let compute_block_end s i =
   let b = s.s_block_pos in
@@ -311,21 +306,15 @@ let compute_block_end s i =
   else
     b.(i+1)
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         compute_block_begin (internal)                *)
-(*                                                                       *)
-(*************************************************************************)
+(** (internal) return the offset of the beginning of the [i]th block
+    of swarmer [s] *)
 
 let compute_block_begin s i =
   let b = s.s_block_pos in
   b.(i)
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         void_range (internal)                         *)
-(*                                                                       *)
-(*************************************************************************)
+(** (internal) return a 0 sized range at offset [pos], and assigned to
+    block [b] *)
 
 let void_range b pos =
   let r = {
@@ -340,11 +329,8 @@ let void_range b pos =
   in
   r
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         cut_ranges (internal)                         *)
-(*                                                                       *)
-(*************************************************************************)
+(** (internal) assigns range [r], and all other ranges along
+    [range_next] links, to block [b] *)
 
 let rec own_ranges b r =
   r.range_block <- b;
@@ -352,15 +338,27 @@ let rec own_ranges b r =
     None -> ()
   | Some r -> own_ranges b r
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         get_after_ranges (internal)                   *)
-(*                                                                       *)
-(*************************************************************************)
+(** (internal) 
+    Find (following [range_next] links) the first range that's not
+    totally before [cut_pos] offset.
+    If none is found, return a [void_range] at [cut_pos] offset.
+    otherwise, if a range is found, 
+    if it is totally after [cut_pos], remove [range_prev] link, modify
+    owner block for all remaining ranges (including the one found),
+    and return that range.
+    if range found crossed [cut_pos] offset, create a similar range
+    with no [range_prev] link, [range_begin] with [cut_pos] value,
+    increase [range_current_begin] to [cut_pos] if it's smaller,
+    modify owner block for all remaining ranges (including that new
+    one), and return that range. *)
 
 let rec get_after_ranges b r cut_pos =
   if r.range_begin >= cut_pos then begin
-      r.range_prev <- None;
+      (match r.range_prev with
+        | None -> ()
+        | Some rp ->
+          rp.range_next <- None;
+          r.range_prev <- None);
       own_ranges b r;
       r
     end else
@@ -369,20 +367,22 @@ let rec get_after_ranges b r cut_pos =
       None -> void_range b cut_pos
     | Some r -> get_after_ranges b r cut_pos
   else
-  let r = { r with
+  let split_r = { r with
       range_prev = None;
       range_begin = cut_pos;
       range_current_begin = max r.range_current_begin cut_pos
     } in
-  own_ranges b r;
-  r
+  r.range_next <- None;
+  r.range_end <- cut_pos;
+  own_ranges b split_r;
+  split_r
 
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         get_before_ranges (internal)                  *)
-(*                                                                       *)
-(*************************************************************************)
+(** (internal) 
+    if [r.range_current_begin] is after [cut_pos], return a
+    [void_range] at offset [cut_pos],
+
+*)
 
 let get_before_ranges b r cut_pos =
   if r.range_current_begin >= cut_pos then
@@ -390,29 +390,39 @@ let get_before_ranges b r cut_pos =
   else
   let rec iter b r cut_pos =
     if r.range_end > cut_pos then begin
-        r.range_current_begin <- min cut_pos r.range_current_begin;
-        r.range_end <- cut_pos;
-        r.range_next <- None;
+      let split_r = { r with
+        range_end = cut_pos;
+	range_next = None } in
+      (match r.range_prev with
+	| None -> ()
+	| Some rp ->
+	    rp.range_next <- Some split_r;
+	    r.range_prev <- None);
+      r.range_current_begin <- cut_pos;
       end else
-    if r.range_end = cut_pos then
-      r.range_next <- None
-    else
+	if r.range_end = cut_pos then
+	  match r.range_next with
+	    | None -> ()
+	    | Some rn ->
+		rn.range_prev <- None;
+		r.range_next <- None
+	else
     match r.range_next with
-      None -> ()
-    | Some rr ->
-        if rr.range_current_begin >= cut_pos then
+    | None -> ()
+    | Some rn ->
+        if rn.range_current_begin >= cut_pos then begin
+	  rn.range_prev <- None;
           r.range_next <- None
-        else
-          iter b rr cut_pos
+        end else
+          iter b rn cut_pos
   in
   iter b r cut_pos;
   r
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         empty_block                                   *)
-(*                                                                       *)
-(*************************************************************************)
+(** Return true if ranges fully "cover" their block:
+    first range's [range_current_begin] = block's [block_begin]
+    each range's [range_end] = next range's [range_current_begin]
+    last range's [range_end] = block(s [block_end] *)
 
 let empty_block b =
   let rec iter begin_pos r =

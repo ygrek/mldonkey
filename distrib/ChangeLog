@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/03/31
+4997: Swarming: correctly create a new range when one is splitted (pango)
+
 2006/03/29
 4931: CommonBlocking: Block/allow IPs by country codes (requires GeoIP) (pango)
 - new options:
