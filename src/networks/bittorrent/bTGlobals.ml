@@ -367,6 +367,7 @@ let decode_az_style s =
       | "BS" -> Brand_btslave
       | "BX" -> Brand_bittorrentx
       | "CT" -> Brand_ctorrent
+      | "CD" -> Brand_ctorrent
       | "LT" -> Brand_libtorrent
       | "MT" -> Brand_moonlighttorrent
       | "SB" -> Brand_swiftbit
@@ -382,12 +383,27 @@ let decode_az_style s =
       | "MP" -> Brand_moopolice
       | "UT" -> Brand_utorrent
       | "KT" -> Brand_ktorrent
+      | "LP" -> Brand_lphant
+      | "TR" -> Brand_transmission
+      | "HN" -> Brand_hydranode
+      | "RT" -> Brand_retriever
       | _ -> Brand_unknown
     in
     if brand = Brand_unknown then None else
       let version = 
-        if brand = Brand_bitcomet then (String.sub s 4 1) ^ "." ^ (String.sub s 5 2) 
-        else (dot_string (String.sub s 3 4)) 
+        match brand with
+          | Brand_bitcomet -> (String.sub s 4 1) ^ "." ^ (String.sub s 5 2)
+          | Brand_utorrent -> (String.sub s 3 1) ^ "." ^ (String.sub s 4 1) ^ "." ^ (String.sub s 5 1)
+          | Brand_ctorrent 
+          | Brand_transmission -> (String.sub s 3 2) ^ "." ^ (String.sub s 5 2)
+          | Brand_ktorrent -> 
+              let x = match s.[5] with 
+                | 'R' -> " RC" ^ (String.sub s 6 1)
+                | 'D' -> " Dev"
+                | _ -> ""
+              in
+              (String.sub s 3 1) ^ "." ^ (String.sub s 4 1) ^ x
+          | _ -> (dot_string (String.sub s 3 4)) 
       in
       Some (brand, version)
   end else
@@ -401,6 +417,7 @@ let decode_tornado_style s =
      | "S" -> Brand_shadow
      | "A" -> Brand_abc
      | "U" -> Brand_upnp
+     | "O" -> Brand_osprey
      | _ -> Brand_unknown
     in
     let bv = ref None in
@@ -443,15 +460,18 @@ let decode_simple_style s =
       (0, "S587Plus", Brand_btplus, "");
       (5, "Azureus", Brand_azureus, "2.0.3.2");
       (0, "-G3", Brand_g3torrent, "");
+      (0, "-AR", Brand_arctic, "");
       (4, "btfans", Brand_simplebt, "");
       (0, "btuga", Brand_btugaxp, "");
+      (0, "BTuga", Brand_btugaxp, "");
       (0, "DansClient", Brand_xantorrent, "");
       (0, "Deadman Walking-", Brand_deadmanwalking, "");
       (0, "346-", Brand_torrenttopia, "");
       (0, "271-", Brand_greedbt, "2.7.1");
-      (0, "BG", Brand_btgetit, "");
+      (10, "BG", Brand_btgetit, "");
       (0, "a00---0", Brand_swarmy, "");
       (0, "a02---0", Brand_swarmy, "");
+      (0, "10-------", Brand_jvtorrent, "");
       (0, "T00---0", Brand_teeweety, "") ]
   in
   let len = List.length !simple_list in

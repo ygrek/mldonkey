@@ -97,6 +97,12 @@ type brand =
 | Brand_greedbt
 | Brand_btgetit
 | Brand_ktorrent
+| Brand_lphant
+| Brand_transmission
+| Brand_hydranode
+| Brand_jvtorrent
+| Brand_retriever
+| Brand_osprey
 
 let brand_list = [ 
    ( Brand_unknown          , "unknown"                , "unk" ) ;
@@ -149,6 +155,12 @@ let brand_list = [
    ( Brand_greedbt          , "GreedBT"                , "gbt" ) ;
    ( Brand_btgetit          , "BTGetit"                , "btg" ) ;
    ( Brand_ktorrent         , "KTorrent"               , "kto" ) ;
+   ( Brand_lphant           , "Lphant"                 , "lph" ) ;
+   ( Brand_transmission     , "Transmission"           , "tra" ) ;
+   ( Brand_hydranode        , "Hydranode"              , "hyd" ) ;
+   ( Brand_jvtorrent        , "JVtorrent"              , "jvt" ) ;
+   ( Brand_retriever        , "Retriever"              , "ret" ) ;
+   ( Brand_osprey           , "Osprey permaseed"       , "osp" ) ;
   ] 
 
 let brand_count = List.length brand_list
