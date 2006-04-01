@@ -275,6 +275,20 @@ type search_for =
 | KeywordSearch of CommonTypes.search
 | FillBuckets
 
+(* using "=" to structurally compare files (-> search_fors) 
+   will result in an OutOfMemory exception *)
+let search_for_equals sf1 sf2 =
+  match sf1 with 
+    | FileSearch f1 -> 
+      (match sf2 with 
+        | FileSearch f2 when f1 == f2 -> true
+        | _ -> false)
+    | KeywordSearch k1 ->
+      (match sf2 with
+        | KeywordSearch k2 when k1 == k2 -> true
+        | _ -> false)
+    | _ -> true
+
 type overnet_search = {
     search_md4 : Md4.t;
     mutable search_kind : search_for;
@@ -951,7 +965,7 @@ let create_search kind md4 =
       search_results = Hashtbl.create 64;
     } in
   List.iter (fun ss ->
-    if ss.search_md4 = !s.search_md4 && ss.search_kind = !s.search_kind then begin
+    if ss.search_md4 = !s.search_md4 && (search_for_equals ss.search_kind !s.search_kind) then begin
      ss.search_start <- !s.search_start;
      s := ss;
     end
