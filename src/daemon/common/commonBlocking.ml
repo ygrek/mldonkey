@@ -38,8 +38,7 @@ let ip_set_hit bl ip =
 
 let geoip_hit cbl ip =
   let index = Geoip.get_country_code ip in
-  if not !Geoip.active then
-    Some "Geoip database not loaded yet"
+  if not !Geoip.active then None
   else if cbl.(index) then
     Some (Printf.sprintf "IPs from %s are currently blocked"
       Geoip.country_name_array.(index))
