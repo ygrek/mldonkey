@@ -29,7 +29,7 @@ open DonkeyTypes
 open DonkeyMftp
 
 let dump_file filename =
-  let ic = open_in_bin filename in
+  Unix2.tryopen_read_bin filename (fun ic ->
   let s = String.create 20 in
   try
     lprintf "file: %s\n" filename; 
@@ -41,8 +41,7 @@ let dump_file filename =
       dump (String.sub s 0 n);
       pos := !pos + n;
     done
-  with _ ->
-      close_in ic
+  with End_of_file -> ())
      
 module Peer = struct
     

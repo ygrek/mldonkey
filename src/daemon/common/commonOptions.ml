@@ -191,10 +191,8 @@ let _ =
 	    end;
         let pid =
           try
-            let pid_ci = open_in pid_filename in
-            let pid = int_of_string (input_line pid_ci) in
-            close_in pid_ci;
-            pid
+	    Unix2.tryopen_read pid_filename (fun pid_ci ->
+              int_of_string (input_line pid_ci))
           with _ ->
             lprintf_nl "But it couldn't be read to check if the process still exists.";
             lprintf_nl "To avoid doing any harm, MLDonkey will now stop.";

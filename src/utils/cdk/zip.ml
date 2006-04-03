@@ -545,4 +545,3 @@ let copy_file_to_entry infilename ofile ?(extra = "") ?(comment = "")
   with x ->
     Pervasives.close_in ic; raise x
 
-

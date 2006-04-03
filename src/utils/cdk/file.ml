@@ -19,7 +19,7 @@
 
 (* read a whole file *)
 let to_string name =
-  let chan = open_in_bin name in
+  Unix2.tryopen_read_bin name (fun chan ->
   let buf_size = 1024 in
   let buf = String.create buf_size in
   let rec iter buf nb_read =
@@ -37,9 +37,7 @@ let to_string name =
     in
     iter buf nb_read
   in
-  let buf = iter buf 0 in
-  close_in chan;
-  buf
+  iter buf 0)
 
 let read_whole_chan chan =
   let buf = Buffer.create 1024 in
@@ -57,45 +55,32 @@ let to_string_alt name =
   read_whole_chan chan
 
 let to_copy in_name out_name =
-  let in_chan = open_in_bin in_name and
-  out_chan = open_out_bin out_name in
+  Unix2.tryopen_read_bin in_name (fun in_chan ->
+  Unix2.tryopen_write_bin out_name (fun out_chan ->
   try
     let rec rcpy () =
       let c = input_byte in_chan in
       output_byte out_chan c;
       flush out_chan;
-      rcpy ();
+      rcpy ()
     in
     rcpy ()
-  with
-    End_of_file -> ()
+  with End_of_file -> ()))
 
 let from_string name s =
-  let oc = open_out_bin name in
-  output_string oc s;
-  close_out oc
+  Unix2.tryopen_write_bin name (fun oc -> output_string oc s)
 
 let iter f name =
-  let ic = open_in_bin name in
-  try
-    while true do
-      let line = input_line ic in
-      f line
-    done
-  with
-    End_of_file -> close_in ic
-  | e -> close_in ic; raise e
+  Unix2.tryopen_read_bin name (fun ic ->
+    try
+      while true do
+	let line = input_line ic in
+	f line
+      done
+    with End_of_file -> ())
 
 let from_value name s =
-  let oc = open_out_bin name in
-  output_value oc s;
-  close_out oc
+  Unix2.tryopen_write_bin name (fun oc -> output_value oc s)
 
 let to_value name =
-  let ic = open_in_bin name in
-  try
-    let v = input_value ic in
-    close_in ic;
-    v
-  with
-  | e -> close_in ic; raise e
+  Unix2.tryopen_read_bin name (fun ic -> input_value ic)

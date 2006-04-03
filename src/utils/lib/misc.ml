@@ -59,9 +59,8 @@ let zip_extract_entry ifile e =
   end
 
 let zip_extract zipfile =
-  let ic = Zip.open_in zipfile in
-  List.iter (zip_extract_entry ic) (Zip.entries ic);
-  Zip.close_in ic
+  Unix2.tryopen_read_zip zipfile (fun ic ->
+    List.iter (zip_extract_entry ic) (Zip.entries ic))
 
 let rec zip_add_entry oc file =
   let s = Unix.stat file in
@@ -71,45 +70,41 @@ let rec zip_add_entry oc file =
   | Unix.S_DIR ->
       Zip.add_entry "" oc ~mtime:s.Unix.st_mtime
         (if Filename.check_suffix file "/" then file else file ^ "/");
-      let d = Unix.opendir file in
-      begin try
-        while true do
-          let e = Unix.readdir d in
-          if e <> "." && e <> ".." then zip_add_entry oc (Filename.concat file e)
-        done
-      with End_of_file -> ()
-      end;
-      Unix.closedir d
+      Unix2.tryopen_dir file (fun d ->
+	try
+          while true do
+            let e = Unix.readdir d in
+            if e <> "." && e <> ".." then 
+	      zip_add_entry oc (Filename.concat file e)
+          done
+	with End_of_file -> ())
   | _ -> ()  
 
 let zip_create zipfile files =
-  let oc = Zip.open_out zipfile in
-  Array.iter (zip_add_entry oc) files;
-  Zip.close_out oc
+  Unix2.tryopen_write_zip zipfile (fun oc ->
+    Array.iter (zip_add_entry oc) files)
 
 let gz_extract filename =
-  begin
-    let file = ref "" in
-    try
-      let buffer = String.create 4096 in
-      let file_out = Filename.temp_file "arch_" ".tmp" in
-      file := file_out;
-      let ic = Gzip.open_in filename in
-      let oc = open_out_bin file_out in
+  let file = ref "" in
+  try
+    let buffer = String.create 4096 in
+    let file_out = Filename.temp_file "arch_" ".tmp" in
+    file := file_out;
+    Unix2.tryopen_read_gzip filename (fun ic ->
+      Unix2.tryopen_write_bin file_out (fun oc ->
 	let rec decompress () =
 	  let n = Gzip.input ic buffer 0 (String.length buffer) in
-            if n = 0 then ()
-	    else
-	      begin
-		output oc buffer 0 n;
-		decompress()
-	      end
-	    in decompress();
-            Gzip.close_in ic;
-	    close_out oc;
-	    file_out
-    with e -> (try Sys.remove !file with _ -> ()); raise e
-  end
+          if n = 0 then ()
+	  else
+	    begin
+	      output oc buffer 0 n;
+	      decompress()
+	    end
+	in decompress()));
+    file_out
+  with e -> 
+    (try if !file <> "" then Sys.remove !file with _ -> ()); 
+    raise e
 
 open Misc2
 

@@ -977,85 +977,69 @@ let save_sources () =
 open Zip
 
 let backup_zip archive files =
-  begin
-    let oc = Zip.open_out archive in
-    try
-        List.iter (fun file ->
-	  begin
-	    try
-              let s = Unix.stat file in
-		Zip.copy_file_to_entry file oc ~level:9 ~mtime:s.Unix.st_mtime file
-	    with e ->
-	      failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) file)
-	  end
-        ) files;
-      Zip.close_out oc
-    with e ->
-	Zip.close_out oc;
-	failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) archive)
-  end
+  try 
+    Unix2.tryopen_write_zip archive (fun oc ->
+      List.iter (fun file ->
+	try
+          let s = Unix.stat file in
+	  Zip.copy_file_to_entry file oc ~level:9 ~mtime:s.Unix.st_mtime file
+	with e ->
+	  failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) file)
+      ) files)
+  with e ->
+    failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) archive)
 
 open Tar
 
 let backup_tar archive files =
-  let failed_files = ref "" in
-  let otar = Tar.open_out ~compress:`Gzip archive in
+  let failed_files = ref [] in
+  Unix2.tryopen_write_tar ~compress:`Gzip archive (fun otar ->
     List.iter (fun arg ->
-    begin
       try
-	let ic = Pervasives.open_in_bin arg in
-	let stat = Unix.stat arg in
-	let size = stat.Unix.st_size in
-	if size > Sys.max_string_length then
-	  begin
-	    Tar.close_out otar;
-	    failwith (Printf.sprintf "Tar: file %s too big, limit %d byte" arg Sys.max_string_length)
-	  end;
-	let header = 
-	  { Tar.t_name = arg;
-	    t_mode = 0o644;
-            t_uid = stat.Unix.st_uid;
-            t_gid = stat.Unix.st_gid;
-            t_size = 0;
-            t_mtime = Int32.of_float stat.Unix.st_mtime;
-            t_chksum = 0;
-            t_typeflag = REGULAR;
-            t_linkname = "";
-	    t_format = POSIX_FORMAT;
-            t_uname = "";
-            t_gname = "";
-            t_devmajor = 0;
-            t_devminor = 0;
-            t_prefix = "";
-            t_gnu = None;}
-	in
-	let s = String.create size in
-	  Pervasives.really_input ic s 0 size;
-	  Pervasives.close_in ic;
-	  Tar.output otar header s
-	with e ->
-	  let error = (Printexc2.to_string e) in
-	    if error =
-	      "Gzip.Error(\"error during compression\")"
-	      && Autoconf.windows && arg = "fasttrack.ini" then
-              (* for whatever reason this error is raised on Windows,
-                 but fasttrack.ini is stored correctly *)
-	      if !verbose then
-	        lprintf_nl () "Tar: Windows specific pseudo error %s in %s" error arg
-	      else ()
-	    else
-	      begin
-		if !failed_files = "" then
-	          failed_files := arg
-		else
-    		  failed_files := Printf.sprintf "%s  %s" !failed_files arg;
-		  lprintf_nl () "Tar: error %s in %s" error arg
-              end
-    end
-    ) files;
-    Tar.close_out otar;
-    if !failed_files <> "" then
-      failwith (Printf.sprintf "Tar: error backing up %s" !failed_files)
+	let header, s =
+	  Unix2.tryopen_read_bin arg (fun ic ->
+	    let stat = Unix.stat arg in
+	    let size = stat.Unix.st_size in
+	    if size > Sys.max_string_length then
+	      failwith (Printf.sprintf "Tar: file %s too big, limit %d byte" arg Sys.max_string_length);
+	    let header = 
+	      { Tar.t_name = arg;
+	      t_mode = 0o644;
+	      t_uid = stat.Unix.st_uid;
+	      t_gid = stat.Unix.st_gid;
+	      t_size = 0;
+	      t_mtime = Int32.of_float stat.Unix.st_mtime;
+	      t_chksum = 0;
+	      t_typeflag = REGULAR;
+	      t_linkname = "";
+	      t_format = POSIX_FORMAT;
+	      t_uname = "";
+	      t_gname = "";
+	      t_devmajor = 0;
+	      t_devminor = 0;
+	      t_prefix = "";
+	      t_gnu = None;} in
+	    let s = String.create size in
+	    Pervasives.really_input ic s 0 size;
+	    header, s) in
+	Tar.output otar header s
+      with e ->
+	let error = Printexc2.to_string e in
+	if error = "Gzip.Error(\"error during compression\")"
+	  && Autoconf.windows && arg = "fasttrack.ini" then begin
+	    (* for whatever reason this error is raised on Windows,
+               but fasttrack.ini is stored correctly *)
+	    if !verbose then
+	      lprintf_nl () "Tar: Windows specific pseudo error %s in %s" error arg
+	  end
+	else begin
+	  failed_files := arg :: !failed_files;
+	  lprintf_nl () "Tar: error %s in %s" error arg
+        end
+    ) files);
+    if !failed_files <> [] then
+      failwith (Printf.sprintf "Tar: error backing up %s"
+	(String.concat " " (List.rev !failed_files)))
 
 let backup_options () =
   let counter = ref 1 in

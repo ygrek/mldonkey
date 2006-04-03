@@ -181,8 +181,7 @@ let channel_of_string = Rss_io.channel_of_string
 let print_channel = Rss_io.print_channel
 
 let print_file ?date_fmt file ch =
-  let oc = open_out file in
+  Unix2.tryopen_write file (fun oc ->
   let fmt = Format.formatter_of_out_channel oc in
   print_channel ?date_fmt fmt ch;
-  Format.pp_print_flush fmt ();
-  close_out oc
+  Format.pp_print_flush fmt ())

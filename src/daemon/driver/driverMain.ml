@@ -148,29 +148,28 @@ let _ =
   );
   CommonWeb.add_web_kind "motd.conf" "Setup changes of the day" 
     (fun _ filename ->
-    let ic = open_in filename in
     try
-      while true do
-	let line = input_line ic in
-	let cmd, args = String2.cut_at line ' ' in
-	let name, value = String2.cut_at args ' ' in
-	match cmd with
-	  "set" ->
-            CommonInteractive.set_fully_qualified_options name value
-	| "add_item" ->
-            CommonInteractive.add_item_to_fully_qualified_options name value
-	| "del_item" ->
-            CommonInteractive.del_item_from_fully_qualified_options name value
-	| _ ->
-	    lprintf_nl () (_b "UNUSED LINE: %s") line
-
-      done;
+      Unix2.tryopen_read filename (fun ic ->
+	try
+	  while true do
+	    let line = input_line ic in
+	    let cmd, args = String2.cut_at line ' ' in
+	    let name, value = String2.cut_at args ' ' in
+	    match cmd with
+	      | "set" ->
+		  CommonInteractive.set_fully_qualified_options name value
+	      | "add_item" ->
+		  CommonInteractive.add_item_to_fully_qualified_options name value
+	      | "del_item" ->
+		  CommonInteractive.del_item_from_fully_qualified_options name value
+	      | _ ->
+		  lprintf_nl () (_b "UNUSED LINE: %s") line
+	  done
+	with End_of_file -> ())
     with
-    | End_of_file ->
-	close_in ic
-    | e -> lprintf_nl () (_b "Error while reading motd.conf(%s): %s") filename
-	(Printexc2.to_string e);
-	close_in ic
+	e -> 
+	  lprintf_nl () (_b "Error while reading motd.conf(%s): %s") filename
+	    (Printexc2.to_string e)
   )
 
 
@@ -618,9 +617,7 @@ for config files at the end. *)
         Filename.concat !pid pid_filename,
 	Printf.sprintf "%s\n" (string_of_int(Unix.getpid()))
     in
-    let oc = open_out pid_file in
-    output_string oc s;
-    close_out oc;
+    Unix2.tryopen_write pid_file (fun oc -> output_string oc s);
     CommonGlobals.do_at_exit (fun _ -> try Sys.remove pid_file with _ -> ());
     if !verbose then
       lprintf_nl () (_b "Starting with pid %s") (string_of_int(Unix.getpid ()))

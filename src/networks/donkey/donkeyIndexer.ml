@@ -59,7 +59,7 @@ let add_comment md4 comment =
       
 let load_comments filename = 
   try
-    let ic = open_in filename in
+    Unix2.tryopen_read filename (fun ic ->
     try
       while true do 
         let s = read_request ic in
@@ -68,25 +68,20 @@ let load_comments filename =
         add_comment md4 comment
       done
     with 
-      End_of_file -> close_in ic
-    | e ->
-        close_in ic;
-        lprintf "Error loading %s: %s" filename (Printexc2.to_string e);
-        lprint_newline () 
+      End_of_file -> ())
   with e ->
       lprintf "Error loading %s: %s" filename (Printexc2.to_string e);
       lprint_newline () 
 
 let save_comments () =
-  let oc = open_out comment_filename in
+  Unix2.tryopen_write filename (fun oc ->
   let buf = Buffer.create 256 in
   Hashtbl.iter (fun md4 comment ->
       Buffer.reset buf;
       buf_md4 buf md4;
       buf_string buf comment;
       output_request oc (Buffer.contents buf);
-  ) comments;
-  close_out oc
+  ) comments)
 
 let comment_result r doc = 
   try
@@ -517,12 +512,12 @@ let find s =
   
 
 let load_old_history () =
-  let ic = open_in "history.dat" in
+  Unix2.tryopen_read "history.dat" (fun ic ->
   try
     while true do
       ignore (index_result_no_filter (input_old_result ic))
     done
-  with _ -> close_in ic
+  with End_of_file -> ())
   
 let init () =
 (* load history *)
@@ -532,21 +527,21 @@ let init () =
           save_file_history =:= false;
           lprintf  "Loading history file ..."; 
           let list = ref [] in
-          let ic = open_in history_file in
-          try
-            while true do
-              let file = input_result ic in
-              let rs = index_result_no_filter file in
-              list := doc_value rs.result_index :: !list;
-            done
-          with 
-            End_of_file -> 
-              lprintf "done\n";
-              close_in ic
-          | e -> (* some error *)
+	  try
+	    Unix2.tryopen_read history_file (fun ic ->
+              try
+		while true do
+		  let file = input_result ic in
+		  let rs = index_result_no_filter file in
+		  list := doc_value rs.result_index :: !list;
+		done
+              with 
+		  End_of_file -> 
+		    lprintf "done\n")
+	  with
+              e -> (* some error *)
               lprintf "Error %s reading history file\n"
                 (Printexc2.to_string e);
-              close_in ic;
               lprintf "Generating new file\n";
               begin try
                   (try close_history_oc () with _ -> ());

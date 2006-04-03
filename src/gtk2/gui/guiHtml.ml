@@ -168,14 +168,13 @@ let get_html url_name f progress =
         File.from_string filename _s;
       with _ -> (lprintf_nl2 "failed in H.wget_string")
     end;
-    let in_chan = open_in_bin filename in
-    let lexb = Lexing.from_channel in_chan in
-    let dl = GuiNetHtml.parse_document
-               ~return_declarations:true ~return_pis:true
-               ~return_comments:true lexb
-    in
-    f dl;
-    close_in in_chan) (fun n m -> progress n m)
+    Unix2.tryopen_read_bin filename (fun in_chan ->
+      let lexb = Lexing.from_channel in_chan in
+      let dl = GuiNetHtml.parse_document
+        ~return_declarations:true ~return_pis:true
+        ~return_comments:true lexb
+      in
+      f dl)) (fun n m -> progress n m)
 
 
 (*************************************************************************)

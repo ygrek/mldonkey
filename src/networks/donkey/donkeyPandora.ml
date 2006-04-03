@@ -231,17 +231,13 @@ let client_parse c opcode s =
     
     
 let commit () =  
-
-  let oc = open_out "trace.out" in
-  output_value oc connections;
-  close_out oc
+  Unix2.tryopen_write "trace.out" (fun oc -> output_value oc connections)
 
 exception ServerConnection
   
 let read_trace () =
-  let ic = open_in "trace.out" in
-  let connections = input_value ic in
-  close_in ic;
+  let connections = 
+    Unix2.tryopen_read "trace.out" (fun ic -> input_value ic) in
 
   mldonkey_emule_proto.emule_sourceexchange <- 5;
   

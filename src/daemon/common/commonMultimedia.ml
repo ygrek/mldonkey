@@ -622,12 +622,11 @@ let search_info_mp3 filename =
       *)
 
 let get_info file =
-  let ic = open_in_bin file in
   try
-    search_info_mp3 file;
-    search_info_avi ic ;
-    search_info_ogg ic;
-    close_in ic;
+    Unix2.tryopen_read_bin file (fun ic ->
+      search_info_mp3 file;
+      search_info_avi ic ;
+      search_info_ogg ic);
     let es = 
       try 
         List.map String.lowercase (Filename2.extensions file) 
@@ -653,13 +652,11 @@ let get_info file =
     | "ogm" :: _ -> FormatType ("ogm", "Video")
     | "asf" :: _ -> FormatType ("asf", "Video")
     | _ -> FormatUnknown
-  with e -> 
-      close_in ic;
-      match e with
-        FormatFound f -> f
-      | e -> 
-          lprintf_nl "get_info: Exception in %s" (Printexc2.to_string e);
-          FormatUnknown
+  with 
+    | FormatFound f -> f
+    | e -> 
+        lprintf_nl "get_info: Exception in %s" (Printexc2.to_string e);
+        FormatUnknown
           
           
 module Bchunk =

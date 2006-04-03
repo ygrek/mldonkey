@@ -254,37 +254,33 @@ let really_load filename sections =
       Printf.eprintf "Please, check your configurations files, and rename/remove this file\n";
       Printf.eprintf "before restarting\n";
       exit 70
-    end
-  else
-    let ic = open_in filename in
+    end;
+  Unix2.tryopen_read filename (fun ic ->
+    let s = Stream.of_channel ic in
     try
-      let s = Stream.of_channel ic in
-      try
-        let stream = lexer s in
-        Hashtbl.clear once_values;
-        let list =
-          try parse_gwmlrc stream with
-            e ->
-            Printf.eprintf "Syntax error while parsing file %s at pos %d:(%s)\n"
-                filename (Stream.count s) (Printexc2.to_string e);
-            Printf.eprintf "it seems that %s is corrupt,\n" filename;
-            Printf.eprintf "try to use a backup from %s\n"
-               (Filename.concat (Sys.getcwd ()) "old_config");
-              exit 70
-        in
-        Hashtbl.clear once_values;
-        let affect_option o =
-          try
-            begin try
-              o.option_value <-
-                o.option_class.from_value (find_value o.option_name list)
-            with
-              SideEffectOption -> ()
-            end;
-            exec_chooks o;
-            exec_hooks o
-          with
-            SideEffectOption -> ()
+      let stream = lexer s in
+      Hashtbl.clear once_values;
+      let list =
+        try 
+	  parse_gwmlrc stream 
+	with e ->
+          Printf.eprintf "Syntax error while parsing file %s at pos %d:(%s)\n"
+            filename (Stream.count s) (Printexc2.to_string e);
+          Printf.eprintf "it seems that %s is corrupt,\n" filename;
+          Printf.eprintf "try to use a backup from %s\n"
+            (Filename.concat (Sys.getcwd ()) "old_config");
+          exit 70 in
+      Hashtbl.clear once_values;
+      let affect_option o =
+        try
+          (try
+            o.option_value <-
+              o.option_class.from_value (find_value o.option_name list)
+          with SideEffectOption -> ());
+          exec_chooks o;
+          exec_hooks o
+        with
+          | SideEffectOption -> ()
           | OptionNotFound ->
               if !print_options_not_found then
                 begin
@@ -307,14 +303,10 @@ the last defined one ("defined" in the order of the program execution).
   Don't change this. *)
       List.iter (fun s ->
           List.iter affect_option s.section_options) sections;
-        close_in ic;
-        list
-      with
-        e ->
-          lprintf "Error %s in %s\n" (Printexc2.to_string e) filename;
-          []
-    with
-      e -> close_in ic; raise e
+      list
+    with e ->
+      lprintf "Error %s in %s\n" (Printexc2.to_string e) filename;
+      [])
 
 
 let exit_exn = Exit
@@ -829,38 +821,37 @@ let save opfile =
     if not (Sys.file_exists old_file) && (Sys.file_exists old_old_file) then
       Sys.rename old_old_file old_file;
     old_file in
-  let oc = open_out temp_file in
-  if !save_private then
-    ( try Unix.chmod temp_file 0o600 with _ -> () );
   try
-    once_values_counter := 0;
-    title_opfile := true;
-    Hashtbl.clear once_values_rev;
-    let advanced = ref false in
-    List.iter (fun s ->
+    Unix2.tryopen_write temp_file (fun oc ->
+      (* race! *)
+      if !save_private then (try Unix.chmod temp_file 0o600 with _ -> ());
+      once_values_counter := 0;
+      title_opfile := true;
+      Hashtbl.clear once_values_rev;
+      let advanced = ref false in
+      List.iter (fun s ->
         let options = List.filter (fun o -> 
-              if o.option_advanced then advanced := true; 
-              not o.option_advanced)  
-          s.section_options in
+          if o.option_advanced then advanced := true; 
+          not o.option_advanced) s.section_options in
         if options <> [] then begin
-            if s.section_name <> [] then begin
-                Printf.fprintf oc "\n\n";
-                Printf.fprintf oc "    (************************************)\n";
-                if !title_opfile then begin
-                    Printf.fprintf oc "    (*   Never edit options files when  *)\n";
-                    Printf.fprintf oc "    (*       the daemon is running      *)\n";
-                    Printf.fprintf oc "    (************************************)\n";
-                    title_opfile := false;
-                  end;
-                Printf.fprintf oc "    (* SECTION : %s *)\n" (string_of_string_list s.section_name);
-                Printf.fprintf oc "    (* %s *)\n" s.section_help;
-                Printf.fprintf oc "    (************************************)\n";
-                Printf.fprintf oc "\n\n";
-              end;
-            save_module "" oc (List.map option_to_value options)
-          end
-    ) opfile.file_sections;
-    if !advanced then begin
+          if s.section_name <> [] then begin
+            Printf.fprintf oc "\n\n";
+            Printf.fprintf oc "    (************************************)\n";
+            if !title_opfile then begin
+	      Printf.fprintf oc "    (*   Never edit options files when  *)\n";
+	      Printf.fprintf oc "    (*       the daemon is running      *)\n";
+	      Printf.fprintf oc "    (************************************)\n";
+	      title_opfile := false;
+            end;
+            Printf.fprintf oc "    (* SECTION : %s *)\n" (string_of_string_list s.section_name);
+            Printf.fprintf oc "    (* %s *)\n" s.section_help;
+            Printf.fprintf oc "    (************************************)\n";
+            Printf.fprintf oc "\n\n";
+          end;
+          save_module "" oc (List.map option_to_value options)
+        end
+      ) opfile.file_sections;
+      if !advanced then begin
         Printf.fprintf oc "\n\n\n";
         Printf.fprintf oc "(*****************************************************************)\n";
         Printf.fprintf oc "(*                                                               *)\n";
@@ -872,58 +863,57 @@ let save opfile =
         Printf.fprintf oc "(*****************************************************************)\n";
         Printf.fprintf oc "\n\n\n";
         List.iter (fun s ->
-            let options = List.filter (fun o -> o.option_advanced)  
-              s.section_options in
-            if options = [] then () else let _ = () in
-            Printf.fprintf oc "\n\n";
-            Printf.fprintf oc "    (************************************)\n";
-            
-            Printf.fprintf oc "    (* SECTION : %s FOR EXPERTS *)\n" (string_of_string_list s.section_name);
-            Printf.fprintf oc "    (* %s *)\n" s.section_help;
-            Printf.fprintf oc "    (************************************)\n";
-            Printf.fprintf oc "\n\n";
-            save_module "" oc (List.map option_to_value options)
+          let options = List.filter (fun o -> o.option_advanced)  
+            s.section_options in
+          if options = [] then () else let _ = () in
+          Printf.fprintf oc "\n\n";
+          Printf.fprintf oc "    (************************************)\n";
+          
+          Printf.fprintf oc "    (* SECTION : %s FOR EXPERTS *)\n" (string_of_string_list s.section_name);
+          Printf.fprintf oc "    (* %s *)\n" s.section_help;
+          Printf.fprintf oc "    (************************************)\n";
+          Printf.fprintf oc "\n\n";
+          save_module "" oc (List.map option_to_value options)
         ) opfile.file_sections;
       end;
-    if not opfile.file_pruned then
-      begin
-        let rem = ref [] in
-        Printf.fprintf oc "\n(*\n The following options are not used (errors, obsolete, ...) \n*)\n";
-        List.iter
-          (fun (name, value) ->
-            try
-              List.iter
-                (fun s ->
-                  List.iter
-                    (fun o ->
-                      match o.option_name with
-                        n :: _ -> if n = name then raise Exit
-                      | _ -> ())
-                  s.section_options)
-              opfile.file_sections;
-              rem := (name, value) :: !rem;
-              Printf.fprintf oc "%s = " (safe_string name);
-              save_value "  " oc value;
-              Printf.fprintf oc "\n"
-            with
-              Exit -> ()
-            | e ->
-                lprintf "Exception %s in Options.save\n"
-                  (Printexc2.to_string e);
-        )
-        opfile.file_rc;
-        opfile.file_rc <- !rem
-      end;
-    Hashtbl.clear once_values_rev;
-    close_out oc;
-    begin try Unix2.rename filename old_file with  _ -> () end;
-    begin try Unix2.rename temp_file filename with _ -> () end;
+      if not opfile.file_pruned then
+	begin
+          let rem = ref [] in
+          Printf.fprintf oc "\n(*\n The following options are not used (errors, obsolete, ...) \n*)\n";
+          List.iter
+            (fun (name, value) ->
+	      try
+		List.iter
+                  (fun s ->
+                    List.iter
+		      (fun o ->
+			match o.option_name with
+                            n :: _ -> if n = name then raise Exit
+			  | _ -> ())
+		      s.section_options)
+		  opfile.file_sections;
+		rem := (name, value) :: !rem;
+		Printf.fprintf oc "%s = " (safe_string name);
+		save_value "  " oc value;
+		Printf.fprintf oc "\n"
+	      with
+		| Exit -> ()
+		| e ->
+                    lprintf "Exception %s in Options.save\n"
+		      (Printexc2.to_string e);
+            )
+            opfile.file_rc;
+          opfile.file_rc <- !rem
+	end;
+      Hashtbl.clear once_values_rev);
+    (try 
+      Unix2.rename filename old_file;
+      Unix2.rename temp_file filename 
+    with _ -> ());
     opfile.file_after_save_hook ();
-  with
-    e -> 
-      close_out oc; 
-      opfile.file_after_save_hook ();
-      raise e
+  with e -> 
+    opfile.file_after_save_hook ();
+    raise e
       
 let save_with_help opfile =
   with_help := true;

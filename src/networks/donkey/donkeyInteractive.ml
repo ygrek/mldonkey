@@ -125,46 +125,40 @@ let load_server_met filename =
 let unpack_server_met filename url =
   let ext = String.lowercase (Filename2.extension filename) in
     let last_ext = String.lowercase (Filename2.last_extension filename) in
-    let real_ext = if last_ext = ".zip" then
-      last_ext
-    else
-      ext
-    in
+    let real_ext = if last_ext = ".zip" then last_ext else ext in
     match real_ext with
-      ".zip" ->
-  begin try
-    let ic = Zip.open_in filename in
-      try
-        let file = Zip.find_entry ic "server.met" in
-          Zip.close_in ic;
-    lprintf_nl () "server.met found in %s" url;
-    let _ = Misc.archive_extract filename "zip" in
-      file.Zip.filename
-        with e ->
-    Zip.close_in ic;
-    lprintf_nl () "Exception %s while extracting server.met from %s"
-      (Printexc2.to_string e) url;
-    raise Not_found
-      with e ->
-        lprintf_nl () "Exception %s while opening %s"
-    (Printexc2.to_string e) url;
-        raise Not_found
-  end
+      | ".zip" ->
+	  (try
+	    let result =
+	      Unix2.tryopen_read_zip filename (fun ic ->
+		try
+		  let file = Zip.find_entry ic "server.met" in
+		  lprintf_nl () "server.met found in %s" url;
+		  file.Zip.filename
+		with e ->
+		  lprintf_nl () "Exception %s while extracting server.met from %s"
+		    (Printexc2.to_string e) url;
+		  raise e) in
+	    (try
+	      ignore(Misc.archive_extract filename "zip")
+	    with e ->
+	      lprintf_nl () "Exception %s while extracting server.met from %s"
+		(Printexc2.to_string e) url;
+	      raise e);
+	    result
+	  with e ->
+            lprintf_nl () "Exception %s while opening %s"
+	      (Printexc2.to_string e) url;
+            raise Not_found)
     | ".met.gz" | ".met.bz2" | ".gz" | ".bz2" ->
-  begin
-    let filetype =
-      if ext = ".bz2" || ext = ".met.bz2" then
-        "bz2"
-      else
-        "gz"
-      in try
-        let s = Misc.archive_extract filename filetype in
-          s
-      with e ->
-        lprintf_nl () "Exception %s while extracting from %s"
-    (Printexc2.to_string e) url;
-        raise Not_found
-  end
+	(let filetype =
+	  if ext = ".bz2" || ext = ".met.bz2" then "bz2" else "gz" in 
+	try
+          Misc.archive_extract filename filetype
+	with e ->
+          lprintf_nl () "Exception %s while extracting from %s"
+	    (Printexc2.to_string e) url;
+          raise Not_found)
 (* if file is not a supported archive type try loading servers from that file anyway *)
     | _ -> filename
 

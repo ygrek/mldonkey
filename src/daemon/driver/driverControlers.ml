@@ -841,12 +841,12 @@ let theme_page_exists page =
 
 (* if files are small really_input should be okay *)
 let read_theme_page page =
-        let theme_page = get_theme_page page in
-        let file = open_in theme_page in
-        let size = (Unix.stat theme_page).Unix.st_size in
-        let s = String.make size ' ' in
-        let _ = really_input file s 0 size in
-        close_in file; s
+  let theme_page = get_theme_page page in
+  Unix2.tryopen_read theme_page (fun file ->
+    let size = (Unix.stat theme_page).Unix.st_size in
+    let s = String.make size ' ' in
+    really_input file s 0 size;
+    s)
 
 let add_simple_commands buf =
   let this_page = "commands.html" in

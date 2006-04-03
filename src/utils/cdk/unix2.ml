@@ -19,35 +19,66 @@
 
 open Printf2
 open Unix
+
+let tryopen openf closef filename f =
+  let descr = openf filename in
+  let result =
+    try
+      f descr
+    with e ->
+      (try closef descr with _ -> ());
+      raise e in
+  closef descr;
+  result
+
+let tryopen_read fn f = tryopen open_in close_in fn f
+let tryopen_write fn f = tryopen open_out close_out fn f
+let tryopen_read_bin fn f = tryopen open_in_bin close_in fn f
+let tryopen_write_bin fn f = tryopen open_out_bin close_out fn f
+let tryopen_read_gen fn flags perm f = 
+  tryopen (open_in_gen flags perm) close_in fn f
+let tryopen_write_gen fn flags perm f = 
+  tryopen (open_out_gen flags perm) close_out fn f
+let tryopen_openfile fn flags perm f =
+  tryopen (fun fn -> Unix.openfile fn flags perm) Unix.close fn f
+let tryopen_dir dir f = tryopen opendir closedir dir f
+let tryopen_read_zip fn f = tryopen Zip.open_in Zip.close_in fn f
+let tryopen_write_zip fn f = tryopen Zip.open_out Zip.close_out fn f
+let tryopen_read_tar fn f = 
+  tryopen Tar.open_in Tar.close_in fn f
+let tryopen_write_tar ?compress fn f = 
+  tryopen (Tar.open_out ?compress) Tar.close_out fn f
+let tryopen_read_gzip fn f = 
+  tryopen Gzip.open_in Gzip.close_in fn f
+let tryopen_write_gzip ?level fn f = 
+  tryopen (Gzip.open_out ?level) Gzip.close_out fn f
+let tryopen_read_bzip2 fn f = 
+  tryopen Bzip2.open_in Bzip2.close_in fn f
+let tryopen_write_bzip2 ?level fn f = 
+  tryopen (Bzip2.open_out ?level) Bzip2.close_out fn f
   
 let list_directory filename =
-  let dir = opendir filename in
   let list = ref [] in
-  try
-    while true do
-      let file = readdir dir in 
-      if file <> "." && file <> ".." &&
-	not (file = ".DS_Store" && Autoconf.system = "macosx") then begin
-          list := file :: !list 
-        end;
-    done;
-    assert false
-  with _ -> 
-      closedir dir;
-      !list
+  tryopen_dir filename (fun dir ->
+    try
+      while true do
+	let file = readdir dir in 
+	if file <> "." && file <> ".." &&
+	  not (file = ".DS_Store" && Autoconf.system = "macosx") then
+            list := file :: !list 
+      done
+    with End_of_file -> ());
+  !list
   
 let iter_directory f dirname =
-  let dir = opendir dirname in
-  try
-    while true do
-      let file = readdir dir in 
-      if file <> "." && file <> ".." then begin
+  tryopen_dir dirname (fun dir ->
+    try
+      while true do
+	let file = readdir dir in 
+	if file <> "." && file <> ".." then
           f (Filename.concat dirname file)
-        end;
-    done;
-    assert false
-  with _ -> 
-      closedir dir
+      done
+    with End_of_file -> ())
 
 let is_directory filename =
   try let s = Unix.stat filename in s.st_kind = S_DIR with _ -> false
@@ -56,31 +87,39 @@ let is_link filename =
   try let s = Unix.lstat filename in s.st_kind = S_LNK with _ -> false
 
 let chmod f o = 
-  try Unix.chmod f o with e -> lprintf_nl "warning: chmod failed on %s: %s" f (Printexc2.to_string e)
+  try 
+    Unix.chmod f o 
+  with e -> 
+    lprintf_nl "warning: chmod failed on %s: %s" f (Printexc2.to_string e)
 
 let rec safe_mkdir dir =  
   if Sys.file_exists dir then begin
-      if not (is_directory dir) then 
-        failwith (Printf.sprintf "%s already exists but is not a directory" dir)
-    end
+    if not (is_directory dir) then 
+      failwith (Printf.sprintf "%s already exists but is not a directory" dir)
+  end
   else 
-  if is_link dir then
-    begin try
-      ignore (opendir dir)
+    if is_link dir then
+      try
+	tryopen_dir dir ignore
       with
-        Unix.Unix_error (EACCES, _, _) -> lprintf_nl "access denied for directory %s" dir; exit 73
-      | Unix.Unix_error (ENOENT, _, _) -> lprintf_nl "directory %s not found, orphaned link?" dir; exit 73
-      | e -> lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir; exit 73
-    end
-  else begin
+	| Unix.Unix_error (EACCES, _, _) -> 
+	    lprintf_nl "access denied for directory %s" dir; 
+	    exit 73
+	| Unix.Unix_error (ENOENT, _, _) -> 
+	    lprintf_nl "directory %s not found, orphaned link?" dir; 
+	    exit 73
+	| e -> 
+	    lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir;
+	    exit 73
+    else 
       let predir = Filename.dirname dir in
       if predir <> dir then safe_mkdir predir;
-      begin try
+      try
         Unix.mkdir dir 0o775
       with
-        e -> lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir; exit 73
-      end
-    end    
+          e -> 
+	    lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir;
+	    exit 73
     
     
 (* same as in downloadClient.ml *)
@@ -101,17 +140,17 @@ let rec really_read fd s pos len =
     really_read fd s (pos + nread) (len - nread)
 
 let copy oldname newname =
-  let ic = open_in_bin oldname in
-  let oc = open_out_bin newname in
-  let buffer_len = 8192 in
-  let buffer = String.create buffer_len in
-  let rec copy_file () =
-    let n = input ic buffer 0 buffer_len in
-    if n = 0 then () else begin output oc buffer 0 n; copy_file () end in
-  copy_file ();
-  close_in ic;
-  close_out oc
-  
+  tryopen_read_bin oldname (fun ic ->
+    tryopen_write_bin newname (fun oc ->
+      let buffer_len = 8192 in
+      let buffer = String.create buffer_len in
+      let rec copy_file () =
+	let n = input ic buffer 0 buffer_len in
+	if n = 0 then () else begin 
+	  output oc buffer 0 n; 
+	  copy_file () 
+	end in
+      copy_file ()))
   
 let rename oldname newname =
   if oldname <> newname then
@@ -161,19 +200,30 @@ let random () =
 
 let rec can_write_to_directory dirname =
   let temp_file = Filename.concat dirname "tmp_" ^ random () ^ "_mld.tmp" in
+  let check () =
+    tryopen_openfile temp_file [O_WRONLY; O_CREAT] 0o600 (fun fd ->
+      let test_string = "mldonkey accesstest - this file can be deleted\n" in
+      really_write fd test_string 0 (String.length test_string));
+    (try Sys.remove temp_file with _ -> ()) in
   try
-    (let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o600 temp_file in
-      output_string oc "mldonkey accesstest - this file can be deleted";
-      close_out oc);
-    (try Sys.remove temp_file with _ -> ())
+    check ()
   with
-    Sys_error s when s = temp_file ^ ": " ^ (Unix.error_message Unix.EACCES) ->
-      lprintf_nl "can not create files in directory %s, check rights..." dirname; exit 73
-  | Sys_error s when s = temp_file ^ ": " ^ (Unix.error_message Unix.ENOENT) ->
-      (try safe_mkdir dirname; can_write_to_directory dirname with _ ->
-        lprintf_nl "%s does not exist and can not be created, exiting..." dirname; exit 73)
-  | Sys_error s -> lprintf_nl "%s for directory %s" s dirname; exit 73
-  | e -> lprintf_nl "%s for directory %s" (Printexc2.to_string e) dirname; exit 73
+    | Unix.Unix_error (Unix.EACCES, _, _) ->
+	lprintf_nl "can not create files in directory %s, check rights..." dirname; 
+	exit 73
+    | Unix.Unix_error (Unix.ENOENT, _, _) ->
+	(try
+	  safe_mkdir dirname; 
+	  check ()
+	with _ ->
+          lprintf_nl "%s does not exist and can not be created,  exiting..." dirname; 
+	  exit 73)
+    | Unix.Unix_error (error, what, code) -> 
+	lprintf_nl "%s for directory %s" (error_message error) what;
+	exit 73
+    | e -> 
+	lprintf_nl "%s for directory %s" (Printexc2.to_string e) dirname; 
+	exit 73
 
 (** The resource type to query or set with [getrlimit] or [setrlimit] *)
 type rlimit_resource = RLIMIT_CPU (** CPU time in seconds *)

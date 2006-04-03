@@ -80,7 +80,7 @@ let create_online_sig () =
         end
   ) (connected_servers());
   
-  let oc = open_out "onlinesig.dat" in
+  Unix2.tryopen_write "onlinesig.dat" (fun oc ->
   
   if !most_users = Int64.zero then
     output_string oc ("0\n")
@@ -90,8 +90,7 @@ let create_online_sig () =
   let ulkbs = (( (float_of_int !udp_upload_rate) +. (float_of_int !control_upload_rate)) /. 1024.0) in
   
   output_string oc (Printf.sprintf "%.1f|%.1f|%d\n" dlkbs ulkbs 
-      (Intmap.length !CommonUploads.pending_slots_map));
-  close_out oc
+      (Intmap.length !CommonUploads.pending_slots_map)))
   
 (************ COMPLEX OPTIONS *****************)
   

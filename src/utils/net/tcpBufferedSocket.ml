@@ -1806,27 +1806,20 @@ let join_stats titles values =
 
 let load_stats filename =
   try
-    let ic = open_in filename in
-    let rec iter_first ic =
-      let titles = input_line ic in
-      iter_second ic titles
-    and iter_second ic titles =
-      let values = input_line ic in
-      join_stats titles values;
-      iter_first ic
-
-    in
-    try
-      iter_first ic
-    with
-      End_of_file -> close_in ic
-    | e ->
-        lprintf "[BWS] Error %s reading %s\n" (Printexc2.to_string e) filename;
-        close_in ic; proc_net_fs := false
-  with
-  | e ->
-      lprintf "[BWS] Error %s opening %s\n" (Printexc2.to_string e) filename;
-      proc_net_fs := false
+    Unix2.tryopen_read filename (fun ic ->
+      try
+	let rec iter_first ic =
+	  let titles = input_line ic in
+	  iter_second ic titles
+	and iter_second ic titles =
+	  let values = input_line ic in
+	  join_stats titles values;
+	  iter_first ic in
+	iter_first ic
+      with End_of_file -> ())
+  with e ->
+    lprintf "[BWS] Error %s opening %s\n" (Printexc2.to_string e) filename;
+    proc_net_fs := false
 
 let proc_net_timer _ =
   if !proc_net_fs && !verbose_bandwidth > 0 then begin

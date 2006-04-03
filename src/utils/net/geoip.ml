@@ -137,28 +137,31 @@ let unpack filename =
       ext
     in
     match real_ext with
-      ".zip" ->
-	begin
-	  try
-	    let ic = Zip.open_in filename in
+    | ".zip" ->
+	(try
+	  let file =
+	    Unix2.tryopen_read_zip filename (fun ic ->
 	      try
-		let file = Zip.find_entry ic "GeoIP.dat" in
-		  Zip.close_in ic;
-		ignore(Misc.archive_extract filename "zip");
-		let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
-		(try Sys.remove geo_file with _ -> ());
-		Unix2.rename file.Zip.filename geo_file;
-		geo_file
+		Zip.find_entry ic "GeoIP.dat"
 	      with e ->
-		Zip.close_in ic;
 		lprintf_nl "Exception %s while extracting geoip.dat"
 		  (Printexc2.to_string e);
-		raise Not_found
+		raise e) in
+	  try
+	    ignore(Misc.archive_extract filename "zip");
+	    let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
+	    (try Sys.remove geo_file with _ -> ());
+	    Unix2.rename file.Zip.filename geo_file;
+	    geo_file
 	  with e ->
-	    lprintf_nl "Exception %s while opening %s"
-	      (Printexc2.to_string e) filename;
-	    raise Not_found
-	end
+	    lprintf_nl "Exception %s while extracting geoip.dat"
+	      (Printexc2.to_string e);
+	    raise e
+	with e ->
+	  lprintf_nl "Exception %s while opening %s"
+	    (Printexc2.to_string e) filename;
+	  raise Not_found)
+
     | ".dat.gz" | ".dat.bz2" | ".gz" | ".bz2" ->
 	begin
 	  let filetype =

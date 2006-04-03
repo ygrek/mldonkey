@@ -390,10 +390,9 @@ let wget r f =
       let webinfos_dir = "web_infos" in
         Unix2.safe_mkdir webinfos_dir;
 	Unix2.can_write_to_directory webinfos_dir;
-      let filename = Filename.concat webinfos_dir (Filename.basename r.req_url.Url.short_file) in
-      let oc = open_out_bin filename in
-      output_string oc s;
-      close_out oc;
+      let filename = Filename.concat webinfos_dir 
+	(Filename.basename r.req_url.Url.short_file) in
+      Unix2.tryopen_write_bin filename (fun oc -> output_string oc s);
       if r.req_save_to_file_time <> 0. then
 	Unix.utimes filename r.req_save_to_file_time r.req_save_to_file_time;
       try

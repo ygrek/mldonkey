@@ -168,11 +168,11 @@ let load_merge bl filename remove =
   let guardian_regexp = Str.regexp "^\\(.*\\): *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)-\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)" in
   let ipfilter_regexp = Str.regexp "^\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *- *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *, *[0-9]+ *, *\\(.*\\)$" in
 
-  let cin = open_in filename in
   let bl = ref bl in
   let nranges = ref 0 in
-  let nlines = ref 0 in
   let error = ref false in
+  Unix2.tryopen_read filename (fun cin ->
+  let nlines = ref 0 in
   try
     while true do
       let line = input_line cin in
@@ -210,14 +210,12 @@ let load_merge bl filename remove =
 	      error := true
 	    end;
 	    lprintf " %d" !nlines;
-    done;
-    bl_empty (* not reached *)
-  with End_of_file ->
-    if !error then lprint_newline ();
-    close_in cin;
-    if remove then (try Sys.remove filename with _ -> ());
-    let optimized_bl = bl_optimize !bl in
-    lprintf_nl () "%d ranges loaded - optimized to %d" !nranges (bl_length optimized_bl);
+    done
+  with End_of_file -> ());
+  if !error then lprint_newline ();
+  if remove then (try Sys.remove filename with _ -> ());
+  let optimized_bl = bl_optimize !bl in
+  lprintf_nl () "%d ranges loaded - optimized to %d" !nranges (bl_length optimized_bl);
 (*    bl_optimizedp optimized_bl;
     for i=0 to 999999 do
       let random_ip = Ip.of_ints (Random.int 256, Random.int 256, Random.int 256, Random.int 256) in
@@ -226,7 +224,7 @@ let load_merge bl filename remove =
 	| Some _, Some _ -> ()
 	| _ -> assert false
     done; *)
-    optimized_bl
+  optimized_bl
 
 let load filename =
   lprintf_nl () "loading %s" filename;
@@ -236,30 +234,27 @@ let load filename =
       let filenames_list = 
 	["guarding.p2p"; "guarding_full.p2p"; "ipfilter.dat"] in
       (try
-	let ic = Zip.open_in filename in
-	try
-	  let rec find_in_zip l =
-	    match l with
-	      | [] -> raise Not_found
-	      | h :: q ->
-		  try
-		    let file = Zip.find_entry ic h in
-		    lprintf_nl () "%s found in zip file" h;
-		    ignore(Misc.archive_extract filename "zip");
-		    load_merge bl_empty file.Zip.filename true
-		  with Not_found ->
-		    find_in_zip q in
-	  let bl = find_in_zip filenames_list in
-	  Zip.close_in ic;
-	  bl
-	with e ->
-	  Zip.close_in ic;
-	  lprintf_nl () "Exception %s while extracting %s from %s"
-	    (Printexc2.to_string e) 
-	    (String.concat "/" filenames_list)
-	    filename;
-	  lprintf_nl () "One of the mentioned files has to be present in the zip file";
-	  bl_empty
+	Unix2.tryopen_read_zip filename (fun ic ->
+	  try
+	    let rec find_in_zip l =
+	      match l with
+		| [] -> raise Not_found
+		| h :: q ->
+		    try
+		      let file = Zip.find_entry ic h in
+		      lprintf_nl () "%s found in zip file" h;
+		      ignore(Misc.archive_extract filename "zip");
+		      load_merge bl_empty file.Zip.filename true
+		    with Not_found ->
+		      find_in_zip q in
+	    find_in_zip filenames_list
+	  with e ->
+	    lprintf_nl () "Exception %s while extracting %s from %s"
+	      (Printexc2.to_string e) 
+	      (String.concat "/" filenames_list)
+	      filename;
+	    lprintf_nl () "One of the mentioned files has to be present in the zip file";
+	    bl_empty)
       with e ->
 	lprintf_nl () "Exception %s while opening %s"
 	  (Printexc2.to_string e)

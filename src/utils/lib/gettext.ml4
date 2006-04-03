@@ -332,10 +332,9 @@ let save_strings () =
   match !strings_file with 
     None -> ()
   | Some filename ->
-      if !save_strings_file && not !strings_file_error then
+      if !save_strings_file && not !strings_file_error then	
         try
-          let oc = open_out filename in
-          try
+	  Unix2.tryopen_write filename (fun oc ->
             
             Hashtbl.iter (fun modname names ->
 
@@ -361,10 +360,7 @@ let save_strings () =
                 
             ) modules;
             
-            close_out oc;
-            save_strings_file := false
-          with e ->
-              close_out oc; raise e
+            save_strings_file := false)
         with e ->
             lprintf "Gettext.save_strings: Error %s\n\n"
               (Printexc2.to_string e)
@@ -400,22 +396,20 @@ let set_strings_file filename =
 (* If the file exists, load it. Check that '%' formats are the same
 in the default and in the translation. *)
 (*lprintf "Loading...\n"; *)
-  begin
-    try
-      let ic = open_in filename in
+  (try
+    Unix2.tryopen_read filename (fun ic ->
       let s = Stream.of_channel ic in
       try
         let stream = lexer s in
 (*        lprintf "x\n"; *)
         current_modname := "general";
-        parse_file stream 
+        parse_file stream
       with e -> 
-          close_in ic; strings_file_error := true;
-            lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
-               (Printexc2.to_string e) filename (Stream.count s)
+          strings_file_error := true;
+        lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
+          (Printexc2.to_string e) filename (Stream.count s))
     with e -> 
-        save_strings_file := true
-  end;  
+        save_strings_file := true);
   save_strings ()
 
 
@@ -443,22 +437,20 @@ and parse_next = parser
       |   [< 'String s1 >] -> s1
 in
 
-begin
-  try
-    let ic = open_in f1 in
+(try
+  Unix2.tryopen_read f1(fun ic ->
     let s = Stream.of_channel ic in
     try
       let stream = lexer s in
 (*        lprintf "x\n"; *)
       parse_file stream 
     with e -> 
-        close_in ic; strings_file_error := true;
+        strings_file_error := true;
         lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
-           (Printexc2.to_string e) f1 (Stream.count s)
+           (Printexc2.to_string e) f1 (Stream.count s))
   with e -> 
-      save_strings_file := true;
-      lprintf "Gettext.set_strings_file: no message file found. Creating one\n"
-end;  
+    save_strings_file := true;
+    lprintf "Gettext.set_strings_file: no message file found. Creating one\n");
 
 let translate2 s0 s1 =
   try
@@ -478,22 +470,20 @@ and parse_next = parser
       |   [< 'String s1 >] -> s1
 in
 
-    begin
       try
-        let ic = open_in f2 in
+	Unix2.tryopen_read f2 (fun ic ->
        let s = Stream.of_channel ic in
         try
           let stream = lexer s in
 (*        lprintf "x\n"; *)
           parse_file stream 
         with e -> 
-            close_in ic; strings_file_error := true; 
+            strings_file_error := true; 
             lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
-               (Printexc2.to_string e) f2 (Stream.count s)
+               (Printexc2.to_string e) f2 (Stream.count s))
      with e -> 
-          save_strings_file := true;
-          lprintf "Gettext.set_strings_file: no message file found. Creating one\n"
-    end;  
+       save_strings_file := true;
+       lprintf "Gettext.set_strings_file: no message file found. Creating one\n"
     
     
   with _ -> ()

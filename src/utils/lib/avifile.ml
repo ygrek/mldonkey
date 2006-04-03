@@ -112,7 +112,7 @@ let print_int16 s i=
   lprintf "%s: %d" s i
 
 let load file =
-  let ic = open_in file in
+  Unix2.tryopen_read file (fun ic ->
 (* pos: 0 *)
   let s = input_string4 ic in
   if s <> "RIFF" then failwith "Not an AVI file (RIFF absent)";
@@ -221,6 +221,5 @@ let load file =
     
   in
   let pos0 = 16L in
-  iter_list pos0 (pos0 ++ size);
-  close_in ic;
+  iter_list pos0 (pos0 ++ size))
 

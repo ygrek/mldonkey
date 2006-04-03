@@ -75,12 +75,8 @@ and options_file = {
 ;;
 
 let create_options_file name =
-  ignore
-    (
-     if not (Sys.file_exists name) then
-       let oc = open_out name in 
-       close_out oc
-    );
+  if not (Sys.file_exists name) then
+    Unix2.tryopen_write name ignore; (* should we catch exceptions here ? *)
   {
     file_name = name;
     file_options =[];
@@ -291,16 +287,15 @@ let really_load filename options =
     raise (Failure (Buffer.contents buf))
   end 
   else
-    let ic = open_in filename in
-    let s = Stream.of_channel ic in
     try
-      let stream = lexer s in
       let list =
-	try parse_gwmlrc stream with
-          e ->
-            lprintf_nl "At pos %d/%d" (Stream.count s) (Stream.count stream);
-            raise e
-      in
+	Unix2.tryopen_read filename (fun ic ->
+	  let s = Stream.of_channel ic in
+	  let stream = lexer s in
+	  try parse_gwmlrc stream with
+              e ->
+		lprintf_nl "At pos %d/%d" (Stream.count s) (Stream.count stream);
+		raise e) in
       List.iter
 	(fun o ->
           try
@@ -560,7 +555,7 @@ let save opfile =
   let filename = opfile.file_name in
   let temp_file = filename ^ ".tmp" in
   let old_file = filename ^ ".old" in
-  let oc = open_out temp_file in
+  Unix2.tryopen_write temp_file (fun oc ->
   save_module "" oc
     (List.map
       (fun o ->
@@ -593,10 +588,11 @@ let save opfile =
           with
             _ -> ())
       opfile.file_rc;
-    end;
-  close_out oc;
-  (try Sys.rename filename old_file with _ -> ());
-  (try Sys.rename temp_file filename with _ -> ())
+  end);
+  try 
+    Sys.rename filename old_file;
+    Sys.rename temp_file filename
+  with _ -> ();
 ;;
 
 let save_with_help opfile =
