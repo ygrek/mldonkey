@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/04/03
+5011: EDK: Update server info received by UDP when
+      update_server_list_server false (pango)
 5009: Ignore files .DS_Store and ._filename.ext in dir listings on all platforms
 5006: Small logfile change
 5004: Automatically closes opened descriptors using "tryopen pattern" (pango)

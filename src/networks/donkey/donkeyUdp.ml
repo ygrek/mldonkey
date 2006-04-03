@@ -229,16 +229,17 @@ let udp_client_handler t p =
     match p.UdpSocket.udp_addr with
       | Unix.ADDR_INET(ip, port) ->
           let ip = Ip.of_inet_addr ip in
-          if !!update_server_list_server then
-            let s = check_add_server ip (port-4) in
+	  let s =
+            if !!update_server_list_server then
+              check_add_server ip (port-4) 
+	    else 
+	      find_server ip (port-4) in
             (* set last_conn, but add a 2 minutes offset to prevent
                staying connected to this server *)
             connection_set_last_conn s.server_connection_control (
               last_time () - 121);
             s.server_score <- s.server_score + 3;
             s
-          else
-            find_server ip (port-4)
       | _ -> raise Not_found
   in
   match t with
