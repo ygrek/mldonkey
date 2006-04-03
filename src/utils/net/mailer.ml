@@ -177,4 +177,4 @@ let sendmail smtp_server smtp_port new_style mail =
         raise e
         
   with e ->
-      lprintf "Exception %s while sending mail\n" (Printexc2.to_string e)
+      lprintf_nl "Exception %s while sending mail" (Printexc2.to_string e)

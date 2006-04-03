@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/04/03
+5006: Small logfile change
 5004: Automatically closes opened descriptors using "tryopen pattern" (pango)
 5005: CommonBlocking: Do not block IPs when GeoIP database is not loaded
 
