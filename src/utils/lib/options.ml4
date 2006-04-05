@@ -906,10 +906,8 @@ let save opfile =
           opfile.file_rc <- !rem
 	end;
       Hashtbl.clear once_values_rev);
-    (try 
-      Unix2.rename filename old_file;
-      Unix2.rename temp_file filename 
-    with _ -> ());
+    begin try Unix2.rename filename old_file with  _ -> () end;
+    begin try Unix2.rename temp_file filename with _ -> () end;
     opfile.file_after_save_hook ();
   with e -> 
     opfile.file_after_save_hook ();

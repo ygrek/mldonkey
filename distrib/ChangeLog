@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/04/05
+5015: Fix option file saving bug introduced in tryopen patch
+
 2006/04/03
 5011: EDK: Update server info received by UDP when
       update_server_list_server false (pango)

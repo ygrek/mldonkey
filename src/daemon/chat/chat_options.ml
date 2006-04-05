@@ -589,10 +589,8 @@ let save opfile =
             _ -> ())
       opfile.file_rc;
   end);
-  try 
-    Sys.rename filename old_file;
-    Sys.rename temp_file filename
-  with _ -> ();
+  (try Sys.rename filename old_file with _ -> ());
+  (try Sys.rename temp_file filename with _ -> ())
 ;;
 
 let save_with_help opfile =
