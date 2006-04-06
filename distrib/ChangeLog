@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/04/06
+5021: Fix compile bug in tryopen patch when bzip2 is disabled
 5020: Allow compile with Ocaml 3.09.2 CVS code,
       3.09.1 will stay default for MLDonkey-compiled Ocaml
 5016: Options save: Really fix bug addressed in patch #5015

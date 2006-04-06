@@ -52,11 +52,7 @@ let tryopen_read_gzip fn f =
   tryopen Gzip.open_in Gzip.close_in fn f
 let tryopen_write_gzip ?level fn f = 
   tryopen (Gzip.open_out ?level) Gzip.close_out fn f
-let tryopen_read_bzip2 fn f = 
-  tryopen Bzip2.open_in Bzip2.close_in fn f
-let tryopen_write_bzip2 ?level fn f = 
-  tryopen (Bzip2.open_out ?level) Bzip2.close_out fn f
-  
+
 let list_directory filename =
   let list = ref [] in
   tryopen_dir filename (fun dir ->
