@@ -809,18 +809,14 @@ let title_opfile = ref true;;
   
 let save opfile =
   opfile.file_before_save_hook ();
+
+  let old_config_dir = "old_config" in
+  if not (Sys.file_exists old_config_dir) then Unix.mkdir old_config_dir 0o755;
+
   let filename = opfile.file_name in
   let temp_file = filename ^ ".tmp" in
-  let old_file = 
-    let dirname = Filename.dirname filename in
-    let basename = Filename.basename filename in
-    let old_config = Filename.concat dirname "old_config" in
-    if not (Sys.file_exists old_config) then Unix.mkdir old_config 0o755;
-    let old_file = Filename.concat old_config basename in
-    let old_old_file = filename ^ ".old" in
-    if not (Sys.file_exists old_file) && (Sys.file_exists old_old_file) then
-      Sys.rename old_old_file old_file;
-    old_file in
+  let old_file = Filename.concat old_config_dir filename in
+
   try
     Unix2.tryopen_write temp_file (fun oc ->
       (* race! *)
@@ -906,8 +902,16 @@ let save opfile =
           opfile.file_rc <- !rem
 	end;
       Hashtbl.clear once_values_rev);
-    begin try Unix2.rename filename old_file with  _ -> () end;
-    begin try Unix2.rename temp_file filename with _ -> () end;
+    (try
+      begin
+        try
+          Unix2.rename filename old_file
+        with Unix.Unix_error(Unix.ENOENT, _, _) -> ();
+      end;
+      Unix2.rename temp_file filename
+     with e ->
+        lprintf_nl "[Opt] exception %s while saving %s" (Printexc2.to_string e) filename
+    );
     opfile.file_after_save_hook ();
   with e -> 
     opfile.file_after_save_hook ();
