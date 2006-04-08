@@ -958,7 +958,7 @@ let client_public_key = ref ""
 
 let _ =
   option_hook client_private_key (fun _ ->
-    if Autoconf.donkey_sui = "yes" then begin
+    if Autoconf.donkey_sui_works () then begin
     client_public_key := DonkeySui.SUI.load_key (!!client_private_key);
     (
     let key_checked = ref false in

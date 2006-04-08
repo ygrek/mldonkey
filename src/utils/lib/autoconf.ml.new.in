@@ -25,7 +25,9 @@ let filetp = "@FILETP@"
 let bittorrent = "@BITTORRENT@"
 let donkey = "@DONKEY@"
 let donkey_sui = "@DONKEY_SUI@"
-  
+let donkey_sui_urandom = ref false
+let donkey_sui_works () = donkey_sui = "yes" && !donkey_sui_urandom
+
 exception OutOfBoundsAccess
 let outofboundsaccess = OutOfBoundsAccess
   

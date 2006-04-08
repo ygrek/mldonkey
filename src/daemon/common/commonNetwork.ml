@@ -280,7 +280,7 @@ let new_network shortname name flags =
   Hashtbl.add networks_by_num r.network_num r;
   let s =
     if r.network_name = "Donkey" then
-      if Autoconf.donkey_sui = "yes" then
+      if Autoconf.donkey_sui_works () then
         "Donkey (SUI)"
       else
         "Donkey (noSUI)"

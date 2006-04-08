@@ -102,9 +102,10 @@ in this directory. Please shut it down before starting
 a new instance here. If you are sure no other process uses
 this directory delete %s and restart the core.\n" file
 
-let exit_message_dev file = Printf.sprintf
-"\n/dev/%s does not exist, please create it, exiting...
-If you are using a chroot environment, create it inside the chroot.\n" file
+let exit_message_dev file exit = Printf.sprintf
+"\n/dev/%s does not exist, please create it%s
+If you are using a chroot environment, create it inside the chroot.\n"
+  file (if exit then ", exiting..." else "")
 
 let _ =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
@@ -152,17 +153,20 @@ let _ =
     end;
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
-    && not Autoconf.windows && not (Autoconf.system = "morphos") &&
-       Autoconf.donkey_sui = "yes" && not (Sys.file_exists "/dev/urandom") then begin
-      lprintf "%s" (exit_message_dev "urandom");
+    && not Autoconf.windows && not (Autoconf.system = "morphos")
+    && Autoconf.donkey_sui = "yes" && not (Sys.file_exists "/dev/urandom") then
+    begin
+      Autoconf.donkey_sui_urandom := false;
+      lprintf "%s" (exit_message_dev "urandom" false);
       if Autoconf.system = "hpux" then
         lprintf_nl "For HP-UX get urandom support from http://www.josvisser.nl/hpux11-random";
-      exit 2
-    end;  
+    end
+  else
+    Autoconf.donkey_sui_urandom := true;
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
     && not Autoconf.windows && not (Sys.file_exists "/dev/null") then begin
-      lprintf "%s" (exit_message_dev "null");
+      lprintf "%s" (exit_message_dev "null" true);
       exit 2
     end;  
 

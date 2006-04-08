@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/04/08
+5027: EDK: Deactivate DonkeySUI if /dev/urandom is missing
+
 2006/04/06
 5021: Fix compile bug in tryopen patch when bzip2 is disabled
 5020: Allow compile with Ocaml 3.09.2 CVS code,
