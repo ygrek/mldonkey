@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/04/08
+4778: CommonSwarming: In addition to the first and last chunk also load
+      the second last chunk if available before the rest
 5028: New environment variable for file_completed_cmd:
       $DLFILES (number of downloading files)
 5027: EDK: Deactivate DonkeySUI if /dev/urandom is missing

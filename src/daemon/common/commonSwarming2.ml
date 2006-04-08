@@ -1963,6 +1963,9 @@ better work at the beginning if the first incomplete blocks are offered
 (* This can be the position of the first block of the file *)
                 download_first 0 0;
 
+(* This must be the position of the second last block of the file *)
+                download_first 0 (nblocks-2);
+
 (* These can be the positions of the second block of the file *)
                 download_first 0 1;
                 download_first (up.up_ncomplete-1) 1;
