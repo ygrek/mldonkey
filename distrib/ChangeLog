@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/04/08
+5030: Update config.guess and config.sub to version 2006-02-27
 4778: CommonSwarming: In addition to the first and last chunk also load
       the second last chunk if available before the rest to improve preview
 5028: New environment variable for file_completed_cmd:
