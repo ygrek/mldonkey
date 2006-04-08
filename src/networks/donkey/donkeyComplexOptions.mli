@@ -27,8 +27,6 @@ val safe_add_server : Ip.t -> int -> unit
 val known_shared_files : DonkeyTypes.shared_file_info
   list Options.option_record
 
-val brotherhood : Md4.t list list Options.option_record
-
 val value_to_addr : Options.option_value -> Ip.t * int
 val value_to_md4 : Options.option_value -> Md4.t
 val file_to_value :  DonkeyTypes.file -> (string * Options.option_value) list

@@ -115,7 +115,6 @@ module Make(M:
           mutable manager_active_sources : int;
           mutable manager_all_sources : int;
           mutable manager_file : (unit -> file);
-          mutable manager_brothers : file_sources_manager list;
         }
       
       and functions = {
@@ -180,9 +179,6 @@ module Make(M:
       val iter_qualified_sources : (source -> unit) -> file_sources_manager -> unit
 			val iter_relevant_sources : (source -> unit) -> file_sources_manager -> unit
 
-      val set_brothers : file_sources_manager list -> unit
-      val get_brothers : file_sources_manager -> string list      
-        
       val source_brand : source -> M.source_brand
       val set_source_brand : source -> M.source_brand -> unit
     end)

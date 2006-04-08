@@ -120,13 +120,6 @@ let value_to_client is_friend assocs =
       ) 
     with _ -> 
         failwith "Source without address: removed"
-(*
-        let md4 = try
-            get_value "client_md4" value_to_md4 with _ -> Md4.null
-        in
-        let name = try
-            get_value "client_name" value_to_string with _ -> "" in
-        Indirect_location(name, md4) *)
   in
   
   let _ = 
@@ -148,20 +141,6 @@ let value_to_client is_friend assocs =
       get_value "client_name" value_to_string with _ -> "" in
   set_client_name l name md4;
   
-  (*
-  CommonGlobals.connection_set_last_conn l.client_connection_control
-    last_conn;
-*)  
-    
-(* Is it really useful ? I don't think so. It is only used when restarting
-the client several times, which is not that current... 
-  
-  (try
-     let last_filereqs =
-       (min (get_value "client_last_filereqs" value_to_float)
-	  (BasicSocket.last_time ())) in
-       l.client_last_filereqs <- last_filereqs
-   with _ -> ()); *)
   if is_friend then friend_add l;
   l
   
@@ -179,10 +158,6 @@ let client_to_value c =
   let list = [
       "client_md4", string_to_value (Md4.to_string c.client_md4);
       "client_name", string_to_value c.client_name;
-(*      "client_age", int_to_value (
-        CommonGlobals.connection_last_conn 
-        c.client_connection_control); *)
-(*      "client_last_filereqs", int_to_value c.client_last_filereqs; *)
     ]
   in
   
@@ -309,40 +284,11 @@ let value_to_file file_size file_state assocs =
   let file = DonkeyGlobals.new_file file_diskname file_state
     (Md4.of_string file_md4) file_size filenames true in
 
-  (*
-  (try 
-      if file.file_exists then begin
-(* only load absent chunks if file previously existed. *)
-          file.file_absent_chunks <- 
-            get_value "file_absent_chunks" 
-            (value_to_list value_to_int32pair);
-        end
-    with _ -> ()                );
-*)
-  
-  
-  
   (try
       set_file_best_name (as_file file)
       (get_value "file_filename" value_to_string)
     with _ -> update_best_name file);
   
-(*
-  (try
-      let mtime = Unix32.mtime (file_disk_name file)  in
-      let old_mtime = value_to_float (List.assoc "file_mtime" assocs) in
-      file.file_mtime <- old_mtime;
-      let file_chunks = get_value "file_all_chunks" value_to_string in
-      file.file_chunks <- Array.init file.file_nchunks 
-        (fun i ->
-          let c = file_chunks.[i] in
-          if c = '0' then AbsentVerified else
-          if c = '2' then PresentVerified
-          else PresentTemp
-      )
-    with _ -> 
-        lprintf "Could not load chunks states\n"; );
-*)
   let md4s = try get_value "file_md4s" (value_to_array value_to_md4) 
     with _ -> [||] in
   
@@ -358,61 +304,17 @@ let value_to_file file_size file_state assocs =
             Verification
             (Array.map (fun md4 -> Ed2k md4) md4s))
   );
-  
-(*
-  List.iter (fun c ->
-      DonkeyGlobals.new_source file  c;
-  )
-   (get_value_nil "file_locations" (value_to_list value_to_donkey_client)); *)
-  
-(*
-  (try
-      file.file_chunks_age <-
-        get_value "file_chunks_age" 
-        (fun v -> 
-          let list = value_to_list (fun v -> normalize_time (value_to_int v)) v in
-          Array.of_list list)
-    with _ -> ());
-  
-  file.file_file.impl_file_last_seen <- (
-    if file.file_chunks_age = [||]
-    then 0
-    else Array2.min file.file_chunks_age);
-*)
-  
   as_file file
   
-(*  
-let string_of_chunks file =
-  let nchunks = file.file_nchunks in
-  let s = String.make nchunks '0' in
-  for i = 0 to nchunks - 1 do
-    s.[i] <- (match file.file_chunks.(i) with
-      | PresentVerified -> '2'
-      | AbsentVerified 
-      | PartialVerified _ -> '0'
-      | _ -> '1' (* don't know ? *)
-    )
-  done;
-  s
-    *)
-
 let file_to_value file =
   let fields =
     [
       "file_md4", string_to_value (Md4.to_string file.file_md4);
       "file_diskname", string_to_value file.file_diskname;
-(*      "file_all_chunks", string_to_value (string_of_chunks file);   *)
-(*      "file_absent_chunks", List
-        (List.map (fun (i1,i2) -> 
-            SmallList [int64_to_value i1; int64_to_value i2])
-        file.file_absent_chunks); *)
       ("file_md4s", 
         array_to_value Md4.hash_to_value file.file_computed_md4s);
       "file_filenames", List
         (List.map (fun (s,_) -> string_to_value s) file.file_filenames);
-(*      "file_mtime", float_to_value (
-        try Unix32.mtime (file_disk_name file) with _ -> 0.0) *)
     ]
   in
   let fields = 
@@ -527,45 +429,6 @@ let value_to_module f v =
 let save_time = define_header_option file_sources_ini 
     ["save_time"] "" int_option (last_time ())
     
-      
-(*  
-let done_files = 
-  define_option files_ini ["done_files"] 
-  "The files whose download is finished" (list_option FileOption.t) []
-    *)
-
-module UidOption = struct
-    
-    let value_to_hash v = 
-      try
-        let uid = Uid.of_string (value_to_string v) in
-        ignore (Uid.to_uid uid);
-        uid
-      with _ -> Uid.create (Ed2k (Md4.value_to_hash v))
-            
-    let hash_to_value v = string_to_value (Uid.to_string v)
-      
-    let t =
-      define_option_class "Uid" value_to_hash hash_to_value
-    
-  end
-
-let brotherhood = 
-  define_option donkey_section ["brotherhood"] 
-    "The links between files being downloaded" (list_option 
-      (list_option Md4.option)) []
-
-  (*
-let files = 
-  define_option files_ini ["files"] 
-  "The files currently being downloaded" (list_option FileOption.t) []
-*)
-
-(*
-let known_servers = define_option servers_ini["known_servers"] "List of known servers"
-    (list_option ServerOption.t) []
-    *)
-
 let known_shared_files = define_option shared_section 
     ["shared_files"] "" 
     (list_option SharedFileOption.t) []
@@ -687,19 +550,6 @@ let load_sources () =
       lprintf ".";
       sources_loaded := true;
       lprintf " completed) ";
-      List.iter (fun list ->
-          let files = ref [] in
-          List.iter (fun m ->
-              try
-                let file = find_file m in
-                files := file.file_sources :: !files
-              with _ -> ()
-          ) list;
-          match !files with
-            [] | [_] -> ()
-          | files ->
-              DonkeySources.set_brothers files
-      ) !!brotherhood
     with _ -> ())
 
 let check_result r tags =

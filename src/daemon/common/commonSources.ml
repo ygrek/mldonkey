@@ -213,7 +213,6 @@ module Make(M:
           mutable manager_active_sources : int;
           mutable manager_all_sources : int;
           mutable manager_file : (unit -> file);
-          mutable manager_brothers : file_sources_manager list;
         }
 
       and functions = {
@@ -1251,7 +1250,6 @@ let rec find_max_overloaded q managers =
             manager_all_sources = 0;
             manager_active_sources = 0;
             manager_sources = create_queues ();
-            manager_brothers = [];
           } in
         file_sources_managers := m :: !file_sources_managers;
         m
@@ -1271,9 +1269,6 @@ let rec find_max_overloaded q managers =
         ) m;
 
         m.manager_sources <- create_queues ();
-
-        let brothers = List.filter (fun m' -> m' <> m) m.manager_brothers in
-        List.iter (fun m -> m.manager_brothers <- brothers) brothers;
 
         file_sources_managers := List2.removeq m !file_sources_managers
 
@@ -1444,14 +1439,7 @@ let rec find_max_overloaded q managers =
       let set_request_result s file result =
         set_request_score s file (match result with
             File_not_found -> not_found_score
-          | File_found ->
-(* Advertise the files associated with this file that this source is
-probably interesting. Since we are already connected, it means
-we will probably query for the other file almost immediatly. *)
-              List.iter (fun m ->
-                  set_request_score s m initial_new_source_score
-              ) file.manager_brothers;
-              found_score
+          | File_found -> found_score
           | File_chunk -> chunk_score
           | File_upload -> upload_score
           | File_new_source -> initial_new_source_score
@@ -1516,35 +1504,6 @@ we will probably query for the other file almost immediatly. *)
                      query_file s f.request_file;
                   ) s.source_files
 
-
-(*************************************************************************)
-(*                                                                       *)
-(*                         set_brothers                                  *)
-(*                                                                       *)
-(*************************************************************************)
-
-      let set_brothers files =
-        let brothers = ref [] in
-        let rec add_brother m =
-          if not (List.memq m !brothers) then begin
-              brothers := m :: !brothers;
-              List.iter add_brother m.manager_brothers
-            end
-        in
-        List.iter add_brother files;
-
-        List.iter (fun m ->
-            m.manager_brothers <- !brothers
-        ) !brothers
-
-(*************************************************************************)
-(*                                                                       *)
-(*                         get_brothers                                  *)
-(*                                                                       *)
-(*************************************************************************)
-
-      let get_brothers file =
-        List.map (fun m -> m.manager_uid) file.manager_brothers
 
 (*************************************************************************)
 (*                                                                       *)

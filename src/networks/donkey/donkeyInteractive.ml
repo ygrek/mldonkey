@@ -736,27 +736,6 @@ let commands = [
         ""
     ), ":\t\t\t\t\tprint ID on connected servers";
 
-    "set_brothers", Arg_multiple (fun args o ->
-        let buf = o.conn_buf in
-
-        let files = ref [] in
-        List.iter (fun arg ->
-            let num = int_of_string arg in
-            List.iter (fun file ->
-                if file_num file = num then begin
-                    Printf.bprintf buf "%s\n" (file_best_name file);
-                    files := file :: !files
-                  end
-            ) !current_files
-        ) args;
-
-        DonkeySources.set_brothers
-          (List.map (fun file -> file.file_sources) !files);
-        brotherhood =:=
-          (List.map (fun file -> file.file_md4) !files) :: !!brotherhood;
-        "    are now defined as colocated"
-    ) , "<f1> < f2> ... :\t\tdefine these files as probably colocated";
-
     "recover_bytes", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
 
