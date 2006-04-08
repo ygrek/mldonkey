@@ -174,6 +174,7 @@ let script_for_file file incoming new_name =
 	    ("FILENAME",  filename);
 	    ("FILEHASH",  string_of_uids info.G.file_uids);
 	    ("DURATION",  duration);
+	    ("DLFILES",   string_of_int (List.length !!files)); 
 	    ("INCOMING",  incoming);
 	    ("NETWORK",   network.network_name);
 	    ("ED2K_HASH", ed2k_hash)]
