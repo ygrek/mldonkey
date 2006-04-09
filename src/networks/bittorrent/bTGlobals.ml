@@ -133,25 +133,25 @@ let check_if_interesting file c =
         None -> assert false
       | Some up -> up
     in
-    let swarmer = Int64Swarmer.uploader_swarmer up in
+    let swarmer = CommonSwarming.uploader_swarmer up in
     let must_send =
 (* The client has nothing to propose to us *)
-      (not (Int64Swarmer.is_interesting up )) &&
+      (not (CommonSwarming.is_interesting up )) &&
 (* All the requested ranges are useless *)
       (List.filter (fun (_,_,r) ->
-            let x,y = Int64Swarmer.range_range r in
+            let x,y = CommonSwarming.range_range r in
             x < y) c.client_ranges_sent = []) &&
       (match c.client_range_waiting with
           None -> true
         | Some (x,y,r) ->
-            let x,y = Int64Swarmer.range_range r in
+            let x,y = CommonSwarming.range_range r in
             x < y) &&
 (* The current block is also useless *)
       (match c.client_block with
           None -> true
         | Some b ->
-            let block_num = Int64Swarmer.block_num swarmer b in
-            let bitmap = Int64Swarmer.verified_bitmap swarmer in
+            let block_num = CommonSwarming.block_num swarmer b in
+            let bitmap = CommonSwarming.verified_bitmap swarmer in
             bitmap.[block_num] <> '3')
     in
     if must_send then
@@ -252,12 +252,12 @@ let new_file file_id t torrent_diskname file_temp file_state =
       else
         set_trackers file [t.torrent_announce];
       if file_state <> FileShared then begin
-          let kernel = Int64Swarmer.create_swarmer file_temp (file_size file)
+          let kernel = CommonSwarming.create_swarmer file_temp (file_size file)
             (min max_range_len file.file_piece_size) in
-          let swarmer = Int64Swarmer.create kernel (as_file file)
+          let swarmer = CommonSwarming.create kernel (as_file file)
             file.file_piece_size in
           file.file_swarmer <- Some swarmer;
-          Int64Swarmer.set_verified swarmer (fun _ num ->
+          CommonSwarming.set_verified swarmer (fun _ num ->
               file.file_blocks_downloaded <- (num) ::
               file.file_blocks_downloaded;
               file_must_update file;
@@ -277,7 +277,7 @@ let new_file file_id t torrent_diskname file_temp file_state =
               ) file.file_clients
 
           );
-          Int64Swarmer.set_verifier swarmer (Verification
+          CommonSwarming.set_verifier swarmer (Verification
               (Array.map (fun sha1 -> Sha1 sha1) file.file_chunks));
         end;
       current_files := file :: !current_files;

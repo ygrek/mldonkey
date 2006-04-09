@@ -134,7 +134,7 @@ let unshare_file file =
 let declare_completed_file file = 
   DonkeyShare.remember_shared_info file (file_disk_name file);
   file_completed (as_file file);
-  Int64Swarmer.remove_swarmer file.file_swarmer;
+  CommonSwarming.remove_swarmer file.file_swarmer;
   file.file_swarmer <- None;
   unshare_file file;
   ignore (CommonShared.new_shared "completed" 0 (
@@ -166,7 +166,7 @@ let check_file_downloaded file =
       match file.file_swarmer with
         None -> ()
       | Some swarmer ->
-          let bitmap = Int64Swarmer.verified_bitmap swarmer in
+          let bitmap = CommonSwarming.verified_bitmap swarmer in
 (*          lprintf "Verified bitmap: [%s]\n" bitmap; *)
           let rec iter i =
             if i =  String.length bitmap then true
@@ -175,7 +175,7 @@ let check_file_downloaded file =
           in
           let verified = iter 0 in
           
-          let downloaded = Int64Swarmer.downloaded swarmer in
+          let downloaded = CommonSwarming.downloaded swarmer in
           if file_downloaded file <> downloaded then begin
               lprintf_nl () "ERROR: file_downloaded file (%Ld) <> downloaded swarmer (%Ld)"
                 (file_downloaded file) downloaded
@@ -197,7 +197,7 @@ let check_files_downloaded () =
           match file.file_swarmer with
             None -> ()
           | Some swarmer ->
-              let bitmap = Int64Swarmer.verified_bitmap swarmer in
+              let bitmap = CommonSwarming.verified_bitmap swarmer in
               let rec iter i len =
                 if i < len then
                   if bitmap.[i] = '3' then
@@ -217,13 +217,13 @@ let add_client_chunks c file client_chunks =
           (f, chunks, up) :: tail ->
             if f != file then iter tail
             else begin
-                Int64Swarmer.update_uploader up
+                CommonSwarming.update_uploader up
                 (AvailableBitv client_chunks);
                 Bitv.blit client_chunks 0 chunks 0 (Bitv.length chunks)
               end
             
         | [] ->
-            let up = Int64Swarmer.register_uploader swarmer (as_client c) 
+            let up = CommonSwarming.register_uploader swarmer (as_client c) 
               (AvailableBitv client_chunks) in
             c.client_file_queue <-  c.client_file_queue @
               [file, client_chunks, up]
@@ -239,8 +239,8 @@ let clean_current_download c =
   match c.client_download with
     None -> ()
   | Some (file, up) ->
-      Int64Swarmer.clear_uploader_block up;
-      Int64Swarmer.clear_uploader_ranges up;
+      CommonSwarming.clear_uploader_block up;
+      CommonSwarming.clear_uploader_ranges up;
       c.client_download <- None
 
 let send_get_range_request c file ranges = 
@@ -324,8 +324,8 @@ let rec get_from_client c =
   | Some (file,up) ->
       
       try
-        let _ = Int64Swarmer.current_block up in
-        let ranges = Int64Swarmer.current_ranges up in
+        let _ = CommonSwarming.current_block up in
+        let ranges = CommonSwarming.current_ranges up in
         let before_find_range = List.length ranges in
 
 (*        lprintf "WAITING FOR %d BLOCS\n" before_find_range; *)
@@ -333,7 +333,7 @@ let rec get_from_client c =
           let rec iter n =
             if n < 3 then
               try
-                ignore (Int64Swarmer.find_range up);
+                ignore (CommonSwarming.find_range up);
                 iter (n+1)
               with 
                 Not_found -> n
@@ -342,7 +342,7 @@ let rec get_from_client c =
           let after_find_range = iter before_find_range in
           if after_find_range > before_find_range then 
             
-            let ranges = Int64Swarmer.current_ranges up in
+            let ranges = CommonSwarming.current_ranges up in
             send_get_range_request c file ranges;
             
           else
@@ -361,14 +361,14 @@ let rec get_from_client c =
       with Not_found ->
 (*          lprintf "get_from_client: no range\n"; *)
           try
-            let swarmer = Int64Swarmer.uploader_swarmer up in       
-            (try Int64Swarmer.verify_one_chunk swarmer with _ -> ());
-            let _ = Int64Swarmer.find_block up in
+            let swarmer = CommonSwarming.uploader_swarmer up in       
+            (try CommonSwarming.verify_one_chunk swarmer with _ -> ());
+            let _ = CommonSwarming.find_block up in
             get_from_client c
             
           with Not_found ->
 (*              lprintf "get_from_client: no block\n"; *)
-              match Int64Swarmer.current_ranges up with
+              match CommonSwarming.current_ranges up with
                 [] ->
 (* We have nothing to wait for in the current file *)
                   begin
@@ -376,7 +376,7 @@ let rec get_from_client c =
 (*                    lprintf "get_from_client: no expected ranges\n"; *)
                     
                     c.client_download <- None;
-                    Int64Swarmer.unregister_uploader up;
+                    CommonSwarming.unregister_uploader up;
                     match c.client_file_queue with
                       [] -> assert false
                     | _ :: tail -> 
@@ -434,12 +434,12 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
 
 (* TODO: verify the received data has been requested *)
           
-          let swarmer = Int64Swarmer.uploader_swarmer up in
-          let old_downloaded = Int64Swarmer.downloaded swarmer in
+          let swarmer = CommonSwarming.uploader_swarmer up in
+          let old_downloaded = CommonSwarming.downloaded swarmer in
           
           begin
             try
-              Int64Swarmer.received up begin_pos bloc bloc_pos bloc_len
+              CommonSwarming.received up begin_pos bloc bloc_pos bloc_len
             with
             | e ->
                 let m =
@@ -459,9 +459,9 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
           
           end;
 
-(*            List.iter Int64Swarmer.alloc_range c.client_ranges; *)
+(*            List.iter CommonSwarming.alloc_range c.client_ranges; *)
           let new_downloaded = 
-            Int64Swarmer.downloaded swarmer in
+            CommonSwarming.downloaded swarmer in
           count_download c (new_downloaded -- old_downloaded);
 (*
           if not (List.mem c.client_ip bb.block_contributors) then

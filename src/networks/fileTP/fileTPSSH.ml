@@ -92,16 +92,16 @@ let segment_received c num s pos =
           None -> assert false
         | Some up ->
 			  
-            let swarmer = Int64Swarmer.uploader_swarmer up in
+            let swarmer = CommonSwarming.uploader_swarmer up in
 
             let old_downloaded =
-              Int64Swarmer.downloaded swarmer in
+              CommonSwarming.downloaded swarmer in
 
-            Int64Swarmer.received up
+            CommonSwarming.received up
               pos s 0 (String.length s);
 
             let new_downloaded =
-              Int64Swarmer.downloaded swarmer in
+              CommonSwarming.downloaded swarmer in
 
 	    c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
 
@@ -109,12 +109,12 @@ let segment_received c num s pos =
               download_finished file;
 
       with e ->
-          lprintf "FT: Exception %s in Int64Swarmer.received\n"
+          lprintf "FT: Exception %s in CommonSwarming.received\n"
             (Printexc2.to_string e)
     end;
     c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
-              Int64Swarmer.alloc_range r) d.download_ranges; *)
+              CommonSwarming.alloc_range r) d.download_ranges; *)
 (*
 lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
 lprintf "READ: buf_used %d\n" to_read_int;
@@ -122,7 +122,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
 
     (match d.download_ranges with
       | (xx,yy,r) :: tail when  pos >= xx && pos <= yy ->
-          let (x,y) = Int64Swarmer.range_range r in
+          let (x,y) = CommonSwarming.range_range r in
           lprintf "Remaining: %Ld-%Ld/%Ld-%Ld\n"
             x y xx yy;
           if x = y then begin
@@ -138,7 +138,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
               lprintf "\n ********** RANGE DOWNLOADED  ********** \n";
             end
       | (xx,yy,r) :: tail ->
-          let (x,y) = Int64Swarmer.range_range r in
+          let (x,y) = CommonSwarming.range_range r in
           lprintf "Bad range (%Ld): %Ld-%Ld/%Ld-%Ld\n"  pos
             x y xx yy;
       | [] ->

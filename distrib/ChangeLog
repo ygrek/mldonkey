@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/04/09
+5031: Merge CommonSwarming and CommonSwarming2 code (pango)
+
 2006/04/08
 5029: EDK: Remove set_brothers command and brotherhood option
 5030: Update config.guess and config.sub to version 2006-02-27

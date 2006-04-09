@@ -45,7 +45,7 @@ and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;
 (*    mutable file_name : string;*)
-    mutable file_swarmer : Int64Swarmer.t option;
+    mutable file_swarmer : CommonSwarming.t option;
     mutable file_clients : client list;
     mutable file_filenames : (string * ips_list) list;
     mutable file_clients_queue : client  Queues.Queue.t;
@@ -56,9 +56,9 @@ and download = {
     download_file : file;
     download_url : Url.url;
     mutable download_chunks : (int64 * int64) list;
-    mutable download_uploader : Int64Swarmer.uploader option;
-    mutable download_ranges : (int64 * int64 * Int64Swarmer.range) list;
-    mutable download_block : Int64Swarmer.block option;
+    mutable download_uploader : CommonSwarming.uploader option;
+    mutable download_ranges : (int64 * int64 * CommonSwarming.range) list;
+    mutable download_block : CommonSwarming.block option;
   }
 
 and tp_proto = {

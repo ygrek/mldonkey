@@ -3027,7 +3027,7 @@ let _ =
     "merge", Arg_two (fun f1 f2 o ->
         let file1 = file_find (int_of_string f1) in
         let file2 = file_find (int_of_string f2) in
-        Int64Swarmer.merge file1 file2;
+        CommonSwarming.merge file1 file2;
         "The two files are now merged"
     ), "<num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)";
 

@@ -68,7 +68,7 @@ module P = GuiTypes
 
 let _ =
   file_ops.op_file_cancel <- (fun file ->
-      Int64Swarmer.remove_swarmer file.file_swarmer;
+      CommonSwarming.remove_swarmer file.file_swarmer;
       file.file_swarmer <- None;
       remove_file file;
   );
@@ -90,11 +90,11 @@ let _ =
         P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = (match file.file_swarmer with
           None -> "" | Some swarmer ->
-            Int64Swarmer.verified_bitmap swarmer);
+            CommonSwarming.verified_bitmap swarmer);
         P.file_availability =
         [network.network_num,(match file.file_swarmer with
           None -> "" | Some swarmer ->
-            Int64Swarmer.availability swarmer)];
+            CommonSwarming.availability swarmer)];
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];
         P.file_age = file_age file;

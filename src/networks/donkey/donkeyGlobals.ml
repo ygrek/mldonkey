@@ -397,12 +397,12 @@ let new_file file_diskname file_state md4 file_size filenames writable =
       (match file_state with
           FileShared -> ()
         | _ ->
-            let kernel = Int64Swarmer.create_swarmer file_diskname file_size zone_size in
-            let swarmer = Int64Swarmer.create kernel (as_file file) block_size
+            let kernel = CommonSwarming.create_swarmer file_diskname file_size zone_size in
+            let swarmer = CommonSwarming.create kernel (as_file file) block_size
             in
             file.file_swarmer <- Some swarmer;
 (*
-        Int64Swarmer.set_writer swarmer (fun offset s pos len ->
+        CommonSwarming.set_writer swarmer (fun offset s pos len ->
 (*
       lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
       AnyEndian.dump_sub s pos len;
@@ -413,11 +413,11 @@ let new_file file_diskname file_state md4 file_size filenames writable =
             else
               Unix32.write  t offset s pos len
         ); *)
-            Int64Swarmer.set_verifier swarmer
+            CommonSwarming.set_verifier swarmer
               (if md4s = [] then VerificationNotAvailable else
                 Verification (Array.of_list (List.map (fun md4 -> Ed2k md4) md4s))
             );
-            Int64Swarmer.set_verified swarmer (fun nblocks num ->
+            CommonSwarming.set_verified swarmer (fun nblocks num ->
                 if nblocks = 1 then begin
                     new_shared_files := file :: !new_shared_files;
                     file_must_update file

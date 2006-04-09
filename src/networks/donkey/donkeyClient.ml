@@ -282,7 +282,7 @@ let disconnect_client c reason =
           (try DonkeyOneFile.clean_current_download c with _ -> ());
 
           List.iter (fun (file, chunks, up) -> 
-              try Int64Swarmer.unregister_uploader up with _ -> ()
+              try CommonSwarming.unregister_uploader up with _ -> ()
           )
           files;    
           c.client_file_queue <- [];  
@@ -862,7 +862,7 @@ let is_useful_client file chunks =
   match file.file_swarmer with
     None -> false
   | Some swarmer ->
-      let bitmap = Int64Swarmer.verified_bitmap swarmer in
+      let bitmap = CommonSwarming.verified_bitmap swarmer in
       let rec iter bitmap chunks i len =
         if i = len then false else
         if Bitv.get chunks i && bitmap.[i] < '2' then true else
@@ -879,7 +879,7 @@ let received_client_bitmap c file chunks =
       match file.file_swarmer with
         None -> ()
       | Some swarmer ->
-          lprintf_nl () "   %s" (Int64Swarmer.verified_bitmap swarmer);
+          lprintf_nl () "   %s" (CommonSwarming.verified_bitmap swarmer);
     end;
   
   let chunks = 
@@ -1296,7 +1296,7 @@ end; *)
         | Some (file,up) -> 
             if !verbose_download then
                 lprintf_nl () "Clear download";
-            Int64Swarmer.clear_uploader_ranges up;
+            CommonSwarming.clear_uploader_ranges up;
             c.client_download <- None
         | None ->
             match c.client_file_queue with
@@ -1384,7 +1384,7 @@ other one for unlimited sockets.  *)
         | Some (file,up) ->
             if !verbose_download then
                 lprintf_nl () "Slot closed during download";
-            Int64Swarmer.clear_uploader_ranges up
+            CommonSwarming.clear_uploader_ranges up
       end;
 (*      DonkeyOneFile.clean_current_download c; *)
       c.client_slot <- SlotNotAsked;
@@ -1477,7 +1477,7 @@ other one for unlimited sockets.  *)
             match file.file_swarmer with
               None -> ()
             | Some swarmer ->
-                Int64Swarmer.set_verifier swarmer 
+                CommonSwarming.set_verifier swarmer 
                   (Verification [| Ed2k file.file_md4 |])
           end else
         if t.Q.chunks = [||] then
@@ -1518,7 +1518,7 @@ is checked for the file.
                 match file.file_swarmer with
                   None -> ()
                 | Some swarmer ->
-                    Int64Swarmer.set_verifier swarmer 
+                    CommonSwarming.set_verifier swarmer 
                       (Verification (Array.map (fun m -> Ed2k m) md4s))
 
               end
@@ -1946,7 +1946,7 @@ end else *)
                        asume that we have all chunks! *)
                     Bitv.create file.file_nchunks true
               | Some swarmer ->
-                  let bitmap = Int64Swarmer.verified_bitmap swarmer in
+                  let bitmap = CommonSwarming.verified_bitmap swarmer in
                   Bitv.init (String.length bitmap) 
                       (fun i -> bitmap.[i] = '3')
                   (* This is not very smart, as we might get banned for this request.
@@ -2538,7 +2538,7 @@ let _ =
             match file.file_swarmer with
               None -> None
             | Some swarmer ->
-                let bitmap = Int64Swarmer.verified_bitmap swarmer in
+                let bitmap = CommonSwarming.verified_bitmap swarmer in
                 let chunks = 
                   Bitv.init (String.length bitmap) 
                   (fun i -> bitmap.[i] = '3')

@@ -524,7 +524,7 @@ XML ("audios",
                             failwith "G2Handler: recover from size 0 not implemented"
 (*
                             file.file_file.impl_file_size <- size;
-                            Int64Swarmer.set_size file.file_swarmer size;
+                            CommonSwarming.set_size file.file_swarmer size;
 file_must_update file;
   *)
                           end);

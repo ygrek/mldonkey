@@ -452,7 +452,7 @@ an upload request *)
                                 None -> assert false | Some sw -> sw
                             in
                             let chunks = [ Int64.zero, file_size file ] in
-                            let bs = Int64Swarmer.register_uploader swarmer 
+                            let bs = CommonSwarming.register_uploader swarmer 
                                 (as_client c)
                                 (AvailableRanges chunks) in
                             d.download_uploader <- Some bs

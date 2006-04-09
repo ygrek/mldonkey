@@ -122,9 +122,3 @@ module Make(M: sig
       
 end
 end
-
-module Int64Swarmer = CommonSwarming2.Make(struct
-      module CommonTypes = CommonTypes
-      module CommonFile = CommonFile
-      module CommonClient = CommonClient
-    end)

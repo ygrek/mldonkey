@@ -120,16 +120,16 @@ let set_file_size file size =
       in
       file.file_file.impl_file_size <- size;
       let file_temp = Unix32.filename (file_fd file) in
-      let kernel = Int64Swarmer.create_swarmer file_temp size min_range_size in
-      let swarmer = Int64Swarmer.create kernel (as_file file)
+      let kernel = CommonSwarming.create_swarmer file_temp size min_range_size in
+      let swarmer = CommonSwarming.create kernel (as_file file)
           file_chunk_size in
       file.file_swarmer <- Some swarmer;
-      Int64Swarmer.set_verified swarmer (fun _ _ ->
+      CommonSwarming.set_verified swarmer (fun _ _ ->
           file_must_update (as_file file);
       );
       file_must_update (as_file file)
       (*
-      Int64Swarmer.set_writer swarmer (fun offset s pos len ->
+      CommonSwarming.set_writer swarmer (fun offset s pos len ->
 
 (*
       lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
@@ -218,8 +218,8 @@ let add_download file c url =
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
       (*
-      let bs = Int64Swarmer.register_uploader file.file_swarmer
-        (Int64Swarmer.AvailableRanges chunks) in *)
+      let bs = CommonSwarming.register_uploader file.file_swarmer
+        (CommonSwarming.AvailableRanges chunks) in *)
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
           download_url = url;

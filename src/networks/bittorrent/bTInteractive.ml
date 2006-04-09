@@ -81,11 +81,11 @@ let op_file_files file impl =
   match file.file_swarmer with
     None -> [CommonFile.as_file impl]
   | Some swarmer ->
-      Int64Swarmer.subfiles swarmer
+      CommonSwarming.subfiles swarmer
 
 let op_file_debug file =
   let buf = Buffer.create 100 in
-(*      Int64Swarmer.debug_print buf file.file_swarmer; *)
+(*      CommonSwarming.debug_print buf file.file_swarmer; *)
   Hashtbl.iter (fun _ c ->
       Printf.bprintf buf "Client %d: %s\n" (client_num c)
       (match c.client_sock with
@@ -97,7 +97,7 @@ let op_file_debug file =
   Buffer.contents buf
 
 let op_file_commit file new_name =
-  Int64Swarmer.remove_swarmer file.file_swarmer;
+  CommonSwarming.remove_swarmer file.file_swarmer;
   file.file_swarmer <- None;
   if file_state file <> FileShared then
     begin
@@ -279,7 +279,7 @@ let op_file_print_sources_html file buf =
 
       let chunks = (match file.file_swarmer with
             None -> "" | Some swarmer ->
-              Int64Swarmer.verified_bitmap swarmer) in
+              CommonSwarming.verified_bitmap swarmer) in
 
       let header_list = [
         ( "1", "srh br ac", "Client number", "Num" ) ;
@@ -372,14 +372,14 @@ let op_file_check file =
     None ->
       lprintf_nl () "verify_chunks: no swarmer to verify chunks"
   | Some swarmer ->
-      Int64Swarmer.verify_all_chunks swarmer true
+      CommonSwarming.verify_all_chunks swarmer true
 
 let remove_all_clients file =
   Hashtbl.clear file.file_clients; 
   file.file_clients_num <- 0
 
 let op_file_cancel file =
-  Int64Swarmer.remove_swarmer file.file_swarmer;
+  CommonSwarming.remove_swarmer file.file_swarmer;
   file.file_swarmer <- None;
   BTClients.file_stop file;
   remove_file file;
@@ -399,7 +399,7 @@ let op_file_info file =
 
   let last_seen = match file.file_swarmer with
       None -> [| last_time () |]
-    | Some swarmer -> Int64Swarmer.compute_last_seen swarmer in
+    | Some swarmer -> CommonSwarming.compute_last_seen swarmer in
 
     { (impl_file_info file.file_file) with
 
@@ -408,11 +408,11 @@ let op_file_info file =
     P.file_names = [file.file_name, P.noips()];
     P.file_chunks = (match file.file_swarmer with
         None -> "" | Some swarmer ->
-          Int64Swarmer.verified_bitmap swarmer);
+          CommonSwarming.verified_bitmap swarmer);
     P.file_availability =
     [network.network_num,(match file.file_swarmer with
           None -> "" | Some swarmer ->
-            Int64Swarmer.availability swarmer)];
+            CommonSwarming.availability swarmer)];
 
     P.file_chunks_age = last_seen;
     P.file_uids = [Uid.create (BTUrl file.file_id)];

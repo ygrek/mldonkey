@@ -261,28 +261,28 @@ let rec client_parse_header c gconn sock header =
         let swarmer = match file.file_swarmer with
             None -> assert false | Some sw -> sw
         in
-(*        List.iter (fun (_,_,r) -> Int64Swarmer.free_range r)
+(*        List.iter (fun (_,_,r) -> CommonSwarming.free_range r)
         d.download_ranges; *)
 
         let old_downloaded =
-          Int64Swarmer.downloaded swarmer in
+          CommonSwarming.downloaded swarmer in
 
         begin
           try
             match d.download_uploader with
               None -> assert false
             | Some up ->
-                Int64Swarmer.received up
+                CommonSwarming.received up
                   !counter_pos b.buf b.pos to_read_int;
           with e ->
-              lprintf_nl () "Exception %s in Int64Swarmer.received"
+              lprintf_nl () "Exception %s in CommonSwarming.received"
                 (Printexc2.to_string e)
         end;
         c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
-              Int64Swarmer.alloc_range r) d.download_ranges; *)
+              CommonSwarming.alloc_range r) d.download_ranges; *)
         let new_downloaded =
-          Int64Swarmer.downloaded swarmer in
+          CommonSwarming.downloaded swarmer in
 
         c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
 
@@ -290,7 +290,7 @@ let rec client_parse_header c gconn sock header =
             [] -> lprintf_nl () "EMPTY Ranges!"
           | r :: _ ->
 (*
-              let (x,y) = Int64Swarmer.range_range r in
+              let (x,y) = CommonSwarming.range_range r in
               if !verbose then lprintf_nl "Received %Ld [%Ld] (%Ld-%Ld) -> %Ld"
                 !counter_pos to_read
                 x y
@@ -315,7 +315,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
                 lprintf "Ready for next chunk (version %s)\nHEADER:%s\n" http
                   (String.escaped header);
                 *)
-(*                Int64Swarmer.free_range r; *)
+(*                CommonSwarming.free_range r; *)
                 d.download_ranges <- tail;
 (* If we have no more range to receive, disconnect *)
                 if d.download_ranges = [] then raise Exit;

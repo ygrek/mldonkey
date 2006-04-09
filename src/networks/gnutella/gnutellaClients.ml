@@ -90,7 +90,7 @@ let clean_sources () =
 let download_finished file = 
   if List.memq file !current_files then begin
       file_completed (as_file file);
-      Int64Swarmer.remove_swarmer file.file_swarmer;
+      CommonSwarming.remove_swarmer file.file_swarmer;
       file.file_swarmer <- None;
 (* TODO: maybe this remove file may have a bad effect on sharing *)
       GnutellaGlobals.remove_file file;
@@ -107,7 +107,7 @@ let download_finished file =
 (*************************************************************************)
     
 let check_finished swarmer file =
-  if Int64Swarmer.check_finished swarmer then
+  if CommonSwarming.check_finished swarmer then
     download_finished file
   
 (*************************************************************************)
@@ -243,7 +243,7 @@ save it on disk in the next version. *)
               | Some swarmer ->
                   if !verbose_msg_clients then
                     lprintf "[TTR] set_verifier\n";
-                  Int64Swarmer.set_verifier swarmer 
+                  CommonSwarming.set_verifier swarmer 
                     (Verification (Array.map (fun ttr -> TigerTree ttr) array))
             );
             
@@ -274,10 +274,10 @@ and read_some d c counter_pos b to_read_int =
 
   begin
     try
-      Int64Swarmer.received up
+      CommonSwarming.received up
         counter_pos b.buf b.pos to_read_int;
     with e -> 
-        lprintf "FT: Exception %s in Int64Swarmer.received\n"
+        lprintf "FT: Exception %s in CommonSwarming.received\n"
           (Printexc2.to_string e);
 (* TODO: we should pause the download !!! *)
   end;
@@ -477,7 +477,7 @@ and get_from_client sock (c: client) =
             let up = match d.download_uploader with
                 None -> 
                   let chunks = [ Int64.zero, file_size file ] in
-                  let up = Int64Swarmer.register_uploader swarmer 
+                  let up = CommonSwarming.register_uploader swarmer 
                       (as_client c)
                     (AvailableRanges chunks) in
                   d.download_uploader <- Some up;
@@ -500,7 +500,7 @@ and get_from_client sock (c: client) =
                 List.iter (fun req ->
                     match req with
                       RANGEReq (x,y,r) ->
-(*              let (x,y) = Int64Swarmer.range_range r               in *)
+(*              let (x,y) = CommonSwarming.range_range r               in *)
                         lprintf "%Ld-%Ld " x y
                     | HEADReq -> 
                         lprintf "HEAD"
@@ -509,7 +509,7 @@ and get_from_client sock (c: client) =
                 ) d.download_ranges;
                 
                 lprintf "\n  Current blocks: ";
-(*          List.iter (fun b -> Int64Swarmer.print_block b) d.download_blocks; *)
+(*          List.iter (fun b -> CommonSwarming.print_block b) d.download_blocks; *)
                 lprintf "\n\nFinding Range: \n";
               end;
             let range = 
@@ -518,13 +518,13 @@ and get_from_client sock (c: client) =
                   match d.download_block with
                     None -> 
                       if !verbose_swarming then lprintf "No block\n";
-                      (try Int64Swarmer.verify_one_chunk swarmer with _ -> ());
-                      let b = Int64Swarmer.find_block up in
+                      (try CommonSwarming.verify_one_chunk swarmer with _ -> ());
+                      let b = CommonSwarming.find_block up in
                       
                       if !verbose_swarming then begin
                           lprintf "GOT BLOCK:\n";
-                          Int64Swarmer.print_uploaders swarmer;
-                          lprintf "Block Found: "; Int64Swarmer.print_block b;
+                          CommonSwarming.print_uploaders swarmer;
+                          lprintf "Block Found: "; CommonSwarming.print_block b;
                         end;
                       
                       d.download_block <- Some b;
@@ -532,15 +532,15 @@ and get_from_client sock (c: client) =
                   | Some b ->
 (*
                 if !verbose_swarming then begin
-                    lprintf "Current Block: "; Int64Swarmer.print_block b;
+                    lprintf "Current Block: "; CommonSwarming.print_block b;
 end;
   *)
                       try
-                        let (x,y,r) = Int64Swarmer.find_range up in 
+                        let (x,y,r) = CommonSwarming.find_range up in 
                         
                         if !verbose_swarming then begin
                             lprintf "GOT RANGE:\n";
-                            Int64Swarmer.print_uploaders swarmer;
+                            CommonSwarming.print_uploaders swarmer;
                           end;
                         d.download_ranges <- d.download_ranges @ 
                           [RANGEReq (x,y,r)];
@@ -603,7 +603,7 @@ and disconnect_client c r =
                 None -> ()
               | Some up ->
                   d.download_uploader <- None;
-                  Int64Swarmer.unregister_uploader up;
+                  CommonSwarming.unregister_uploader up;
                   d.download_block <- None;
                   d.download_ranges <- [];
           ) c.client_downloads;

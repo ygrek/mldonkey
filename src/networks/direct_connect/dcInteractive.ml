@@ -323,7 +323,7 @@ let _ =
       match file.file_swarmer with
         None -> [CommonFile.as_file impl]
       | Some swarmer ->
-          Int64Swarmer.subfiles swarmer)
+          CommonSwarming.subfiles swarmer)
 ; *)
   (*
   file_ops.op_file_save_as <- (fun file new_name  ->

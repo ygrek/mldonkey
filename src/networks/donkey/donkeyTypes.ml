@@ -656,14 +656,14 @@ and client = {
 (*    mutable client_chunks : availability; *)
 (*     mutable client_sock : tcp_connection; *)
     mutable client_ip : Ip.t;
-    mutable client_download : (file * Int64Swarmer.uploader) option;
-(*    mutable client_block : Int64Swarmer.block option; *)
-(*    mutable client_zones : (int64 * int64 * Int64Swarmer.range) list; *)
+    mutable client_download : (file * CommonSwarming.uploader) option;
+(*    mutable client_block : CommonSwarming.block option; *)
+(*    mutable client_zones : (int64 * int64 * CommonSwarming.range) list; *)
 (*    mutable client_connection_control : connection_control; *)
     mutable client_file_queue : (
       file * (* has displayed when connected *)
       Bitv.t *
-      Int64Swarmer.uploader
+      CommonSwarming.uploader
       ) list;
     mutable client_next_view_files :  int;
     mutable client_all_files : result list option;
@@ -780,7 +780,7 @@ and file = {
     file_md4 : Md4.t;
 (*    file_exists : bool; *)
 
-    mutable file_swarmer : Int64Swarmer.t option;
+    mutable file_swarmer : CommonSwarming.t option;
 
     mutable file_nchunks : int;
     mutable file_diskname : string;

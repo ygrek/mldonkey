@@ -109,7 +109,7 @@ let connect_trackers file event f =
         end
 
     | Some swarmer ->
-        let local_downloaded = Int64Swarmer.downloaded swarmer in
+        let local_downloaded = CommonSwarming.downloaded swarmer in
         let left = file_size file -- local_downloaded in
         match event with
           | "completed" -> [("event", "completed")],false,zero,zero
@@ -268,7 +268,7 @@ let disconnect_client c reason =
     | Connection sock  ->
         close sock reason;
         try
-(*          List.iter (fun r -> Int64Swarmer.free_range r) c.client_ranges; *)
+(*          List.iter (fun r -> CommonSwarming.free_range r) c.client_ranges; *)
           set_client_disconnected c reason;
           (try if c.client_good then count_seen c with _ -> ());
           (* this is not useful already done in the match
@@ -296,7 +296,7 @@ let disconnect_client c reason =
                      we must unregister him to update the swarmer
                      (Useful for availability)
                   *)
-                  Int64Swarmer.unregister_uploader up
+                  CommonSwarming.unregister_uploader up
 (*        c.client_registered_bitfield <- false;
           for i = 0 to String.length c.client_bitmap - 1 do
             c.client_bitmap.[0] <- '0';
@@ -347,7 +347,7 @@ let download_finished file =
         (*CommonComplexOptions.file_completed*)
         file_completed (as_file file);
         (* Remove the swarmer for this file as it is not useful anymore... *)
-        Int64Swarmer.remove_swarmer file.file_swarmer;
+        CommonSwarming.remove_swarmer file.file_swarmer;
         file.file_swarmer <- None;
         (* At this point, the file state is FileDownloaded. We should not remove
            the file, because we continue to upload. *)
@@ -359,7 +359,7 @@ let download_finished file =
   @param file The file to check status
 *)
 let check_finished swarmer file =
-  if Int64Swarmer.check_finished swarmer then
+  if CommonSwarming.check_finished swarmer then
       download_finished file
 
 let bits = [| 128; 64; 32;16;8;4;2;1 |]
@@ -401,7 +401,7 @@ let send_bitfield c =
 (* This must be a seeded file... *)
         String.make (Array.length c.client_file.file_chunks) '3'
     | Some swarmer ->
-        Int64Swarmer.verified_bitmap swarmer
+        CommonSwarming.verified_bitmap swarmer
   in
 
   if !verbose_download then lprintf_nl () "Sending verified bitmap: [%s]" bitmap;
@@ -560,7 +560,7 @@ and update_client_bitmap c =
   let up =
     match c.client_uploader with
       None ->
-        let up = Int64Swarmer.register_uploader swarmer (as_client c)
+        let up = CommonSwarming.register_uploader swarmer (as_client c)
           (AvailableRanges []) in
         c.client_uploader <- Some up;
         up
@@ -570,7 +570,7 @@ and update_client_bitmap c =
 
   let bitmap = match c.client_bitmap with
       None ->
-        let len = Int64Swarmer.partition_size swarmer in
+        let len = CommonSwarming.partition_size swarmer in
         let bitmap = Bitv.create len false in
         c.client_bitmap <- Some bitmap;
         bitmap
@@ -581,7 +581,7 @@ and update_client_bitmap c =
     let chunks = c.client_new_chunks in
     c.client_new_chunks <- [];
     List.iter (fun n -> Bitv.set bitmap n true) chunks;
-    Int64Swarmer.update_uploader up (AvailableBitv bitmap);
+    CommonSwarming.update_uploader up (AvailableBitv bitmap);
   end
 
 
@@ -603,7 +603,7 @@ and get_from_client sock (c: client) =
     let up = match c.client_uploader with
         None -> assert false
       | Some up -> up in
-    let swarmer = Int64Swarmer.uploader_swarmer up in
+    let swarmer = CommonSwarming.uploader_swarmer up in
 
   try
   
@@ -625,7 +625,7 @@ and get_from_client sock (c: client) =
         lprintf_n () "Current ranges: ";
           
         List.iter (fun (p1,p2, r) ->
-          let (x,y) = Int64Swarmer.range_range r in
+          let (x,y) = CommonSwarming.range_range r in
           lprintf "%Ld-%Ld[%Ld-%Ld] " p1 p2 x y
         ) c.client_ranges_sent;
 
@@ -639,7 +639,7 @@ and get_from_client sock (c: client) =
           
         match c.client_block with
         | None -> lprintf "none"
-        | Some b -> Int64Swarmer.print_block b;
+        | Some b -> CommonSwarming.print_block b;
 
         lprint_newline ();
       
@@ -660,11 +660,11 @@ and get_from_client sock (c: client) =
 
               if !verbose_swarming then lprintf_nl () "No block";
               update_client_bitmap c;
-              (try Int64Swarmer.verify_one_chunk swarmer with _ -> ());
+              (try CommonSwarming.verify_one_chunk swarmer with _ -> ());
               (*Find a free block in the swarmer*)
-              let b = Int64Swarmer.find_block up in
+              let b = CommonSwarming.find_block up in
               if !verbose_swarming then begin 
-                lprintf_n () "Block Found: "; Int64Swarmer.print_block b;
+                lprintf_n () "Block Found: "; CommonSwarming.print_block b;
                 lprint_newline ()
               end;
               c.client_block <- Some b;
@@ -679,7 +679,7 @@ and get_from_client sock (c: client) =
           | Some b ->
 
               if !verbose_swarming then begin
-                lprintf_n () "Current Block: "; Int64Swarmer.print_block b;
+                lprintf_n () "Current Block: "; CommonSwarming.print_block b;
                 lprint_newline ()
               end;
 
@@ -691,7 +691,7 @@ and get_from_client sock (c: client) =
                         c.client_range_waiting <- None;
                         (x,y,r)
                   | None -> 
-                        Int64Swarmer.find_range up 
+                        CommonSwarming.find_range up 
                 in
 
                 let (x,y,r) =
@@ -704,9 +704,9 @@ and get_from_client sock (c: client) =
                 in
                 
                   c.client_ranges_sent <- c.client_ranges_sent @ [x,y, r];
-(*                Int64Swarmer.alloc_range r; *)
+(*                CommonSwarming.alloc_range r; *)
                 
-                  let num = Int64Swarmer.block_num swarmer b in
+                  let num = CommonSwarming.block_num swarmer b in
 
                   if !verbose_swarming then 
                     lprintf_nl () "Asking %d For Range %Ld-%Ld" num x y;
@@ -736,7 +736,7 @@ and get_from_client sock (c: client) =
           *)
           if !verbose_swarming then
             lprintf_nl () "Unable to get a block !!";
-          Int64Swarmer.compute_bitmap swarmer;
+          CommonSwarming.compute_bitmap swarmer;
           check_finished swarmer file;
           raise Not_found
     in
@@ -748,7 +748,7 @@ and get_from_client sock (c: client) =
         (client_num c) (Sha1.to_string c.client_uid) x y
 
   with Not_found ->
-        if not (Int64Swarmer.check_finished swarmer) && !verbose_download then
+        if not (CommonSwarming.check_finished swarmer) && !verbose_download then
           lprintf_nl () "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished for file : %s..." file.file_name
 
 
@@ -778,7 +778,7 @@ and client_to_client c sock msg =
           [] -> ()
         | b :: tail when tail == c.client_blocks_sent ->
             c.client_blocks_sent <- list;
-            let (num,_,_) = Int64Swarmer.block_block b  in
+            let (num,_,_) = CommonSwarming.block_block b  in
             send_client c (Have (Int64.of_int num))
         | _ :: tail -> iter tail
       in
@@ -797,26 +797,26 @@ and client_to_client c sock msg =
             let up = match c.client_uploader with
                 None -> assert false
               | Some up -> up in
-            let swarmer = Int64Swarmer.uploader_swarmer up in
+            let swarmer = CommonSwarming.uploader_swarmer up in
 
             if !verbose_msg_clients then
               (match c.client_ranges_sent with
                   [] -> lprintf_nl () "EMPTY Ranges !!!"
                 | (p1,p2,r) :: _ ->
-                    let (x,y) = Int64Swarmer.range_range r in
+                    let (x,y) = CommonSwarming.range_range r in
                     lprintf_nl () "Current range from %s : %Ld [%d] (asked %Ld-%Ld[%Ld-%Ld])"
                       (brand_to_string c.client_brand) position len
                       p1 p2 x y
               );
 
             let old_downloaded =
-              Int64Swarmer.downloaded swarmer in
-(*            List.iter Int64Swarmer.free_range c.client_ranges;       *)
-            Int64Swarmer.received up
+              CommonSwarming.downloaded swarmer in
+(*            List.iter CommonSwarming.free_range c.client_ranges;       *)
+            CommonSwarming.received up
               position s pos len;
-(*            List.iter Int64Swarmer.alloc_range c.client_ranges; *)
+(*            List.iter CommonSwarming.alloc_range c.client_ranges; *)
             let new_downloaded =
-              Int64Swarmer.downloaded swarmer in
+              CommonSwarming.downloaded swarmer in
 
             (*Update rate and amount of data received from client*)
             count_download c (new_downloaded -- old_downloaded);
@@ -826,7 +826,7 @@ and client_to_client c sock msg =
               (match c.client_ranges_sent with
                   [] -> lprintf_nl () "EMPTY Ranges !!!"
                 | (p1,p2,r) :: _ ->
-                    let (x,y) = Int64Swarmer.range_range r in
+                    let (x,y) = CommonSwarming.range_range r in
                     lprintf_nl () "Received %Ld [%d] %Ld-%Ld[%Ld-%Ld] -> %Ld"
                       position len
                       p1 p2 x y
@@ -842,7 +842,7 @@ and client_to_client c sock msg =
           match c.client_ranges_sent with
             [] -> ()
           | r :: tail ->
-(*              Int64Swarmer.free_range r; *)
+(*              CommonSwarming.free_range r; *)
               c.client_ranges_sent <- tail;
         end;
         get_from_client sock c;
@@ -909,7 +909,7 @@ and client_to_client c sock msg =
           | Some swarmer ->
               c.client_new_chunks <- [];
               
-              let npieces = Int64Swarmer.partition_size swarmer in
+              let npieces = CommonSwarming.partition_size swarmer in
               let nbits = String.length p * 8 in
 
               if nbits < npieces then begin
@@ -917,7 +917,7 @@ and client_to_client c sock msg =
                 disconnect_client c (Closed_for_error "Wrong bitfield length")
               end else begin
 
-                let verified = Int64Swarmer.verified_bitmap swarmer in
+                let verified = CommonSwarming.verified_bitmap swarmer in
 
                 for i = 0 to npieces - 1 do
                   if is_bit_set p i then begin
@@ -952,7 +952,7 @@ and client_to_client c sock msg =
             None -> ()
           | Some swarmer ->
               let n = Int64.to_int n in
-              let verified = Int64Swarmer.verified_bitmap swarmer in
+              let verified = CommonSwarming.verified_bitmap swarmer in
               (* lprintf_nl "verified: %c;" verified.[n]; *)
               (* if the peer has a chunk we don't, tell him we're interested and update his bitmap *)
               if verified.[n] < '2' then begin
@@ -965,11 +965,11 @@ and client_to_client c sock msg =
 (*        begin
           match c.client_bitmap, c.client_uploader with
             Some bitmap, Some up ->
-              let swarmer = Int64Swarmer.uploader_swarmer up in
+              let swarmer = CommonSwarming.uploader_swarmer up in
               let n = Int64.to_int n in
               if bitmap.[n] <> '1' then
 
-                let verified = Int64Swarmer.verified_bitmap swarmer in
+                let verified = CommonSwarming.verified_bitmap swarmer in
                 if verified.[n] < '2' then begin
                     c.client_interesting <- true;
                     send_interested c;
@@ -1005,7 +1005,7 @@ and client_to_client c sock msg =
                   if !verbose_msg_clients then lprintf_nl () "%s:%d with software %s : Choke send, but no client bitmap"
                     (Ip.to_string ip) port (brand_to_string c.client_brand)
             | Some up ->
-                Int64Swarmer.clear_uploader_ranges up
+                CommonSwarming.clear_uploader_ranges up
           end;
           c.client_ranges_sent <- [];
           c.client_range_waiting <- None;

@@ -246,7 +246,7 @@ let really_query_download filenames size md4 location old_file absents =
           None -> assert false
         | Some swarmer ->
             let absents = Sort.list (fun (p1,_) (p2,_) -> p1 <= p2) absents in
-            Int64Swarmer.set_absent swarmer absents
+            CommonSwarming.set_absent swarmer absents
   end;
 
   if !verbose then lprintf_nl () "Started new download, file %s, size %Ld, md4 %s"
@@ -498,7 +498,7 @@ let print_file buf file =
   match file.file_swarmer with
     None -> ()
   | Some swarmer ->
-      let bitmap = Int64Swarmer.verified_bitmap swarmer in
+      let bitmap = CommonSwarming.verified_bitmap swarmer in
       Printf.bprintf buf "\nChunks: %s\n" bitmap
 *)
 
@@ -507,7 +507,7 @@ let recover_md4s md4 =
   match file.file_swarmer with
     None -> ()
   | Some swarmer ->
-      Int64Swarmer.verify_all_chunks swarmer false
+      CommonSwarming.verify_all_chunks swarmer false
 
   (*
   if file.file_chunks <> [||] then
@@ -613,7 +613,7 @@ let op_file_check file =
   match file.file_swarmer with
     None -> ()
   | Some swarmer ->
-      Int64Swarmer.verify_all_chunks swarmer true
+      CommonSwarming.verify_all_chunks swarmer true
 
 let register_commands list =
   register_commands
@@ -747,9 +747,9 @@ let commands = [
                       None -> ()
                     | Some swarmer ->
                         let segments = CommonFile.recover_bytes (as_file file) in
-                        let old_downloaded = Int64Swarmer.downloaded swarmer in
-                        Int64Swarmer.set_present swarmer segments;
-                        let new_downloaded = Int64Swarmer.downloaded swarmer in
+                        let old_downloaded = CommonSwarming.downloaded swarmer in
+                        CommonSwarming.set_present swarmer segments;
+                        let new_downloaded = CommonSwarming.downloaded swarmer in
                         Printf.bprintf buf "Recovered %Ld bytes for %s\n"
                           (new_downloaded -- old_downloaded)
                         (file_best_name file)
@@ -975,7 +975,7 @@ DonkeySources.recompute_ready_sources ()        *)
 
   file_ops.op_file_commit <- (fun file new_name ->
 
-      Int64Swarmer.remove_swarmer file.file_swarmer;
+      CommonSwarming.remove_swarmer file.file_swarmer;
       file.file_swarmer <- None;
 (*      DonkeyStats.save_download_history file; *)
 
@@ -1031,7 +1031,7 @@ let _ =
       try
         let last_seen = match file.file_swarmer with
             None -> [| last_time () |]
-          | Some swarmer -> Int64Swarmer.compute_last_seen swarmer
+          | Some swarmer -> CommonSwarming.compute_last_seen swarmer
         in
         let v =
             { (impl_file_info file.file_file) with
@@ -1044,13 +1044,13 @@ let _ =
             P.file_chunks = 
                   (match file.file_swarmer with
                    | None -> "" 
-                   | Some swarmer -> Int64Swarmer.verified_bitmap swarmer);
+                   | Some swarmer -> CommonSwarming.verified_bitmap swarmer);
             P.file_availability =
               [
                 network.network_num,
                 (match file.file_swarmer with
                   | None -> "" 
-                  | Some swarmer -> Int64Swarmer.availability swarmer)
+                  | Some swarmer -> CommonSwarming.availability swarmer)
               ];
             P.file_format = file.file_format;
             P.file_chunks_age = last_seen;
@@ -1305,7 +1305,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
       let chunks =
       (match file.file_swarmer with
        None -> "" | Some swarmer ->
-       Int64Swarmer.verified_bitmap swarmer)
+       CommonSwarming.verified_bitmap swarmer)
       in
 
       html_mods_table_header buf "sourcesTable" "sources al" ([
@@ -1445,7 +1445,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
 
   );
   file_ops.op_file_cancel <- (fun file ->
-      Int64Swarmer.remove_swarmer file.file_swarmer;
+      CommonSwarming.remove_swarmer file.file_swarmer;
       file.file_swarmer <- None;
       Hashtbl.remove files_by_md4 file.file_md4;
       current_files := List2.removeq file !current_files;
@@ -1466,7 +1466,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
       match file.file_swarmer with
         None -> [CommonFile.as_file impl]
       | Some swarmer ->
-          Int64Swarmer.subfiles swarmer)
+          CommonSwarming.subfiles swarmer)
 
 let try_recover_temp_file filename md4 =
   try

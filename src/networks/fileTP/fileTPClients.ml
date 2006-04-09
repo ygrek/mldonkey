@@ -73,7 +73,7 @@ let disconnect_client c r =
               match d.download_uploader with
                 None -> ()
               | Some up ->
-                  Int64Swarmer.unregister_uploader up;
+                  CommonSwarming.unregister_uploader up;
                   d.download_ranges <- [];
                   d.download_uploader <- None;
             ) c.client_downloads;
@@ -124,7 +124,7 @@ let download_finished file =
 
 let check_finished swarmer file =
   if file_state file <> FileDownloaded &&
-    (file_size file = Int64Swarmer.downloaded swarmer) then begin
+    (file_size file = CommonSwarming.downloaded swarmer) then begin
       download_finished file
     end
 
@@ -154,10 +154,10 @@ let get_from_client sock (c: client) =
                 List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) d.download_chunks;
                 lprintf "\n  Current ranges: ";
                 List.iter (fun (x,y,r) ->
-(*              let (x,y) = Int64Swarmer.range_range r in *)
+(*              let (x,y) = CommonSwarming.range_range r in *)
                     lprintf "%Ld-%Ld " x y) d.download_ranges;
                 lprintf "\n  Current blocks: ";
-(*                List.iter (fun b -> Int64Swarmer.print_block b) d.download_blocks; *)
+(*                List.iter (fun b -> CommonSwarming.print_block b) d.download_blocks; *)
                 lprintf "\n\nFinding Range: \n";
               end;
             let range =
@@ -172,29 +172,29 @@ let get_from_client sock (c: client) =
                       match d.download_block with
                         None ->
                           if !verbose_swarming then lprintf "No block\n";
-                          let b = Int64Swarmer.find_block up in
+                          let b = CommonSwarming.find_block up in
 
 (*                          lprintf "GOT BLOCK:\n"; *)
-                          if !verbose_swarming then Int64Swarmer.print_uploaders swarmer;
+                          if !verbose_swarming then CommonSwarming.print_uploaders swarmer;
 
                           if !verbose_swarming then begin
-                              lprintf "Block Found: "; Int64Swarmer.print_block b;
+                              lprintf "Block Found: "; CommonSwarming.print_block b;
                             end;
                           d.download_block <- Some b;
                           iter ()
                       | Some b ->
 
                           if !verbose_swarming then  begin
-                              lprintf "Current Block: "; Int64Swarmer.print_block b;
+                              lprintf "Current Block: "; CommonSwarming.print_block b;
                             end;
                           try
-                            let (x,y,r) = Int64Swarmer.find_range up in
+                            let (x,y,r) = CommonSwarming.find_range up in
 
 (*                            lprintf "GOT RANGE:\n"; *)
-                            if !verbose_swarming then Int64Swarmer.print_uploaders swarmer;
+                            if !verbose_swarming then CommonSwarming.print_uploaders swarmer;
 
                             d.download_ranges <- d.download_ranges @ [x,y,r];
-(*                        Int64Swarmer.alloc_range r; *)
+(*                        CommonSwarming.alloc_range r; *)
                             (x,y)
                           with Not_found ->
                               if !verbose_swarming then
@@ -267,7 +267,7 @@ that the connection will not be aborted (otherwise, disconnect_client
                                 None -> assert false | Some sw -> sw
                             in
                             let chunks = [ Int64.zero, file_size file ] in
-                            let up = Int64Swarmer.register_uploader swarmer
+                            let up = CommonSwarming.register_uploader swarmer
                               (as_client c)
                                 (AvailableRanges chunks) in
                             d.download_uploader <- Some up

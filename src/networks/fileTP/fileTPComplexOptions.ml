@@ -84,7 +84,7 @@ let value_to_file file_size file_state assocs =
   (match file.file_swarmer with
       None -> ()
     | Some swarmer ->
-        Int64Swarmer.value_to_swarmer swarmer assocs;
+        CommonSwarming.value_to_swarmer swarmer assocs;
   );
 
   (try
@@ -118,7 +118,7 @@ let file_to_value file =
   match file.file_swarmer with
     None -> assocs
   | Some swarmer ->
-      Int64Swarmer.swarmer_to_value swarmer assocs
+      CommonSwarming.swarmer_to_value swarmer assocs
 
 let old_files =
   define_option fileTP_section ["old_urls"]

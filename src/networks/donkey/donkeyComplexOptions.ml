@@ -297,8 +297,8 @@ let value_to_file file_size file_state assocs =
   (match file.file_swarmer with
       None -> ()
     | Some swarmer ->
-        Int64Swarmer.value_to_swarmer swarmer assocs;
-        Int64Swarmer.set_verifier swarmer (if md4s = [||] then
+        CommonSwarming.value_to_swarmer swarmer assocs;
+        CommonSwarming.set_verifier swarmer (if md4s = [||] then
             VerificationNotAvailable
           else
             Verification
@@ -321,7 +321,7 @@ let file_to_value file =
   match file.file_swarmer with
     None -> fields
     | Some swarmer ->
-        Int64Swarmer.swarmer_to_value swarmer fields
+        CommonSwarming.swarmer_to_value swarmer fields
   in
   fields
     

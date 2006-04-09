@@ -325,10 +325,10 @@ let new_file file_temporary file_name file_size file_uids =
   in
   if !verbose then
     lprintf "SET SIZE : %Ld\n" file_size;
-  let kernel = Int64Swarmer.create_swarmer file_temp file_size 
+  let kernel = CommonSwarming.create_swarmer file_temp file_size 
       (Int64.of_int (256 * 1024))  in
-  let swarmer = Int64Swarmer.create kernel (as_file file) megabyte in
-  Int64Swarmer.set_verifier swarmer ForceVerification;
+  let swarmer = CommonSwarming.create kernel (as_file file) megabyte in
+  CommonSwarming.set_verifier swarmer ForceVerification;
   
 (* TODO: we could generalize this approach to any UID that is computed
   on the complete file (md5, sha1,...) *)
@@ -336,7 +336,7 @@ let new_file file_temporary file_name file_size file_uids =
     List.iter (fun uid ->
         match Uid.to_uid uid with
           (Sha1 _) as uid ->
-            Int64Swarmer.set_verifier swarmer (Verification [| uid |])
+            CommonSwarming.set_verifier swarmer (Verification [| uid |])
         | _ ->()) file_uids;
   file.file_swarmer <- Some swarmer;
   current_files := file :: !current_files;
@@ -442,8 +442,8 @@ let add_download file c index =
     lprintf "Adding file to client\n";
   if not (List.memq c file.file_clients) then begin
       let chunks = [ Int64.zero, file_size file ] in
-(*      let up = Int64Swarmer.register_uploader file.file_swarmer 
-          (Int64Swarmer.AvailableRanges chunks) in *)
+(*      let up = CommonSwarming.register_uploader file.file_swarmer 
+          (CommonSwarming.AvailableRanges chunks) in *)
       c.client_downloads <- c.client_downloads @ [{
           download_file = file;
           download_uri = index;

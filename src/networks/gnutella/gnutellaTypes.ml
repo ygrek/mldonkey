@@ -107,7 +107,7 @@ and upload_client = {
   }
 
 and download_request = 
-  RANGEReq of int64 * int64 * Int64Swarmer.range
+  RANGEReq of int64 * int64 * CommonSwarming.range
 | HEADReq
 | TTRReq of int
   
@@ -116,7 +116,7 @@ and file = {
     file_file : file CommonFile.file_impl;
     file_temp : string;
     mutable file_name : string;
-    mutable file_swarmer : Int64Swarmer.t option;
+    mutable file_swarmer : CommonSwarming.t option;
     mutable file_clients : client list;
     mutable file_uids : Uid.t list; 
     mutable file_searches : local_search list;
@@ -130,9 +130,9 @@ and download = {
     download_file : file;
     mutable download_uri : GnutellaNetwork.file_uri;
     mutable download_chunks : (int64 * int64) list;
-    mutable download_uploader : Int64Swarmer.uploader option;
+    mutable download_uploader : CommonSwarming.uploader option;
     mutable download_ranges : download_request list;
-    mutable download_block : Int64Swarmer.block option;
+    mutable download_block : CommonSwarming.block option;
     mutable download_head_requested : bool;
     mutable download_ttr_requested : bool;
   }

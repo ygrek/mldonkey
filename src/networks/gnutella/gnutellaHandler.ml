@@ -282,7 +282,7 @@ information. *)
                     
                     failwith "GnutellaHandler: Recover with old size 0 not implemented"
 (*                    
-                    Int64Swarmer.set_size file.file_swarmer f.Q.size;
+                    CommonSwarming.set_size file.file_swarmer f.Q.size;
                     file_must_update file; *)
                   end;
 

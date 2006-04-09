@@ -79,15 +79,15 @@ end_pos !counter_pos b.len to_read;
           None -> assert false
         | Some up ->
 
-            let swarmer = Int64Swarmer.uploader_swarmer up in
+            let swarmer = CommonSwarming.uploader_swarmer up in
 
             let old_downloaded =
-              Int64Swarmer.downloaded swarmer in
+              CommonSwarming.downloaded swarmer in
 
-            Int64Swarmer.received up
+            CommonSwarming.received up
               !counter_pos b.buf b.pos to_read_int;
             let new_downloaded =
-              Int64Swarmer.downloaded swarmer in
+              CommonSwarming.downloaded swarmer in
 
 	    c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
 
@@ -95,12 +95,12 @@ end_pos !counter_pos b.len to_read;
               download_finished file;
 
       with e ->
-        lprintf "FT: Exception %s in Int64Swarmer.received\n"
+        lprintf "FT: Exception %s in CommonSwarming.received\n"
           (Printexc2.to_string e)
   end;
   c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
-              Int64Swarmer.alloc_range r) d.download_ranges; *)
+              CommonSwarming.alloc_range r) d.download_ranges; *)
 
   (match d.download_ranges with
       [] -> lprintf "EMPTY Ranges !!!\n"

@@ -181,11 +181,11 @@ type client = {
     mutable client_sock : tcp_connection;
     mutable client_host : Ip.t * int;
     mutable client_chunks : (int64 * int64) list;
-    mutable client_uploader : Int64Swarmer.uploader option;
-    mutable client_ranges_sent : (int64 * int64 * Int64Swarmer.range) list;
+    mutable client_uploader : CommonSwarming.uploader option;
+    mutable client_ranges_sent : (int64 * int64 * CommonSwarming.range) list;
     mutable client_range_waiting :
-    (int64 * int64 * Int64Swarmer.range) option;
-    mutable client_block : Int64Swarmer.block option;
+    (int64 * int64 * CommonSwarming.range) option;
+    mutable client_block : CommonSwarming.block option;
 
     mutable client_received_peer_id : bool;
     mutable client_sent_choke : bool; (* we sent a Choke to the client *)
@@ -244,7 +244,7 @@ and file = {
     file_creation_date : int64;
     file_modified_by : string;
     file_encoding : string;
-    mutable file_swarmer : Int64Swarmer.t option;
+    mutable file_swarmer : CommonSwarming.t option;
     mutable file_clients : ((Ip.t*int), client) Hashtbl.t ;
     mutable file_clients_num : int ;
     mutable file_chunks : Sha1.t array;

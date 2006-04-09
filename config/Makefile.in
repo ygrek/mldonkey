@@ -260,7 +260,6 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonInteractive.ml \
   $(COMMON)/commonChunks.ml \
   $(COMMON)/commonSwarming.ml \
-  $(COMMON)/commonSwarming2.ml \
   $(COMMON)/commonDownloads.ml \
   $(COMMON)/commonUploads.ml \
   $(COMMON)/commonSources.ml \

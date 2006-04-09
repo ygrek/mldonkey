@@ -110,11 +110,11 @@ let choose_best_downloaders files =
           ((file_size a) -- (match a.file_swarmer with 
                              | None -> Int64.zero 
                              | Some swarmer -> 
-                             	 CommonDownloads.Int64Swarmer.downloaded swarmer))
+                             	 CommonSwarming.downloaded swarmer))
           ((file_size b) -- (match b.file_swarmer with 
           			         | None -> Int64.zero 
           			         | Some swarmer -> 
-          			         	 CommonDownloads.Int64Swarmer.downloaded swarmer))
+          			         	 CommonSwarming.downloaded swarmer))
         ) files in
   let files = List.stable_sort
        (fun a b -> compare

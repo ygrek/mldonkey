@@ -298,18 +298,18 @@ let new_file file_temporary file_name file_size file_hash =
     }
   in
   incr search_num;
-  let kernel = Int64Swarmer.create_swarmer file_temp file_size min_range_size in
-  let swarmer = Int64Swarmer.create kernel (as_file file)
+  let kernel = CommonSwarming.create_swarmer file_temp file_size min_range_size in
+  let swarmer = CommonSwarming.create kernel (as_file file)
       file_chunk_size in
   file.file_swarmer <- Some swarmer;
   Hashtbl.add searches_by_uid search.search_uid search;
 (*  lprintf "SET SIZE : %Ld\n" file_size;*)
-  Int64Swarmer.set_verifier swarmer ForceVerification;
-  Int64Swarmer.set_verified swarmer (fun _ _ ->
+  CommonSwarming.set_verifier swarmer ForceVerification;
+  CommonSwarming.set_verified swarmer (fun _ _ ->
       file_must_update file;
   );
   (*
-  Int64Swarmer.set_writer swarmer (fun offset s pos len ->
+  CommonSwarming.set_writer swarmer (fun offset s pos len ->
 
       (*
       lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
