@@ -104,7 +104,7 @@ let connect_download c file req =
                   (Ip.to_inet_addr ip) port
                   (fun _ _ -> ())
               in
-              let  d = Download.new_download sock c file 1 in
+              let d = Download.new_download sock c file 1 in
               set_reader sock (Download.download_reader d);
               set_client_state c (Connected_downloading (file_num file));
               init_download_connection sock file (local_login()) req 
@@ -153,7 +153,6 @@ let client_to_client c t sock =
 (* Someone wants to upload to us !! *)
       begin
         try
-          let short_file_name = Filename2.basename file_name in
           let file = Hashtbl.find files_by_key (String.lowercase file_name) in
           
           lprintf "File Found"; lprint_newline ();

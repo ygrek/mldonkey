@@ -111,28 +111,18 @@ let string_of_client_addr c = c.client_hostname
 
 let _ =
   client_ops.op_client_info <- (fun c ->
-      {
+      { (impl_client_info c.client_client) with
         P.client_network = network.network_num;
         P.client_kind = Known_location (Ip.from_name c.client_hostname,
           c.client_port);
         P.client_state = client_state (as_client c);
         P.client_type = client_type c;
-        P.client_tags = [];
         P.client_name = (Printf.sprintf "%s:%d"
           c.client_hostname c.client_port);
-        P.client_files = None;
         P.client_num = (client_num (as_client c));
-        P.client_rating = 0;
-        P.client_chat_port = 0 ;
         P.client_connect_time = BasicSocket.last_time ();
         P.client_software = "TP";
-        P.client_release = "";
-        P.client_emulemod = "";
         P.client_downloaded = c.client_downloaded;
-        P.client_uploaded = zero;
-        P.client_upload = None;
-        P.client_sui_verified = None;
-(*		P.client_sock_addr = (; *)
       }
   );
     client_ops.op_client_bprint <- (fun c buf ->

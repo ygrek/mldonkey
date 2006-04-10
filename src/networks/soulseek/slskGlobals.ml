@@ -20,6 +20,7 @@
 open CommonInteractive
 open Printf2
 open Md4
+open Int64ops
 open CommonOptions
 open CommonResult
 open BasicSocket
@@ -35,6 +36,7 @@ open CommonRoom
 open CommonTypes
 open CommonShared
 open CommonServer
+open CommonSwarming
 open SlskOptions
 open SlskTypes
 
@@ -103,7 +105,7 @@ let connected_servers = ref ([] : server list)
 
 let servers_by_addr = Hashtbl.create 13
   
-let new_server addr port=
+let new_server addr port =
   try
     Hashtbl.find servers_by_addr (addr, port) 
   with _ ->
@@ -247,41 +249,61 @@ let files_by_key = Hashtbl.create 47
 
 let current_files = ref []
 
-    
+let min_range_size = megabyte
+
+let new_file file_id name file_size =
+  let file_chunk_size =
+    max megabyte (
+      file_size // (max 5L (file_size // (megabytes 5)))
+    )
+  in
+  let file_temp = Filename.concat !!temp_directory 
+      (Printf.sprintf "SK-%s" (Md4.to_string file_id)) in
+  let current_size =
+    try
+      Unix32.getsize file_temp
+    with e -> Int64.zero
+  in
+
+  let t = Unix32.create_rw file_temp in
+  let rec file = {
+      file_file = file_impl;
+      file_id = file_id;
+      file_clients = [];
+      file_swarmer = None;
+    } and file_impl =  {
+      dummy_file_impl with
+      impl_file_fd = Some t;
+      impl_file_size = file_size;
+      impl_file_val = file;
+      impl_file_ops = file_ops;
+      impl_file_age = last_time ();
+      impl_file_best_name = name;
+    }
+  in
+  let state =
+    if current_size = file_size then
+      FileDownloaded
+    else
+      begin
+        let kernel = CommonSwarming.create_swarmer file_temp file_size min_range_size in
+        let swarmer = CommonSwarming.create kernel (as_file file.file_file) file_chunk_size in
+          file.file_swarmer <- Some swarmer;
+        CommonSwarming.set_verifier swarmer ForceVerification;
+        CommonSwarming.set_verified swarmer (fun _ _ -> file_must_update file);
+        current_files := file :: !current_files;
+        FileDownloading
+      end
+  in
+  file_add file_impl state;
+  file
+
 let new_file file_id name file_size =
   let key = String.lowercase name in
   try
     Hashtbl.find files_by_key key
   with _ ->
-      let file_temp = Filename.concat !!temp_directory 
-          (Printf.sprintf "SK-%s" (Md4.to_string file_id)) in
-      let current_size = try
-          Unix32.getsize file_temp true
-        with e ->
-            lprintf "Exception %s in current_size\n" (Printexc2.to_string e); 
-            Int64.zero
-      in
-      
-      let rec file = {
-          file_file = impl;
-          file_id = file_id;
-          file_clients = [];
-        } and impl = {
-          dummy_file_impl with
-          impl_file_fd = Some (Unix32.create_rw file_temp);
-          impl_file_size = file_size;
-          impl_file_downloaded = current_size;
-          impl_file_val = file;
-          impl_file_ops = file_ops;
-          impl_file_age = last_time ();          
-          impl_file_best_name = name;
-        } in
-      let state = if current_size = file_size then FileDownloaded else begin
-            current_files := file :: !current_files;
-            FileDownloading
-          end
-      in
-      file_add impl state;
+      let file = new_file file_id key file_size  in
       Hashtbl.add files_by_key key file;
       file
 

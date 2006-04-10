@@ -65,6 +65,7 @@ and file = {
     file_file : file CommonFile.file_impl;
     file_id : Md4.t;
     mutable file_clients : client list;
+    mutable file_swarmer : CommonSwarming.t option;
   }
 
 and client = {

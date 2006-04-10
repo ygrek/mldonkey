@@ -174,7 +174,7 @@ let translate s =
 open TcpBufferedSocket
   
 let load_servers_list url f =
-  lprintf "QUERY URL %s\n" url;
+  lprintf_nl "QUERY URL %s\n" url;
   CommonWeb.mldonkey_wget url (fun filename ->
     f (translate (File.to_string filename)))
 

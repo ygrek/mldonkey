@@ -158,7 +158,7 @@ let _ =
             let addr = Ip.addr_of_string addr in
             addr, port
           in
-          let s = new_server addr port in
+          ignore (new_server addr port);
           "", true
       | "dc://" :: "friend" :: nick :: [] ->  
           let c = new_client nick in
@@ -356,25 +356,14 @@ let _ =
   
 let _ =
   client_ops.op_client_info <- (fun c ->
-      {
+      { (impl_client_info c.client_client) with
         P.client_network = network.network_num;
-        P.client_kind = Indirect_location (c.client_name, Md4.null);
+        P.client_kind = Indirect_location (c.client_name, Md4.null, Ip.null, 0);
         P.client_state = client_state (as_client c.client_client);
         P.client_type = client_type c;
-        P.client_tags = [];
         P.client_name = c.client_name;
-        P.client_files = None;
         P.client_num = (client_num (as_client c.client_client));
-        P.client_rating = 0;
-        P.client_chat_port = 0 ;
         P.client_connect_time = last_time ();
-        P.client_software = "";
-        P.client_release = "";
-        P.client_emulemod = "";
-        P.client_downloaded = zero;
-        P.client_uploaded = zero;
-        P.client_upload = None;
-(*	P.client_sock_addr = ""; *)
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->

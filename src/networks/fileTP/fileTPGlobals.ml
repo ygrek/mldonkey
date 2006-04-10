@@ -128,19 +128,6 @@ let set_file_size file size =
           file_must_update (as_file file);
       );
       file_must_update (as_file file)
-      (*
-      CommonSwarming.set_writer swarmer (fun offset s pos len ->
-
-(*
-      lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
-      AnyEndian.dump_sub s pos len;
-*)
-
-          if !!CommonOptions.buffer_writes then
-            Unix32.buffered_write_copy (file_fd file) offset s pos len
-          else
-            Unix32.write  (file_fd file) offset s pos len
-      ) *)
     end
 
 let new_file file_id file_name file_size =
@@ -172,8 +159,6 @@ let new_file file_id file_name file_size =
   file_add file_impl FileDownloading;
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
   file
-
-exception FileFound of file
 
 let new_file file_id file_name file_size =
   try

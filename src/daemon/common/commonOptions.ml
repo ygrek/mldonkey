@@ -850,6 +850,10 @@ let web_infos = define_option current_section ["web_infos"]
       "http://download.overnet.org/contact.dat");
     ("geoip.dat", 0,
       "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
+(*
+    ("slsk_boot", 0,
+      "http://www.slsknet.org/slskinfo2");
+*)
   ]
 
 let rss_feeds = define_expert_option current_section ["rss_feeds"]

@@ -29,10 +29,7 @@ let old_files =
 let servers = 
   define_option soulseek_section ["servers"]
     "" (list_option (tuple2_option (string_option, int_option))) 
-  (* this server is no more actual [ ("mail.slsk.org", 2240) ] *)
-  [
-    
-    ("server.slsknet.org", 2240) ]
+  [ ("server.slsknet.org", 2240) ]
   
 let save_config () =
   servers =:= List.map (fun s ->

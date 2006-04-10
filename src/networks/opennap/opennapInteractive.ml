@@ -132,7 +132,7 @@ let _ =
       file_cancel (as_file file.file_file)
   );
   file_ops.op_file_info <- (fun file ->
-      {
+      { (impl_file_info file.file_file) with
         P.file_fields = P.Fields_file_info.all;
         
         P.file_comment = file_comment (as_file file.file_file);
@@ -143,27 +143,19 @@ let _ =
         P.file_md4 = file.file_id;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
-        P.file_all_sources = 0;
-        P.file_active_sources = 0;
         P.file_state = file_state file;
-        P.file_sources = None;
-        P.file_download_rate = 0.0;
         P.file_chunks = "0";
         P.file_availability = [network.network_num, "0"];
         P.file_format = FormatUnknown;
         P.file_chunks_age = [|0 |];
-        P.file_age = 0;
         P.file_last_seen = BasicSocket.last_time ();
         P.file_priority = file_priority (as_file file.file_file);
-        P.file_uids = [];
-        P.file_sub_files = [];
         }    
   )
   
 let _ =
   server_ops.op_server_info <- (fun s ->
       { (impl_server_info s.server_server) with
-
         P.server_network = network.network_num;
         P.server_addr = Ip.addr_of_ip s.server_ip;
         P.server_port = s.server_port;
@@ -230,26 +222,14 @@ let browse_client c =
   
 let _ =
   client_ops.op_client_info <- (fun c ->
-      {
+      {(impl_client_info c.client_client) with
         P.client_network = network.network_num;
-        P.client_kind = Indirect_location (c.client_name, Md4.null, _, _);
+        P.client_kind = Indirect_location (c.client_name, Md4.null, Ip.null, 0);
         P.client_state = client_state (as_client c.client_client);
         P.client_type = client_type c;
-        P.client_tags = [];
         P.client_name = c.client_name;
-        P.client_files = None;
         P.client_num = (client_num (as_client c.client_client));
-        P.client_rating = 0;
-        P.client_chat_port = 0 ;
         P.client_connect_time = BasicSocket.last_time ();
-        P.client_software = "";
-        P.client_release = "";
-        P.client_emulemod = "";
-        P.client_downloaded = zero;
-        P.client_uploaded = zero;
-        P.client_upload = None;
-	P.client_sui_verified = None;
-(*        P.client_sock_addr = ""; *)
       }
   );
   client_ops.op_client_browse <- (fun c immediate ->

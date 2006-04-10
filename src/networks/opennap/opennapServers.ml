@@ -256,9 +256,6 @@ let client_to_server s t sock =
       lprintf "SERVER %s:%d %s\n" (Ip.to_string s.server_ip) 
       s.server_port s.server_net; 
       lprintf "ERROR FROM SERVER: %s\n" error; 
-(*      lprintf "SERVER %s:%d %s\n" (Ip.to_string s.server_ip) 
-      s.server_port s.server_net; 
-lprintf "MESSAGE FROM SERVER: %s\n" error; *)
 
   | OP.MessageReq error -> 
       let msg = Printf.sprintf "From server %s [%s:%d]: %s\n"
@@ -267,7 +264,7 @@ lprintf "MESSAGE FROM SERVER: %s\n" error; *)
 
     
   | OP.NickAlreadyUsedReq ->
-(*      lprintf "NICK NAME ALREADY USED %d\n" s.server_nick;    *)
+(*      lprintf "NICK NAME ALREADY USED %d\n" s.server_nick; *)
       try_login_on_server s sock;
 (*
       s.server_nick <- s.server_nick + 1;
@@ -279,12 +276,12 @@ try_nick s sock;
       ()
       
   | OP.NickUnusedReq ->
-(*      lprintf "NICK NAME ACCEPTED\n"; *)
+      lprintf "NICK NAME ACCEPTED\n";
       login_on_server s sock
       
   | OP.LoginAckReq mail ->
       set_rtimeout sock DG.half_day;
-(*      lprintf "*****  CONNECTED %s  ******\n" mail; *)
+      lprintf "*****  CONNECTED %s  ******\n" mail;
       set_server_state s (Connected (-1));
       connected_servers := s :: !connected_servers;
       
@@ -318,6 +315,7 @@ try_nick s sock;
       s.server_nfiles <- Int64.of_int t.SS.files;
       s.server_nusers <- Int64.of_int t.SS.users;
       s.server_size <- t.SS.size;
+      server_must_update (as_server s.server_server)
       
   | OP.SearchReplyReq t ->
       lprintf "***  SearchReplyReq ***\n"; 
@@ -521,14 +519,18 @@ let _ =
   network.op_network_update_options <- (fun _ -> ());
   network.op_network_save_sources <- (fun _ -> ())
 
-  (*
-          If you run a packet sniffer on WPNP (WinMX Peer Network Protocol) packets, it will soon become apparent that these packets are not transmitted in cleartext. For instance, search terms cannot directly be found 
-in the packet stream.
+(*
+If you run a packet sniffer on WPNP (WinMX Peer Network Protocol) packets,
+it will soon become apparent that these packets are not transmitted in cleartext.
+For instance, search terms cannot directly be found in the packet stream.
 
-The reason for this is that the packets are encoded using a simple XOR based algorithm. It cannot really be called encryption, since there is no key except packet length.
+The reason for this is that the packets are encoded using a simple XOR based algorithm.
+It cannot really be called encryption, since there is no key except packet length.
 
-The encoding algorithm in question first xors the first byte with the last, then repeatedly xors a byte with its preceding byte, moving from the next-to-first byte to the last one, one byte at a time. This is 
-done five times. The procedure varies slightly the first time, where the first byte is not XORed with the last byte, but rather with the packet[1] length.
+The encoding algorithm in question first xors the first byte with the last, then repeatedly
+xors a byte with its preceding byte, moving from the next-to-first byte to the last one,
+one byte at a time. This is done five times. The procedure varies slightly the first time,
+where the first byte is not XORed with the last byte, but rather with the packet[1] length.
 *)
 
 external winmx_encode : string -> int -> unit = "winmx_encode_ml"

@@ -48,8 +48,6 @@ let enable () =
     is_enabled := true;
     network.op_network_disable <- disable enabler;
 
-(*  load_url slsk_kind "http://www.slsk.org/slskinfo2"; *)
-
 (*
   let main_server = new_server (new_addr_name !!main_server_name)
     !!main_server_port in

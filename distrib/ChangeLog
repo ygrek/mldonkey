@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/04/10
+5035: Make Soulseek, Opennapster, DirectConnect compilable again
+  This does not mean the network modules work again,
+  they only compile again. More work is needed.
 5032: CommonSwarming/WIP2: Some function rewrites and comments (pango)
 
 2006/04/09

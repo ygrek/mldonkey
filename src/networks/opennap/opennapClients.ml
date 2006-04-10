@@ -18,6 +18,7 @@
 *)
 
 open Printf2
+open Int64ops
 open CommonInteractive
 open CommonFile
 open CommonComplexOptions

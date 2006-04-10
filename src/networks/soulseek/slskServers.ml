@@ -168,7 +168,7 @@ let connect_server s =
                       C2S.LoginReq {
                         L.login = local_login ();
                         L.password = !!password;
-                        L.version = 180; (* This is what pyslsk sends *)
+                        L.version = 156; (* This is what pyslsk sends *)
                       });
                     server_send sock (C2S.SetWaitPortReq !!slsk_port)
                   with e -> 
@@ -206,11 +206,11 @@ let ask_for_files () =
   ) files_by_key
 
 let servers_line = "--servers"
-let slsk_kind =  "slsk_server_list"
-let slsk_kind_descr = "List of Soulseek servers (?)"
+let slsk_kind =  "slsk_boot"
+let slsk_kind_descr = "Soulseek servers boot URL"
 
 let load_server_list_last = ref 0
-let load_server_list _ filename  = 
+let load_server_list _ filename = 
   load_server_list_last := last_time ();
   let s = File.to_string filename in
   try
@@ -225,7 +225,7 @@ let load_server_list _ filename  =
         match String2.split_simplify s ':' with
           [_;_;server_name; server_port] -> 
             let port = int_of_string server_port in
-            lprintf "NEW SERVER %s:%d" server_name port; lprint_newline ();
+            lprintf_nl () "NEW SERVER %s:%d" server_name port;
             (*
             main_server_name =:= server_name;
 main_server_port =:= port;
