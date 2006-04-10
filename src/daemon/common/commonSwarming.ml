@@ -98,6 +98,10 @@ type chunk = {
     chunk_size : int64;
   }
 
+(* network "frontend"/"view"/... to a swarmer *)
+(* glossary:
+   network frontend use "chunks" of data,
+   swarmer use "blocks" of data *)
 type t = {
     mutable t_primary : bool;
     t_file : file;
@@ -113,17 +117,18 @@ type t = {
     mutable t_verifier : verification;
     mutable t_verified : (int -> int -> unit);
 
-(* conversion from network blocks to swarmer blocks *)
-    mutable t_t2s_blocks : int list array;
-(* conversion from swarmer blocks to network blocks *)
-    mutable t_s2t_blocks : int array;
+(* mapping from network chunks to swarmer blocks *)
+    mutable t_blocks_of_chunk : int list array;
+(* mapping from swarmer blocks to network chunks *)
+    mutable t_chunk_of_block : int array;
   }
 
 and swarmer = {
     mutable s_num : int;
     mutable s_filename : string;
 
-    mutable s_networks : t list;
+    mutable s_networks : t list; (** list of frontends, primary at head 
+				     t.t_s = s <=> t in s.s_networks *)
     mutable s_size : int64;
     mutable s_range_size : int64;
     mutable s_strategy : strategy;
@@ -149,10 +154,10 @@ and block = {
     mutable block_num : int;
     mutable block_begin : Int64.t;
     mutable block_end : Int64.t;
-    mutable block_ranges : range; (** (first ?) [range] of the double-linked
+    mutable block_ranges : range; (** [range] of the double-linked
 				      list of ranges associated to the
 				      [block] *)
-    mutable block_remaining : int64;
+    mutable block_remaining : int64; (* unused ? *)
   }
 
 and range = {
@@ -163,7 +168,8 @@ and range = {
     mutable range_next : range option;
     mutable range_current_begin : Int64.t; (* current begin pos *)
 (*        mutable range_verified : bool; *)
-    mutable range_nuploading : int;
+    mutable range_nuploading : int; (* current number of clients
+				       filling that range ? *)
   }
 
 and uploader = {
@@ -189,6 +195,32 @@ and uploader = {
 
     mutable up_ranges : (int64 * int64 * range) list;
   }
+
+(* range invariants: 
+   Ranges represent "holes" of missing data in a block.
+
+   [block]'s [block_ranges] reference the first (smallest offsets) of
+   the [range]s associated with it. 
+
+   [range]s are double-linked together thru [range_prev] and
+   [range_next]:
+
+   r.range_next.range_prev = r.range_prev.range_next = r
+   ( when links are different from None )
+
+   [range]s have a backlink to their "owner" [block]:
+
+   b.block_ranges.{range_next}*.{range_prev}*.range_block = b
+
+   ranges offsets are all within their block's offsets limits, do not
+   overlap, and are sorted in increasing offsets order:
+
+   b.block_begin <= b.block_ranges.block_begin ... <=
+   r.range_prev.range_end <= r.range_begin <= r.range_current_begin <=
+   r.range_end <= r.range_next.range_begin <= ...
+   <= b.block_end
+   
+   Role played by r.range_current_begin is unclear for now. *)
 
 
 (*************************************************************************)
@@ -351,90 +383,58 @@ let rec own_ranges b r =
   | Some r -> own_ranges b r
 
 (** (internal) 
-    Find (following [range_next] links) the first range that's not
-    totally before [cut_pos] offset.
-    If none is found, return a [void_range] at [cut_pos] offset.
-    otherwise, if a range is found, 
-    if it is totally after [cut_pos], remove [range_prev] link, modify
-    owner block for all remaining ranges (including the one found),
-    and return that range.
-    if range found crossed [cut_pos] offset, create a similar range
-    with no [range_prev] link, [range_begin] with [cut_pos] value,
-    increase [range_current_begin] to [cut_pos] if it's smaller,
-    modify owner block for all remaining ranges (including that new
-    one), and return that range. *)
+    Find ranges that are after [cut_pos] offset, unlink them from r
+    double-linked list of ranges, set their owner to [b] and return
+    the first of the removed ranges.
 
-let rec get_after_ranges b r cut_pos =
-  if r.range_begin >= cut_pos then begin
+    If all ranges are before [cut_pos] return a 0-sized range.
+
+    If [cut_pos] is within one of the ranges, that range is cut in
+    two at [cut_pos] offset, and link each half to its side.
+
+    What should happen to range_begin is unclear.
+
+    Also, what do to if range_nuploaders is not 0 ?
+    => [cut_ranges_after] is being called from [split_blocks] that
+    does not preserve [s_nuploading] for blocks either
+*)
+
+let cut_ranges_after b r cut_pos =
+  let rec iter r =
+    if r.range_begin >= cut_pos then begin
       (match r.range_prev with
         | None -> ()
         | Some rp ->
-          rp.range_next <- None;
-          r.range_prev <- None);
-      own_ranges b r;
+            rp.range_next <- None;
+            r.range_prev <- None);
       r
-    end else
-  if r.range_end <= cut_pos then
-    match r.range_next with
-      None -> void_range b cut_pos
-    | Some r -> get_after_ranges b r cut_pos
-  else
-  let split_r = { r with
-      range_prev = None;
-      range_begin = cut_pos;
-      range_current_begin = max r.range_current_begin cut_pos
-    } in
-  r.range_next <- None;
-  r.range_end <- cut_pos;
-  own_ranges b split_r;
-  split_r
-
-
-(** (internal) 
-    if [r.range_current_begin] is after [cut_pos], return a
-    [void_range] at offset [cut_pos],
-
-*)
-
-let get_before_ranges b r cut_pos =
-  if r.range_current_begin >= cut_pos then
-    void_range b cut_pos
-  else
-  let rec iter b r cut_pos =
-    if r.range_end > cut_pos then begin
+    end 
+    else if r.range_end <= cut_pos then
+      match r.range_next with
+	| None -> void_range b cut_pos
+	| Some r -> iter r
+    else
+      (* "right" half *)
       let split_r = { r with
-        range_end = cut_pos;
-	range_next = None } in
-      (match r.range_prev with
-	| None -> ()
-	| Some rp ->
-	    rp.range_next <- Some split_r;
-	    r.range_prev <- None);
-      r.range_current_begin <- cut_pos;
-      end else
-	if r.range_end = cut_pos then
-	  match r.range_next with
-	    | None -> ()
-	    | Some rn ->
-		rn.range_prev <- None;
-		r.range_next <- None
-	else
-    match r.range_next with
-    | None -> ()
-    | Some rn ->
-        if rn.range_current_begin >= cut_pos then begin
-	  rn.range_prev <- None;
-          r.range_next <- None
-        end else
-          iter b rn cut_pos
-  in
-  iter b r cut_pos;
-  r
+	range_prev = None;
+	range_begin = cut_pos;
+	range_current_begin = max r.range_current_begin cut_pos
+      } in
+      (* "left" half *)
+      r.range_next <- None;
+      r.range_end <- cut_pos;
+      r.range_current_begin <- min r.range_current_begin cut_pos;
 
-(** Return true if ranges fully "cover" their block:
-    first range's [range_current_begin] = block's [block_begin]
-    each range's [range_end] = next range's [range_current_begin]
-    last range's [range_end] = block(s [block_end] *)
+      if r.range_nuploading <> 0 then
+	lprintf_n () "WARNING: Splitting a range currently being uploaded, don't know what to do with range_nuploaders :/\n";
+
+      split_r in
+  let cut_ranges = iter r in
+  own_ranges b cut_ranges;
+  cut_ranges
+  
+(** Return true if ranges fully "cover" their block
+    ("the block is made of holes") *)
 
 let empty_block b =
   let rec iter begin_pos r =
@@ -445,28 +445,32 @@ let empty_block b =
   in
   iter b.block_begin b.block_ranges
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         create                                        *)
-(*                                                                       *)
-(*************************************************************************)
-
+(** Split swarmer existing blocks in at [chunk_size] boundaries *)
 let split_blocks s chunk_size =
 
   let size = s.s_size in
 
   let nblocks = Array.length s.s_blocks in
+  (* Split existing blocks at [chunk_size] boundaries
+     invariants:
+     [index_s] is the index of the existing block being analysed
+     [chunk_begin] is the offset of the beginning of the current containing chunk
+     [new_blocks] is the list of new blocks already splitted, in
+     reverse order. 
+     List contains tuples: block, beginning offset, verified status char *)
   let rec iter index_s chunk_begin new_blocks =
 (*    lprintf "iter (1) %d/%d %Ld\n" index_s nblocks chunk_begin; *)
     if index_s = nblocks then List.rev new_blocks else
+
+    (* existing block *)
     let block_begin = compute_block_begin s index_s in
     let block_end = compute_block_end s index_s in
 
+    (* current chunk *)
     let chunk_end = chunk_begin ++ chunk_size in
     let chunk_end = min chunk_end size in
 
-    if chunk_end > block_end then begin
-
+    if chunk_end > block_end then
         let new_blocks = (
             s.s_blocks.(index_s),
             block_begin,
@@ -474,10 +478,7 @@ let split_blocks s chunk_size =
           ) :: new_blocks in
         iter (index_s+1) chunk_begin new_blocks
 
-      end else
-
-    if chunk_end = block_end then begin
-
+    else if chunk_end = block_end then
         let new_blocks =  (
             s.s_blocks.(index_s),
             block_begin,
@@ -485,14 +486,13 @@ let split_blocks s chunk_size =
           ) :: new_blocks in
         iter (index_s+1) chunk_end new_blocks
 
-      end else begin
-
+    else begin
 (* We need to split this block in two parts *)
-
         s.s_block_pos.(index_s) <- chunk_end;
         match s.s_blocks.(index_s) with
           EmptyBlock | CompleteBlock | VerifiedBlock ->
 
+(* s.s_blocks.(index_s) will appear twice in the result list *)
             let new_blocks =  (
                 s.s_blocks.(index_s),
                 block_begin,
@@ -502,28 +502,18 @@ let split_blocks s chunk_size =
 
         | PartialBlock b1 ->
 
+	    (* split b1 in two; b2 is the part after [chunk_end] offset *)
             let b2 = {
                 block_s = s;
 
                 block_begin = chunk_end;
                 block_end = b1.block_end;
-                block_ranges = b1.block_ranges;
-                block_num = index_s + 1;
-                block_remaining = zero;
+                block_ranges = b1.block_ranges; (* fixed below *)
+                block_num = 0; (* fixed below *)
+                block_remaining = zero; (* unused ? *)
               } in
+	    b2.block_ranges <- cut_ranges_after b2 b1.block_ranges chunk_end;
             b1.block_end <- chunk_end;
-
-            b2.block_ranges <- get_after_ranges b2 b2.block_ranges chunk_end;
-            b1.block_ranges <- get_before_ranges b1 b1.block_ranges chunk_end;
-
-
-            if empty_block b2 then begin
-(* lprintf "Partial block b2 should become EmptyBlock\n"; *)
-                s.s_blocks.(index_s) <- EmptyBlock;
-                s.s_verified_bitmap.[index_s] <- '0';
-              end else begin
-                s.s_blocks.(index_s) <- PartialBlock b2;
-              end;
 
             let new_blocks =
               (if empty_block b1 then
@@ -538,6 +528,14 @@ let split_blocks s chunk_size =
                     s.s_verified_bitmap.[index_s]
                   ))
               :: new_blocks in
+
+            if empty_block b2 then begin
+(* lprintf "Partial block b2 should become EmptyBlock\n"; *)
+                s.s_blocks.(index_s) <- EmptyBlock;
+                s.s_verified_bitmap.[index_s] <- '0';
+              end else
+                s.s_blocks.(index_s) <- PartialBlock b2;
+
             iter index_s chunk_end new_blocks
 
       end
@@ -546,19 +544,30 @@ let split_blocks s chunk_size =
   in
   let blocks = iter 0 zero [] in
 
+(* blocks have been splitted, now rebuild swarmer *)
   let nblocks = List.length blocks in
 (*  lprintf "%d blocks to generate\n" nblocks; *)
+
+  let array_exist p a =
+    let l = Array.length a in
+    let rec aux i = (i < l) && (p a.(i) || aux (i+1)) in
+    aux 0 in
+
+  if array_exist ((<>) 0) s.s_availability then
+    lprintf_nl () "WARNING: splitting swarmer discarded availability counters\n";
+  if array_exist ((<>) 0) s.s_nuploading then
+    lprintf_nl () "WARNING: splitting a swarmer beging uploaded to\n";
 
   s.s_blocks <- Array.create nblocks EmptyBlock;
   s.s_verified_bitmap <- String.make nblocks '0';
   s.s_block_pos <- Array.create nblocks zero;
-  s.s_availability <- Array.create nblocks 0;
-  s.s_nuploading <- Array.create nblocks 0;
+  s.s_availability <- Array.create nblocks 0; (* not preserved ? *)
+  s.s_nuploading <- Array.create nblocks 0; (* not preserved ? *)
 (*  s.s_last_seen <- Array.create nblocks 0; *)
 
   let rec iter i list =
     match list with
-      [] -> ()
+    | [] -> ()
     | (b, pos, c) :: tail ->
         begin
           match b with
@@ -573,92 +582,88 @@ let split_blocks s chunk_size =
   in
   iter 0 blocks
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         associate                                     *)
-(*                                                                       *)
-(*************************************************************************)
+(** Associate a(n additional) frontend to a swarmer *)
 
-let associate primary t s =
+let associate is_primary t s =
 
+(* a swarmer cannot be associated more than once to a network *)
   if not (List.memq t s.s_networks) then
   let size = file_size t.t_file in
 
-    begin
-      if t.t_s != s then begin
-          t.t_s.s_networks <- [];
-        end;
-    end;
-
+(* what about raising an exception instead ? *)
   assert (s.s_size = size);
+
+  (* shouldn't just [t] be removed from the list ? *)
+  (* t.t_s.s_networks <- []; *)
+  t.t_s.s_networks <- List.filter ((!=) t) t.t_s.s_networks;
 
   t.t_s <- s;
   t.t_converted_verified_bitmap <- String.make t.t_nchunks '0';
   t.t_last_seen <- Array.create t.t_nchunks 0;
-  t.t_s2t_blocks <- [||];
-  t.t_t2s_blocks <- Array.create t.t_nchunks [];
+  t.t_chunk_of_block <- [||];
+  t.t_blocks_of_chunk <- Array.create t.t_nchunks [];
 
-  if primary then begin
-        t.t_primary <- true;
-        s.s_networks <- t :: s.s_networks;
-    end else begin
-        t.t_primary <- false;
-        s.s_networks <- s.s_networks @ [t];
-        Unix32.remove (file_fd t.t_file);
-    end;
+(* invariant: primary frontend is at the head of swarmer's [s_networks] *)
+  if is_primary then begin
+    t.t_primary <- true;
+    s.s_networks <- t :: s.s_networks;
+  end else begin
+    t.t_primary <- false;
+    s.s_networks <- s.s_networks @ [t];
+    (* TODO: transfer data into swarmer instead of discarding it *)
+    Unix32.remove (file_fd t.t_file);
+  end;
 (* at this point, we are supposed to split the blocks in the swarmer
 in smaller blocks depending on the block_size of this network, and compute
-the t_s2t_blocks and t_t2s_blocks fields. *)
+the t_chunk_of_block and t_blocks_of_chunk fields. *)
 
   let chunk_size = t.t_block_size in
 
   split_blocks s chunk_size;
 
   let nblocks = Array.length s.s_blocks in
-(* For all networks, adjust the blocks *)
+  (* For all networks, adjust the chunks and mappings *)
   List.iter (fun t ->
       let nchunks = String.length t.t_converted_verified_bitmap in
-      t.t_s2t_blocks <- Array.create nblocks 0;
-      t.t_t2s_blocks <- Array.create nchunks [];
+      t.t_chunk_of_block <- Array.create nblocks 0;
+      t.t_blocks_of_chunk <- Array.create nchunks [];
 
       let chunk_size = t.t_block_size in
       for i = 0 to nblocks - 1 do
         let block_begin = compute_block_begin s i in
         let chunk = Int64.to_int (block_begin // chunk_size) in
-        t.t_s2t_blocks.(i) <- chunk;
-        t.t_t2s_blocks.(chunk) <- i :: t.t_t2s_blocks.(chunk)
+        t.t_chunk_of_block.(i) <- chunk;
+        t.t_blocks_of_chunk.(chunk) <- i :: t.t_blocks_of_chunk.(chunk)
       done
     ) s.s_networks;
 
 (* TODO: If not primary, set_file_downloaded should be called *)
-  if not primary then
-      add_file_downloaded t.t_file (zero -- file_downloaded t.t_file);
+  if not is_primary then
+    add_file_downloaded t.t_file (zero -- file_downloaded t.t_file);
 
+(* check that all frontends use the primary's file backend *)
     begin
       match s.s_networks with
-        t :: tail when primary ->
+        t :: tail when is_primary ->
           List.iter (fun tt ->
               assert (not tt.t_primary);
               set_file_fd tt.t_file (file_fd t.t_file)
           ) tail
 
       | tt :: tail when tt.t_primary ->
-          assert (not primary);
+          assert (not is_primary);
           set_file_fd t.t_file (file_fd tt.t_file)
       | _ -> ()
     end;
 
   ()
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         create                                        *)
-(*                                                                       *)
-(*************************************************************************)
+(** Create a primary frontend and its swarmer *)
 
 let create ss file chunk_size =
 
   let size = file_size file in
+  (* wrong if size is a multiple of chunk_size ? *)
   let nchunks =
     1 + Int64.to_int (Int64.pred size // chunk_size) in
 
@@ -680,8 +685,8 @@ let create ss file chunk_size =
       t_verifier = NoVerification;
       t_verified = (fun _ _ -> ());
 
-      t_s2t_blocks = [||];
-      t_t2s_blocks = Array.create nchunks [];
+      t_chunk_of_block = [||];
+      t_blocks_of_chunk = Array.create nchunks [];
     }
   in
   associate true t ss;
@@ -716,25 +721,23 @@ let clear_uploader_block up =
       let s = t.t_s in
       s.s_nuploading.(num) <- s.s_nuploading.(num) - 1
 
-(*************************************************************************)
-(*                                                                       *)
-(*                         compute_block_num (internal)                  *)
-(*                                                                       *)
-(*************************************************************************)
+(** Finds the number of the block containing [chunk_pos] offset, using
+    dichotomy *)
 
 let compute_block_num s chunk_pos =
   let b = s.s_block_pos in
   let rec iter min max =
-    if min = max then min else
-    let medium = (max + min) / 2 in
-    let pos = b.(medium) in
-    if pos > chunk_pos then
-      iter min (medium - 1)
+    if min = max then min 
     else
-    if min = medium then
-      iter min (max - 1)
-    else
-      iter medium max
+      let medium = (min + max + 1) / 2 in
+      if chunk_pos < b.(medium) then
+	iter min (medium - 1)
+      else
+	let medium1 = medium + 1 in
+	if chunk_pos >= b.(medium1) then
+	  iter medium1 max
+	else
+	  medium
   in
   let i = iter 0 (Array.length b - 1) in
   if debug_all then
@@ -808,9 +811,9 @@ let print_s str s =
       lprintf "%Ld - %Ld [%Ld] %c " block_begin block_end
         (block_end -- block_begin) s.s_verified_bitmap.[i];
       List.iter (fun t ->
-          let j = t.t_s2t_blocks.(i) in
+          let j = t.t_chunk_of_block.(i) in
           lprintf "(b %d %c [" j t.t_converted_verified_bitmap.[j];
-          List.iter (fun ii -> lprintf "%d " ii) t.t_t2s_blocks.(j);
+          List.iter (fun ii -> lprintf "%d " ii) t.t_blocks_of_chunk.(j);
           lprintf "]";
       ) s.s_networks;
 
@@ -958,9 +961,9 @@ let set_bitmap_0 s i =
   if s.s_verified_bitmap.[i] > '1' then begin
       s.s_verified_bitmap.[i] <- '0';
       List.iter (fun t ->
-          let j = t.t_s2t_blocks.(i) in
+          let j = t.t_chunk_of_block.(i) in
           if List.for_all (fun i -> s.s_verified_bitmap.[i] = '0')
-            t.t_t2s_blocks.(j) then
+            t.t_blocks_of_chunk.(j) then
             t.t_converted_verified_bitmap.[j] <- '0'
       ) s.s_networks
     end
@@ -971,7 +974,7 @@ let set_bitmap_1 s i =
   if s.s_verified_bitmap.[i] = '0' then begin
       s.s_verified_bitmap.[i] <- '1';
       List.iter (fun t ->
-          let j = t.t_s2t_blocks.(i) in
+          let j = t.t_chunk_of_block.(i) in
           if t.t_converted_verified_bitmap.[j] = '0' then
             t.t_converted_verified_bitmap.[j] <- '1'
       ) s.s_networks
@@ -983,9 +986,9 @@ let set_bitmap_2 s i =
       s.s_verified_bitmap.[i] <- '2';
       match s.s_networks with
       | t :: _ when t.t_primary ->
-          let j = t.t_s2t_blocks.(i) in
+          let j = t.t_chunk_of_block.(i) in
           if List.for_all (fun i -> s.s_verified_bitmap.[i] = '2')
-            t.t_t2s_blocks.(j) &&
+            t.t_blocks_of_chunk.(j) &&
             t.t_converted_verified_bitmap.[j] <> '3' then begin
               t.t_ncomplete_blocks <- t.t_ncomplete_blocks + 1;
               t.t_converted_verified_bitmap.[j] <- '2'
@@ -1004,9 +1007,9 @@ let set_bitmap_3 s i =
         [] -> assert false
       | tprim :: tail ->
           List.iter (fun t ->
-              let j = t.t_s2t_blocks.(i) in
+              let j = t.t_chunk_of_block.(i) in
               if List.for_all (fun i -> s.s_verified_bitmap.[i] = '3')
-                t.t_t2s_blocks.(j) then
+                t.t_blocks_of_chunk.(j) then
                 match t.t_verifier with
                   NoVerification ->
                     t.t_converted_verified_bitmap.[j] <- '3'
@@ -1071,7 +1074,7 @@ let set_verified_chunk t i =
   let s = t.t_s in
   if t.t_primary then begin
     (* The primary is supposed to propagate verified chunks to the file *)
-      List.iter (fun j -> set_verified_block s j) t.t_t2s_blocks.(i);
+      List.iter (fun j -> set_verified_block s j) t.t_blocks_of_chunk.(i);
       if !verbose_swarming then
         print_s "VERIFIED" s
     end
@@ -1123,7 +1126,7 @@ let verify_chunk t i =
 
                 if List.for_all (fun i ->
                       s.s_verified_bitmap.[i] = '2'
-                  ) t.t_t2s_blocks.(i)
+                  ) t.t_blocks_of_chunk.(i)
 		then
 		  begin
 		    if !verbose_swarming || !verbose then
@@ -1145,7 +1148,7 @@ let verify_chunk t i =
                             set_bitmap_0 s i
 
                         | VerifiedBlock -> assert false
-                    ) t.t_t2s_blocks.(i)
+                    ) t.t_blocks_of_chunk.(i)
                   end
 		else
 		  begin
@@ -1155,8 +1158,8 @@ let verify_chunk t i =
                         List.iter (fun i ->
                           lprintf "%c" s.s_verified_bitmap.[i];
                           if s.s_verified_bitmap.[i] = '2' then incr nsub;
-                        ) t.t_t2s_blocks.(i);
-                        lprintf_nl2 "   = %d/%d" !nsub (List.length t.t_t2s_blocks.(i))
+                        ) t.t_blocks_of_chunk.(i);
+                        lprintf_nl2 "   = %d/%d" !nsub (List.length t.t_blocks_of_chunk.(i))
 		    end;
                     t.t_converted_verified_bitmap.[i] <- '1'
                   end;
@@ -1195,7 +1198,7 @@ let verify_chunk t i =
                         t.t_ncomplete_blocks <- t.t_ncomplete_blocks - 1;
                         if List.for_all (fun i ->
                               s.s_verified_bitmap.[i] = '2'
-                          ) t.t_t2s_blocks.(i) then begin
+                          ) t.t_blocks_of_chunk.(i) then begin
 
                             t.t_converted_verified_bitmap.[i] <- '0';
 
@@ -1212,7 +1215,7 @@ let verify_chunk t i =
                                     set_bitmap_0 s i
 
                                 | VerifiedBlock -> assert false
-                            ) t.t_t2s_blocks.(i)
+                            ) t.t_blocks_of_chunk.(i)
                           end else begin
                             let nsub = ref 0 in
 
@@ -1220,8 +1223,8 @@ let verify_chunk t i =
                             List.iter (fun i ->
                                 lprintf "%c" s.s_verified_bitmap.[i];
                                 if s.s_verified_bitmap.[i] = '2' then incr nsub;
-                                ) t.t_t2s_blocks.(i);
-                            lprintf_nl2 "   = %d/%d" !nsub (List.length t.t_t2s_blocks.(i));
+                                ) t.t_blocks_of_chunk.(i);
+                            lprintf_nl2 "   = %d/%d" !nsub (List.length t.t_blocks_of_chunk.(i));
 
                             t.t_converted_verified_bitmap.[i] <- '1'
                           end;
@@ -1261,14 +1264,14 @@ let must_verify_block s i immediatly =
     match s.s_networks with
       [] -> assert false
     | t :: _ when t.t_primary ->
-        let i = t.t_s2t_blocks.(i) in
+        let i = t.t_chunk_of_block.(i) in
         t.t_converted_verified_bitmap.[i] <- '2';
 (*        List.iter (fun j ->
             if s.s_verified_bitmap.[j] <> '2' then begin
                 lprintf "   block %d not downloaded\n" j;
                 exit_on_error := false;
               end;
-        ) t.t_t2s_blocks.(i);  *)
+        ) t.t_blocks_of_chunk.(i);  *)
         verify_chunk t i;
 (*      exit_on_error := true; *)
     | _ -> ()
@@ -1631,7 +1634,7 @@ let update_uploader_chunks up chunks =
               List.iter (fun i ->
                   s.s_availability.(i) <- s.s_availability.(i) + 1;
                   complete_blocks := i :: !complete_blocks
-              ) t.t_t2s_blocks.(i)
+              ) t.t_blocks_of_chunk.(i)
           done;
       | AvailableBitv bitmap ->
           for i = 0 to Bitv.length bitmap - 1 do
@@ -1639,14 +1642,14 @@ let update_uploader_chunks up chunks =
               List.iter (fun i ->
                   s.s_availability.(i) <- s.s_availability.(i) + 1;
                   complete_blocks := i :: !complete_blocks
-              ) t.t_t2s_blocks.(i)
+              ) t.t_blocks_of_chunk.(i)
           done;
     end;
 
     List.iter (fun i ->
 (*        s.s_last_seen.(i) <- BasicSocket.last_time (); *)
 
-        let i = t.t_s2t_blocks.(i) in
+        let i = t.t_chunk_of_block.(i) in
         t.t_last_seen.(i) <- BasicSocket.last_time ()
 
     ) !complete_blocks;
@@ -1889,7 +1892,7 @@ let should_download_block s n =
           | t :: _ when t.t_primary ->
               begin
                 try
-                  let n = t.t_s2t_blocks.(n) in
+                  let n = t.t_chunk_of_block.(n) in
                   if t.t_converted_verified_bitmap.[n] = '2' then
                     verify_chunk t n
                 with VerifierNotReady -> ()
@@ -2028,10 +2031,10 @@ better work at the beginning if the first incomplete blocks are offered
                       for i = 0 to up.up_ncomplete - 1 do
                         let n = up.up_complete_blocks.(i) in
 (* TODO move this after the first if... *)
-                        let t_index = t.t_s2t_blocks.(n) in
+                        let t_index = t.t_chunk_of_block.(n) in
                         let bs = List.filter (fun s_index ->
                               s.s_verified_bitmap.[s_index] = '2'
-                          ) t.t_t2s_blocks.(t_index) in
+                          ) t.t_blocks_of_chunk.(t_index) in
                         let nbs = List.length bs in
 
 (* TODO remove this *)
@@ -2620,7 +2623,7 @@ let set_verified_bitmap primary t bitmap =
               | VerifiedBlock ->
 (*                  lprintf "Block already verified\n" *)
                   ()
-          ) t.t_t2s_blocks.(i);
+          ) t.t_blocks_of_chunk.(i);
           if t.t_converted_verified_bitmap.[i] <> '3' then
             lprintf_nl () "FIELD AS BEEN CLEARED"
     | _ -> ()
@@ -2669,7 +2672,7 @@ let downloaded t = file_downloaded t.t_file
 (*************************************************************************)
 
 let block_num t b =
-  let n = t.t_s2t_blocks.(b.block_num) in
+  let n = t.t_chunk_of_block.(b.block_num) in
   n
 
 (*************************************************************************)
@@ -2697,7 +2700,7 @@ let availability t =
   for i = 0 to len - 1 do
     str.[i] <- char_of_int (
       let v = List2.min
-          (List.map (fun i -> s.s_availability.(i)) t.t_t2s_blocks.(i)) in
+          (List.map (fun i -> s.s_availability.(i)) t.t_blocks_of_chunk.(i)) in
       if v < 0 then 0 else
       if v > 200 then 200 else v)
   done;
@@ -3081,7 +3084,7 @@ let check_swarmer s =
               if s.s_verified_bitmap.[j] = '3' then begin
                   failwith "Main has 3 not coming from primary";
                 end
-          ) t.t_t2s_blocks.(i)
+          ) t.t_blocks_of_chunk.(i)
         done;
 
         let fd = file_fd t.t_file in
@@ -3101,7 +3104,7 @@ let check_swarmer s =
                       if s.s_verified_bitmap.[j] <> '3' then
                         failwith "2 in secondary without 3 in primary";
                     end
-              ) t.t_t2s_blocks.(i)
+              ) t.t_blocks_of_chunk.(i)
             done;
         ) tail
   with e ->

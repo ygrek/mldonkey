@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/04/10
+5032: CommonSwarming/WIP2: Some function rewrites and comments (pango)
+
 2006/04/09
 5031: Merge CommonSwarming and CommonSwarming2 code (pango)
 
