@@ -14,6 +14,8 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/04/13: version 2.7.5 = tag release-2-7-5
+
 2006/04/10
 5035: Make Soulseek, Opennapster, DirectConnect compilable again
   This does not mean the network modules work again,

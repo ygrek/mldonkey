@@ -10,7 +10,7 @@ echo "Arguments to configure: $CONFIGURE_ARGUMENTS"
 
 MAJOR_VERSION=2
 MINOR_VERSION=7
-SUB_VERSION=4   # range 0-7 due to eMule limitations
+SUB_VERSION=5   # range 0-7 due to eMule limitations
 
 AC_PROG_CC
 CC_VERSION=`$CC -dumpversion`
