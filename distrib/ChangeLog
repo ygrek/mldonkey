@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/04/10
+5036: BT: Correctly parse .torrent files with an empty directory (again)
 5039: Fix dp500 compile
 -------------------------------------------------------------------------------
 2006/04/13: version 2.7.5 = tag release-2-7-5

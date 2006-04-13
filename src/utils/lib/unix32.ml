@@ -150,8 +150,13 @@ module FDCache = struct
          destroyed = false;
         }
       in
+      try
       let _fd = _local_force_fd true t in
       t
+      with
+	Unix.Unix_error (Unix.EISDIR, _, _) -> t
+      | Unix.Unix_error (Unix.EACCES, _, _) when Autoconf.windows -> t
+      | e -> raise e
       
     let local_force_fd t = _local_force_fd false t
 
@@ -173,23 +178,6 @@ module FDCache = struct
         (Printexc2.to_string e);
       raise e
 
-    let multi_rename t f file =
-      try
-      check_destroyed t;
-      close t;
-      (let d = (Filename.dirname (Filename.concat f file)) in
-        Unix2.safe_mkdir d;
-        Unix2.chmod d (Misc.int_of_octal_string !create_dir_mask);
-	Unix2.can_write_to_directory d);
-      Unix2.rename t.filename (Filename.concat f file);
-      destroy t
-      with e ->
-      if !verbose then lprintf_nl "Exception in FDCache.multi_rename %s %s: %s"
-        t.filename
-        (Filename.concat f file)
-        (Printexc2.to_string e);
-      raise e
-
     let ftruncate64 t len sparse =
       try
       check_destroyed t;
@@ -206,7 +194,10 @@ module FDCache = struct
       try
       check_destroyed t;
       Unix2.c_getfdsize64 (local_force_fd t)
-      with e ->
+      with
+	Unix.Unix_error (Unix.EISDIR, _, _) -> 0L
+      | Unix.Unix_error (Unix.EACCES, _, _) when Autoconf.windows -> 0L
+      | e ->
       if !verbose then lprintf_nl "Exception in FDCache.getsize64 %s: %s"
         t.filename
         (Printexc2.to_string e);
@@ -255,6 +246,28 @@ module FDCache = struct
       with e ->
       if !verbose then lprintf_nl "Exception in FDCache.remove %s: %s"
         t.filename
+        (Printexc2.to_string e);
+      raise e
+
+    let multi_rename t f file =
+      try
+      check_destroyed t;
+      close t;
+      (let d = (Filename.dirname (Filename.concat f file)) in
+        Unix2.safe_mkdir d;
+        Unix2.chmod d (Misc.int_of_octal_string !create_dir_mask);
+	Unix2.can_write_to_directory d);
+      (try
+        Unix2.rename t.filename (Filename.concat f file);
+      with
+        Unix.Unix_error (Unix.EACCES, _, _) when
+          Autoconf.windows && (Unix2.list_directory t.filename = [])
+        -> remove t);
+      destroy t
+      with e ->
+      lprintf_nl "Exception in FDCache.multi_rename %s %s: %s"
+        t.filename
+        (Filename.concat f file)
         (Printexc2.to_string e);
       raise e
 
@@ -461,18 +474,12 @@ module MultiFile = struct
             let temp_filename = Filename.concat dirname filename in
             Unix2.safe_mkdir (Filename.dirname temp_filename);
             let fd = FDCache.create temp_filename writable in
-            let cur_len = 
-	      if Unix2.is_directory temp_filename then 0L
-	      else begin
-		ignore(FDCache.local_force_fd fd);
-		FDCache.getsize64 fd
-	      end in
             iter tail (pos ++ size)
             ({
                 filename = filename;
                 pos = pos;
                 len = size;
-                current_len = cur_len;
+                current_len = FDCache.getsize64 fd;
                 fd = fd;
                 tail = [];
               } :: files2)
