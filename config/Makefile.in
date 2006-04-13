@@ -734,6 +734,7 @@ DP500_SRCS= \
   $(COMMON)/guiProto.ml \
   $(COMMON)/commonOptions.ml \
   $(COMMON)/commonMessages.ml \
+  $(COMMON)/commonUserDb.ml \
   $(COMMON)/commonGlobals.ml \
   \
   src/daemon/driver/driverLink.ml \
