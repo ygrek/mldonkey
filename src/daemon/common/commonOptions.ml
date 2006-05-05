@@ -843,7 +843,7 @@ let web_infos = define_option current_section ["web_infos"]
     EXAMPLE:
  web_infos = [
   (\"server.met\", 0, \"http://www.jd2k.com/server.met\");
-  (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/antip2p.txt\");
+  (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/level1.gz\");
   (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
   (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
  ]
@@ -852,7 +852,7 @@ let web_infos = define_option current_section ["web_infos"]
       tuple3_option (string_option, int_option, string_option)))
   [
     ("guarding.p2p", 96,
-      "http://www.bluetack.co.uk/config/antip2p.txt");
+      "http://www.bluetack.co.uk/config/level1.gz");
     ("server.met", 0,
       "http://www.jd2k.com/server.met");
     ("contact.dat", 168,
@@ -1504,7 +1504,7 @@ let max_displayed_results = define_expert_option current_section
 
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 11
+    int_option 12
 
 
 (*************************************************************************)
@@ -1991,5 +1991,17 @@ let rec update_options () =
 	web_infos_add "contact.dat" 168 "http://download.overnet.org/contact.dat";
       end;
       update 11
+
+  | 11 ->
+      if web_infos_exists "http://www.bluetack.co.uk/config/antip2p.txt" then
+      begin
+        web_infos_remove
+          [
+	    ("guarding.p2p", 96,
+	      "http://www.bluetack.co.uk/config/antip2p.txt");
+          ];
+	web_infos_add "guarding.p2p" 0 "http://www.bluetack.co.uk/config/level1.gz";
+      end;
+      update 12
 
   | _ -> ()
