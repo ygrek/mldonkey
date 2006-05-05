@@ -153,9 +153,9 @@ fi
 if test ! -z "$SUB_VERSION3"; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION3
 fi
-REQUIRED_OCAML=3.09.1
+REQUIRED_OCAML=3.09.2
 DOWNLOAD_OCAML_MAJOR=3.09
-DOWNLOAD_OCAML=3.09.1
+DOWNLOAD_OCAML=3.09.2
 
 REQUIRED_LABLGTK=1.2.7
 
@@ -345,7 +345,7 @@ else
   case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
     3.09.0*) ;;
-    3.09.2*) ;;
+    3.09.1*) ;;
     3.08.4*) ;;
     3.08.3*) ;;
     *)
@@ -497,7 +497,7 @@ REBUILD_OCAML=no
 case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
     3.09.0*) ;;
-    3.09.2*) ;;
+    3.09.1*) ;;
     3.08.4*) ;;
     3.08.3*) ;;
     *)

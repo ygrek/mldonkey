@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/06
+5074: Change default Ocaml version to 3.09.2
 5073: Update default IP blocklist URL, replaced
       http://www.bluetack.co.uk/config/antip2p.txt with
       http://www.bluetack.co.uk/config/level1.gz
