@@ -117,7 +117,7 @@ let make_request url =
       H.basic_request with
 
       H.req_url = Url.of_string url;
-      H.req_user_agent = "Mozilla/5.0 (Linux 2.4.19-16mdk i686; U) Opera 6.11  [en]";
+      H.req_user_agent = get_user_agent ();
       H.req_referer = None;
       H.req_request = H.GET;
     } in

@@ -68,8 +68,7 @@ let mldonkey_wget url f =
           ) "" cookies
         ) ]
       with Not_found -> []);
-      H.req_user_agent =
-      Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
+      H.req_user_agent = get_user_agent ();
       H.req_max_retry = 20;
     } in
     let r1 = {

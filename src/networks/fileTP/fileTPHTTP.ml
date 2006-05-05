@@ -82,7 +82,7 @@ let http_send_range_request c range sock d =
                   Printf.bprintf buf "GET /get/%d/%s HTTP/1.1\r\n" index
                     name); *)
   Printf.bprintf buf "Host: %s\r\n" c.client_hostname;
-  Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
+  Printf.bprintf buf "User-Agent: %s\r\n" (get_user_agent ());
   Printf.bprintf buf "Referer: %s\r\n" c.client_referer;
   Printf.bprintf buf "Range: bytes=%s\r\n" range;
   Printf.bprintf buf "Connection: Keep-Alive\r\n";
@@ -353,7 +353,7 @@ let http_check_size url start_download_file =
       H.req_url = url;
       H.req_proxy = !CommonOptions.http_proxy;
       H.req_request = H.HEAD;
-      H.req_user_agent = user_agent;
+      H.req_user_agent = get_user_agent ();
     } in
 
   H.whead r (fun headers ->

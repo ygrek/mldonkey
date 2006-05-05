@@ -132,5 +132,5 @@ let old_files =
 
 let get_user_agent () = 
   if !!user_agent = "default" then
-     Printf.sprintf "MLDonkey/%s" Autoconf.current_version
+    CommonOptions.get_user_agent ()
   else !!user_agent

@@ -85,8 +85,6 @@ let redirectors = define_option gnutella_section
 (* (Ip.of_string "64.61.25.171")   *)
   
   
-let user_agent = Printf.sprintf "MLdonkey/%s" Autoconf.current_version
-
 let max_known_ultrapeers = define_option gnutella_section ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"
     int_option 500

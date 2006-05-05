@@ -32,8 +32,6 @@ let enabled = define_option fileTP_section
     bool_option true
 *)
 
-let user_agent = Printf.sprintf "MLdonkey/%s" Autoconf.current_version
-
 let mirrors = define_option fileTP_section ["mirrors"]
     "A list of lists, where each list contains equivalent prefixes for mirrors"
     (list_option (list_option string_option))

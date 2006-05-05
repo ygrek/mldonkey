@@ -487,7 +487,7 @@ Buffer.add_string "X-Try-Ultrapeers: ...\r\n"; *)
 let make_handshake_request_headers req =
   let headers = [
 (* Other Gnutella headers *)          
-      ("User-Agent", user_agent) ;
+      ("User-Agent", get_user_agent ()) ;
       ("X-Max-TTL", "4") ;
       ("Vendor-Message", "0.1") ;
       ("X-Query-Routing", "0.1") ;

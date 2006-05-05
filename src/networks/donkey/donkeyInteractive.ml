@@ -168,8 +168,7 @@ let download_server_met url =
       H.basic_request with
       H.req_url = Url.of_string url;
       H.req_proxy = !CommonOptions.http_proxy;
-      H.req_user_agent =
-  Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
+      H.req_user_agent = get_user_agent ();
       H.req_max_retry = 10;
     } in
     H.wget r (fun filename ->

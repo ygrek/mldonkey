@@ -818,6 +818,15 @@ let force_client_ip = define_option current_section ["force_client_ip"]
     ourself. Don't set this option to true if you have dynamic IP."
     bool_option false
 
+let user_agent = define_option current_section ["user_agent"]
+    "User agent string (default = \"default\")"
+    string_option "default"
+
+let get_user_agent () = 
+  if !!user_agent = "default" then
+     Printf.sprintf "MLDonkey/%s" Autoconf.current_version
+  else !!user_agent
+
 let web_infos = define_option current_section ["web_infos"]
     "A list of lines to download on the WEB: each line has
     the format: (kind, period, url), where kind is either

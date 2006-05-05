@@ -2865,8 +2865,7 @@ let _ =
                       ) "" cookies
                     ) ]
                 with Not_found -> []);
-                H.req_user_agent =
-                       Printf.sprintf "MLDonkey/%s" Autoconf.current_version;
+                H.req_user_agent = get_user_agent ();
             } in
             H.whead r
                 (fun headers ->

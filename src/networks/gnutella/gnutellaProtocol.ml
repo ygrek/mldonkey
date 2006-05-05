@@ -170,7 +170,7 @@ let gnutella_503_shielded = "GNUTELLA/0.6 503 I am a shielded leaf node"
 let add_header_fields header sock trailer =
   let buf = Buffer.create 100 in
   Printf.bprintf buf "%s" header;
-  Printf.bprintf buf "User-Agent: %s\r\n" user_agent;
+  Printf.bprintf buf "User-Agent: %s\r\n" (get_user_agent ());
   Printf.bprintf buf "X-My-Address: %s:%d\r\n"
     (Ip.to_string (client_ip (Some sock))) !!client_port;
   Printf.bprintf buf "X-Ultrapeer: False\r\n";
@@ -403,7 +403,7 @@ let request_of_download request d =
   
 let make_download_request c s headers =
   let headers =
-    ("User-Agent", user_agent) ::
+    ("User-Agent", get_user_agent ()) ::
     ("Connection", "Keep-Alive") ::
     (match c.client_host with
         None -> headers

@@ -857,7 +857,7 @@ let read_request url headers gconn sock =
         begin
           gconn.gconn_client_info_sent <- true;
           ("Remote-IP", Ip.to_string (fst (peer_addr sock)) ) ::
-          ("Server", user_agent) :: headers
+          ("Server", get_user_agent ()) :: headers
         end
     in
     make_http_header s headers
