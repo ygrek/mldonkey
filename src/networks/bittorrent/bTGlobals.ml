@@ -185,6 +185,9 @@ let create_temp_file file_temp file_files file_state =
         file_temp);
   file_fd
 
+let can_handle_tracker t =
+  String2.check_prefix (String.lowercase t.tracker_url) "http://"
+
 let rec set_trackers file file_trackers =
   match file_trackers with
     | [] -> ()
@@ -192,7 +195,7 @@ let rec set_trackers file file_trackers =
 	if not (List.exists (fun tracker -> 
 			       tracker.tracker_url = url
 			    ) file.file_trackers) then 
-	  file.file_trackers <- {
+	  let t = {
             tracker_url = url;
             tracker_interval = 600;
             tracker_min_interval = 600;
@@ -206,7 +209,9 @@ let rec set_trackers file file_trackers =
             tracker_id = "";
             tracker_key = "";
 	    tracker_enabled = true
-          } :: file.file_trackers;
+          } in
+	  t.tracker_enabled <- can_handle_tracker t;
+	  file.file_trackers <-  t :: file.file_trackers;
 	set_trackers file q
 
 let new_file file_id t torrent_diskname file_temp file_state =

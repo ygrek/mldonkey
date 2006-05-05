@@ -145,7 +145,7 @@ let connect_trackers file event f =
       (* if there is no tracker left, do something ? *)
       if !verbose_msg_servers then
 	lprintf_nl () "No trackers left, reenabling all of them...";
-      List.iter (fun t -> t.tracker_enabled <- true) file.file_trackers;
+      List.iter (fun t -> t.tracker_enabled <- can_handle_tracker t) file.file_trackers;
       file.file_trackers
     end in
 

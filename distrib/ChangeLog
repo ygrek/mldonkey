@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/06
+5064: BT: only try to connect to http trackers (pango)
 5040: Overnet: Open TCP port only when network is active
 
 2006/04/14
