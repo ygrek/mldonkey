@@ -523,7 +523,7 @@ let recover_md4s md4 =
 
 let parse_donkey_url url =
   let url = Str.global_replace (Str.regexp "|sources,") "|sources|" url in
-  match String2.split (String.escaped url) '|' with
+  match String2.split url '|' with
 (* TODO RESULT *)
   | "ed2k://" :: "file" :: name :: size :: md4 :: "/" :: "sources" :: sources :: _
   | "file" :: name :: size :: md4 :: "/" :: "sources" :: sources :: _ ->

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/06
+5069: EDK: Fix broken unicode URIs parsing broken since 2.7.4 (pango)
 5074: Change default Ocaml version to 3.09.2
 5073: Update default IP blocklist URL, replaced
       http://www.bluetack.co.uk/config/antip2p.txt with
