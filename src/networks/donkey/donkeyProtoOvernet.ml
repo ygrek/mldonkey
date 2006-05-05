@@ -493,6 +493,7 @@ module Overnet = struct
 
     let enable enabler =
       enable enabler;
+      if !!enable_overnet then begin
       try
         let sock = TcpServerSocket.create
             "overnet client server"
@@ -509,6 +510,7 @@ module Overnet = struct
       with e ->
           lprintf_nl "[Overnet] Could not assign TCP port %d for Overnet" !!overnet_port;
           tcp_sock := None
+      end
 
     let disable () =
       disable ();

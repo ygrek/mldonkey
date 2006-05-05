@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/06
+5040: Overnet: Open TCP port only when network is active
+
 2006/04/14
 5036: BT: Correctly parse .torrent files with an empty directory (again)
 5039: Fix dp500 compile
