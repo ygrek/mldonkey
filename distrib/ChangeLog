@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/07
+5076: Gd: Do not disable html_mods_vd_gfx if core is compiled without GD support
 5075: DNS round robin, keep all IP addresses associated with DNS names,
       and return next one upon each request. (pango)
 

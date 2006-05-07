@@ -45,17 +45,11 @@ end
 
 module Graphics : Graphics = struct
 
-let disable_gfx_support () =
-  if !!html_mods_vd_gfx then
-    html_mods_vd_gfx =:= false;
-    html_mods_vd_gfx_tag =:= false
-
 let show_nogd_debug_msg () =
   if !verbose then lprintf_nl "Warning: Gd support was not compiled (install libgd-dev to enable it)"
 
 let remove_files () =
 (
-  disable_gfx_support ();
   show_nogd_debug_msg ()
 )
 
@@ -65,43 +59,36 @@ let really_remove_files () = ()
 
 let do_draw_pic ttl vl hl gdown gup =
 (
-  disable_gfx_support ();
   show_nogd_debug_msg ()
 )
 
 let do_draw_down_pic ttl top_title vl hl gdown =
 (
-  disable_gfx_support ();
   show_nogd_debug_msg ()
 )
 
 let do_draw_up_pic ttl top_title vl hl gup =
 (
-  disable_gfx_support ();
   show_nogd_debug_msg ()
 )
 
 let do_draw_h_pic ttl vl hl gdown gup =
 (
-  disable_gfx_support ();
   show_nogd_debug_msg ()
 )
 
 let do_draw_down_h_pic ttl top_title vl hl gdown =
 (
-  disable_gfx_support ();
   show_nogd_debug_msg ()
 )
 
 let do_draw_up_h_pic ttl top_title vl hl gup =
 (
-  disable_gfx_support ();
   show_nogd_debug_msg ()
 )
 
 let do_draw_tag title gdown gup =
 (
-  disable_gfx_support ();
   show_nogd_debug_msg ()
 )
 
