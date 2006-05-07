@@ -149,45 +149,81 @@ let to_sockaddr ip port =
   Unix.ADDR_INET (to_inet_addr ip, port)
 
 let get_non_local_ip list =
-  let rec iter list = 
-    match list with
-      [] -> raise Not_found
-    | ip :: tail ->
-        let ip = of_inet_addr ip in
-        if ip = (127,0,0,1) then
-          iter tail
-        else ip
-  in
-  try iter list
-  with _ ->
-      match list with
-        [] -> raise Not_found
-      | ip :: _ -> of_inet_addr ip
+  let list = List.filter ((<>) (127,0,0,1)) list in
+  match list with
+  | [] -> raise Not_found
+  | l -> l
 
 let gethostbyname name = 
   let h = Unix.gethostbyname name in
   let list = Array.to_list h.Unix.h_addr_list in
-  get_non_local_ip list
+  get_non_local_ip (List.map of_inet_addr list)
+
+type ip_cache_entry = {
+  ips : t array;
+  mutable next : int; (* for DNS round robin *)
+  time_limit : float (* freshness *)
+}
 
 let ip_cache = Hashtbl.create 13
-let resolve_name name =
+
+let make_entry_from_ips ?(time_limit = Unix.gettimeofday () +. 3600.) ips =
+  {
+    ips = ips;
+    next = Random.int (Array.length ips);
+    time_limit = time_limit 
+  }
+
+let make_entry_from_name ?(time_limit = Unix.gettimeofday () +. 3600.) name =
+  make_entry_from_ips ~time_limit (Array.of_list (gethostbyname name))
+
+let get_entry_cached_immediate name =
+  let cache_entry = Hashtbl.find ip_cache name in
+  let current_time = Unix.gettimeofday () in
+  if cache_entry.time_limit < current_time then begin
+    (* found, but no longer fresh *)
+    Hashtbl.remove ip_cache name;
+    raise Not_found
+  end else
+    cache_entry
+
+let get_entry_cached name =
   let current_time = Unix.gettimeofday () in
   try
-    let (ip, time) = Hashtbl.find ip_cache name in
-    if time < current_time then
+    let cache_entry = Hashtbl.find ip_cache name in
+    if cache_entry.time_limit < current_time then
+      (* found, but no longer fresh *)
       try
-        let ip = gethostbyname name in
-        Hashtbl.remove ip_cache name;
-        Hashtbl.add ip_cache name (ip, current_time +. 3600.);
-        ip
-      with _ -> ip
-    else ip
-  with _ ->
-      lprintf_nl "[DNS] Resolving [%s] ..." name;
-      let ip = gethostbyname name in
-      Hashtbl.add ip_cache name (ip, current_time +. 3600.);
-      ip
+	let new_entry = 
+	  make_entry_from_name ~time_limit:(current_time +. 3600.) name in
+	(* update cache *)
+        Hashtbl.replace ip_cache name new_entry;
+	new_entry
+      with Not_found -> 
+	(* new lookup failed, return old information *)
+	cache_entry
+    else 
+      (* fresh from cache *)
+      cache_entry
+  with Not_found ->
+    (* not in cache *)
+    lprintf_nl "[DNS] Resolving [%s] ..." name;
+    let new_entry =
+      make_entry_from_name ~time_limit:(current_time +. 3600.) name in
+    Hashtbl.add ip_cache name new_entry;
+    new_entry
 
+(* Simple round robin *)
+let get_entry_ip entry =
+  let ip = entry.ips.(entry.next) in
+  entry.next <- (entry.next + 1) mod (Array.length entry.ips);
+  ip
+
+let resolve_name_immediate name =
+  get_entry_ip (get_entry_cached_immediate name)
+
+let resolve_name name =
+  get_entry_ip (get_entry_cached name)
 
 let from_name name =
   try
@@ -209,7 +245,7 @@ let my () =
     let name = Unix.gethostname () in
     try
       resolve_name name 
-    with _ -> 
+    with Not_found -> 
         if String.length name > 0 && name.[0] >= '0' && name.[0] <= '9' then
           of_string name 
         else
@@ -249,15 +285,10 @@ let ip_fifo = Fifo.create ()
 let async_ip name f =
   try
 (*    lprintf "async_ip [%s]\n" name; *)
-      let current_time = Unix.gettimeofday () in
-      let (ip, time) = Hashtbl.find ip_cache name in
-      if time < current_time then begin
-          Hashtbl.remove ip_cache name;
-          raise Not_found
-        end;
-      (try f ip with _ -> ())
-    with _ ->
-        Fifo.put ip_fifo (name, f)
+    let ip = resolve_name_immediate name in
+    (try f ip with _ -> ())
+  with Not_found ->
+    Fifo.put ip_fifo (name, f)
 
 (* We check for names every 1/10 second. Too long ? *)
 let _ =
@@ -268,54 +299,50 @@ let _ =
   );
 
   BasicSocket.add_infinite_timer 0.1 (fun _ ->
-      let current_time = Unix.gettimeofday () in
-      while true do
-        match !current_job with
-          None ->
-            let (name, f) = Fifo.take ip_fifo in
-            (try
-                let (ip, time) = Hashtbl.find ip_cache name in
-                if time < current_time then begin
-                    Hashtbl.remove ip_cache name;
-                    raise Not_found
-                  end;
-                (try f ip with _ -> ())
-              with _ ->
+    let current_time = Unix.gettimeofday () in
+    while true do
+      match !current_job with
+      | None ->
+          let (name, f) = Fifo.take ip_fifo in
+          (try
+	    let ip = resolve_name_immediate name in
+            (try f ip with _ -> ())
+          with Not_found ->
 (*                  lprintf "resolving name...\n"; *)
-                  if !BasicSocket.use_threads && 
-                    BasicSocket.has_threads () then
-                    let job = {
-                        handler = f;
-                        name = name;
-                        entries = [||];
-                        error = false;
-                      }
-                    in
-                    current_job := Some job;
-                    job_start job
-                  else begin
+            if !BasicSocket.use_threads && 
+              BasicSocket.has_threads () then
+                let job = {
+                  handler = f;
+                  name = name;
+                  entries = [||];
+                  error = false;
+                } in
+                current_job := Some job;
+                job_start job
+            else begin
 (*                      lprintf "from_name ...\n"; *)
-                      f (from_name name)
-
-                    end
-            )
-        | Some job ->
-            if job_done job then begin
-                current_job := None;
-                if not job.error then begin
-                    let ip = 
-                      let list = Array.to_list job.entries in
-                      get_non_local_ip list
-                    in
+              f (from_name name)
+		
+            end
+          )
+      | Some job ->
+          if job_done job then begin
+            current_job := None;
+            if not job.error then begin
+	      let ips =
+		get_non_local_ip (
+		  List.map of_inet_addr (Array.to_list job.entries)) in
+	      let entry = make_entry_from_ips (Array.of_list ips) in
+              Hashtbl.add ip_cache job.name entry;
+	      let ip = get_entry_ip entry in
 (*        lprintf "Ip found for %s: %s\n" job.name (to_string ip);  *)
-                    Hashtbl.add ip_cache job.name (ip, current_time +. 3600.);
-                    job.handler ip
-                  end else begin
-                    lprintf_nl "[DNS] could not resolve %s, check URL" job.name;
-                    raise Not_found
-                  end
-              end else raise Exit
-      done
+              job.handler ip
+            end else begin
+              lprintf_nl "[DNS] could not resolve %s, check URL" job.name;
+              raise Not_found
+            end
+          end else raise Exit
+    done
   )
 
 

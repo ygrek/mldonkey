@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/07
+5075: DNS round robin, keep all IP addresses associated with DNS names,
+      and return next one upon each request. (pango)
+
 2006/05/06
 5069: EDK: Fix broken unicode URIs parsing broken since 2.7.4 (pango)
 5074: Change default Ocaml version to 3.09.2
