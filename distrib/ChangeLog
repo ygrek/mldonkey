@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/09
+5078: Telnet: Remove HTML code from sysinfo command
 5077: FT: Fix fasttrack connection problem and adds a bootstrap nodes file url
       Removes old/broken imesh bootstrap node (zet)
 

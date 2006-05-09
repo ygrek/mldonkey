@@ -435,9 +435,9 @@ let _ =
     "sysinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in
         ignore(buildinfo (o.conn_output = HTML) buf);
-        Printf.bprintf buf "\\<P\\>";
+        if o.conn_output = HTML then Printf.bprintf buf "\\<P\\>";
         ignore(runinfo (o.conn_output = HTML) buf o);
-        Printf.bprintf buf "\\<P\\>";
+        if o.conn_output = HTML then Printf.bprintf buf "\\<P\\>";
         ignore(diskinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey core build, runtime and disk information";
