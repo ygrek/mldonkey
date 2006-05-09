@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/09
+5081: Change default ip_blocking_descriptions to false for faster startup
 5080: Only print servers of enabled networks (pango)
 5079: Ignore ._* in directory lists (pango)
 5078: Telnet: Remove HTML code from sysinfo command

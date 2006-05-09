@@ -872,8 +872,9 @@ let rss_feeds = define_expert_option current_section ["rss_feeds"]
     "URLs of RSS feeds"
     (list_option Url.option) []
 
-let ip_blocking_descriptions =
-  define_expert_option current_section ["ip_blocking_descriptions"] "Keep IP blocking ranges descriptions in memory" bool_option true
+let ip_blocking_descriptions = define_expert_option current_section ["ip_blocking_descriptions"]
+    "Keep IP blocking ranges descriptions in memory"
+    bool_option false
 
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
     "IP blocking list filename (peerguardian format), can also be in gz/bz2/zip format
