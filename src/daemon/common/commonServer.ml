@@ -376,6 +376,7 @@ let server_print_html_header buf ext =
 let server_print s o =
   let impl = as_server_impl s in
   let n = impl.impl_server_ops.op_server_network in
+  if network_is_enabled n then
   try
     let info =
       try server_info s with e ->

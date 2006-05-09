@@ -245,10 +245,10 @@ COMMON_SRCS = \
 
 COMMON_CLIENT_SRCS= \
   $(COMMON)/commonUser.ml \
+  $(COMMON)/commonNetwork.ml \
   $(COMMON)/commonServer.ml \
   $(COMMON)/commonClient.ml \
   $(COMMON)/commonFile.ml \
-  $(COMMON)/commonNetwork.ml \
   $(COMMON)/commonResult.ml \
   $(COMMON)/commonWeb.ml \
   $(COMMON)/commonBlocking.ml  \
