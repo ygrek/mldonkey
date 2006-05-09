@@ -45,10 +45,51 @@ open FasttrackProtocol
 open FasttrackComplexOptions
 open FasttrackProto
 
-let bootstrap_from_imesh = define_option fasttrack_section
-  ["bootstrap_from_imesh"]
-  "(only for development tests)"
-    bool_option true
+let load_nodes_file filename = 
+  let regexp = Str.regexp "^\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) \\([0-9]+\\) .*$" in
+  Unix2.tryopen_read filename (fun cin ->
+    try
+    
+      while true do
+        let line = input_line cin in
+        try 
+          if Str.string_match regexp line 0 then 
+            let ip = Ip.addr_of_string (Str.matched_group 1 line) in
+            let port = int_of_string (Str.matched_group 2 line) in
+            try
+              ignore (H.new_host ip port Ultrapeer)
+            with Not_found -> ()
+        with _ ->
+          lprintf_nl () "Syntax error in %s" filename;
+      done
+    
+    with End_of_file -> ()
+  )
+
+let unpack_nodes_gzip filename url =
+  let ext = String.lowercase (Filename2.extension filename) in
+  let last_ext = String.lowercase (Filename2.last_extension filename) in
+  let real_ext = if last_ext = ".zip" then last_ext else ext in
+    match real_ext with
+    | ".gzip" -> (
+         try     
+            Misc.archive_extract filename "gz"
+         with e ->
+          lprintf_nl () "Exception %s while extracting from %s" (Printexc2.to_string e) url;
+          raise Not_found
+      )
+    | _ -> filename
+
+let _ =
+    CommonWeb.add_web_kind "nodes.gzip" "List of fasttrack nodes"
+    (fun url filename -> 
+        lprintf_nl () "nodes.gzip loaded from %s" url;
+        try
+          let f = unpack_nodes_gzip filename url in
+          load_nodes_file f;
+          if f <> filename then Sys.remove f;
+        with _ -> () 
+    )    
 
 let server_parse_after s gconn sock =
   try
@@ -382,14 +423,6 @@ let rec find_ultrapeer queue =
     h
   with _ -> find_ultrapeer queue
 
-let ft_boot () =
-  let imesh_ip = Ip.addr_of_string "fm2.imesh.com" in
-  let (h : host) =
-    if !verbose then lprintf_nl () "Bootstrapping from Imesh %s" (Ip.string_of_addr imesh_ip);
-    H.new_host imesh_ip 1214 IndexServer
-  in
-  connect_server h
-
 let try_connect_ultrapeer connect =
 (*  lprintf "try_connect_ultrapeer....\n"; *)
   let h =
@@ -397,13 +430,7 @@ let try_connect_ultrapeer connect =
       find_ultrapeer ultrapeers_waiting_queue
     with _ ->
 (*        lprintf "not in ultrapeers_waiting_queue\n";   *)
-        if !!bootstrap_from_imesh then
-	  let imesh_ip = Ip.addr_of_string "fm2.imesh.com" in
-          let (_ : host) =
-	    if !verbose then lprintf_nl () "Bootstrapping from Imesh %s" (Ip.string_of_addr imesh_ip);
-            H.new_host (Ip.addr_of_string "fm2.imesh.com") 1214 IndexServer in
-          find_ultrapeer peers_waiting_queue
-        else raise Not_found
+       raise Not_found
   in
 (*  lprintf "contacting..\n";  *)
   connect h

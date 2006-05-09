@@ -776,8 +776,6 @@ let manage_hosts () = H.manage_hosts ()
 (*                                                                       *)
 (*************************************************************************)
 
-let ft_boot () = ()
-     
 let _ =
   server_ops.op_server_disconnect <- 
   (fun s -> disconnect_server s Closed_by_user);

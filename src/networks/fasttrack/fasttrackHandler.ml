@@ -227,6 +227,7 @@ the FasttrackSupernode module, and get rid of it. *)
               s.server_nusers <- stats.TcpMessages.nusers;
               s.server_nfiles <- stats.TcpMessages.nfiles;
               s.server_nkb <- stats.TcpMessages.nkb;
+              server_must_update s;
         end
 
     | M.NetworkNameReq netname ->

@@ -94,6 +94,11 @@ value ml_xor_ciphers(value out_cipher_v, value in_cipher_v){
 
   out_cipher->seed ^= in_cipher->seed; /* xor send cipher with received seed */
 
+  /* the correct behaviour here is to use the enc_type the supernode sent
+   * us for out_cipher too.
+   */
+  out_cipher->enc_type = in_cipher->enc_type;
+
   return Val_unit;
 }
 

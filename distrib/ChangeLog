@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/09
+5077: FT: Fix fasttrack connection problem and adds a bootstrap nodes file url
+      Removes old/broken imesh bootstrap node (zet)
+
 2006/05/07
 5076: Gd: Do not disable html_mods_vd_gfx if core is compiled without GD support
 5075: DNS round robin, keep all IP addresses associated with DNS names,

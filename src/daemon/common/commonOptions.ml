@@ -181,21 +181,21 @@ let _ =
       then begin
         if Sys.file_exists pid_filename then
           lprintf_nl "PID file %s exists."
-	    (Filename.concat file_basedir pid_filename)
-	else
-	  if Sys.file_exists config_space then begin
+      (Filename.concat file_basedir pid_filename)
+  else
+    if Sys.file_exists config_space then begin
             lprintf_nl "%s exists." (Filename.concat file_basedir config_space);
-	    lprintf "%s" (exit_message config_space);
-	    if Autoconf.windows then
-	      begin
-	        lprintf_nl "waiting 10 seconds to exit...";
-		Unix.sleep 10
-	      end;
-	    exit 2
-	    end;
+      lprintf "%s" (exit_message config_space);
+      if Autoconf.windows then
+        begin
+          lprintf_nl "waiting 10 seconds to exit...";
+    Unix.sleep 10
+        end;
+      exit 2
+      end;
         let pid =
           try
-	    Unix2.tryopen_read pid_filename (fun pid_ci ->
+      Unix2.tryopen_read pid_filename (fun pid_ci ->
               int_of_string (input_line pid_ci))
           with _ ->
             lprintf_nl "But it couldn't be read to check if the process still exists.";
@@ -204,23 +204,23 @@ let _ =
         in
           try
             Unix.kill pid 0;
-	    lprintf "%s" (exit_message pid_filename);
+      lprintf "%s" (exit_message pid_filename);
             exit 2
           with
             (* stalled pid file, disregard it *)
             | Unix.Unix_error (Unix.ESRCH, _, _) ->
-	       (lprintf_nl "Removing stalled file %s " pid_filename;
-	       try Sys.remove pid_filename with _ -> ())
-	    | e -> 
-	      lprintf "%s" (exit_message pid_filename);
-	      if Autoconf.system = "mingw" then lprintf_nl
-	        "can not check for stalled pid file because Unix.kill is not implemented on MinGW";
-	      lprintf_nl "Exception %s, exiting..." (Printexc2.to_string e);
-	      if Autoconf.system = "mingw" then begin
-	        lprintf_nl "waiting 10 seconds to exit...";
-		Unix.sleep 10;
-	      end;
-	      exit 2
+         (lprintf_nl "Removing stalled file %s " pid_filename;
+         try Sys.remove pid_filename with _ -> ())
+      | e -> 
+        lprintf "%s" (exit_message pid_filename);
+        if Autoconf.system = "mingw" then lprintf_nl
+          "can not check for stalled pid file because Unix.kill is not implemented on MinGW";
+        lprintf_nl "Exception %s, exiting..." (Printexc2.to_string e);
+        if Autoconf.system = "mingw" then begin
+          lprintf_nl "waiting 10 seconds to exit...";
+    Unix.sleep 10;
+        end;
+        exit 2
       end;
 
   let filename =
@@ -836,6 +836,7 @@ let web_infos = define_option current_section ["web_infos"]
     'guarding.p2p' for a blocklist file (also in gz/bz2/zip format), or
     'ocl' for file in the ocl format containing overnet peers, or
     'contact.dat' for an contact.dat file containing overnet peers,
+    'nodes.gzip' for a fasttrack nodes.gzip,
     and period is the period between updates (in hours),
     a period of zero means the file is only loaded once on startup,
     and url is the url of the file to download.
@@ -859,6 +860,8 @@ let web_infos = define_option current_section ["web_infos"]
       "http://download.overnet.org/contact.dat");
     ("geoip.dat", 0,
       "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
+    ("nodes.gzip", 0,
+      "http://update.kceasy.com/update/fasttrack/nodes.gzip");
 (*
     ("slsk_boot", 0,
       "http://www.slsknet.org/slskinfo2");
@@ -1504,7 +1507,7 @@ let max_displayed_results = define_expert_option current_section
 
 let options_version = define_expert_option current_section ["options_version"]
     "(internal option)"
-    int_option 12
+    int_option 13
 
 
 (*************************************************************************)
@@ -1628,18 +1631,18 @@ let _ =
   option_hook log_file (fun _ ->
       if !!log_file <> "" then
         try
-	  if Unix32.file_exists !!log_file then
-	    if (Unix32.getsize !!log_file)
-	     > (Int64ops.megabytes !!log_file_size) then begin
-	      Sys.remove !!log_file;
+    if Unix32.file_exists !!log_file then
+      if (Unix32.getsize !!log_file)
+       > (Int64ops.megabytes !!log_file_size) then begin
+        Sys.remove !!log_file;
               lprintf_nl "Logfile %s reset: bigger than %d MB" !!log_file !!log_file_size
-	    end;
+      end;
           let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 !!log_file in
           lprintf_to_file := true;
           if Autoconf.system = "cygwin" then lprintf "%s" win_message;
           lprintf_nl "Logging in %s" ( Filename.concat file_basedir !!log_file);
           log_to_file oc;
-	  lprintf_nl "Started logging..."
+    lprintf_nl "Started logging..."
         with e ->
             lprintf_nl "Exception %s while opening log file: %s"
               (Printexc2.to_string e) !!log_file
@@ -1822,26 +1825,26 @@ let quote_unquote_bars m =
       Buffer.contents result
     else match m.[i] with
       | '|' -> 
-	  Buffer.add_string result "\\|";
-	  aux (i+1)
+    Buffer.add_string result "\\|";
+    aux (i+1)
       | '\\' -> 
-	  aux_escaped (i+1)
+    aux_escaped (i+1)
       | _ -> 
-	  Buffer.add_char result m.[i];
-	  aux (i+1)
+    Buffer.add_char result m.[i];
+    aux (i+1)
   and aux_escaped i =
     if i = len then begin
       Buffer.add_char result '\\';
       Buffer.contents result
     end else match m.[i] with
       | '|' -> 
-	  Buffer.add_char result '|';
-	  aux (i+1)
+    Buffer.add_char result '|';
+    aux (i+1)
       | _ ->
-	  Buffer.add_char result '\\';
-	  aux i
+    Buffer.add_char result '\\';
+    aux i
   in aux 0
-	    
+      
 let _ =
   option_hook messages_filter (fun _ ->
       is_not_spam := if !!messages_filter <> "" then
@@ -1974,9 +1977,9 @@ let rec update_options () =
       begin
         web_infos_remove
           [
-	    ("server.met", 0, "http://www.gruk.org/server.met.gz")
+      ("server.met", 0, "http://www.gruk.org/server.met.gz")
           ];
-	web_infos_add "server.met" 0 "http://www.jd2k.com/server.met";
+  web_infos_add "server.met" 0 "http://www.jd2k.com/server.met";
       end;
       update 10
 
@@ -1985,10 +1988,10 @@ let rec update_options () =
       begin
         web_infos_remove
           [
-	    ("contact.dat", 672,
-	      "http://www.overnet.org/download/contact.dat");
+      ("contact.dat", 672,
+        "http://www.overnet.org/download/contact.dat");
           ];
-	web_infos_add "contact.dat" 168 "http://download.overnet.org/contact.dat";
+  web_infos_add "contact.dat" 168 "http://download.overnet.org/contact.dat";
       end;
       update 11
 
@@ -1997,11 +2000,15 @@ let rec update_options () =
       begin
         web_infos_remove
           [
-	    ("guarding.p2p", 96,
-	      "http://www.bluetack.co.uk/config/antip2p.txt");
+      ("guarding.p2p", 96,
+        "http://www.bluetack.co.uk/config/antip2p.txt");
           ];
-	web_infos_add "guarding.p2p" 0 "http://www.bluetack.co.uk/config/level1.gz";
+  web_infos_add "guarding.p2p" 0 "http://www.bluetack.co.uk/config/level1.gz";
       end;
       update 12
+
+  | 12 ->
+      web_infos_add "nodes.gzip" 0 "http://update.kceasy.com/update/fasttrack/nodes.gzip";
+      update 13
 
   | _ -> ()

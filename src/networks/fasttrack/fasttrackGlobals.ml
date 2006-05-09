@@ -98,6 +98,8 @@ let file_must_update file =
   file_must_update (as_file file)
 let server_num s =
   server_num (as_server s.server_server)
+let server_must_update s =
+  server_must_update (as_server s.server_server)
 let server_state s =
   server_state (as_server s.server_server)
 let set_server_state s state =
@@ -399,7 +401,7 @@ client_error = false;
           dummy_client_impl with
           impl_client_val = c;
           impl_client_ops = client_ops;
-	  impl_client_upload = None;
+    impl_client_upload = None;
         } in
       new_client impl;
       Hashtbl.add clients_by_uid kind c;
