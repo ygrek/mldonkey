@@ -115,7 +115,7 @@ let set_file_size file size =
   if file_size file = zero && size <> zero then begin
       let file_chunk_size =
         max megabyte (
-          size // (max 5L (size // (megabytes 5)))
+          1L ++ size // (max 5L (1L ++ size // (megabytes 5)))
         )
       in
       file.file_file.impl_file_size <- size;
