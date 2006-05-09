@@ -268,7 +268,7 @@ let new_file file_temporary file_name file_size file_hash =
   let t = Unix32.create_rw file_temp in
   let file_chunk_size =
     max megabyte (
-      1L ++ size // (max 5L (1L ++ size // (megabytes 5)))
+      1L ++ file_size // (max 5L (1L ++ file_size // (megabytes 5)))
     )
   in
   let uid = Uid.create (Md5Ext file_hash) in

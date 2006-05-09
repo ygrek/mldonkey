@@ -254,7 +254,7 @@ let min_range_size = megabyte
 let new_file file_id name file_size =
   let file_chunk_size =
     max megabyte (
-      1L ++ size // (max 5L (1L ++ size // (megabytes 5)))
+      1L ++ file_size // (max 5L (1L ++ file_size // (megabytes 5)))
     )
   in
   let file_temp = Filename.concat !!temp_directory 
