@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/10
+5083: HTML: Update EDK file history links (unease)
+
 2006/05/09
 5082: FileTP/Fasttrack/Soulseek: Fix splitting chunks off-by-one (pango)
 5081: Change default ip_blocking_descriptions to false for faster startup

@@ -1243,9 +1243,9 @@ let _ =
       tr ();
       html_mods_td buf [
         ("File History Links", "sr br", "File History");
-        ("","sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://stats.razorback2.com/ed2khistory\\?ed2k=%s\\\"\\>RazorBack File History\\</a\\>"
-            (Md4.to_string file.file_md4)
-          )
+        ("","sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://tothbenedek.hu/ed2kstats/ed2k?hash=%s\\\"\\>Toth File History\\</a\\> \\<a target=\\\"_blank\\\" href=\\\"http://ed2k.titanesel.ws/ed2k.php?hash=%s\\\"\\>Titanesel File History\\</a\\>"
+            (Md4.to_string file.file_md4) (Md4.to_string file.file_md4)
+	)
        ];
       tr ();
       html_mods_td buf [
