@@ -2226,6 +2226,11 @@ let _ =
         let buf = o.conn_buf in
 
         if use_html_mods o then begin
+
+if !!html_mods_use_js_tooltips then Printf.bprintf buf 
+"\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:
+-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
+
             Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>";
             html_mods_table_one_row buf "upstatsTable" "upstats" [
               ("", "srh", Printf.sprintf "Session: %s uploaded | Shared(%d): %s\n"
@@ -2274,8 +2279,20 @@ let _ =
                   (Int64.to_string impl.impl_shared_size)
                   (Md4.to_string impl.impl_shared_id) in
 
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\""
                   (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
+
+          (if !!html_mods_use_js_tooltips then
+                        Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
+                        (Http_server.html_real_escaped (Filename.basename impl.impl_shared_codedname))
+(*			(match file_magic (file_find file.file_num) with
+			   None -> ""
+			 | Some magic -> "File type: " ^ magic ^ "<br>") *)
+                        ""
+			!!html_mods_js_tooltips_wait
+			!!html_mods_js_tooltips_timeout
+			!!html_mods_js_tooltips_wait
+			 else Printf.bprintf buf " onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>");
 
                 let uploaded = Int64.to_float impl.impl_shared_uploaded in
                 let size = Int64.to_float impl.impl_shared_size in
@@ -2290,7 +2307,7 @@ let _ =
                     (Filename.basename impl.impl_shared_codedname)
                   else
                     Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
-                      ed2k (Filename.basename impl.impl_shared_codedname)));
+                      ed2k (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)));
                   ("", "sr", (if impl.impl_shared_id = Md4.null then "" else
                     Printf.sprintf "\\<a href=\\\"http://stats.razorback2.com/ed2khistory?ed2k=%s\\\"\\>%s\\</a\\>
                                     \\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>%s\\</a\\>"

@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/11
+5087: HTML, upstats: new tooltip with complete filename,
+      respect max_name_len for filename
+
 2006/05/10
 5083: HTML: Update EDK file history links (unease)
 
