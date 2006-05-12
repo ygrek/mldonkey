@@ -553,7 +553,7 @@ end;
                 in
                 iter ()
               with Not_found -> 
-		if !verbose_unknown_messages then
+    if !verbose_unknown_messages then
                   lprintf_nl () "Unable to get a block !!";
                   check_finished swarmer file;
                   raise Not_found
@@ -758,7 +758,11 @@ let push_handler cc gconn sock (first_line, headers) =
           try
             Hashtbl.find clients_by_uid (Known_location (ip,port))
           with _ ->
-              new_client  (Indirect_location ("", uid, ip, port))
+              let c = new_client  (Indirect_location ("", uid, ip, port)) in
+              if String.length c.client_user.user_nick == 0 then
+                c.client_user.user_nick <- (Md4.to_string uid);
+              c
+            
     in
     c.client_host <- Some (ip, port);
     match c.client_sock with

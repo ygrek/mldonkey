@@ -54,6 +54,7 @@ let update_user t =
         Some true ->  Indirect_location ("", t.Q.guid, t.Q.ip, t.Q.port)
       | _ -> Known_location(t.Q.ip, t.Q.port))
   in
+  user.user_nick <- (Md4.to_string t.Q.guid);
   user.user_speed <- t.Q.speed;
   user
   
@@ -70,6 +71,7 @@ let update_client t =
       | _ -> Known_location(t.Q.ip, t.Q.port))
   in
   
+  c.client_user.user_nick <- (Md4.to_string t.Q.guid);
   c.client_user.user_speed <- t.Q.speed;
   c
   
@@ -116,10 +118,12 @@ let server_to_client s p sock =
   | PongReq t ->
       
       let module P = Pong in
-(*      lprintf "FROM %s:%d" (Ip.to_string t.P.ip) t.P.port; *)
+      (*      lprintf "FROM %s:%d" (Ip.to_string t.P.ip) t.P.port; *)
       if p.pkt_uid = s.server_ping_last then begin
           s.server_nfiles_last <- Int64.add s.server_nfiles_last (Int64.of_int t.P.nfiles);
           s.server_nkb_last <- s.server_nkb_last + t.P.nkb;
+          s.server_nfiles <- (Int64.of_int t.P.nfiles);
+          s.server_nkb <- t.P.nkb;
           server_must_update (as_server s.server_server)
         end
   
@@ -243,12 +247,12 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
           
           let uids = ref [] in
           List.iter (fun s ->
-              if s.[0] = '{' || s.[0] = '<' then begin
+              if String.length s > 20 && String2.starts_with s "urn:" then
+                uids := (GnutellaGlobals.extract_uids s) @ !uids
 (* probably XML. print to remember that we should be able to use this
 information. *)
-                  lprintf "xml of result: %s\n" (String.escaped s);
-                end else
-                uids := (GnutellaGlobals.extract_uids s) @ !uids
+              else
+                  lprintf "info: %s\n" (String.escaped s);
           ) f.Q.info;
           
           if !verbose then

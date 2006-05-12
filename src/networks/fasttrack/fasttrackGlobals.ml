@@ -239,13 +239,15 @@ let add_source r (user : user) =
     end
 
 let new_result file_name file_size tags hashes _ =
-
+ 
   match hashes with
   | [ hash ] ->
       let r =
         try
-          Hashtbl.find results_by_uid hash
+          let r = Hashtbl.find results_by_uid hash in
+          increment_avail r
         with _ ->
+            let tags = update_or_create_avail tags in
             let r = { dummy_result with
                 result_names = [file_name];
                 result_size = file_size;

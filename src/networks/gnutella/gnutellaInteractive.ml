@@ -64,7 +64,7 @@ type query =
 | QHasMinVal of string * int64
 | QHasMaxVal of string * int64
 | QNone (** temporary, used when no value is available ;
-	   must be simplified before transforming into strings *)
+     must be simplified before transforming into strings *)
 *)
 
 let recover_file file =
@@ -400,7 +400,10 @@ let _ =
         P.client_network = network.network_num;
         P.client_kind = c.client_user.user_kind;
         P.client_type = client_type c;
-        P.client_name = c.client_user.user_nick;
+        P.client_name = if c.client_user.user_speed > 0 
+                          then Printf.sprintf "%s (%d)" c.client_user.user_nick c.client_user.user_speed
+                          else c.client_user.user_nick;
+        P.client_software = c.client_user.user_vendor;
 
       }
   );

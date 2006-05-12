@@ -311,6 +311,19 @@ let parse_headers c first_line headers =
 
       try
         
+        begin
+          try 
+            let (server,_) = List.assoc "server" headers in
+            c.client_user.user_vendor <- server;
+          with Not_found -> ()
+        end;
+        begin
+          try 
+            let (useragent,_) = List.assoc "user-agent" headers in
+            c.client_user.user_vendor <- useragent;
+          with Not_found -> ()
+        end;
+
         let (locations,_) = 
           List.assoc "x-gnutella-alternate-location" headers in
         let locations = String2.split locations ',' in

@@ -232,7 +232,7 @@ let add_source r (s : user) (index : file_uri) =
       ss := (key, last_time ()) :: !ss
     end
 
-let new_result file_name file_size tags (uids : Uid.t list) sources =
+let new_result file_name file_size (tags : CommonTypes.tag list) (uids : Uid.t list) sources =
   match uids with
     [] -> (*
         lprintf "New result by key\n"; 
@@ -257,8 +257,12 @@ let new_result file_name file_size tags (uids : Uid.t list) sources =
         lprintf "New result by UID\n"; 
       let rs = 
         try
-          Hashtbl.find results_by_uid (Uid.to_uid uid)
+          let r = Hashtbl.find results_by_uid (Uid.to_uid uid) in
+          increment_avail r
         with _ -> 
+
+            let tags = update_or_create_avail tags in 
+
             let r = { dummy_result with
                 result_names = [file_name];
                 result_size = file_size;
@@ -429,7 +433,7 @@ client_error = false;
           dummy_client_impl with
           impl_client_val = c;
           impl_client_ops = client_ops;
-	  impl_client_upload = None;
+    impl_client_upload = None;
         } in
       new_client impl;
       Hashtbl.add clients_by_uid kind c;

@@ -174,8 +174,9 @@ the FasttrackSupernode module, and get rid of it. *)
         let s = Hashtbl.find searches_by_uid id in
 
         List.iter (fun (user, meta) ->
-            let user = new_user (Known_location (
+            let fuser = new_user (Known_location (
                   user.M.user_ip, user.M.user_port)) in
+            fuser.user_nick <- user.M.user_name;
 (*
           let url = Printf.sprintf
             "FastTrack://%s:%d/.hash=%s" (Ip.to_string user_ip)
@@ -193,7 +194,7 @@ the FasttrackSupernode module, and get rid of it. *)
                       result_name
                       meta.M.meta_size
                       meta.M.meta_tags [meta.M.meta_hash] [] in
-                  add_source rs user;
+                  add_source rs fuser;
                   CommonInteractive.search_add_result false sss rs
 
               | FileUidSearch (file, file_hash) -> ()
@@ -209,7 +210,7 @@ the FasttrackSupernode module, and get rid of it. *)
 
             try
               let file = Hashtbl.find files_by_uid meta.M.meta_hash in
-              let c = new_client user.user_kind in
+              let c = new_client fuser.user_kind in
               add_download file c ()(* (FileByUrl url) *);
 
               if not (List.mem_assoc result_name file.file_filenames) then

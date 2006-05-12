@@ -87,8 +87,8 @@ let make_full_request r =
       then  Url.to_string_no_args url
       else url.short_file
     in
-	(* I get a lot more bittorrent urls with this line: *)
-	let url = (Str.global_replace (Str.regexp " ") "%20" url) in
+  (* I get a lot more bittorrent urls with this line: *)
+  let url = (Str.global_replace (Str.regexp " ") "%20" url) in
     let url = if is_real_post then url else
         Url.put_args url args
     in
@@ -287,7 +287,7 @@ let rec get_page r content_handler f =
 
     | 301 | 302 | 304 ->
         if !verbose then lprintf_nl () "%d: Redirect" ans_code;
-	let retrynum = r.req_retry in
+  let retrynum = r.req_retry in
         if retrynum < r.req_max_retry then
           begin
             try
@@ -308,10 +308,10 @@ let rec get_page r content_handler f =
               in
               if !verbose then lprintf_nl () "Redirected to %s" url;
               let r = { r with
-			req_url = Url.of_string url;
-			req_retry = retrynum+1 }
-	      in
-	      get_page r content_handler f
+      req_url = Url.of_string url;
+      req_retry = retrynum+1 }
+        in
+        get_page r content_handler f
             
             with e ->
                 lprintf_nl () "error understanding redirect response %d" ans_code;
@@ -330,17 +330,17 @@ let rec get_page r content_handler f =
 
     | 502 | 503 | 504 ->
         if !verbose then lprintf_nl () "%d: Unavailable" ans_code;
-	let retrynum = r.req_retry in
+  let retrynum = r.req_retry in
         if retrynum < r.req_max_retry then
           begin
             if !verbose then
               print_headers ();
-	    let seconds = (retrynum+1)*10 in
+      let seconds = (retrynum+1)*10 in
               lprintf_nl () "retry %d/%d in %d seconds for %s"
-	        (retrynum+1) r.req_max_retry seconds (Url.to_string_no_args r.req_url);
-	    let r = { r with req_retry = retrynum+1 } in
-	      add_timer (float(seconds)) (fun t -> get_page r content_handler f)
-	  end
+          (retrynum+1) r.req_max_retry seconds (Url.to_string_no_args r.req_url);
+      let r = { r with req_retry = retrynum+1 } in
+        add_timer (float(seconds)) (fun t -> get_page r content_handler f)
+    end
         else 
           lprintf_nl () "more than %d retries, aborting." r.req_max_retry;
           raise Not_found
@@ -364,8 +364,7 @@ let wget r f =
   let file_size = ref 0 in
   
   try
-  get_page r
-    (fun maxlen headers sock nread ->
+  get_page r (fun maxlen headers sock nread ->
 (*      lprintf "received %d\n" nread; *)
       let buf = TcpBufferedSocket.buf sock in
       
@@ -380,30 +379,44 @@ let wget r f =
           file_size := !file_size + left;
           if nread > left then
             TcpBufferedSocket.close sock Closed_by_user
-        end)
+        end
+  )
   (fun _ ->  
       let s = Buffer.contents file_buf in
       if s = "" then begin
           lprintf_nl () "Empty content for url %s"
             (Url.to_string r.req_url);
-        end;
+      end;
+      
       let webinfos_dir = "web_infos" in
-        Unix2.safe_mkdir webinfos_dir;
-	Unix2.can_write_to_directory webinfos_dir;
-      let filename = Filename.concat webinfos_dir 
-	(Filename.basename r.req_url.Url.short_file) in
+      Unix2.safe_mkdir webinfos_dir;
+      Unix2.can_write_to_directory webinfos_dir;
+      
+      let base = Filename.basename r.req_url.Url.short_file in
+      (* Base could be "." for http://site.com/ *)
+      let base = if base = "." 
+        then begin
+          let prng = Random.State.make_self_init () in
+          let rnd = (Random.State.bits prng) land 0xFFFFFF in
+          Printf.sprintf "http_%06x.tmp" rnd 
+        end else base 
+      in
+
+      let filename = Filename.concat webinfos_dir base in
+      if !verbose then lprintf_nl () "Filename: %s" filename;
       Unix2.tryopen_write_bin filename (fun oc -> output_string oc s);
       if r.req_save_to_file_time <> 0. then
-	Unix.utimes filename r.req_save_to_file_time r.req_save_to_file_time;
+        Unix.utimes filename r.req_save_to_file_time r.req_save_to_file_time;
       try
-        (f filename : unit)
-      with e ->  lprintf_nl ()
-            "Exception %s in loading downloaded file %s"
-            (Printexc2.to_string e) filename;
-          Sys.remove filename;
-          raise Not_found
+        (f filename : unit);
+      with e ->  
+        lprintf_nl () "Exception %s in loading downloaded file %s" (Printexc2.to_string e) filename;
+        Sys.remove filename;
+        raise Not_found
   )
-  with e -> lprintf_nl () "Exception %s in wget" (Printexc2.to_string e); raise Not_found
+  with e -> 
+    lprintf_nl () "Exception %s in wget" (Printexc2.to_string e); 
+    raise Not_found
 
 let whead r f = 
   

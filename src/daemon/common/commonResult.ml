@@ -166,7 +166,39 @@ let update_result2 rs r =
       r.result_modified <- false;
       IndexedResults.update_result rs r
     end
-  
+
+let rec find_avail tags =
+  match tags with
+    [] -> raise Not_found
+  | tag :: tail -> begin
+    match tag with
+      { tag_name = Field_Availability ; tag_value = tag_value } ->
+      tag
+    | _ -> find_avail tail
+  end
+
+let increment_avail r =
+  let rr = IndexedResults.get_result r in
+  begin
+    try
+      let tag = find_avail rr.result_tags in
+      let x = int64_of_tagvalue tag.tag_value in
+      tag.tag_value <- Uint64 (x ++ 1L);
+     with Not_found -> ();
+    end;
+  update_result_num rr
+
+let update_or_create_avail tags =
+  let tag =
+    try
+      let tag = find_avail tags in
+      let x = int64_of_tagvalue tag.tag_value in
+      tag.tag_value <- Uint64 (x ++ 1L);
+      tag
+   with Not_found ->
+      { tag_name = Field_Availability; tag_value = Uint64 1L } 
+  in
+  tag :: tags
   
 let _ = 
   Heap.add_memstat "CommonResult" (fun level buf ->

@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/12
+5088: Gnutella/FT/http_client fixes (zet)
+- Gnutella (G1) is working again
+
 2006/05/11
 5087: HTML, upstats: new tooltip with complete filename,
       respect max_name_len for filename

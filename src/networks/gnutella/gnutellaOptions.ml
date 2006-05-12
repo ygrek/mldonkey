@@ -50,31 +50,29 @@ let gnutella_hostfiles = define_option gnutella_section
   "A list of GWCache urls"
     (list_option string_option)
   [
-    "http://cache.kicks-ass.net:8000";
-    "http://gwc.jooz.net:8010/gwc";
-    "http://gwc.mine.nu:3333";
-    "http://gwc1.nouiz.org/servlet/GWebCache/req";
+    "http://cache.kicks-ass.net:8000/";
+    "http://g2cache.theg2.net/gwcache/lynnx.asp";
+    "http://galvatron.dyndns.org:59009/gwcache";
+    "http://gcache.sexter.com:8080/gwc/";
     "http://gwcrab.sarcastro.com:8001";
-    "http://kisama.ath.cx:8080";
+    "http://gwebcache.bearshare.net/";
+    "http://gwebcache.bearshare.net/gcache.php";
+    "http://intense.homelinux.coww.xolox.nl/gwebcache/";
+    "http://kisama.ath.cx:8080/";
     "http://krill.shacknet.nu:20095/gwc";
-    "http://overbeer.ghostwhitecrab.de";
-    "http://pokerface.bishopston.net:3558";
+    "http://loot.alumnigroup.org/";
+    "http://pokerface.ibiza.bishopston.net:3558/";
+    "http://t.az.is.teh.r0x0r.gtkg.de/";
+    "http://tribaldance.ibiza.bishopston.net:3558/";
+    "http://www.deepnetexplorer.co.uk/webcache/";
   ]
 
 let urlfiles = define_option gnutella_section 
     ["urlfiles"]
-  "A list of GWCache urls"
+  "A list of urlfile urls"
     (list_option string_option)
   [
-    "http://cache.kicks-ass.net:8000";
-    "http://gwc.jooz.net:8010/gwc";
-    "http://gwc.mine.nu:3333";
-    "http://gwc1.nouiz.org/servlet/GWebCache/req";
-    "http://gwcrab.sarcastro.com:8001";
-    "http://kisama.ath.cx:8080";
-    "http://krill.shacknet.nu:20095/gwc";
-    "http://overbeer.ghostwhitecrab.de";
-    "http://pokerface.bishopston.net:3558";
+    "http://loot.alumnigroup.org/";
   ]
   
 let redirectors = define_option gnutella_section 
@@ -100,7 +98,7 @@ let server_connection_timeout =
 let client_uid = define_option gnutella_section ["client_uid"]
     "The UID of this client" Md4.option (Md4.random ())
   
-  let _	 =
+  let _  =
   option_hook client_uid (fun _ ->
      let s = Md4.direct_to_string !!client_uid in
      s.[8] <- '\255';

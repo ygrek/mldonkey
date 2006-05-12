@@ -57,6 +57,7 @@ module ClientOption = struct
           let client_port = get_value "client_port" value_to_int in
           let client_uid = get_value "client_uid" (from_value Md4.option) in
           let c = new_client (Known_location(client_ip, client_port)) in
+          c.client_user.user_nick <- (Md4.to_string client_uid);
           
           (try
               c.client_user.user_speed <- get_value "client_speed" value_to_int 

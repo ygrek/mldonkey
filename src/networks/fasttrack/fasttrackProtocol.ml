@@ -154,6 +154,21 @@ let known_download_headers = []
 
 let parse_headers c first_line headers =
 
+  begin
+    try
+      let (server,_) = List.assoc "server" headers in
+      c.client_user.user_vendor <- server;
+    with Not_found -> ()
+  end;
+
+  begin
+    try
+      let (username,_) = List.assoc "x-kazaa-username" headers in
+      c.client_user.user_nick <- username;
+    with Not_found -> ()
+  end;
+
+
   if !verbose_unknown_messages then begin
       let unknown_header = ref false in
       List.iter (fun (header, _) ->
