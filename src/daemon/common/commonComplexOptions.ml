@@ -99,18 +99,20 @@ module FileOption = struct
                 normalize_time (get_value "file_age" value_to_int)
             with _ -> ());
           set_file_state file file_state;       
-          if !verbose then
-          (match file_state with
-              FileDownloading -> lprintf_nl () "New downloading file - check complete";
-            | FileDownloaded -> lprintf_nl () "New downloaded file - check complete";
-            | _ -> lprintf_nl () "New file with other state - check complete"
-          );
-          
+
           (try
               set_file_best_name file
               (get_value "file_filename" value_to_string)
             with _ -> ());
           set_file_priority file priority;
+
+          if !verbose then lprintf_nl () "New %s file %s"
+	      (match file_state with
+                 FileDownloading -> "downloading"
+               | FileDownloaded -> "downloaded"
+               | _ -> "other")
+	     (file_best_name file);
+
           file
       | _ -> assert false
           

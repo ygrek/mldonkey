@@ -125,6 +125,23 @@ let hdd_check () =
     close_log ()
   end
 
+let file_magic_check () =
+  if !Autoconf.magic_works then begin
+    if !verbose then lprintf_nl () "computing file magic values";
+    let check_magic file =
+      match Magic.M.magic_fileinfo (file_disk_name file) false with
+        None -> ()
+      | Some magic -> set_file_magic file (Some magic)
+    in
+    List.iter (fun file ->
+      let magic = file_magic file in
+      match magic with
+        None -> check_magic file
+      | Some magic when magic = "data" -> check_magic file
+      | _ -> ()
+    ) !!files
+  end
+
 (* ripped from gui_downloads *)
 
 let calc_file_eta f =
@@ -669,8 +686,11 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
         [|
           (if !!html_mods_use_js_tooltips then
                         Printf.sprintf "
-                                onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>File#: %d<br>Network: %s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
+                                onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%sFile#: %d<br>Network: %s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
                         (Http_server.html_real_escaped file.file_name)
+			(match file_magic (file_find file.file_num) with
+			   None -> ""
+			 | Some magic -> "File type: " ^ magic ^ "<br>")
 			file.file_num
                         (net_name file)
 			!!html_mods_js_tooltips_wait
@@ -1774,6 +1794,14 @@ let buildinfo html buf =
 	  ^ (if Autoconf.has_gd && not Autoconf.has_gd_png && Autoconf.has_gd_jpg then " gd(jpg)" else "")
 	  ^ (if not Autoconf.has_gd then " no-gd" else "")
           ^ (if Autoconf.has_iconv then " iconv" else " no-iconv")
+          ^ (if Autoconf.magic then
+	       begin
+	         if !Autoconf.magic_works then
+		   " magic(active)"
+		 else
+		   " magic(inactive)"
+	       end
+	     else " no-magic")
           ^ (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
   )
   in
@@ -1814,6 +1842,12 @@ let runinfo html buf o =
       ^ (Printf.sprintf "\nIP blocking local: %d ranges, web: %d ranges"
           (Ip_set.bl_length !CommonBlocking.ip_blocking_list)
           (Ip_set.bl_length !CommonBlocking.web_ip_blocking_list))
+      ^ (if Autoconf.magic then
+           if !Autoconf.magic_works then
+             Printf.sprintf "\nLibmagic:\t file-type recognition database present"
+           else
+             Printf.sprintf "\nLibmagic:\t file-type recognition database not present"
+         else "")
       ^ (if not !dns_works then
 	    Printf.sprintf "\nDNS:\t\t DNS resolution not available, web_infos %s not work"
 	      (if Autoconf.bittorrent = "yes" then "and BT does" else "do")

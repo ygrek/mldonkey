@@ -254,7 +254,7 @@ send us more clients.
       ("file_hashes", array_to_value
           (to_value Sha1.option) file.file_chunks) ::
       ("file_files", list_to_value
-          (fun (name, p1) ->
+          (fun (name, p1, _) ->
             SmallList [string_to_value name; int64_to_value p1])
         file.file_files) ::
       assocs

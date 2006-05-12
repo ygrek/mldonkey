@@ -2044,6 +2044,23 @@ let _ =
          _s ""
      ), "debug command (example: disk .)";
 
+     "debug_dir", Arg_one (fun arg o ->
+         let buf = o.conn_buf in
+	 let filelist = Unix2.list_directory arg in
+         Printf.bprintf buf "%d entries in dir %s\n" (List.length filelist) arg;
+	 List.iter (fun file ->
+           Printf.bprintf buf "%s\n     %s\nMime %s\n\n"
+	     file
+	     (match Magic.M.magic_fileinfo (Filename.concat arg file) false with
+	        None -> "unknown"
+	      | Some fileinfo -> fileinfo)
+	     (match Magic.M.magic_fileinfo (Filename.concat arg file) true with
+	        None -> "unknown"
+	      | Some fileinfo -> fileinfo)
+	 ) filelist;
+         _s ""
+     ), "debug command (example: disk .)";
+
      "debug_fileinfo", Arg_one (fun arg o ->
          let buf = o.conn_buf in
 	 (try
@@ -2285,10 +2302,9 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
           (if !!html_mods_use_js_tooltips then
                         Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
                         (Http_server.html_real_escaped (Filename.basename impl.impl_shared_codedname))
-(*			(match file_magic (file_find file.file_num) with
+			(match impl.impl_shared_magic with
 			   None -> ""
-			 | Some magic -> "File type: " ^ magic ^ "<br>") *)
-                        ""
+			 | Some magic -> "File type: " ^ magic ^ "<br>")
 			!!html_mods_js_tooltips_wait
 			!!html_mods_js_tooltips_timeout
 			!!html_mods_js_tooltips_wait

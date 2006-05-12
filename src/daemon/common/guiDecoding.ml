@@ -509,7 +509,7 @@ let get_sub_files s pos =
   get_list (fun s pos ->
     let name, pos = get_string s pos in
     let size, pos = get_int64 s pos, pos+8 in
-    (name, size), pos
+    (name, size, Some ""), pos
   ) s pos
   
 let get_file proto s pos = 

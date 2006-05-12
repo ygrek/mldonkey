@@ -248,7 +248,7 @@ and file = {
     mutable file_clients : ((Ip.t*int), client) Hashtbl.t ;
     mutable file_clients_num : int ;
     mutable file_chunks : Sha1.t array;
-    mutable file_files : (string * int64) list;
+    mutable file_files : (string * int64 * string option) list;
     mutable file_blocks_downloaded : int list;
     (* vvv probably a network specific value vvv ?what about file_downloaded?*)
     mutable file_uploaded : int64;

@@ -865,3 +865,10 @@ let _ =
       activity := new_activity ()
   )
 
+module HashMagic = Weak.Make(struct
+        type t = string
+        let hash s = Hashtbl.hash s
+        let equal x y = x = y
+      end)
+
+let files_magic = HashMagic.create 100

@@ -43,6 +43,7 @@ type 'a shared_impl = {
     mutable impl_shared_size : int64;
     mutable impl_shared_id : Md4.t;
     mutable impl_shared_requests : int;
+    mutable impl_shared_magic : string option
   }
   
 and 'a shared_ops = {
@@ -131,8 +132,6 @@ let files_scanned = ref 0
 let files_scanned_size = ref zero
   
 let new_shared dirname prio filename fullname =
-(*  lprintf "XXXXXXX\ndirname %s \nfilename %s \nfullname %s\n"
-    dirname filename fullname;  *)
   let fullname = Filename2.normalize fullname in
   let filename = Filename2.normalize filename in
   let dirname = try
@@ -209,6 +208,7 @@ let dummy_shared = {
     impl_shared_size = zero;
     impl_shared_id = Md4.null;
     impl_shared_requests = 0;
+    impl_shared_magic = None;
   }
   
   

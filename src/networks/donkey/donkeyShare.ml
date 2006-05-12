@@ -48,9 +48,16 @@ let must_share_file file codedname has_old_impl =
   | Some _ -> ()
   | None ->
       new_shared := true;
+      let full_name = file_disk_name file in
+      let magic =
+        match Magic.M.magic_fileinfo full_name false with
+          None -> None
+        | Some magic -> Some (HashMagic.merge files_magic magic)
+      in
+
       let impl = {
           impl_shared_update = 1;
-          impl_shared_fullname = file_disk_name file;
+          impl_shared_fullname = full_name;
           impl_shared_codedname = codedname;
           impl_shared_size = file_size file;
           impl_shared_id = file.file_md4;
@@ -59,6 +66,7 @@ let must_share_file file codedname has_old_impl =
           impl_shared_ops = shared_ops;
           impl_shared_val = file;
           impl_shared_requests = 0;
+          impl_shared_magic = magic;
         } in
       file.file_shared <- Some impl;
       new_shared_files := file :: !new_shared_files;
@@ -268,6 +276,7 @@ let _ =
 lprintf "Searching %s" fullname; lprint_newline ();
 *)
         let mtime = Unix32.mtime fullname in
+
         let s = Hashtbl.find shared_files_info
             (fullname, size, mtime) in
         (* if s.sh_mtime = mtime && s.sh_size = size then begin *)
@@ -289,6 +298,12 @@ lprintf "Searching %s" fullname; lprint_newline ();
 	  let found = ref false in
 	  List.iter (fun sh -> if sh.shared_name = fullname then found := true) !shared_files;
 	  if not !found then begin
+        let magic =
+          match Magic.M.magic_fileinfo fullname false with
+            None -> None
+          | Some magic -> Some (HashMagic.merge files_magic magic)
+        in
+
           let rec impl = {
               impl_shared_update = 1;
               impl_shared_fullname = fullname;
@@ -300,6 +315,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
           	  impl_shared_id = Md4.null;
               impl_shared_val = pre_shared;
               impl_shared_requests = 0;
+              impl_shared_magic = magic;
             } and
             pre_shared = {
               shared_shared = impl;

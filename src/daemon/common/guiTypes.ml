@@ -142,7 +142,7 @@ type file_info = {
     mutable file_last_seen : int;
     mutable file_priority : int;
     mutable file_uids : Uid.t list;
-    mutable file_sub_files : (string * int64) list;
+    mutable file_sub_files : (string * int64 * string option) list;
   }
   
 type user_info = {
@@ -246,7 +246,7 @@ type shared_info = {
     mutable shared_uploaded : int64;
     mutable shared_requests : int;
     mutable shared_uids : Uid.t list; (* net file UID *)
-    mutable shared_sub_files : (string * int64) list;
+    mutable shared_sub_files : (string * int64 * string option) list;
   }
   
   

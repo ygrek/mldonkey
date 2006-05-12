@@ -73,21 +73,12 @@ let _ =
       remove_file file;
   );
   file_ops.op_file_info <- (fun file ->
-      {
+      { (impl_file_info file.file_file) with
         P.file_fields = P.Fields_file_info.all;
-        P.file_comment = file_comment (as_file file);
-        P.file_name = file_best_name file;
-        P.file_num = (file_num file);
         P.file_network = network.network_num;
         P.file_names = file.file_filenames;
-        P.file_md4 = Md4.null;
-        P.file_size = file_size file;
-        P.file_downloaded = file_downloaded file;
         P.file_all_sources = (List.length file.file_clients);
         P.file_active_sources = (List.length file.file_clients);
-        P.file_state = file_state file;
-        P.file_sources = None;
-        P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = (match file.file_swarmer with
           None -> "" | Some swarmer ->
             CommonSwarming.verified_bitmap swarmer);
@@ -96,12 +87,7 @@ let _ =
           None -> "" | Some swarmer ->
             CommonSwarming.availability swarmer)];
         P.file_format = FormatNotComputed 0;
-        P.file_chunks_age = [|0|];
-        P.file_age = file_age file;
-        P.file_last_seen = BasicSocket.last_time ();
-        P.file_priority = file_priority (as_file file);
         P.file_uids = [Uid.create (FileTP file.file_id)];
-        P.file_sub_files = [];
       }
   )
 

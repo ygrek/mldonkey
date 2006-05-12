@@ -110,6 +110,7 @@ let enable () =
     BTClients.recover_files ();
     add_session_timer enabler 60.0 (fun timer ->
         BTClients.recover_files ();
+        BTInteractive.file_magic_check ()
     );
 
     add_session_timer enabler 120.0 (fun timer ->
@@ -125,6 +126,7 @@ let enable () =
 	      ) !current_files;
   );
 
+  BTInteractive.file_magic_check ();
   BTClients.listen ();
   ()
 

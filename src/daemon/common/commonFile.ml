@@ -58,6 +58,7 @@ type 'a file_impl = {
     mutable impl_file_last_received : (int64 * int) list;
     mutable impl_file_last_rate : float;
     mutable impl_file_best_name : string;
+    mutable impl_file_magic : string option;
     mutable impl_file_priority: int; (* normal = 0, low < 0, high > 0 *)
     mutable impl_file_last_seen : int;
     mutable impl_file_probable_name : string option;
@@ -128,6 +129,7 @@ let dummy_file_impl = {
     impl_file_last_received = [];
     impl_file_last_rate = 0.0;
     impl_file_best_name = "<UNKNOWN>";
+    impl_file_magic = None;
     impl_file_priority = 0;
     impl_file_last_seen = 0;
     impl_file_comment = "";
@@ -442,6 +444,14 @@ let set_file_priority file p =
       file_must_update file
     end
 
+let file_magic file =
+  (as_file_impl file).impl_file_magic
+  
+let set_file_magic file magic =
+  match magic with
+    None -> ()
+  | Some magic -> (as_file_impl file).impl_file_magic <- Some (HashMagic.merge files_magic magic)
+    
 let set_file_last_seen file age =
   let impl = as_file_impl file in
   impl.impl_file_last_seen <- age
@@ -614,6 +624,13 @@ let file_print file o =
             info.G.file_chunks
         ) ];
 
+      (match file_magic file with
+        Some magic ->
+	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+	    html_mods_td buf [
+            ("File type computed by libmagic", "sr br", "File magic");
+            ("", "sr", magic) ]
+       | _ -> ());
 
       file_print_html file buf;
       
@@ -622,10 +639,13 @@ let file_print file o =
 
     end else
     begin
-      Printf.bprintf buf "[%-s %5d]\n%s\n%s\nTotal   %10s\nPartial %10s\npriority %d\n"
+      Printf.bprintf buf "[%-s %5d]\n%s\n%s%s\nTotal   %10s\nPartial %10s\npriority %d\n"
         n.network_name
         (file_num file)
         (String2.shorten 80 (file_best_name file))
+	(match file_magic file with
+	   Some magic -> Printf.sprintf "%s\n" magic
+	 | None -> "")
         (string_of_uids info.G.file_uids)
         (Int64.to_string info.G.file_size)
         (Int64.to_string info.G.file_downloaded)
@@ -867,6 +887,9 @@ let _ =
       ) files_by_num;
       Printf.bprintf buf "  files: %d\n" !counter;
       Printf.bprintf buf "  files_ops: %d\n" (List.length !files_ops);
+      let counter = ref 0 in
+      HashMagic.iter (fun _ -> incr counter) files_magic;
+      Printf.bprintf buf "  files_magic: %d\n" !counter;
   )
 
 

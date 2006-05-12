@@ -18,7 +18,6 @@ ChangeLog
 4976: Filetype recognition with libmagic
 - new debug command: debug_dir, prints magic values for all files
 - display file magic values in vd & upstats HTML popup & vd #num
-
 5088: Gnutella/FT/http_client fixes (zet)
 - Gnutella (G1) is working again
 

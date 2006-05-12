@@ -541,7 +541,7 @@ let buf_file_field proto buf field =
       buf_string buf x
     
 let buf_sub_files buf l =
-  buf_list buf (fun buf (name, size) ->
+  buf_list buf (fun buf (name, size, _) ->
     buf_string buf name;
     buf_int64 buf size
   ) l
