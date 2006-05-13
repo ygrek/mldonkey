@@ -1418,7 +1418,8 @@ let http_handler o t r =
                     | "downloaders" | "uploaders" | "scan_temp" | "cs"
                     | "version" | "rename" | "force_download" | "close_fds"
                     | "vd" | "vo" | "voo" | "upstats" | "shares" | "share"
-                    | "unshare" | "stats" | "users" -> drop_pre := true;
+                    | "unshare" | "stats" | "users" | "block_list" -> 
+			drop_pre := true;
                     | _ -> ());
                   Printf.bprintf buf "%s\n"
                     (if use_html_mods o && !drop_pre then s else "\n<pre>\n" ^ s ^ "</pre>");

@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/13
+5089: IPBlock: Print seperate lists in block_list command for IPs
+      blocked by local and web IP blocklists (pango)
+
 2006/05/12
 4976: Filetype recognition with libmagic
 - new debug command: debug_dir, prints magic values for all files

@@ -3246,17 +3246,44 @@ let _ =
 
     "block_list", Arg_none (fun o ->
       let buf = o.conn_buf in
-        if o.conn_output = HTML then
-          let mybuf = Buffer.create 1000 in
-          let mytable = ref [] in
-	  Ip_set.print_list mybuf !CommonBlocking.ip_blocking_list;
-          let listtmp = String2.split (Buffer.contents mybuf) '\n' in
-           (List.iter (fun s ->
-             mytable := !mytable @ [ ("", "srh", s); ]
-            ) listtmp);
-          html_mods_table_one_col buf "serversTable" "servers" !mytable
-        else
-	  Ip_set.print_list buf !CommonBlocking.ip_blocking_list;
+      if o.conn_output = HTML then
+	List.iter (fun (tablename, l) ->
+	  html_mods_cntr_init ();
+	  html_mods_table_header buf tablename "servers" [
+	    ( "0", "srh br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
+	    ( "0", "srh", "Hits", "Hits") ;
+	    ( "0", "srh", "Range", "Range")];
+          let nhits, nranges = 
+	    Ip_set.bl_fold_left (fun br (nhits, nranges) ->
+	      if br.Ip_set.blocking_hits > 0 then begin
+		Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
+		  (html_mods_cntr ());
+		html_mods_td buf [
+		  ("Description", "sr br", br.Ip_set.blocking_description);
+		  ("Hits", "sr br", string_of_int br.Ip_set.blocking_hits);
+		  ("Range", "sr br", Printf.sprintf "%s - %s"
+		    (Ip.to_string br.Ip_set.blocking_begin)
+		    (Ip.to_string br.Ip_set.blocking_end))];
+		Printf.bprintf buf "\\</tr\\>";
+	      end;
+	      (nhits + br.Ip_set.blocking_hits, nranges + 1)
+	    ) (0, 0) l in
+	  Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
+	    (html_mods_cntr ());
+	  html_mods_td buf [
+	    ("Total ranges", "sr br", ("Total " ^ string_of_int nranges));
+	    ("Hits", "sr br", ("Total " ^ string_of_int nhits));
+	    ("", "sr br", "")];
+	  Printf.bprintf buf "\\</tr\\>\\</table\\>\\<P\\>";
+	) [
+	  ("Web blocking list", !CommonBlocking.web_ip_blocking_list); 
+	  ("Local blocking list", !CommonBlocking.ip_blocking_list)]
+      else begin
+	Printf.bprintf buf "Web blocking list\n";
+	Ip_set.print_list buf !CommonBlocking.web_ip_blocking_list;
+	Printf.bprintf buf "Local blocking list\n";
+	Ip_set.print_list buf !CommonBlocking.ip_blocking_list;
+      end;
       _s ""
     ), ":\t\t\t\tdisplay the list of blocked IP ranges that were hit";
 
