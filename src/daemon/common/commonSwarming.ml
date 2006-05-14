@@ -591,7 +591,11 @@ let associate is_primary t s =
   let size = file_size t.t_file in
 
 (* what about raising an exception instead ? *)
-  assert (s.s_size = size);
+  if s.s_size <> size then
+    begin
+      lprintf_nl () "file_size for %s does not match: swarmer %Ld / real %Ld" s.s_filename s.s_size size;
+      exit 2
+    end;
 
   (* shouldn't just [t] be removed from the list ? *)
   (* t.t_s.s_networks <- []; *)
