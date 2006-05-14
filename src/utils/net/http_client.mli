@@ -43,6 +43,7 @@ type request = {
     req_referer : Url.url option;
     req_retry : int;
     req_max_retry : int;
+    req_save : bool;
   }
 
 type content_handler = 

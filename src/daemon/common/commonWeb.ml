@@ -70,6 +70,7 @@ let mldonkey_wget url f =
       with Not_found -> []);
       H.req_user_agent = get_user_agent ();
       H.req_max_retry = 20;
+      H.req_save = true;
     } in
     let r1 = {
       r with

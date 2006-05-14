@@ -170,6 +170,7 @@ let download_server_met url =
       H.req_proxy = !CommonOptions.http_proxy;
       H.req_user_agent = get_user_agent ();
       H.req_max_retry = 10;
+      H.req_save = true;
     } in
     H.wget r (fun filename ->
       try

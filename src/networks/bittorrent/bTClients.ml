@@ -203,8 +203,7 @@ let connect_trackers file event f =
                 (fun fileres ->
                   t.tracker_last_conn <- last_time ();
                   file.file_tracker_connected <- true;
-                  f t fileres;
-		  (try Sys.remove fileres with _ -> ()))
+                  f t fileres)
           end
         end
 

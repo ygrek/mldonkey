@@ -89,8 +89,6 @@ let connect_urlfile () =
       
 let parse_hostfile file url_string = 
   let s = File.to_string file in
-  (* Http_client.wget does not delete the temp file anymore *)
-  (try Sys.remove file with _ -> ());
   if String2.starts_with s "ERROR" || String2.starts_with s "<" then begin
     if !verbose then lprintf_nl () "Malformed response content:\n%s" s;
     if List.mem url_string !!gnutella_hostfiles then begin

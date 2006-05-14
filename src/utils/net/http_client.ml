@@ -50,6 +50,7 @@ type request = {
     req_referer : Url.url option;
     req_retry : int;
     req_max_retry : int;
+    req_save : bool;
   }
 
 type content_handler = 
@@ -70,6 +71,7 @@ let basic_request = {
     req_accept = "*/*";
     req_retry = 0;
     req_max_retry = 0;
+    req_save = false;
   }
       
 let make_full_request r =
@@ -409,6 +411,7 @@ let wget r f =
         Unix.utimes filename r.req_save_to_file_time r.req_save_to_file_time;
       try
         (f filename : unit);
+        if not r.req_save then Sys.remove filename
       with e ->  
         lprintf_nl () "Exception %s in loading downloaded file %s" (Printexc2.to_string e) filename;
         Sys.remove filename;
