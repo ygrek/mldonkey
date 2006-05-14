@@ -3172,9 +3172,19 @@ let _ =
                       Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
                       html_mods_td buf [
                         (title, "sr", "\\<a href=\\\"" ^ link ^ "\\\"\\>" ^ title ^ "\\</a\\>");
-                        (title, "sr", "\\<a href=\\\"submit?q=dllink+" ^ (Url.encode link) ^
-			  "\\\"\\ title=\\\"\\dllink\\\"\\>dllink\\</a\\>  \\<a href=\\\"submit?q=http+" ^
-			  (Url.encode link) ^ "\\\"\\ title=\\\"\\http\\\"\\>http\\</a\\>")
+                        (title, "sr", 
+                          "\\<a href=\\\"submit?q=dllink+"
+                          ^ (Url.encode link)
+                          ^ "\\\"\\ title=\\\"\\dllink\\\"\\>dllink\\</a\\>"
+                          ^
+                          " \\<a href=\\\"submit?q=http+"
+                          ^ (Url.encode link)
+                          ^ "\\\"\\ title=\\\"\\http\\\"\\>http\\</a\\>"
+                          ^
+                          " \\<a href=\\\"submit?q=startbt+"
+                          ^ (Url.encode link)
+                          ^ "\\\"\\ title=\\\"\\startbt\\\"\\>startbt\\</a\\>"
+                        )
 		      ];
                       Printf.bprintf buf "\\</tr\\>"
                     end
