@@ -96,7 +96,7 @@ SRC_FILETP=src/networks/fileTP
 IM=src/im
 
 SUBDIRS=$(CDK) $(CHAT) $(CHAT_GUI) $(LIB) $(RSS) $(XML) $(NET) tools \
-   $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES) $(EXTRA_DIRS)
+   $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
 
 INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 

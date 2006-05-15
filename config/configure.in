@@ -94,6 +94,52 @@ if test "x$SYSTEM" = "xunknown"; then
   exit 1
 fi
 
+case "$host" in
+  alpha*-*-osf*)                arch=alpha; system=digital;;
+  alpha*-*-linux*)              arch=alpha; system=linux;;
+  alpha*-*-freebsd*)            arch=alpha; system=freebsd;;
+  alpha*-*-netbsd*)             arch=alpha; system=netbsd;;
+  alpha*-*-openbsd*)            arch=alpha; system=openbsd;;
+  sparc-*-sunos4.*)             arch=sparc; system=sunos;;
+  sparc-*-solaris2.*)           arch=sparc; system=solaris;;
+  sparc-*-*bsd*)                arch=sparc; system=bsd;;
+  sparc-*-linux*)               arch=sparc; system=linux;;
+  i?86-*-linux*)           arch=i386; system=linux;;
+  i386-*-*bsd*)            arch=i386; system=bsd;;
+  i486-*-*bsd*)            arch=i486; system=bsd;;
+  i586-*-*bsd*)            arch=i586; system=bsd;;
+  i686-*-*bsd*)            arch=i686; system=bsd;;
+  i?86-*-nextstep*)        arch=i386; system=nextstep;;
+  i?86-*-solaris*)         arch=i386; system=solaris;;
+  i?86-*-beos*)            arch=i386; system=beos;;
+  i?86-*-cygwin*)          arch=i386; system=cygwin;;
+  mips-*-irix6*)                arch=mips; system=irix;;
+  hppa1.1-*-hpux*)              arch=hppa; system=hpux;;
+  hppa1.1-*-nextstep*)          arch=hppa; system=nextstep;;
+  rs6000-*-aix*)                arch=power; model=rs6000; system=aix;;
+  powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
+  powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
+  powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
+  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody;;
+  arm*-*-linux*)                arch=arm; system=linux;;
+  ia64-*-linux*)                arch=ia64; system=linux;;
+esac
+
+MD4ARCH=$arch
+case $host in
+  i386-pc-linux*|i386-*-*bsd*) MD4COMP=as; MD4ARCH=i386;;
+  i486-pc-linux*|i486-*-*bsd*) MD4COMP=as; MD4ARCH=i486;;
+  i586-pc-linux*|i586-*-*bsd*) MD4COMP=as; MD4ARCH=i586;;
+  i686-pc-linux*|i686-*-*bsd*) MD4COMP=as; MD4ARCH=i686;;
+  i386-pc-mingw32*) MD4COMP=cc; MD4ARCH=i386;;
+  i486-pc-mingw32*) MD4COMP=cc; MD4ARCH=i486;;
+  i586-pc-mingw32*) MD4COMP=cc; MD4ARCH=i586;;
+  i686-pc-mingw32*) MD4COMP=cc; MD4ARCH=i686;;
+  *) MD4COMP=cc;;
+esac
+
+ARCH=$arch
+
 if test -d .svn; then
   AC_MSG_NOTICE(checking SVN revision)
   AC_CHECK_PROG(SVNVERSION,svnversion,svnversion)
@@ -241,7 +287,7 @@ if test ! "$GUI" = "newgui2"; then
 fi
 
 USE_PTHREAD=yes
-AC_ARG_ENABLE(pthread, [  --disable-pthread       allows you to disable pthread support in mldonkey], [USE_PTHREAD="$enableval"])
+AC_ARG_ENABLE(pthread, [  --disable-pthread       allows you to disable pthread support in mldonkey, hurts performance!], [USE_PTHREAD="$enableval"])
 AC_ARG_ENABLE(pthread-lib, [  --enable-pthread-lib    legacy option], [USE_PTHREAD="$enableval"])
 
 ICONV=yes
@@ -256,12 +302,6 @@ AC_ARG_ENABLE(bzip2,       [  --disable-bzip2         disable the use of bzip2],
 MAGIC=yes
 AC_ARG_ENABLE(magic,       [  --disable-magic         disable the use of libmagic (GNU file)], [MAGIC="$enableval"])
 
-ifelse(AC_ACVERSION, [2.13], [],
-[dnl Large file enabled
-   AC_SYS_LARGEFILE
-
-])
-
 IM=yes
 
 if test "$FORCE_MINGW" = "yes"; then
@@ -271,10 +311,14 @@ if test "$FORCE_MINGW" = "yes"; then
     OS_FILES2=mingw
     SYSTEM=mingw
 fi
-AC_PROG_RANLIB
 
 OCAML_PATH=
 
+echo -e "\n--------------------------------"
+echo "     Checking system tools."
+echo "--------------------------------"
+
+AC_PROG_RANLIB
 AC_CHECK_PROG(GNU_MAKE, gmake, gmake)
 AC_CHECK_PROG(GNU_MAKE, make, make)
 
@@ -290,6 +334,35 @@ if test "x$GNU_MAKE" != "x"; then
 else
     AC_MSG_ERROR(GNU make not found)
 fi
+
+AC_CHECK_PROG(COMPRESS, bzip2, bzip2)
+AC_CHECK_PROG(COMPRESS, gzip, gzip)
+
+if test "$ac_cv_prog_COMPRESS" = "bzip2"; then
+   COMPRESS_EXT=bz2
+else
+   COMPRESS_EXT=gz
+fi
+
+AC_PATH_PROG(PERL, perl, perl)
+AC_CHECK_PROG(RPMBUILD,rpmbuild,rpmbuild)
+AC_CHECK_PROG(RPMBUILD,rpm,rpm)
+
+AC_CHECK_PROG(WGET, wget, wget)
+if test -z "$ac_cv_prog_WGET"; then
+  $CC -o wget wget.c || echo "Cannot compile wget.c"
+  AC_PATH_PROG(WGET, wget,,$SOURCE_DIR/config)
+  ac_cv_prog_WGET="$ac_cv_path_WGET"
+fi
+WGET="$ac_cv_prog_WGET"
+
+echo "----------------------------------------"
+echo "     Checking system tools finished."
+echo -e "----------------------------------------\n"
+
+echo "--------------------------------"
+echo "     Checking Ocaml compiler."
+echo "--------------------------------"
 
 cd ..
 SOURCE_DIR=`pwd`
@@ -307,38 +380,6 @@ LOCAL_OCAML=$LOCAL_DIR/bin
 
 AC_PATH_PROG(OCAMLC,ocamlc.opt,"",[$LOCAL_DIR/bin:$PATH])
 AC_CHECK_TOOL(OCAMLC,ocamlc,ocamlrun ocamlc)
-
-case "$host" in
-  alpha*-*-osf*)                arch=alpha; system=digital;;
-  alpha*-*-linux*)              arch=alpha; system=linux;;
-  alpha*-*-freebsd*)            arch=alpha; system=freebsd;;
-  alpha*-*-netbsd*)             arch=alpha; system=netbsd;;
-  alpha*-*-openbsd*)            arch=alpha; system=openbsd;;
-  sparc-*-sunos4.*)             arch=sparc; system=sunos;;
-  sparc-*-solaris2.*)           arch=sparc; system=solaris;;
-  sparc-*-*bsd*)                arch=sparc; system=bsd;;
-  sparc-*-linux*)               arch=sparc; system=linux;;
-  i?86-*-linux*)           arch=i386; system=linux;;
-  i386-*-*bsd*)            arch=i386; system=bsd;;
-  i486-*-*bsd*)            arch=i486; system=bsd;;
-  i586-*-*bsd*)            arch=i586; system=bsd;;
-  i686-*-*bsd*)            arch=i686; system=bsd;;
-  i?86-*-nextstep*)        arch=i386; system=nextstep;;
-  i?86-*-solaris*)         arch=i386; system=solaris;;
-  i?86-*-beos*)            arch=i386; system=beos;;
-  i?86-*-cygwin*)          arch=i386; system=cygwin;;
-  mips-*-irix6*)                arch=mips; system=irix;;
-  hppa1.1-*-hpux*)              arch=hppa; system=hpux;;
-  hppa1.1-*-nextstep*)          arch=hppa; system=nextstep;;
-  rs6000-*-aix*)                arch=power; model=rs6000; system=aix;;
-  powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
-  powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
-  powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
-  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody;;
-  arm*-*-linux*)                arch=arm; system=linux;;
-  ia64-*-linux*)                arch=ia64; system=linux;;
-esac
-
 
 BUILD_OCAML=no
 if [ test -z "$OCAMLC" ] || [ test "$REQUIRED_OCAML" = "CVS" ]; then
@@ -358,15 +399,6 @@ else
   esac
 fi
 
-AC_CHECK_PROG(RPMBUILD,rpmbuild,rpmbuild)
-AC_CHECK_PROG(RPMBUILD,rpm,rpm)
-AC_CHECK_PROG(WGET, wget, wget)
-if test -z "$ac_cv_prog_WGET"; then
-  $CC -o wget wget.c || echo "Cannot compile wget.c"
-  AC_PATH_PROG(WGET, wget,,$SOURCE_DIR/config)
-  ac_cv_prog_WGET="$ac_cv_path_WGET"
-fi
-WGET="$ac_cv_prog_WGET"
 if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
 
   echo "********  Objective-Caml $REQUIRED_OCAML is required  *********" 1>&2;
@@ -490,10 +522,6 @@ else
 fi
 fi
 
-
-
-AC_PATH_PROG(PERL, perl, perl)
-
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 OCAMLLIB=`$OCAMLC -where`
 REBUILD_OCAML=no
@@ -515,7 +543,6 @@ if test "$REBUILD_OCAML" = "yes"; then
   exit 1;
 fi
 
-
 if test "$OCAMLOPT" = "no"; then
   TARGET_TYPE=byte
   OCAMLLIB_EXT=cma
@@ -532,6 +559,11 @@ else
 
 fi
 
+echo "-------------------------------------------"
+echo "     Checking Ocaml $OCAMLVERSION finished."
+echo "-------------------------------------------"
+
+
 if test "$PROFILE" = "yes"; then
    OCAMLOPT="$OCAMLOPT -p"
    CFLAGS="$CFLAGS -pg"
@@ -545,6 +577,16 @@ if test "$DEBUG" = "yes"; then
     OCAMLC="$OCAMLC -g"
 fi
 
+echo -e "\n----------------------------------"
+echo "     Checking system headers."
+echo "----------------------------------"
+
+ifelse(AC_ACVERSION, [2.13], [],
+[dnl Large file enabled
+   AC_SYS_LARGEFILE
+
+])
+
 # Sizes of various common basic types
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
@@ -554,6 +596,7 @@ AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(float)
 AC_CHECK_SIZEOF(double)
 AC_CHECK_FUNCS(setrlimit getrlimit)
+AC_CHECK_HEADERS(byteswap.h,,)
 
 # various header files
 AC_CHECK_HEADERS([sys/utsname.h])
@@ -583,21 +626,31 @@ AC_CHECK_HEADERS([sys/param.h sys/mount.h],,,
 #include <sys/param.h>
 #endif
 ])
-
+echo "-------------------------------------------"
+echo "     Checking system headers finished."
+echo -e "-------------------------------------------\n"
+echo "-----------------------------------"
+echo "     Checking system libraries."
+echo "-----------------------------------"
+echo "----- checking zlib (required)"
 AC_CHECK_LIB(z,inflate,,[echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1])
 AC_CHECK_HEADERS(zlib.h,,[echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1])
 AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1,)])
 
 if test "$BZIP2" != "no"; then
+  echo "----- checking bzlib (optional)"
   AC_CHECK_HEADERS(bzlib.h,[AC_CHECK_LIB(bz2,BZ2_bzReadOpen,[BZIP2=yes],[BZIP2=no])],[BZIP2=no])
 fi
 
 if test "$BZIP2" = "yes"; then
   AC_CHECK_LIB(bz2,BZ2_bzlibVersion,[AC_DEFINE(HAVE_BZLIBVERSION, 1,)])
   AC_DEFINE(USE_BZIP2, 1, [Define to 1 if you have bzip2 support.])
+else
+  AC_MSG_NOTICE(bzlib not available)
 fi
 
 if test "$MAGIC" != "no"; then
+  echo "----- checking libmagic (GNU file) (optional)"
   AC_CHECK_HEADERS(magic.h,[AC_CHECK_LIB(magic,magic_file,[MAGIC=yes],[MAGIC=no])],[MAGIC=no])
 fi
 
@@ -605,11 +658,158 @@ if test "$MAGIC" = "yes"; then
   MAGICLIB=Magic_magic
 else
   MAGICLIB=Magic_nomagic
+  AC_MSG_NOTICE(libmagic not available)
 fi
 
-AC_CHECK_HEADERS(byteswap.h,,)
+GD_JPG=no
+GD_PNG=no
+if test "$GD" != "no"; then
+  echo "----- checking gd (optional)"
+  GD=no
+  LIBGD=no
+  SAVE_LIBS=$LIBS
+  SAVE_CFLAGS=$CFLAGS
+  SAVE_LDFLAGS=$LDFLAGS
+  AC_CHECK_PROG(GDLIBCONFIG, gdlib-config, gdlib-config)
+  if test "$ac_cv_prog_GDLIBCONFIG" = "gdlib-config"; then
+    GD_LIBS=`$GDLIBCONFIG --libs`
+    GD_LIBS2="$LIBS -lgd $GD_LIBS"
+    LIBS=$GD_LIBS2
+    GD_CFLAGS=`$GDLIBCONFIG --cflags`
+    CFLAGS="$CFLAGS $GD_CFLAGS"
+    GD_LDFLAGS=`$GDLIBCONFIG --ldflags`
+    LDFLAGS="$LDFLAGS $GD_LDFLAGS"
+    AC_MSG_CHECKING(for libgd > 2.0.14)
+    GDVERSION=`$GDLIBCONFIG --version`
+    GDMAJORVERSION=`$GDLIBCONFIG --majorversion`
+    GDMINORVERSION=`$GDLIBCONFIG --minorversion`
+    GDREVISION=`$GDLIBCONFIG --revision`
+    if [ [ $GDMAJORVERSION = 2 ] && [ $GDMINORVERSION = 0 ] && [ $GDREVISION -gt 14 ]]; then
+	AC_MSG_RESULT($GDVERSION)
+	LIBGD=yes
+    else
+	AC_MSG_RESULT(no (found $GDVERSION))
+	LIBGD=no
+    fi
+  else
+    LIBGD=yes
+  fi
+
+  if test "$LIBGD" = "yes"; then
+    AC_CHECK_HEADERS(gd.h,[LIBGD=yes],[LIBGD=no])
+  fi
+
+  if test "$LIBGD" = "yes"; then
+    AC_MSG_CHECKING(for gdImageCreate in -lgd)
+    AC_TRY_LINK([#include <gd.h>],
+    [gdImageCreate (0,0);],
+    [LIBGD=yes], [LIBGD=no])
+    AC_MSG_RESULT($LIBGD)
+    LIBS=$SAVE_LIBS
+
+    if test "$LIBGD" = "no"; then
+      AC_MSG_NOTICE([not found, trying another method])
+      AC_CHECK_LIB(gd, gdImageCreate, [LIBGD=yes], [LIBGD=no])
+    fi
+  fi
+
+  if test "$LIBGD" = "yes"; then
+    LIBPNG=no
+# saving current variables
+    SAVE_LIBS_PNG=$LIBS
+    SAVE_CFLAGS_PNG=$CFLAGS
+    SAVE_LDFLAGS_PNG=$LDFLAGS
+    AC_CHECK_PROG(PNGLIBCONFIG, libpng-config, libpng-config)
+    if test "$ac_cv_prog_PNGLIBCONFIG" = "libpng-config"; then
+# check libpng-config contents and update system variables
+      PNG_LIBS=`$PNGLIBCONFIG --libs`
+      LIBS="$LIBS $PNG_LIBS"
+      PNG_CFLAGS=`$PNGLIBCONFIG --cflags`
+      CFLAGS="$CFLAGS $PNG_CFLAGS"
+      PNG_LDFLAGS=`$PNGLIBCONFIG --ldflags`
+      LDFLAGS="$LDFLAGS $PNG_LDFLAGS"
+    fi
+    AC_CHECK_LIB(png, png_create_read_struct , [LIBPNG=yes])
+# restore variables
+    LIBS=$SAVE_LIBS_PNG
+    CFLAGS=$SAVE_CFLAGS_PNG
+    LDFLAGS=$SAVE_LDFLAGS_PNG
+
+    if test "$LIBPNG" = "no"; then
+      AC_MSG_NOTICE(png support not available)
+    else
+      LIBGD_PNG=no
+      LIBS=$GD_LIBS2
+      AC_MSG_CHECKING(for gdImagePng in -lgd)
+      AC_TRY_LINK([#include <gd.h>],
+      [gdImagePng (0,0);],
+      [LIBGD_PNG=yes], [LIBGD_PNG=no])
+      AC_MSG_RESULT($LIBGD_PNG)
+      LIBS=$SAVE_LIBS
+
+      if test "$LIBGD_PNG" = "no"; then
+        AC_MSG_NOTICE([not found, trying another method])
+        AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes], [LIBGD_PNG=no])
+      fi
+
+      AC_MSG_CHECKING(for png support in libgd)
+      if test "$LIBGD_PNG" = "yes"; then
+        GD=yes
+	GD_PNG=yes
+        AC_MSG_RESULT(yes)
+	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1,)])
+        AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
+      else
+        AC_MSG_RESULT(no)
+      fi
+    fi
+
+    LIBJPEG=no
+    AC_CHECK_LIB(jpeg, jpeg_CreateCompress, [LIBJPEG=yes])
+
+    if test "$LIBJPEG" = "no"; then
+      AC_MSG_NOTICE(jpeg support not available)
+    else
+      LIBGD_JPG=no
+      LIBS=$GD_LIBS2
+      AC_MSG_CHECKING(for gdImageJpeg in -lgd)
+      AC_TRY_LINK([#include <gd.h>],
+      [gdImageJpeg (0,0,0);],
+      [LIBGD_JPG=yes], [LIBGD_JPG=no])
+      AC_MSG_RESULT($LIBGD_JPG)
+      LIBS=$SAVE_LIBS
+
+      if test "$LIBGD_JPG" = "no"; then
+        AC_MSG_NOTICE([not found, trying another method])
+        AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes], [LIBGD_JPG=no])
+      fi
+
+      AC_MSG_CHECKING(for jpeg support in libgd)
+      if test "$LIBGD_JPG" = "yes"; then
+        GD=yes
+	GD_JPG=yes
+        AC_DEFINE(HAVE_GD_JPG, 1, [Define to 1 if you have jpg support in libgd.])
+        AC_MSG_RESULT(yes)
+      else
+        AC_MSG_RESULT(no)
+      fi
+    fi
+  else
+    AC_MSG_NOTICE(libgd not available)
+  fi
+  LIBS=$SAVE_LIBS
+  CFLAGS=$SAVE_CFLAGS
+  LDFLAGS=$SAVE_LDFLAGS
+fi
+
+if test "$GD" != "no"; then
+  GDGRAPHICS=DriverGraphics_gd
+else
+  GDGRAPHICS=DriverGraphics_nogd
+fi
 
 if test "$ICONV" = "yes"; then
+  echo "----- checking iconv (optional)"
   AM_ICONV
   if test "$am_cv_func_iconv" != "yes"; then
     AC_DEFINE(DISABLE_ICONV, 1, [Define to 1 if you want to replace iconv and related with stubs.])
@@ -630,12 +830,21 @@ else
   ICONV=no
 fi
 
+if test "$USE_PTHREAD" = "no"; then
+ PTHREAD_LIBS=""
+ echo "You disabled thread support, this will hurt MLDonkey performance!"
+else
+  echo "----- checking thread support (optional, strongly advised)"
+  ACX_PTHREAD
+fi
+
 # On linux plaforms, we will have to check that includes from kernel are
 # available. glibc version test was shamelessly taken from
 # http://public.activestate.com/gsar/APC/perl-5.8.x/Configure
 GLIBC_VERSION=""
 case $host in
         *linux*)
+           echo "----- GNU C Library version"
            AC_CHECK_HEADERS(linux/limits.h,, [
              OLD_CPPFLAGS=$CPPFLAGS
              CPPFLAGS="-I /usr/src/linux/include"
@@ -679,18 +888,15 @@ EOCP
         *)         ;;
 esac
 
-OCAMLLIB=`$OCAMLC -where`
-
-if test -f $OCAMLLIB/lablgl.cma; then
-  LABLGL_CMA=lablgl.cma
-fi
-
-if test -f $OCAMLLIB/lablgl.$OCAMLLIB_EXT; then
-  LABLGL_CMXA=lablgl.$OCAMLLIB_EXT
-fi
+echo "---------------------------------------------"
+echo "     Checking system libraries finished."
+echo -e "---------------------------------------------\n"
 
 CXX_VERSION=
-AC_MSG_NOTICE(checking for activated networks)
+echo "--------------------------------------"
+echo "     Checking activated networks."
+echo "--------------------------------------"
+
   if test "$DONKEY" = "yes"; then
     AC_MSG_CHECKING(eDonkey)
     if test -d ../src/networks/donkey; then
@@ -819,13 +1025,18 @@ AC_MSG_NOTICE(checking for activated networks)
       AC_MSG_RESULT(no)
     fi
   fi
+echo "-----------------------------------------------"
+echo "     Checking activated networks finished."
+echo "-----------------------------------------------"
 
+OCAMLLIB=`$OCAMLC -where`
 
-if test "$USE_PTHREAD" = "no"; then
- PTHREAD_LIBS=""
- echo "Dont use threads"
-else
-  ACX_PTHREAD
+if test -f $OCAMLLIB/lablgl.cma; then
+  LABLGL_CMA=lablgl.cma
+fi
+
+if test -f $OCAMLLIB/lablgl.$OCAMLLIB_EXT; then
+  LABLGL_CMXA=lablgl.$OCAMLLIB_EXT
 fi
 
 # Check for GTK only if we want to build the GUI
@@ -979,20 +1190,9 @@ else
   GUIS="mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
 fi
 
-if test "$IM" = "yes" ; then
-  AC_MSG_CHECKING(IM)
-  if test -d ../src/im; then
-    AC_MSG_RESULT(yes)
-    IM=yes
-  else
-    IM=no
-  fi
-else
-   IM=no
-fi
-
 if test "$LABLGTK_CONFIG" = "no"; then
   GUI="no"
+  IM=no
 else
   MORE_TARGETS="$MORE_TARGETS $GUIS"
   AC_MSG_CHECKING(GToolbox.popup_menu args)
@@ -1006,160 +1206,21 @@ else
     GTOOLBOX_POPUPMENU=' ~x: button ~y: time '
     AC_MSG_RESULT(old)
   fi
+  if test "$IM" = "yes" ; then
+    AC_MSG_CHECKING(IM)
+    if test -d ../src/im; then
+      AC_MSG_RESULT(yes)
+      IM=yes
+    else
+      IM=no
+    fi
+  else
+    IM=no
+  fi
   echo "---------------------------------------------------------"
   echo "End of GTK GUI configuration."
   echo "---------------------------------------------------------"
 fi
-
-AC_CHECK_PROG(COMPRESS, bzip2, bzip2)
-AC_CHECK_PROG(COMPRESS, gzip, gzip)
-
-if test "$ac_cv_prog_COMPRESS" = "bzip2"; then
-   COMPRESS_EXT=bz2
-else
-   COMPRESS_EXT=gz
-fi
-
-# testing for gd support
-
-GD_JPG=no
-GD_PNG=no
-if test "$GD" != "no"; then
-  GD=no
-  LIBGD=no
-  SAVE_LIBS=$LIBS
-  SAVE_CFLAGS=$CFLAGS
-  SAVE_LDFLAGS=$LDFLAGS
-  AC_CHECK_PROG(GDLIBCONFIG, gdlib-config, gdlib-config)
-  if test "$ac_cv_prog_GDLIBCONFIG" = "gdlib-config"; then
-    GD_LIBS=`$GDLIBCONFIG --libs`
-    GD_LIBS2="$LIBS -lgd $GD_LIBS"
-    LIBS=$GD_LIBS2
-    GD_CFLAGS=`$GDLIBCONFIG --cflags`
-    CFLAGS="$CFLAGS $GD_CFLAGS"
-    GD_LDFLAGS=`$GDLIBCONFIG --ldflags`
-    LDFLAGS="$LDFLAGS $GD_LDFLAGS"
-    AC_MSG_CHECKING(for libgd > 2.0.14)
-    GDVERSION=`$GDLIBCONFIG --version`
-    GDMAJORVERSION=`$GDLIBCONFIG --majorversion`
-    GDMINORVERSION=`$GDLIBCONFIG --minorversion`
-    GDREVISION=`$GDLIBCONFIG --revision`
-    if [ [ $GDMAJORVERSION = 2 ] && [ $GDMINORVERSION = 0 ] && [ $GDREVISION -gt 14 ]]; then
-	AC_MSG_RESULT($GDVERSION)
-	LIBGD=yes
-    else
-	AC_MSG_RESULT(no (found $GDVERSION))
-	LIBGD=no
-    fi
-  else
-    LIBGD=yes
-  fi
-
-  if test "$LIBGD" = "yes"; then
-  AC_MSG_CHECKING(for gdImageCreate in -lgd)
-  AC_TRY_LINK([#include <gd.h>],
-  [gdImageCreate (0,0);],
-  [LIBGD=yes], [LIBGD=no])
-  AC_MSG_RESULT($LIBGD)
-  LIBS=$SAVE_LIBS
-
-  if test "$LIBGD" = "no"; then
-    AC_MSG_NOTICE([not found, trying another method])
-    AC_CHECK_LIB(gd, gdImageCreate, [LIBGD=yes], [LIBGD=no])
-  fi
-  fi
-
-  if test "$LIBGD" = "yes"; then
-
-    LIBPNG=no
-    AC_CHECK_LIB(png, png_create_read_struct , [LIBPNG=yes])
-
-    if test "$LIBPNG" = "no"; then
-      AC_MSG_NOTICE(png support not available)
-    else
-      LIBGD_PNG=no
-      LIBS=$GD_LIBS2
-      AC_MSG_CHECKING(for gdImagePng in -lgd)
-      AC_TRY_LINK([#include <gd.h>],
-      [gdImagePng (0,0);],
-      [LIBGD_PNG=yes], [LIBGD_PNG=no])
-      AC_MSG_RESULT($LIBGD_PNG)
-      LIBS=$SAVE_LIBS
-
-      if test "$LIBGD_PNG" = "no"; then
-        AC_MSG_NOTICE([not found, trying another method])
-        AC_CHECK_LIB(gd, gdImagePng, [LIBGD_PNG=yes], [LIBGD_PNG=no])
-      fi
-
-      AC_MSG_CHECKING(for png support in libgd)
-      if test "$LIBGD_PNG" = "yes"; then
-        GD=yes
-	GD_PNG=yes
-        AC_MSG_RESULT(yes)
-	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1,)])
-        AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
-      else
-        AC_MSG_RESULT(no)
-      fi
-    fi
-
-    LIBJPEG=no
-    AC_CHECK_LIB(jpeg, jpeg_CreateCompress, [LIBJPEG=yes])
-
-    if test "$LIBJPEG" = "no"; then
-      AC_MSG_NOTICE(jpeg support not available)
-    else
-      LIBGD_JPG=no
-      LIBS=$GD_LIBS2
-      AC_MSG_CHECKING(for gdImageJpeg in -lgd)
-      AC_TRY_LINK([#include <gd.h>],
-      [gdImageJpeg (0,0,0);],
-      [LIBGD_JPG=yes], [LIBGD_JPG=no])
-      AC_MSG_RESULT($LIBGD_JPG)
-      LIBS=$SAVE_LIBS
-
-      if test "$LIBGD_JPG" = "no"; then
-        AC_MSG_NOTICE([not found, trying another method])
-        AC_CHECK_LIB(gd, gdImageJpeg, [LIBGD_JPG=yes], [LIBGD_JPG=no])
-      fi
-
-      AC_MSG_CHECKING(for jpeg support in libgd)
-      if test "$LIBGD_JPG" = "yes"; then
-        GD=yes
-	GD_JPG=yes
-        AC_DEFINE(HAVE_GD_JPG, 1, [Define to 1 if you have jpg support in libgd.])
-        AC_MSG_RESULT(yes)
-      else
-        AC_MSG_RESULT(no)
-      fi
-    fi
-  else
-    AC_MSG_NOTICE(libgd not available)
-  fi
-  LIBS=$SAVE_LIBS
-  CFLAGS=$SAVE_CFLAGS
-  LDFLAGS=$SAVE_LDFLAGS
-fi
-if test "$GD" != "no"; then
-  GDGRAPHICS=DriverGraphics_gd
-else
-  GDGRAPHICS=DriverGraphics_nogd
-fi
-
-MD4ARCH=$arch
-case $host in
-  i386-pc-linux*|i386-*-*bsd*) MD4COMP=as; MD4ARCH=i386;;
-  i486-pc-linux*|i486-*-*bsd*) MD4COMP=as; MD4ARCH=i486;;
-  i586-pc-linux*|i586-*-*bsd*) MD4COMP=as; MD4ARCH=i586;;
-  i686-pc-linux*|i686-*-*bsd*) MD4COMP=as; MD4ARCH=i686;;
-  i386-pc-mingw32*) MD4COMP=cc; MD4ARCH=i386;;
-  i486-pc-mingw32*) MD4COMP=cc; MD4ARCH=i486;;
-  i586-pc-mingw32*) MD4COMP=cc; MD4ARCH=i586;;
-  i686-pc-mingw32*) MD4COMP=cc; MD4ARCH=i686;;
-  *) MD4COMP=cc;;
-esac
-
-ARCH=$arch
 
 case "$OCAMLVERSION" in
   3.06* | 3.07* | 3.08* ) TYPE_FORMAT="";;
@@ -1181,9 +1242,6 @@ AC_SUBST(CPP)
 AC_SUBST(CXX)
 AC_SUBST(FIX_BROKEN_CPP)
 AC_SUBST(CONFIG_INCLUDES)
-
-AC_SUBST(EXTRA_DIRS)
-
 AC_SUBST(TYPE_FORMAT)
 AC_SUBST(OCAMLC)
 AC_SUBST(OCAMLLIB)
@@ -1197,7 +1255,6 @@ AC_SUBST(PERL)
 AC_SUBST(OCAMLDOC)
 AC_SUBST(OCAMLMKTOP)
 AC_SUBST(SYSTEM)
-
 AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
 AC_SUBST(LABLGL_CMA)
@@ -1205,7 +1262,6 @@ AC_SUBST(LABLGL_CMXA)
 AC_SUBST(MD4ARCH)
 AC_SUBST(MD4COMP)
 AC_SUBST(ICONV)
-
 AC_SUBST(OPEN_NAPSTER)
 AC_SUBST(DIRECT_CONNECT)
 AC_SUBST(GNUTELLA)
@@ -1219,7 +1275,6 @@ AC_SUBST(DONKEY)
 AC_SUBST(DONKEY_SUI)
 AC_SUBST(DONKEY_SUI_FILE)
 AC_SUBST(DONKEY_SERVER)
-
 AC_SUBST(GUI)
 AC_SUBST(REQUIRED_OCAML)
 AC_SUBST(REQUIRED_LABLGTK)
@@ -1238,7 +1293,6 @@ AC_SUBST(OS_FILES)
 AC_SUBST(OS_FILES2)
 AC_SUBST(TARGET_TYPE)
 AC_SUBST(RPMBUILD)
-
 AC_SUBST(TMK)
 AC_SUBST(GTKCFLAGS)
 AC_SUBST(GTKLLIBS)
@@ -1253,7 +1307,6 @@ AC_SUBST(GD_LDFLAGS)
 AC_SUBST(BZIP2)
 AC_SUBST(MAGIC)
 AC_SUBST(MAGICLIB)
-
 BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"
 AC_SUBST(BUILD_SYSTEM)
 AC_SUBST(GLIBC_VERSION)

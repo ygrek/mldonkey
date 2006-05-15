@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/15
+5095: Configure: improve libpng detection, optical improvements
+
 2006/05/14
 5094: Wget: New internal variable req_save <bool>
 5093: CommonSwarming: Verbose error message if file size does not match
