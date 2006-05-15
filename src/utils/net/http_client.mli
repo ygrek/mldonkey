@@ -36,7 +36,7 @@ type request = {
     req_user_agent : string;
     req_accept : string;
     req_proxy : (string * int) option;
-    req_url : Url.url;
+    mutable req_url : Url.url;
     mutable req_save_to_file_time : float;
 (* re-download a saved file only if newer *)
     req_request : http_request;

@@ -44,7 +44,7 @@ type request = {
     req_user_agent : string;
     req_accept : string;
     req_proxy : (string * int) option;
-    req_url : url;
+    mutable req_url : url;
     mutable req_save_to_file_time : float;
     req_request : http_request;
     req_referer : Url.url option;
@@ -302,13 +302,17 @@ let rec get_page r content_handler f =
               if !verbose then
                 print_headers ();
               let url =
+                if String2.check_prefix !url "." then url := String2.after !url 1;
                 if String.length !url > 0 && !url.[0] <> '/' then
                   !url
                 else
-                  Printf.sprintf "http://%s:%d%s"
-                    old_url.Url.server old_url.Url.port !url
+                  Printf.sprintf "http://%s%s%s"
+                    old_url.Url.server
+                    (if old_url.Url.port = 80 then "" else Printf.sprintf ":%d" old_url.Url.port)
+                    !url
               in
               if !verbose then lprintf_nl () "Redirected to %s" url;
+              r.req_url <- (Url.of_string url);
               let r = { r with
       req_url = Url.of_string url;
       req_retry = retrynum+1 }

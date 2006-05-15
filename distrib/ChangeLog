@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/05/15
+5090: Http_client: Fix 302 redirect when Location starts with "."
+      and filename changes
 5095: Configure: improve libpng detection, optical improvements
 
 2006/05/14
