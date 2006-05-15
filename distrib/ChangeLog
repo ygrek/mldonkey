@@ -28,6 +28,9 @@ ChangeLog
 4976: Filetype recognition with libmagic
 - new debug command: debug_dir, prints magic values for all files
 - display file magic values in vd & upstats HTML popup & vd #num
+NetBSD/Solaris users have to disable this function "--disable-magic"
+until this bug is fixed:
+http://savannah.nongnu.org/patch/?func=detailitem&item_id=4976#comment9
 5088: Gnutella/FT/http_client fixes (zet)
 - Gnutella (G1) is working again
 
