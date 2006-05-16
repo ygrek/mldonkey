@@ -25,7 +25,8 @@ let donkey_ini = create_options_file "donkey.ini"
 
 let donkey_section = file_section donkey_ini ["Donkey"] "Donkey options"
 
-let initial_score = define_expert_option donkey_section ["initial_score"] "" int_option 5
+let initial_score = define_expert_option donkey_section ["initial_score"]
+  "Initial score for a new server" int_option 5
 
 let max_xs_packets = define_expert_option donkey_section ["max_xs_packets"]
   "Max number of UDP packets per round for eXtended Search" int_option 30
