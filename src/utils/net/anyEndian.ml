@@ -88,50 +88,6 @@ let get_md4 s pos =
 (*    lprintf "exception in get_md4 %d s=%s\n" pos (String.escaped s); *)
     raise e
 
-      
-let dump_ascii s =
-  let len = String.length s in
-  lprintf "ascii: [";
-  for i = 0 to len - 1 do
-    let c = s.[i] in
-    let n = int_of_char c in
-    if n > 31 && n < 127 then
-      lprintf " %c" c
-    else
-      lprintf "(%d)" n
-  done;
-  lprintf "]\n"
-      
-let dump s =
-  let len = String.length s in
-  lprintf "ascii: [";
-  for i = 0 to len - 1 do
-    let c = s.[i] in
-    let n = int_of_char c in
-    if n > 31 && n < 127 then
-      lprintf " %c" c
-    else
-      lprintf "(%d)" n
-  done;
-  lprintf "]\n";
-  lprintf "dec: [";
-  for i = 0 to len - 1 do
-    let c = s.[i] in
-    let n = int_of_char c in
-    lprintf "(%d)" n            
-  done;
-  lprintf "]\n"
-
-let dump_sub s pos len =
-  lprintf "dec: [";
-  for i = 0 to len - 1 do
-    let c = s.[pos+i] in
-    let n = int_of_char c in
-    lprintf "(%d)" n            
-  done;
-  lprintf "]\n\n"
-
-  
 let buf_string8 buf s =
   buf_int8 buf (String.length s);
   Buffer.add_string buf s
@@ -140,8 +96,42 @@ let get_string8 s pos =
   let len = get_uint8 s pos in
   String.sub s (pos+1) len, pos+1+len
 
+let bdump_hex buf s =
+  let len = String.length s in
+  let asc = Buffer.create 16 in
+  let hex = Buffer.create 50 in
+  let rec iter i =
+    if i = len then begin
+      if Buffer.length asc > 0 then begin
+        let fill = String.make (50 - (Buffer.length hex )) ' ' in
+        Printf.bprintf buf "%s%s|%-16s|\n" (Buffer.contents hex) fill (Buffer.contents asc);
+      end
+    end
+    else begin
+      if i mod 16 = 0 then begin
+        if i > 0
+          then Printf.bprintf buf "%s|%-16s|\n" (Buffer.contents hex) (Buffer.contents asc);
+        Printf.bprintf buf "%08x: " i;
+        Buffer.clear asc;
+        Buffer.clear hex;
+      end;
+      let c = s.[i] in
+      let ioc = int_of_char c in
+      let bc = if ioc > 32 && ioc < 127 then c else '.' in
+      Buffer.add_char asc bc;
+      Buffer.add_string hex (Printf.sprintf "%02x " ioc);
+      if (i + 1) mod 8 = 0 then Buffer.add_char hex ' ';
+      iter (i + 1);
+    end;
+  in
+  iter 0
         
-let bdump buf s =
+let dump_hex s =
+  let buf = Buffer.create 1000 in
+  bdump_hex buf s;
+  lprintf "%s" (Buffer.contents buf) 
+      
+let bdump_ascii buf s =
   let len = String.length s in
   Printf.bprintf buf "ascii: [";
   for i = 0 to len - 1 do
@@ -152,7 +142,15 @@ let bdump buf s =
     else
       Printf.bprintf buf "(%d)" n
   done;
-  Printf.bprintf buf "]\n";
+  Printf.bprintf buf "]\n"
+
+let dump_ascii s =
+  let buf = Buffer.create 1000 in
+  bdump_ascii buf s;
+  lprintf "%s" (Buffer.contents buf)
+      
+let bdump_dec buf s = 
+  let len = String.length s in
   Printf.bprintf buf "dec: [";
   for i = 0 to len - 1 do
     let c = s.[i] in
@@ -161,7 +159,39 @@ let bdump buf s =
   done;
   Printf.bprintf buf "]\n"
         
+let dump_dec s =
+  let buf = Buffer.create 1000 in
+  bdump_dec buf s;
+  lprintf "%s" (Buffer.contents buf)
+
+let dump s =
+  dump_ascii s;
+  dump_dec s;
+  dump_hex s
+
+let bdump_sub buf s pos len =
+  Printf.bprintf buf "dec: [";
+  for i = 0 to len - 1 do
+    let c = s.[pos+i] in
+    let n = int_of_char c in
+    Printf.bprintf buf "(%d)" n            
+  done;
+  Printf.bprintf buf "]\n\n"
+
+let dump_sub s pos len =
+  let buf = Buffer.create 1000 in
+  bdump_sub buf s pos len;
+  lprintf "%s" (Buffer.contents buf)
+
+let bdump buf s =
+  bdump_ascii buf s;
+  bdump_dec buf s;
+  bdump_hex buf s
+
 let sdump s =
   let buf = Buffer.create 1000 in
   bdump buf s;
   Buffer.contents buf
+
+let dump s =
+  lprintf "%s" (sdump s)

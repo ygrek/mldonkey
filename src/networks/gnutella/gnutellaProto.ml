@@ -508,8 +508,8 @@ let parse pkt =
   with e ->
       if !verbose_unknown_messages then
         begin
-          lprintf "Exception in parse: %s\n" (Printexc2.to_string e);
-          dump pkt.pkt_payload;
+          lprintf_nl () "Exception in parse: %s" (Printexc2.to_string e);
+          dump_hex pkt.pkt_payload;
         end;
       { pkt with pkt_payload = UnknownReq (pkt.pkt_type,pkt.pkt_payload) }
 
@@ -778,6 +778,9 @@ let server_recover_file file sock s =
       | _ -> ()          
   ) file.file_searches
   
+
+let on_send_pings () = ()
+
 let server_send_ping sock s =
   match sock with
     Connection sock ->

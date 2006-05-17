@@ -129,24 +129,35 @@ let really_recover_file file =
 (*************************************************************************)
          
 let send_pings () =
+  if !verbose then lprintf_nl () "send_pings";
+  try
   if !new_shared_words then update_shared_words ();
   List.iter (fun s ->      
       server_send_ping s.server_sock s;
-      GnutellaProto.send_qrt_sequence s false;
+
+      (* Nothing has changed *)
+      (* GnutellaProto.send_qrt_sequence s false; *)
       
       match s.server_query_key with
       | NoUdpSupport -> 
           host_send_qkr s.server_host           
       | _ -> 
           if !verbose then
-            lprintf "Udp Support present\n";
+            lprintf_nl () "Udp Support present";
           ()
   ) !connected_servers;
   new_shared_words := false;
   Queue.iter (fun (_,h) ->
       match h.host_server with
       | None -> () | Some s -> ()
-  ) active_udp_queue
+   ) active_udp_queue;
+
+  on_send_pings ();
+
+  with e -> 
+    lprintf_nl () "send_pings: %s" (Printexc2.to_string e)
+
+
   
 (*************************************************************************)
 (*                                                                       *)
@@ -157,13 +168,14 @@ let send_pings () =
 let rec find_ultrapeer queue =
   let (next,h) = Queue.head queue in
   if next > last_time () then begin
-(*      lprintf "not ready: %d s\n" (next - last_time ()); *)
+      if !verbose then lprintf "not ready: %d s\n" (next - last_time ()); 
       raise Not_found;
     end;
   ignore (H.host_queue_take queue);    
   try
     h, true  
-  with _ -> find_ultrapeer queue
+  with _ -> 
+    find_ultrapeer queue
       
   
 (*************************************************************************)
@@ -184,6 +196,7 @@ let try_connect_ultrapeer connect =
   in
   connect h
   
+  
 (*************************************************************************)
 (*                                                                       *)
 (*                         connect_servers                               *)
@@ -191,9 +204,9 @@ let try_connect_ultrapeer connect =
 (*************************************************************************)
   
 let connect_servers connect =
-(*
-  lprintf "connect_servers %d %d\n" !nservers !!max_ultrapeers; 
-*)
+
+  if !verbose then lprintf_nl () "connect_servers c: %d n: %d max: %d\n" (List.length !connected_servers) !nservers !!max_ultrapeers; 
+
   (if !!max_ultrapeers > List.length !connected_servers then
       try
         let to_connect = 3 * (!!max_ultrapeers - !nservers) in
@@ -213,7 +226,7 @@ let connect_servers connect =
                   UdpQueryKey _ -> false
                 | _ -> true
           ) then begin
-(*            lprintf "host_send_qkr...\n"; *)
+            if !verbose then lprintf_nl () "host_send_qkr...\n"; 
             H.set_request h Udp_Connect;
             host_send_qkr h
           end
@@ -234,12 +247,12 @@ let server_parse_headers first_line headers =
           unknown_header := !unknown_header || not (List.mem header GnutellaProto.known_supernode_headers)
       ) headers;
       if !unknown_header then begin
-          lprintf "Gnutella DEVEL: Supernode Header contains unknown fields\n";
-          lprintf "    %s\n" first_line;
+          lprintf_nl () "Gnutella DEVEL: Supernode Header contains unknown fields";
+          lprintf_nl () "    %s" first_line;
           List.iter (fun (header, (value,header2)) ->
               lprintf "    [%s] = [%s](%s)\n" header value header2;
           ) headers;
-          lprintf "Gnutella DEVEL: end of header\n";        
+          lprintf_nl () "Gnutella DEVEL: end of header";        
         end;
     end;
   
@@ -382,10 +395,12 @@ let server_parse_headers first_line headers =
               end
       with _ -> ()
   ) headers;
+
   if !gnutella2 <> GnutellaProto.gnutella2_needed then
     failwith "Protocol not supported";
   List.iter (fun (ip,port,ultrapeer) ->
       try
+        if !verbose then lprintf_nl () "x_ultrapeers new Ultrapeer %s %d" (Ip.string_of_addr ip) port;
         ignore (H.new_host ip port ultrapeer)
       with e ->
           if !verbose_msg_servers then begin
@@ -420,17 +435,21 @@ let execute_handshake s gconn sock (first_line, headers) =
     let slash_pos = String.index first_line '/' in
     let proto = String.sub first_line (slash_pos+1) (space_pos - slash_pos -1) in
     let code = String.sub first_line (space_pos+1) 3 in
+    let len = (String.length first_line) - (space_pos+5) in
+    let desc = String.sub first_line (space_pos+5) len in 
         
     let h = server_parse_headers first_line headers in
     
     if proto <> "0.6" then
       failwith (Printf.sprintf "Bad protocol [%s]" proto);
 
-    if not h.hsrpl_ultrapeer then
-      failwith "DISCONNECT: Not an Ultrapeer";
+    s.server_description <- desc;
     s.server_agent <- h.hsrpl_agent;
     s.server_query_key <- h.hsrpl_query_key;
     server_must_update (as_server s.server_server);
+    
+    if not h.hsrpl_ultrapeer then
+      failwith "DISCONNECT: Not an Ultrapeer";
     
     if code <> "200" then begin
         s.server_connected <- int64_time ();
@@ -455,15 +474,16 @@ Buffer.add_string "X-Try-Ultrapeers: ...\r\n"; *)
         ("Content-Encoding", "deflate") :: headers
       else headers
     in
+    (* G2 Shareaza: Sends deflated if advertising Accept-deflate even without the Content-Encoding header *)
     let headers =
-      if h.hsrpl_accept_deflate then
+      if h.hsrpl_accept_deflate && h.hsrpl_content_deflate then
         ("Accept-Encoding", "deflate") :: headers
       else headers
     in
 
     let msg = make_http_header "GNUTELLA/0.6 200 OK" headers in
     if !verbose_msg_servers then
-      lprintf "CONNECT REQUEST: %s\n" (String.escaped msg); 
+      lprintf_nl () "CONNECT REQUEST %s: %s\n" (Ip.to_string (peer_ip sock)) (String.escaped msg); 
     write_string sock msg;
     
     if h.hsrpl_content_deflate then deflate_connection sock;
@@ -475,7 +495,7 @@ Buffer.add_string "X-Try-Ultrapeers: ...\r\n"; *)
     ()
   with e ->      
       if !verbose_msg_servers then
-        lprintf "DISCONNECT WITH EXCEPTION %s\n" (Printexc2.to_string e); 
+        lprintf_nl () "DISCONNECT WITH EXCEPTION %s" (Printexc2.to_string e); 
       disconnect_from_server s (Closed_for_exception e)
   
 (*************************************************************************)
@@ -563,9 +583,8 @@ let connect_server h =
               if not (Ip.valid ip ) then
                 failwith "Invalid IP for server\n";
               let port = s.server_host.host_port in
-(*        if !verbose_msg_servers then begin
-            lprintf "CONNECT TO %s:%d\n" (Ip.to_string ip) port;
-end;  *)
+              if !verbose_msg_servers then 
+                lprintf_nl () "CONNECT TO %s:%d" (Ip.to_string ip) port;
               H.set_request h Tcp_Connect;
               H.try_connect h;
 (*                h.host_tcp_request <- last_time (); *)
@@ -593,7 +612,6 @@ end;  *)
               
               );
               set_closer sock (fun _ error -> 
-(*            lprintf "CLOSER %s\n" error; *)
                   disconnect_from_server s error);
               set_rtimeout sock !!server_connection_timeout;
               
@@ -615,7 +633,7 @@ end;  *)
               in
 
                 if !verbose_msg_servers then
-                  lprintf "SENDING %s\n" (String.escaped s);
+                  lprintf_nl () "SENDING %s" (String.escaped s);
                 write_string sock s;
               with e ->
                   disconnect_from_server s

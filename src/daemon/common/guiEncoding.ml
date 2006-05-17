@@ -255,7 +255,7 @@ let buf_bool_option buf b =
       
 let buf_result proto buf r =
   buf_int buf r.result_num;
-  buf_int buf 0;
+  buf_int buf r.result_source_network;
   buf_list buf buf_string r.result_names;
   if proto < 27 then
     buf_md4 buf Md4.null

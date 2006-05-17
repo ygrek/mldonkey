@@ -369,9 +369,8 @@ module Print = struct
         | UPROD_XML s -> Buffer.add_string buf s; "XML"
         
         | Unknown (names, be,s) ->
-            (List.iter (fun s ->
-                  Printf.bprintf buf "/%s" s) names;
-              Printf.bprintf buf "\n DUMP: %s" (AnyEndian.sdump s));
+            (List.iter (fun s -> Printf.bprintf buf "/%s [ %s ]\n" s (AnyEndian.sdump s)) names;
+            Printf.bprintf buf "\nUnknown dump:\n %s" (AnyEndian.sdump s));
             "UNKNOWN"
       
       
@@ -570,7 +569,7 @@ let rec g2_encode pkt =
   let size = ref (String.length payload) in
   if children <> [] then begin
       if payload <> "" then incr size;
-      List.iter (fun c -> size := !size + String.length c) children
+      List.iter (fun c -> size := !size + String.length c) children;
     end;
   let buf = Buffer.create 100 in
 (*  Buffer.add_string buf header;*)
@@ -583,32 +582,30 @@ let rec g2_encode pkt =
       (len_len lsl 6) lor ((name_len-1) lsl 3)
   in
   let cb = if cb=0 then cb+4 else cb in
-(*    lprintf "encode: cb = %d size = %d len_len= %d\n" cb !size len_len; *)
+ (* if !verbose then lprintf_nl () "2encode: cb=%d size=%d len_len=%d" cb !size len_len; *)
   
   Buffer.add_char buf (char_of_int cb);
   if len_len = 1 then 
-    buf_int8 buf !size else
-  if len_len = 2 then 
-    LittleEndian.buf_int16 buf !size else
+    buf_int8 buf !size 
+  else if len_len = 2 then 
+    LittleEndian.buf_int16 buf !size 
+  else
     LittleEndian.buf_int24 buf !size;
   
   Buffer.add_string buf name;
   List.iter (fun c -> Buffer.add_string buf c) children;
-  if children <> [] && payload <> "" then Buffer.add_char buf '\000';
+  if children <> [] && payload <> "" then begin
+     Buffer.add_char buf '\000';
+  end;
+ 
   Buffer.add_string buf payload;
   Buffer.contents buf
   
+let g2_decode_payload names be s =
 
    
-  
-let g2_decode_payload names be s =
-(*
-  lprintf "names:"; List.iter (fun s -> lprintf "/%s" s) names;
-  lprintf "\n";
-  dump s;
-lprintf "\n";
-  *)
   try
+    
     if be then 
       (
        if !verbose then
@@ -616,6 +613,7 @@ lprintf "\n";
        raise Exit
       );
     let module M = G2_LittleEndian in
+
     match names with
     
     | "TO" :: _ -> TO (get_md4 s 0)
@@ -768,17 +766,13 @@ lprintf "\n";
   with e ->
       if !verbose_unknown_messages then
         begin
-          lprintf "Cannot parse: %s\n   " (Printexc2.to_string e);
-          List.iter (fun name -> lprintf "%s/" name) names;
+          lprintf_nl () "g2_decode_payload cannot parse: %s" (Printexc2.to_string e);
+          List.iter (fun name -> lprintf "/%s" name) (List.rev names);
           lprintf "\n%s\n" (sdump s);
         end;
       Unknown (names, be, s)
   
 let rec g2_parse name has_children bigendian s = 
-  (*
-  lprintf "g2_parse:"; List.iter (fun s -> lprintf "/%s" s) name;
-  dump s;
-*)  
   
   let len = String.length s in
   let rec iter_child pos children = 
@@ -787,8 +781,10 @@ let rec g2_parse name has_children bigendian s =
     let cb = get_uint8 s pos in
     if cb = 0 then children, (pos+1) else
     let len_len = (cb lsr 6) land 3 in
-    if len < pos + 1 + len_len then
-      failwith "Ill formed packet (len < pos + 1 + len_len)";
+    if len < pos + 1 + len_len then begin
+      let s = Printf.sprintf "Ill formed packet (len < pos + 1 + len_len) (%d < %d + 1 + %d)" len pos len_len in
+      failwith s;
+    end;
     let be = cb land 2 <> 0 in
     let packet, pos = g2_extract_packet name cb s be pos len in
     iter_child pos (packet :: children)
@@ -823,6 +819,7 @@ else List.map (fun  c ->
 
 and g2_extract_packet root_name cb s be pos len =
   let len_len = (cb lsr 6) land 3 in    
+
   let pkt_len, pkt_pos = 
     match len_len, be with
     | 1, true -> get_uint8 s (pos+1), 2 
@@ -835,8 +832,16 @@ and g2_extract_packet root_name cb s be pos len =
   in
   let name_len = ((cb lsr 3) land 7) + 1 in
   let msg_len = 1 + len_len + name_len + pkt_len in
-  if len < pos + msg_len then 
-    failwith "Ill formed packet (len < pos + msg_len)";
+  (*
+  if !verbose then 
+    lprintf_nl () "g2_extract_packet: be:%B len: %d len_len: %d pkt_len: %d pkt_pos: %d name_len: %d msg_len: %d" 
+      be len len_len pkt_len pkt_pos name_len msg_len;
+  *)
+
+  if len < pos + msg_len then begin
+    let s = Printf.sprintf "Ill formed packet (len < pos + msg_len) (%d < %d + %d)" len pos msg_len in
+    failwith s
+  end;
   
 (*  lprintf "One gnutella2 subpacket received\n";*)
   let name = String.sub s (pos + pkt_pos) name_len in
@@ -847,22 +852,19 @@ and g2_extract_packet root_name cb s be pos len =
 let socket_send sock p =
   do_if_connected sock (fun sock ->
       let m = g2_encode p in
-(*
-  lprintf "DUMP SENT: \n";
-  dump m; *)
+      if !verbose then begin 
+        lprintf_nl () "socket_send_sock %s:" (Ip.to_string (peer_ip sock));
+        dump_hex m; 
+      end;
       write_string sock m
   )  
   
-  
 let udp_counter = ref 0
+
 let udp_header compress = 
   incr udp_counter;
-  if compress then
-    Printf.sprintf "GND\003%c%c\001\001" 
-      (char_of_int (!udp_counter land 0xff))
-    (char_of_int ((!udp_counter lsr 8) land 0xff))
-  else
-    Printf.sprintf "GND\002%c%c\001\001" 
+  let c = if compress then '\003' else '\002' in
+  Printf.sprintf "GND%c%c%c\001\001" c
       (char_of_int (!udp_counter land 0xff))
     (char_of_int ((!udp_counter lsr 8) land 0xff))
     
@@ -881,15 +883,15 @@ let resend_udp_packets () =
               let (s,ip,port,seq,times, next_time,acked) = 
                 Fifo.take udp_packet_waiting_for_ack in
               if not !acked then begin
-(*                  lprintf "UDP resend %d\n" seq; *)
+                  if !verbose then lprintf_nl () "resend_udp_packets %s %d: %d" (Ip.to_string ip) port seq;
                   UdpSocket.write sock false s ip port;
                   if times < 3 then 
                     Fifo.put udp_packet_waiting_for_ack (s, ip, port, seq, 
                       times+1, 
                       last_time () + 10, acked)
-                  else
-(*                    lprintf "UDP packet %d lost\n" seq *) 
-                    ()
+                  else begin
+                    if !verbose then lprintf_nl () "resend_udp_packets: packet %d lost" seq;
+                  end
                 end;
             end else
             raise Not_found
@@ -904,18 +906,20 @@ let udp_send ip port msg =
   | Some sock ->
       try
         let s = g2_encode msg in
-        let s = if String.length s > max_uncompress_packet then
+        let compress = String.length s > max_uncompress_packet in
+        let s = if compress then
             (udp_header true) ^ (Autoconf.zlib__compress_string s)
           else
             (udp_header false) ^ s
         in
             
         if !verbose_msg_servers then begin
-            lprintf "Sending on UDP(%d) to %s:%d:\n%s\n%s\n"
+            lprintf_nl () "Sending on UDP(%d)%s to %s:%d: %s"
               !udp_counter
+              (if compress then " (zlib)" else "")
               (Ip.to_string ip) port
-              (Print.print msg)
-            (String.escaped s);
+              (Print.print msg);
+            dump_hex s;
           end;
         Fifo.put udp_packet_waiting_for_ack 
           (s, ip, port, !udp_counter, 0, last_time () + 10, ref false);
@@ -933,7 +937,7 @@ let udp_send_ack ip port counter =
           (char_of_int (counter land 0xff))
           (char_of_int ((counter lsr 8) land 0xff))
         in
-(*        lprintf "ack sent\n"; *)
+        (* if !verbose then lprintf_nl () "udp_send_ack: %s %d" (Ip.to_string ip) port; *)
         UdpSocket.write sock false s ip port
       with e ->
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
@@ -946,7 +950,7 @@ let host_send sock h p =
   match sock with
   | Connection _   ->
       if !verbose_msg_servers then
-        lprintf "Sending on TCP to %s:%d: \n%s\n" 
+        lprintf_nl () "Sending on TCP to %s:%d: %s" 
           (Ip.to_string ip) port (Print.print p);
       socket_send sock p
   | _ -> 
@@ -956,18 +960,22 @@ let packet p list = { g2_children = list; g2_payload = p }
 
 let g2_handler f gconn sock  =
   let b = TcpBufferedSocket.buf sock in
-(*
-  lprintf "GNUTELLA2 HANDLER\n";
-AnyEndian.dump (String.sub b.buf b.pos b.len);
-  *)
+
+  if !verbose then begin
+    lprintf_nl () "g2_handler:";
+    AnyEndian.dump_hex (String.sub b.buf b.pos b.len);
+  end;
+
   try
     while b.len >= 2 do
       let s = b.buf in
-(*      lprintf "g2_tcp_packet_handler\n"; *)
+      (* if !verbose then lprintf_nl () "g2_tcp_packet_handler"; *)
       let cb = get_uint8 s b.pos in
       let len_len = (cb lsr 6) land 3 in
-      if b.len < 1 + len_len then raise Not_found;
       let be = cb land 2 <> 0 in
+      (* if !verbose then lprintf_nl () "b.len: %d < 1 + len_len: %d be: %B" b.len len_len be; *)
+
+      if b.len < 1 + len_len then raise Not_found;
       
       let len, pos = match len_len, be with
         | 1, true -> get_uint8 s (b.pos+1), 2 
@@ -980,9 +988,11 @@ AnyEndian.dump (String.sub b.buf b.pos b.len);
       in
       let name_len = ((cb lsr 3) land 7) + 1 in
       let msg_len = 1 + len_len + name_len + len in
+      (* if !verbose then
+        lprintf_nl () "b.len: %d < msg_len: %d name_len: %d" b.len msg_len name_len; *)
       if b.len < msg_len then raise Not_found;
       
-(*      lprintf "One gnutella2 packet received\n"; *)
+      (* if !verbose then lprintf_nl () "One gnutella2 packet received";  *)
       let name = String.sub b.buf (b.pos + pos) name_len in
       let packet = String.sub b.buf (b.pos + pos + name_len) len in
       let has_children = cb land 4 <> 0 in
@@ -1032,7 +1042,12 @@ let parse s s_pos =
 
 let parse_udp_packet ip port buf =
 
-(*  lprintf "\n\nNEW UDP PACKET   \n%s\n" (String.escaped buf); *)
+  (*
+  if !verbose then begin
+    lprintf_nl () "NEW UDP PACKET FROM %s %d:" (Ip.to_string ip) port;
+    AnyEndian.dump_hex buf;
+  end;
+  *)
   let len = String.length buf in
   
   if len < 8 then 
@@ -1111,8 +1126,11 @@ let parse_udp_packet ip port buf =
     in
     
     
+    if !verbose then begin
+      lprintf_nl () "FULL UDP PACKET FROM %s %d:" (Ip.to_string ip) port;
+      AnyEndian.dump_hex buf;
+    end;
     
-(*    lprintf "DUMP udp packet: %s\n" (String.escaped buf); *)
     let len = String.length buf in
     try
       let pos = 0 in
@@ -1153,7 +1171,9 @@ let parse_udp_packet ip port buf =
       let has_children = cb land 4 <> 0 in
       let p = g2_parse [name] has_children be packet in
       if !verbose_msg_servers then
-        lprintf "PACKET: %s\n" (Print.print p); 
+        lprintf_nl () "UDP PACKET: %s" (Print.print p); 
+      
+(* Test Encoder *)
       
       (*
       (try
@@ -1177,7 +1197,6 @@ let parse_udp_packet ip port buf =
               (Printexc2.to_string e));
       
 *)
-
 
 
 
@@ -1335,12 +1354,16 @@ let server_send_qrt_patch s m =
 
   
 let host_send_qkr h =
-(*  lprintf "server_send_qkr\n"; *)
+  if !verbose then lprintf_nl () "host_send_qkr";
   host_send NoConnection h
-    (packet QKR
+    (packet QKR [])
+
+  (*
       [
       (packet (QKR_RNA (client_ip NoConnection, !!client_port)) [])
-    ])
+    ]) *)
+
+
   
 let server_send_query quid words xml_query sock s = 
 (*  lprintf "*********8 server_ask_query *********\n"; *)
@@ -1407,26 +1430,89 @@ let server_recover_file file sock s =
           server_ask_uid NoConnection s ss.search_uid uid file.file_name        
   ) file.file_searches
   
+
 let server_send_ping sock s = 
   server_send sock s
     (packet PI [
       packet (PI_UDP (client_ip NoConnection, !!client_port))[]])
         
+let server_send_khl sock s =
+  let children = ref [] in
+  List.iter (fun s ->
+    if s.server_vendor <> "" then
+      let h = s.server_host in
+      match server_state s with
+      Connected _ ->
+        let p = packet 
+        (KHL_CH 
+          ((Ip.ip_of_addr h.host_addr, h.host_port), int64_time ()))
+           [
+            (packet (KHL_CH_V s.server_vendor) [])
+           ] in
+             children := p :: !children
+     | _ -> ()
+  ) !connected_servers;
+  server_send sock s (
+    packet KHL [
+      (packet (KHL_TS (int64_time ())) !children) 
+    ]
+  )
+        
+let server_send_lni sock s files kb = 
+  
+  if s.server_last_lni + 60 < BasicSocket.last_time () then begin 
+  s.server_last_lni <- BasicSocket.last_time ();
+  server_send sock s 
+  (packet LNI [
+     packet (LNI_NA (client_ip sock, !!client_port))  [];
+     packet (LNI_GU !!client_uid) [];
+     packet (LNI_V "MLDK") [];
+     packet (LNI_LS (files, kb)) [];
+   ])          
+  end 
+
+let on_send_pings () = 
+  List.iter (fun s ->      
+    server_send_lni s.server_sock s 0L 0L;
+   ) !connected_servers
+
 let server_send_push s uid uri = ()
 
+let bitv_to_string bitv =
+  let s = String.make ((Bitv.length bitv) / 8) '\000' in
+  Bitv.iteri_true (fun i ->
+      let pos = i / 8 in
+      let bit = 7 - (i mod 8) in
+      let x = (1 lsl bit) in
+      s.[pos] <- char_of_int ( (int_of_char s.[pos]) lor x );
+  ) bitv;
+  s
     
+(* http://www.gnutella2.com/index.php/Query_Hash_Tables *)
 let create_qrt_table words table_size =
-  let table_length = 1 lsl (table_size-3) in
+  let table_length = (1 lsl table_size) in
+  let bitv = Bitv.create table_length true in
+  List.iter (fun w ->
+      let pos = bloom_hash w table_size in
+      let pos = Int64.to_int pos in
+      Bitv.set bitv pos false;
+      if !verbose then lprintf "ADDING WORD %s at pos %d\n" w pos;
+  ) words;
+  bitv_to_string bitv
+    
+let create_qrt_table2 words table_size =
+  let table_length = 1 lsl (table_size-3) in (* index_out_of_bounds *)
   if !verbose then
     lprintf "table_length %d\n" table_length;
+
   let array = Array.create table_length 0 in
   List.iter (fun w ->
       let pos = bloom_hash w table_size in
       let pos = Int64.to_int pos in
       if !verbose then
-        lprintf "ADDING WORD %d\n" pos; 
+        lprintf "ADDING WORD at pos %d\n" pos; 
       let bit = (1 lsl (pos land 7)) in
-      array.(pos) <- array.(pos) lor bit;
+      array.(pos) <- array.(pos) lor bit; (* index_out_of_bounds *)
   ) words;
   let string_size = table_length in
   let table = String.create  string_size in
@@ -1443,6 +1529,7 @@ let send_qrt_sequence s update_table =
   let table_size = 20 in
 (*  let infinity = 7 in
   let table_length = 1 lsl table_size in *)
+
   server_send_qrt_reset s;
   
   if !cached_qrt_table = "" then 

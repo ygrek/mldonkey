@@ -48,13 +48,15 @@ let g2_parse_redirector_page f =
           begin
             try
               let ip, port = String2.cut_at ip_port ':' in
-                ignore (H.new_host
-		  (Ip.addr_of_string ip) (int_of_string port) Ultrapeer)
+              if !verbose then lprintf_nl () "Received host %s:%s" ip port;
+                ignore (H.new_host (Ip.addr_of_string ip) (int_of_string port) Ultrapeer)
             with _ -> ()
           end
       | "u" :: url :: _ ->
-          if not (List.mem url !!redirectors) then
-            redirectors =:= url :: !!redirectors
+          if not (List.mem url !!redirectors) then begin
+            redirectors =:= url :: !!redirectors;
+            if !verbose then lprintf_nl () "Received redirector %s" url
+          end
       | _ -> ()
   ) lines
 
@@ -78,12 +80,12 @@ let connect () =
               H.req_user_agent = get_user_agent ();
             } in
           if !verbose then
-            lprintf "Connecting G2 redirector\n";
+            lprintf_nl () "Connecting G2 redirector: %s" url;
           H.wget r g2_parse_redirector_page    
       ) !!redirectors;
     end else begin
       if !verbose then
-        lprintf "redirector recontacted in %d seconds \n"
+        lprintf_nl () "redirector recontacted in %d seconds"
           (!next_redirector_access - last_time ())
     end
     

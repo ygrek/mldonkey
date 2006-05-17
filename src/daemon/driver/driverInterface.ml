@@ -565,11 +565,12 @@ let gui_reader (gui: gui_record) t _ =
     
     | P.Password (user, pass) ->
         begin
+          lprintf_nl () "GUI connection from user %s" user;
           match gui.gui_sock with
             Some sock when not (valid_password user pass) ->
               gui_send gui BadPassword;                  
               set_lifetime sock 5.;
-              lprintf "BAD PASSWORD\n"; 
+              lprintf_nl () "GUI connection BAD PASSWORD for user %s" user; 
               TcpBufferedSocket.close sock (Closed_for_error "Bad Password")
           
           | _ ->

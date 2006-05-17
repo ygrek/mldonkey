@@ -262,7 +262,7 @@ let sprint_socket s =
 let close t msg =
   if t.fd <> dummy_fd then begin
       if !debug then
-          lprintf_nl "[bS] CLOSING: %s" (sprint_socket t);
+          lprintf_nl "[bS] CLOSING: %s (%s)" (sprint_socket t) (string_of_reason msg);
       (try
           Unix.close t.fd;
           with _ -> ());

@@ -94,11 +94,17 @@ let find_search s =
 
 let result_download r =
   if !verbose then
-    lprintf ".............. result_download ..............\n";
+    lprintf_nl () "result_download";
   let rec iter uids =
     match uids with
       [] -> raise IgnoreNetwork
     | uid :: tail ->
+        if !verbose then lprintf_nl () "UID: %s Accept(BP: %B ED2K: %B MD5: %B)" 
+            (Uid.to_string uid) 
+            GnutellaNetwork.accept_bitprint
+            GnutellaNetwork.accept_ed2kuid
+            GnutellaNetwork.accept_md5ext;
+
         match Uid.to_uid uid with
           Sha1 _ | Bitprint _ when GnutellaNetwork.accept_bitprint ->
             download_file r
@@ -109,45 +115,49 @@ let result_download r =
         | _  -> iter tail
   in
   if !verbose then
-    lprintf "%d uids\n" (List.length r.result_uids);
+    lprintf_nl () "%d uids" (List.length r.result_uids);
   iter r.result_uids
 
 let declare_file _ = should_update_shared_files := true
   
 let ask_for_uids sh =
+  if !verbose then lprintf_nl () "ask_for_uids Accept(BP: %B ED2K: %B MD5: %B)" 
+     GnutellaNetwork.accept_bitprint
+     GnutellaNetwork.accept_ed2kuid
+     GnutellaNetwork.accept_md5ext;
   let info = IndexedSharedFiles.get_result sh.shared_info in
   if GnutellaNetwork.accept_ed2kuid then begin
       if !verbose then
-        lprintf "Ask for ED2K uid\n";
+        lprintf_nl () "Ask for ED2K uid";
       CommonUploads.ask_for_uid sh ED2K (fun sh uid ->
           let uid = Uid.to_string uid in
           declare_word uid;
           declare_file ();
           if !verbose then
-            lprintf "Ed2k uid available (size %d)\n" 
+            lprintf_nl () "Ed2k uid available (size %d)" 
             (Array.length info.CommonUploads.shared_md4s);
       );
     end;
   if GnutellaNetwork.accept_md5ext then begin
       if !verbose then
-        lprintf "Ask for MD5EXT uid\n";
+        lprintf_nl () "Ask for MD5EXT uid";
       CommonUploads.ask_for_uid sh MD5EXT (fun sh uid ->
           let uid = Uid.to_string uid in
           declare_word uid;
           declare_file ();          
           if !verbose then
-            lprintf "Md5ext uid available: %s\n"  uid
+            lprintf_nl () "Md5ext uid available: %s"  uid
       );
     end;
 
   if GnutellaNetwork.accept_bitprint then begin
       if !verbose then
-        lprintf "Ask for BITPRINT uid\n";
+        lprintf_nl () "Ask for BITPRINT uid";
       CommonUploads.ask_for_uid sh BITPRINT (fun sh uid ->
           declare_word uid;
           declare_file ();
           if !verbose then
-            lprintf "Bitprint tree available (size %d)\n" 
+            lprintf_nl () "Bitprint tree available (size %d)" 
               (Array.length info.CommonUploads.shared_tiger);
           ()
       );
@@ -156,13 +166,13 @@ let ask_for_uids sh =
           declare_word uid;
           declare_file ();
           if !verbose then
-            lprintf "Tiger tree available (size %d)\n" 
+            lprintf_nl () "Tiger tree available (size %d)" 
               (Array.length info.CommonUploads.shared_tiger);
       );
       CommonUploads.ask_for_uid sh SHA1 (fun sh uid -> 
           let uid = Uid.to_string uid in
           if !verbose_share then
-            lprintf "Could share urn: %s\n" uid;
+            lprintf_nl () "Could share urn: %s" uid;
 (* TODO : enter this shared file in the QRT *)
           declare_word uid;
           declare_file ();          
@@ -310,8 +320,11 @@ let _ =
           P.server_addr = s.server_host.host_addr;
           P.server_port = s.server_host.host_port;
           P.server_nusers = s.server_nusers;
+          P.server_max_users = s.server_maxnusers;
           P.server_nfiles = s.server_nfiles;
           P.server_name = s.server_agent;
+          P.server_version = s.server_vendor;
+          P.server_description = s.server_description;
 
         } 
         else raise Not_found
@@ -403,7 +416,7 @@ let _ =
         P.client_name = if c.client_user.user_speed > 0 
                           then Printf.sprintf "%s (%d)" c.client_user.user_nick c.client_user.user_speed
                           else c.client_user.user_nick;
-        P.client_software = c.client_user.user_vendor;
+        P.client_software = c.client_user.user_software;
 
       }
   );

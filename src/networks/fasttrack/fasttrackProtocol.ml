@@ -157,7 +157,8 @@ let parse_headers c first_line headers =
   begin
     try
       let (server,_) = List.assoc "server" headers in
-      c.client_user.user_vendor <- server;
+      c.client_user.user_software <- server;
+      client_must_update c;
     with Not_found -> ()
   end;
 
@@ -165,6 +166,7 @@ let parse_headers c first_line headers =
     try
       let (username,_) = List.assoc "x-kazaa-username" headers in
       c.client_user.user_nick <- username;
+      client_must_update c;
     with Not_found -> ()
   end;
 

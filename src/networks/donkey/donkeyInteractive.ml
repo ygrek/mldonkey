@@ -333,19 +333,13 @@ let query_download filenames size md4 location old_file absents force =
         begin
         if List.mem md4 !!old_files then begin
           (* copy file info into result for later usage in force_download *)
-          let r = {
-              result_num = 0;
+          let r = { dummy_result with
 	      result_uids = [Uid.create (Ed2k md4)];
               result_names = filenames;
               result_size = size;
-              result_tags = [];
-              result_type = "";
-              result_format = "";
-              result_comment = "";
-              result_done = false;
               result_force = true; (* marker for force_download *)
-	      result_time = 0;
 	      result_modified = false;
+                result_source_network = network.network_num;
             } in
             forceable_download := [r];
 	    raise already_done

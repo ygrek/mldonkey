@@ -109,6 +109,7 @@ let set_client_state client state =
   CommonClient.set_client_state (as_client client) state
 let set_client_disconnected client =
   CommonClient.set_client_disconnected (as_client client)
+let client_must_update client = client_must_update (as_client client)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -201,8 +202,10 @@ let new_server ip port =
           server_sock = NoConnection;
           server_ciphers = None;
           server_agent = "<unknown>";
+          server_description = "";
           server_nfiles = Int64.zero;
           server_nusers = Int64.zero;
+          server_maxnusers = 0L;
           server_nkb = 0;
 
           server_need_qrt = true;
@@ -210,6 +213,7 @@ let new_server ip port =
           server_nfiles_last = zero;
           server_nkb_last = 0;
           server_vendor = "";
+          server_last_lni = 0;
 
           server_connected = zero;
           server_query_key = ();
@@ -253,6 +257,7 @@ let new_result file_name file_size tags hashes _ =
                 result_size = file_size;
                 result_tags = tags;
                 result_uids = [Uid.create (Md5Ext hash)];
+                result_source_network = network.network_num;
               }
             in
             let r = update_result_num r in
@@ -364,6 +369,7 @@ let new_user kind =
 (*          user_files = []; *)
           user_speed = 0;
           user_vendor = "";
+          user_software = "";
           user_nick = "";
         }  and user_impl = {
           dummy_user_impl with

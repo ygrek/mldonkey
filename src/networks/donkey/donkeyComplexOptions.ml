@@ -571,6 +571,7 @@ let result_of_file md4 tags =
   let rec r = {  dummy_result with
       result_uids = [Uid.create (Ed2k md4)];
       result_done = (List.mem md4 !!old_files) || (Hashtbl.mem files_by_md4 md4); 
+      result_source_network = network.network_num;
     } in
   List.iter (fun tag ->
       match tag with

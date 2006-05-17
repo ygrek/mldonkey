@@ -314,13 +314,15 @@ let parse_headers c first_line headers =
         begin
           try 
             let (server,_) = List.assoc "server" headers in
-            c.client_user.user_vendor <- server;
+            c.client_user.user_software <- server;
+            client_must_update c;
           with Not_found -> ()
         end;
         begin
           try 
             let (useragent,_) = List.assoc "user-agent" headers in
-            c.client_user.user_vendor <- useragent;
+            c.client_user.user_software <- useragent;
+            client_must_update c;
           with Not_found -> ()
         end;
 

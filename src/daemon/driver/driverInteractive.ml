@@ -1129,18 +1129,16 @@ let old_print_search buf o results =
                 end;
 
               user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
-              if use_html_mods o then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-                  (
-(* TODO RESULT: use the uids to display from which networks it is downloadable
-                  let n = network_find_by_num r.result_network in
-              n.network_name *) "--")
-              else Printf.bprintf  buf "[%5d] %s "
-                  !counter
-
-(* TODO RESULT:
-              (let n = network_find_by_num r.result_network in
-                  n.network_name) *)
-                  "--";
+              let network_name = 
+                try 
+                 let n = network_find_by_num r.result_source_network in
+                 n.network_name 
+                with _ -> "Unknown"
+              in
+              
+                if use_html_mods o 
+                  then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" network_name
+                  else Printf.bprintf  buf "[%5d] %s " !counter network_name;
 
               if o.conn_output = HTML then begin
                   if !!html_mods then

@@ -127,7 +127,7 @@ let scan_format fmt pos cont_s cont_a cont_t =
     | 'f' | 'e' | 'E' | 'g' | 'G' ->
         Obj.magic(fun (f: float) ->
           cont_s (format_float (extract_format fmt pos i widths) f) (succ i))
-    | 'b' ->
+    | 'b' | 'B' ->
         Obj.magic(fun (b: bool) ->
           cont_s (string_of_bool b) (succ i))
     | 'a' ->

@@ -74,11 +74,12 @@ let xml_profile () =
 let g2_packet_handler s sock gconn p = 
   let h = s.server_host in
   if !verbose_msg_servers then begin
-      lprintf "Received %s packet from %s:%d: \n%s\n" 
+      lprintf_nl () "Received %s packet from %s:%d: %s" 
         (match sock with Connection _  -> "TCP" | _ -> "UDP")
       (Ip.string_of_addr h.host_addr) h.host_port
         (Print.print p);
     end;
+try 
   match p.g2_payload with 
   | PI -> 
       server_send sock s (packet PO []);
@@ -114,16 +115,15 @@ let g2_packet_handler s sock gconn p =
       List.iter (fun p ->
           match p.g2_payload with
             LNI_V v -> s.server_vendor <- v
-          | LNI_HS (leaves,_) -> s.server_nusers <- Int64.of_int leaves
+          | LNI_HS (leaves,maxleaves) -> 
+              s.server_nusers <- Int64.of_int leaves;
+              s.server_maxnusers <- Int64.of_int maxleaves;
+          | LNI_LS (files,kb) ->
+              s.server_nfiles <- files;
           | _ -> ()
       ) p.g2_children;
-      server_send sock s 
-        (packet LNI [
-          packet (LNI_NA (client_ip sock, !!client_port))  [];
-          packet (LNI_GU !!client_uid) [];
-          packet (LNI_V "MLDK") [];
-          packet (LNI_LS (zero,zero)) [];
-        ])          
+      server_must_update (as_server s.server_server);
+      server_send_lni sock s 0L 0L;
 
 (* Should we really reply to QKR if we are just a leaf ? We should probably
   only reply if we are not already using all the available bandwidth. *)
@@ -172,12 +172,27 @@ let g2_packet_handler s sock gconn p =
         lprintf "SEARCH RECEIVED\n";
 (* OK, two cases: search by URN/magnet, or search by keywords *)
       
+      (* 
+
+      Upon receiving a query, a node should: 
+
+      Verify its authentication 
+      Send an acknowledgment if it was not received from a hub 
+      Forward it to connected nodes if necessary (detailed below) 
+      Process it locally and dispatch results 
+      *)    
       
+      (match sock with 
+         Connection _  -> () 
+        | _ -> (
       server_send sock s (packet (QA md4)
         [
           packet (QA_TS ((int64_time ()))) [];
           packet (QA_D ((client_ip sock, !!client_port), 0)) [];
         ]);
+        )
+      );
+      
       
       let by_urn = ref false in
       let keywords = ref "" in
@@ -288,29 +303,45 @@ packet QH2_H (
           match c.g2_payload with
             KHL_NH (ip,port) 
           | KHL_CH ((ip,port),_) ->
-              ignore (H.new_host (Ip.addr_of_ip ip) port Ultrapeer)
+              if !verbose then lprintf_nl () "KHL new Ultrapeer: %s %d" (Ip.to_string ip) port;
+              ignore (H.new_host (Ip.addr_of_ip ip) port Ultrapeer);
+              List.iter (fun c ->
+                  match c.g2_payload with
+                    KHL_NH_LS (f,kb)
+                  | KHL_CH_LS (f,kb) -> (
+                    let s = find_server (Ip.addr_of_ip ip) port in
+                    match s with 
+                      Some s -> 
+                        s.server_nfiles <- f;
+                        server_must_update (as_server s.server_server);
+                     | _ -> (if !verbose then lprintf_nl () "KHL LS: No server found: %s %d" (Ip.to_string ip) port)  
+                    )
+
+                  | KHL_NH_HS (l,ml) 
+                  | KHL_CH_HS (l,ml) -> (
+                    lprintf_nl () "KHL HS";
+                    let s = find_server (Ip.addr_of_ip ip) port in
+                    match s with 
+                      Some s -> 
+                        s.server_nusers <- Int64.of_int l;
+                        s.server_maxnusers <- Int64.of_int ml;
+                        server_must_update (as_server s.server_server);
+                     | _ -> (if !verbose then lprintf_nl () "KHL HS: No server found: %s %d" (Ip.to_string ip) port)
+                    )
+                  | KHL_NH_V v 
+                  | KHL_CH_V v -> (
+                    lprintf_nl () "KHL HS";
+                    let s = find_server (Ip.addr_of_ip ip) port in
+                    match s with 
+                      Some s -> 
+                        if s.server_vendor = "" then s.server_vendor <- v;
+                     | _ -> (if !verbose then lprintf_nl () "KHL V: No server found: %s %d" (Ip.to_string ip) port)
+                    )
+                  | _ -> ()
+              ) c.g2_children
           | _ -> ()
       ) p.g2_children;
-      let children = ref [] in
-      List.iter (fun s ->
-          if s.server_vendor <> "" then
-            let h = s.server_host in
-            match server_state s with
-              Connected _ ->
-                let p = packet 
-                    (KHL_CH 
-                      ((Ip.ip_of_addr h.host_addr, h.host_port), int64_time ()))
-                  [
-                    (packet (KHL_CH_V s.server_vendor) [])
-                  ] in
-                children := p :: !children
-            | _ -> ()
-      ) !connected_servers;
-      server_send sock s (
-        packet KHL [
-          (packet (KHL_TS (int64_time ())) !children) 
-        ]
-      )
+      server_send_khl sock s;
   
   | QA suid ->
       let ss = try Some (
@@ -322,6 +353,7 @@ packet QH2_H (
       List.iter (fun c ->
           match c.g2_payload with
           | QA_D ((ip,port),_) ->
+              if !verbose then lprintf_nl () "QA_D new Ultrapeer: %s %d" (Ip.to_string ip) port;
               let h = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
               H.connected h;
               begin
@@ -332,6 +364,7 @@ packet QH2_H (
               end
 (* These ones have not been searched yet *)
           | QA_S ((ip,port),_) -> 
+              if !verbose then lprintf_nl () "QA_S new Ultrapeer: %s %d" (Ip.to_string ip) port;
               let h = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
               H.connected h;
           
@@ -459,9 +492,9 @@ XML ("audios",
       in
       
       if !verbose_msg_servers then begin
-          lprintf "Results Received: \n";
+          lprintf_nl () "Results Received:";
           List.iter (fun (urn, size, name, url, tags) ->
-              lprintf "    %s [size %s] %s -- %s\n"
+              lprintf "[name %s] [size %s] [urn %s] [url %s]\n"
                 name (match size with
                   None -> "??" | Some sz -> Int64.to_string sz) 
               (match urn with
@@ -553,19 +586,28 @@ file_must_update file;
       
   | _ -> 
       if !verbose_unknown_messages then
-        lprintf "g2_packet_handler: unexpected packet %s\n"
+        lprintf_nl () "g2_packet_handler: unexpected packet %s"
         (Print.print p)
 
+with e ->
+  if !verbose then
+  lprintf_nl () "g2_packet_handler exception: %s" (Printexc2.to_string e) 
+  
           
 let udp_packet_handler ip port msg = 
   let addr = Ip.addr_of_ip ip in
+  (* if !verbose then lprintf_nl () "udp_packet_handler new Ultrapeer: %s %d" (Ip.to_string ip) port; *)
   let h = H.new_host addr port Ultrapeer in
   H.connected h;
 (*  if !verbose_udp then
     lprintf "Received UDP packet from %s:%d: \n%s\n" 
       (Ip.to_string ip) port (Print.print msg);*)
   let s = new_server addr port in
-  s.server_connected <- int64_time ();
+
+  (match s.server_sock with 
+    Connection _ -> ()
+    | _ -> s.server_connected <- int64_time ());
+
   g2_packet_handler s NoConnection () msg
   (*
   match msg.g2_payload with
@@ -579,15 +621,27 @@ let udp_packet_handler ip port msg =
 
 let init s sock gconn = 
 (*  gconn.gconn_sock <- s.server_sock; *)
+  if !verbose then lprintf_nl () "init: %s" (Ip.to_string (peer_ip sock));
+
   connected_servers := s :: !connected_servers;
-  gconn.gconn_handler <- 
-    Reader (g2_handler (g2_packet_handler s s.server_sock));
-  server_send_ping s.server_sock s;
+  gconn.gconn_handler <- Reader (g2_handler (g2_packet_handler s s.server_sock));
+
+  server_send_ping s.server_sock s; (* *)
   server_send_ping NoConnection s;
   server_send NoConnection s (packet PI []);
+
+ (*  server_send (Connection sock) s (packet PI []);   *)
+
   (match s.server_query_key with
       UdpQueryKey _  -> ()
     | _ -> host_send_qkr s.server_host);
+
+
+  server_send_lni (Connection sock) s 0L 0L; (* SZ CG2Neighbour::OnRun() *)
+(*
+  server_send_khl (Connection sock) s;
+*)
+
   server_send (Connection sock) s (packet UPROC [])
 
   (*
@@ -600,13 +654,26 @@ let init s sock gconn =
 let udp_client_handler ip port buf =
   if String.length buf > 3 && String.sub buf 0 3 = "GND" then
     try
-      udp_packet_handler ip port
-        (parse_udp_packet ip port buf)
-    with AckPacket | FragmentedPacket -> ()
-  else
-    if !verbose then
-      lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
 
+      (*
+      if !verbose then begin 
+        lprintf_nl () "udp_client_handler %s %d" (Ip.to_string ip) port;
+        AnyEndian.dump_hex buf;
+      end;
+      *)
+      let x = (parse_udp_packet ip port buf) in
+      udp_packet_handler ip port x
+
+    with AckPacket | FragmentedPacket -> 
+      (* if !verbose then lprintf_nl () "ACK/FRAGMENT" *)
+
+      ()
+    
+  else
+    if !verbose then begin
+      lprintf_nl () "Unexpected UDP packet:";
+      AnyEndian.dump_hex buf;
+    end
       
 let update_shared_files () = ()
 let declare_word _ = new_shared_words := true

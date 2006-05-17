@@ -93,6 +93,7 @@ let file_disk_name file = file_disk_name (as_file file)
 let file_state file =  file_state (as_file file)
 let file_num file =  file_num (as_file file)
 let file_must_update file =  file_must_update (as_file file)
+let client_must_update client = client_must_update (as_client client)
 
 let current_files = ref ([] : GnutellaTypes.file list)
 
@@ -179,6 +180,12 @@ module H = CommonHosts.Make(struct
       let max_peers = max_known_peers
     end)
 
+let find_server ip port =
+  try 
+    let h = Hashtbl.find H.hosts_by_key (ip,port) in
+    h.host_server
+  with _ -> None
+
 let new_server ip port =
   let h = H.new_host ip port Ultrapeer in
   match h.host_server with
@@ -190,11 +197,14 @@ let new_server ip port =
           server_host = h;
           server_sock = NoConnection;
           server_agent = "<unknown>";
+          server_description = "";
           server_nfiles = Int64.zero;
           server_nkb = 0;
           server_nusers = Int64.zero;
+          server_maxnusers = 0L;
           server_need_qrt = true;
           server_ping_last = Md4.random ();
+          server_last_lni = 0;
           server_nfiles_last = Int64.zero;
           server_nkb_last = 0;
           server_vendor = "";
@@ -268,6 +278,7 @@ let new_result file_name file_size (tags : CommonTypes.tag list) (uids : Uid.t l
                 result_size = file_size;
                 result_tags = tags;
                 result_uids = uids;
+                result_source_network = network.network_num;
                 }
             in
             let rs = update_result_num r in
@@ -328,7 +339,7 @@ let new_file file_temporary file_name file_size file_uids =
     } 
   in
   if !verbose then
-    lprintf "SET SIZE : %Ld\n" file_size;
+    lprintf_nl () "SET SIZE : %Ld\n" file_size;
   let kernel = CommonSwarming.create_swarmer file_temp file_size 
       (Int64.of_int (256 * 1024))  in
   let swarmer = CommonSwarming.create kernel (as_file file) megabyte in
@@ -393,6 +404,7 @@ let new_user kind =
           user_speed = 0;
           user_vendor = "";
 (*          user_gnutella2 = false; *)
+          user_software = "";
           user_nick = "";
         }  and user_impl = {
           dummy_user_impl with
@@ -530,6 +542,8 @@ let client_ip sock =
   (match sock with Connection sock -> Some sock | _ -> None)
 
 let disconnect_from_server s r =
+  if !verbose then
+    lprintf_nl () "disconnect_from_server %s" (string_of_reason r);
   match s.server_sock with
   | Connection sock ->
       let h = s.server_host in
@@ -538,9 +552,9 @@ let disconnect_from_server s r =
             let connection_time = Int64.to_int (
                 Int64.sub (int64_time ()) s.server_connected) in
             if !verbose then
-              lprintf "DISCONNECT FROM SERVER %s:%d after %d seconds\n"
+              lprintf_nl () "disconnect_from_connected_server %s:%d after %d seconds (%s)\n"
                 (Ip.string_of_addr h.host_addr) h.host_port
-                connection_time
+                connection_time (string_of_reason r)
             ;
         | _ -> ()
       );

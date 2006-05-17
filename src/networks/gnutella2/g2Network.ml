@@ -51,9 +51,8 @@ type file_uri =
 let port = 6347
 let config_file = "gnutella2.ini"
 let redirectors = [
-    "http://gwc.mamarazzi.net/";
     "http://g2cache.theg2.net/gwcache/lynnx.asp";
-    "http://ptzldd1.ath.cx/perlgcache.cgi";
+  "http://bazooka1.servehttp.com/g2/bazooka.php";
   ]
 
 let options_prefix = "G2-"
@@ -67,8 +66,11 @@ let max_known_peers_default = 20
    assertion failure if we add an ed2k file in
    CommonSwarming2 at line 609 "assert (not tt.t_primary);"
    ) *)
-let accept_ed2kuid = false
-let accept_bitprint = false
+
+(* Temporarily re-enabling -- better to fix the bug than to hide it (not seen yet) *)
+
+let accept_ed2kuid = true
+let accept_bitprint = true
 let accept_md5ext = false
   
   

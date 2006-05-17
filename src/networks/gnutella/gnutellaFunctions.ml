@@ -111,7 +111,7 @@ let handlers info gconn =
   let rec iter_read sock nread =
     let b = TcpBufferedSocket.buf sock in 
     if monitored sock || !verbose_msg_raw then
-      lprintf "iter_read %d/%d\n%s\n" nread b.len
+      lprintf "iter_read %s :%d/%d\n%s\n" (Ip.to_string (peer_ip sock)) nread b.len
         (String.escaped (String.sub b.buf b.pos b.len));
     if b.len > 0 then
       match gconn.gconn_handler with

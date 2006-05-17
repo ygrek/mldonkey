@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/05/17
+5101: G2: Gnutella2 fixes/log updates (zet)
+- Gnutella2 (G2) is working again
+- Re-enables search result networks
+- Log logged-in users
 5098: EDK: Update option description for initial_score
 
 2006/05/15

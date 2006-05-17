@@ -87,6 +87,8 @@ let server_to_client s p sock =
       lprintf "RECEIVED server_to_client:\n";
       print p;
     end;
+
+try 
   match p.pkt_payload with
   | PingReq t ->
       if p.pkt_hops <= 3 then
@@ -124,7 +126,7 @@ let server_to_client s p sock =
           s.server_nkb_last <- s.server_nkb_last + t.P.nkb;
           s.server_nfiles <- (Int64.of_int t.P.nfiles);
           s.server_nkb <- t.P.nkb;
-          server_must_update (as_server s.server_server)
+          server_must_update (as_server s.server_server);
         end
   
   | QueryReq t ->
@@ -318,6 +320,10 @@ information. *)
               | _ -> ()
       ) t.Q.files;
   | _ -> ()
+  
+with e ->
+  if !verbose then
+  lprintf_nl () "server_to_client exception %s" (Printexc2.to_string e)
   
 (*************************************************************************)
 (*                                                                       *)

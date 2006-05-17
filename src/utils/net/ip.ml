@@ -299,7 +299,7 @@ let _ =
   );
 
   BasicSocket.add_infinite_timer 0.1 (fun _ ->
-    let current_time = Unix.gettimeofday () in
+    (* let current_time = Unix.gettimeofday () in *)
     while true do
       match !current_job with
       | None ->
