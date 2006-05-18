@@ -18,6 +18,7 @@
 */
 /* 	$Id$	 */
 
+#include "../../../config/config.h"
 #include <caml/mlvalues.h>
 #include <caml/memory.h>
 #include <caml/alloc.h>
@@ -73,11 +74,15 @@ static void raise_on_error(const char* fname, magic_t cookie)
     err = magic_errno(cookie);
     if ((errmsg = malloc(len)) == NULL) raise_out_of_memory();
     strcpy(errmsg, fname);
+#ifdef HAVE_STRERROR_R
     while (strerror_r(err, errmsg + flen, len - flen) < 0) {
       len *= 2;
       errmsg = realloc(errmsg, len);
       if (errmsg == NULL) raise_out_of_memory();
     }
+#else
+      strcat (errmsg, strerror(err));        
+#endif
     raise_sys_error(copy_string(errmsg));
   }
 }
@@ -142,10 +147,14 @@ CAMLprim value ocaml_magic_open(value flags)
       /* No cookie yet, so one cannot use the above generic err fun */
       if ((errmsg = malloc(len)) == NULL) raise_out_of_memory();
       strcpy(errmsg, "Magiclib.create: "); /* 14 chars */
+#ifdef HAVE_STRERROR_R
       while (strerror_r(errno, errmsg + 14, len - 14) < 0) {
         len *= 2;
         if ((errmsg = realloc(errmsg, len)) == NULL) raise_out_of_memory();
       }
+#else
+      strcat (errmsg, strerror(errno));
+#endif
       raise_sys_error(copy_string(errmsg));
     }
   }

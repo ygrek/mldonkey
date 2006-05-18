@@ -174,3 +174,9 @@
 
 /* Define to 1 if you have setrlimit() */
 #undef HAVE_SETRLIMIT
+
+/* Define to 1 if you have strerror() */
+#undef HAVE_STRERROR
+
+/* Define to 1 if you have strerror_r() */
+#undef HAVE_STRERROR_R

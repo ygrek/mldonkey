@@ -595,7 +595,7 @@ AC_CHECK_SIZEOF(char)
 AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(float)
 AC_CHECK_SIZEOF(double)
-AC_CHECK_FUNCS(setrlimit getrlimit)
+AC_CHECK_FUNCS(setrlimit getrlimit strerror_r strerror)
 AC_CHECK_HEADERS(byteswap.h,,)
 
 # various header files
