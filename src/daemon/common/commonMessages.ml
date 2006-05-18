@@ -311,14 +311,14 @@ if (isNav){document.captureEvents(Event.MOUSEMOVE);}
 document.onmousemove = handlerMM;
 
 function dllink() {
-	var l = prompt( \"enter ed2k, sig2dat, torrent or other link\", \"\" );
-	if( l != null ) {
-		var f = document.forms[\"cmdFormular\"];
-		var t = f.elements[\"q\"].value;
-		f.elements[\"q\"].value = \"dllink \" + l;
-		f.submit();
-		f.elements[\"q\"].value = t;
-	}
+    var popw = 620;
+    var poph = 330;
+    var popx = 0;
+    var popy = 0;
+    popx = screen.availWidth/2 - popw/2;
+    popy = screen.availHeight/2 - poph/2;
+    var dimensions = 'height='+poph+', width='+popw+', top='+popy+', left='+popx+', scrollbars=yes, resizable=yes';
+    window.open(\"multidllink.html\", \"_blank\", dimensions );
 }
 
 function servers() {
@@ -334,6 +334,66 @@ function servers() {
 
 //-->
   "
+
+let multidllink_old =  define_option message_section ["multidllink_old"]
+  "multidllink - old"
+  string_option
+  "OLD multidllink JAVE"
+
+let multidllink_mods0 =  define_option message_section ["multidllink_mods0"]
+  "multidllink - Style 0"
+  string_option
+  "
+<html>
+<head>
+<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\" />
+</head>
+<script type=\"text/javascript\">
+window.document.title='Insert links here and press Input';
+
+function fixHeightOfTheText()
+{
+  var t = document.getElementById(\"links\");
+
+  var myWidth = 0, myHeight = 0;
+  if( typeof( window.innerWidth ) == 'number' ) {
+    //Non-IE
+    myWidth = window.innerWidth;
+    myHeight = window.innerHeight;
+  } else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) {
+    //IE 6+ in 'standards compliant mode'
+    myWidth = document.documentElement.clientWidth;
+    myHeight = document.documentElement.clientHeight;
+  } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+    //IE 4 compatible
+    myWidth = document.body.clientWidth;
+    myHeight = document.body.clientHeight;
+  }
+
+  h=myHeight;
+
+  var height = (h - t.offsetTop - 45) + \"px\";
+
+  t.style.height = height;
+
+}
+window.onresize = fixHeightOfTheText;
+
+
+</script>
+<body onload=\"document.dllinkform.links.focus();\">
+<form name=\"dllinkform\" method=\"GET\" action=\"submit\">
+<table width=\"100%\">
+<input type=\"hidden\" name=\"jvcmd\" value=\"multidllink\">
+<tr><td><textarea id=\"links\" style=\"width: 100%; height:100%\" name=\"links\"></textarea> <br></td></tr>
+<tr><td align=\"right\" class=\"bu bbigm\" style=\"padding-top: 0px; padding-bottom: 0px;\" title=\"Download Links\"  ><INPUT class=\"but2\" type=submit value=\"Input\" style=\"width:100%\"></td></tr>
+</form>
+<script type=\"text/javascript\">
+fixHeightOfTheText(); 
+</script>
+</body>
+</html>
+"
 
 
 let html_header_mods0 = define_option message_section ["html_header_mods0"]

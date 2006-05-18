@@ -2813,156 +2813,19 @@ let _ =
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
 
     "dllink", Arg_multiple (fun args o ->
-        let query_networks url =
-	let print_result buf o result =
-	  List.iter (fun s ->
-	    if o.conn_output = HTML then
-	      begin
-		Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-		html_mods_td buf [ ("", "sr", s); ]
-	      end
-	    else
-	      Printf.bprintf buf "%s\n" s) (List.rev result);
-	in
-	let result = ref [] in
-          if not (networks_iter_until_true (fun n ->
-		try
-                  let s,r = network_parse_url n url in
-		    if s = "" then r else
-		      let s1 = Printf.sprintf "%s: %s" n.network_name s in
-		        result := s1 :: !result;
-		      r
-		with e ->
-		    let s1 = Printf.sprintf "%s: Exception %s"
-		      (n.network_name) (Printexc2.to_string e)
-		    in
-		    result := s1 :: !result;
-                    false
-            )) then
-            let output =
-               (let buf = Buffer.create 100 in
-		  if o.conn_output = HTML then
-		    begin
-            	      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-            	      html_mods_table_header buf "dllinkTable" "results" [];
-            	      Printf.bprintf buf "\\<tr\\>";
-            	      html_mods_td buf [ ("", "srh", "Unable to match URL"); ];
-            	      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-            	      html_mods_td buf [ ("", "sr", url); ]
-		    end
-		  else
-                    Printf.bprintf buf "Unable to match URL : %s\n" url;
-    	    	    print_result buf o !result;
-		  if o.conn_output = HTML then
-	            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-                Buffer.contents buf) in
-            _s output
-          else
-            let output = (if o.conn_output = HTML then begin
-                let buf = Buffer.create 100 in
-                Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-                html_mods_table_header buf "dllinkTable" "results" [];
-                Printf.bprintf buf "\\<tr\\>";
-                html_mods_td buf [ ("", "srh", "Added link"); ];
-                Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-                html_mods_td buf [ ("", "sr", url); ];
-		print_result buf o !result;
-                Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-                Buffer.contents buf
-              end
-            else begin
-                Printf.sprintf "Added link : %s" url
-            end) in
-            _s output
-        in
-
         let url = String2.unsplit args ' ' in
-        if (String2.starts_with url "http") then (
-            let u = Url.of_string url in
-            let module H = Http_client in
-            let r = {
-              H.basic_request with
-                H.req_url =  u;
-                H.req_proxy = !CommonOptions.http_proxy;
-                H.req_request = H.HEAD;
-		H.req_max_retry = 10;
-                H.req_referer = (
-                  let (rule_search,rule_value) =
-                    try (List.find(fun (rule_search,rule_value) ->
-                            Str.string_match (Str.regexp rule_search) u.Url.server 0
-                        ) !!referers )
-                    with Not_found -> ("",Url.to_string u) in
-                  Some (Url.of_string rule_value) );
-                H.req_headers = (try
-                  let cookies = List.assoc u.Url.server !!cookies in
-	          [ ( "Cookie", List.fold_left (fun res (key, value) ->
-                          if res = "" then
-                            key ^ "=" ^ value
-                          else
-                            res ^ "; " ^ key ^ "=" ^ value
-                      ) "" cookies
-                    ) ]
-                with Not_found -> []);
-                H.req_user_agent = get_user_agent ();
-            } in
-            H.whead r
-                (fun headers ->
-                   (* Combine the list of header fields into one string *)
-                   let concat_headers =
-                     (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
-                   in
-                   ignore (query_networks concat_headers)
-                );
-            let output = (if o.conn_output = HTML then begin
-                let buf = Buffer.create 100 in
-                Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-                html_mods_table_header buf "dllinkTable" "results" [];
-                Printf.bprintf buf "\\<tr\\>";
-                html_mods_td buf [ ("", "srh", "Parsing HTTP url"); ];
-                Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-                html_mods_td buf [ ("", "sr", url); ];
-                Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-                Buffer.contents buf
-              end
-            else begin
-                Printf.sprintf "Parsing HTTP url : %s" url
-            end) in
-            _s output
-            )
-        else
-          if (String2.starts_with url "ftp") then
-	    query_networks (Printf.sprintf "Location: %s" url)
-	  else
-            query_networks url
+        dllink_parse (o.conn_output = HTML) url
         ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
 
     "dllinks", Arg_one (fun arg o ->
-
+	let result = Buffer.create 100 in
         let file = File.to_string arg in
         let lines = String2.split_simplify file '\n' in
         List.iter (fun line ->
-            ignore (networks_iter_until_true (fun n ->
-                  let s,r = network_parse_url n line in r))
+	  Buffer.add_string result (dllink_parse (o.conn_output = HTML) line);
+	  Buffer.add_string result (if o.conn_output = HTML then "\\<P\\>" else "\n")
         ) lines;
-        let output = (if o.conn_output = HTML then begin
-            let buf = Buffer.create 100 in
-            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-            html_mods_table_header buf "dllinksTable" "results" [];
-            Printf.bprintf buf "\\<tr\\>";
-            html_mods_td buf [ ("", "srh", "Added links"); ];
-            Printf.bprintf buf "\\</tr\\>";
-            List.iter (fun line ->
-                Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
-                html_mods_td buf [ ("", "sr", line); ];
-                Printf.bprintf buf "\\</tr\\>";
-            ) lines;
-            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-            Buffer.contents buf
-          end
-        else begin
-            Printf.sprintf "done"
-        end) in
-        _s output
+        (Buffer.contents result)
     ), "<file> :\t\t\tdownload all the links contained in the file";
 
   ]

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/18
+5097: HTML: Improved DL multiline input button (jave)
 5103: Fix compile bug in magiclib_stub.c on Solaris & NetBSD
 
 2006/05/17

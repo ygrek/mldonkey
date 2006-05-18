@@ -1972,3 +1972,92 @@ let print_option_help o option =
     end
   else
     Printf.bprintf buf "\n\t--Helptext--\n%s\n" help_text
+
+let dllink_print_result html url header results =
+  let buf = Buffer.create 100 in
+  if html then
+    begin
+      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
+      html_mods_table_header buf "dllinkTable" "results" [];
+      Printf.bprintf buf "\\<tr\\>";
+      html_mods_td buf [ ("", "srh", header); ];
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      html_mods_td buf [ ("", "sr", url); ]
+    end
+  else
+    Printf.bprintf buf "%s : %s\n" header url;
+  List.iter (fun s ->
+    if html then
+      begin
+        Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+        html_mods_td buf [ ("", "sr", s); ]
+      end
+    else
+      Printf.bprintf buf "%s\n" s) (List.rev results);
+  if html then Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
+  Buffer.contents buf
+
+let dllink_query_networks html url =
+  let result = ref [] in
+  if not (networks_iter_until_true (fun n ->
+    try
+      let s,r = network_parse_url n url in
+        if s = "" then
+          r
+        else
+          let s1 = Printf.sprintf "%s: %s" n.network_name s in
+            result := s1 :: !result;
+            r
+    with e ->
+      let s1 = Printf.sprintf "%s: Exception %s"
+        (n.network_name) (Printexc2.to_string e)
+      in
+        result := s1 :: !result;
+        false
+  )) then
+    dllink_print_result html url "Unable to match URL" !result
+  else
+    dllink_print_result html url "Added link" !result
+
+let dllink_parse html url =
+  if (String2.starts_with url "http") then (
+    let u = Url.of_string url in
+    let module H = Http_client in
+    let r = {
+      H.basic_request with
+      H.req_url =  u;
+      H.req_proxy = !CommonOptions.http_proxy;
+      H.req_request = H.HEAD;
+      H.req_max_retry = 10;
+      H.req_referer = (
+        let (rule_search,rule_value) =
+        try (List.find(fun (rule_search,rule_value) ->
+          Str.string_match (Str.regexp rule_search) u.Url.server 0
+        ) !!referers )
+        with Not_found -> ("",Url.to_string u) in
+        Some (Url.of_string rule_value) );
+      H.req_headers = (try
+        let cookies = List.assoc u.Url.server !!cookies in
+          [ ( "Cookie", List.fold_left (fun res (key, value) ->
+              if res = "" then
+                key ^ "=" ^ value
+              else
+                res ^ "; " ^ key ^ "=" ^ value
+            ) "" cookies
+            ) ]
+         with Not_found -> []);
+      H.req_user_agent = get_user_agent ();
+    } in
+    H.whead r (fun headers ->
+      (* Combine the list of header fields into one string *)
+      let concat_headers =
+        (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
+      in
+      ignore (dllink_query_networks html concat_headers)
+    );
+    dllink_print_result html url "Parsing HTTP url" [])
+  else
+    if (String2.starts_with url "ftp") then
+      dllink_query_networks html (Printf.sprintf "Location: %s" url)
+    else
+      dllink_query_networks html url

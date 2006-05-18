@@ -1106,6 +1106,14 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.web_common_header_mods0
               else !!CommonMessages.web_common_header_old)
+        | "multidllink.html" ->
+            html_open_page buf t r true;
+            let this_page = "multidllink.html" in
+            Buffer.add_string buf (
+              if !!html_mods_theme != "" && theme_page_exists this_page then
+                read_theme_page this_page else
+              if !!html_mods then !!CommonMessages.multidllink_mods0
+              else !!CommonMessages.multidllink_old)
         | "" | "index.html" ->
             if !!use_html_frames then begin
                 html_open_page buf t r false;
@@ -1385,7 +1393,18 @@ let http_handler o t r =
 
         | "submit" ->
             begin
+
               match r.get_url.Url.args with
+                | [ "jvcmd", "multidllink" ; "links", links] ->
+                    html_open_page buf t r true;
+                    List.iter (fun url ->
+		      if url <> "\013" && url <> "" then
+		        begin
+                          Buffer.add_string buf (html_escaped (dllink_parse (o.conn_output = HTML) url));
+                          Buffer.add_string buf (html_escaped "\\<P\\>")
+			end
+                    ) (String2.split links '\n')
+
               | ("q", cmd) :: other_args ->
                   List.iter (fun arg ->
                       match arg with
