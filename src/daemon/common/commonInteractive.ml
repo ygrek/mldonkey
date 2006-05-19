@@ -41,15 +41,13 @@ open CommonServer
 open CommonTypes
 open CommonComplexOptions
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[cInt] "
-    (log_time ()); lprintf_nl2
+let log_prefix = "[cInt]"
 
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[cInt] "
-    (log_time ()); lprintf
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 (*************  ADD/REMOVE FUNCTIONS ************)
 let check_forbidden_chars (uc : Charset.uchar) =
@@ -96,7 +94,7 @@ let last_sent_dir_warning = Hashtbl.create 10
 let all_temp_queued = ref false
 
 let send_dirfull_warning dir line1 =
-  lprintf_nl () "WARNING: Directory %s is full, %s" dir line1;
+  lprintf_nl "WARNING: Directory %s is full, %s" dir line1;
   Printf.fprintf Pervasives.stderr "\nWARNING: Directory %s is full, %s\n" dir line1;
   Pervasives.flush Pervasives.stderr;
   if !!hdd_send_warning_interval <> 0 then
@@ -179,7 +177,7 @@ let script_for_file file incoming new_name =
 	    ("NETWORK",   network.network_name);
 	    ("ED2K_HASH", ed2k_hash)]
   with e -> 
-      lprintf_nl () "Exception %s while executing %s"
+      lprintf_nl "Exception %s while executing %s"
         (Printexc2.to_string e) !!file_completed_cmd
   end
 
@@ -253,7 +251,7 @@ let file_commit file =
                       incoming.shdir_dirname incoming.shdir_priority
                       best_name new_name);
               with e ->
-                  lprintf_nl () "Exception %s while trying to share commited file"
+                  lprintf_nl "Exception %s while trying to share commited file"
                     (Printexc2.to_string e);
             end;
 
@@ -271,10 +269,10 @@ let file_commit file =
                   files =:= List2.removeq file !!files;
 
                 with e ->
-                    lprintf_nl () "Exception %s in file_commit secondaries" (Printexc2.to_string e);
+                    lprintf_nl "Exception %s in file_commit secondaries" (Printexc2.to_string e);
             ) secondary_files
         with e ->
-              lprintf_nl () "Exception in file_commit: %s" (Printexc2.to_string e))
+              lprintf_nl "Exception in file_commit: %s" (Printexc2.to_string e))
     | _ -> assert false
 
 let file_cancel file =
@@ -290,20 +288,20 @@ let file_cancel file =
             impl.impl_file_ops.op_file_cancel impl.impl_file_val;
             files =:= List2.removeq file !!files;
           with e ->
-              lprintf_nl () "Exception %s in file_cancel" (Printexc2.to_string e);
+              lprintf_nl "Exception %s in file_cancel" (Printexc2.to_string e);
       ) subfiles;
       try
 	let fd = file_fd file in
 	(try
            Unix32.remove fd
          with e ->
-           lprintf_nl () "Sys.remove %s exception %s"
+           lprintf_nl "Sys.remove %s exception %s"
              (file_disk_name file)
              (Printexc2.to_string e));
 	Unix32.destroy fd
       with Not_found -> ()
   with e ->
-      lprintf_nl () "Exception in file_cancel: %s" (Printexc2.to_string e)
+      lprintf_nl "Exception in file_cancel: %s" (Printexc2.to_string e)
 
 let mail_for_completed_file file =
   if !!mail <> "" then
@@ -365,14 +363,14 @@ let file_completed (file : file) =
         ignore (CommonShared.new_shared "completed" 0 (
             file_best_name file ) file_name);
         (try mail_for_completed_file file with e ->
-              lprintf_nl () "Exception %s in sendmail" (Printexc2.to_string e);
+              lprintf_nl "Exception %s in sendmail" (Printexc2.to_string e);
               );
         if !!CommonOptions.chat_warning_for_downloaded then
           chat_for_completed_file file;
 
       end
   with e ->
-      lprintf_nl () "Exception in file_completed: %s" (Printexc2.to_string e)
+      lprintf_nl "Exception in file_completed: %s" (Printexc2.to_string e)
 
 let file_add impl state =
   try
@@ -394,7 +392,7 @@ let file_add impl state =
         update_file_state impl state
       end
   with e ->
-      lprintf_nl () "[cInt] Exception in file_add: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt] Exception in file_add: %s" (Printexc2.to_string e)
 
 let server_remove server =
   begin
@@ -411,7 +409,7 @@ let server_remove server =
         servers =:= Intmap.remove (server_num server) !!servers
       end
   with e ->
-      lprintf_nl () "[cInt] Exception in server_remove: %s" (Printexc2.to_string e)
+      lprintf_nl "[cInt] Exception in server_remove: %s" (Printexc2.to_string e)
 
 let server_add impl =
   let server = as_server impl in
@@ -450,7 +448,7 @@ let friend_remove c =
       end
 
   with e ->
-      lprintf_nl () "Exception in friend_remove: %s" (Printexc2.to_string e)
+      lprintf_nl "Exception in friend_remove: %s" (Printexc2.to_string e)
 
 let contact_add c =
   let impl = as_client_impl c in
@@ -471,7 +469,7 @@ let contact_remove c =
         impl.impl_client_ops.op_client_clear_files impl.impl_client_val
       end
   with e ->
-      lprintf_nl () "Exception in contact_remove: %s" (Printexc2.to_string e)
+      lprintf_nl "Exception in contact_remove: %s" (Printexc2.to_string e)
 
 let exit_counter = ref 0
 let exit_timer = ref false
@@ -814,7 +812,7 @@ let all_active_network_opfile_network_names () =
        !names
 
 let apply_on_fully_qualified_options name f =
-  if !verbose then lprintf_nl () "Change option %s" name;
+  if !verbose then lprintf_nl "Change option %s" name;
   let rec iter prefix opfile =
     let args = simple_options prefix opfile in
     List.iter (fun o ->
@@ -837,7 +835,7 @@ let apply_on_fully_qualified_options name f =
               false
             with Exit -> true
         )) then begin
-        lprintf_nl () "Could not set option %s" name;
+        lprintf_nl "Could not set option %s" name;
         raise Not_found
       end
   with Exit -> ()
@@ -895,7 +893,7 @@ let keywords_of_query query =
           | _ -> ()
         end
     | QNone ->
-        lprintf_nl () "start_search: QNone in query";
+        lprintf_nl "start_search: QNone in query";
         ()
   in
   iter query;

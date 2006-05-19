@@ -340,7 +340,7 @@ let supernode_handler1 node gconn sock (first_line, headers) =
         (make_handshake_request_headers req)
     in
     if !verbose_msg_servers then
-      lprintf_nl () "SENDING %s\n" (String.escaped msg);
+      lprintf_nl "SENDING %s\n" (String.escaped msg);
     
     write_string sock msg;
     set_gnutella_sock sock !verbose_msg_servers

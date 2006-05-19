@@ -230,7 +230,7 @@ let download_file url referer =
   let file = new_file (Md4.random ()) u.Url.full_file zero in
   
   if !verbose then
-    lprintf_nl () "Started new download: %s from %s" (file_best_name file) url; 
+    lprintf_nl "Started new download: %s from %s" (file_best_name file) url; 
   if not (List.memq file !current_files) then begin
       current_files := file :: !current_files;
     end;
@@ -267,7 +267,7 @@ let op_network_parse_url url =
   let location_regexp = "Location: \\(.*\\)" in
   let real_url = get_regexp_string url (Str.regexp location_regexp) in
   if !verbose then
-    lprintf_nl () "real url: %s\n" real_url;
+    lprintf_nl "real url: %s\n" real_url;
   if (is_http_torrent url real_url) then "", false
   else
     if (String2.check_prefix real_url "http://") then (
@@ -338,7 +338,7 @@ let commands = [
           | _ -> raise Not_found);
 
           if !verbose then
-            lprintf_nl () "MIRROR [%s] [%s]" !num !url;
+            lprintf_nl "MIRROR [%s] [%s]" !num !url;
           let u = Url.of_string !url in
 
           if List.mem u !!old_files && !previous_url <> !url then begin
@@ -348,10 +348,10 @@ let commands = [
           let num = int_of_string !num in
           Hashtbl.iter (fun _ file ->
               if !verbose then
-                lprintf_nl () "COMPARE %d/%d" (file_num file) num;
+                lprintf_nl "COMPARE %d/%d" (file_num file) num;
               if file_num file = num then begin
                   if !verbose then
-                    lprintf_nl () "Try HEAD from mirror";
+                    lprintf_nl "Try HEAD from mirror";
 
 
                   download_file_from_mirror file u !referer;
@@ -378,7 +378,7 @@ let commands = [
             _s ""
         | Not_found ->
             if !verbose then
-              lprintf_nl () "Not enough parameters";
+              lprintf_nl "Not enough parameters";
             let buf = o.conn_buf in
             if o.conn_output = HTML then
               html_mods_table_one_row buf "serversTable" "servers" [

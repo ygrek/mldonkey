@@ -129,7 +129,7 @@ let really_recover_file file =
 (*************************************************************************)
          
 let send_pings () =
-  if !verbose then lprintf_nl () "send_pings";
+  if !verbose then lprintf_nl "send_pings";
   try
   if !new_shared_words then update_shared_words ();
   List.iter (fun s ->      
@@ -143,7 +143,7 @@ let send_pings () =
           host_send_qkr s.server_host           
       | _ -> 
           if !verbose then
-            lprintf_nl () "Udp Support present";
+            lprintf_nl "Udp Support present";
           ()
   ) !connected_servers;
   new_shared_words := false;
@@ -155,7 +155,7 @@ let send_pings () =
   on_send_pings ();
 
   with e -> 
-    lprintf_nl () "send_pings: %s" (Printexc2.to_string e)
+    lprintf_nl "send_pings: %s" (Printexc2.to_string e)
 
 
   
@@ -205,7 +205,7 @@ let try_connect_ultrapeer connect =
   
 let connect_servers connect =
 
-  if !verbose then lprintf_nl () "connect_servers c: %d n: %d max: %d\n" (List.length !connected_servers) !nservers !!max_ultrapeers; 
+  if !verbose then lprintf_nl "connect_servers c: %d n: %d max: %d\n" (List.length !connected_servers) !nservers !!max_ultrapeers; 
 
   (if !!max_ultrapeers > List.length !connected_servers then
       try
@@ -226,7 +226,7 @@ let connect_servers connect =
                   UdpQueryKey _ -> false
                 | _ -> true
           ) then begin
-            if !verbose then lprintf_nl () "host_send_qkr...\n"; 
+            if !verbose then lprintf_nl "host_send_qkr...\n"; 
             H.set_request h Udp_Connect;
             host_send_qkr h
           end
@@ -247,12 +247,12 @@ let server_parse_headers first_line headers =
           unknown_header := !unknown_header || not (List.mem header GnutellaProto.known_supernode_headers)
       ) headers;
       if !unknown_header then begin
-          lprintf_nl () "Gnutella DEVEL: Supernode Header contains unknown fields";
-          lprintf_nl () "    %s" first_line;
+          lprintf_nl "Gnutella DEVEL: Supernode Header contains unknown fields";
+          lprintf_nl "    %s" first_line;
           List.iter (fun (header, (value,header2)) ->
               lprintf "    [%s] = [%s](%s)\n" header value header2;
           ) headers;
-          lprintf_nl () "Gnutella DEVEL: end of header";        
+          lprintf_nl "Gnutella DEVEL: end of header";        
         end;
     end;
   
@@ -400,7 +400,7 @@ let server_parse_headers first_line headers =
     failwith "Protocol not supported";
   List.iter (fun (ip,port,ultrapeer) ->
       try
-        if !verbose then lprintf_nl () "x_ultrapeers new Ultrapeer %s %d" (Ip.string_of_addr ip) port;
+        if !verbose then lprintf_nl "x_ultrapeers new Ultrapeer %s %d" (Ip.string_of_addr ip) port;
         ignore (H.new_host ip port ultrapeer)
       with e ->
           if !verbose_msg_servers then begin
@@ -483,7 +483,7 @@ Buffer.add_string "X-Try-Ultrapeers: ...\r\n"; *)
 
     let msg = make_http_header "GNUTELLA/0.6 200 OK" headers in
     if !verbose_msg_servers then
-      lprintf_nl () "CONNECT REQUEST %s: %s\n" (Ip.to_string (peer_ip sock)) (String.escaped msg); 
+      lprintf_nl "CONNECT REQUEST %s: %s\n" (Ip.to_string (peer_ip sock)) (String.escaped msg); 
     write_string sock msg;
     
     if h.hsrpl_content_deflate then deflate_connection sock;
@@ -495,7 +495,7 @@ Buffer.add_string "X-Try-Ultrapeers: ...\r\n"; *)
     ()
   with e ->      
       if !verbose_msg_servers then
-        lprintf_nl () "DISCONNECT WITH EXCEPTION %s" (Printexc2.to_string e); 
+        lprintf_nl "DISCONNECT WITH EXCEPTION %s" (Printexc2.to_string e); 
       disconnect_from_server s (Closed_for_exception e)
   
 (*************************************************************************)
@@ -584,7 +584,7 @@ let connect_server h =
                 failwith "Invalid IP for server\n";
               let port = s.server_host.host_port in
               if !verbose_msg_servers then 
-                lprintf_nl () "CONNECT TO %s:%d" (Ip.to_string ip) port;
+                lprintf_nl "CONNECT TO %s:%d" (Ip.to_string ip) port;
               H.set_request h Tcp_Connect;
               H.try_connect h;
 (*                h.host_tcp_request <- last_time (); *)
@@ -633,7 +633,7 @@ let connect_server h =
               in
 
                 if !verbose_msg_servers then
-                  lprintf_nl () "SENDING %s" (String.escaped s);
+                  lprintf_nl "SENDING %s" (String.escaped s);
                 write_string sock s;
               with e ->
                   disconnect_from_server s

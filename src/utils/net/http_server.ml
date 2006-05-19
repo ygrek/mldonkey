@@ -23,9 +23,10 @@ open TcpBufferedSocket
 
 let verbose = ref false
 
-let lprintf_http_nl () =
-  lprintf "%s[HTTPsv] "
-  (log_time ()); lprintf_nl2
+let log_prefix = "[HTTPsv]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
 
 let html_escaped s =
   String2.convert false (fun b escaped c ->
@@ -261,7 +262,7 @@ let parse_head sock s =
               | _ -> options
             with e ->
                 if !debug then
-                    lprintf_http_nl () "Exception %s in header %s"
+                    lprintf_nl "Exception %s in header %s"
                       (Printexc2.to_string e) name;
                 options
 
@@ -786,7 +787,7 @@ let request_handler config sock nread =
   try
     iter new_pos
   with e ->
-      if !verbose then lprintf_http_nl () "Exception %s in request_handler"
+      if !verbose then lprintf_nl "Exception %s in request_handler"
         (Printexc2.to_string e);
       close sock (Closed_for_exception e)
 
@@ -805,7 +806,7 @@ let handler config t event =
         (match !Ip.banned from_ip with
            None -> true
          | Some reason ->
-             lprintf_http_nl () "%s:%d blocked: %s\n"
+             lprintf_nl "%s:%d blocked: %s\n"
                (Ip.to_string from_ip) from_port reason;
              false) then
         let token = create_token unlimited_connection_manager in
@@ -816,9 +817,9 @@ let handler config t event =
         TcpBufferedSocket.set_closer sock request_closer;
         TcpBufferedSocket.set_handler sock TcpBufferedSocket.BUFFER_OVERFLOW
           (fun _ -> TcpBufferedSocket.close sock Closed_for_overflow;
-	       lprintf_http_nl () "BUFFER OVERFLOW" );  ()
+         lprintf_nl "BUFFER OVERFLOW" );  ()
       else begin
-         lprintf_http_nl () "connection from %s rejected (see allowed_ips setting)"
+         lprintf_nl "connection from %s rejected (see allowed_ips setting)"
           (Ip.to_string from_ip);
         Unix.close s
       end
@@ -876,7 +877,7 @@ let parse_range range =
     x, Some y, Some z
   with
   | e ->
-      lprintf_http_nl () "Exception %s for range [%s]"
+      lprintf_nl "Exception %s for range [%s]"
         (Printexc2.to_string e) range;
       raise e
 
@@ -894,7 +895,7 @@ open Int64ops
 (*  Range: bytes=31371876- *)
 let request_range r =
   if !verbose then List.iter (fun (h, v1) ->
-      lprintf_http_nl () "HEADER [%s] = [%s]" h v1
+      lprintf_nl "HEADER [%s] = [%s]" h v1
   ) r.headers;
   let range = List.assoc "Range" r.headers in
   match parse_range range with

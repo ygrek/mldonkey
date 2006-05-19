@@ -554,7 +554,7 @@ end;
                 iter ()
               with Not_found -> 
     if !verbose_unknown_messages then
-                  lprintf_nl () "Unable to get a block !!";
+                  lprintf_nl "Unable to get a block !!";
                   check_finished swarmer file;
                   raise Not_found
             in
@@ -582,12 +582,12 @@ end;
 
 and disconnect_client c r =
   if !verbose then
-    lprintf_nl () "DISCONNECT CLIENT";
+    lprintf_nl "DISCONNECT CLIENT";
   match c.client_sock with
   | Connection sock -> 
       (try
           if !verbose_msg_clients then
-              lprintf_nl () "Disconnected from source for %s" (string_of_reason r); 
+              lprintf_nl "Disconnected from source for %s" (string_of_reason r); 
           c.client_requests <- [];
           connection_failed c.client_connection_control;
           set_client_disconnected c r;

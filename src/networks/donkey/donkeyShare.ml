@@ -37,10 +37,6 @@ open CommonOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
 
-let lprintf_nl () =
-  lprintf "%s[EDK] "
-    (log_time ()); lprintf_nl2
-
 let new_shared_files = ref []
 
 let must_share_file file codedname has_old_impl =
@@ -98,7 +94,7 @@ let new_file_to_share sh codedname old_impl =
     in
 
     if !verbose_share then
-      lprintf_nl () "Sharing file with MD4: %s" (Md4.to_string md4);
+      lprintf_nl "Sharing file with MD4: %s" (Md4.to_string md4);
 
     let file = new_file sh.sh_name FileShared md4 sh.sh_size
         [Filename.basename sh.sh_name, GuiTypes.noips()]
@@ -137,9 +133,9 @@ let new_file_to_share sh codedname old_impl =
 		 CommonSwarming.verify_all_blocks s true;
 		 *)
                 if !verbose_share then
-                  lprintf_nl () "verified map of %s = %s"
+                  lprintf_nl "verified map of %s = %s"
 		         (codedname) (CommonSwarming.verified_bitmap s))
-      | None -> if !verbose_share then lprintf_nl () "no swarmer for %s" codedname;
+      | None -> if !verbose_share then lprintf_nl "no swarmer for %s" codedname;
     (try
         file.file_format <- CommonMultimedia.get_info
           (file_disk_name file)
@@ -152,9 +148,9 @@ let new_file_to_share sh codedname old_impl =
 lprint_newline ());
   *)
     if !verbose_share then
-      lprintf_nl () "new_file_to_share: Sharing %s" sh.sh_name;
+      lprintf_nl "new_file_to_share: Sharing %s" sh.sh_name;
   with e ->
-      lprintf_nl () "Exception %s while sharing %s" (Printexc2.to_string e)
+      lprintf_nl "Exception %s while sharing %s" (Printexc2.to_string e)
       sh.sh_name
 
 let all_shared () =
@@ -164,7 +160,7 @@ let all_shared () =
         None -> ()
       | Some _ ->  shared_files := file :: !shared_files
   ) files_by_md4;
-  if !verbose_share then lprintf_nl () "%d files shared" (List.length !shared_files);
+  if !verbose_share then lprintf_nl "%d files shared" (List.length !shared_files);
   !shared_files
 
 (* Check whether new files are shared, and send them to connected servers.
@@ -184,19 +180,19 @@ let send_new_shared () =
             if s.server_master then
               begin
                 if !verbose_share || !verbose then
-                  lprintf_nl () "send_new_shared: found master server %s:%d"
+                  lprintf_nl "send_new_shared: found master server %s:%d"
 		    (Ip.to_string s.server_ip) s.server_port;
 		tag := true;
                 do_if_connected s.server_sock (fun sock ->
                   server_send_share s.server_has_zlib sock !new_shared_files)
               end) (connected_servers ());
           if !tag && (!verbose_share || !verbose) then
-              lprintf_nl () "send_new_shared: Sent %d new shared files to servers"
+              lprintf_nl "send_new_shared: Sent %d new shared files to servers"
                     (List.length !new_shared_files);
           new_shared_files := []
         end
       else
-          lprintf_nl () "donkey send_new_share: No new shared files to send to servers"
+          lprintf_nl "donkey send_new_share: No new shared files to send to servers"
     end
 
 (*
@@ -228,7 +224,7 @@ let check_shared_files () =
               else end_pos in
             let len = end_pos -- sh.shared_pos in
             if !verbose_md4 then
-	      lprintf_nl () "Hash chunk %Ld/%Ld of %s"
+        lprintf_nl "Hash chunk %Ld/%Ld of %s"
 	        ((Int64.div sh.shared_pos block_size) ++ one)
 		((Int64.div sh.shared_size block_size) ++ one)
 		sh.shared_name;
@@ -237,7 +233,7 @@ let check_shared_files () =
               (fun job ->
                 computation := false;
                 if job.M.job_error then begin
-                    lprintf_nl () "Error prevent sharing %s" sh.shared_name
+                    lprintf_nl "Error prevent sharing %s" sh.shared_name
                   end else
                 let _ = () in
                 let new_md4 = job.M.job_result in
@@ -251,7 +247,7 @@ let check_shared_files () =
                         sh_md4s = Array.of_list (List.rev sh.shared_list);
                         sh_mtime = Unix32.mtime sh.shared_name;
                       } in
-                    lprintf_nl () "New shared file %s" sh.shared_name;
+                    lprintf_nl "New shared file %s" sh.shared_name;
                     Hashtbl.add shared_files_info
                       (s.sh_name, s.sh_size, s.sh_mtime) s;
                     known_shared_files =:= s :: !!known_shared_files;
@@ -262,7 +258,7 @@ let check_shared_files () =
                   job_creater ())
           with e ->
 	      shared_files := files;
-              lprintf_nl () "Exception %s prevents sharing of %s"
+              lprintf_nl "Exception %s prevents sharing of %s"
                 (Printexc2.to_string e) sh.shared_name
         in
         job_creater ()
@@ -270,7 +266,7 @@ let check_shared_files () =
 let _ =
   network.op_network_share <- (fun fullname codedname size ->
       if !verbose_share then
-        lprintf_nl () "op_network_share: Sharing %s" fullname;
+        lprintf_nl "op_network_share: Sharing %s" fullname;
       try
 (*
 lprintf "Searching %s" fullname; lprint_newline ();
@@ -281,7 +277,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
             (fullname, size, mtime) in
         (* if s.sh_mtime = mtime && s.sh_size = size then begin *)
             if !verbose_share then
-                lprintf_nl () "donkeyShare: Using old MD4s for %s" fullname;
+                lprintf_nl "donkeyShare: Using old MD4s for %s" fullname;
             new_file_to_share s codedname None
 (*          end else begin
             if !verbose_share then begin
@@ -293,7 +289,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
           end *)
       with Not_found ->
           if !verbose_share then
-              lprintf_nl () "donkeyShare: No info on %s" fullname;
+              lprintf_nl "donkeyShare: No info on %s" fullname;
 
 	  let found = ref false in
 	  List.iter (fun sh -> if sh.shared_name = fullname then found := true) !shared_files;
@@ -343,13 +339,13 @@ let remember_shared_info file new_name =
           Unix32.mtime disk_name
         with _ ->
             if !verbose then
-              lprintf_nl () "Share: Trying mtime on new name %s, disk_name %s, TODO: too many files in shared_files_new.ini?"
+              lprintf_nl "Share: Trying mtime on new name %s, disk_name %s, TODO: too many files in shared_files_new.ini?"
 	        new_name (file_disk_name file);
             Unix32.mtime new_name
       in
 
       if !verbose_share then
-          lprintf_nl () "Remember %s" new_name;
+          lprintf_nl "Remember %s" new_name;
 
       let size = file_size file in
       if not (Hashtbl.mem shared_files_info
@@ -364,7 +360,7 @@ let remember_shared_info file new_name =
         known_shared_files =:= s :: !!known_shared_files;
         Hashtbl.add shared_files_info (new_name, size, mtime) s
     with e ->
-        lprintf_nl () "Exception %s in remember_shared_info"
+        lprintf_nl "Exception %s in remember_shared_info"
           (Printexc2.to_string e)
 
 let must_share_file file = must_share_file file (file_best_name file) None

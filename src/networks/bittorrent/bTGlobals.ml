@@ -121,10 +121,14 @@ let max_request_len = Int64.of_int (1 lsl 16)
 let bt_download_counter = ref Int64.zero
 let bt_upload_counter = ref Int64.zero
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[BT] "
-    (log_time ()); lprintf_nl2
+let log_prefix = "[BT]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
+
 
 let check_if_interesting file c =
 
@@ -165,7 +169,7 @@ let add_torrent_infos file trackers =
   file.file_trackers <- trackers @ file.file_trackers
 
 let create_temp_file file_temp file_files file_state =
-  if !verbose then lprintf_nl () "create_temp_file %s - %s" file_temp (string_of_state file_state);
+  if !verbose then lprintf_nl "create_temp_file %s - %s" file_temp (string_of_state file_state);
   let writable =
     if file_state = FileShared then
       false
@@ -661,7 +665,7 @@ let parse_software s =
   let default = (Brand_unknown, "") in
   let rec iter l =
     match l with
-      [] -> lprintf_nl () "Unknown BT client software version, report the next line to http://mldonkey.sourceforge.net/UnknownBtClients%s\nBTUC:\"%s\"" Autoconf.current_version (String.escaped s);
+      [] -> lprintf_nl "Unknown BT client software version, report the next line to http://mldonkey.sourceforge.net/UnknownBtClients%s\nBTUC:\"%s\"" Autoconf.current_version (String.escaped s);
             default
       | d :: t -> match (d s) with 
                   | None -> iter t
@@ -741,7 +745,7 @@ let remove_client c =
 let remove_tracker url file =
   if !verbose_msg_servers then
     List.iter (fun tracker ->
-      lprintf_nl () "Old tracker list :%s" tracker.tracker_url
+      lprintf_nl "Old tracker list :%s" tracker.tracker_url
     ) file.file_trackers;
   List.iter (fun bad_tracker ->
     if bad_tracker.tracker_url = url then
@@ -749,7 +753,7 @@ let remove_tracker url file =
   ) file.file_trackers;
   if !verbose_msg_servers then
     List.iter (fun tracker ->
-      lprintf_nl () "New tracker list :%s" tracker.tracker_url
+      lprintf_nl "New tracker list :%s" tracker.tracker_url
     ) file.file_trackers
 
 let torrents_directory = "torrents"

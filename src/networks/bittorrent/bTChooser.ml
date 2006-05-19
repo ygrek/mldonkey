@@ -32,16 +32,6 @@ open BTTypes
 open BTOptions
 open BTGlobals
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[BT] "
-    (log_time ()); lprintf_nl2
-
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[BT] "
-    (log_time ()); lprintf
-
 (*given some files choose the next uploaders based on their behavior
   Will choose max_uploaders_per_torrent uploaders for each file in list
   fun_comp is the function use to classify clients
@@ -67,7 +57,7 @@ let choose_next_uploaders files fun_comp =
             possible_uploaders := (c::!possible_uploaders);
           end )  f.file_clients;
       if !verbose_upload then
-          lprintf_nl () "clients num %d as possible uploaders for file %s" (List.length !possible_uploaders) f.file_name;
+          lprintf_nl "clients num %d as possible uploaders for file %s" (List.length !possible_uploaders) f.file_name;
       (*Interested clients with a connection*)
       let filtl = List.filter (fun c -> c.client_interested == true
             && (c.client_sock != NoConnection)
@@ -91,12 +81,12 @@ let choose_next_uploaders files fun_comp =
       full_list := !full_list @ to_add;
       if !verbose_upload then
         begin
-          lprintf_n () "potential uploaders count: %d list: [" (List.length to_add);
+          lprintf_n "potential uploaders count: %d list: [" (List.length to_add);
           List.iter (fun cr ->
               let (ip,port) = cr.client_host in
                   lprintf " %s:%d" (Ip.to_string ip) port;
              ) to_add;
-          lprintf_nl2 " ]";
+          lprintf " ]\n";
         end;
 
   ) files;
@@ -146,24 +136,24 @@ let choose_uploaders files =
   begin
     if !verbose_upload then
         begin
-          lprintf_n () "next_uploaders: %d list: [" (List.length next_uploaders);
+          lprintf_n "next_uploaders: %d list: [" (List.length next_uploaders);
           List.iter (fun cr ->
               let (ip,port) = cr.client_host in
                   lprintf " %s:%d" (Ip.to_string ip) port;
              ) next_uploaders;
-          lprintf_nl2 " ]";
+          lprintf " ]\n";
         end;
     if (List.length next_uploaders) > !!max_bt_uploaders then
         let keep,rest = List2.cut !!max_bt_uploaders next_uploaders in
         begin
           if !verbose_upload then
              begin
-               lprintf_n () "cut next_uploaders: %d list: [" (List.length keep);
+               lprintf_n "cut next_uploaders: %d list: [" (List.length keep);
                List.iter (fun cr ->
                     let (ip,port) = cr.client_host in
                         lprintf " %s:%d" (Ip.to_string ip) port;
                    ) keep;
-               lprintf_nl2 " ]";
+               lprintf " ]\n";
              end;
           keep
         end

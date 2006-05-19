@@ -74,7 +74,7 @@ let xml_profile () =
 let g2_packet_handler s sock gconn p = 
   let h = s.server_host in
   if !verbose_msg_servers then begin
-      lprintf_nl () "Received %s packet from %s:%d: %s" 
+      lprintf_nl "Received %s packet from %s:%d: %s" 
         (match sock with Connection _  -> "TCP" | _ -> "UDP")
       (Ip.string_of_addr h.host_addr) h.host_port
         (Print.print p);
@@ -303,7 +303,7 @@ packet QH2_H (
           match c.g2_payload with
             KHL_NH (ip,port) 
           | KHL_CH ((ip,port),_) ->
-              if !verbose then lprintf_nl () "KHL new Ultrapeer: %s %d" (Ip.to_string ip) port;
+              if !verbose then lprintf_nl "KHL new Ultrapeer: %s %d" (Ip.to_string ip) port;
               ignore (H.new_host (Ip.addr_of_ip ip) port Ultrapeer);
               List.iter (fun c ->
                   match c.g2_payload with
@@ -314,28 +314,26 @@ packet QH2_H (
                       Some s -> 
                         s.server_nfiles <- f;
                         server_must_update (as_server s.server_server);
-                     | _ -> (if !verbose then lprintf_nl () "KHL LS: No server found: %s %d" (Ip.to_string ip) port)  
+                     | _ -> (if !verbose then lprintf_nl "KHL LS: No server found: %s %d" (Ip.to_string ip) port)  
                     )
 
                   | KHL_NH_HS (l,ml) 
                   | KHL_CH_HS (l,ml) -> (
-                    lprintf_nl () "KHL HS";
                     let s = find_server (Ip.addr_of_ip ip) port in
                     match s with 
                       Some s -> 
                         s.server_nusers <- Int64.of_int l;
                         s.server_maxnusers <- Int64.of_int ml;
                         server_must_update (as_server s.server_server);
-                     | _ -> (if !verbose then lprintf_nl () "KHL HS: No server found: %s %d" (Ip.to_string ip) port)
+                     | _ -> (if !verbose then lprintf_nl "KHL HS: No server found: %s %d" (Ip.to_string ip) port)
                     )
                   | KHL_NH_V v 
                   | KHL_CH_V v -> (
-                    lprintf_nl () "KHL HS";
                     let s = find_server (Ip.addr_of_ip ip) port in
                     match s with 
                       Some s -> 
                         if s.server_vendor = "" then s.server_vendor <- v;
-                     | _ -> (if !verbose then lprintf_nl () "KHL V: No server found: %s %d" (Ip.to_string ip) port)
+                     | _ -> (if !verbose then lprintf_nl "KHL V: No server found: %s %d" (Ip.to_string ip) port)
                     )
                   | _ -> ()
               ) c.g2_children
@@ -353,7 +351,7 @@ packet QH2_H (
       List.iter (fun c ->
           match c.g2_payload with
           | QA_D ((ip,port),_) ->
-              if !verbose then lprintf_nl () "QA_D new Ultrapeer: %s %d" (Ip.to_string ip) port;
+              if !verbose then lprintf_nl "QA_D new Ultrapeer: %s %d" (Ip.to_string ip) port;
               let h = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
               H.connected h;
               begin
@@ -364,7 +362,7 @@ packet QH2_H (
               end
 (* These ones have not been searched yet *)
           | QA_S ((ip,port),_) -> 
-              if !verbose then lprintf_nl () "QA_S new Ultrapeer: %s %d" (Ip.to_string ip) port;
+              if !verbose then lprintf_nl "QA_S new Ultrapeer: %s %d" (Ip.to_string ip) port;
               let h = H.new_host (Ip.addr_of_ip ip) port Ultrapeer in
               H.connected h;
           
@@ -462,7 +460,7 @@ XML ("audios",
                   xml_info := Some xml
                 with e ->
                     if !verbose_unknown_messages then
-                      lprintf_nl () "Exception %s while parsing: \n%s"
+                      lprintf_nl "Exception %s while parsing: \n%s"
                         (Printexc2.to_string e) xml
               
               end
@@ -484,7 +482,7 @@ XML ("audios",
                 ) user_files files
               end else begin
                 if !verbose_unknown_messages then
-                  lprintf_nl () "ERROR: Not enough XML entries %d/%d"
+                  lprintf_nl "ERROR: Not enough XML entries %d/%d"
                     (List.length files) (List.length user_files);
                 user_files 
               end
@@ -492,7 +490,7 @@ XML ("audios",
       in
       
       if !verbose_msg_servers then begin
-          lprintf_nl () "Results Received:";
+          lprintf_nl "Results Received:";
           List.iter (fun (urn, size, name, url, tags) ->
               lprintf "[name %s] [size %s] [urn %s] [url %s]\n"
                 name (match size with
@@ -586,17 +584,17 @@ file_must_update file;
       
   | _ -> 
       if !verbose_unknown_messages then
-        lprintf_nl () "g2_packet_handler: unexpected packet %s"
+        lprintf_nl "g2_packet_handler: unexpected packet %s"
         (Print.print p)
 
 with e ->
   if !verbose then
-  lprintf_nl () "g2_packet_handler exception: %s" (Printexc2.to_string e) 
+  lprintf_nl "g2_packet_handler exception: %s" (Printexc2.to_string e) 
   
           
 let udp_packet_handler ip port msg = 
   let addr = Ip.addr_of_ip ip in
-  (* if !verbose then lprintf_nl () "udp_packet_handler new Ultrapeer: %s %d" (Ip.to_string ip) port; *)
+  (* if !verbose then lprintf_nl "udp_packet_handler new Ultrapeer: %s %d" (Ip.to_string ip) port; *)
   let h = H.new_host addr port Ultrapeer in
   H.connected h;
 (*  if !verbose_udp then
@@ -621,7 +619,7 @@ let udp_packet_handler ip port msg =
 
 let init s sock gconn = 
 (*  gconn.gconn_sock <- s.server_sock; *)
-  if !verbose then lprintf_nl () "init: %s" (Ip.to_string (peer_ip sock));
+  if !verbose then lprintf_nl "init: %s" (Ip.to_string (peer_ip sock));
 
   connected_servers := s :: !connected_servers;
   gconn.gconn_handler <- Reader (g2_handler (g2_packet_handler s s.server_sock));
@@ -657,7 +655,7 @@ let udp_client_handler ip port buf =
 
       (*
       if !verbose then begin 
-        lprintf_nl () "udp_client_handler %s %d" (Ip.to_string ip) port;
+        lprintf_nl "udp_client_handler %s %d" (Ip.to_string ip) port;
         AnyEndian.dump_hex buf;
       end;
       *)
@@ -665,13 +663,13 @@ let udp_client_handler ip port buf =
       udp_packet_handler ip port x
 
     with AckPacket | FragmentedPacket -> 
-      (* if !verbose then lprintf_nl () "ACK/FRAGMENT" *)
+      (* if !verbose then lprintf_nl "ACK/FRAGMENT" *)
 
       ()
     
   else
     if !verbose then begin
-      lprintf_nl () "Unexpected UDP packet:";
+      lprintf_nl "Unexpected UDP packet:";
       AnyEndian.dump_hex buf;
     end
       

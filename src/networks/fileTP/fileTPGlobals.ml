@@ -41,15 +41,13 @@ open CommonNetwork
 open FileTPTypes
 open FileTPOptions
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[FileTP] "
-    (log_time ()); lprintf_nl2
+let log_prefix = "[FileTP]"
 
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[FileTP] "
-    (log_time ()); lprintf
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 let network = new_network "FTP" "FileTP"
     [ ]

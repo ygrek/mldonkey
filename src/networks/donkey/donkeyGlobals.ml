@@ -232,13 +232,6 @@ let _ =
       List2.tail_map (fun s -> as_server s.server_server) !connected_server_list
   )
 
-let lprintf_nl () =
-  lprintf "%s[EDK] "
-  (log_time ()); lprintf_nl2
-
-let lprintf_n () =
-  lprintf "%s[EDK] "
-  (log_time ()); lprintf
 
 let hashtbl_remove table key v =
   try
@@ -303,13 +296,13 @@ let new_file file_diskname file_state md4 file_size filenames writable =
             then
               begin
                 if !verbose_share then
-                  lprintf_nl () "New file with changed filename %s to %s"
+                  lprintf_nl "New file with changed filename %s to %s"
                     file.file_diskname file_diskname;
                 file.file_diskname <- file_diskname;
               end
           else
             if !verbose_share then
-              lprintf_nl () "New file with not changed different filename %s and %s"
+              lprintf_nl "New file with not changed different filename %s and %s"
                 file.file_diskname file_diskname;
         end;
       if Unix32.destroyed (file_fd file)
@@ -319,12 +312,12 @@ let new_file file_diskname file_state md4 file_size filenames writable =
           file.file_file.impl_file_fd <-
             Some (Unix32.create_diskfile file.file_diskname true);
       if Unix32.destroyed (file_fd file) then
-          lprintf_nl () "New Edonkey file with %b && %b remaining destroyed fd %s"
+          lprintf_nl "New Edonkey file with %b && %b remaining destroyed fd %s"
             (not writable) (file.file_diskname = file_diskname) file.file_diskname;
       file
   with _ ->
       if !verbose_share then
-        lprintf_nl () "New file with md4: %s" (Md4.to_string md4);
+        lprintf_nl "New file with md4: %s" (Md4.to_string md4);
 
       let t =
         if
@@ -356,7 +349,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
 	    (try
 	      Unix32.remove t
 	     with e ->
-		lprintf_nl () "Unix32.remove %s exception %s"
+    lprintf_nl "Unix32.remove %s exception %s"
 		  (file_diskname) (Printexc2.to_string e));
 	    Unix32.destroy t;
 	    failwith (Printf.sprintf "file size %s is too big, exception: %s"
@@ -463,7 +456,7 @@ let is_black_address ip port =
         None -> false
       | Some reason ->
           if !verbose_connect then
-            lprintf_nl () "%s:%d blocked: %s" (Ip.to_string ip) port reason;
+            lprintf_nl "%s:%d blocked: %s" (Ip.to_string ip) port reason;
           true))
 
 let new_server ip port score =
@@ -926,7 +919,7 @@ let save_join_queue c =
       ) c.client_file_queue in
     begin
       if c.client_debug then
-        lprintf_nl () "Saving %d files associated with %s"
+        lprintf_nl "Saving %d files associated with %s"
         (List.length files) (Md4.to_string c.client_md4);
       Hashtbl.add join_queue_by_md4 c.client_md4 (files, last_time ());
       try
@@ -968,12 +961,12 @@ let _ =
       if not (try String.sub !!client_private_key 0 4 = "MIIB" with e -> false) then
         if !key_check_again then
 	  begin
-	    lprintf_nl () "can not create proper client_private_key, exiting...";
+      lprintf_nl "can not create proper client_private_key, exiting...";
 	    exit 70
 	  end
 	else
           begin
-            lprintf_nl () "bad client_private_key detected, creating new key";
+            lprintf_nl "bad client_private_key detected, creating new key";
 	    set_simple_option donkey_ini "client_private_key" (DonkeySui.SUI.create_key ());
 	    key_check_again := true
 	  end
@@ -981,7 +974,7 @@ let _ =
     if not !key_checked then check_client_private_key ();
     if !key_check_again then
       begin
-	lprintf_nl () "re-checking private key";
+  lprintf_nl "re-checking private key";
 	check_client_private_key ()
       end
     );

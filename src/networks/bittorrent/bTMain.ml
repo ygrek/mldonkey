@@ -32,6 +32,11 @@ open BTGlobals
 open BTTypes
 open CommonTypes
 
+let log_prefix = "[bTM]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
 let is_enabled = ref false
 
 let disable enabler () =
@@ -70,8 +75,8 @@ let enable () =
     if !!BTTracker.tracker_port = !!client_port then
       begin
         lprint_newline();
-	lprintf_nl () "BT-client_port and BT-tracker_port can not be the same.";
-	lprintf_nl () "Change one of the settings and restart MLDonkey, exiting...\n";
+  lprintf_nl "BT-client_port and BT-tracker_port can not be the same.";
+  lprintf_nl "Change one of the settings and restart MLDonkey, exiting...\n";
 	Pervasives.exit 69
       end;
     if !!BTTracker.tracker_port > 0 then (

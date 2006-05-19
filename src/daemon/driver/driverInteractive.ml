@@ -38,15 +38,13 @@ open CommonUserDb
 open CommonTypes
 open Int64ops
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s"
-    (log_time ()); lprintf_nl2
+let log_prefix = "[dIve]"
 
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s"
-    (log_time ()); lprintf
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 let verify_user_admin () =
   let empty_pwd = ref false in
@@ -54,7 +52,7 @@ let verify_user_admin () =
     if user2_password admin_user = blank_password then
       empty_pwd := true
     with e ->
-      lprintf_nl () "SECURITY INFO: user 'admin' has to be present, creating...";
+      lprintf_nl "SECURITY INFO: user 'admin' has to be present, creating...";
       empty_pwd := true;
       ignore (user2_add admin_user blank_password "")
   end;
@@ -63,7 +61,7 @@ let verify_user_admin () =
   in
   if !empty_pwd && not !!enable_user_config then
     begin
-      lprintf_n () "%s" warning;
+      lprintf_n "%s" warning;
       warning
     end
   else ""
@@ -72,7 +70,7 @@ let check_supported_os () =
   let uname = Unix32.uname () in
   let message = Printf.sprintf "MLDonkey is not able to run faultless under %s" uname; in
   if uname <> "" && not (Unix32.os_supported ()) then begin
-    lprintf_nl () "%s" message;
+    lprintf_nl "%s" message;
     message;
   end
   else ""
@@ -127,7 +125,7 @@ let hdd_check () =
 
 let file_magic_check () =
   if !Autoconf.magic_works then begin
-    if !verbose then lprintf_nl () "computing file magic values";
+    if !verbose then lprintf_nl "computing file magic values";
     let check_magic file =
       match Magic.M.magic_fileinfo (file_disk_name file) false with
         None -> ()

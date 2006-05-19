@@ -3,14 +3,14 @@ open Printf2
 open Ip
 
 (* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[IPblock] "
-  (log_time ()); lprintf_nl2
+let log_prefix = "[IPblock]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
 
 (* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[IPblock] "
-  (log_time ()); lprintf
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 module H = Weak.Make(struct
 	type t = string
@@ -206,7 +206,7 @@ let load_merge bl filename remove =
 	with _ ->
 	  if not !error then
 	    begin
-	      lprintf_n () "Syntax error while loading IP blocklist in line";
+        lprintf_n "Syntax error while loading IP blocklist in line";
 	      error := true
 	    end;
 	    lprintf " %d" !nlines;
@@ -215,7 +215,7 @@ let load_merge bl filename remove =
   if !error then lprint_newline ();
   if remove then (try Sys.remove filename with _ -> ());
   let optimized_bl = bl_optimize !bl in
-  lprintf_nl () "%d ranges loaded - optimized to %d" !nranges (bl_length optimized_bl);
+  lprintf_nl "%d ranges loaded - optimized to %d" !nranges (bl_length optimized_bl);
 (*    bl_optimizedp optimized_bl;
     for i=0 to 999999 do
       let random_ip = Ip.of_ints (Random.int 256, Random.int 256, Random.int 256, Random.int 256) in
@@ -227,7 +227,7 @@ let load_merge bl filename remove =
   optimized_bl
 
 let load filename =
-  lprintf_nl () "loading %s" filename;
+  lprintf_nl "loading %s" filename;
   if Sys.file_exists filename then
     let last_ext = String.lowercase (Filename2.last_extension filename) in
     if last_ext = ".zip" then
@@ -242,21 +242,21 @@ let load filename =
 		| h :: q ->
 		    try
 		      let file = Zip.find_entry ic h in
-		      lprintf_nl () "%s found in zip file" h;
+          lprintf_nl "%s found in zip file" h;
 		      ignore(Misc.archive_extract filename "zip");
 		      load_merge bl_empty file.Zip.filename true
 		    with Not_found ->
 		      find_in_zip q in
 	    find_in_zip filenames_list
 	  with e ->
-	    lprintf_nl () "Exception %s while extracting %s from %s"
+      lprintf_nl "Exception %s while extracting %s from %s"
 	      (Printexc2.to_string e) 
 	      (String.concat "/" filenames_list)
 	      filename;
-	    lprintf_nl () "One of the mentioned files has to be present in the zip file";
+      lprintf_nl "One of the mentioned files has to be present in the zip file";
 	    bl_empty)
       with e ->
-	lprintf_nl () "Exception %s while opening %s"
+  lprintf_nl "Exception %s while opening %s"
 	  (Printexc2.to_string e)
 	  filename;
 	bl_empty)
@@ -271,17 +271,17 @@ let load filename =
 	      let s = Misc.archive_extract filename filetype in
 	      load_merge bl_empty s true
 	    with e ->
-	      lprintf_nl () "Exception %s while extracting from %s"
+        lprintf_nl "Exception %s while extracting from %s"
 		(Printexc2.to_string e) filename;
 	      bl_empty)
         | ".tar.bz2" | ".p2p.tar.bz2" | ".dat.tar.bz2"
         | ".tar.gz" | ".p2p.tar.gz" | ".dat.tar.gz" ->
-	    lprintf_nl () "tar files are not (yet) supported, please untar %s" filename;
+      lprintf_nl "tar files are not (yet) supported, please untar %s" filename;
 	    bl_empty
         | _ -> load_merge bl_empty filename false
   else
     begin
-      lprintf_nl () "file %s not found" filename;
+      lprintf_nl "file %s not found" filename;
       bl_empty
     end
 

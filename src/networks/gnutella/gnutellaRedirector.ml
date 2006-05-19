@@ -47,13 +47,13 @@ let parse_urlfile file url_string =
   let s = File.to_string file in
   (* Http_client.wget does not delete the temp file anymore *)
   (try Sys.remove file with _ -> ());
-  if !verbose then lprintf_nl () "Parsing urlfile from %s:\n%s" url_string s;
+  if !verbose then lprintf_nl "Parsing urlfile from %s:\n%s" url_string s;
   clean_file s;
   let lines = String2.split_simplify s '\n' in
   List.iter (fun line ->
       if not (List.mem line !!gnutella_hostfiles) then begin
         gnutella_hostfiles =:= line :: !!gnutella_hostfiles;
-        if !verbose then lprintf_nl () "Added GWebCache %s" line;
+        if !verbose then lprintf_nl "Added GWebCache %s" line;
       end
   ) lines;
   redirectors_hostfiles := !!gnutella_hostfiles
@@ -67,9 +67,9 @@ let connect_urlfile () =
           (* 12 hour interval between urlfile re-connection attempts *)
           next_urlfile_access := last_time () + (3600*12);
           redirectors_urlfiles := !!urlfiles;
-          lprintf_nl () "added %d urlfiles" (List.length !!urlfiles);
+          lprintf_nl "added %d urlfiles" (List.length !!urlfiles);
       end else begin
-        if !verbose then lprintf_nl () "connect_urlfile: no urlfiles, too soon";
+        if !verbose then lprintf_nl "connect_urlfile: no urlfiles, too soon";
       end
   | url :: tail ->
       redirectors_urlfiles := tail;
@@ -84,28 +84,28 @@ let connect_urlfile () =
           H.req_user_agent = get_user_agent ();
         } in
       if !verbose then
-        lprintf_nl () "Connecting to urlfile %s\n" url;
+        lprintf_nl "Connecting to urlfile %s\n" url;
       H.wget r (fun filename -> parse_urlfile filename url_string)
       
 let parse_hostfile file url_string = 
   let s = File.to_string file in
   if String2.starts_with s "ERROR" || String2.starts_with s "<" then begin
-    if !verbose then lprintf_nl () "Malformed response content:\n%s" s;
+    if !verbose then lprintf_nl "Malformed response content:\n%s" s;
     if List.mem url_string !!gnutella_hostfiles then begin
       gnutella_hostfiles =:= List.filter (fun h -> h <> url_string) !!gnutella_hostfiles;
       redirectors_hostfiles := !!gnutella_hostfiles;
-      if !verbose then lprintf_nl () "Removing %s from hostfiles" url_string;
+      if !verbose then lprintf_nl "Removing %s from hostfiles" url_string;
     end;
   end
   else begin
     clean_file s;
     let lines = String2.split_simplify s '\n' in
-    if !verbose then lprintf_nl () "Parsing response from %s:\n%s" url_string s;
+    if !verbose then lprintf_nl "Parsing response from %s:\n%s" url_string s;
     List.iter (fun line ->
       try
         let ip, port = String2.cut_at line ':' in
         if !verbose then
-          lprintf_nl () "Adding ultrapeer from hostfile %s %s" ip port;
+          lprintf_nl "Adding ultrapeer from hostfile %s %s" ip port;
         ignore (H.new_host (Ip.addr_of_string ip) (int_of_string port) Ultrapeer)
       with _ -> ()
     ) lines
@@ -122,7 +122,7 @@ let connect_hostfile _ =
           redirectors_hostfiles := !!gnutella_hostfiles
       end 
       else begin
-        if !verbose then lprintf_nl () "connect_hostfile: no gwebcaches, too soon";
+        if !verbose then lprintf_nl "connect_hostfile: no gwebcaches, too soon";
       end;
       connect_urlfile ();
   | url :: tail ->
@@ -138,7 +138,7 @@ let connect_hostfile _ =
           H.req_user_agent = get_user_agent ();
         } in
       if !verbose then
-        lprintf_nl () "Connecting to hostfile %s" url;
+        lprintf_nl "Connecting to hostfile %s" url;
       H.wget r (fun filename -> parse_hostfile filename url_string)
       
 let connect _ = 

@@ -59,9 +59,10 @@ torrents/: for BitTorrent
   *)
 
 (* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[bTTrack] "
-    (log_time ()); lprintf_nl2
+let log_prefix = "[bTTrack]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
 
 open Http_server
 
@@ -127,7 +128,7 @@ let int64_of_string v =
   try
     Int64.of_string v
   with e ->
-      lprintf_nl () "Exception %s in int64_of_string [%s]"
+      lprintf_nl "Exception %s in int64_of_string [%s]"
         (Printexc2.to_string e) v;
       raise e
 
@@ -135,7 +136,7 @@ let int_of_string v =
   try
     int_of_string v
   with e ->
-      lprintf_nl () "Exception %s in int_of_string [%s]"
+      lprintf_nl "Exception %s in int_of_string [%s]"
         (Printexc2.to_string e) v;
       raise e
 
@@ -150,16 +151,16 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
 
   let tracker_ok = ref true in
   if !verbose_msg_servers then
-    lprintf_nl () "tracker contacted for [%s]" (Sha1.to_hexa info_hash);
+    lprintf_nl "tracker contacted for [%s]" (Sha1.to_hexa info_hash);
   let tracker = try
       Hashtbl.find tracked_files info_hash
     with Not_found ->
         if !!tracker_force_local_torrents then begin
             tracker_ok := false;
-            lprintf_nl () "Tracker rejected announce request for torrent [%s]\n" (Sha1.to_hexa info_hash);
+            lprintf_nl "Tracker rejected announce request for torrent [%s]\n" (Sha1.to_hexa info_hash);
             failwith "Unknown torrent"
           end;
-        lprintf_nl () "[BT] Need new tracker";
+        lprintf_nl "[BT] Need new tracker";
         if !ntracked_files < !!max_tracked_files && !tracker_ok then
           let tracker = {
               tracker_id = info_hash;
@@ -206,7 +207,7 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
         else
           tracker.tracker_complete <- tracker.tracker_complete + 1;
         if !verbose_msg_servers then
-          lprintf_nl () "Tracker adding new peer [%s]" (Sha1.to_string peer_id);
+          lprintf_nl "Tracker adding new peer [%s]" (Sha1.to_string peer_id);
         Hashtbl.add tracker.tracker_table peer_id peer;
         Fifo.put tracker.tracker_peers peer;
         peer
@@ -233,7 +234,7 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
         if tracker.tracker_message_time < last_time () then
 
           let list = ref [] in
-          lprintf_nl () "Tracker collecting peers:";
+          lprintf_nl "Tracker collecting peers:";
           (try
               let max_peer_replies =
                 if numwant > 0 then
@@ -244,14 +245,14 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
               for i = 1 to max_peer_replies do
                 let peer = Fifo.take tracker.tracker_peers in
                 if !verbose_msg_servers then
-                  lprintf_nl () "   %s:%d" (Ip.to_string peer.peer_ip)peer.peer_port;
+                  lprintf_nl "   %s:%d" (Ip.to_string peer.peer_ip)peer.peer_port;
                 list := peer :: !list
               done
             with _ -> ());
 
-          lprintf_nl () "Tracker sending %d peers" (List.length !list);
+          lprintf_nl "Tracker sending %d peers" (List.length !list);
           List.iter (fun p ->
-              lprintf_nl () "Tracker send: %s:%d"
+              lprintf_nl "Tracker send: %s:%d"
                 (Ip.to_string p.peer_ip) p.peer_port;
               Fifo.put tracker.tracker_peers p
           ) !list;
@@ -338,7 +339,7 @@ let http_handler t r =
             | "natmapped" -> natmapped := int_of_string arg
             | "localip" -> localip := (Ip.of_string arg)
             | _ -> if !verbose_msg_servers then
-                     lprintf_nl () "[BT] Tracker: Unexpected [%s=%s]" name arg
+                     lprintf_nl "[BT] Tracker: Unexpected [%s=%s]" name arg
         ) args;
 
         if !ip = Ip.null && !localip = Ip.null then
@@ -348,15 +349,15 @@ let http_handler t r =
           (* use localip if available *)
           ip := !localip;
         if !verbose_msg_servers then begin
-            lprintf_nl () "Connection received by tracker from client %s:%d with key [%s]:"
+            lprintf_nl "Connection received by tracker from client %s:%d with key [%s]:"
               (Ip.to_string !ip) !port !key;
-            lprintf_nl () "    info_hash: %s" (Sha1.to_hexa !info_hash);
-            lprintf_nl () "    peer_id: %s" (Sha1.to_hexa !peer_id);
-            lprintf_nl () "    event: %s" !event;
-            lprintf_nl () "    numwant: %d" !numwant;
-            lprintf_nl () "    compact: %d" (Int64.to_int !compact);
-            lprintf_nl () "    downloaded: %d" (Int64.to_int !downloaded);
-            lprintf_nl () "    uploaded: %d" (Int64.to_int !uploaded)
+            lprintf_nl "    info_hash: %s" (Sha1.to_hexa !info_hash);
+            lprintf_nl "    peer_id: %s" (Sha1.to_hexa !peer_id);
+            lprintf_nl "    event: %s" !event;
+            lprintf_nl "    numwant: %d" !numwant;
+            lprintf_nl "    compact: %d" (Int64.to_int !compact);
+            lprintf_nl "    downloaded: %d" (Int64.to_int !downloaded);
+            lprintf_nl "    uploaded: %d" (Int64.to_int !uploaded)
           end;
         (* Check hash then send reply *)
         (try
@@ -401,9 +402,9 @@ let http_handler t r =
         ) tracked_files;
 
         if !verbose_msg_servers then begin
-            lprintf_nl () "Scrape request received by tracker";
-            lprintf_nl () "Sending scrape list:";
-            lprintf_nl () "f: (file hash) d: (downloaded) c: (complete) i: (incomplete)";
+            lprintf_nl "Scrape request received by tracker";
+            lprintf_nl "Sending scrape list:";
+            lprintf_nl "f: (file hash) d: (downloaded) c: (complete) i: (incomplete)";
             lprint_string !log_tracked_files;
           end;
         let message = Dictionary [ String "files", List !files_tracked ] in
@@ -412,13 +413,13 @@ let http_handler t r =
 
     | "favicon.ico" ->
         if !verbose_msg_servers then
-            lprintf_nl () "favicon.ico request received by tracker";
+            lprintf_nl "favicon.ico request received by tracker";
             add_reply_header r "Content-Type" "image/x-icon";
             r.reply_content <- File.to_string "favicon.ico"
 
     | filename ->
         if !verbose_msg_servers then
-          lprintf_nl () "Tracker received a request for .torrent: [%s]" filename;
+          lprintf_nl "Tracker received a request for .torrent: [%s]" filename;
         if (Filename2.last_extension filename <> ".torrent") then
           failwith "Incorrect filename 1";
         for i = 1 to String.length filename - 1 do
@@ -451,7 +452,7 @@ in sub-directories in former versions. *)
 
   with e ->
       if !verbose_msg_servers then
-        lprintf_nl () "for request [%s] exception %s"
+        lprintf_nl "for request [%s] exception %s"
           (Url.to_string r.get_url) (Printexc2.to_string e);
       match e with
         Not_found ->
@@ -590,7 +591,7 @@ let clean_tracker_timer () =
   let time_threshold = last_time () - 3600 in
   let trackers = ref [] in
 
-  if !verbose_msg_servers then lprintf_nl () "clean_tracker_timer";
+  if !verbose_msg_servers then lprintf_nl "clean_tracker_timer";
   Hashtbl.iter (fun _ tracker ->
       let list = ref [] in
       let old_peers = ref [] in

@@ -53,15 +53,13 @@ type verification =
 (* let debug_all = true *)
 let exit_on_error = ref false
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[cSw2] "
-    (log_time ()); lprintf_nl2
+let log_prefix = "[cSw]"
 
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[cSw2] "
-    (log_time ()); lprintf
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 open CommonTypes
 
@@ -276,10 +274,10 @@ let dummy_swarmer = {
 (** (debug) output an [uploader] to current log *)
 
 let print_uploader up =
-  lprintf_n () "  interesting complete_blocks: %d\n     " up.up_ncomplete;
+  lprintf_n "  interesting complete_blocks: %d\n     " up.up_ncomplete;
   Array.iter (fun i -> lprintf " %d " i) up.up_complete_blocks;
   lprint_newline ();
-  lprintf_n () "  interesting partial_blocks: %d\n     " up.up_npartial;
+  lprintf_n "  interesting partial_blocks: %d\n     " up.up_npartial;
   Array.iter (fun (i, begin_pos, end_pos) ->
       lprintf " %d[%Ld...%Ld] " i begin_pos end_pos
   ) up.up_partial_blocks;
@@ -426,7 +424,7 @@ let cut_ranges_after b r cut_pos =
       r.range_current_begin <- min r.range_current_begin cut_pos;
 
       if r.range_nuploading <> 0 then
-	lprintf_n () "WARNING: Splitting a range currently being uploaded, don't know what to do with range_nuploaders :/\n";
+  lprintf_n "WARNING: Splitting a range currently being uploaded, don't know what to do with range_nuploaders :/\n";
 
       split_r in
   let cut_ranges = iter r in
@@ -554,9 +552,9 @@ let split_blocks s chunk_size =
     aux 0 in
 
   if array_exist ((<>) 0) s.s_availability then
-    lprintf_nl () "WARNING: splitting swarmer discarded availability counters\n";
+    lprintf_nl "WARNING: splitting swarmer discarded availability counters\n";
   if array_exist ((<>) 0) s.s_nuploading then
-    lprintf_nl () "WARNING: splitting a swarmer beging uploaded to\n";
+    lprintf_nl "WARNING: splitting a swarmer beging uploaded to\n";
 
   s.s_blocks <- Array.create nblocks EmptyBlock;
   s.s_verified_bitmap <- String.make nblocks '0';
@@ -593,7 +591,7 @@ let associate is_primary t s =
 (* what about raising an exception instead ? *)
   if s.s_size <> size then
     begin
-      lprintf_nl () "file_size for %s does not match: swarmer %Ld / real %Ld" s.s_filename s.s_size size;
+      lprintf_nl "file_size for %s does not match: swarmer %Ld / real %Ld" s.s_filename s.s_size size;
       exit 2
     end;
 
@@ -745,7 +743,7 @@ let compute_block_num s chunk_pos =
   in
   let i = iter 0 (Array.length b - 1) in
   if debug_all then
-    lprintf_nl () "%Ld is block %d [%Ld-%Ld]" chunk_pos i
+    lprintf_nl "%Ld is block %d [%Ld-%Ld]" chunk_pos i
       (compute_block_begin s i) (compute_block_end s i);
   i
 
@@ -777,7 +775,7 @@ let apply_intervals s f chunks =
                 let current_end =  min block_end chunk_end in
 
                 if debug_all then
-                  lprintf_nl () "Apply: %d %Ld-%Ld %Ld-%Ld"
+                  lprintf_nl "Apply: %d %Ld-%Ld %Ld-%Ld"
                     i block_begin block_end chunk_begin current_end;
 
                 f i block_begin block_end chunk_begin current_end;
@@ -798,10 +796,10 @@ let apply_intervals s f chunks =
 (*************************************************************************)
 
 let print_s str s =
-  lprintf_nl () "Ranges after %s:" str;
+  lprintf_nl "Ranges after %s:" str;
 
   let rec iter r =
-    lprintf_n () " %Ld(%Ld)-%Ld(%d)"
+    lprintf_n " %Ld(%Ld)-%Ld(%d)"
       r.range_begin r.range_current_begin r.range_end r.range_nuploading;
     match r.range_next with
       None -> lprint_newline()
@@ -809,7 +807,7 @@ let print_s str s =
   in
 
   Array.iteri (fun i b ->
-      lprintf_n () "   %d: " i;
+      lprintf_n "   %d: " i;
       let block_begin = compute_block_begin s i in
       let block_end = compute_block_end s i in
       lprintf "%Ld - %Ld [%Ld] %c " block_begin block_end
@@ -826,17 +824,17 @@ let print_s str s =
           lprintf " [%Ld .. %Ld] --> "
             b.block_begin b.block_end;
           iter b.block_ranges
-      | EmptyBlock -> lprintf_nl2 "_"
-      | CompleteBlock -> lprintf_nl2 "C"
-      | VerifiedBlock -> lprintf_nl2 "V"
+      | EmptyBlock -> lprintf_nl "_"
+      | CompleteBlock -> lprintf_nl "C"
+      | VerifiedBlock -> lprintf_nl "V"
   ) s.s_blocks;
 
-  lprintf_nl () "Files:";
+  lprintf_nl "Files:";
   List.iter (fun t ->
-      lprintf_nl () "  File num: %d" (file_num t.t_file);
-      lprintf_nl () "  %s" (if t.t_primary then "primary" else "secondary");
-      lprintf_nl () "  Downloaded: %Ld" (file_downloaded t.t_file);
-      lprintf_nl () "  Bitmap: %s" t.t_converted_verified_bitmap
+      lprintf_nl "  File num: %d" (file_num t.t_file);
+      lprintf_nl "  %s" (if t.t_primary then "primary" else "secondary");
+      lprintf_nl "  Downloaded: %Ld" (file_downloaded t.t_file);
+      lprintf_nl "  Bitmap: %s" t.t_converted_verified_bitmap
   ) s.s_networks
 
 (*************************************************************************)
@@ -861,12 +859,12 @@ let iter_block_ranges f b =
 (*************************************************************************)
 
 let print_block b =
-  lprintf_n () "Block %d: %Ld-%Ld"
+  lprintf_n "Block %d: %Ld-%Ld"
     b.block_num b.block_begin b.block_end;
   lprint_newline ();
-  lprintf_nl () "  ranges:";
+  lprintf_nl "  ranges:";
   let rec iter_range r =
-    lprintf_nl () "   %Ld-%Ld" r.range_current_begin r.range_end;
+    lprintf_nl "   %Ld-%Ld" r.range_current_begin r.range_end;
     match r.range_next with
       None -> ()
     | Some rr -> iter_range rr
@@ -893,7 +891,7 @@ let add_file_downloaded maybe_t s size =
         | _ -> ()
       end;
       if file_downloaded t.t_file < zero then
-          lprintf_nl () "ERROR: file_downloaded < zero!";
+          lprintf_nl "ERROR: file_downloaded < zero!";
 
   | _ -> ()
 
@@ -1121,7 +1119,7 @@ let verify_chunk t i =
                 set_verified_chunk t i;
                 t.t_verified t.t_nverified_blocks i;
                 if !verbose_swarming || !verbose then
-		  lprintf_nl () "Completed block %d/%d of %s"
+      lprintf_nl "Completed block %d/%d of %s"
                     (i + 1) t.t_nchunks (file_best_name t.t_file)
               end
 	    else
@@ -1134,7 +1132,7 @@ let verify_chunk t i =
 		then
 		  begin
 		    if !verbose_swarming || !verbose then
-                      lprintf_nl () "Complete block %d/%d of %s failed verification, reloading..."
+                      lprintf_nl "Complete block %d/%d of %s failed verification, reloading..."
                             (i + 1) t.t_nchunks (file_best_name t.t_file);
 
                     t.t_converted_verified_bitmap.[i] <- '0';
@@ -1158,12 +1156,12 @@ let verify_chunk t i =
 		  begin
 		    if !verbose_swarming then begin
                       let nsub = ref 0 in
-                        lprintf_n () "  Swarmer was incomplete: ";
+                        lprintf_n "  Swarmer was incomplete: ";
                         List.iter (fun i ->
                           lprintf "%c" s.s_verified_bitmap.[i];
                           if s.s_verified_bitmap.[i] = '2' then incr nsub;
                         ) t.t_blocks_of_chunk.(i);
-                        lprintf_nl2 "   = %d/%d" !nsub (List.length t.t_blocks_of_chunk.(i))
+                        lprintf_nl "   = %d/%d" !nsub (List.length t.t_blocks_of_chunk.(i))
 		    end;
                     t.t_converted_verified_bitmap.[i] <- '1'
                   end;
@@ -1193,7 +1191,7 @@ let verify_chunk t i =
 
               end else begin
 
-                lprintf_nl () "Verification of blocks for file %s FAILED\n"
+                lprintf_nl "Verification of blocks for file %s FAILED\n"
                     (file_best_name t.t_file);
 
                   for i = 0 to nblocks - 1 do
@@ -1223,12 +1221,12 @@ let verify_chunk t i =
                           end else begin
                             let nsub = ref 0 in
 
-                            lprintf_n () "  Swarmer was incomplete: ";
+                            lprintf_n "  Swarmer was incomplete: ";
                             List.iter (fun i ->
                                 lprintf "%c" s.s_verified_bitmap.[i];
                                 if s.s_verified_bitmap.[i] = '2' then incr nsub;
                                 ) t.t_blocks_of_chunk.(i);
-                            lprintf_nl2 "   = %d/%d" !nsub (List.length t.t_blocks_of_chunk.(i));
+                            lprintf_nl "   = %d/%d" !nsub (List.length t.t_blocks_of_chunk.(i));
 
                             t.t_converted_verified_bitmap.[i] <- '1'
                           end;
@@ -1389,7 +1387,7 @@ let new_block s i =
   s.s_blocks.(i) <- PartialBlock b;
   if s.s_verified_bitmap.[i] < '1' then
     set_bitmap_1 s i;
-  if debug_all then lprintf_nl () "NB[%s]" s.s_verified_bitmap;
+  if debug_all then lprintf_nl "NB[%s]" s.s_verified_bitmap;
   b
 
 
@@ -1494,7 +1492,7 @@ let set_present_block b chunk_begin chunk_end =
 (*    lprintf "iter range %Ld-%Ld\n" r.range_begin r.range_end; *)
     (try range_received None r chunk_begin chunk_end
       with e ->
-          lprintf_nl () "EXCEPTION IN range_received: %s"
+          lprintf_nl "EXCEPTION IN range_received: %s"
             (Printexc2.to_string e);
           exit 2);
     match range_next with
@@ -1666,7 +1664,7 @@ let update_uploader_chunks up chunks =
     up.up_ncomplete <- Array.length complete_blocks;
 
     if Array.length partial_blocks > 0 then
-      lprintf_nl () "WARNING: partial_blocks = %d" (Array.length partial_blocks);
+      lprintf_nl "WARNING: partial_blocks = %d" (Array.length partial_blocks);
     up.up_partial_blocks <- partial_blocks;
     up.up_npartial <- Array.length partial_blocks;
 
@@ -1830,10 +1828,10 @@ let permute_and_return up n =
   | PartialBlock b ->
       b, b.block_begin, b.block_end
   | VerifiedBlock ->
-      lprintf_nl () "ERROR: verified block in permute_and_return %d\n" b;
+      lprintf_nl "ERROR: verified block in permute_and_return %d\n" b;
       assert false
   | CompleteBlock ->
-      lprintf_nl () "ERROR: complete block in permute_and_return %d\n" b;
+      lprintf_nl "ERROR: complete block in permute_and_return %d\n" b;
       assert false
 
 (*************************************************************************)
@@ -1921,7 +1919,7 @@ exception BlockFound of int
 
 let random_int max =
   let x = Random.int max in
-  if debug_all then lprintf_nl () "(Random %d -> %d)" max x;
+  if debug_all then lprintf_nl "(Random %d -> %d)" max x;
   x
 
 let select_block up =
@@ -1959,7 +1957,7 @@ better work at the beginning if the first incomplete blocks are offered
 (*************   Try to download the movie index and the first minute to
    allow preview of the file as soon as possible *)
 
-                if debug_all then lprintf_nl () "{First}";
+                if debug_all then lprintf_nl "{First}";
 
                 let download_first n b =
 (*                lprintf "download_first %d\n" n; *)
@@ -1993,7 +1991,7 @@ better work at the beginning if the first incomplete blocks are offered
 (************* If the file can be verified, and we don't have a lot of blocks
     yet, try to download the partial ones as soon as possible *)
 
-                if debug_all then lprintf_nl () "{PartialBlock}";
+                if debug_all then lprintf_nl "{PartialBlock}";
 
                 let download_partial max_uploaders =
                   let partial_block = ref (-1) in
@@ -2024,7 +2022,7 @@ better work at the beginning if the first incomplete blocks are offered
 (************* Download partial chunks from the verification point of view *)
 
                 if List.length s.s_networks > 1 then begin
-                    if debug_all then lprintf_n () "{PartialChunk}";
+                    if debug_all then lprintf_n "{PartialChunk}";
 
                     let my_t = if t.t_verifier <> NoVerification then t
                       else match s.s_networks with t :: _ -> t | _ -> t in
@@ -2045,7 +2043,7 @@ better work at the beginning if the first incomplete blocks are offered
                         let b = should_download_block s n in
 
                         if !verbose_swarming then
-                            lprintf_nl2 "  test %d %c %d %b %d"
+                            lprintf_nl "  test %d %c %d %b %d"
                               n s.s_verified_bitmap.[n] s.s_nuploading.(n)
                             b nbs;
 
@@ -2062,7 +2060,7 @@ better work at the beginning if the first incomplete blocks are offered
                       done;
                       if !partial_block <> -1 then begin
                           if !verbose_swarming then
-                            lprintf_n () "PartialChunk won for %d waiting blocks"
+                            lprintf_n "PartialChunk won for %d waiting blocks"
                               !partial_remaining;
                           raise (BlockFound !partial_block)
                         end
@@ -2183,7 +2181,7 @@ let find_block up =
         if debug_all then lprintf " = %d \n" num;
         b
   with e ->
-      if debug_all then lprintf_nl () "Exception %s" (Printexc2.to_string e);
+      if debug_all then lprintf_nl "Exception %s" (Printexc2.to_string e);
       raise e
 
 (*************************************************************************)
@@ -2278,7 +2276,7 @@ we thus might put a lot of clients on the same range !
             up.up_ranges <- up.up_ranges @ [key];
             r.range_nuploading <- r.range_nuploading + 1;
             if r.range_current_begin = r.range_end then
-              lprintf_nl () "error: range is empty error";
+              lprintf_nl "error: range is empty error";
             key
           end else
         match r.range_next with
@@ -2313,7 +2311,7 @@ let received (up : uploader) (file_begin : Int64.t)
     let file_end = file_begin ++ (Int64.of_int string_len) in
 
     if !verbose_swarming then
-      lprintf_nl () "received on %Ld-%Ld" file_begin file_end;
+      lprintf_nl "received on %Ld-%Ld" file_begin file_end;
 
 (* TODO: check that everything we received has been required *)
     let t = up.up_t in
@@ -2344,13 +2342,13 @@ let received (up : uploader) (file_begin : Int64.t)
                       string_len < string_length then begin
                         if !verbose then
                         begin
-                        lprintf_nl () "BAD WRITE in %s for range %Ld-%Ld (string_pos %d)"
+                        lprintf_nl "BAD WRITE in %s for range %Ld-%Ld (string_pos %d)"
                           (file_best_name t.t_file) r.range_begin r.range_end string_pos;
-                        lprintf_nl () "  received: file_pos:%Ld string:%d %d"
+                        lprintf_nl "  received: file_pos:%Ld string:%d %d"
                           file_begin string_begin string_len;
-                        lprintf_nl () "  ranges:";
+                        lprintf_nl "  ranges:";
                         List.iter (fun (_,_,r) ->
-                            lprintf_n () "     range: %Ld-[%Ld]-%Ld"
+                            lprintf_n "     range: %Ld-[%Ld]-%Ld"
                               r.range_begin r.range_current_begin
                               r.range_end;
                             (match r.range_next with
@@ -2363,7 +2361,7 @@ let received (up : uploader) (file_begin : Int64.t)
                                   lprintf "  prev: %Ld" rr.range_begin);
                             lprint_newline ();
                             let b = r.range_block in
-                            lprintf_n () "        block: %d[%c] %Ld-%Ld [%s]"
+                            lprintf_n "        block: %d[%c] %Ld-%Ld [%s]"
                               b.block_num
                               s.s_verified_bitmap.[b.block_num]
                               b.block_begin b.block_end
@@ -2412,7 +2410,7 @@ let present_chunks s =
 
   let rec iter_block_out i block_begin list =
     if debug_present_chunks then
-      lprintf_nl () "iter_block_out %d bb: %Ld"
+      lprintf_nl "iter_block_out %d bb: %Ld"
         i block_begin;
 
     if i = nblocks then List.rev list else
@@ -2428,7 +2426,7 @@ let present_chunks s =
 
   and iter_block_in i block_begin chunk_begin list =
     if debug_present_chunks then
-      lprintf_nl () "iter_block_in %d bb: %Ld cb:%Ld"
+      lprintf_nl "iter_block_in %d bb: %Ld cb:%Ld"
         i block_begin chunk_begin
       ;
 
@@ -2448,7 +2446,7 @@ let present_chunks s =
 
   and iter_range_out i block_end block_begin r list =
     if debug_present_chunks then
-      lprintf_nl () "iter_range_out %d nb: %Ld bb:%Ld"
+      lprintf_nl "iter_range_out %d nb: %Ld bb:%Ld"
         i block_end block_begin;
 
     if r.range_begin > block_begin then
@@ -2480,7 +2478,7 @@ let present_chunks s =
 
   and iter_range_in i block_end chunk_begin chunk_end r list =
     if debug_present_chunks then
-      lprintf_nl () "iter_range_in %d bn: %Ld cb:%Ld ce: %Ld"
+      lprintf_nl "iter_range_in %d bn: %Ld cb:%Ld ce: %Ld"
         i block_end chunk_begin chunk_end;
 
     if r.range_current_begin < r.range_end then
@@ -2629,7 +2627,7 @@ let set_verified_bitmap primary t bitmap =
                   ()
           ) t.t_blocks_of_chunk.(i);
           if t.t_converted_verified_bitmap.[i] <> '3' then
-            lprintf_nl () "FIELD AS BEEN CLEARED"
+            lprintf_nl "FIELD AS BEEN CLEARED"
     | _ -> ()
   done
 
@@ -2798,7 +2796,7 @@ it is verified as soon as possible. *)
             (get_value  "file_all_chunks" value_to_string)
 
     with e ->
-        lprintf_nl () "Exception %s while loading bitmap"
+        lprintf_nl "Exception %s while loading bitmap"
           (Printexc2.to_string e);
   );
 
@@ -2808,7 +2806,7 @@ it is verified as soon as possible. *)
 *)
 
   if primary then begin
-      if !verbose_swarming then lprintf_nl () "Loading present...";
+      if !verbose_swarming then lprintf_nl "Loading present...";
       let present = try
           let present =
             (get_value "file_present_chunks"
@@ -2817,46 +2815,46 @@ it is verified as soon as possible. *)
           set_present t present;
           present
         with e ->
-            lprintf_nl () "Exception %s while set present"
+            lprintf_nl "Exception %s while set present"
               (Printexc2.to_string e);
             []
       in
-      if !verbose_swarming then lprintf_nl () "Downloaded after present %Ld" (downloaded t);
+      if !verbose_swarming then lprintf_nl "Downloaded after present %Ld" (downloaded t);
 
 (*
-      if !verbose then lprintf_nl () "Loading absent...";
+      if !verbose then lprintf_nl "Loading absent...";
       (try
           set_absent t
             (get_value "file_absent_chunks"
               (value_to_list value_to_int64_pair));
         with e ->
-            if !verbose_hidden_errors then lprintf_nl () "Exception %s while set absent"
+            if !verbose_hidden_errors then lprintf_nl "Exception %s while set absent"
               (Printexc2.to_string e);
       );
-      if !verbose then lprintf_nl () "Downloaded after absent %Ld" (downloaded t);
+      if !verbose then lprintf_nl "Downloaded after absent %Ld" (downloaded t);
 *)
       (try
           let d = get_value "file_downloaded" value_to_int64 in
 
           if d <> downloaded t && !verbose then begin
-              lprintf_nl () "ERROR: stored downloaded value not restored  !!! (%Ld/%Ld)" (downloaded t) d;
-              lprintf_nl () "ERROR: present:";
+              lprintf_nl "ERROR: stored downloaded value not restored  !!! (%Ld/%Ld)" (downloaded t) d;
+              lprintf_nl "ERROR: present:";
               List.iter (fun (x,y) ->
-                  lprintf_nl () "     (%Ld,%Ld);" x y
+                  lprintf_nl "     (%Ld,%Ld);" x y
               ) present;
 
               let p = present_chunks t in
-              lprintf_nl () "ERROR: present now:";
+              lprintf_nl "ERROR: present now:";
 
               let total = ref zero in
               List.iter (fun (x,y) ->
-                  lprintf_nl () "     (%Ld,%Ld);" x y;
+                  lprintf_nl "     (%Ld,%Ld);" x y;
                   total := !total ++ (y -- x);
               ) p;
 
-              lprintf_nl () "ERROR: total %Ld" !total;
+              lprintf_nl "ERROR: total %Ld" !total;
               if p = present then begin
-                  lprintf_nl () "ERROR: both appear to be the same!";
+                  lprintf_nl "ERROR: both appear to be the same!";
                 end;
         if !exit_on_error then exit 2
             end
@@ -2968,7 +2966,7 @@ let merge f1 f2 =
   let t2 = match s2.s_networks with
       [t] -> t
     | list ->
-        lprintf_nl () "s_networks: %d files" (List.length list);
+        lprintf_nl "s_networks: %d files" (List.length list);
         failwith "Second file is already merged with other files"
   in
 
@@ -3016,7 +3014,7 @@ let remove_swarmer file_swarmer =
     None -> () 
   | Some sw -> if not (has_secondaries sw)
                 then HS.remove swarmers_by_name sw.t_s
-                else lprintf_nl () "Tried to remove swarmer with secondaries"
+                else lprintf_nl "Tried to remove swarmer with secondaries"
 
 (*************************************************************************)
 (*                                                                       *)
@@ -3215,7 +3213,7 @@ let check_finished t =
           if bitmap.[i] <> '3' then raise Not_found;
         done;
         if file_size file <> downloaded t then
-          lprintf_nl () "Downloaded size differs after complete verification";
+          lprintf_nl "Downloaded size differs after complete verification";
         true
   with _ -> false
 

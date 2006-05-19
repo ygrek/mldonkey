@@ -37,15 +37,13 @@ open DriverInteractive
 open CommonOptions
 open CommonUserDb
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[dCon] "
-    (log_time ()); lprintf_nl2
+let log_prefix = "[dCon]"
 
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[dCon] "
-    (log_time ()); lprintf
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 let rec dollar_escape o with_frames s =
   String2.convert false (fun b escaped c ->
@@ -317,7 +315,7 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
         if valid_password user pass then begin
             auth := true;
             o.conn_user <- find_ui_user user;
-            lprintf_nl () "Authenticated user: %s" user;
+            lprintf_nl "Authenticated user: %s" user;
             let module M = CommonMessages in
             Buffer.add_string buf M.full_access
           end else
@@ -350,9 +348,9 @@ let check_calendar () =
   List.iter (fun (days, hours, command) ->
       if (List.mem tm.Unix.tm_wday days || days = []) &&
         (List.mem tm.Unix.tm_hour hours || hours = []) then begin
-          lprintf_nl () "Calendar execute: %s" command;
+          lprintf_nl "Calendar execute: %s" command;
           eval (ref true) command calendar_options;
-          lprintf_nl () "Calendar result: %s" (Buffer.contents calendar_options.conn_buf);
+          lprintf_nl "Calendar result: %s" (Buffer.contents calendar_options.conn_buf);
           Buffer.reset calendar_options.conn_buf;
         end
   ) !!calendar
@@ -573,7 +571,7 @@ let telnet_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-        lprintf_nl () "Telnet connection from %s" (Ip.to_string from_ip);
+        lprintf_nl "Telnet connection from %s" (Ip.to_string from_ip);
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple token
           "telnet connection"
@@ -620,7 +618,7 @@ let telnet_handler t event =
 	in
 	TcpBufferedSocket.write_string sock (dollar_escape o false reject_message);
 	shutdown sock Closed_connect_failed;
-	lprintf_n () "%s" reject_message;
+  lprintf_n "%s" reject_message;
 	Unix.close s
       end
 
@@ -696,7 +694,7 @@ let chat_handler t event =
            Unix.close s
      with
        Failure mess ->
-         lprintf_nl () "%s" mess;
+         lprintf_nl "%s" mess;
          Unix.close s
     )
   | _ ->
@@ -907,7 +905,7 @@ let http_send_bin r buf filename =
   let ext_pos = (String.rindex filename '.') + 1 in
   let exten = (String.sub filename ext_pos ((String.length filename) - ext_pos)) in
   if !verbose_msg_servers then
-    lprintf_nl () "Extension found [%s] for file: [%s]" exten filename;
+    lprintf_nl "Extension found [%s] for file: [%s]" exten filename;
   let ext = extension_to_file_ext exten in
   http_add_bin_header r ext clen;
   Buffer.add_string buf file_to_send
@@ -917,15 +915,15 @@ let http_error_no_gd img_type =
     "jpg" ->
       (match Autoconf.has_gd_jpg with
         true -> false
-      | false -> lprintf_nl () "Warning: GD jpg support disabled"; true)
+      | false -> lprintf_nl "Warning: GD jpg support disabled"; true)
   | "png" ->
       (match Autoconf.has_gd_png with
         true -> false
-      | false -> lprintf_nl () "Warning: GD png support disabled"; true)
+      | false -> lprintf_nl "Warning: GD png support disabled"; true)
   | _ ->
       (match Autoconf.has_gd with
         true -> false
-      | false -> lprintf_nl () "Warning: GD support disabled"; true)
+      | false -> lprintf_nl "Warning: GD support disabled"; true)
 let any_ip = Ip.of_inet_addr Unix.inet_addr_any
 
 let html_open_page buf t r open_body =
@@ -1266,7 +1264,7 @@ let http_handler o t r =
 
         | "favicon.ico" ->
             if !verbose_msg_servers then
-              lprintf_nl () "favicon.ico request received by tracker";
+              lprintf_nl "favicon.ico request received by tracker";
             http_send_bin r buf "favicon.ico"
 
         | "filter" ->
@@ -1465,7 +1463,7 @@ let http_handler o t r =
 
               | args ->
                   List.iter (fun (s,v) ->
-                      lprintf_nl () "[%s]=[%s]" (String.escaped s) (String.escaped v))
+                      lprintf_nl "[%s]=[%s]" (String.escaped s) (String.escaped v))
                   args;
                   raise Not_found
             end
@@ -1485,7 +1483,7 @@ let http_handler o t r =
 
               | args ->
                   List.iter (fun (s,v) ->
-                      lprintf_nl () "[%s]=[%s]" (String.escaped s) (String.escaped v))
+                      lprintf_nl "[%s]=[%s]" (String.escaped s) (String.escaped v))
                   args;
                   raise Not_found
             end
@@ -1503,7 +1501,7 @@ let http_handler o t r =
 		  let exten = Filename2.last_extension impl.impl_shared_codedname in
 		  if not (Sys.file_exists filename) then
 		    begin
-		      lprintf_nl () "file %s not found" filename;
+          lprintf_nl "file %s not found" filename;
 		      raise Not_found
 		    end;
 		  let fd = Unix32.create_ro filename in
@@ -1512,7 +1510,7 @@ let http_handler o t r =
 
               | args ->
                   List.iter (fun (s,v) ->
-                      lprintf_nl () "[%s]=[%s]" (String.escaped s) (String.escaped v))
+                      lprintf_nl "[%s]=[%s]" (String.escaped s) (String.escaped v))
                   args;
                   raise Not_found
             end

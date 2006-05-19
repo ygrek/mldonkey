@@ -26,8 +26,9 @@ val cprintf : (string -> unit) -> ('a, unit, unit) format -> 'a
     result of [k] is then returned as the result of [cprintf]. *)
 
 val lprintf :  ('a, unit, unit) format -> 'a
+val lprintf2 :  string -> ('a, unit, unit) format -> 'a
 val lprintf_nl :  ('a, unit, unit) format -> 'a
-val lprintf_nl2 :  ('a, unit, unit) format -> 'a
+val lprintf_nl2 : string -> ('a, unit, unit) format -> 'a
 val lprint_newline : unit -> unit  
 val lprint_char : char -> unit  
 val lprint_string : string -> unit  

@@ -111,11 +111,11 @@ let enable () =
     add_session_timer enabler 60.0 (fun timer ->
         ( try 
         GnutellaServers.ask_for_files ();
-          with e -> lprintf_nl () "ASK_FOR_FILE FAILED: %s" (Printexc2.to_string e));
+          with e -> lprintf_nl "ASK_FOR_FILE FAILED: %s" (Printexc2.to_string e));
 
         ( try
         GnutellaServers.send_pings ();
-        with e -> lprintf_nl () "SEND_PINGS FAILED: %s" (Printexc2.to_string e));  
+        with e -> lprintf_nl "SEND_PINGS FAILED: %s" (Printexc2.to_string e));  
 
         (* Connect only every 60 seconds to new servers to prevent
            hammering on them. It would be better to remember the
@@ -144,7 +144,7 @@ let enable () =
     let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
         !!client_port udp_handler ) in
     if !verbose then
-      lprintf_nl () "UDP socket bound on port %d" !!client_port;
+      lprintf_nl "UDP socket bound on port %d" !!client_port;
     udp_sock := Some sock;
     
     UdpSocket.set_write_controler sock CommonGlobals.udp_write_controler;

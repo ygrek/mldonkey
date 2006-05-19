@@ -22,10 +22,10 @@
 open Int64ops
 open Printf2
 
-let lprintf_nl =
-  (fun format ->
-     lprintf "%s[Ux32] " (log_time ()); 
-     lprintf_nl2 format)
+let log_prefix = "[Ux32]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
   
 let chunk_min_size = ref 65000L
   

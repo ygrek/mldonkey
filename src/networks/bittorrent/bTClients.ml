@@ -64,16 +64,6 @@ open BTChooser
 open BTStats
 open TcpMessages
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[BT] "
-    (log_time ()); lprintf_nl2
-
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[BT] "
-    (log_time ()); lprintf
-
 let http_ok = "HTTP 200 OK"
 let http11_ok = "HTTP/1.1 200 OK"
 
@@ -144,7 +134,7 @@ let connect_trackers file event f =
     else begin
       (* if there is no tracker left, do something ? *)
       if !verbose_msg_servers then
-	lprintf_nl () "No trackers left, reenabling all of them...";
+  lprintf_nl "No trackers left, reenabling all of them...";
       List.iter (fun t -> t.tracker_enabled <- can_handle_tracker t) file.file_trackers;
       file.file_trackers
     end in
@@ -167,7 +157,7 @@ let connect_trackers file event f =
           if file.file_tracker_connected && t.tracker_last_clients_num = 0 &&
             t.tracker_last_conn < 1 then begin
               if !verbose_msg_servers then
-                lprintf_nl () "Request error from tracker: disabling %s" t.tracker_url;
+                lprintf_nl "Request error from tracker: disabling %s" t.tracker_url;
 	      t.tracker_enabled <- false;
               (* remove_tracker t.tracker_url file *)
             end
@@ -180,7 +170,7 @@ let connect_trackers file event f =
                   ("key", t.tracker_key) :: args else args
               in
               if !verbose_msg_servers then
-                lprintf_nl () "get_sources_from_tracker: tracker_connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
+                lprintf_nl "get_sources_from_tracker: tracker_connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
                   (string_of_bool file.file_tracker_connected)
                   t.tracker_id t.tracker_key t.tracker_last_clients_num
                   (t.tracker_last_conn - last_time()) file.file_name;
@@ -197,7 +187,7 @@ let connect_trackers file event f =
                 } in
 
               if !verbose_msg_servers then
-                  lprintf_nl () "Request sent to tracker %s for file: %s"
+                  lprintf_nl "Request sent to tracker %s for file: %s"
                     t.tracker_url file.file_name;
               H.wget r
                 (fun fileres ->
@@ -209,7 +199,7 @@ let connect_trackers file event f =
 
       else
         if !verbose_msg_servers then
-          lprintf_nl () "Request NOT sent to tracker %s - next request in %ds for file: %s"
+          lprintf_nl "Request NOT sent to tracker %s - next request in %ds for file: %s"
             t.tracker_url (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
   ) enabled_trackers
 
@@ -219,7 +209,7 @@ let connect_trackers file event f =
   for clients that are in next list (and not in current)
 *)
 let recompute_uploaders () =
-  if !verbose_upload then lprintf_nl () "recompute_uploaders";
+  if !verbose_upload then lprintf_nl "recompute_uploaders";
   next_uploaders := choose_uploaders current_files;
   (*Send choke if a current_uploader is not in next_uploaders*)
   List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
@@ -257,7 +247,7 @@ let recompute_uploaders () =
 *)
 let disconnect_client c reason =
   if !verbose_msg_clients then
-    lprintf_nl () "Client %d: disconnected: %s" (client_num c) (string_of_reason reason);
+    lprintf_nl "Client %d: disconnected: %s" (client_num c) (string_of_reason reason);
   begin
     match c.client_sock with
       NoConnection -> ()
@@ -330,7 +320,7 @@ let disconnect_clients file =
   if not ( !must_keep && (client_has_a_slot (as_client c) || c.client_interested)) then
     begin
       if !verbose_msg_clients then
-        lprintf_nl () "disconnect since download is finished";
+        lprintf_nl "disconnect since download is finished";
       disconnect_client c Closed_by_user
     end
   ) file.file_clients
@@ -403,7 +393,7 @@ let send_bitfield c =
         CommonSwarming.verified_bitmap swarmer
   in
 
-  if !verbose_download then lprintf_nl () "Sending verified bitmap: [%s]" bitmap;
+  if !verbose_download then lprintf_nl "Sending verified bitmap: [%s]" bitmap;
 
 (* In the future, only accept bitmap.[n] > '2' when verification works *)
   send_client c (BitField
@@ -437,16 +427,16 @@ let rec client_parse_header counter cc init_sent gconn sock
   try
     set_lifetime sock 600.;
     if !verbose_msg_clients then
-      lprintf_nl () "client_parse_header %d" counter;
+      lprintf_nl "client_parse_header %d" counter;
 
     let file = Hashtbl.find files_by_uid file_id in
     if !verbose_msg_clients then
-      lprintf_nl () "file found";
+      lprintf_nl "file found";
     let c =
       match !cc with
         None ->
           let c = new_client file Sha1.null (TcpBufferedSocket.peer_addr sock) in
-          if !verbose_connect then lprintf_nl () "Client %d: incoming connection" (client_num c);
+          if !verbose_connect then lprintf_nl "Client %d: incoming connection" (client_num c);
           cc := Some c;
           c
       | Some c ->
@@ -483,7 +473,7 @@ let rec client_parse_header counter cc init_sent gconn sock
 
     if !verbose_msg_clients then begin
         let (ip,port) = c.client_host in
-          lprintf_nl () "Client %d: Connected from %s:%d" (client_num c)
+          lprintf_nl "Client %d: Connected from %s:%d" (client_num c)
             (Ip.to_string ip) port;
       end;
 
@@ -491,17 +481,17 @@ let rec client_parse_header counter cc init_sent gconn sock
         NoConnection ->
           if !verbose_msg_clients then begin
               let (ip,port) = c.client_host in
-              lprintf_nl () "No connection to client (%s:%d)!!!" (Ip.to_string ip) port;
+              lprintf_nl "No connection to client (%s:%d)!!!" (Ip.to_string ip) port;
             end;
           c.client_sock <- Connection sock
       | ConnectionWaiting token ->
           cancel_token token;
           if !verbose_msg_clients then
-            lprintf_nl () "Waiting for connection to client !!!";
+            lprintf_nl "Waiting for connection to client !!!";
           c.client_sock <- Connection sock
       | Connection s when s != sock ->
           if !verbose_msg_clients then
-            lprintf_nl () "CLIENT %d: IMMEDIATE RECONNECTION" (client_num c);
+            lprintf_nl "CLIENT %d: IMMEDIATE RECONNECTION" (client_num c);
           disconnect_client c (Closed_for_error "Reconnected");
           c.client_sock <- Connection sock;
       | Connection _  -> ()
@@ -515,7 +505,7 @@ let rec client_parse_header counter cc init_sent gconn sock
       end;
     connection_ok c.client_connection_control;
     if !verbose_msg_clients then
-      lprintf_nl () "file and client found";
+      lprintf_nl "file and client found";
 (*    if not c.client_incoming then *)
      send_bitfield c; 
     c.client_blocks_sent <- file.file_blocks_downloaded;
@@ -537,10 +527,10 @@ let rec client_parse_header counter cc init_sent gconn sock
       | Not_found ->
           let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
           if !verbose_unexpected_messages then
-            lprintf_nl () "Client %s:%d requested a file that is not shared [%s]"
+            lprintf_nl "Client %s:%d requested a file that is not shared [%s]"
               (Ip.to_string ip) port (Sha1.to_hexa file_id)
       | e ->
-          lprintf_nl () "Exception %s in client_parse_header" (Printexc2.to_string e);
+          lprintf_nl "Exception %s in client_parse_header" (Printexc2.to_string e);
       close sock (Closed_for_exception e);
       raise e
 
@@ -609,11 +599,11 @@ and get_from_client sock (c: client) =
     let num, x,y, r =
 
       if !verbose_msg_clients then begin
-        lprintf_nl () "CLIENT %d: Finding new range to send" (client_num c);
+        lprintf_nl "CLIENT %d: Finding new range to send" (client_num c);
       end;
 
       if !verbose_swarming then begin
-        lprintf_n () "Current download:\n  Current chunks: ";
+        lprintf_n "Current download:\n  Current chunks: ";
 
         try
           List.iter (fun (x,y) -> lprintf "%Ld-%Ld " x y) c.client_chunks
@@ -621,7 +611,7 @@ and get_from_client sock (c: client) =
           
         lprint_newline ();
           
-        lprintf_n () "Current ranges: ";
+        lprintf_n "Current ranges: ";
           
         List.iter (fun (p1,p2, r) ->
           let (x,y) = CommonSwarming.range_range r in
@@ -634,7 +624,7 @@ and get_from_client sock (c: client) =
 
         lprint_newline ();
           
-        lprintf_n () "Current block: ";
+        lprintf_n "Current block: ";
           
         match c.client_block with
         | None -> lprintf "none"
@@ -642,7 +632,7 @@ and get_from_client sock (c: client) =
 
         lprint_newline ();
       
-        lprintf_nl () "Finding Range:";
+        lprintf_nl "Finding Range:";
       end;
 
       try
@@ -657,13 +647,13 @@ and get_from_client sock (c: client) =
 
             None -> 
 
-              if !verbose_swarming then lprintf_nl () "No block";
+              if !verbose_swarming then lprintf_nl "No block";
               update_client_bitmap c;
               (try CommonSwarming.verify_one_chunk swarmer with _ -> ());
               (*Find a free block in the swarmer*)
               let b = CommonSwarming.find_block up in
               if !verbose_swarming then begin 
-                lprintf_n () "Block Found: "; CommonSwarming.print_block b;
+                lprintf_n "Block Found: "; CommonSwarming.print_block b;
                 lprint_newline ()
               end;
               c.client_block <- Some b;
@@ -678,7 +668,7 @@ and get_from_client sock (c: client) =
           | Some b ->
 
               if !verbose_swarming then begin
-                lprintf_n () "Current Block: "; CommonSwarming.print_block b;
+                lprintf_n "Current Block: "; CommonSwarming.print_block b;
                 lprint_newline ()
               end;
 
@@ -708,7 +698,7 @@ and get_from_client sock (c: client) =
                   let num = CommonSwarming.block_num swarmer b in
 
                   if !verbose_swarming then 
-                    lprintf_nl () "Asking %d For Range %Ld-%Ld" num x y;
+                    lprintf_nl "Asking %d For Range %Ld-%Ld" num x y;
                       
                   num, x -- file.file_piece_size ** Int64.of_int num, y -- x, r
 
@@ -717,7 +707,7 @@ and get_from_client sock (c: client) =
                   (*If we don't find a range to request inside the block,
                     iter to choose another block*)
                   if !verbose_swarming then
-                    lprintf_nl () "Could not find range in current block";
+                    lprintf_nl "Could not find range in current block";
 (*                  c.client_blocks <- List2.removeq b c.client_blocks; *)
 
                   c.client_block <- None;
@@ -734,7 +724,7 @@ and get_from_client sock (c: client) =
             a block to ask)
           *)
           if !verbose_swarming then
-            lprintf_nl () "Unable to get a block !!";
+            lprintf_nl "Unable to get a block !!";
           CommonSwarming.compute_bitmap swarmer;
           check_finished swarmer file;
           raise Not_found
@@ -743,12 +733,12 @@ and get_from_client sock (c: client) =
     send_client c (Request (num,x,y));
 
     if !verbose_msg_clients then
-      lprintf_nl () "CLIENT %d: Asking %s For Range %Ld-%Ld"
+      lprintf_nl "CLIENT %d: Asking %s For Range %Ld-%Ld"
         (client_num c) (Sha1.to_string c.client_uid) x y
 
   with Not_found ->
         if not (CommonSwarming.check_finished swarmer) && !verbose_download then
-          lprintf_nl () "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished for file : %s..." file.file_name
+          lprintf_nl "BTClient.get_from_client ERROR: can't find a block to download and file is not yet finished for file : %s..." file.file_name
 
 
 (** In this function we match a message sent by a client
@@ -760,7 +750,7 @@ and get_from_client sock (c: client) =
 and client_to_client c sock msg =
   if !verbose_msg_clients then begin
       let (timeout, next) = get_rtimeout sock in
-      lprintf_nl () "CLIENT %d: (%d, %d,%d) Received %s"
+      lprintf_nl "CLIENT %d: (%d, %d,%d) Received %s"
         (client_num c)
       (last_time ())
       (int_of_float timeout)
@@ -800,10 +790,10 @@ and client_to_client c sock msg =
 
             if !verbose_msg_clients then
               (match c.client_ranges_sent with
-                  [] -> lprintf_nl () "EMPTY Ranges !!!"
+                  [] -> lprintf_nl "EMPTY Ranges !!!"
                 | (p1,p2,r) :: _ ->
                     let (x,y) = CommonSwarming.range_range r in
-                    lprintf_nl () "Current range from %s : %Ld [%d] (asked %Ld-%Ld[%Ld-%Ld])"
+                    lprintf_nl "Current range from %s : %Ld [%d] (asked %Ld-%Ld[%Ld-%Ld])"
                       (brand_to_string c.client_brand) position len
                       p1 p2 x y
               );
@@ -823,10 +813,10 @@ and client_to_client c sock msg =
             Rate.update c.client_downloaded_rate  (float_of_int len);
             if !verbose_msg_clients then
               (match c.client_ranges_sent with
-                  [] -> lprintf_nl () "EMPTY Ranges !!!"
+                  [] -> lprintf_nl "EMPTY Ranges !!!"
                 | (p1,p2,r) :: _ ->
                     let (x,y) = CommonSwarming.range_range r in
-                    lprintf_nl () "Received %Ld [%d] %Ld-%Ld[%Ld-%Ld] -> %Ld"
+                    lprintf_nl "Received %Ld [%d] %Ld-%Ld[%Ld-%Ld] -> %Ld"
                       position len
                       p1 p2 x y
                       (new_downloaded -- old_downloaded)
@@ -912,7 +902,7 @@ and client_to_client c sock msg =
               let nbits = String.length p * 8 in
 
               if nbits < npieces then begin
-                lprintf_nl () "Error: expected bitfield of atleast %d but got %d" npieces nbits;
+                lprintf_nl "Error: expected bitfield of atleast %d but got %d" npieces nbits;
                 disconnect_client c (Closed_for_error "Wrong bitfield length")
               end else begin
 
@@ -933,7 +923,7 @@ and client_to_client c sock msg =
                   send_interested c;
 
                 if !verbose_msg_clients then
-                  lprintf_nl () "New BitField Registered";
+                  lprintf_nl "New BitField Registered";
 
                 (*  for i = 1 to max_range_requests - List.length c.client_ranges do
                       (try get_from_client sock c with _ -> ())
@@ -981,9 +971,9 @@ and client_to_client c sock msg =
                   done*)
                       end
                   end
-          | None, Some _ -> lprintf_nl () "no bitmap but client_uploader";
-    | Some _ , None ->lprintf_nl () "bitmap but no client_uploader";
-    | None, None -> lprintf_nl () "no bitmap no client_uploader";
+          | None, Some _ -> lprintf_nl "no bitmap but client_uploader";
+    | Some _ , None ->lprintf_nl "bitmap but no client_uploader";
+    | None, None -> lprintf_nl "no bitmap no client_uploader";
         end
 *)
         end
@@ -1001,7 +991,7 @@ and client_to_client c sock msg =
                 (* Afaik this is no protocol violation and happens if the client
                    didn't send a client bitmap after the handshake. *)
                 let (ip,port) = c.client_host in
-                  if !verbose_msg_clients then lprintf_nl () "%s:%d with software %s : Choke send, but no client bitmap"
+                  if !verbose_msg_clients then lprintf_nl "%s:%d with software %s : Choke send, but no client bitmap"
                     (Ip.to_string ip) port (brand_to_string c.client_brand)
             | Some up ->
                 CommonSwarming.clear_uploader_ranges up
@@ -1066,10 +1056,10 @@ and client_to_client c sock msg =
           c.client_upload_requests <- List2.remove_first (n, pos, len) c.client_upload_requests
         else
           if !verbose_msg_clients then
-            lprintf_nl () "Error: received cancel request but client has no slot"
+            lprintf_nl "Error: received cancel request but client has no slot"
 
   with e ->
-      lprintf_nl () "Error %s while handling MESSAGE: %s" (Printexc2.to_string e) (TcpMessages.to_string msg)
+      lprintf_nl "Error %s while handling MESSAGE: %s" (Printexc2.to_string e) (TcpMessages.to_string msg)
 
 
 (** The function used to connect to a client.
@@ -1085,7 +1075,7 @@ let connect_client c =
        None -> true
      | Some reason ->
          if !verbose_connect then
-           lprintf_nl () "%s:%d blocked: %s"
+           lprintf_nl "%s:%d blocked: %s"
              (Ip.to_string ip) port reason;
          false)
   then
@@ -1096,10 +1086,10 @@ let connect_client c =
         add_pending_connection connection_manager (fun token ->
             try
               if !verbose_msg_clients then
-                lprintf_nl () "CLIENT %d: connect_client" (client_num c);
+                lprintf_nl "CLIENT %d: connect_client" (client_num c);
               let (ip,port) = c.client_host in
               if !verbose_msg_clients then
-                lprintf_nl () "connecting %s:%d" (Ip.to_string ip) port;
+                lprintf_nl "connecting %s:%d" (Ip.to_string ip) port;
               connection_try c.client_connection_control;
                 begin
                   let sock = connect token "bittorrent download"
@@ -1108,11 +1098,11 @@ let connect_client c =
                         match event with
                           BASIC_EVENT LTIMEOUT ->
                             if !verbose_msg_clients then
-                              lprintf_nl () "CLIENT %d: LIFETIME" (client_num c);
+                              lprintf_nl "CLIENT %d: LIFETIME" (client_num c);
                             close sock Closed_for_timeout
                         | BASIC_EVENT RTIMEOUT ->
                             if !verbose_msg_clients then
-                              lprintf_nl () "CLIENT %d: RTIMEOUT (%d)" (client_num c)
+                              lprintf_nl "CLIENT %d: RTIMEOUT (%d)" (client_num c)
                               (last_time ())
                               ;
                             close sock Closed_for_timeout
@@ -1134,7 +1124,7 @@ let connect_client c =
                   let file = c.client_file in
 
                   if !verbose_msg_clients then
-                    lprintf_nl () "READY TO DOWNLOAD FILE";
+                    lprintf_nl "READY TO DOWNLOAD FILE";
 
                   send_init !!client_uid file.file_id sock;
 (* Fabrice: Initialize the client bitmap and uploader fields to <> None *)
@@ -1149,7 +1139,7 @@ let connect_client c =
                     (BTHeader (client_parse_header !counter (ref (Some c)) true))
                 end
             with e ->
-                lprintf_nl () "Exception %s while connecting to client"
+                lprintf_nl "Exception %s while connecting to client"
                   (Printexc2.to_string e);
                 disconnect_client c (Closed_for_exception e)
         );
@@ -1178,7 +1168,7 @@ let listen () =
                 to connect to us
               *)
               let ip = (Ip.of_inet_addr from_ip) in
-              if !verbose_sources > 1 then lprintf_nl () "CONNECTION RECEIVED FROM %s"
+              if !verbose_sources > 1 then lprintf_nl "CONNECTION RECEIVED FROM %s"
                 (Ip.to_string (Ip.of_inet_addr from_ip))
               ;
               (*Reject this connection if we don't want
@@ -1189,7 +1179,7 @@ let listen () =
                    None -> true
                  | Some reason ->
                      if !verbose_connect then
-                       lprintf_nl () "%s:%d blocked: %s"
+                       lprintf_nl "%s:%d blocked: %s"
                          (Ip.to_string ip) from_port reason;
                      false)
               then
@@ -1238,7 +1228,7 @@ let listen () =
     ()
   with e ->
       if !verbose_connect then
-        lprintf_nl () "Exception %s while init bittorrent server"
+        lprintf_nl "Exception %s while init bittorrent server"
           (Printexc2.to_string e)
 
 
@@ -1282,7 +1272,7 @@ let resume_clients file =
              with _ -> ())
       with e ->
           if !verbose_connect then
-            lprintf_nl () "Exception %s in resume_clients"   (Printexc2.to_string e)
+            lprintf_nl "Exception %s in resume_clients"   (Printexc2.to_string e)
   ) file.file_clients
 
 (** Check if the value replied by the tracker is correct.
@@ -1294,11 +1284,11 @@ let resume_clients file =
 let chk_keyval key n url name =
   let int_n = (Int64.to_int n) in
   if !verbose_msg_clients then
-    lprintf_nl () "Reply from %s in file: %s has %s: %d" url name key int_n;
+    lprintf_nl "Reply from %s in file: %s has %s: %d" url name key int_n;
   if int_n > -1 then
     int_n
   else begin
-     lprintf_nl () "Reply from %s in file: %s has an invalid %s value: %d" url name key int_n;
+     lprintf_nl "Reply from %s in file: %s has an invalid %s value: %d" url name key int_n;
      0
    end
 
@@ -1319,13 +1309,13 @@ let get_sources_from_tracker file =
     let tracker_reply =
       try
         File.to_string filename
-      with e -> lprintf_nl () "Empty reply from tracker"; ""
+      with e -> lprintf_nl "Empty reply from tracker"; ""
     in
     let v =
        match tracker_reply with
        | "" ->
         if !verbose_connect then
-          lprintf_nl () "Empty reply from tracker";
+          lprintf_nl "Empty reply from tracker";
         Bencode.decode ""
        | _ -> Bencode.decode tracker_reply
     in
@@ -1340,10 +1330,10 @@ let get_sources_from_tracker file =
                 (* On failure, remove the faulty tracker from file.file_trackers list *)
 		t.tracker_enabled <- false;
 		(* remove_tracker t.tracker_url file; *)
-                lprintf_nl () "Failure from Tracker %s in file: %s Reason: %s\nBT: Tracker %s disabled for failure"
+                lprintf_nl "Failure from Tracker %s in file: %s Reason: %s\nBT: Tracker %s disabled for failure"
                   t.tracker_url file.file_name failure t.tracker_url
             | String "warning message", String warning ->
-                lprintf_nl () "Warning from Tracker %s in file: %s Reason: %s" t.tracker_url file.file_name warning
+                lprintf_nl "Warning from Tracker %s in file: %s Reason: %s" t.tracker_url file.file_name warning
             | String "interval", Int n ->
                 t.tracker_interval <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name;
                 (* in case we don't receive "min interval" *)
@@ -1374,11 +1364,11 @@ let get_sources_from_tracker file =
             | String "key", String n ->
                 t.tracker_key <- n;
                 if !verbose_msg_clients then
-                  lprintf_nl () "%s in file: %s has key: %s" t.tracker_url file.file_name n
+                  lprintf_nl "%s in file: %s has key: %s" t.tracker_url file.file_name n
             | String "tracker id", String n ->
                 t.tracker_id <- n;
                 if !verbose_msg_clients then
-                  lprintf_nl () "%s in file: %s has tracker id %s" t.tracker_url file.file_name n
+                  lprintf_nl "%s in file: %s has tracker id %s" t.tracker_url file.file_name n
 
             | String "peers", List list ->
                 List.iter (fun v ->
@@ -1410,13 +1400,13 @@ let get_sources_from_tracker file =
                               None -> true
                             | Some reason ->
                                 if !verbose_connect then
-                                  lprintf_nl () "%s:%d blocked: %s"
+                                  lprintf_nl "%s:%d blocked: %s"
                                     (Ip.to_string !peer_ip) !port reason;
                                 false)
                         then
                           let _ = new_client file !peer_id (!peer_ip,!port)
                           in
-                          if !verbose_sources > 1 then lprintf_nl () "Received %s:%d" (Ip.to_string !peer_ip)
+                          if !verbose_sources > 1 then lprintf_nl "Received %s:%d" (Ip.to_string !peer_ip)
                           !port;
                           ()
                     | _ -> assert false
@@ -1437,12 +1427,12 @@ let get_sources_from_tracker file =
             | String "private", Int n -> ()
               (* TODO: if set to 1, disable peer exchange *)
 
-            | _ -> lprintf_nl () "received unknown entry in answer from tracker: %s : %s" (Bencode.print key) (Bencode.print value)
+            | _ -> lprintf_nl "received unknown entry in answer from tracker: %s : %s" (Bencode.print key) (Bencode.print value)
         ) list;
        (*Now, that we have added new clients to a file, it's time
          to connect to them*)
         if !verbose_sources > 0 then
-          lprintf_nl () "get_sources_from_tracker: got %i source(s) for file %s"
+          lprintf_nl "get_sources_from_tracker: got %i source(s) for file %s"
             t.tracker_last_clients_num file.file_name;
         resume_clients file
 
@@ -1471,7 +1461,7 @@ let recover_files () =
               (try
                   connect_trackers file "" (fun _ _ -> ()) with _ -> ())
           | FilePaused -> () (*when we are paused we do nothing, not even logging this vvvv*)
-          | s -> lprintf_nl () "Other state %s!!" (string_of_state s)
+          | s -> lprintf_nl "Other state %s!!" (string_of_state s)
       ) !current_files
 
 let upload_buffer = String.create 100000
@@ -1519,7 +1509,7 @@ let rec iter_upload sock c =
 (*          lprintf "sending piece\n"; *)
           send_client c (Piece (num, pos, upload_buffer, 0, len));
           iter_upload sock c
-	with e -> if !verbose then lprintf_nl ()
+  with e -> if !verbose then lprintf_nl
 		    "Exception %s in iter_upload" (Printexc2.to_string e)
         end else
         begin
@@ -1571,7 +1561,7 @@ let file_stop file =
     if file.file_tracker_connected then
     begin
       connect_trackers file "stopped" (fun _ _ ->
-          lprintf_nl () "Tracker return: stopped %s" file.file_name;
+          lprintf_nl "Tracker return: stopped %s" file.file_name;
           file.file_tracker_connected <- false)
     end
 
@@ -1593,6 +1583,6 @@ let _ =
   );
   client_ops.op_client_enter_upload_queue <- (fun c ->
       if !verbose_msg_clients then
-        lprintf_nl () "Client %d: client_enter_upload_queue" (client_num c);
+        lprintf_nl "Client %d: client_enter_upload_queue" (client_num c);
       ready_for_upload (as_client c));
   network.op_network_connected_servers <- (fun _ -> []);

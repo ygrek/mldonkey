@@ -49,9 +49,13 @@ open DriverInteractive
 open Gettext
 open Autoconf
 
-let lprintf_nl () =
-  lprintf "%s"
-    (log_time ()); lprintf_nl2
+let log_prefix = "[dCmd]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 let _s x = _s "DriverCommands" x
 let _b x = _b "DriverCommands" x
@@ -2876,19 +2880,19 @@ let _ =
         set_logging b;
 	if b then
 	  begin
-	    lprintf_nl () "Enable logging to stdout...";
+      lprintf_nl "Enable logging to stdout...";
 	    log_to_file stdout;
-	    lprintf_nl () "Logging to stdout..."
+      lprintf_nl "Logging to stdout..."
 	  end
 	else
 	  begin
-	    lprintf_nl () "Disable logging to stdout...";
+      lprintf_nl "Disable logging to stdout...";
 	    close_log ();
 	    if !!log_file <> "" then
 	      begin
                 let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 !!log_file in
                   log_to_file oc;
-                  lprintf_nl () "Reopened %s" !!log_file
+                  lprintf_nl "Reopened %s" !!log_file
 	      end
 	  end;
         Printf.sprintf (_b "log to stdout %s")
@@ -2944,7 +2948,7 @@ let _ =
     ), ":\t\t\t\tenable logging to file";
 
     "close_log", Arg_none (fun o ->
-	lprintf_nl () "Stopped logging...";
+  lprintf_nl "Stopped logging...";
         close_log ();
         _s "log stopped"
     ), ":\t\t\t\tclose logging to file";
@@ -2955,7 +2959,7 @@ let _ =
             close_log ();
             let oc = open_out_gen [Open_creat; Open_wronly; Open_trunc] 0o644 !!log_file in
               log_to_file oc;
-              lprintf_nl () "Cleared %s" !!log_file;
+              lprintf_nl "Cleared %s" !!log_file;
               Printf.sprintf "Logfile %s cleared" !!log_file
           end
         else

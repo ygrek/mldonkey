@@ -61,10 +61,6 @@ I know this is stupid, but "give the people what they want"..
 
 *)
 
-let lprintf_nl () =
-  lprintf "%s[EDK] "
-  (log_time ()); lprintf_nl2
-
 let create_online_sig () =
   
   let most_users = ref Int64.zero in
@@ -250,7 +246,7 @@ let value_to_file file_size file_state assocs =
         get_value "file_diskname" value_to_string
       with _ ->
         let filename = Filename.concat !!temp_directory file_md4 in
-          lprintf_nl () "getting file_diskname from ini failed, testing for ed2k-temp-file %s" filename;
+          lprintf_nl "getting file_diskname from ini failed, testing for ed2k-temp-file %s" filename;
         if Sys.file_exists filename then
           filename
         else
@@ -260,7 +256,7 @@ let value_to_file file_size file_state assocs =
                 !!temp_directory
                 ( string_of_uid ( Ed2k (Md4.of_string file_md4) ) )
             in
-            lprintf_nl () "geting file_diskname from ini failed, testing for ed2k-temp-file %s"
+            lprintf_nl "geting file_diskname from ini failed, testing for ed2k-temp-file %s"
               filename;
             if Sys.file_exists filename then
               filename
@@ -272,9 +268,9 @@ let value_to_file file_size file_state assocs =
     in
     if not (Sys.file_exists filename) then
       (* I think we should die here, to prevent any corruption. *)
-      lprintf_nl () "ERROR ED2K-TEMP-FILE %s DOES NOT EXIST, THIS WILL PERHAPS LEAD TO CORRUPTION IN THAT DOWNLOAD!"
+      lprintf_nl "ERROR ED2K-TEMP-FILE %s DOES NOT EXIST, THIS WILL PERHAPS LEAD TO CORRUPTION IN THAT DOWNLOAD!"
         filename;
-    if !verbose then lprintf_nl () "ed2k-temp-file %s used." filename;
+    if !verbose then lprintf_nl "ed2k-temp-file %s used." filename;
     filename
   in
 
@@ -463,7 +459,7 @@ let safe_add_server ip port =
 let config_files_loaded = ref false  
       
 let load _ =
-  if !verbose then lprintf_nl () "Loading shared files";
+  if !verbose then lprintf_nl "Loading shared files";
   (try
       Options.load shared_files_ini;
       Options.load stats_ini;
@@ -555,7 +551,7 @@ let load_sources () =
 let check_result r tags =
   if r.result_names = [] || r.result_size = Int64.zero then begin
       if !verbose then begin
-          lprintf_n () "Bad search result: ";
+          lprintf_n "Bad search result: ";
           List.iter (fun tag ->
               lprintf "[%s] = [%s] " (string_of_field tag.tag_name)
                 (string_of_tag_value tag.tag_value)

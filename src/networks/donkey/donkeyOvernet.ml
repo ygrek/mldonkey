@@ -332,14 +332,13 @@ module Make(Proto: sig
 
     open Proto
 
-    let lprintf_nl () =
-      lprintf "%s[%s] "
-      (log_time ())
-      (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"); lprintf_nl2
+    let log_prefix = (if Proto.redirector_section = "DKKO" then "[Overnet]" else "[Kademlia]")
 
-    let lprintf_n () =
-      lprintf "[%s] "
-      (if Proto.redirector_section = "DKKO" then "Overnet" else "Kademlia"); lprintf
+    let lprintf_nl fmt =
+      lprintf_nl2 log_prefix fmt
+
+    let lprintf_n fmt =
+      lprintf2 log_prefix fmt
 
 (********************************************************************
 
@@ -854,7 +853,7 @@ let get_closest_peers md4 nb =
         if p.peer_kind < 4 && p.peer_expire > last_time () && 
            p.peer_last_send <> 0 then begin
             if !verbose_overnet then begin
-            lprintf_nl () "Adding good search peer %s:%d"
+            lprintf_nl "Adding good search peer %s:%d"
               (Ip.to_string p.peer_ip) p.peer_port;
 	    end;
             decr nb;
@@ -942,7 +941,7 @@ let add_search_peer s p =
   end
 
 let create_search kind md4 =
-  if !verbose_overnet then lprintf_nl () "create_search";
+  if !verbose_overnet then lprintf_nl "create_search";
   let starttime = last_time () + (2 * List.length !overnet_searches) in
   let s = ref {
       search_md4 = md4;
@@ -971,7 +970,7 @@ let create_search kind md4 =
     end
   ) !overnet_searches;
   List.iter (add_search_peer !s) (get_closest_peers md4 max_search_queries);
-  if !verbose_overnet then lprintf_nl () "create_search done";
+  if !verbose_overnet then lprintf_nl "create_search done";
   overnet_searches := !s :: !overnet_searches;
   !s
 
@@ -995,7 +994,7 @@ let udp_client_handler t p =
   let other_ip = ip_of_udp_packet p in
   let other_port = port_of_udp_packet p in
   if !verbose_overnet then
-    lprintf_nl () "UDP FROM %s:%d type %s"
+    lprintf_nl "UDP FROM %s:%d type %s"
       (Ip.to_string other_ip) other_port
       (message_to_string t);
   (* Emule uses other_ip:other_port, so do we *)
@@ -1013,7 +1012,7 @@ let udp_client_handler t p =
        else
 	 begin
 	   if !verbose_overnet then
-	     lprintf_nl () "Connect: invalid IP %s:%d received from %s:%d"
+       lprintf_nl "Connect: invalid IP %s:%d received from %s:%d"
 	          (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
 	     failwith "Message not understood"
 	 end
@@ -1039,7 +1038,7 @@ let udp_client_handler t p =
         udp_send sender (OvernetPublicized (Some (my_peer ())))
        else begin
 	      if !verbose_overnet then
-	        lprintf_nl () "Publicize: invalid IP %s:%d received from %s:%d"
+          lprintf_nl "Publicize: invalid IP %s:%d received from %s:%d"
 	          (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
 	      failwith "Message not understood"
 	    end
@@ -1068,8 +1067,8 @@ let udp_client_handler t p =
   | OvernetUnknown (opcode, s) ->
       if !verbose_unknown_messages then
         begin
-          lprintf_nl () "Unknown message from %s:%d " (Ip.to_string other_ip) other_port;
-          lprintf_nl () "\tCode: %d" opcode; dump s;
+          lprintf_nl "Unknown message from %s:%d " (Ip.to_string other_ip) other_port;
+          lprintf_nl "\tCode: %d" opcode; dump s;
         end
 
   | OvernetSearchFilesResults (md4, results) ->
@@ -1088,9 +1087,9 @@ let udp_client_handler t p =
                           s.search_hits <- s.search_hits + 1;
                           Hashtbl.add s.search_results r_md4 r_tags;
                           if !verbose_overnet then begin
-                              lprintf_nl () "FILE FOUND, TAGS:";
+                              lprintf_nl "FILE FOUND, TAGS:";
                               print_tags r_tags;
-                              lprintf_nl () ""
+                              lprintf_nl ""
                         end;
 
                           DonkeyOneFile.search_found true sss r_md4 r_tags;
@@ -1159,32 +1158,32 @@ let udp_client_handler t p =
 
   | OvernetFirewallConnectionACK(md4) ->   
        if !verbose_overnet && debug_client other_ip then   
-         lprintf_nl () "FIREWALL ACK for md4=%s" (Md4.to_string md4)   
+         lprintf_nl "FIREWALL ACK for md4=%s" (Md4.to_string md4)   
     
    | OvernetFirewallConnectionNACK(md4) ->   
        if !verbose_overnet && debug_client other_ip then   
-         lprintf_nl () "FIREWALL NACK for md4=%s" (Md4.to_string md4)   
+         lprintf_nl "FIREWALL NACK for md4=%s" (Md4.to_string md4)   
     
  (* send the answer *)   
    | OvernetGetMyIP other_port ->   
        if !verbose_overnet && debug_client other_ip then   
-         lprintf_nl () "GET MY IP (port=%d)\n" other_port;   
+         lprintf_nl "GET MY IP (port=%d)\n" other_port;   
  (* FIXME : should be able to flush the UDP buffer*)   
        udp_send sender (OvernetGetMyIPResult other_ip);   
        udp_send sender OvernetGetMyIPDone   
     
    | OvernetGetMyIPResult(ip) ->   
        if !verbose_overnet && debug_client other_ip then   
-         lprintf_nl () "GET MY IP RESULT (%s)\n" (Ip.to_string ip)   
+         lprintf_nl "GET MY IP RESULT (%s)\n" (Ip.to_string ip)   
     
    | OvernetGetMyIPDone ->   
        if !verbose_overnet && debug_client other_ip then   
-         lprintf_nl () "GET MY IP DONE\n"   
+         lprintf_nl "GET MY IP DONE\n"   
   
   | OvernetPeerNotFound peer ->
       begin
         if !verbose_overnet || debug_client other_ip then
-          lprintf_nl () "Peer NOT FOUND %s (%s:%d) kind: %d (msg 33)"
+          lprintf_nl "Peer NOT FOUND %s (%s:%d) kind: %d (msg 33)"
             (Md4.to_string peer.peer_md4) (Ip.to_string peer.peer_ip)
         peer.peer_port peer.peer_kind;
         let dp = { dummy_peer with peer_port = peer.peer_port ; peer_ip = peer.peer_ip } in
@@ -1209,8 +1208,8 @@ let udp_client_handler t p =
 
    | OvernetUnknown21 peer ->
       if !verbose_overnet && debug_client other_ip then begin
-          lprintf_nl () "Unknown 21 message ...";
-          lprintf_nl () "From peer: %s ip: %s:%d kind: %d"
+          lprintf_nl "Unknown 21 message ...";
+          lprintf_nl "From peer: %s ip: %s:%d kind: %d"
             (Md4.to_string peer.peer_md4) (Ip.to_string peer.peer_ip) peer.peer_port peer.peer_kind
         end
 
@@ -1312,7 +1311,7 @@ let update_buckets () =
       begin
         decr connected_peers;
         KnownPeers.remove known_peers p;
-        if !verbose_overnet then lprintf_nl () "update_bucket1: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
+        if !verbose_overnet then lprintf_nl "update_bucket1: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
       end;
     done
 
@@ -1339,7 +1338,7 @@ let update_buckets () =
             end else if p.peer_kind = 4 && p.peer_expire <= last_time () then begin
               decr pre_connected_peers;
               KnownPeers.remove known_peers p;
-              if !verbose_overnet then lprintf_nl () "update_bucket2: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
+              if !verbose_overnet then lprintf_nl "update_bucket2: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
             end else
             (* the rest returns in prebuckets *)
             Fifo.put pb p
@@ -1537,7 +1536,7 @@ let load_contact_dat filename =
     ) ss;
     List.length ss
   with e ->
-      lprintf_nl () "Exception %s while loading %s" (Printexc2.to_string e)
+      lprintf_nl "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
       0
 
@@ -1781,10 +1780,10 @@ let _ =
             (Ip.of_string ip)
           (int_of_string port)
           (OvernetUnknown (opcode,msg));
-          lprintf_nl () "Sending UDP message %d to %s:%s" opcode ip port;
-          dump msg; lprintf_nl () ""; "Sending UDP message"
+          lprintf_nl "Sending UDP message %d to %s:%s" opcode ip port;
+          dump msg; lprintf_nl ""; "Sending UDP message"
         with _ ->
-            lprintf_nl () "Unable to send UDP message"; "Unable to send UDP message"
+            lprintf_nl "Unable to send UDP message"; "Unable to send UDP message"
     ), ":\t\t\t\tsend UDP message (<ip> <port> <msg in hex>)";
     
     "buckets", Arg_none (fun o ->
@@ -1845,10 +1844,10 @@ let _ =
 let overnet_search (ss : search) =
   if !!overnet_search_keyword && !!enable_overnet then
     let q = ss.search_query in
-    if !verbose_overnet then lprintf_nl () "========= %s_search =========" command_prefix_to_net;
+    if !verbose_overnet then lprintf_nl "========= %s_search =========" command_prefix_to_net;
     let ws = keywords_of_query q in
     List.iter (fun w ->
-        if !verbose_overnet then lprintf_nl () "%s_search for %s" command_prefix_to_net w;
+        if !verbose_overnet then lprintf_nl "%s_search for %s" command_prefix_to_net w;
         let s = create_keyword_search w ss in
         Hashtbl.iter (fun r_md4 r_tags ->
             DonkeyOneFile.search_found true ss r_md4 r_tags) s.search_results;
@@ -1911,10 +1910,10 @@ let _ =
                 Ip.async_ip name (fun ip ->
                     let port = int_of_string port in
                     if !verbose_overnet then
-                      lprintf_nl () "Adding %s peer %s:%d" command_prefix_to_net name port;
+                      lprintf_nl "Adding %s peer %s:%d" command_prefix_to_net name port;
                     bootstrap ip port)
-            | _ -> lprintf_nl () "BAD LINE ocl: %s" s;
-          with _ -> lprintf_nl () "DNS failed";
+            | _ -> lprintf_nl "BAD LINE ocl: %s" s;
+          with _ -> lprintf_nl "DNS failed";
       ) lines
   );
 
@@ -1924,12 +1923,12 @@ let _ =
       (fun url filename ->
         if !!enable_overnet && !!overnet_update_nodes then
           let n = load_contact_dat filename in
-            lprintf_nl () "contact.dat loaded from %s, added %d peers" url n;
+            lprintf_nl "contact.dat loaded from %s, added %d peers" url n;
 	else
 	  if not !!enable_overnet then
-	    lprintf_nl () "Overnet module is disabled, ignoring..."
+      lprintf_nl "Overnet module is disabled, ignoring..."
 	  else
-	    lprintf_nl () "Overnet_update_nodes is disabled, ignoring..."
+      lprintf_nl "Overnet_update_nodes is disabled, ignoring..."
         );
 
 (*************************************************************

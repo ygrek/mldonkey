@@ -225,7 +225,7 @@ let load_server_list _ filename =
         match String2.split_simplify s ':' with
           [_;_;server_name; server_port] -> 
             let port = int_of_string server_port in
-            lprintf_nl () "NEW SERVER %s:%d" server_name port;
+            lprintf_nl "NEW SERVER %s:%d" server_name port;
             (*
             main_server_name =:= server_name;
 main_server_port =:= port;

@@ -323,7 +323,7 @@ information. *)
   
 with e ->
   if !verbose then
-  lprintf_nl () "server_to_client exception %s" (Printexc2.to_string e)
+  lprintf_nl "server_to_client exception %s" (Printexc2.to_string e)
   
 (*************************************************************************)
 (*                                                                       *)

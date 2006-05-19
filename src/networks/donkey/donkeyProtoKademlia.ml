@@ -35,12 +35,13 @@ open DonkeyOptions
 
 module P = struct
 
-    let lprintf_nl () =
-      lprintf "%s[Kademlia] "
-      (log_time ()) ; lprintf_nl2
+    let log_prefix = "[Kademlia]"
 
-    let lprintf_n () =
-      lprintf "[Kademlia] " ; lprintf
+    let lprintf_nl fmt =
+      lprintf_nl2 log_prefix fmt
+
+    let lprintf_n fmt =
+      lprintf2 log_prefix fmt
 
     let names_of_tag =
       [
@@ -261,7 +262,7 @@ module P = struct
                       peer_kind := 3)
               | _ ->
                 if !verbose_unknown_messages then
-                  lprintf_nl () "Unused source tag [%s]"
+                  lprintf_nl "Unused source tag [%s]"
                     (escaped_string_of_field tag)
           ) r_tags;
           {
@@ -403,7 +404,7 @@ module P = struct
           magic <> kademlia_packed_header_code) then
         begin
           if !CommonOptions.verbose_unknown_messages then begin
-              lprintf_nl () "Received unknown UDP packet";
+              lprintf_nl "Received unknown UDP packet";
               dump pbuf;
             end;
           raise Not_found
@@ -440,7 +441,7 @@ module P = struct
 
         if !verbose_overnet then
           begin
-            lprintf_nl () "Sending UDP to %s:%d (opcode 0x%02X len %d) type %s"
+            lprintf_nl "Sending UDP to %s:%d (opcode 0x%02X len %d) type %s"
               (Ip.to_string ip) port (get_uint8 s 1) (String.length s) (message_to_string msg);
           end;
         (*
@@ -454,7 +455,7 @@ module P = struct
         UdpSocket.write sock ping s ip port
       with
       | MessageNotImplemented -> ()
-      | e -> lprintf_nl () "Exception %s in udp_send" (Printexc2.to_string e)
+      | e -> lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
 
     let udp_handler f sock event =
       match event with
@@ -474,7 +475,7 @@ module P = struct
               with e ->
                 if !verbose_unknown_messages then
                 begin
-                  lprintf_nl () "Error %s in udp_handler, dump of packet:"
+                  lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e);
                   dump p.UdpSocket.udp_content;
                   lprint_newline ()

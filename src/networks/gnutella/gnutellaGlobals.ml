@@ -44,15 +44,13 @@ open GnutellaTypes
 open GnutellaOptions
 open GnutellaNetwork
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[Gnutella] "
-    (log_time ()); lprintf_nl2
+let log_prefix = "[Gnutella]"
 
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[Gnutella] "
-    (log_time ()); lprintf
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 let should_update_shared_files = ref false
 
@@ -339,7 +337,7 @@ let new_file file_temporary file_name file_size file_uids =
     } 
   in
   if !verbose then
-    lprintf_nl () "SET SIZE : %Ld\n" file_size;
+    lprintf_nl "SET SIZE : %Ld\n" file_size;
   let kernel = CommonSwarming.create_swarmer file_temp file_size 
       (Int64.of_int (256 * 1024))  in
   let swarmer = CommonSwarming.create kernel (as_file file) megabyte in
@@ -543,7 +541,7 @@ let client_ip sock =
 
 let disconnect_from_server s r =
   if !verbose then
-    lprintf_nl () "disconnect_from_server %s" (string_of_reason r);
+    lprintf_nl "disconnect_from_server %s" (string_of_reason r);
   match s.server_sock with
   | Connection sock ->
       let h = s.server_host in
@@ -552,7 +550,7 @@ let disconnect_from_server s r =
             let connection_time = Int64.to_int (
                 Int64.sub (int64_time ()) s.server_connected) in
             if !verbose then
-              lprintf_nl () "disconnect_from_connected_server %s:%d after %d seconds (%s)\n"
+              lprintf_nl "disconnect_from_connected_server %s:%d after %d seconds (%s)\n"
                 (Ip.string_of_addr h.host_addr) h.host_port
                 connection_time (string_of_reason r)
             ;

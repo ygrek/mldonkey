@@ -198,12 +198,16 @@ let lprintf fmt =
   cprintf (fun s -> try !lprintf_handler s with _ -> ())
   (fmt : ('a,unit, unit) format )
 
+let lprintf2 m fmt =
+  cprintf (fun s -> try !lprintf_handler ((log_time ())^m^" "^s) with _ -> ())
+  (fmt : ('a,unit, unit) format )
+
 let lprintf_nl fmt =
   cprintf (fun s -> try !lprintf_handler ((log_time ())^s^"\n") with _ -> ())
   (fmt : ('a,unit, unit) format )
 
-let lprintf_nl2 fmt =
-  cprintf (fun s -> try !lprintf_handler (s^"\n") with _ -> ())
+let lprintf_nl2 m fmt =
+  cprintf (fun s -> try !lprintf_handler ((log_time ())^m^" "^s^"\n") with _ -> ())
   (fmt : ('a,unit, unit) format )
 
 let lprint_newline () = lprintf "\n"

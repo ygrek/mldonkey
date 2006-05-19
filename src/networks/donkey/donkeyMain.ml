@@ -45,10 +45,6 @@ open DonkeyClient
 open DonkeyThieves
 open DonkeyOptions
 
-let lprintf_nl () =
-  lprintf "%s[EDK] "
-    (log_time ()); lprintf_nl2
-
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!enable_donkey);
   option_hook enable_donkey (fun _ ->
@@ -76,7 +72,7 @@ let second_timer timer =
       DonkeySources.connect_sources connection_manager;
     with e ->
         if !verbose_sources > 2 then 
-          lprintf_nl () "Exception %s while checking sources" 
+          lprintf_nl "Exception %s while checking sources" 
             (Printexc2.to_string e)
   );
   DonkeyServers.udp_walker_timer ()
@@ -227,7 +223,7 @@ let enable () =
                   if Unix32.file_exists file_disk_name &&
                     Unix32.getsize file_disk_name <> Int64.zero then begin
                     (* getsize writable=false is ok because file has state FileDownloaded *)
-                      lprintf_nl () "FILE DOWNLOADED"; 
+                      lprintf_nl "FILE DOWNLOADED"; 
                       
                       DonkeyOneFile.declare_completed_file file;
                     end
@@ -236,7 +232,7 @@ let enable () =
                     file_commit (as_file file)
               end
           with e ->
-              lprintf_nl () "Exception %s while recovering download %s"
+              lprintf_nl "Exception %s while recovering download %s"
                 (Printexc2.to_string e) (file_disk_name file); 
       ) files_by_md4;
       
@@ -278,7 +274,7 @@ be useful when users want to share files that they had already previously
               udp_sock := Some sock;
               UdpSocket.set_write_controler sock udp_write_controler;
             with e ->
-                lprintf_nl () "Exception %s while binding UDP socket"
+                lprintf_nl "Exception %s while binding UDP socket"
                   (Printexc2.to_string e);
           end;
           sock
@@ -338,13 +334,13 @@ be useful when users want to share files that they had already previously
 *)
 
   with e ->
-      lprintf_nl () "Error: Exception %s during startup"
+      lprintf_nl "Error: Exception %s during startup"
         (Printexc2.to_string e)
 
 
 let rec update_options () =
   let update v =
-      lprintf_nl () "Updating options to version %i" v;
+      lprintf_nl "Updating options to version %i" v;
       options_version =:= v;
       update_options ()
   in

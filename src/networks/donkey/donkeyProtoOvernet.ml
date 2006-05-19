@@ -32,12 +32,13 @@ open DonkeyOvernet
 
 module Proto = struct
 
-     let lprintf_nl () =
-      lprintf "%s[Overnet] "
-      (log_time ()) ; lprintf_nl2
+    let log_prefix = "[Overnet]"
 
-    let lprintf_n () =
-      lprintf "[Overnet] " ; lprintf
+    let lprintf_nl fmt =
+      lprintf_nl2 log_prefix fmt
+
+    let lprintf_n fmt =
+      lprintf2 log_prefix fmt
 
    let names_of_tag = file_common_tags
 
@@ -189,14 +190,14 @@ module Proto = struct
             Field_UNKNOWN "loc" ->
               for_string_tag tag (fun bcp ->
                   if !verbose_overnet then
-                  lprintf_nl () "loc tag : [%s]" bcp;
+                  lprintf_nl "loc tag : [%s]" bcp;
                   if String2.starts_with bcp "bcp://" then
                     let bcp2 = String.sub bcp 6 (String.length bcp - 6)
                     in
                     match String2.split_simplify bcp2 ':' with
                     | [_;ip;port] ->
                         if !verbose_overnet then
-                          lprintf_nl () "Received BCP type 2 %s"
+                          lprintf_nl "Received BCP type 2 %s"
                             bcp;
 
 (* FIXME: A firewalled peer...
@@ -209,14 +210,14 @@ module Proto = struct
                         peer_tcpport := int_of_string port;
                     | _ ->
         		if !verbose_overnet then
-                          lprintf_nl () "Ill formed bcp: [%s]" bcp;
+                          lprintf_nl "Ill formed bcp: [%s]" bcp;
                   else
 		    if !verbose_overnet then
-                      lprintf_nl () "Ill formed bcp: [%s]" bcp;
+                      lprintf_nl "Ill formed bcp: [%s]" bcp;
               )
           | _ ->
             if !verbose_unknown_messages then
-              lprintf_nl () "Unused source tag [%s]"
+              lprintf_nl "Unused source tag [%s]"
                 (escaped_string_of_field tag)
       ) r_tags;
       {
@@ -317,7 +318,7 @@ module Proto = struct
         | 21 ->
 (* idem as 33, but IP seem to be a low ID *)
             if !verbose_overnet then begin
-                lprintf_nl () "Received code %d message. Dump:" opcode;
+                lprintf_nl "Received code %d message. Dump:" opcode;
                 dump s;
                 lprint_newline ();
               end;
@@ -325,42 +326,42 @@ module Proto = struct
             OvernetUnknown21 peer
         | 24 ->
             if !verbose_overnet then
-              lprintf_nl () "RCVD: OVERNET FIREWALL CONNECTION (24)";
+              lprintf_nl "RCVD: OVERNET FIREWALL CONNECTION (24)";
             let md4 = get_md4 s 0 in
             let port = get_int16 s 16 in
             OvernetFirewallConnection(md4,port)
         | 25 ->
             if !verbose_overnet then
-              lprintf_nl () "RCVD: OVERNET FIREWALL CONNECTION ACK (25)";
+              lprintf_nl "RCVD: OVERNET FIREWALL CONNECTION ACK (25)";
             let md4 = get_md4 s 0 in
             OvernetFirewallConnectionACK(md4)
         | 26 ->
             if !verbose_overnet then
-              lprintf_nl () "RCVD: OVERNET FIREWALL CONNECTION NACK (26)";
+              lprintf_nl "RCVD: OVERNET FIREWALL CONNECTION NACK (26)";
             let md4 = get_md4 s 0 in
             OvernetFirewallConnectionNACK(md4)
         | 27 ->
             if !verbose_overnet then
-              lprintf_nl () "RCVD: GETMYIP MESSAGE (27)";
+              lprintf_nl "RCVD: GETMYIP MESSAGE (27)";
             OvernetGetMyIP (get_int16 s 0)
         | 28 ->
             if !verbose_overnet then
-              lprintf_nl () "RCVD: GETMYIPRESULT MESSAGE (28)";
+              lprintf_nl "RCVD: GETMYIPRESULT MESSAGE (28)";
             let ip = get_ip s 0 in
             OvernetGetMyIPResult (ip)
         | 29 ->
             if !verbose_overnet then
-              lprintf_nl () "RCVD: GETMYIPDONE MESSAGE (29)";
+              lprintf_nl "RCVD: GETMYIPDONE MESSAGE (29)";
             OvernetGetMyIPDone
         | 33 ->
             if !verbose_overnet then
-              lprintf_nl () "RCVD: PEER NOT FOUND (33)";
+              lprintf_nl "RCVD: PEER NOT FOUND (33)";
             let peer, _ = get_peer s 0 in
             OvernetPeerNotFound peer
         | _ ->
             if !verbose_unknown_messages then
               begin
-                lprintf_nl () "unknown opcode %d" opcode;
+                lprintf_nl "unknown opcode %d" opcode;
                 dump s;
                 lprint_newline ();
               end;
@@ -368,7 +369,7 @@ module Proto = struct
       with e ->
           if !verbose_unknown_messages then
             begin
-              lprintf_nl () "Error %s while parsing opcode %d" (Printexc2.to_string e) opcode;
+              lprintf_nl "Error %s while parsing opcode %d" (Printexc2.to_string e) opcode;
               dump s;
               lprint_newline ();
             end;
@@ -385,7 +386,7 @@ module Proto = struct
                   int_of_char pbuf.[0] <> 227 then
                   begin
                     if !verbose_unknown_messages then begin
-                        lprintf_nl () "Received unknown UDP packet";
+                        lprintf_nl "Received unknown UDP packet";
                         dump pbuf;
                       end
                   end
@@ -403,7 +404,7 @@ module Proto = struct
                   end
               with e ->
                 if !verbose_unknown_messages then begin
-                  lprintf_nl () "Error %s in udp_handler, dump of packet:"
+                  lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e);
                   dump p.UdpSocket.udp_content;
                   lprint_newline ()
@@ -429,12 +430,12 @@ module Proto = struct
         let s = Buffer.contents udp_buf in
         if !verbose_overnet then
           begin
-            lprintf_nl () "Sending UDP to %s:%d (opcode 0x%02X len %d) type %s"
+            lprintf_nl "Sending UDP to %s:%d (opcode 0x%02X len %d) type %s"
               (Ip.to_string ip) port (get_uint8 s 1) (String.length s) (message_to_string msg);
           end;
         UdpSocket.write sock ping s ip port
       with e ->
-          lprintf_nl () "Exception %s in udp_send" (Printexc2.to_string e)
+          lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
 
     let udp_send sock ip port ping msg =
       match msg with

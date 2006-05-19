@@ -36,14 +36,6 @@ open DonkeyGlobals
 open DonkeyTypes
 open DonkeyMftp
 
-let lprintf_nl () =
-  lprintf "%s[EDK] "
-    (log_time ()); lprintf_nl2
-
-let lprintf_n () =
-  lprintf "%s[EDK] "
-    (log_time ()); lprintf
-
 let buf = TcpBufferedSocket.internal_buf
 
 let client_msg_to_string emule_version msg =
@@ -64,7 +56,7 @@ let server_msg_to_string msg =
   DonkeyProtoServer.write buf msg;
 
   if !verbose_msg_servers then begin
-      lprintf_nl () "MESSAGE TO SERVER:";
+      lprintf_nl "MESSAGE TO SERVER:";
       DonkeyProtoServer.print msg;
       lprint_newline ();
     end;
@@ -87,7 +79,7 @@ let direct_client_sock_send emule_version sock m =
 let client_send c m =
   let emule_version = c.client_emule_proto in
   if !verbose_msg_clients || c.client_debug then begin
-      lprintf_nl () "Sent to client[%d] %s(%s) %s" (client_num c)
+      lprintf_nl "Sent to client[%d] %s(%s) %s" (client_num c)
         c.client_name (brand_to_string c.client_brand)
       (match c.client_kind with
           Indirect_address (server_ip, server_port, ip, port, real_ip) ->
@@ -169,7 +161,7 @@ let cut_messages parse f sock nread =
 let really_udp_send t ip port msg isping =
 
   if !verbose_udp then begin
-      lprintf_nl () "Message UDP%s to %s:%d\n%s" 
+      lprintf_nl "Message UDP%s to %s:%d\n%s" 
         (if isping then "(PING)" else "") (Ip.to_string ip) 
         port (DonkeyProtoUdp.print msg);
     end;
@@ -180,7 +172,7 @@ let really_udp_send t ip port msg isping =
     let s = Buffer.contents buf in
     UdpSocket.write t isping s ip port
   with e ->
-      lprintf_nl () "Exception %s in udp_send" (Printexc2.to_string e)
+      lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
 
 let udp_send t ip port msg =
   really_udp_send t ip port msg false
@@ -212,7 +204,7 @@ let udp_basic_handler f sock event =
             if len = 0 ||
               int_of_char pbuf.[0] <> DonkeyOpenProtocol.udp_magic then begin
                 if !verbose_unknown_messages then begin
-                    lprintf_nl () "Received unknown UDP packet";
+                    lprintf_nl "Received unknown UDP packet";
                     dump pbuf;
                   end;
               end else begin
@@ -220,7 +212,7 @@ let udp_basic_handler f sock event =
                 f t p
               end
           with e ->
-              lprintf_nl () "Error %s in udp_basic_handler"
+              lprintf_nl "Error %s in udp_basic_handler"
                 (Printexc2.to_string e)
       ) ;
   | _ -> ()
@@ -239,7 +231,7 @@ let tag_file file =
       let name = if String2.starts_with name "hidden." then
           String.sub name 7 (String.length name - 7)
         else name in
-      if !verbose_share then lprintf_nl () "tag_file: Sharing %s" name;
+      if !verbose_share then lprintf_nl "tag_file: Sharing %s" name;
       name
     ))::
   (int64_tag Field_Size file.file_file.impl_file_size) ::
@@ -248,7 +240,7 @@ let tag_file file =
         FormatNotComputed next_time when
         next_time < last_time () ->
           (try
-              if !verbose_share then lprintf_nl () "Find format %s"
+              if !verbose_share then lprintf_nl "Find format %s"
                   (file_disk_name file);
               file.file_format <- (
                 match
@@ -347,7 +339,7 @@ let server_send_share compressed sock msg =
       str_int s 0 nfiles;
       let s = String.sub s 0 prev_len in
       if !verbose_share || !verbose then
-         lprintf_nl () "Sending %d share(s) to server %s:%d%s"
+         lprintf_nl "Sending %d share(s) to server %s:%d%s"
 	   nfiles (Ip.to_string (peer_ip sock)) (peer_port sock)
 	   (if compressed then "(zlib)" else "");
       Buffer.reset buf;

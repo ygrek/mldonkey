@@ -166,7 +166,7 @@ let get_html url_name f progress =
       try
         (try Sys.remove filename with _ -> ());
         File.from_string filename _s;
-      with _ -> (lprintf_nl2 "failed in H.wget_string")
+      with _ -> (lprintf_nl "failed in H.wget_string")
     end;
     Unix2.tryopen_read_bin filename (fun in_chan ->
       let lexb = Lexing.from_channel in_chan in
@@ -246,7 +246,7 @@ let parse_razorback_stats stats md4 referer on_png_completed on_not_found progre
                         File.from_string filename ___s;
                         stats.stats_file_history <- filename;
                         on_png_completed ();
-                      with _ -> (lprintf_nl2 "failed in H.wget_string")) (fun n m -> progress progress_desc n m)
+                      with _ -> (lprintf_nl "failed in H.wget_string")) (fun n m -> progress progress_desc n m)
                   end
               ) sl;
               iter __dl

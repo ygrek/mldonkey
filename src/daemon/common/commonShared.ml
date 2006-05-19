@@ -80,9 +80,10 @@ let ni n m =
 let fni  n m =  failwith (ni n m)
 let ni_ok n m = ignore (ni n m)
 
-let lprintf_nl () =
-  lprintf "%s[cSha] "
-  (log_time ()); lprintf_nl2
+let log_prefix = "[cSha]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
     
 let shared_calculate_total_bytes () =
   nshared_bytes := Int64.zero;
@@ -107,7 +108,7 @@ let shared_must_update_downloaded shared =
 let update_shared_num impl =
   if impl.impl_shared_num = 0 then begin
       if !verbose_share then
-          lprintf_nl () "NEW SHARED %s/%s" impl.impl_shared_codedname
+          lprintf_nl "NEW SHARED %s/%s" impl.impl_shared_codedname
             impl.impl_shared_fullname; 
       incr shared_counter;
       impl.impl_shared_num <- !shared_counter;
@@ -143,13 +144,13 @@ let new_shared dirname prio filename fullname =
         name in
   let codedname = Filename.concat dirname filename in
   if !verbose_share then
-    lprintf_nl () "sharing %s" fullname;
+    lprintf_nl "sharing %s" fullname;
   let size = Unix32.getsize fullname in
   incr files_scanned;
   files_scanned_size := !files_scanned_size ++ size;
   if Unix2.is_directory fullname then begin
     if !verbose_share then
-      lprintf_nl () "new_shared: %s is directory! Skipped network.share" fullname;
+      lprintf_nl "new_shared: %s is directory! Skipped network.share" fullname;
   end
   else begin
   CommonNetwork.networks_iter (fun n -> 
@@ -250,7 +251,7 @@ let shared_scan_directory shared_dir local_dir =
   if can_share dirname then
     try
       let files = Unix2.list_directory full_dir in
-      if !verbose_share then lprintf_nl () "Sharing sub-directory %s" full_dir; 
+      if !verbose_share then lprintf_nl "Sharing sub-directory %s" full_dir; 
       List.iter (fun file ->
           if file <> "" && file.[0] <> '.' then
             let full_name = Filename.concat full_dir file in
@@ -262,13 +263,13 @@ let shared_scan_directory shared_dir local_dir =
 	          begin
 		    let inode = ((Unix.stat full_name).Unix.st_ino) in
 		      if inode = incoming_files_inode then
-		        if !verbose_share then lprintf_nl () "avoid sharing incoming_files %s" full_dir else ()
+            if !verbose_share then lprintf_nl "avoid sharing incoming_files %s" full_dir else ()
 		      else
 		        if inode = incoming_directories_inode then
-			  if !verbose_share then lprintf_nl () "avoid sharing incoming_directories %s" full_dir else ()
+        if !verbose_share then lprintf_nl "avoid sharing incoming_directories %s" full_dir else ()
 			else
 			  if inode = temp_directory_inode then
-			    if !verbose_share then lprintf_nl () "avoid sharing temp %s" full_dir else ()
+          if !verbose_share then lprintf_nl "avoid sharing temp %s" full_dir else ()
 			  else
 			    shared_add_directory shared_dir local_name
                   end
@@ -288,15 +289,15 @@ let shared_scan_directory shared_dir local_dir =
                   new_shared dirname shared_dir.shdir_priority
                     local_name full_name
               with e -> 
-                  lprintf_nl () "%s will not be shared (exception %s)"
+                  lprintf_nl "%s will not be shared (exception %s)"
                     full_name (Printexc2.to_string e);
             with _ -> ()
       ) files
     with e -> 
-        lprintf_nl () "Exception %s while sharing %s"
+        lprintf_nl "Exception %s while sharing %s"
            (Printexc2.to_string e) full_dir
   else 
-    lprintf_nl () "Cannot share %s" full_dir
+    lprintf_nl "Cannot share %s" full_dir
 
 let _ = 
   BasicSocket.add_infinite_timer 1. (fun _ ->
@@ -313,7 +314,7 @@ let _ =
     
 let shared_add_directory shared_dir =
   if shared_dir.shdir_dirname <> "" then begin
-      if !verbose_share then lprintf_nl () "Sharing %s prio %d" shared_dir.shdir_dirname
+      if !verbose_share then lprintf_nl "Sharing %s prio %d" shared_dir.shdir_dirname
         shared_dir.shdir_priority;
       shared_add_directory shared_dir ""
     end

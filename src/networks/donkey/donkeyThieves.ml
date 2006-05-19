@@ -34,6 +34,12 @@ open TcpBufferedSocket
 open DonkeyTypes
 open DonkeyGlobals
 
+
+let log_prefix = "[eDThieves]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
 type hash_history = Ip.t * Md4.t * int
 
 (* index by client IP *)
@@ -101,7 +107,7 @@ let register_client_hash ip hash =
 	    (* it switched to a hash that's used somewhere else,
 	       that's certainly a theft. *)
 	    if !verbose then
-	      lprintf_nl () "client_md4 %s (ip:%s) was already used somewhere else, that's certainly a theft!"
+        lprintf_nl "client_md4 %s (ip:%s) was already used somewhere else, that's certainly a theft!"
 	        (Md4.to_string hash) (Ip.to_string ip);
 	    false
 ;;

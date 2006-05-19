@@ -508,7 +508,7 @@ let parse pkt =
   with e ->
       if !verbose_unknown_messages then
         begin
-          lprintf_nl () "Exception in parse: %s" (Printexc2.to_string e);
+          lprintf_nl "Exception in parse: %s" (Printexc2.to_string e);
           dump_hex pkt.pkt_payload;
         end;
       { pkt with pkt_payload = UnknownReq (pkt.pkt_type,pkt.pkt_payload) }

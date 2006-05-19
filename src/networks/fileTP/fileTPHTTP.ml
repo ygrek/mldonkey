@@ -46,15 +46,13 @@ open FileTPProtocol
 
 open FileTPClients
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[FileTP] "
-    (log_time ()); lprintf_nl2
+let log_prefix = "[FileTP]"
 
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[FileTP] "
-    (log_time ()); lprintf
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 (*************************************************************************)
 (*                                                                       *)
@@ -89,7 +87,7 @@ let http_send_range_request c range sock d =
   Printf.bprintf buf "\r\n";
   let s = Buffer.contents buf in
   if !verbose_msg_clients then
-    lprintf_nl () "SENDING REQUEST to %s: %s"
+    lprintf_nl "SENDING REQUEST to %s: %s"
       c.client_hostname
       (String.escaped s);
   write_string sock s;
@@ -103,7 +101,7 @@ let http_send_range_request c range sock d =
 
 let rec client_parse_header c gconn sock header =
   if !verbose_msg_clients then
-    lprintf_nl () "CLIENT PARSE HEADER";
+    lprintf_nl "CLIENT PARSE HEADER";
   try
     set_lifetime sock 3600.;
     let d =
@@ -116,7 +114,7 @@ let rec client_parse_header c gconn sock header =
     connection_ok c.client_connection_control;
     set_client_state c Connected_initiating;
     if !verbose_msg_clients then begin
-        lprintf_nl () "HEADER FROM CLIENT:";
+        lprintf_nl "HEADER FROM CLIENT:";
         AnyEndian.dump_ascii header;
       end;
     let file = d.download_file in
@@ -134,7 +132,7 @@ let rec client_parse_header c gconn sock header =
       | _ -> failwith "Not a HTTP header line"
     in
     if !verbose_msg_clients then
-      lprintf_nl () "GOOD HEADER FROM CONNECTED CLIENT\n";
+      lprintf_nl "GOOD HEADER FROM CONNECTED CLIENT\n";
 
     set_rtimeout sock 120.;
 (*              lprintf "SPLIT HEADER...\n"; *)
@@ -154,12 +152,12 @@ let rec client_parse_header c gconn sock header =
             unknown_header := !unknown_header || not (List.mem header known_download_headers)
         ) headers;
         if !unknown_header then begin
-            lprintf_n () "Download Header contains unknown fields";
-            lprintf_nl2 "    %s" first_line;
+            lprintf_n "Download Header contains unknown fields";
+            lprintf_nl "    %s" first_line;
             List.iter (fun (header, (value,header2)) ->
-                lprintf_nl () "    [%s] = [%s](%s)" header value header2;
+                lprintf_nl "    [%s] = [%s](%s)" header value header2;
             ) headers;
-            lprintf_nl () "end of header";
+            lprintf_nl "end of header";
           end;
       end;
 
@@ -194,7 +192,7 @@ let rec client_parse_header c gconn sock header =
             x, Int64.succ y
         with
         | e ->
-            lprintf_nl () "Exception %s for range [%s]"
+            lprintf_nl "Exception %s for range [%s]"
               (Printexc2.to_string e) range;
             raise e
       with e ->
@@ -202,14 +200,14 @@ let rec client_parse_header c gconn sock header =
             if code <> 206 && code <> 200 then raise Not_found;
             let (len,_) = List.assoc "content-length" headers in
             let len = Int64.of_string len in
-            if !verbose then lprintf_nl () "Specified length: %Ld" len;
+            if !verbose then lprintf_nl "Specified length: %Ld" len;
             match d.download_ranges with
               [] -> raise Not_found
             | (start_pos,end_pos,r) :: _ ->
-                lprintf_nl () "WARNING: Assuming client is replying to range";
+                lprintf_nl "WARNING: Assuming client is replying to range";
                 if len <> end_pos -- start_pos then
                   begin
-                    lprintf_nl () "ERROR: bad computed range: %Ld-%Ld/%Ld \n%s"
+                    lprintf_nl "ERROR: bad computed range: %Ld-%Ld/%Ld \n%s"
                       start_pos end_pos len
                       (String.escaped header);
                     raise Not_found
@@ -218,7 +216,7 @@ let rec client_parse_header c gconn sock header =
           with _ ->
 (* A bit dangerous, no ??? *)
               if !verbose_unknown_messages then
-                lprintf_nl () "ERROR: Could not find/parse range header (exception %s), disconnect\nHEADER: %s"
+                lprintf_nl "ERROR: Could not find/parse range header (exception %s), disconnect\nHEADER: %s"
                     (Printexc2.to_string e)
                     (String.escaped header);
               disconnect_client c (Closed_for_error "Bad HTTP Range");
@@ -233,7 +231,7 @@ let rec client_parse_header c gconn sock header =
               start_pos end_pos len (String.escaped header))
           end
       with _ ->
-          lprintf_nl () "[WARNING]: no Content-Length field\n%s\n"
+          lprintf_nl "[WARNING]: no Content-Length field\n%s\n"
             (String.escaped header)
     );
 
@@ -275,7 +273,7 @@ let rec client_parse_header c gconn sock header =
                 CommonSwarming.received up
                   !counter_pos b.buf b.pos to_read_int;
           with e ->
-              lprintf_nl () "Exception %s in CommonSwarming.received"
+              lprintf_nl "Exception %s in CommonSwarming.received"
                 (Printexc2.to_string e)
         end;
         c.client_reconnect <- true;
@@ -287,7 +285,7 @@ let rec client_parse_header c gconn sock header =
         c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
 
         (match d.download_ranges with
-            [] -> lprintf_nl () "EMPTY Ranges!"
+            [] -> lprintf_nl "EMPTY Ranges!"
           | r :: _ ->
 (*
               let (x,y) = CommonSwarming.range_range r in
@@ -325,7 +323,7 @@ lprintf "READ: buf_used %d\n" to_read_int;
   with e ->
       if !verbose_unknown_messages then
         begin
-          lprintf_nl () "Exception %s in client_parse_header" (Printexc2.to_string e);
+          lprintf_nl "Exception %s in client_parse_header" (Printexc2.to_string e);
           AnyEndian.dump header
         end;
       disconnect_client c (Closed_for_exception e);
@@ -357,14 +355,14 @@ let http_check_size url start_download_file =
     } in
 
   H.whead r (fun headers ->
-      if !verbose then lprintf_nl () "RECEIVED HEADERS";
+      if !verbose then lprintf_nl "RECEIVED HEADERS";
       let content_length = ref None in
       List.iter (fun (name, content) ->
           if String.lowercase name = "content-length" then
             try
               content_length := Some (Int64.of_string content)
             with _ ->
-                lprintf_nl () "bad content length [%s]" content;
+                lprintf_nl "bad content length [%s]" content;
       ) headers;
       match !content_length with
         None -> failwith "Unable to start download (HEAD failed)"

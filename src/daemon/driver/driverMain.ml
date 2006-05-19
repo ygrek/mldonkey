@@ -51,15 +51,14 @@ open Gettext (* open last  as most modules redefine _s and _b *)
 let _s x = _s "DriverMain" x
 let _b x = _b "DriverMain" x
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s"
-    (log_time ()); lprintf_nl2
+let log_prefix = "[dMain]"
 
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s"
-    (log_time ()); lprintf
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
+
 
 let keep_console_output = ref false
 let pid = ref ""
@@ -99,11 +98,11 @@ let second_timer timer =
   (try
       update_link_stats ()
     with e ->
-        lprintf_nl () (_b "Exception %s") (Printexc2.to_string e));
+        lprintf_nl (_b "Exception %s") (Printexc2.to_string e));
 	  (try
      CommonUploads.refill_upload_slots ()
    with e ->
-        lprintf_nl () (_b "Exception %s") (Printexc2.to_string e));
+        lprintf_nl (_b "Exception %s") (Printexc2.to_string e));
   CommonUploads.reset_upload_timer ();
   CommonUploads.shared_files_timer ();
   ()
@@ -114,7 +113,7 @@ let start_interfaces () =
   if !!http_port <> 0 then begin try
         ignore (DriverControlers.create_http_handler ());
       with e ->
-          lprintf_nl () (_b "Exception %s while starting HTTP interface")
+          lprintf_nl (_b "Exception %s while starting HTTP interface")
             (Printexc2.to_string e);
     end;
 
@@ -144,7 +143,7 @@ let start_interfaces () =
 let _ =
   CommonWeb.add_web_kind "motd.html" "Information of the day in HTML format" 
     (fun _ filename ->
-      lprintf_nl () (_b "motd.html changed");
+      lprintf_nl (_b "motd.html changed");
     motd_html =:= File.to_string filename
   );
   CommonWeb.add_web_kind "motd.conf" "Setup changes of the day" 
@@ -164,12 +163,12 @@ let _ =
 	      | "del_item" ->
 		  CommonInteractive.del_item_from_fully_qualified_options name value
 	      | _ ->
-		  lprintf_nl () (_b "UNUSED LINE: %s") line
+      lprintf_nl (_b "UNUSED LINE: %s") line
 	  done
 	with End_of_file -> ())
     with
 	e -> 
-	  lprintf_nl () (_b "Error while reading motd.conf(%s): %s") filename
+    lprintf_nl (_b "Error while reading motd.conf(%s): %s") filename
 	    (Printexc2.to_string e)
   )
 
@@ -261,7 +260,7 @@ let load_config () =
   in
   if not exists_users_ini && exists_downloads_ini then
     begin
-      lprintf_nl () "No config file (users.ini) found. Importing users from downloads.ini.";
+      lprintf_nl "No config file (users.ini) found. Importing users from downloads.ini.";
       ( try Unix2.copy "downloads.ini" "users.ini" with _ -> () );
     end;
 
@@ -273,7 +272,7 @@ let load_config () =
       ignore (DriverInteractive.verify_user_admin ());
       DriverInteractive.hdd_check ()
     with e ->
-        lprintf_nl () "Exception %s during options load" (Printexc2.to_string e);
+        lprintf_nl "Exception %s during options load" (Printexc2.to_string e);
         exit 70);
 
   (* Here, we try to update options when a new version of mldonkey is
@@ -321,14 +320,14 @@ let load_config () =
 
   Arg.parse ([
       "-v", Arg.Unit (fun _ ->
-          lprintf_nl () "%s" (CommonGlobals.version ());
+          lprintf_nl "%s" (CommonGlobals.version ());
           exit 0), _s " : print version number and exit";
       "-exit", Arg.Unit (fun _ -> exit 0), ": exit immediatly";
       "-format", Arg.String (fun file ->
           ignore (CommonMultimedia.get_info file)),
           _s  " <filename> : check file format";
       "-test_ip", Arg.String (fun ip ->
-          lprintf_nl () "%s = %s" ip (Ip.to_string (Ip.of_string ip));
+          lprintf_nl "%s = %s" ip (Ip.to_string (Ip.of_string ip));
           exit 0), _s "<ip> : undocumented";
       "-check_impl", Arg.Unit (fun _ ->
           CommonNetwork.check_network_implementations ();
@@ -351,7 +350,7 @@ let load_config () =
        _s ": keep output to stderr after startup";
       "-daemon", Arg.Unit (fun _ ->
           (* Removed due to savannah bug #11514 . *)
-          lprintf_nl () "\n\nOption -daemon was removed.\nUse 'mlnet > /dev/null 2>&1 &' instead. Exiting...";
+          lprintf_nl "\n\nOption -daemon was removed.\nUse 'mlnet > /dev/null 2>&1 &' instead. Exiting...";
           exit 64), _s " : this argument was removed, core will exit";
       "-find_port", Arg.Set find_other_port,
       _s " : find another port when one is already used";
@@ -388,8 +387,8 @@ let _ =
   let t = Unix.localtime (Unix.time ()) in
   if (t.Unix.tm_year<=104) then
     begin
-      lprintf_nl () (_b "\n\n\nYour system has a system date earlier than 2004, please correct it.");
-      lprintf_nl () (_b "MLdonkey can not work with such a system date, exiting...");
+      lprintf_nl (_b "\n\n\nYour system has a system date earlier than 2004, please correct it.");
+      lprintf_nl (_b "MLdonkey can not work with such a system date, exiting...");
       CommonGlobals.exit_properly 71
     end;
 
@@ -423,12 +422,12 @@ or getting a binary compiled with glibc %s.\n\n")
       if Magic.M.magic_works () then
         begin
 	  Autoconf.magic_works := true;
-          lprintf_nl () (_b "Libmagic file-type recognition database present")
+          lprintf_nl (_b "Libmagic file-type recognition database present")
 	end
       else
         begin
 	  Autoconf.magic_works := false;
-          lprintf_nl () (_b "Libmagic file-type recognition database not present")
+          lprintf_nl (_b "Libmagic file-type recognition database not present")
 	end
   );
   load_config ();
@@ -450,7 +449,7 @@ or getting a binary compiled with glibc %s.\n\n")
   end;
 
 (*  lprintf "(3) networks_iter load_complex_options\n"; *)
-  lprintf_nl () (_b "Check http://www.mldonkey.net/ for updates");
+  lprintf_nl (_b "Check http://www.mldonkey.net/ for updates");
   networks_iter (fun r -> network_load_complex_options r);
   lprintf (_b "%senabling networks: ") (log_time ());
   networks_iter (fun r ->
@@ -502,17 +501,17 @@ or getting a binary compiled with glibc %s.\n\n")
   Options.prune_file users_ini;
 (*  Options.prune_file downloads_expert_ini; *)
   add_timer 5. (fun _ -> try CommonWeb.load_web_infos true with _ -> ());
-  lprintf_nl ()  (_b "To command: telnet %s %d")
+  lprintf_nl  (_b "To command: telnet %s %d")
 	(if !!telnet_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!telnet_bind_addr)  !!telnet_port;
-  lprintf_nl ()  (_b "Or with browser: http://%s:%d")
+  lprintf_nl  (_b "Or with browser: http://%s:%d")
 	(if !!http_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!http_bind_addr)  !!http_port;
-  lprintf_nl ()  (_b "For a GUI check out http://sancho-gui.sourceforge.net");
-  lprintf_nl ()  (_b "Connect to IP %s, port %d")
+  lprintf_nl  (_b "For a GUI check out http://sancho-gui.sourceforge.net");
+  lprintf_nl  (_b "Connect to IP %s, port %d")
 	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!gui_bind_addr)  !!gui_port;
-  lprintf_nl ()  (_b "If you connect from a remote machine adjust allowed_ips");
+  lprintf_nl  (_b "If you connect from a remote machine adjust allowed_ips");
   if Autoconf.system = "cygwin" && not !keep_console_output then lprintf (_b "%s") win_message;
 
   add_init_hook (fun _ ->
@@ -527,7 +526,7 @@ or getting a binary compiled with glibc %s.\n\n")
             Sys.file_exists asker then
             ignore (Sys.command (Printf.sprintf "%s %s&" asker !!mldonkey_gui));
         with Not_found ->
-            lprintf_nl () (_b "Not running under X, not trying to start the GUI")
+            lprintf_nl (_b "Not running under X, not trying to start the GUI")
             );
   );
 
@@ -536,9 +535,9 @@ or getting a binary compiled with glibc %s.\n\n")
         let new_pw = Unix.getpwnam !!run_as_user in
         MlUnix.setuid new_pw.Unix.pw_uid;
         let pw = Unix.getpwuid (Unix.getuid()) in
-        lprintf_nl () (_b "mldonkey is now running as user %s") pw.Unix.pw_name;
+        lprintf_nl (_b "mldonkey is now running as user %s") pw.Unix.pw_name;
       with e ->
-          lprintf_nl () (_b "Exception %s trying to set user_uid [%s]")
+          lprintf_nl (_b "Exception %s trying to set user_uid [%s]")
           (Printexc2.to_string e) !!run_as_user;
           exit 67
     end;
@@ -546,9 +545,9 @@ or getting a binary compiled with glibc %s.\n\n")
   if !!run_as_useruid <> 0 then begin
       try
         MlUnix.setuid !!run_as_useruid;
-        lprintf_nl () (_b "mldonkey is now running as uid %d")  !!run_as_useruid;
+        lprintf_nl (_b "mldonkey is now running as uid %d")  !!run_as_useruid;
       with e ->
-          lprintf_nl () (_b "Exception %s trying to set user_uid [%d]")
+          lprintf_nl (_b "Exception %s trying to set user_uid [%d]")
           (Printexc2.to_string e) !!run_as_useruid;
           exit 67
     end;
@@ -559,42 +558,42 @@ or getting a binary compiled with glibc %s.\n\n")
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sigchld
-      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl () "Received SIGCHLD, doing nothing"));
+      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl "Received SIGCHLD, doing nothing"));
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sighup
       (Sys.Signal_handle (fun _ ->
-	 lprintf_nl () "Received SIGHUP, closing all files/sockets";
+   lprintf_nl "Received SIGHUP, closing all files/sockets";
          BasicSocket.close_all ();
 	 Unix32.close_all ()
          ));
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sigpipe
-      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl () "Received SIGPIPE, doing nothing"));
+      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl "Received SIGPIPE, doing nothing"));
 
   MlUnix.set_signal  Sys.sigint
-    (Sys.Signal_handle (fun _ -> lprintf_nl () "Received SIGINT, stopping MLDonkey...";
+    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGINT, stopping MLDonkey...";
         CommonInteractive.clean_exit 0));
 
   MlUnix.set_signal  Sys.sigterm
-    (Sys.Signal_handle (fun _ -> lprintf_nl () "Received SIGTERM, stopping MLDonkey...";
+    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGTERM, stopping MLDonkey...";
         CommonInteractive.clean_exit 0));
 
   if not Autoconf.windows then
   MlUnix.set_signal  Sys.sigusr1
-    (Sys.Signal_handle (fun _ -> lprintf_nl () "Received SIGUSR1, saving options...";
+    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGUSR1, saving options...";
         DriverInteractive.save_config ()));
 
   if not Autoconf.windows then
   MlUnix.set_signal  Sys.sigusr2
     (Sys.Signal_handle (fun _ ->
-	lprintf_n () "Received SIGUSR2, starting garbage collection...";
+  lprintf_n "Received SIGUSR2, starting garbage collection...";
 	Gc.compact ();
 	lprintf " finished";
 	lprint_newline ()));
 
-  if !verbose then lprintf_nl () (_b "Activated system signal handling")
+  if !verbose then lprintf_nl (_b "Activated system signal handling")
 
 let _ =
   let security_space_filename = "config_files_space.tmp" in
@@ -617,9 +616,9 @@ for config files at the end. *)
       in
       Unix32.close security_space_fd;
     with _ ->
-        lprintf_nl () (_b "Cannot create Security space file:");
-        lprintf_nl () (_b " not enough space on device or bad permissions");
-        lprintf_nl () (_b "Exiting...");
+        lprintf_nl (_b "Cannot create Security space file:");
+        lprintf_nl (_b " not enough space on device or bad permissions");
+        lprintf_nl (_b "Exiting...");
         exit 73;
   end;
   Unix32.external_start ();
@@ -635,7 +634,7 @@ for config files at the end. *)
     Unix2.tryopen_write pid_file (fun oc -> output_string oc s);
     CommonGlobals.do_at_exit (fun _ -> try Sys.remove pid_file with _ -> ());
     if !verbose then
-      lprintf_nl () (_b "Starting with pid %s") (string_of_int(Unix.getpid ()))
+      lprintf_nl (_b "Starting with pid %s") (string_of_int(Unix.getpid ()))
   );
 
 (* When a core is spawned from a gui, the only way to know the startup has
@@ -648,7 +647,7 @@ for config files at the end. *)
       with _ -> ()
     end;
 
-  lprintf_nl () (_b "Core started");
+  lprintf_nl (_b "Core started");
   pause_new_downloads =:= false;
   core_included := true;
 
@@ -658,7 +657,7 @@ for config files at the end. *)
       (try
          BasicSocket.close_all ();
        with e ->
-           lprintf_nl () "Exception %s in do_at_exit while closing sockets."
+           lprintf_nl "Exception %s in do_at_exit while closing sockets."
              (Printexc2.to_string e);
       );
       DriverGraphics.G.remove_files ();
@@ -671,14 +670,14 @@ for config files at the end. *)
       CommonComplexOptions.backup_options ();
       Geoip.close ();
       Unix32.external_exit ();
-      lprintf_nl () (_b "Core stopped")
+      lprintf_nl (_b "Core stopped")
     );
 
   if not !keep_console_output then
     if !!log_file = "" then 
       begin
-        lprintf_nl () (_b "Option log_file is empty, disable logging completely...");
-        lprintf_nl () (_b "Disabling output to console, to enable: stdout true");
+        lprintf_nl (_b "Option log_file is empty, disable logging completely...");
+        lprintf_nl (_b "Disabling output to console, to enable: stdout true");
 	log_to_file stdout;
         close_log ()
       end

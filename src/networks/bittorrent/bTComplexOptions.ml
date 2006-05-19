@@ -68,11 +68,6 @@ module StatsOption = struct
     let t = define_option_class "Stat" value_to_stat stat_to_value
   end
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[BT] "
-    (log_time ()); lprintf_nl2
-
 module ClientOption = struct
 
     let value_to_client file v =
@@ -219,7 +214,7 @@ let value_to_file file_size file_state assocs =
         (get_value  "file_sources" (
           value_to_list (ClientOption.of_value file)))
     with e ->
-        lprintf_nl () "Exception %s while loading sources"
+        lprintf_nl "Exception %s while loading sources"
           (Printexc2.to_string e);
   );
 *)
@@ -265,7 +260,7 @@ send us more clients.
         CommonSwarming.swarmer_to_value swarmer assocs
   with
     e ->
-      lprintf_nl () "exception %s in file_to_value"
+      lprintf_nl "exception %s in file_to_value"
         (Printexc2.to_string e); raise e
 
 

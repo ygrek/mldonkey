@@ -60,7 +60,7 @@ let load_nodes_file filename =
               ignore (H.new_host ip port Ultrapeer)
             with Not_found -> ()
         with _ ->
-          lprintf_nl () "Syntax error in %s" filename;
+          lprintf_nl "Syntax error in %s" filename;
       done
     
     with End_of_file -> ()
@@ -75,7 +75,7 @@ let unpack_nodes_gzip filename url =
          try     
             Misc.archive_extract filename "gz"
          with e ->
-          lprintf_nl () "Exception %s while extracting from %s" (Printexc2.to_string e) url;
+          lprintf_nl "Exception %s while extracting from %s" (Printexc2.to_string e) url;
           raise Not_found
       )
     | _ -> filename
@@ -83,7 +83,7 @@ let unpack_nodes_gzip filename url =
 let _ =
     CommonWeb.add_web_kind "nodes.gzip" "List of fasttrack nodes"
     (fun url filename -> 
-        lprintf_nl () "nodes.gzip loaded from %s" url;
+        lprintf_nl "nodes.gzip loaded from %s" url;
         try
           let f = unpack_nodes_gzip filename url in
           load_nodes_file f;

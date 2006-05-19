@@ -582,7 +582,7 @@ let rec g2_encode pkt =
       (len_len lsl 6) lor ((name_len-1) lsl 3)
   in
   let cb = if cb=0 then cb+4 else cb in
- (* if !verbose then lprintf_nl () "2encode: cb=%d size=%d len_len=%d" cb !size len_len; *)
+ (* if !verbose then lprintf_nl "2encode: cb=%d size=%d len_len=%d" cb !size len_len; *)
   
   Buffer.add_char buf (char_of_int cb);
   if len_len = 1 then 
@@ -609,7 +609,7 @@ let g2_decode_payload names be s =
     if be then 
       (
        if !verbose then
-         lprintf_nl () "Big Endian not supported yet";
+         lprintf_nl "Big Endian not supported yet";
        raise Exit
       );
     let module M = G2_LittleEndian in
@@ -766,7 +766,7 @@ let g2_decode_payload names be s =
   with e ->
       if !verbose_unknown_messages then
         begin
-          lprintf_nl () "g2_decode_payload cannot parse: %s" (Printexc2.to_string e);
+          lprintf_nl "g2_decode_payload cannot parse: %s" (Printexc2.to_string e);
           List.iter (fun name -> lprintf "/%s" name) (List.rev names);
           lprintf "\n%s\n" (sdump s);
         end;
@@ -834,7 +834,7 @@ and g2_extract_packet root_name cb s be pos len =
   let msg_len = 1 + len_len + name_len + pkt_len in
   (*
   if !verbose then 
-    lprintf_nl () "g2_extract_packet: be:%B len: %d len_len: %d pkt_len: %d pkt_pos: %d name_len: %d msg_len: %d" 
+    lprintf_nl "g2_extract_packet: be:%B len: %d len_len: %d pkt_len: %d pkt_pos: %d name_len: %d msg_len: %d" 
       be len len_len pkt_len pkt_pos name_len msg_len;
   *)
 
@@ -853,7 +853,7 @@ let socket_send sock p =
   do_if_connected sock (fun sock ->
       let m = g2_encode p in
       if !verbose then begin 
-        lprintf_nl () "socket_send_sock %s:" (Ip.to_string (peer_ip sock));
+        lprintf_nl "socket_send_sock %s:" (Ip.to_string (peer_ip sock));
         dump_hex m; 
       end;
       write_string sock m
@@ -883,14 +883,14 @@ let resend_udp_packets () =
               let (s,ip,port,seq,times, next_time,acked) = 
                 Fifo.take udp_packet_waiting_for_ack in
               if not !acked then begin
-                  if !verbose then lprintf_nl () "resend_udp_packets %s %d: %d" (Ip.to_string ip) port seq;
+                  if !verbose then lprintf_nl "resend_udp_packets %s %d: %d" (Ip.to_string ip) port seq;
                   UdpSocket.write sock false s ip port;
                   if times < 3 then 
                     Fifo.put udp_packet_waiting_for_ack (s, ip, port, seq, 
                       times+1, 
                       last_time () + 10, acked)
                   else begin
-                    if !verbose then lprintf_nl () "resend_udp_packets: packet %d lost" seq;
+                    if !verbose then lprintf_nl "resend_udp_packets: packet %d lost" seq;
                   end
                 end;
             end else
@@ -914,7 +914,7 @@ let udp_send ip port msg =
         in
             
         if !verbose_msg_servers then begin
-            lprintf_nl () "Sending on UDP(%d)%s to %s:%d: %s"
+            lprintf_nl "Sending on UDP(%d)%s to %s:%d: %s"
               !udp_counter
               (if compress then " (zlib)" else "")
               (Ip.to_string ip) port
@@ -937,7 +937,7 @@ let udp_send_ack ip port counter =
           (char_of_int (counter land 0xff))
           (char_of_int ((counter lsr 8) land 0xff))
         in
-        (* if !verbose then lprintf_nl () "udp_send_ack: %s %d" (Ip.to_string ip) port; *)
+        (* if !verbose then lprintf_nl "udp_send_ack: %s %d" (Ip.to_string ip) port; *)
         UdpSocket.write sock false s ip port
       with e ->
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
@@ -950,7 +950,7 @@ let host_send sock h p =
   match sock with
   | Connection _   ->
       if !verbose_msg_servers then
-        lprintf_nl () "Sending on TCP to %s:%d: %s" 
+        lprintf_nl "Sending on TCP to %s:%d: %s" 
           (Ip.to_string ip) port (Print.print p);
       socket_send sock p
   | _ -> 
@@ -962,18 +962,18 @@ let g2_handler f gconn sock  =
   let b = TcpBufferedSocket.buf sock in
 
   if !verbose then begin
-    lprintf_nl () "g2_handler:";
+    lprintf_nl "g2_handler:";
     AnyEndian.dump_hex (String.sub b.buf b.pos b.len);
   end;
 
   try
     while b.len >= 2 do
       let s = b.buf in
-      (* if !verbose then lprintf_nl () "g2_tcp_packet_handler"; *)
+      (* if !verbose then lprintf_nl "g2_tcp_packet_handler"; *)
       let cb = get_uint8 s b.pos in
       let len_len = (cb lsr 6) land 3 in
       let be = cb land 2 <> 0 in
-      (* if !verbose then lprintf_nl () "b.len: %d < 1 + len_len: %d be: %B" b.len len_len be; *)
+      (* if !verbose then lprintf_nl "b.len: %d < 1 + len_len: %d be: %B" b.len len_len be; *)
 
       if b.len < 1 + len_len then raise Not_found;
       
@@ -989,10 +989,10 @@ let g2_handler f gconn sock  =
       let name_len = ((cb lsr 3) land 7) + 1 in
       let msg_len = 1 + len_len + name_len + len in
       (* if !verbose then
-        lprintf_nl () "b.len: %d < msg_len: %d name_len: %d" b.len msg_len name_len; *)
+        lprintf_nl "b.len: %d < msg_len: %d name_len: %d" b.len msg_len name_len; *)
       if b.len < msg_len then raise Not_found;
       
-      (* if !verbose then lprintf_nl () "One gnutella2 packet received";  *)
+      (* if !verbose then lprintf_nl "One gnutella2 packet received";  *)
       let name = String.sub b.buf (b.pos + pos) name_len in
       let packet = String.sub b.buf (b.pos + pos + name_len) len in
       let has_children = cb land 4 <> 0 in
@@ -1044,7 +1044,7 @@ let parse_udp_packet ip port buf =
 
   (*
   if !verbose then begin
-    lprintf_nl () "NEW UDP PACKET FROM %s %d:" (Ip.to_string ip) port;
+    lprintf_nl "NEW UDP PACKET FROM %s %d:" (Ip.to_string ip) port;
     AnyEndian.dump_hex buf;
   end;
   *)
@@ -1127,7 +1127,7 @@ let parse_udp_packet ip port buf =
     
     
     if !verbose then begin
-      lprintf_nl () "FULL UDP PACKET FROM %s %d:" (Ip.to_string ip) port;
+      lprintf_nl "FULL UDP PACKET FROM %s %d:" (Ip.to_string ip) port;
       AnyEndian.dump_hex buf;
     end;
     
@@ -1147,7 +1147,7 @@ let parse_udp_packet ip port buf =
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->
             if !verbose then
-              lprintf_nl () "no correct pkt_len, pkt_pos";
+              lprintf_nl "no correct pkt_len, pkt_pos";
             0, 1
       in
       let name_len = ((cb lsr 3) land 7) + 1 in
@@ -1171,7 +1171,7 @@ let parse_udp_packet ip port buf =
       let has_children = cb land 4 <> 0 in
       let p = g2_parse [name] has_children be packet in
       if !verbose_msg_servers then
-        lprintf_nl () "UDP PACKET: %s" (Print.print p); 
+        lprintf_nl "UDP PACKET: %s" (Print.print p); 
       
 (* Test Encoder *)
       
@@ -1354,7 +1354,7 @@ let server_send_qrt_patch s m =
 
   
 let host_send_qkr h =
-  if !verbose then lprintf_nl () "host_send_qkr";
+  if !verbose then lprintf_nl "host_send_qkr";
   host_send NoConnection h
     (packet QKR [])
 
@@ -1600,7 +1600,7 @@ let print_string s buf =
         | 3, false -> LittleEndian.get_int24 buf (pos+1), 4
         | _ ->
             if !verbose then
-              lprintf_nl () "no correct pkt_len, pkt_pos";
+              lprintf_nl "no correct pkt_len, pkt_pos";
             0, 1
       in
       let name_len = ((cb lsr 3) land 7) + 1 in

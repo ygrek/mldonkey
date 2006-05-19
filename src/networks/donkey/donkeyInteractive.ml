@@ -55,15 +55,6 @@ open CommonOptions
 open DonkeyStats
 open DonkeyUdp
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[EDK] "
-    (log_time ()); lprintf_nl2
-
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[EDK] "
-    (log_time ()); lprintf
 
 let result_name r =
   match r.result_names with
@@ -117,7 +108,7 @@ let load_server_met filename =
     ) ss;
     List.length ss
   with e ->
-      lprintf_nl () "Exception %s while loading %s" (Printexc2.to_string e)
+      lprintf_nl "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
       0
   else 0
@@ -133,21 +124,21 @@ let unpack_server_met filename url =
 	      Unix2.tryopen_read_zip filename (fun ic ->
 		try
 		  let file = Zip.find_entry ic "server.met" in
-		  lprintf_nl () "server.met found in %s" url;
+      lprintf_nl "server.met found in %s" url;
 		  file.Zip.filename
 		with e ->
-		  lprintf_nl () "Exception %s while extracting server.met from %s"
+      lprintf_nl "Exception %s while extracting server.met from %s"
 		    (Printexc2.to_string e) url;
 		  raise e) in
 	    (try
 	      ignore(Misc.archive_extract filename "zip")
 	    with e ->
-	      lprintf_nl () "Exception %s while extracting server.met from %s"
+        lprintf_nl "Exception %s while extracting server.met from %s"
 		(Printexc2.to_string e) url;
 	      raise e);
 	    result
 	  with e ->
-            lprintf_nl () "Exception %s while opening %s"
+            lprintf_nl "Exception %s while opening %s"
 	      (Printexc2.to_string e) url;
             raise Not_found)
     | ".met.gz" | ".met.bz2" | ".gz" | ".bz2" ->
@@ -156,7 +147,7 @@ let unpack_server_met filename url =
 	try
           Misc.archive_extract filename filetype
 	with e ->
-          lprintf_nl () "Exception %s while extracting from %s"
+          lprintf_nl "Exception %s while extracting from %s"
 	    (Printexc2.to_string e) url;
           raise Not_found)
 (* if file is not a supported archive type try loading servers from that file anyway *)
@@ -178,7 +169,7 @@ let download_server_met url =
         let s = unpack_server_met filename url in
     let n = load_server_met s in
       if s <> filename then Sys.remove s;
-            lprintf_nl () "server.met loaded from %s, %d servers found, %d new ones inserted"
+            lprintf_nl "server.met loaded from %s, %d servers found, %d new ones inserted"
         url n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
       with e -> ()
     )
@@ -214,15 +205,15 @@ let really_query_download filenames size md4 location old_file absents =
            && not (Sys.file_exists file_diskname)
           then
             (try
-              lprintf_nl () "Renaming edonkey temp-file from %s to %s"
+              lprintf_nl "Renaming edonkey temp-file from %s to %s"
                   filename file_diskname;
               Unix2.rename filename file_diskname;
               Unix2.chmod file_diskname 0o644;
               with e ->
-                lprintf_nl () "Could not rename %s to %s: exception %s"
+                lprintf_nl "Could not rename %s to %s: exception %s"
                   filename file_diskname (Printexc2.to_string e);
             )
-        else lprintf_nl () "THERE IS SOME PROBLEM WITH RECOVERING TEMP-FILES, THAT COULD CAUSE FILE-CORRUPTION!!!!!!!!!!! filename: %s  exists:%b file_diskname: %s  exists:%b"
+        else lprintf_nl "THERE IS SOME PROBLEM WITH RECOVERING TEMP-FILES, THAT COULD CAUSE FILE-CORRUPTION!!!!!!!!!!! filename: %s  exists:%b file_diskname: %s  exists:%b"
                filename (Sys.file_exists filename)
                file_diskname (Sys.file_exists file_diskname);
     | _ -> ()
@@ -249,7 +240,7 @@ let really_query_download filenames size md4 location old_file absents =
             CommonSwarming.set_absent swarmer absents
   end;
 
-  if !verbose then lprintf_nl () "Started new download, file %s, size %Ld, md4 %s"
+  if !verbose then lprintf_nl "Started new download, file %s, size %Ld, md4 %s"
     (file_best_name file) size (Md4.to_string md4);
 
   DonkeyProtoOvernet.Overnet.recover_file file;
@@ -371,7 +362,7 @@ let load_prefs filename =
     let t = P.read s in
     t.P.client_tags, t.P.option_tags
   with e ->
-      lprintf_nl () "Exception %s while loading %s" (Printexc2.to_string e)
+      lprintf_nl "Exception %s while loading %s" (Printexc2.to_string e)
       filename;
       [], []
 
@@ -391,7 +382,7 @@ let import_temp temp_dir =
             List.iter (fun tag ->
                 match tag with
                   { tag_name = Field_Filename; tag_value = String s } ->
-                    lprintf_nl () "Import Donkey %s" s;
+                    lprintf_nl "Import Donkey %s" s;
 
                     filenames := s :: !filenames;
                 | { tag_name = Field_Size; tag_value = Uint64 v } ->
@@ -423,7 +414,7 @@ let import_config dirname =
       | { tag_name = Field_UNKNOWN "temp"; tag_value = String s } ->
           if Sys.file_exists s then (* be careful on that *)
             temp_dir := s
-          else (lprintf_nl () "Bad temp directory, using default";
+          else (lprintf_nl "Bad temp directory, using default";
               )
       | _ -> ()
   ) ot;
@@ -1052,7 +1043,7 @@ let _ =
           } in
         v
       with e ->
-          lprintf_nl () "Exception %s in op_file_info" (Printexc2.to_string e);
+          lprintf_nl "Exception %s in op_file_info" (Printexc2.to_string e);
           raise e
 
   )
@@ -1511,7 +1502,7 @@ let _ =
               (try
                  try_recover_temp_file filename md4
                with e ->
-                 lprintf_nl () "exception %s in recover_temp"
+                 lprintf_nl "exception %s in recover_temp"
                  (Printexc2.to_string e);
               )
           | NoUid ->
@@ -1520,7 +1511,7 @@ let _ =
                    let md4 = Md4.of_string filename in
                    try_recover_temp_file filename md4
                  with e ->
-                   lprintf_nl () "exception %s in recover_temp"
+                   lprintf_nl "exception %s in recover_temp"
                      (Printexc2.to_string e);
               )
           | _ -> ()
@@ -1550,7 +1541,7 @@ let _ =
       | Some files ->
           List2.tail_map (fun r -> "", r) files);
   client_ops.op_client_browse <- (fun c immediate ->
-      lprintf_nl () "*************** should browse  ***********";
+      lprintf_nl "*************** should browse  ***********";
       match c.client_source.DonkeySources.source_sock with
       | Connection sock    ->
 (*
@@ -1564,8 +1555,8 @@ lprint_newline ();
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);
       | NoConnection ->
-          lprintf_nl () "****************************************";
-          lprintf_nl () "       TRYING TO CONTACT FRIEND";
+          lprintf_nl "****************************************";
+          lprintf_nl "       TRYING TO CONTACT FRIEND";
 
           reconnect_client c
       | _ -> ()
@@ -1711,7 +1702,7 @@ let _ =
     (fun url filename ->
     if !!enable_donkey && !!update_server_list_server_met then
       begin
-        lprintf_n () "server.met loaded from %s" url;
+        lprintf_n "server.met loaded from %s" url;
   begin
     try
       let s = unpack_server_met filename url in
@@ -1726,14 +1717,14 @@ let _ =
       end
     else
       if not !!enable_donkey then
-        lprintf_nl () "eDonkey module is disabled, ignoring..."
+        lprintf_nl "eDonkey module is disabled, ignoring..."
       else
-        lprintf_nl () "ED2K_update_server_list_met is disabled, ignoring..."
+        lprintf_nl "ED2K_update_server_list_met is disabled, ignoring..."
   );
   CommonWeb.add_web_kind "comments.met" "List of edonkey files comments" 
     (fun _ filename ->
 (* TODO      DonkeyIndexer.load_comments filename; *)
-      lprintf_nl () "COMMENTS ADDED";
+      lprintf_nl "COMMENTS ADDED";
   );
 
   file_ops.op_file_proposed_filenames <- op_file_proposed_filenames;

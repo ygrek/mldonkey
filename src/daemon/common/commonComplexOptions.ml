@@ -30,15 +30,13 @@ open CommonOptions
 open CommonTypes
 open CommonFile
 
-(* prints a new logline with date, module and starts newline *)
-let lprintf_nl () =
-  lprintf "%s[cCO] "
-    (log_time ()); lprintf_nl2
-      
-(* prints a new logline with date, module and does not start newline *)
-let lprintf_n () =
-  lprintf "%s[cCO] "
-    (log_time ()); lprintf
+let log_prefix = "[cCO]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 (*************************************************************************)
 (*                                                                       *)
@@ -70,12 +68,12 @@ module FileOption = struct
             with _ -> "Donkey" in
           let network = 
             try network_find_by_name network with e ->
-                lprintf_nl ()
+                lprintf_nl
 		  "Error %s for network %s while parsing file %s"
 		    (Printexc2.to_string e)
 		    network
 		    (get_value "file_filename" value_to_string);
-		lprintf_nl () "This core is lacking support for network %s, exiting" network;
+    lprintf_nl "This core is lacking support for network %s, exiting" network;
                 exit_properly 70
           in
           let file_state = 
@@ -106,7 +104,7 @@ module FileOption = struct
             with _ -> ());
           set_file_priority file priority;
 
-          if !verbose then lprintf_nl () "New %s file %s"
+          if !verbose then lprintf_nl "New %s file %s"
 	      (match file_state with
                  FileDownloading -> "downloading"
                | FileDownloaded -> "downloaded"
@@ -268,7 +266,7 @@ module ServerOption = struct
           in
           let network = 
             try network_find_by_name network with e ->
-                lprintf_nl () "Network %s not supported" network;
+                lprintf_nl "Network %s not supported" network;
                 raise e
               in
           let server = network_server_of_option network assocs in
@@ -967,13 +965,13 @@ let save () =
         Options.save_with_help results_ini;
         results =:= [];
     end;
-  lprintf_nl () "Options correctly saved"
+  lprintf_nl "Options correctly saved"
   end
 
 let save_sources () =
   if !allow_saving_ini_files then begin
   networks_iter (fun n -> network_save_sources n);
-  lprintf_nl () "Sources correctly saved"
+  lprintf_nl "Sources correctly saved"
   end
 
 open Zip
@@ -1032,11 +1030,11 @@ let backup_tar archive files =
 	    (* for whatever reason this error is raised on Windows,
                but fasttrack.ini is stored correctly *)
 	    if !verbose then
-	      lprintf_nl () "Tar: Windows specific pseudo error %s in %s" error arg
+        lprintf_nl "Tar: Windows specific pseudo error %s in %s" error arg
 	  end
 	else begin
 	  failed_files := arg :: !failed_files;
-	  lprintf_nl () "Tar: error %s in %s" error arg
+    lprintf_nl "Tar: error %s in %s" error arg
         end
     ) files);
     if !failed_files <> [] then
@@ -1077,9 +1075,9 @@ let backup_options () =
           ".zip" -> backup_zip archive files
         | _ -> backup_tar archive files
       end
-    with e -> lprintf_nl () "Exception %s while options backup" (Printexc2.to_string e); raise e
+    with e -> lprintf_nl "Exception %s while options backup" (Printexc2.to_string e); raise e
   end;
-  lprintf_nl () "Options backup as %s correctly saved" format
+  lprintf_nl "Options backup as %s correctly saved" format
              
 let _ =
   CommonBlocking.add_update_hook CommonServer.check_blocked_servers;
@@ -1102,7 +1100,7 @@ let _ =
     with _ -> ()
   );
   option_hook max_opened_connections (fun _ ->
-  if !verbose then lprintf_nl ()
+  if !verbose then lprintf_nl
     "checking max_opened_connections = %d for validity" !!max_opened_connections;
 (* original code from ./src/config/unix/MlUnix.ml
 let max_all_sockets = getdtablesize ()
@@ -1117,7 +1115,7 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
   let min_conns = 75 in
 
   if min_conns > !!max_opened_connections then begin
-    lprintf_nl () "max_opened_connections is set too low (%d), raising to %d"
+    lprintf_nl "max_opened_connections is set too low (%d), raising to %d"
       !!max_opened_connections min_conns;
     max_opened_connections =:= min_conns
   end;
@@ -1131,9 +1129,9 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
   if max_all_sockets < wanted_socks then
     if max_all_sockets < total_files + min_conns then (* check if ulimit is enough to allow total_files + min_conns *)
       begin
-        lprintf_nl () "only %d file descriptors available, raise ulimit open files to at least %d"
+        lprintf_nl "only %d file descriptors available, raise ulimit open files to at least %d"
           max_all_sockets wanted_socks;
-        lprintf_nl () "FD info: max_opened_connections %d, number of (possible) concurrent downloads %d, = %d fd needed"
+        lprintf_nl "FD info: max_opened_connections %d, number of (possible) concurrent downloads %d, = %d fd needed"
           !!max_opened_connections total_files wanted_socks;
         CommonGlobals.exit_properly 71
       end
@@ -1142,12 +1140,12 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
       let new_max_opened_connections =
         maxi (max_all_sockets - total_files) (max_all_sockets / 2)
       in
-      lprintf_nl () "max_opened_connections is set too high (%d), reducing to %d"
+      lprintf_nl "max_opened_connections is set too high (%d), reducing to %d"
         !!max_opened_connections new_max_opened_connections;
       max_opened_connections =:= new_max_opened_connections;
     end;
 
-  if !verbose then lprintf_nl ()
+  if !verbose then lprintf_nl
     "max_opened_connections %d, total_files %d, max_concurrent_downloads %d, !!files %d"
       !!max_opened_connections total_files !!max_concurrent_downloads (List.length !!files);
 
