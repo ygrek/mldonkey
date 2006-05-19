@@ -73,6 +73,8 @@ int main(int argc, char ** argv){
   int     fd ;
   char buf[2000];
   int nread;
+	char c = 0;
+	
 
 	outfile = malloc(256);
  parse_url (url, host, &port, pathname, outfile);
@@ -123,9 +125,15 @@ int main(int argc, char ** argv){
     }
 
     printf( "Connected\n") ;
-    sprintf( buf, "GET %s\r\n\r\n", pathname );
+    sprintf( buf, "GET %s HTTP/1.0\r\nHost: %s\r\n\r\n", pathname, host );
 
      write(fd, buf, strlen(buf));
+
+    while((nread = read(fd, buf, 1)) > 0){ 
+      if(buf[0] == '\n' && (c == '\n')) break;
+      if(buf[0] == '\r') continue;
+      c = buf[0];
+    }
 
     while ((nread = read(fd, buf, sizeof(buf)))>0){
        write(f, buf, nread);
