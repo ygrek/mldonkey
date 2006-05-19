@@ -8,6 +8,10 @@ CONFIGURE_RUN=yes
 CONFIGURE_ARGUMENTS=$*
 echo "Arguments to configure: $CONFIGURE_ARGUMENTS"
 
+cd ..
+SOURCE_DIR=`pwd`
+cd config
+
 MAJOR_VERSION=2
 MINOR_VERSION=7
 SUB_VERSION=5   # range 0-7 due to eMule limitations
@@ -363,10 +367,6 @@ echo -e "----------------------------------------\n"
 echo "--------------------------------"
 echo "     Checking Ocaml compiler."
 echo "--------------------------------"
-
-cd ..
-SOURCE_DIR=`pwd`
-cd config
 
 CONFIG_DIR=$SOURCE_DIR/config
 PATCH_DIR=$SOURCE_DIR/patches

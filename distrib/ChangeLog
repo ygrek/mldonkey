@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/20
+5111: Configure: Fix $SOURCE_DIR broken since patch #5095
 5109: New option: pause_new_downloads
 - Set to true all new downloads will be paused automatically.
 - This option is automatically set to false on core start.
