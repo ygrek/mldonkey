@@ -1089,8 +1089,13 @@ let _ =
   network.op_network_search <- (fun ss buf -> ());
   network.op_network_download <- (fun r -> dummy_file);
   network.op_network_recover_temp <- (fun s -> ());
+  let clean_exit_started = ref false in
   network.op_network_clean_exit <- (fun s ->
-    List.iter (fun file -> BTClients.file_stop file) !current_files;
+    if not !clean_exit_started then
+      begin
+        List.iter (fun file -> BTClients.file_stop file) !current_files;
+        clean_exit_started := true;
+      end;
     List.for_all (fun file -> not file.file_tracker_connected) !current_files;
   );
 
