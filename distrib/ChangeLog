@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/19
+5107: Configure: Check for MAGIC_ERROR in magic.h
 5106: BT: only send stop once on exit and then wait for success (Amorphous)
 5105: BT: Avoid starting torrent which has the same name
       as a currently downloading torrent

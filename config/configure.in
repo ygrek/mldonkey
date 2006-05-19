@@ -651,7 +651,11 @@ fi
 
 if test "$MAGIC" != "no"; then
   echo "----- checking libmagic (GNU file) (optional)"
-  AC_CHECK_HEADERS(magic.h,[AC_CHECK_LIB(magic,magic_file,[MAGIC=yes],[MAGIC=no])],[MAGIC=no])
+  AC_CHECK_HEADERS(magic.h,
+    [AC_CHECK_LIB(magic,magic_file,
+      [AC_CHECK_DECL([MAGIC_ERROR], [MAGIC=yes], [MAGIC=no],[#include <magic.h>])],
+      [MAGIC=no])],
+    [MAGIC=no])
 fi
 
 if test "$MAGIC" = "yes"; then
