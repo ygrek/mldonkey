@@ -89,6 +89,7 @@ let five_second_timer timer =
 let min_timer timer =
   DonkeySources.clean_sources (); (* Moved here from fivemin_timer. *)
   DonkeyServers.update_master_servers ();
+  DonkeyServers.check_for_preferred_servers ();
  (try
       DonkeyServers.query_locations_timer ();
     with _ -> ());

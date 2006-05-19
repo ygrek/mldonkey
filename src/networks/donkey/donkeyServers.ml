@@ -871,6 +871,16 @@ let update_master_servers _ =
       lprintf_nl () "master servers: %d connected %d masters - re-computing completed"
         !nconnected_servers !nmasters
 
+let check_for_preferred_servers () =
+  let found_preferred = ref false in
+  Hashtbl.iter (fun _ s -> if s.server_preferred then found_preferred := true) servers_by_key;
+  if not !found_preferred && !!connect_only_preferred_server then
+    begin
+      connect_only_preferred_server =:= false;
+      let message = "Set connect_only_preferred_server to false because no preferred server was found" in
+      lprintf_nl () "%s" message;
+      startup_message := !startup_message ^ message
+    end
 
 open LittleEndian
 

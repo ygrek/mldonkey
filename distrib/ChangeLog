@@ -14,10 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2006/05/19
+2006/05/20
 5109: New option: pause_new_downloads
 - Set to true all new downloads will be paused automatically.
 - This option is automatically set to false on core start.
+
+2006/05/19
 5107: Configure: Check for MAGIC_ERROR in magic.h
 5106: BT: only send stop once on exit and then wait for success (Amorphous)
 5105: BT: Avoid starting torrent which has the same name
