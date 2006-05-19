@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/19
+5105: BT: Avoid starting torrent which has the same name
+      as a currently downloading torrent
+
 2006/05/18
 5097: HTML: Improved DL multiline input button (jave)
 5103: Fix compile bug in magiclib_stub.c on Solaris & NetBSD

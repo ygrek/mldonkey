@@ -60,6 +60,8 @@ let lprintf_n () =
   lprintf "%s[BT] "
     (log_time ()); lprintf
 
+exception Already_exists
+
 let op_file_all_sources file =
   let list = ref [] in
   Hashtbl.iter (fun _ c ->
@@ -470,6 +472,11 @@ let load_torrent_string s =
     downloads_directory
     torrent.torrent_name ^ ".torrent"
     in
+  if Sys.file_exists torrent_diskname then
+    begin
+      if !verbose then lprintf_nl () "load_torrent_string: %s already exists, ignoring" torrent_diskname;
+      raise Already_exists
+    end;
   File.from_string torrent_diskname s;
 
   if !verbose then
@@ -727,8 +734,10 @@ let op_network_parse_url url =
       if (valid_torrent_extension url) then
         try
           if !verbose then lprintf_nl () "Not_found and trying to load %s" url;
-          load_torrent_file url;
-          "", true
+          try
+            load_torrent_file url;
+            "", true
+          with Already_exists -> "A torrent with this name is already in the download queue", false
         with e ->
           lprintf_nl () "Exception %s while 2nd loading" (Printexc2.to_string e);
 	  let s = Printf.sprintf "Can not load load torrent file: %s"
