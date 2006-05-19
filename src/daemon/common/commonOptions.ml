@@ -991,6 +991,11 @@ let auto_commit = define_option current_section
   "Set to false if you don't want mldonkey to automatically put completed files in incoming directory"
     bool_option true
 
+let pause_new_downloads = define_option current_section
+    ["pause_new_downloads"]
+    "Set to true if you want all new downloads be paused immediatly, will be set to false on core start."
+    bool_option false
+
   (*
 let commit_unverified_files = define_option current_section
     ["commit_unverified_files"]

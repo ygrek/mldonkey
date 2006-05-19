@@ -504,7 +504,7 @@ let display_vd = ref false
 let display_bw_stats = ref false
 
 let start_download file =
-
+  if !!pause_new_downloads then file_pause file;
   if !!file_started_cmd <> "" then
       MlUnix.fork_and_exec  !!file_started_cmd
       [|

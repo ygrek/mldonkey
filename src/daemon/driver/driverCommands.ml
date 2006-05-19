@@ -1727,6 +1727,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option file_completed_cmd;
 			strings_of_option allow_browse_share;
 			strings_of_option auto_commit;
+			strings_of_option pause_new_downloads;
 			strings_of_option create_dir_mask;
 			strings_of_option create_file_sparse;
 			strings_of_option log_file;
