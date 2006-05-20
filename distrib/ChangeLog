@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/20
+5116: HTML: Fix javascript popup in search results for Opera (dextarr)
 5112: Fix lprintf_nl (search/replace ()'s) (zet)
 5113: Fix config/wget.c (zet)
 5111: Configure: Fix $SOURCE_DIR broken since patch #5095

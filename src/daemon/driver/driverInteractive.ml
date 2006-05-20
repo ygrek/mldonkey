@@ -1162,7 +1162,7 @@ let old_print_search buf o results =
                               Buffer.add_string buf ((if !nl then "<br>" else begin nl := true;"" end) ^
                                 escaped_string_of_field t ^ ": " ^ get_tag_value t);
                       ) r.result_tags;
-                    Printf.bprintf buf "\\\\\'),%d');setTimeout('hideLayer()',%d);return true;\\\"  onMouseOut=\\\"hideLayer();setTimeout('hideLayer()',%d);return true;\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>"
+                    Printf.bprintf buf "\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\"  onMouseOut=\\\"hideLayer();setTimeout('hideLayer()',%d);return true;\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>"
 			!!html_mods_js_tooltips_wait
 			!!html_mods_js_tooltips_timeout
 			!!html_mods_js_tooltips_wait
