@@ -52,6 +52,10 @@ open DonkeyTypes
 open DonkeyReliability
 open DonkeyThieves
 
+let log_prefix = "[EDK]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
 
 module Udp = DonkeyProtoUdp
 
