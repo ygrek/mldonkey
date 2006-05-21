@@ -110,11 +110,12 @@ let shorten str limit =
   (* TODO: we schould change all strings to utf8 when
      they come into the core instead. *)
   let name = Charset.to_utf8 (* String.escaped *) str in
-  let len = String.length name in
+  let len = Charset.utf8_length str in
+  let diff_len_utf8_ascii = (String.length str) - len in
   let max_len = maxi limit 10 in
   if len > max_len then
-    let prefix = String.sub name 0 (max_len -7) in
-    let suffix = String.sub name (len-4) 4 in
+    let prefix = String.sub name 0 (max_len - 7 + diff_len_utf8_ascii) in
+    let suffix = String.sub name (len - 4 + diff_len_utf8_ascii) 4 in
     Printf.sprintf "%s...%s" prefix suffix
   else name
 

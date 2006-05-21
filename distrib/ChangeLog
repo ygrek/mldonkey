@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/21
+5117: Telnet: replace "avail" by "last seen"/fix non-ASCII-filename column width
+
 2006/05/20
 5118: Log: Correct prefix for donkeyClient.ml
 5116: HTML: Fix javascript popup in search results for Opera (dextarr)

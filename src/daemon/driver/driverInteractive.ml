@@ -321,7 +321,7 @@ type table_align =
 
 let col_sep = " "
 let add buf s align max_len =
-  let slen = String.length s in
+  let slen = Charset.utf8_length s in
   let diff = max_len - slen in
   match align with
     Align_Center ->
@@ -345,7 +345,7 @@ let print_table_text buf alignments titles lines =
   List.iter (fun line ->
       let len = Array.length line in
       for i = 0 to len-1 do
-        let slen = String.length line.(i) in
+        let slen = Charset.utf8_length line.(i) in
         if cols.(i) <  slen then cols.(i) <- slen
       done;
   ) (titles :: lines);
@@ -904,7 +904,7 @@ let simple_print_file_list finished buf files format =
             "    %";
             "    Done";
             "    Size";
-            "Avail";
+            "lSeen";
             "Old";
             " Active";
             "Rate";
@@ -950,7 +950,12 @@ let simple_print_file_list finished buf files format =
                 else (Int64.to_string file.file_downloaded) );
               (if !!improved_telnet then (print_human_readable file file.file_size)
                 else (Int64.to_string file.file_size) );
-		(Printf.sprintf "%.0f%%" (get_file_availability file));
+              (Printf.sprintf "%s"
+                (if file.file_last_seen > 0 then
+                   let last = (BasicSocket.last_time ()) - file.file_last_seen in
+                     Date.time_to_string last "long"
+                 else "-"
+                ));
               (Printf.sprintf "%d:%s" (age_to_day file.file_age)
                 (
                   let len = Array.length file.file_chunks_age in
