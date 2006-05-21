@@ -111,7 +111,7 @@ let list_options_html o list =
 
       if String.contains o.option_value '\n' then
         Printf.bprintf buf "
-                  \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\<form action=\\\"submit\\\" target=\\\"$S\\\"\\>
+                  \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>\\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\"\\>
                   \\<input type=hidden name=setoption value=q\\>
                   \\<input type=hidden name=option value=%s\\>\\</td\\>\\<td\\>\\<textarea
 					name=value rows=5 cols=20 wrap=virtual\\>
@@ -119,16 +119,17 @@ let list_options_html o list =
                   \\</textarea\\>\\<input type=submit value=Modify\\>
                   \\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>
                   \\</form\\>
-                  " o.option_help o.option_name o.option_name o.option_value o.option_default
+                  " o.option_help (String2.upp_initial o.option_name) o.option_name o.option_name o.option_value o.option_default
 
       else
 
         begin
 
           Printf.bprintf buf "
-              \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
+              \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>\\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>\\</td\\>
 		      \\<td class=\\\"sr\\\"\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\"\\>\\<input type=hidden
-				name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"  o.option_help o.option_name o.option_name;
+				name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"
+            o.option_help (String2.upp_initial o.option_name) o.option_name o.option_name;
 
           if o.option_value = "true" || o.option_value = "false" then
 

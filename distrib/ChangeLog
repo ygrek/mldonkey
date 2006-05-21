@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/21
+5119: HTML, Options: Include Wiki link in options names
 5117: Telnet: replace "avail" by "last seen"/fix non-ASCII-filename column width
 
 2006/05/20
