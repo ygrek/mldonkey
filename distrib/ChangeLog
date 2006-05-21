@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2006/05/21
+2006/05/21: version 2.7.6 = tag release-2-7-6
 5119: HTML, Options: Include Wiki link in options names
 5117: Telnet: replace "avail" by "last seen"/fix non-ASCII-filename column width
 
