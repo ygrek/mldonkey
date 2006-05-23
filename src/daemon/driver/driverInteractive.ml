@@ -1822,6 +1822,8 @@ let buildinfo html buf =
 let runinfo html buf o =
   let dis_mess = "disabled, to enable adjust web_infos in downloads.ini for automatic download" in
   let ui_user = o.conn_user.ui_user_name in
+  let bl_loc = (Ip_set.bl_length !CommonBlocking.ip_blocking_list) in
+  let bl_web = (Ip_set.bl_length !CommonBlocking.web_ip_blocking_list) in
   let s =
   (
         "User:\t\t " ^ ui_user
@@ -1840,9 +1842,8 @@ let runinfo html buf o =
       ^ "\nServer usage:\t " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
       ^ "\nGeoip:\t\t " ^ (if !Geoip.active then "enabled, GeoLite data created by MaxMind, available from http://maxmind.com/"
           else dis_mess)
-      ^ (Printf.sprintf "\nIP blocking local: %d ranges, web: %d ranges"
-          (Ip_set.bl_length !CommonBlocking.ip_blocking_list)
-          (Ip_set.bl_length !CommonBlocking.web_ip_blocking_list))
+      ^ "\nIP blocking:\t " ^ (if bl_loc = 0 && bl_web = 0 then "no blocking list loaded"
+          else Printf.sprintf "local: %d ranges - web: %d ranges" bl_loc bl_web)
       ^ (if Autoconf.magic then
            if !Autoconf.magic_works then
              Printf.sprintf "\nLibmagic:\t file-type recognition database present"

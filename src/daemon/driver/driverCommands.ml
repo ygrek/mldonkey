@@ -3154,10 +3154,17 @@ let _ =
 	    ) (0, 0) l in
 	  Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
 	    (html_mods_cntr ());
+	  if nranges > 0 then
 	  html_mods_td buf [
 	    ("Total ranges", "sr br", ("Total " ^ string_of_int nranges));
 	    ("Hits", "sr br", ("Total " ^ string_of_int nhits));
+	    ("", "sr br", "")]
+	  else begin
+	  html_mods_td buf [
+	    ("no " ^ tablename ^ " loaded", "sr br", "no " ^ tablename ^ " loaded");
+	    ("", "sr br", "");
 	    ("", "sr br", "")];
+	  end;
 	  Printf.bprintf buf "\\</tr\\>\\</table\\>\\<P\\>";
 	) [
 	  ("Web blocking list", !CommonBlocking.web_ip_blocking_list); 
