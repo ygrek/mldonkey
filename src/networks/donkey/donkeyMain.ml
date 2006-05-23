@@ -158,8 +158,7 @@ let reset_tags () =
   ];
 
   emule_info.DonkeyProtoClient.EmuleClientInfo.tags <- [
-    int_tag (Field_UNKNOWN "compression") 
-      (if !!emule_compression then m.emule_compression else 0);
+    int_tag (Field_UNKNOWN "compression") m.emule_compression;
     int_tag (Field_UNKNOWN "udpver") m.emule_udpver;
     int_tag (Field_UNKNOWN "udpport") (!!donkey_port+4);
     int_tag (Field_UNKNOWN "sourceexchange") m.emule_sourceexchange;

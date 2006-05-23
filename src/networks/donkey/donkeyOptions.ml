@@ -58,9 +58,6 @@ let max_udp_sends = define_expert_option donkey_section ["max_udp_sends"]
 let reliable_sources = define_option donkey_section ["reliable_sources"]
     "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option true
 
-let emule_compression = define_option donkey_section ["emule_compression"]
-  "Should mldonkey accept compressed packets from emule" bool_option true
-
 let ban_identity_thieves = define_option donkey_section ["ban_identity_thieves"]
   "Should mldonkey try to detect sources masquerading as others and ban them" bool_option true
 
