@@ -107,11 +107,16 @@ in an option, and then change the option accordingly. ?> *)
 let find_other_port = ref false
 
 let shorten str limit =
-  (* TODO: we schould change all strings to utf8 when
+  (* TODO: we should change all strings to utf8 when
      they come into the core instead. *)
   let name = Charset.to_utf8 (* String.escaped *) str in
-  let len = Charset.utf8_length str in
-  let diff_len_utf8_ascii = (String.length str) - len in
+  let slen = String.length str in
+  let len =
+    try
+      Charset.utf8_length str
+    with e -> slen
+  in
+  let diff_len_utf8_ascii = slen - len in
   let max_len = maxi limit 10 in
   if len > max_len then
     let prefix = String.sub name 0 (max_len - 7 + diff_len_utf8_ascii) in

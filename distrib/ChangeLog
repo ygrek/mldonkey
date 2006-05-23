@@ -17,6 +17,7 @@ ChangeLog
 2006/05/23
 5121: EDK: Remove obsolete option emule_compression
 5122: improve block_list output and runinfo ip blocking (schlumpf)
+5123: Fix Invalid_argument("UTF8.length") bug in HTML, down-/uploaders
 -------------------------------------------------------------------------------
 2006/05/21: version 2.7.6 = tag release-2-7-6
 5119: HTML, Options: Include Wiki link in options names
