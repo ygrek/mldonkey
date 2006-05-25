@@ -1332,9 +1332,8 @@ let rec update_events list =
               
           | Console_message_event msg ->  
               Fifo.put console_messages event;
-              if Fifo.length console_messages > 30 then begin
-                  ignore (Fifo.take console_messages)
-                end;
+              if Fifo.length console_messages > !!gui_log_size then
+                  ignore (Fifo.take console_messages);
               add_gui_event event
               
         with _ -> ());

@@ -1544,6 +1544,9 @@ let log_file = define_expert_option current_section ["log_file"]
     also enable logging in a file after startup using the 'log_file' command."
   string_option "mlnet.log"
 
+let gui_log_size =
+  define_expert_option current_section ["gui_log_size"]
+    "number of lines for GUI console messages" int_option 30
 
 
 
