@@ -537,7 +537,7 @@ let gui_reader (gui: gui_record) t _ =
           (to_gui_last_opcode + 1) version;
         gui.gui_proto_from_gui_version <- Array.create 
           (from_gui_last_opcode + 1) version;
-        lprintf_nl "GUI protocol %d" version    
+        if not !verbose_no_login then lprintf_nl "GUI protocol %d" version    
     
     | P.GuiExtensions list ->
         List.iter (fun (ext, bool) ->
@@ -569,12 +569,12 @@ let gui_reader (gui: gui_record) t _ =
     
     | P.Password (user, pass) ->
         begin
-          lprintf_nl "GUI connection from user %s" user;
+          if not !verbose_no_login then lprintf_nl "GUI connection from user %s" user;
           match gui.gui_sock with
             Some sock when not (valid_password user pass) ->
               gui_send gui BadPassword;                  
               set_lifetime sock 5.;
-              lprintf_nl "GUI connection BAD PASSWORD for user %s" user; 
+              if not !verbose_no_login then lprintf_nl "GUI connection BAD PASSWORD for user %s" user; 
               TcpBufferedSocket.close sock (Closed_for_error "Bad Password")
           
           | _ ->
@@ -1084,7 +1084,7 @@ search.op_search_end_reply_handlers;
 		(match gui.gui_sock with
 		  | Some sock when not (valid_password user pass) ->
 		      set_lifetime sock 5.;
-		      lprintf "BAD PASSWORD\n"; 
+		      if not !verbose_no_login then lprintf_nl "BAD PASSWORD";
 		      TcpBufferedSocket.close sock (Closed_for_error "Bad Password")
 		  | _ ->
 		      gui.gui_auth <- true;
@@ -1172,7 +1172,7 @@ let gui_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-      lprintf_nl "GUI connection from %s" (Ip.to_string from_ip);
+      if not !verbose_no_login then lprintf_nl "GUI connection from %s" (Ip.to_string from_ip);
       if Ip.matches from_ip !!allowed_ips then 
         
         let module P = GuiProto in
@@ -1201,7 +1201,7 @@ let gui_handler t event =
         (* sort GUIs in increasing order of their num *)
         
       else begin
-          lprintf_nl "GUI connection from %s rejected (see allowed_ips setting)"
+          if not !verbose_no_login then lprintf_nl "GUI connection from %s rejected (see allowed_ips setting)"
             (Ip.to_string from_ip);
           Unix.close s
         end

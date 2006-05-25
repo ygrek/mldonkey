@@ -315,7 +315,7 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
         if valid_password user pass then begin
             auth := true;
             o.conn_user <- find_ui_user user;
-            lprintf_nl "Authenticated user: %s" user;
+            if not !verbose_no_login then lprintf_nl "Authenticated user: %s" user;
             let module M = CommonMessages in
             Buffer.add_string buf M.full_access
           end else
@@ -571,7 +571,7 @@ let telnet_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
-        lprintf_nl "Telnet connection from %s" (Ip.to_string from_ip);
+        if not !verbose_no_login then lprintf_nl "Telnet connection from %s" (Ip.to_string from_ip);
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple token
           "telnet connection"
@@ -618,7 +618,7 @@ let telnet_handler t event =
 	in
 	TcpBufferedSocket.write_string sock (dollar_escape o false reject_message);
 	shutdown sock Closed_connect_failed;
-  lprintf_n "%s" reject_message;
+        if not !verbose_no_login then lprintf_n "%s" reject_message;
 	Unix.close s
       end
 

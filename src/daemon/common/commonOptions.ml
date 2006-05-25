@@ -455,6 +455,7 @@ let verbosity = define_expert_option current_section ["verbosity"]
   sm : debug source management
   net : debug net
   gui : debug gui
+  no-login : disable login messages
   file : debug file handling
   do : some download warnings
   up : some upload warnings
@@ -1730,6 +1731,7 @@ let verbose_msg_servers = ref false
 let verbose = ref false
 let verbose_sources = ref 0
 let verbose_download = ref false
+let verbose_no_login = ref false
 let verbose_upload = ref false
 let verbose_unknown_messages = ref false
 let verbose_overnet = ref false
@@ -1756,6 +1758,7 @@ let set_all v =
   Unix32.verbose := v;
   verbose_download := v;
   verbose_upload := v;
+  verbose_no_login := v;
   verbose_unknown_messages := v;
   verbose_overnet := v;
   verbose_location := v;
@@ -1786,6 +1789,7 @@ let _ =
           | "net" -> BasicSocket.debug := true; TcpServerSocket.debug := true; UdpSocket.debug := true
           | "file" -> Unix32.verbose := true
           | "gui" -> GuiProto.verbose_gui_decoding := true
+          | "no-login" -> verbose_no_login := true
           | "do" -> verbose_download := true
           | "up" -> verbose_upload := true
           | "unk" -> verbose_unknown_messages := true
