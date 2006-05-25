@@ -390,7 +390,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
       (match file_state with
           FileShared -> ()
         | _ ->
-            let kernel = CommonSwarming.create_swarmer file_diskname file_size zone_size in
+            let kernel = CommonSwarming.create_swarmer file_diskname file_size in
             let swarmer = CommonSwarming.create kernel (as_file file) block_size
             in
             file.file_swarmer <- Some swarmer;

@@ -74,8 +74,8 @@ let minute_timer () =
   CommonInteractive.force_download_quotas ();
   CommonResult.dummy_result.result_time <- last_time ();
   (try
-      CommonSwarming.verify_some_chunks ()
-    with _ -> ());
+    CommonSwarming.verify_some_chunks ()
+  with _ -> ());
   CommonClient.clear_upload_slots ()
 
 let hourly_timer timer =

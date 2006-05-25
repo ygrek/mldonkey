@@ -492,7 +492,7 @@ let recover_md4s md4 =
   match file.file_swarmer with
     None -> ()
   | Some swarmer ->
-      CommonSwarming.verify_all_chunks swarmer false
+      CommonSwarming.verify_all_chunks swarmer
 
   (*
   if file.file_chunks <> [||] then
@@ -598,7 +598,7 @@ let op_file_check file =
   match file.file_swarmer with
     None -> ()
   | Some swarmer ->
-      CommonSwarming.verify_all_chunks swarmer true
+      CommonSwarming.verify_all_chunks_immediately swarmer
 
 let register_commands list =
   register_commands
@@ -1029,13 +1029,13 @@ let _ =
             P.file_chunks = 
                   (match file.file_swarmer with
                    | None -> "" 
-                   | Some swarmer -> CommonSwarming.verified_bitmap swarmer);
+                   | Some swarmer -> CommonSwarming.chunks_verified_bitmap swarmer);
             P.file_availability =
               [
                 network.network_num,
                 (match file.file_swarmer with
                   | None -> "" 
-                  | Some swarmer -> CommonSwarming.availability swarmer)
+                  | Some swarmer -> CommonSwarming.chunks_availability swarmer)
               ];
             P.file_format = file.file_format;
             P.file_chunks_age = last_seen;
@@ -1293,7 +1293,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
       let chunks =
       (match file.file_swarmer with
        None -> "" | Some swarmer ->
-       CommonSwarming.verified_bitmap swarmer)
+       CommonSwarming.chunks_verified_bitmap swarmer)
       in
 
       html_mods_table_header buf "sourcesTable" "sources al" ([

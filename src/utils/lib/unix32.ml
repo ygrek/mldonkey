@@ -1325,16 +1325,64 @@ let buffered_write t offset s pos_s len_s =
 let buffered_write_copy t offset s pos_s len_s =
   buffered_write t offset (String.sub s pos_s len_s) 0 len_s
 
+(* like String.compare, but on the first n characters (at most) *)
+let string_comparen s1 s2 n =
+  let len1 = String.length s1 in
+  let len2 = String.length s2 in
+  let rec aux i =
+    if i = n then 0 
+    else 
+      match i = len1, i = len2 with
+      | true, true -> 0
+      | false, true -> 1
+      | true, false -> -1
+      | false, false ->
+	  let cmp = (int_of_char s1.[i]) - (int_of_char s2.[i]) in
+	  if cmp <> 0 then cmp
+	  else aux (i+1) in
+  aux 0
+
 let copy_chunk t1 t2 pos1 pos2 len =
   flush_fd t1;
   flush_fd t2;
   let buffer_size = 128 * 1024 in
   let buffer = String.make buffer_size '\001' in
+  (* to prevent allocating disk space by writting zeroes over
+     otherwise sparse files, we check if writes would change
+     target file content before proceeding; 
+     Since failures are expensive (one additionnal read of target
+     chunk), after 3 failures we assume source and
+     target are different and revert to plain old copying *)
+  let buffer_tgt = String.make buffer_size '\001' in
+  let maybe_sparse = ref true in
+  let found_different_credit = ref 3 in
+
   let rec iter remaining pos1 pos2 =
     let len = mini remaining buffer_size in
     if len > 0 then begin
       read t1 pos1 buffer 0 len;
-      write t2 pos2 buffer 0 len;
+      let is_different = 
+	if not !maybe_sparse then true
+	else
+	  try
+	    read t2 pos2 buffer_tgt 0 len;
+	    let result = string_comparen buffer buffer_tgt len <> 0 in
+	    if result && !verbose then
+	      lprintf_nl "copy_chunk: target is different";
+	    result
+	  with _ -> 
+	    (* reached end of target file, or any other oddity ? 
+	       revert to plain copying immediately *)
+	    maybe_sparse := false;
+	    true  in
+      if is_different then begin
+	if !found_different_credit > 0 then begin
+	  decr found_different_credit;
+	  (* too many differences ? give up cleverness *)
+	  if !found_different_credit = 0 then maybe_sparse := false
+	end;
+        write t2 pos2 buffer 0 len;
+      end;
       let len64 = Int64.of_int len in
       iter (remaining - len) (pos1 ++ len64) (pos2 ++ len64)
     end

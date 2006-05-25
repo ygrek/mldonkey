@@ -118,7 +118,7 @@ let set_file_size file size =
       in
       file.file_file.impl_file_size <- size;
       let file_temp = Unix32.filename (file_fd file) in
-      let kernel = CommonSwarming.create_swarmer file_temp size min_range_size in
+      let kernel = CommonSwarming.create_swarmer file_temp size in
       let swarmer = CommonSwarming.create kernel (as_file file)
           file_chunk_size in
       file.file_swarmer <- Some swarmer;

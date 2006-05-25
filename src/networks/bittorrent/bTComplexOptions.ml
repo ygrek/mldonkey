@@ -205,7 +205,7 @@ let value_to_file file_size file_state assocs =
   (match file.file_swarmer with
       None -> ()
     | Some swarmer ->
-        CommonSwarming.value_to_swarmer swarmer assocs;
+        CommonSwarming.value_to_frontend swarmer assocs;
   );
 
 (*
@@ -257,7 +257,7 @@ send us more clients.
     match file.file_swarmer with
       None -> assocs
     | Some swarmer ->
-        CommonSwarming.swarmer_to_value swarmer assocs
+        CommonSwarming.frontend_to_value swarmer assocs
   with
     e ->
       lprintf_nl "exception %s in file_to_value"

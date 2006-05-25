@@ -338,8 +338,7 @@ let new_file file_temporary file_name file_size file_uids =
   in
   if !verbose then
     lprintf_nl "SET SIZE : %Ld\n" file_size;
-  let kernel = CommonSwarming.create_swarmer file_temp file_size 
-      (Int64.of_int (256 * 1024))  in
+  let kernel = CommonSwarming.create_swarmer file_temp file_size in
   let swarmer = CommonSwarming.create kernel (as_file file) megabyte in
   CommonSwarming.set_verifier swarmer ForceVerification;
   

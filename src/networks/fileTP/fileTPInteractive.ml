@@ -81,11 +81,11 @@ let _ =
         P.file_active_sources = (List.length file.file_clients);
         P.file_chunks = (match file.file_swarmer with
           None -> "" | Some swarmer ->
-            CommonSwarming.verified_bitmap swarmer);
+            CommonSwarming.chunks_verified_bitmap swarmer);
         P.file_availability =
         [network.network_num,(match file.file_swarmer with
           None -> "" | Some swarmer ->
-            CommonSwarming.availability swarmer)];
+            CommonSwarming.chunks_availability swarmer)];
         P.file_format = FormatNotComputed 0;
         P.file_uids = [Uid.create (FileTP file.file_id)];
       }

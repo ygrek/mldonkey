@@ -14,6 +14,44 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/25
+5130: CommonSwarming: Pangos WIP4a'
+That's a huge patch over CommonSwarming module (whose job is to select what data
+to ask from connected sources, and the merging of received data),
+I hope I'm not forgetting anything important :
+* first, it's a mantainance patch; Lots of code have been reworked for
+  readability and compactness (iterators...), functions grouped together,
+  sometimes renamed to more descriptive names. Lots of comments have been added,
+  including the description of invariants I've found, and a nice ASCII art
+  schema of the swarming datastructures ;)
+* naming has been made more consistant, to differenciate chunks (from each
+  network view) from blocks (internal to swarming), and intervals (list of
+  int64 * int64 beggining/end offset pairs)
+* Support for bitmaps encoded as strings (AvailableCharBitmap) removed, since
+  it's no longer used anywhere; use the more compact AvailableBitv instead
+* Removed range_current_begin from ranges, it's enough for a range to have a
+  beginning and a end ;)
+* Rewrote compute_block_num to have precise preconditions, and algorithm proof
+* Added some assertions to better enforce invariants
+  (on verification bitmaps, for example)
+* Allocation of ranges is now delayed until the very last moment, instead of
+  when a chunk starts being downloaded. Main benefit (beside small memory gain)
+  is that requests for different ranges sizes can be fulfilled at any time.
+* Modified received function so that no BAD WRITE message can happen anymore:
+  condition when data that does not start from the beginning of a range is
+  correctly detected and data discarded
+  (since ranges cannot handle that case anyway)
+* Rewrote a much simpler version of present_intervals
+* Rewrote block selection algorithm for readability and flexibility; select_block
+  simply "folds" over all available blocks, using compare_choices function to
+  keep the best available one(s). May need some more CPU (no fast exit)
+* Fixed donkey uploaders calls when disconnected
+* Reenable the copy of identical chunks between files. Opportunities for copies
+  are checked every 5 minutes.
+* Made file writing a bit smarter in Unix32 module so that writing zeroed chunks
+  (as can happen a lot with chunks copying) on an otherwise sparse temp file
+  does not allocate disk space. A bit hackish.
+
 2006/05/23
 5121: EDK: Remove obsolete option emule_compression
 5122: improve block_list output and runinfo ip blocking (schlumpf)

@@ -141,7 +141,7 @@ let value_to_file file_size file_state assocs =
   (match file.file_swarmer with
       None -> ()
     | Some swarmer ->
-        CommonSwarming.value_to_swarmer swarmer assocs;
+        CommonSwarming.value_to_frontend swarmer assocs;
         CommonSwarming.set_verifier swarmer (
           match file.file_ttr with
             None -> ForceVerification
@@ -184,7 +184,7 @@ let file_to_value file =
 (*      "file_present_chunks", List
         (List.map (fun (i1,i2) -> 
             SmallList [int64_to_value i1; int64_to_value i2])
-        (CommonSwarming.present_chunks file.file_swarmer));
+        (CommonSwarming.present_intervals file.file_swarmer));
 *)  
     ]
   in
@@ -197,7 +197,7 @@ let file_to_value file =
     match file.file_swarmer with
     None -> assocs 
   | Some swarmer ->
-      CommonSwarming.swarmer_to_value swarmer assocs
+      CommonSwarming.frontend_to_value swarmer assocs
       
 
   (*
