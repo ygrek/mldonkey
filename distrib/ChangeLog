@@ -19,6 +19,7 @@ ChangeLog
 5129: HTML: Display client_bind_addr in options menu
 5124: Log: Login messages can be disabled with verbosity "no-login"
 5130: CommonSwarming: Pangos WIP4a'
+thanks for testing goes to SchAmane, CruX, jave (forgot someone?)
 That's a huge patch over CommonSwarming module (whose job is to select what data
 to ask from connected sources, and the merging of received data),
 I hope I'm not forgetting anything important :
