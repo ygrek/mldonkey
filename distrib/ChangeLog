@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/30
+5137: HTML: Fix display of file magic values with '
 5136: FileTP: fixes and enhancements (zet)
 * Add "FTP-chunk_size" option (0 = no chunks = download full file at once)
 -- A chunk_size would be required if downloading from > 1 source

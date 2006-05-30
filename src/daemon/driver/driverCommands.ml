@@ -2311,7 +2311,7 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
                         (Http_server.html_real_escaped (Filename.basename impl.impl_shared_codedname))
 			(match impl.impl_shared_magic with
 			   None -> ""
-			 | Some magic -> "File type: " ^ magic ^ "<br>")
+			 | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
 			!!html_mods_js_tooltips_wait
 			!!html_mods_js_tooltips_timeout
 			!!html_mods_js_tooltips_wait

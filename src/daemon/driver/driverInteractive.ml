@@ -688,7 +688,7 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
                         (Http_server.html_real_escaped file.file_name)
 			(match file_magic (file_find file.file_num) with
 			   None -> ""
-			 | Some magic -> "File type: " ^ magic ^ "<br>")
+			 | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
 			file.file_num
                         (net_name file)
 			!!html_mods_js_tooltips_wait
