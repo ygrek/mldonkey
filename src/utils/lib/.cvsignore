@@ -8,3 +8,6 @@ gAutoconf.ml
 gAutoconf.ml.new
 options.ml
 gettext.ml
+magic.ml
+misc2.ml
+*.annot

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/30
+5140: Update .cvsignore files (pango)
 5138: Catch ip banned exception (zet)
 5137: HTML: Fix display of file magic values with '
 5136: FileTP: fixes and enhancements (zet)

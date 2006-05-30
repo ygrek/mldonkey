@@ -2,6 +2,7 @@
 xpm.ml
 *.cm?
 ocamlpp.ml
+*.annot
 
 
 

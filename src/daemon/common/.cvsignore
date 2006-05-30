@@ -4,3 +4,4 @@ giftParser.ml
 giftLexer.ml
 commonDownloads.ml
 commonGraphics.ml
+*.annot

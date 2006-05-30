@@ -1,3 +1,5 @@
 *.cm?
 donkey.ml
 donkey.lam*
+donkeySui.ml
+*.annot

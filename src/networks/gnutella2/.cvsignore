@@ -10,3 +10,4 @@ g2Scheduler.ml
 g2Servers.ml
 g2Types.ml
 g2Functions.ml
+*.annot
