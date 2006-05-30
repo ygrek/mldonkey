@@ -88,6 +88,8 @@ I hope I'm not forgetting anything important :
 5109: New option: pause_new_downloads
 - Set to true all new downloads will be paused automatically.
 - This option is automatically set to false on core start.
+EDK: Disable ED2K_connect_only_preferred_server if not preferred server is
+     found, this check is done once per minute
 
 2006/05/19
 5107: Configure: Check for MAGIC_ERROR in magic.h
