@@ -1,21 +1,999 @@
 ChangeLog
 =========
 
-                Many changes and patches applied, 
-            labeled as UNSTABLE until further tested.
-
-I changed the release mechanism in a way that minor updates like
-this one will not get a release tag in CVS, also the version
-number reported by MLDonkey will stay the same.
-
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
-
 2005/07/06: spiralvoice
 
-Split Changelog in two parts, all stuff newer than 2.5.30.14 is now
+Split Changelog in two parts, all stuff newer than 2.7.3 is now
 in distrib/ChangeLog
+-------------------------------------------------------------------------------
+2006/01/19: version 2.7.3 = tag release-2-7-3
+4791: web_infos: New type geoip.dat, save files to local disk,
+      re-download only if file on server is newer
+- now all files except type "rss" in web_infos are saved to local disk
+  if not present or server version is newer
+- MLDonkey uses HTML header last-modified to check if a file has been updated
+- downloaded file timestamp is changed to last-modified time
+- show number of IP blocking ranges in runinfo
+- new web_infos kind: geoip.dat
+- automatically add geoip.dat to web_infos
+- support for *.gz|bz2|zip compressed GeoIP.dat files
+4811: EDK: Print warning when starting a file too big for filesystem,
+      clean Ux32 logging
+4810: Update search results with highest avail/completesources tags (zet)
+
+2006/01/16
+4803: BT: force uniqueness of added trackers by "trackers" command (pango)
+4801: EDK: add more server info fields (html and guiprot) (zet)
+4798: Fix thread recognition on *BSD
+
+2006/01/15
+4797: EDK: Always put server connect requests in connection queue,
+      whether max_opened_connections is reached or not
+      Connection will be established later when a socket is available
+
+2006/01/14
+4796: Windows: Log proper warning when MaxUserPort is reached (thx to Enig)
+4795: Mailer: Fix Subject encoding (bogeyman)
+4716: BT: new command "tracker" to add trackers (bogeyman)
+
+2006/01/12
+4792: GeoIP: Add license (distrib/GeoIP_LICENSE.txt, runinfo)
+      This product includes GeoLite data created by MaxMind,
+      available from http://maxmind.com/
+4776: EDK: Avoid LowID if max_indirect_connections is reached (thx to zet)
+4787: EDK: Show server version (ported from Mulus - thx to Knocker),
+      disconnect blocked server after loading IP blocklist
+
+2006/01/11
+4790: Some logging stuff
+4781: Disconnect connected server before removing
+4782: Configure: Replace AC_CHECK_FILE with "test -d" to allow cross-compile
+
+2006/01/09
+4770: Change file opening mechanism, open rw only when needed (pango)
+      new verbosity option "file" to control Unix32 file handling
+4777: Display IP:port for LowID clients, GUI protocol update (zet)
+
+2006/01/07
+4769: HTML: Fix some Geoip display bugs
+
+2006/01/06
+4768: Dynamic loop delay (pango)
+4765: Add GeoIP.dat support (zet)
+      GeoIP is a GPL database that maps IPs to countries.
+      http://www.maxmind.com/download/geoip/database/
+      This patch adds support for a "geoip_dat" option.
+      It is a simple ocaml translation of just the geoip country lookup code.
+      If active, the file is left open and consulted on demand.
+      It didn't seem to slow anything down on my slow system.
+      Sends the country # to the gui, use latest Sancho version to use it.
+      Web: displays country codes in a column (name in tooltip).
+      Maybe someone wants to add flag images (please make them optional).
+-------------------------------------------------------------------------------
+2006/01/05: version 2.7.2 = tag release-2-7-2
+4764: Patch for MLDonkey-compiled Ocaml-3.09.1 to fix GTK1 oldgui compile
+4763: Compile patch for GTK1 oldgui with Ocaml 3.09.1
+Ocaml 3.09.1 has a bug which prevents compiling GTK1 oldgui.
+A patch can be found here: http://caml.inria.fr/mantis/view.php?id=3948
+
+2006/01/04
+4761: Insert glibc version in archives build by release targets
+4760: Allow use of Ocaml 3.09.1
+      MLDonkey can now be compiled with Ocaml 3.08.3/4, 3.09.0/1
+      Default for MLDonkey-compiled Ocaml is now 3.09.1
+4759: Configure: Improve gcc check
+4757: Compile patches for MorphOS (Christian Rosentreter)
+4748: HTML: Allow rename of files with '#', '&' and '%',
+      remove invalid chars from filenames depending on OS (thx to pango)
+4756: HTML: Print build- and runinfo on main page,
+      fix reload bug when changing html_mods/html_themes (Knocker)
+
+2006/01/03
+4751: Ease use of messages_filter option (pango)
+4753: Allow upper case MD4 for ed2k-links in mldonkey_submit (fcrozat)
+4754: New parameter --auth for mldonkey_command (plf team)
+
+2006/01/02
+4749: GUI: send shared sub_files to gui (zet)
+
+2006/01/01
+4712: Change terminal color for command line from blue to cyan (romildo)
+4742: Log: remove verbosity "tor" & "file", improve verbosity "verb"
+4743: EDK: Print "File is already shared" when trying to start downloading
+      an already shared file
+4744: Split client_timeout into ED2K-client_timeout and BT-client_timeout,
+      increase BT-client_timeout to 90 (tradie)
+4745: Update config.guess and config.sub to version 2005-12-23
+
+2005/12/28
+4725: Check if ulimit is sufficient for MLDonkey,
+      auto-adjust max_opened_connections
+* moved ED2K-max_indirect_connections to downloads.ini
+* max_indirect_connections is now a %-value of max_opened_connections
+* minimum ulimit for open files is now 150 (most systems have 1024),
+  MLDonkey will refuse to start if ulimit is lower
+* minimum max_opened_connections is now 75
+* reduced max_concurrent_downloads from 60 to 50
+* minimum ulimit -n 150 is used like this:
+  - 75 max_opened_connections
+  - 50 downloading files
+  - 5 upload slots
+  - 20 fd as reserve for ini files
+4704: Fix some C compile warnings (schlumpf)
+4739: Fix some cross-compiling obstacles, remove Ocaml 3.08.2 compatability
+* Cross-compiling is only possible with a correct Ocaml toolchain
+* MLDonkey can not build this Ocaml toolchain
+* This patch only fixes some autoconf checks
+4735: MinGW: pause before core exit because of existing Pid file
+4736: New commands: sysinfo, runinfo and diskinfo
+* removed temp_directory and core_directory from shares command output
+* new commands sysinfo, runinfo and diskinfo
+* buildinfo now prints only buildinfo
+* runinfo prints run-time information
+* new command diskinfo prints filesystem data about temp_directory,
+  core_directory and all shared dirs
+* sysinfo prints buildinfo, runinfo and diskinfo alltogether
+4712: Change terminal color for downloading files from blue to cyan (romildo)
+
+2005/12/24
+4732: Log: More infos for verbosity = " verb"
+
+2005/12/21
+4728: fix date format (zet)
+4730: BT: parse path.utf-8 (zet)
+
+2005/12/19
+4726: New option space_overhead to adjust garbage collection (bogeyman)
+4724: Windows: 10 seconds pause when core start fails
+      to make error messages readable
+
+2005/12/18
+4723: New build target: make ocamldoc (pango)
+4721: Log: Improve output for verbosity "verb", remove verbosity "hid"
+
+2005/12/17
+4719: Fix linking of dp500 (pango)
+4715: OV: Improve searching, longer ov timeout, some more bugfixes (bogeyman)
+4718: Fix bug which prevented proper write to files introduced in patch #4694
+4717: EDK: Removed unused variable file_md4s_to_register (bogeyman)
+
+2005/12/16
+4703: BT: Deactivate dead trackers,
+      re-enable them if no active trackers are found (pango)
+4708: HTML upstats: Enable preview for shared files
+4652: dllink: reject EDK files > 4GB, print access errors for .torrent files
+
+2005/12/15
+      Removed orphaned files:
+      src/networks/donkey/donkeyFiles.mli
+      src/networks/donkey/donkeyInteractive.mli
+      src/networks/donkey/donkeyMain.mli
+4710: Re-add some protocol information as comments removed by patch 4694
+4709: Fix zip file extract broken due to patch 4694 (Ocaml 3.09)
+4707: Fix recover_temp broken by patch 4674 (force_download)
+
+2005/12/14
+4706: EDK: Remove donkeyChunks, use commonSwarming for op_file_check
+4702: Correct timezone in e-mail, nicer uptime, timezone and uptime in runinfo
+4694: Fix lots of compile warnings in Ocaml 3.09
+4705: Update config.guess and config.sub to version 2005-11-11
+      Mozilla MLdonkey Protocol Handler updated to version 1.7
+
+2005/12/13
+      Removed orphaned files:
+      src/networks/fasttrack/fasttrack.ml
+      src/networks/gnutella/gnutella1.ml
+      src/networks/gnutella/gnutella.ml
+      src/networks/gnutella/gnutellaScheduler.ml
+      src/networks/gnutella/gnutellaZlib.ml
+      src/networks/gnutella2/g2Scheduler.mlt
+      src/networks/gnutella2/gnutella2.ml
+4700: Log: New verbosity option "gui" to debug GUI protocol
+4696: Fix some C compiler warnings
+
+2005/12/10
+4687: Compile fix for Ocaml 3.09.0 (gildor), MLDonkey can now be compiled
+      with Ocaml 3.08.[2,3,4] and Ocaml 3.09.x (4687_min2.patch)
+4693: Compile patch in sha1.c for FreeBSD (lioux)
+4689: Catch exception in file_completed_cmd to let commit complete
+4691: file_completed_cmd: $DURATION in seconds (debonair)
+-------------------------------------------------------------------------------
+2005/12/06: version 2.7.1 = tag release-2-7-1
+4679: FileTP: Fix HTTP downloading for URLs with space chars, log cleaning
+4674: EDK: Re-enable checking old_files before starting a download
+      and force_download command
+4676: BT: decode_version fix and html sort fix (bogeyman)
+
+2005/12/05
+4673: IPBlock: display original length and optimized length in block_list,
+      log file clean up
+
+2005/12/04
+4672: FileTP: Fix major bug in HTTP downloading, introduced in 2.6.0
+
+2005/12/03
+4671: Compile fix in CryptoPP.h for gcc-2.96 (trdw)
+4670: Increase max_buffer_size limit for high-volume connections
+
+2005/12/02
+4649: Updates for file_completed_cmd (pango, spiralvoice)
+* some log cleaning
+* added information to notification email if auto_commit is disabled,
+  email is sent by file_completed, not file_commit
+* moved execution of !!file_completed_cmd from file_completed
+  to file_commit, kept option name for easier upgrading
+  this was done because the filename of a downloading file can be
+  different than the filename of the committed file if a file
+  with the same name as the to be committed file is already in
+  incoming. older method did not take this into account at all..
+* added environment variables for file_completed_cmd, see description:
+
+    A command that is called when a file is committed, does not work on MinGW.
+    Arguments are (kept for compatability):
+    $1 - temp file name, without path
+    $2 - file size
+    $3 - filename of the committed file
+    Also these environment variables can be used (prefered way):
+    $TEMPNAME - temp file name, including path
+    $FILEID - same as $1
+    $FILESIZE - same as $2
+    $FILENAME - same as $3
+    $FILEHASH - internal hash
+    $DURATION - download duration
+    $INCOMING - directory used for commit
+    $NETWORK - network used for downloading
+    $ED2K_HASH - ed2k hash if MD4 is known
+
+4667: Update Ocaml download URL
+4666: Always create incoming directories before commit
+4663: CryptoPP: Latest fixes ported from aMule CVS
+
+2005/12/01
+4657: Fix for C files for AMD64, mipsel platforms
+      improve endianness checking in tiger.c, md5_c.c and CryptoPP.h,
+      print endianness in buildinfo, removed sha1_old code
+4661: Log: newline before exception message when MLDonkey can not use a port
+      BT: exit if client_port = tracker_port
+
+2005/11/28
+4654: Fix guiprot when addr not resolvable (zet)
+4655: Set conn_user on gui (zet)
+4656: BT: update last seen complete field and fix bitfield reading (zet)
+
+2005/11/27
+4653: GTK2 GUI: add isohunt statistics (su_blanc)
+
+2005/11/22
+4364: Let mlnet build under the cygwin unix emulation layer (Amorphous)
+4648: GTK2 GUI: improve display of razorback stats (su_blanc)
+      added the display of filedonkey.com data
+4646: BT: little change to recognise Clients (bogeyman)
+4645: Fix donkey total uptime stats order (bogeyman)
+
+2005/11/21
+4406: Unicode: Fix filenames in shared_files_new.ini and file rename
+      in HTML interface (mld_unicode_patch6.patch) (CML)
+4440: New option shutdown_timeout, 3 sec, was hardcoded before (Amorphous)
+4644: Update GNU config.guess and config.sub to current versions
+4643: HTML: Fix gdstats output when html_use_gzip true
+4640: Calendar: view calendar command: vcal
+4641: Fix exception in load_web_infos
+4642: HTML: Improve preview via webbrowser (pango)
+
+2005/11/19
+
+4563: replace all Printf.printf occurences by Printf2.lprintf (su_blanc)
+4479: Callback mechanism for low ID users does not work (miriup)
+      Reactivating submission of server IP and port during client
+      handshake in edonkey
+  "However, sometimes, especially when I have no files to download I do
+   not receive callbacks at all. It is suggested to apply this patch in
+   a testing mldonkey for a week on a non-low id connection before including
+   it in a stable release, ... I can't test high-ID at all."
+4574: Friends upload slot (pango)
+-------------------------------------------------------------------------------
+2005/11/19: version 2.7.0 = tag release-2-7-0
+4631: Validate ED2K-client_private_key
+
+2005/11/16
+4630: GTK2 GUI - some bug fixes (su_blanc)
+* display Razorback graphical stats for currently selected file
+
+2005/11/14
+4625: GTK2 GUI - bug fix (su_blanc)
+* bug #14865 : availability display "dotty"
+  added alpha channel to availability pixbuf.
+* bug #14963 : autosize slightly broken
+  the tick mark for 'autosize all columns' appears only if all columns are set
+  to 'autosize' mode. 'autosize all columns' triggers an 'autosize' mode for
+  all columns if at least one has not this mode set. Otherwise all the columns
+  are set to 'fixed' mode.
+* bug : razorback stats
+  display stats on user request.
+
+2005/11/13
+4583: Change stats.razorback2.com usage to on-demand (su_blanc)
+      to avoid overloading the server (disable_razorback_stats.diff)
+4619: Remove duplicate Gc.compact () from EDK mem_stats (pango)
+
+2005/11/12
+4617: GUI: send bt subfiles over gui prot (zet)
+4587: Buildinfo: Split build-time and run-time information (schlumpf)
+4350: Code cleanup : web interface chunks display (pango)
+      (web_chunks_using_tables_v2.patch)
+4616: Change allow_browse_share, so only friends can see file lists (pango)
+4615: Add -g to CFLAGS when --enable-profile (pango)
+4605: replace string/bool bit arrays with bit vectors (zet)
+4607: remove html output from telnet 'vc all' (zet)
+4613: Optimizing Set.cardinal to reduce CPU usage (pango)
+4614: Gtk2 mlgui improvements (su_blanc)
+* fix bug : close all current searches when one quits mlgui
+    otherwise the core continues to search
+      to test:
+        * open mlgui
+        * make a search request
+        * close the gui
+        * in HTML interface, check "View searches" tab.
+* lower CPU usage by delaying heavy computations (use Glib.Idle)
+* rework the search tab, just make it more simple,
+  limit results to max hits, added min availability criterium
+* added Autosize columns. Should fix bug #14868
+* change pixmap for availability bars in pixbuf. should fix bug #14865
+
+2005/11/09
+4558: further Overnet patches, query_next_peers3.patch (bogeyman)
+
+2005/11/07
+4586: cleanup brand stats code (bt/edonkey) (zet)
+      updated to coalesce bt software parsing and add some more ids
+
+2005/11/05
+4589: CryptoPP doesn't like -fomit-frame-pointer, so remove it (przemoc)
+4597: OV/KAD: fix a search reset bug (bogeyman)
+4585: Change ED2K_max_sources_per_file from 20000 to 5000
+4579: Slackware package (tgz) - basic mlnet support (ratmmmam)
+
+2005/10/31
+4583: GTK2 mlgui improvement (su_blanc)
+Lablgtk-2.6.0 is needed for GTK2 mlgui, it fixes a mem leak with GdkPixbuf.
+added:
+* razorback stats: click on a file in the downloads tab to display the stats
+  (at startup wait for few seconds, the time to download the png files...).
+* proxy options for mlgui
+* a graph tab: global downloads, global uploads and a view per file
+  (downloads and uploads).
+modified:
+* fix Tray icon as per task #4694
+* reduce mem use
+* configuration files locations: mlgui and mlim do not need CommonOptions.
+  Should not change anything for the users as we check the $HOME variable.
+
+4558: Overnet: several patches (includes and fixes patch #4551) (bogeyman)
+* better detection of dead peers
+* so we can ping less often
+* and can be sure these peers are alive
+* use ip:port from received pakets instead from the peer info
+* use a weak Hashtbl for known_peers and remove search_known_peers
+* we are removing all dead peers, in buckets and prebuckets,
+  (do not wonder, if you get less peers left ;o)
+* do not send useless "Connect" pakets, Fillbucket really works
+* every 30m file searchs were created twice.
+There are really less peers than without this patch, maybe i'll have to tweak
+how we fill buckets. But for now this works and produce less traffic.
+
+4581: Fix upload rate for high volume connections (> 1.5Mbit/sec) (pango)
+4584: HEAP: use GC.quick_stats for mem_stats level=0 (bogeyman)
+
+2005/10/30
+4580: Update .cvsignore files (pango)
+4564: HTML: fix vd p/d/queued output (zet)
+4576: BT: remove sources when file is cancelled,
+      mem_stats: Garbage collector info (zet)
+-------------------------------------------------------------------------------
+2005/10/28: version 2.6.7 = tag release-2-6-7
+4562: removed patch, breaks GUI connect after SIGTERM
+
+2005/10/27
+4551: remove patch, breaks Overnet
+4562: BasicSocket.ml fix, fix select when fd_tasks is empty
+      close all fd on exit (su_blanc)
+4561: Options.ml4 proper old directory (su_blanc)
+4560: mingw : proper detection of gToolbox.mli (su_blanc)
+4559: mingw compilation of Crypto.cpp (su_blanc)
+4553: HP-UX: If /dev/urandom is not present print info where to get it
+4554: HP-UX: Compile fix for statvfs (disk usage statistics) (Inkus)
+4555: EDK: Send emule_version on server login to prevent
+      "Your client is too old" message (Knocker)
+4556: Fix linking mlnet to X and GTK libs when using --enable-gui (su_blanc)
+-------------------------------------------------------------------------------
+2005/10/25: version 2.6.6 = tag release-2-6-6
+4551: OV/KAD: use kind like eMule does +misc bugfixes (bogeyman)
+      "do not wonder, if you get less peers left ;o)", also reduces traffic
+4550: Create bitprint for large files (zet)
+4549: html_mods: relevant_queues option (zet)
+      This patch creates a relevant_queues option which specifies a list of
+      queue #'s that should be displayed in the vd # sources table.
+      See sources command for the list of queues.
+      By default all queues except the DoNotTry queue(7) are displayed.
+4548: IPBlock: really don't load descriptions on core restart,
+      if set to false (bogeyman)
+
+2005/10/24
+4547: Fix dupe sending of motd/nets in gui_initialize (zet)
+
+2005/10/23
+4545: make TAGS, creates files for source code navigation in Emacs (pango)
+4544: Change internal code for statfs function (pango)
+4543: Lower CPU usage, optimize CommonSources.count_file_ready_sources (pango)
+4542: Remove Donkey-Fakes support, service is down
+4541: New option BT_max_tracker_redirect
+      connect to bittorent trackers with http redirect (jhon)
+
+2005/10/19
+4535: OV/KAD: Yet another improved logging (bogeyman)
+4533: Yet another compile patch for mld_hash,
+      remove svg_converter with make clean
+4534: Compile fix for make_torrent
+
+2005/10/18
+4531: Compile fix for GTK1 oldgui
+4530: Compile fix for mldonkeytop (pango)
+4525: Always use svg_converter.byte (gildor)
+4524: Fix building mld_hash (gildor)
+4523: Fix building of svg_converter.byte (gildor)
+
+2005/10/17
+4520: Check for /dev/urandom, /dev/null and $TEMP
+4521: CryptoPP: Compile patch for gcc-2.96 (sworn)
+
+2005/10/16
+4519: Int64ops cleanup (pango)
+-------------------------------------------------------------------------------
+2005/10/11: version 2.6.5 = tag release-2-6-5
+4508: Configure: Print some important build targets
+4507: EDK: Print server banners into logfile (pango)
+4500: BT: Fix multifile download with zero-byte files (thanks to jave)
+4506: replace obsolete longarry and fifo2 code (bogeyman)
+
+2005/10/10
+4504: Clean http_server.ml logging
+4502: Remove obsolete Weak2 sourcecode (bogeyman)
+4503: OV: fill buckets only with peers we send to and heard of (bogeyman)
+4499: Check for stalled pid file and remove it if MLDonkey is not running
+      (does not work on MinGW due to missing Unix.kill) (pango, spiralvoice)
+4501: HTML: Fix chunk wrapping on IE (zet)
+
+2005/10/09
+4477: prevented some compiler warnings (Schlumpf)
+4496: Nicer summary of configure command
+
+2005/10/06
+4337: improved upload scheduler (pango)
+4494: fix infinite loop when create_dir_mask on fat32 (zet)
+4495: BT: include Wiki link to report unknown clients (bogeyman)
+4493: BT: Correctly parse .torrent files with an empty directory (zet)
+4487: BT/HTML: Display files inside a multifile torrent (bogeyman, jave)
+4458: EDK: add enable_sui toggle option (enabled by default) (zet)
+4491: Compilation fix for NetBSD>=2.99 (Thomas Klausner)
+4490: memstats for a weakhash and a new OV command dump_bucket (bogeyman)
+4473: New command: whoami
+4457: BeOS: Compile patch for CryptoPP (Michael Lotz)
+4460: Added search for .torrents via IsoHunt (WingMaster)
+4456: Fix shrink effect in vd for Opera (Luar Roji)
+
+4452: Clean configure.in, check for c++ compiler
+* zlib is not optional anymore
+* remove old code (Cryptokit, Broosnet etc.)
+* distinguish between Cygwin and MinGW
+* print start warning message only for Cygwin
+* remove whitespaces
+
+4450: Remove swarmer data when cancelling download (kempston, zet)
+
+2005/09/21
+4454: commonSources: add sources from resumed files
+      (outside_queue sources) back to the queues (zet)
+4453: Telnet: Print reject message for connecting client
+      if it is not allowed to connect,
+      prepend "dllink" for all commands starting with "http://"
+4455: Improve make distclean
+4449: New parameter for pid file: -pid <dir>, small improvements for pid files
+4451: Correct the help of allowed_ips (gildor)
+
+2005/09/19
+4439: Fix for "make mlnet.byte" (zet)
+4438: Fix secure-ident related compile bugs in Opennap & Soulseek
+4437: BT: show up/down stats for Brand unknown (bogeyman)
+4436: EDK: Solve memleak in donkeyChunks (file_md4s_to_register) (bogeyman)
+4434: Added button to eMugle in Search (wingmaster)
+4432: Add more info to mem_stats (zet)
+
+2005/09/18
+4431: Newgui: Compile fix
+4419: EDK: Support secure user identification (crypto5, by zet)
+
+2005/09/17
+4424: OV: discard peers with ip 1.0.0.0 and random port
+4425: EDK: Support server extended getsources2 opcode (zet)
+4429: Better error message if MLDonkey lacks network support
+      for a file in files.ini
+4427: BT: 10 retries / follow 10 redirections in 
+      dllink http://server/file.torrent
+4423: OV/KAD: Save only active peers to config files/ save max 200 peers
+      (bogeyman)
+
+2005/09/14
+4420: Remove obsoleted commonSwarming1 code
+4418: Re-activate sources_per_chunk option (pango)
+4417: BT: Improve BT upload speed (pango)
+4374: fix "max_hard_download_rate has to be doubled" (pango)
+      This patch changes internal code, no option has to be changed
+
+2005/09/13
+4406: Improved Unicode filename support (CML)
+4412: OV: Handle OvernetPeerNotFound correctly (bogeyman)
+4411: OV/KAD: Some peers are not added to known_peers (bogeyman)
+4410: Shorter filesystem name for XFS
+4409: Compile fix if Bzip2 is not available
+4408: OpenBSD: configure.in fix to find libbz2 and others in /usr/local
+
+2005/09/08
+4397: Buildinfo: Run-time check for Windows OS version / Unix uname (zet)
+4403: html_mods: mem_stats in a single readable table (zet)
+4402: BT: BT-user_agent option (zet)
+
+2005/09/06
+4268: Web/Gui: free core's buffer allocated by vd # and gui (bogeyman)
+4393: Lower ip blocking memory usage (pango)
+      new option ip_blocking_descriptions true|false
+4401: BT: Send 'stopped' event to all trackers when exiting (zet)
+-------------------------------------------------------------------------------
+2005/09/04: version 2.6.4 = tag release-2-6-4
+4392: Print "Core started" on stdout even if logging is enabled
+      Fixes problems when MLDonkey is spawned by a GUI
+
+2005/09/03
+4247: memstats: BT/FT/GNUT/G2: initial memstats, ALL: show nr of old_files,
+      BT: nr of torrent files
+4390: Mail: Print incoming path if !!url_in_mail is used
+4389: BT: Fix core exit if dirs of a shared multifile torrent are not writable
+4368: new option: create_file_sparse true|false, this works only for
+      files on NTFS drives in MinGW compiled MLDonkey (thanks to zet)
+
+2005/09/01
+4385: EDK: Preserve untested servers (pango)
+4351: optimize ip blocking lists (pango)
+4376: EDK: Re-enable result_done (already downloaded) in search results (zet)
+4126: Improved log_file handling
+
+* there is now a default log_file: mlnet.log, old downloads.ini is *not* updated
+* its default log_file_size is 2MB, this is checked only on core start,
+  if log_file is bigger it will be resetted
+* logging will always be appended to log_file
+* new command "clear_log" to reset log_file while the core is working
+* new command "open_log" to reopen log after close_log
+* removed command "log_file", same can be achieved through "set log_file <file>"
+
+4384: HTML: Add "Import Serverlist" in servers,clean third button row (schlumpf)
+4365: Disable console "X" close button on MinGW, second version (CML)
+4382: Solve libgd configure in mandrake 10.0
+4381: better differentiation of eDonkey and BT Stats Table (schlumpf)
+4380: some info for SCM Version (CVS co Date/ SVN revision) (schlumpf)
+4379: Fix compile error when libgd is not present
+4378: Longhelp: Better description for add_user
+4377: Better description for shared_directories in downloads.ini
+4356: EDK: Improved server.met handling / fix contact.dat loading
+
+* Changed user agent from "MLdonkey" to "MLDonkey", solves problem
+  when downloading files from www.gruk.org and www.srv1000.com
+* MLDonkey new recognizes links like ed2k://|serverlist|http://server/file.ext|/
+* "servers" command now takes URLs
+* if period in web_infos is zero the file is only loaded during core start
+  (as requested by the owner of www.gruk.org)
+* in all places where a filename or URL for a server.met can be used this
+  file can also be compressed with gz/bz2/zip
+* automatically replace old default server.met in web_infos
+("server.met", 24, 
+"http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
+  with fake servers free list from gruk.org:
+        ("server.met", 0, "http://www.gruk.org/server.met.gz");
+* fixed bug which prevented loading Overnet contact.dat file in web_infos
+
+2005/08/29
+4368: Use sparse files on MinGW/NTFS (zet)
+4370: BT/Win32: fix multifile hashing (Amorphous)
+
+2005/08/28
+4366: HTML: more maintainable html_mods styles (pango)
+4367: Improve logging
+4361: New command: uptime
+
+Lots of improvements for MinGW, this platform now supports
+files > 2GB, threads and libgd generated statistics.
+Here you will find compilation instructions:
+http://mldonkey.sourceforge.net/Windows
+
+4342: Large_file support for mld_hash and MinGW MLDonkey core (zet)
+4358: Add thread support for MinGW (zet)
+4362: configure.in support for libgd on MinGW/FreeBSD
+4349: increase filedescriptor limit for mingw (zet)
+4365: Disable console "X" close button on MinGW (zet)
+
+2005/08/26
+4360: Configure: Test for nl_langinfo(CODESET)
+4359: Upload: Give upload slot truely randomly (pango)
+4347: Improve exit codes, codes were inspired by sysexits.h
+4345: Code clean: Optimize redundant time_to_string functions
+4357: Rename ed2k_hash to mld_hash
+4344: Improve ./configure checks (bzlib.h, iconv on Windows)
+-------------------------------------------------------------------------------
+2005/08/21: version 2.6.3 = tag release-2-6-3
+4254: Patch reverted, did not work
+      "html_mods: Table data is incorrectly centered"
+4336: Improve some log file messages
+4321: BT: fixed "make_torrent produce corrupted files on Windows" (beedauchon)
+4335: Buildinfo: Fix bug if Bzip2 version string is empty (beedauchon)
+4329: HTTPClient: Implement retries for failed requests
+4319: Fix compile if libbz2 is not available,
+      new configure option: --disable-bzip2
+4334: BT/FileTP: Some progress on cancel bug (kempston)
+4333: send ip blocked addr state to gui, compute_torrent from gui (zet)
+4332: Let configure fail if GNU make is not installed
+
+2005/08/18
+4323: HTML: Search results: new colums for Bitrate, Codec and length
+4324: Log: Improve output for verbosity "hid"
+4322: EDK: compatibleclient 40 -> Shareaza
+4320: Fix compile on FreeBSD < 5.3
+
+2005/08/15
+4317: Updated ./configure for compiling lablgtk2 with --enable-batch
+4316: Updated ./distrib/Install.txt for Ocaml 3.08.4 and new GUI options
+4292: html_mods: Match styles default frameHeight with the common default
+4314: Allow compiling with Ocaml 3.08.4
+      Compiling with 3.08.3 still works
+4312: BT: Allow seeding (beedauchon)
+4311: BT: create_torrent: default_tracker and default_comment (beedauchon)
+4309: GUI: send ed2k/bt network u/d totals (zet)
+4308: Gnutella/G2: Fix commit if no TigerTree is available
+4305: buildinfo: Print some system internals
+4304: EDK: Fix disconnect state with verbosity = "hid"
+4297: Create ini file backups on shutdown
+Note: file_sources.ini is never saved, it makes no sense to keep this file.
+
+New options:
+
+* backup_options_format, default "tar.gz", "zip" can also be used
+
+* backup_options_delay, default 0
+How often (in hours) should a backup of the ini files be written into old_config.
+A value of zero means that a backup is written only when the core shuts down.
+
+* backup_options_generations, default 10
+Define the total number of options archives in old_config.
+
+Command save got two new parameters:
+* "save all" saves options, sources and creates a ini file backup
+* "save backup" speaks for itself;-)
+-------------------------------------------------------------------------------
+2005/08/11: version 2.6.2 = tag release-2-6-2
+4296: BT: Fix options parsing
+-------------------------------------------------------------------------------
+2005/08/09: version 2.6.1 = tag release-2-6-1
+4291: EDK: Better logging for unknown compatibleclient values
+4290: BT: Some small fixes for messages interested and cancel (beedauchon)
+4289: LOG: Improve verbosity "hid"
+4287: Better clear Fifo buffers (bogeyman)
+4268: Web/Gui: free core's buffer allocated by vd # and gui (bogeyman)
+
+2005/08/08
+4285: IPBlock: Server support
+* display in vm/vma if a server has a blocked IP
+* prevent connections to a IP blocked server,
+  in EDK case this resulted in a LowID connection 
+
+4284: Remove whitespaces / Some logging changes
+
+2005/08/07
+4279: MinGW: HDD statistics support
+4281: Remove white spaces / Some logging stuff
+4251: HTML: few fixes / new option html_frame_border true|false
+4278: Windows: Fix bug creating work dirs in empty dir
+
+2005/08/06
+4276: IPBlock: Never block local IPs even if they are in blocklist
+4274: Use relative path if downloads.ini is present
+
+2005/08/05
+4272: HTML: Cursor focus in input field
+4271: GTK2: Fix compile bug in src/gtk2/chat/chat_art.ml
+4155: Let MLDonkey create its data in $HOME/.mldonkey
+
+Usage instructions:
+* if the core is started in a directory where downloads.ini exists
+  this directory will be used, this is the same behaviour as before
+* on Windows the current directory will always be used,
+  this is consistent with eMule
+* on other systems $HOME/.mldonkey will be created and used,
+  this is consistent with eDonkey, aMule and Unix standards
+* if variable MLDONKEY_DIR is used that directory has priority,
+  to simulate the behaviour without this patch use:
+    export MLDONKEY_DIR="." && ./mlnet
+
+2005/08/04
+4270: Overnet: Convert local IPs sent by OV clients to real IPs
+4269: IPBlock: Several fixes, better zip file support
+4264: Fasttrack: Force commit of all complete files
+
+4258: BT: Statistics, recognize more clients, min_interval,
+      torrents/old and more...
+      This patch was done by Beedauchon, it incorporates weeks of work from him.
+* move .torrent to torrents/old if the file is not shared anymore
+* new command rm_old_torrents: delete all files in torrents/old
+* eDonkey like statistics for BT clients (csbt command)
+* compute_torrent and make_torrent can put a comment into the .torrent file
+* MLdonkey computes a BT-compatible client_uid starting with "-ML"
+* parse more fields from .torrent files and display them in HTML interface
+* Tracker: replace "/tracker" by "/announce"
+* Tracker: add "/scrape"
+* Multitracker support for downloading
+
+2005/08/02
+4263: Fasttrack: Force bootstrapping nodes
+
+2005/08/01
+4261: HTML: Add DL button - opens dialog for entering links (omgwtf2)
+4260: IPblock: Enable IP blocking for Overnet and HTTP server
+      (=BT Tracker) (beedauchon)
+4257: Kick uploaders which send no data for more than 1 minute
+4256: Print message if glibc version mismatch
+      updates for buildinfo (version of libbz2, libz, libpng)
+
+2005/07/29
+4255: HTML: updates for cs command
+4254: html_mods: Table data is incorrectly centered
+4253: HTML: New style Construction (omgwtf2)
+4251: few html fixes (reverted) (beedauchon)
+
+2005/07/28
+4250: Remove whitespaces from commonUploads.ml
+4249: HTML: Links to fake check services in search results (bogeyman)
+
+2005/07/27
+4194: FileTP : Add support for "referer", error messages cleanup (beedauchon)
+4245: BT: Remove whitespace (beedauchon)
+4244: Change web_infos period to hours (this is a bugfix,
+      no need to change ini files)
+      new option: enable_mlnet_redirector
+
+2005/07/26
+4243: FileTP: Clean lots of whitespaces
+4031: HTML: relative refs in HTML output (beedauchon)
+4191: Access to disk data (free space, max file name length)
+      This is first step implmenting this, checkout the
+      disk command for debugging.
+4242: IPBlock: Support guarding_full.zip
+4241: Fix html_mods_vd_gfx_remove
+4240: EDK: New option keep_downloaded_in_old_files
+
+2005/07/23
+4184: support guarding.p2p in zip/gz/bz2 format
+      bz2 segfaults on OpenBSD, therefore disabled
+      see notes in the patch on how to compile with MinGW
+
+2005/07/22
+4205: Improve logging with timestamps 2 (incomplete)
+4204: Improve logging with timestamps (incomplete)
+
+2005/07/21
+4195: GUI: Change configure options
+
+Now "./configure" compiles no GUI, "--disable-gui" is default.
+To use a GUI use "--enable-gui", this enables GTK2 GUI.
+Other options are:
+--enable-gui=newgui2 (use GTK2 GUI)
+--enable-gui=newgui1 (use GTK1 newgui)
+--enable-gui=oldgui  (use GTK1 oldgui)
+Options like "--disable-newgui" or "--enable-gtk2" were removed.
+
+2005/07/20
+4193: CommonGraphics : some whitespace cleanups
+4190: Gdstats: Fix tag.png/jpg link output
+4188: Overnet: Dont put our own ID in the buckets (bogeyman)
+-------------------------------------------------------------------------------
+2005/07/19: version 2.6.0 = tag release-2-6-0
+4175: New option html_mods_use_js_tooltips, default true
+      (4175_5.patch)
+4187: Update version to 2.6.0
+4186: SCM date for Windows / FreeBSD configure enhancement
+
+2005/07/18
+4183: HTML: Overnet/Kademlia stats improvements (beedauchon)
+4118: Solve memory leak in Overnet/Kademlia
+4182: Get CVS date in configure for OpenBSD
+4175: HTML: Add Multiline File Information in download table
+      (4175_4.patch)
+
+2005/07/17
+4181: EDK: Control identified versions
+4180: EDK: Files copied to incoming dir for sharing do not
+      appear in upstats after hashing
+4179: Get CVS date in configure for FreeBSD & Mac OS X
+4178: Dont build GUI on "make release.mlnet.static"
+4177: Clear logging, first steps toward time stamps
+4175: HTML: Add Multiline File Information in search results
+4174: EDK: Re-enable source exchange with eMule clients
+4163: EDK: Avoid saving sources every save_options_delay
+
+2005/07/14
+4173: Clear whitespace from code
+4168: HTML: Graphical chunk display in vd <num> (beedauchon)
+4167: Gdstats: Fix corrupted pics output/improved output (beedauchon)
+
+2005/07/13
+Remove obsolete ./src/gtk/gui2 directory
+4165: Clean log file
+4164: Gnutella/G2: Update Webcache URLs
+4160: resize properly the names in the gtk2 gui (su_blanc)
+4158: EDK: Parse and display version numbers, also in GTK2 GUI (su_blanc)
+4114: EDK: new command "reset_stats" (Knocker)
+
+2005/07/10
+4159: Removed whitespaces (beedauchon)
+4156: tray icon in x11 for GTK2 GUI (su_blanc)
+4157: fix mlnet.pid checking at start up for GUI
+
+2005/07/07
+4153: More infos for mem_stats
+4146: Use lprintf_nl instead of "lprint_newline ()" or "\n" (beedauchon)
+
+2005/07/06
+4118: Improve Overnet/Kademlia logging and mem_stats output
+      (overnet_log,patch)
+-------------------------------------------------------------------------------
+2005/07/05: version 2.5.30.17 = tag release-2-5-30-17
+4142: Remove unneeded code
+4141: Cleaned logging
+4140: New option: create_dir_mask
+      New directories in incoming_directories are created
+      with these rights. 
+4139: EDK: don't ask clients for non-downloading files
+
+2005/07/04
+patch posted in bug 13619:
+  Always returns ASCII(C) locale when it use libcharset
+
+2005/06/29
+4135: Change emule_version
+4134: Clean core startup messages and log output
+4130: Print warning message for Windows users
+4128: Notification mail: show hash and download time
+4127: Add TOS support
+4123: First steps toward integrated user-management:
+      new commands "remove_user" and "users",
+      only "admin" is allowed to kill the core
+      HTML interface to setup users (Options, Users)
+
+2005/06/25
+4125: Some configure.in fixes if libpng is misssing in libgd
+
+2005/06/23
+4122: EDK: "server <met>" command now responds with a clearer answer (Knocker)
+4121: EDK: Dont remove prefered server if server_users < min_users_on_server
+      (Knocker)
+4120: EDK: send emule_version to servers (Knocker)
+4083: new build target: release.mlnet.distri
+      it contains both the dynamic and the static linked core
+
+2005/06/22
+4115: sort output of "links" in alphabetically order (Knocker)
+
+2005/06/20
+4109: EDK: Improve update_server_list
+4104: Check accessibility of used directories on core startup
+4101: Telnet: Show BT hash in vd <num>
+4099: Automatically insert version number in Windows ressource file
+4093: Add Buildinfo button to HTML, Help+
+4092: Add Razorback-Stats and Bitzi links to upstats
+4091: EDK: Some progress on the cancel bug
+4090: Overnet: Add stats to mem_stats and code cleanup
+4089: gdstats: Update second graph correctly
+4085: change download priority to keep started download rolling
+4071: Code cleanup: Replace lprintf_newline with "\n"
+-------------------------------------------------------------------------------
+2005/06/06: version 2.5.30.16 = tag release-2-5-30-16
+4070: Exit core on startup if a port is already used
+4079: mlnet server id fix
+
+2005/06/03
+4067: BT: Fix multifile commit
+      (updated to create dirs with rights 777)
+4063: HTML: Some improvements (beedauchon)
+
+2005/05/30
+3984: Make filename_conversions option implementation safe
+4042: Avoid sharing temp dir
+4046: Hotfix: Circumvent max_hard_download_rate/2 bug
+4051: mailer:encode subject and include a time zone
+4055: Allow canceling of ed2k downloads if G2 is enabled
+4056: Close all files if core receives SIGHUP
+4057: Hotfix: Close files if an upload slots gets free
+4058: Remove donkey_devel code, it is outdated
+4060: Extend core startup message
+4061: Block system signals during core startup
+
+2005/05/28
+4040: EDK: Do not truncate shared files
+4043: Avoid locking shared files
+4044: G2: Enable dllink support for servers and friends
+4045: Remove command "-daemon", use 'mlnet > /dev/null 2>&1 &' instead
+4050: Sync with Amorphous rev325
+
+2005/05/19
+4033: Fix "make clean" on MinGW/Cygwin (updated 2005/05/28)
+4034: HTML: sources command has HTML output now (from beedauchon)
+
+Replaced docs/http-1.1.txt and docs/uri.txt with links
+to the original files.
+
+Remove big, dcgui, giFT, hwd, lopster and small from ./icons
+GTK old- and newgui and GTK2 GUI compile without those dirs.
+
+Only these sets are used:
+./config/Makefile.in:  ICONS_CHOICE=icons/rsvg
+./config/Makefile.in:    ICONS_CHOICE=icons/tux
+./config/Makefile.in:    ICONS_CHOICE=icons/kde
+
+2005/05/17
+3985: Create pid file
+3991: Respect $MLDONKEY_DIR
+3993: Enable signal handling on MinGW
+3996: EDK: Support auxports
+4017: Fix use_tags compile
+4018: New EDK clients: Emule Plus + Hydranode
+4023: Enhance buildinfo
+4025: Enable sha1new on Solaris and Windows
+4026: Remove all servers with "rem all" works now
+4027: Fix jpg viewing with gdstats
+4028: Remove gd generated files (cosmetic code update 2005/05/19)
+4029: EDK: Print warning if enable_servers false
+
+2005/05/13
+3979: Show CVS date in CURRENT_RELEASE
+3971: Send sources availability
+3977: html_mods: fix server listing when a net is disabled
+3978: properly sort availability in the GTK2 GUI
+* Patch from beedauchon adds html support to donkeys
+  new_print_mod_stats if emule mods statistics are disabled.
+* Patch from beedauchon adds html support to the command gstats.
+* Patch from beedauchon adds html support to the command ov/kad_stats.
+* Patch from beedauchon adds some fixes to the html output 
+  of the networks command.
+-------------------------------------------------------------------------------
+2005/05/02: version 2.5.30.15 = tag release-2-5-30-15
+This version shares the same code as Amorphous revision 304.
+
+3963: Remove Audiogalaxy code
+3964: Remove obsolete Cymes entries
+3970: Print web_infos (from beedauchon)
+3972: bug fixes for the GTK2 GUI
+3973: Support for Overnet contact.dat (from beedauchon)
+3974: HTML: RSS support (from beedauchon)
+3975: EDK: Fix for sending shares to server
+3976: Remove obsolete Ares code
+-------------------------------------------------------------------------------
+2005/05/01
+3956: Set utf-8 character encoding in notification mails
+3952: Print glibc version in buildinfo
+3969: Sync with Amorphous rev293 
+from rev290:
+* A little cleanup for debug output.
+from rev293:
+* Patch from beedauchon fixes transparency issues with
+graphical stats.
 ---------------------------------------------------------------------
 2005/04/26: spiralvoice (version 2.5.30.14 = tag release-2-5-30-14)
 
