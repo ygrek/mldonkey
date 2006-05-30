@@ -596,7 +596,8 @@ let buf_addr proto buf addr =
   );
   if proto > 33 then begin
     let is_blocked = 
-      !Ip.banned (Ip.ip_of_addr addr) <> None
+      try !Ip.banned (Ip.ip_of_addr addr) <> None
+      with _ -> false
     in
     buf_bool buf is_blocked 
   end
