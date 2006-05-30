@@ -14,6 +14,18 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/30
+5136: FileTP: fixes and enhancements (zet)
+* Add "FTP-chunk_size" option (0 = no chunks = download full file at once)
+-- A chunk_size would be required if downloading from > 1 source
+* Add FTP downloads to bandwidth controller (for stats & speed limiter)
+* Support FTP sites that do not buffer input (MS FTP)
+* Add support for user/pass (http://user:pass@site or ftp://user:pass@site).
+  This also adds user/pass support to http_client.
+* Error codes from HTTP (ie: 404) and some from FTP are supported (530 sometimes
+  signals a retry, sometimes a login failure so a regex was used (lftp)).
+  Downloads are paused when a hard error is received (and noted in the log).
+
 2006/05/25
 5131: New option gui_log_size: number of lines for GUI console messages
 5129: HTML: Display client_bind_addr in options menu

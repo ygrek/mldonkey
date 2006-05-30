@@ -58,6 +58,10 @@ let options_version = define_option fileTP_section ["options_version"]
     "(internal option)"
     int_option 0
 
+let chunk_size = define_option fileTP_section ["chunk_size"]
+  "Chunk size (in bytes) (0 = No chunks)"
+  int_option 0
+
   (*
 let verbose_clients =
   define_option fileTP_section ["verbose_clients"]

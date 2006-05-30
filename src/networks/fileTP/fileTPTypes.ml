@@ -37,8 +37,10 @@ type client = {
     mutable client_sock : tcp_connection;
     mutable client_requests : download list;
     mutable client_reconnect : bool;
+    mutable client_failed_attempts : int;
     mutable client_connected_for : file option;
     mutable client_proto : tp_proto;
+    mutable client_software : string;
   }
 
 and file = {
@@ -66,8 +68,7 @@ and tp_proto = {
         TcpBufferedSocket.t -> download -> unit);
     proto_set_sock_handler : (client -> TcpBufferedSocket.t -> unit);
     proto_string : string;
-    proto_check_size : Url.url ->
-       (int64 -> unit) -> unit;
+    proto_check_size : file -> Url.url -> (int64 -> unit) -> unit;
     proto_connect : TcpBufferedSocket.token ->
       client -> (TcpBufferedSocket.t -> unit) -> TcpBufferedSocket.t;
   }

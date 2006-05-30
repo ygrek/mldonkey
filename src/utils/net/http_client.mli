@@ -51,9 +51,10 @@ type content_handler =
 
 val basic_request : request
   
-val get_page : request -> content_handler -> (unit -> unit) -> unit
+val get_page : request -> content_handler -> (unit -> unit) -> (int -> unit) -> unit
 val wget : request -> (string -> unit) -> unit
 val whead : request -> ( (string * string) list -> unit) -> unit
+val whead2 : request -> ( (string * string) list -> unit) -> (int -> unit) -> unit
 
 val wget_string : request -> (string -> unit) ->
   (int -> int -> unit) -> unit

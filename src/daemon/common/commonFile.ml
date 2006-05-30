@@ -306,6 +306,7 @@ let default_file_print_sources_html file buf =
         ( "1", "srh br ac", "Client number", "Num" ) ;
         ( "0", "srh br", "Client Name", "Name" ) ;
         ( "0", "srh br", "IP address", "IP address" ) ;
+        ( "0", "srh br", "Client software", "CS" ) ;
         ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
         ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ];
 
@@ -326,6 +327,7 @@ let default_file_print_sources_html file buf =
           ("", "sr br ar", Printf.sprintf "%d" (client_num c));
           ("", "sr br", cinfo.GuiTypes.client_name);
           ("", "sr br", addr);
+          ("", "sr br", cinfo.GuiTypes.client_software);
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_downloaded)); ];
 

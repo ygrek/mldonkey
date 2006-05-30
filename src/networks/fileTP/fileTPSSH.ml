@@ -104,6 +104,7 @@ let segment_received c num s pos =
               CommonSwarming.downloaded swarmer in
 
 	    c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
+            client_must_update (as_client c);
 
             if new_downloaded = file_size file then
               download_finished file;
@@ -173,7 +174,7 @@ let ssh_set_sock_handler c sock =
 (*                                                                       *)
 (*************************************************************************)
 
-let ssh_check_size url start_download_file =
+let ssh_check_size file url start_download_file =
   let token = create_token unlimited_connection_manager in
   let shell, args = shell_command url.Url.server in
   lprintf "SHELL: ";

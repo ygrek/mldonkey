@@ -48,15 +48,24 @@ open FileTPProtocol
       (*
 let max_range_size = Int64.of_int (256 * 1024)
   *)
+(*
 let range_size file =  min_range_size
+*)
   (*
   let range =  file_size file // 10L in
   max (min range max_range_size) min_range_size
 *)
+
 let max_queued_ranges = 1
 
 let nranges file =
-  Int64.to_int ((file_size file) // min_range_size) + 5
+  let filesize = file_size file in
+  if (filesize = 0L || !!chunk_size = 0) then 1
+  else Int64.to_int ((filesize) // (min_range_size file)) + 5
+
+let pause_for_cause f r = 
+  lprintf_nl "Pausing file %s (%s)" (file_best_name f) r;
+  file_pause (as_file f)
 
 let disconnect_client c r =
   match c.client_sock with
@@ -138,15 +147,12 @@ let get_from_client sock (c: client) =
         raise Not_found
     | d :: tail ->
         let file = d.download_file in
-        if file_size file = zero || file_state file  <> FileDownloading then
+        if file_size file = 0L || file_state file  <> FileDownloading then
           iter tail
         else begin
             if !verbose_msg_clients then begin
-                lprintf "FINDING ON CLIENT\n";
-              end;
-            let file = d.download_file in
-            if !verbose_msg_clients then begin
-                lprintf "FILE FOUND, ASKING\n";
+              lprintf "Finding on client %s %s\n" 
+               (Md4.to_string file.file_id) (file_best_name file);
               end;
 
             if !verbose_swarming then begin
@@ -188,10 +194,12 @@ let get_from_client sock (c: client) =
                               lprintf "Current Block: "; CommonSwarming.print_block b;
                             end;
                           try
-                            let (x,y,r) = 
-			      CommonSwarming.find_range up min_range_size in
-(*                            lprintf "GOT RANGE:\n"; *)
-                            if !verbose_swarming then CommonSwarming.print_uploaders swarmer;
+                            let range_size = (min_range_size file) in
+                            let (x,y,r) = CommonSwarming.find_range up range_size in
+                            if !verbose_swarming then begin
+                              lprintf_nl "find_range: %Ld =  x: %Ld y: %Ld" range_size x y;
+                              CommonSwarming.print_uploaders swarmer;
+                            end;
 
                             d.download_ranges <- d.download_ranges @ [x,y,r];
 (*                        CommonSwarming.alloc_range r; *)
@@ -244,38 +252,37 @@ that the connection will not be aborted (otherwise, disconnect_client
 (*      lprintf "connect_client... pending\n"; *)
       let token =
         add_pending_connection connection_manager (fun token ->
-            if List.exists (fun d ->
+            let exists = List.exists (fun d ->
                   let file = d.download_file in
                   file_state file = FileDownloading
               ) c.client_downloads
-            then
+            in
+            if exists then
               try
-                if !verbose_msg_clients then begin
-                    lprintf "connect_client\n";
-                  end;
-                if !verbose_msg_clients then begin
-                    lprintf "connecting %s:%d\n" c.client_hostname
-                      c.client_port;
-                  end;
+                if !verbose_msg_clients then 
+                  lprintf_nl "connecting %s:%d" c.client_hostname c.client_port;
                 c.client_reconnect <- false;
                 let sock = c.client_proto.proto_connect token c (fun sock ->
-
+                    try 
                       List.iter (fun d ->
                           let file = d.download_file in
-                          if file_size file <> zero then
+                          if file_size file <> 0L then begin
                             let swarmer = match file.file_swarmer with
                                 None -> assert false | Some sw -> sw
                             in
-                            let chunks = [ Int64.zero, file_size file ] in
+                            let chunks = [ 0L, file_size file ] in
                             let up = CommonSwarming.register_uploader swarmer
-                              (as_client c)
-                                (AvailableIntervals chunks) in
+                              (as_client c) (AvailableIntervals chunks) 
+                            in
                             d.download_uploader <- Some up
+                         end
                       ) c.client_downloads;
 
                       init_client c sock;
-                      get_from_client sock c
+                      get_from_client sock c;
 
+                    with e ->
+                        lprintf_nl "Exception %s" (Printexc2.to_string e);
                   )
                 in
                 set_client_state c Connecting;
@@ -285,7 +292,7 @@ that the connection will not be aborted (otherwise, disconnect_client
                 );
                 set_rtimeout sock 30.;
                 if !verbose_msg_clients then begin
-                    lprintf "READY TO DOWNLOAD FILE\n";
+                    lprintf_nl "SET_SOCK_HANDLER" ;
                   end;
 
                 c.client_proto.proto_set_sock_handler c sock
@@ -326,9 +333,6 @@ let ask_for_files () = (* called every minute *)
 (*  lprintf "done\n"; *)
   ()
 
-let nranges file =
-  Int64.to_int ((file_size file) // min_range_size) + 5
-
 let manage_hosts () =
   List.iter (fun file ->
       if file_state file = FileDownloading then
@@ -336,24 +340,23 @@ let manage_hosts () =
 (* For each file, we allow only (nranges+5) simultaneous communications,
   to prevent too many clients from saturing the line for only one file. *)
           let max_nconnected_clients = nranges file in
-(*           lprintf "max_nconnected_clients: %d > %d\n" max_nconnected_clients
-           file.file_nconnected_clients; *)
+          (* lprintf_nl "%s %d | %d < %d" (Md4.to_string file.file_id) (Queue.length file.file_clients_queue) file.file_nconnected_clients max_nconnected_clients; *)
           while file.file_nconnected_clients < max_nconnected_clients do
             let (_,c) = Queue.take file.file_clients_queue in
             c.client_in_queues <- List2.removeq file c.client_in_queues;
-
-            if file_size file = zero then
+            if file_size file = 0L then
               let proto = c.client_proto in
               List.iter (fun d ->
                   if d.download_file == file then
                     let url = d.download_url in
-                    proto.proto_check_size url (fun size ->
+                    proto.proto_check_size file url (fun size ->
                         set_file_size file size;
-                        connect_client c
-                    )
+                      connect_client c;
+                    );
               ) c.client_downloads
-            else
+            else begin
               connect_client c
+            end
           done
         with _ -> ()
   ) !current_files

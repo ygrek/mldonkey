@@ -84,6 +84,11 @@ let http_send_range_request c range sock d =
   Printf.bprintf buf "Referer: %s\r\n" c.client_referer;
   Printf.bprintf buf "Range: bytes=%s\r\n" range;
   Printf.bprintf buf "Connection: Keep-Alive\r\n";
+  if url.Url.user <> "" then begin
+    let userpass = Printf.sprintf "%s:%s" url.Url.user url.Url.passwd in
+    let encoded = Base64.encode userpass in
+    Printf.bprintf buf "Authorization: Basic %s\r\n" encoded
+  end;
   Printf.bprintf buf "\r\n";
   let s = Buffer.contents buf in
   if !verbose_msg_clients then
@@ -98,6 +103,23 @@ let http_send_range_request c range sock d =
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
+
+
+let parse_line header = 
+  let endline_pos = String.index header '\n' in
+  let http, code =
+    match String2.split (String.sub header 0 endline_pos) ' ' with
+    | http :: code :: ok :: _ ->
+      let code = int_of_string code in
+      if not (String2.starts_with (String.lowercase http) "http") 
+        then failwith "Not in http protocol"; 
+      http, code
+    | _ -> 
+      failwith "Not a HTTP header line"
+    in
+  http, code
+
+
 
 let rec client_parse_header c gconn sock header =
   if !verbose_msg_clients then
@@ -120,17 +142,7 @@ let rec client_parse_header c gconn sock header =
     let file = d.download_file in
     let size = file_size file in
 
-    let endline_pos = String.index header '\n' in
-    let http, code =
-      match String2.split (String.sub header 0 endline_pos
-        ) ' ' with
-      | http :: code :: ok :: _ ->
-          let code = int_of_string code in
-          if not (String2.starts_with (String.lowercase http) "http") then
-            failwith "Not in http protocol";
-          http, code
-      | _ -> failwith "Not a HTTP header line"
-    in
+    let http, code = parse_line header in
     if !verbose_msg_clients then
       lprintf_nl "GOOD HEADER FROM CONNECTED CLIENT\n";
 
@@ -161,8 +173,10 @@ let rec client_parse_header c gconn sock header =
           end;
       end;
 
-    if  code < 200 || code > 299 then
+    if code < 200 || code > 299 then begin
+      pause_for_cause file (Printf.sprintf "%d" code);
       failwith "Bad HTTP code";
+    end;
 
     let start_pos, end_pos =
       try
@@ -235,6 +249,13 @@ let rec client_parse_header c gconn sock header =
             (String.escaped header)
     );
 
+    (try
+        let (server,_) = List.assoc "server" headers in
+        c.client_software <- server;
+        client_must_update (as_client c);
+      with _ -> ()
+    );
+
     set_client_state c (Connected_downloading (file_num file));
     let counter_pos = ref start_pos in
 (* Send the next request *)
@@ -253,36 +274,34 @@ let rec client_parse_header c gconn sock header =
           (Int64.of_int b.len) in
 
         let to_read_int = Int64.to_int to_read in
-(*
-        if !verbose then lprintf "CHUNK: %s\n"
-          (String.escaped (String.sub b.buf b.pos to_read_int)); *)
-        let swarmer = match file.file_swarmer with
-            None -> assert false | Some sw -> sw
-        in
-(*        List.iter (fun (_,_,r) -> CommonSwarming.free_range r)
-        d.download_ranges; *)
-
-        let old_downloaded =
-          CommonSwarming.downloaded swarmer in
 
         begin
           try
             match d.download_uploader with
               None -> assert false
             | Some up ->
-                CommonSwarming.received up
-                  !counter_pos b.buf b.pos to_read_int;
+    
+            let swarmer = CommonSwarming.uploader_swarmer up in
+
+            let old_downloaded = CommonSwarming.downloaded swarmer in
+
+            CommonSwarming.received up !counter_pos b.buf b.pos to_read_int;
+            let new_downloaded = CommonSwarming.downloaded swarmer in
+
+            c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
+            client_must_update (as_client c);
+
+            if new_downloaded = file_size file then
+              download_finished file;
+
           with e ->
               lprintf_nl "Exception %s in CommonSwarming.received"
                 (Printexc2.to_string e)
         end;
+
         c.client_reconnect <- true;
 (*          List.iter (fun (_,_,r) ->
               CommonSwarming.alloc_range r) d.download_ranges; *)
-        let new_downloaded =
-          CommonSwarming.downloaded swarmer in
-
-        c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
 
         (match d.download_ranges with
             [] -> lprintf_nl "EMPTY Ranges!"
@@ -297,8 +316,6 @@ let rec client_parse_header c gconn sock header =
               ()
         );
 
-        if new_downloaded = file_size file then
-          download_finished file;
 (*
 lprintf "READ %Ld\n" (new_downloaded -- old_downloaded);
 lprintf "READ: buf_used %d\n" to_read_int;
@@ -316,7 +333,10 @@ lprintf "READ: buf_used %d\n" to_read_int;
 (*                CommonSwarming.free_range r; *)
                 d.download_ranges <- tail;
 (* If we have no more range to receive, disconnect *)
-                if d.download_ranges = [] then raise Exit;
+                if d.download_ranges = [] then begin
+                  lprintf_nl "No more ranges";
+                  raise Exit;
+                end;
                 gconn.gconn_handler <- HttpHeader (client_parse_header c);
           end)
 
@@ -344,7 +364,7 @@ let http_set_sock_handler c sock =
 (*                                                                       *)
 (*************************************************************************)
 
-let http_check_size url start_download_file =
+let http_check_size file url start_download_file =
   let module H = Http_client in
   let r = {
       H.basic_request with
@@ -354,20 +374,24 @@ let http_check_size url start_download_file =
       H.req_user_agent = get_user_agent ();
     } in
 
-  H.whead r (fun headers ->
+  H.whead2 r (fun headers ->
       if !verbose then lprintf_nl "RECEIVED HEADERS";
       let content_length = ref None in
       List.iter (fun (name, content) ->
           if String.lowercase name = "content-length" then
-            try
-              content_length := Some (Int64.of_string content)
-            with _ ->
-                lprintf_nl "bad content length [%s]" content;
+        try content_length := Some (Int64.of_string content)
+        with _ -> lprintf_nl "bad content length [%s]" content;
       ) headers;
-      match !content_length with
+    (match !content_length with
         None -> failwith "Unable to start download (HEAD failed)"
-      | Some result_size ->
-          start_download_file result_size)
+    | Some result_size -> start_download_file result_size);
+  )
+  (fun c ->
+    match c with 
+     x when x < 200 || x > 299 -> 
+       pause_for_cause file (string_of_int x);
+    | _ -> ()
+  )
 
 (*************************************************************************)
 (*                                                                       *)

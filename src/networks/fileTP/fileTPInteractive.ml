@@ -66,10 +66,22 @@ let _ =
 
 module P = GuiTypes
 
-let _ =
-  file_ops.op_file_cancel <- (fun file ->
+
+let clean_stop file =
       CommonSwarming.remove_swarmer file.file_swarmer;
       file.file_swarmer <- None;
+  List.iter (fun c ->
+    c.client_downloads <- List.filter 
+      (fun cd -> cd.download_file.file_id <> file.file_id) c.client_downloads;
+    if (List.length c.client_downloads) == 0 then begin
+      FileTPClients.disconnect_client c Closed_by_user;
+      client_remove c;
+    end;
+  ) file.file_clients
+
+let _ =
+  file_ops.op_file_cancel <- (fun file ->
+      clean_stop file;
       remove_file file;
   );
   file_ops.op_file_info <- (fun file ->
@@ -107,7 +119,7 @@ let _ =
           c.client_hostname c.client_port);
         P.client_num = (client_num (as_client c));
         P.client_connect_time = BasicSocket.last_time ();
-        P.client_software = "TP";
+        P.client_software = c.client_software;
         P.client_downloaded = c.client_downloaded;
       }
   );
@@ -394,11 +406,17 @@ let _ =
   network.op_network_share <- (fun fullname codedname size -> ());
   network.op_network_search <- (fun ss buf -> ());
   network.op_network_download <- (fun r -> dummy_file);
-  file_ops.op_file_commit <- (fun file new_name -> ());
-  file_ops.op_file_pause <- (fun file -> ());
+  file_ops.op_file_commit <- (fun file new_name -> clean_stop file);
+  file_ops.op_file_pause <- (fun file -> 
+    List.iter (fun c ->
+      match c.client_connected_for with
+      | Some s when s.file_id = file.file_id -> 
+          FileTPClients.disconnect_client c Closed_by_user;
+      | _ -> ()
+    ) file.file_clients
+  );
   file_ops.op_file_resume <- (fun file -> ());
   file_ops.op_file_print_html <- (fun file buf -> ());
-  file_ops.op_file_print_sources_html <- (fun file buf -> ());
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_connect_servers <- (fun s -> ());
   network.op_network_recover_temp <- (fun s -> ())

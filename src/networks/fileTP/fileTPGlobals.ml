@@ -98,6 +98,15 @@ let files_by_uid = Hashtbl.create 13
 let clients_by_uid = Hashtbl.create 127
 let protos_by_name = Hashtbl.create 13
 
+
+let _ =
+Heap.add_memstat "FileTPGlobals" (fun level buf ->
+      Printf.bprintf buf "  current_files: %d\n" (List.length !current_files);
+      Printf.bprintf buf "  file_by_uid: %d\n" (Hashtbl.length files_by_uid);
+      Printf.bprintf buf "  clients_by_uid: %d\n" (Hashtbl.length clients_by_uid);
+      Printf.bprintf buf "  protos_by_name: %d\n" (Hashtbl.length protos_by_name);
+  )
+
 let find_proto (name : string) =
   (Hashtbl.find protos_by_name name : tp_proto)
 
@@ -107,25 +116,26 @@ let find_proto (name : string) =
 
 ****************************************************************)
 
+(*
 let min_range_size = megabyte
+*)
+let min_range_size file = 
+  if !!chunk_size = 0 
+    then (file_size file) 
+    else Int64.of_int !!chunk_size
 
 let set_file_size file size =
-  if file_size file = zero && size <> zero then begin
-      let file_chunk_size =
-        max megabyte (
-          1L ++ size // (max 5L (1L ++ size // (megabytes 5)))
-        )
-      in
+  if file_size file = 0L && size <> 0L then begin
       file.file_file.impl_file_size <- size;
+      let file_chunk_size = min_range_size file in
       let file_temp = Unix32.filename (file_fd file) in
       let kernel = CommonSwarming.create_swarmer file_temp size in
-      let swarmer = CommonSwarming.create kernel (as_file file)
-          file_chunk_size in
+      let swarmer = CommonSwarming.create kernel (as_file file) file_chunk_size in
       file.file_swarmer <- Some swarmer;
       CommonSwarming.set_verified swarmer (fun _ _ ->
           file_must_update (as_file file);
       );
-      file_must_update (as_file file)
+      file_must_update (as_file file);
     end
 
 let new_file file_id file_name file_size =
@@ -185,6 +195,8 @@ let new_client proto hostname port referer =
           client_in_queues = [];
           client_connected_for = None;
           client_proto = proto;
+          client_software = "";
+          client_failed_attempts = 0;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
@@ -261,6 +273,10 @@ let set_client_state client state =
 let set_client_disconnected client =
   CommonClient.set_client_disconnected (as_client client)
 
+let client_remove c =
+  let key = (c.client_hostname, c.client_port) in
+  Hashtbl.remove clients_by_uid key;
+  CommonClient.client_remove (as_client c)
 
 let remove_file file =
   Hashtbl.remove files_by_uid file.file_id;
@@ -285,4 +301,3 @@ let client_name () =
     end;
   !ft_client_name
 
-let file_chunk_size = 307200
