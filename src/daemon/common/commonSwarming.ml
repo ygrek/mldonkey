@@ -1887,7 +1887,8 @@ type choice = {
   choice_user_priority : int;
   choice_nuploaders : int;
   choice_remaining : int64;
-  choice_remaining_per_uploader : int64;
+  choice_remaining_per_uploader : int64; (* algo 1 only *)
+  choice_saturated : bool; (* has enough uploades *) (* algo 2 only *)
   choice_other_complete : int Lazy.t; (* ...blocks in the same chunk *)
   choice_availability : int;
 }
@@ -1897,7 +1898,8 @@ let dummy_choice = {
   choice_user_priority = 0;
   choice_nuploaders = 0;
   choice_remaining = 0L;
-  choice_remaining_per_uploader = 0L;
+  choice_remaining_per_uploader = 0L; (* algo 1 only *)
+  choice_saturated = true; (* algo 2 only *)
   choice_other_complete = lazy 0;
   choice_availability = 0
 }
@@ -1971,11 +1973,14 @@ let select_block up =
 	(* sources_per_chunk was initially for edonkey only *)
 	let data_per_source = 9728000L // (Int64.of_int !!sources_per_chunk) in
 	
-	let need_to_complete_some_blocks_quickly = true
-	  (* verification_available && t.t_nverified_chunks < 2 *) in
+	let need_to_complete_some_blocks_quickly = 
+	  match !!swarming_block_selection_algorithm with
+	  | 1 -> true
+	  | 2 -> verification_available && t.t_nverified_chunks < 2
+	  | _ -> assert false in
 
 	(** > 0 == c1 is best, < 0 = c2 is best, 0 == they're equivalent *)
-	let compare_choices c1 c2 =
+	let compare_choices1 c1 c2 =
 
 	  (* avoid overly unbalanced situations *)
 	  let cmp = 
@@ -2037,6 +2042,90 @@ let select_block up =
 	    0 
 	  end in
 
+	let compare_choices2 c1 c2 =
+
+	  (* avoid overly unbalanced situations *)
+	  let cmp = 
+	    match c1.choice_saturated, c2.choice_saturated with
+	    | false, false -> 0
+	    | true, false -> -1
+	    | false, true -> 1
+	    | true, true ->
+		let result =
+		(* both are saturated, try to balance situation *)
+		incr delta_needed;
+		let delta = 
+		  c1.choice_remaining ** Int64.of_int c2.choice_nuploaders -- 
+		  c2.choice_remaining ** Int64.of_int c1.choice_nuploaders in
+		if delta > c2.choice_remaining then 1
+		else if delta < Int64.neg c1.choice_remaining then -1
+		else begin
+		  (* either way we'll unbalance the situation *)
+		  incr delta_undecided;
+		  0 
+		end in
+		lprintf_nl "compare_choices needed delta %d times, which couldn't decide %d times" !delta_needed !delta_undecided;
+		result in
+	  if cmp <> 0 then begin
+	    incr compare_choices_saturation;
+	    cmp 
+	  end else
+
+	  (* Do what Master asked for *)
+	  let cmp = compare c1.choice_user_priority c2.choice_user_priority in
+	  if cmp <> 0 then begin
+	    incr compare_choices_priority;
+	    cmp 
+	  end else
+
+	  (* Pick really rare gems: if average availability of all
+	     blocks is higher than 5 connected sources, pick in
+	     priority blocks present in at most 3 connected sources;
+	     is that too restrictive ? *)
+	  let cmp = 
+	    if not need_to_complete_some_blocks_quickly && 
+	      mean_availability > 5 &&
+	      (c1.choice_availability <= 3 || c2.choice_availability <= 3) then
+		compare c2.choice_availability c1.choice_availability 
+	    else 0 in
+	  if cmp <> 0 then begin
+	    incr compare_choices_rarity;
+	    cmp 
+	  end else
+
+	  (* try to quickly complete blocks *)
+	  let cmp = 
+	    compare c2.choice_remaining c1.choice_remaining in
+	  if cmp <> 0 then begin 
+	    incr compare_choices_completion;
+	    cmp 
+	  end else
+
+	  (* try to quickly complete (and validate) chunks; 
+	     if there's only one frontend, each chunk has only one
+	     block, and looking at siblings make no sense *)
+	  let cmp = 
+	    if verification_available && several_frontends then 
+	      compare (Lazy.force c1.choice_other_complete)
+		(Lazy.force c2.choice_other_complete)
+	    else 0 in
+	  if cmp <> 0 then begin
+	    incr compare_choices_siblings;
+	    cmp 
+	  end else
+
+	  begin
+	    (* Can't tell *)
+	    incr compare_choices_failure;
+	    0 
+	  end in
+
+	let compare_choices =
+	  match !!swarming_block_selection_algorithm with
+	  | 1 -> compare_choices1
+	  | 2 -> compare_choices2
+	  | _ -> assert false in
+
 	let best_choices, specimen = 
 	  subarray_fold_lefti (fun ((best_choices, specimen) as acc) n b ->
 	  (* priority bitmap <> 0 here ? *)
@@ -2057,8 +2146,22 @@ let select_block up =
 		  if block_end > preview_end then 2 else 1;
 	      choice_nuploaders = nuploaders;
 	      choice_remaining = remaining;
-	      choice_remaining_per_uploader = remaining //
-		(Int64.of_int (nuploaders + 1)); (* planned value *)
+	      choice_remaining_per_uploader = 
+		if !!swarming_block_selection_algorithm = 1 then
+		  remaining //
+		    (Int64.of_int (nuploaders + 1)) (* planned value *)
+		else 0L;
+	      choice_saturated =
+		if !!swarming_block_selection_algorithm = 2 then
+		  not need_to_complete_some_blocks_quickly &&
+		    remaining <= Int64.of_int nuploaders ** data_per_source
+	      (*
+		nuploaders >= Int64.to_int (
+		Int64.pred (
+		remaining ** Int64.of_int !!sources_per_chunk ++ size) 
+		// size)
+	      *)
+		else true;
 	      choice_other_complete = completed_blocks_in_chunk.(nchunk);
 	      choice_availability = s.s_availability.(b);
 	    } in
@@ -2084,12 +2187,13 @@ let select_block up =
 	    !compare_choices_rarity !compare_choices_completion
 	    !compare_choices_siblings !compare_choices_failure;
 	  let print_choice c =
-	    lprintf_nl "selected %d:%d priority:%d nup:%d rem:%Ld rpu:%Ld sib:%s av:%d" 
+	    lprintf_nl "selected %d:%d priority:%d nup:%d rem:%Ld rpu:%Ld sat:%B sib:%s av:%d" 
 	      c.choice_num up.up_complete_blocks.(c.choice_num)
 	      c.choice_user_priority 
 	      c.choice_nuploaders 
 	      c.choice_remaining 
 	      c.choice_remaining_per_uploader
+	      c.choice_saturated
 	      (if Lazy.lazy_is_val c.choice_other_complete then
 		string_of_int (Lazy.force c.choice_other_complete) else "?") 
 	      c.choice_availability in
