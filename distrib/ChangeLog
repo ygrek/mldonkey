@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/31
+5147: G1/G2: Display proper filename (and therefore support rename) (zet)
 5145: EDK: Fix md4 hashing when filesize is an exact multiple
       of edk chunk size, MLDonkey is now eMule-compatible (zet)
 

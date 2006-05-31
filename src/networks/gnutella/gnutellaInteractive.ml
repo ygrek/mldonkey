@@ -293,7 +293,6 @@ let _ =
   );
   file_ops.op_file_info <- (fun file ->
       { (impl_file_info file.file_file) with
-        P.file_name = file.file_name;
         P.file_network = network.network_num;
         P.file_names = [file.file_name, P.noips()];
         
