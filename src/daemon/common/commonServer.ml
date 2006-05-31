@@ -351,7 +351,7 @@ let server_banner s o =
       info.G.server_banner
 
 let server_print_html_header buf ext =
-    html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) [
+    html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) ([
     ( "1", "srh", "Server number", "#" ) ;
     ( "0", "srh", "Connect|Disconnect", "C/D" ) ;
     ( "0", "srh", "Remove", "Rem" ) ;
@@ -359,6 +359,7 @@ let server_print_html_header buf ext =
     ( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ;
     ( "0", "srh", "Network name", "Network" ) ;
     ( "0", "srh", "Connection status", "Status" ) ;
+    ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
     ( "0", "srh br", "IP address", "IP address" ) ;
     ( "1", "srh ar", "Number of connected users", "Users" ) ;
     ( "1", "srh ar br", "Max number of users", "MaxUsers" ) ;
@@ -369,7 +370,7 @@ let server_print_html_header buf ext =
     ( "0", "srh ar br", "Ping (ms)", "Ping" ) ;
     ( "0", "srh", "Server version", "Version" ) ;
     ( "0", "srh", "Server name", "Name" ) ;
-    ( "0", "srh", "Server details", "Details" ) ]
+    ( "0", "srh", "Server details", "Details" ) ])
 
 let server_print s o =
   let impl = as_server_impl s in
@@ -381,7 +382,7 @@ let server_print s o =
           lprintf_nl "Exception %s in server_info (%s)\n"
             (Printexc2.to_string e) n.network_name;
           raise e in
-
+    let cc,cn = Geoip.get_country (Ip.ip_of_addr info.G.server_addr) in
     let buf = o.conn_buf in
   
   if use_html_mods o then begin
@@ -396,6 +397,7 @@ let server_print s o =
     \\<td class=\\\"sr\\\" %s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
     \\<td class=\\\"sr\\\"\\>%s\\</td\\>
+    %s
     \\<td class=\\\"sr br\\\"\\>%s:%s\\</td\\>
     \\<td class=\\\"sr ar\\\"\\>%Ld\\</td\\>
     \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
@@ -488,6 +490,9 @@ let server_print s o =
         NotConnected _ -> if server_blocked s then "IP blocked"
         else (string_of_connection_state impl.impl_server_state)
       | _ -> (string_of_connection_state impl.impl_server_state))
+      (if !Geoip.active then 
+	 Printf.sprintf "\\<td class=\\\"sr\\\" title=\\\"%s\\\" \\>%s\\</td\\>" cn cc
+       else "")
       (Ip.string_of_addr info.G.server_addr)
       (Printf.sprintf "%s%s"
        (string_of_int info.G.server_port)
@@ -518,7 +523,8 @@ let server_print s o =
           (if info.G.server_realport <> 0 
             then "(" ^ (string_of_int info.G.server_realport) ^ ")" 
             else ""))
-          (info.G.server_name) ("")
+          (info.G.server_name)
+	  (if !Geoip.active then Printf.sprintf "%33s/%-2s%9s" cn cc "" else "")
           (info.G.server_nusers)
           (info.G.server_nfiles)
           (if server_blocked s 
