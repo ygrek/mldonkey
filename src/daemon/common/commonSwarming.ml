@@ -2363,7 +2363,7 @@ let find_range up range_size =
   | FileShared
   | FileNew
   | FileDownloaded -> 
-      lprintf_nl "find_range: file in bad state";
+      lprintf_nl "find_range: file %s in bad state %s" t.t_s.s_filename (string_of_state (file_state t.t_file));
       raise Not_found
   | FileDownloading
   | FileQueued ->
@@ -2521,7 +2521,7 @@ let received up file_begin str string_begin string_len =
     | FileNew
     | FileDownloaded -> 
 	if !verbose then
-	  lprintf_nl "CommonSwarming.received: wrong file state";
+	  lprintf_nl "received: wrong file state %s for %s" (string_of_state (file_state t.t_file)) s.s_filename;
 	()
     | FileDownloading
     | FileQueued ->
