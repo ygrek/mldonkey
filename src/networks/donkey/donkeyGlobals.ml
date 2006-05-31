@@ -145,6 +145,29 @@ let xs_last_search = ref (-1)
 let zone_size = Int64.of_int (180 * 1024)
 let block_size = 9728000L
 
+(* Old value: *)
+(* let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in *)
+
+(* New value: *)
+(* From Emule: KnownFile.cpp 
+// File size       Data parts      ED2K parts      ED2K part hashs
+// ---------------------------------------------------------------
+// 1..PARTSIZE-1   1               1               0(!)
+// PARTSIZE        1               2(!)            2(!)
+// PARTSIZE+1      2               2               2
+// PARTSIZE*2      2               3(!)            3(!)
+// PARTSIZE*2+1    3               3               3
+*)
+
+let get_nchunks size = Int64.to_int (size // block_size) + 1 
+
+let get_nchunk_hashes size = 
+    let nchunk_hashes = Int64.to_int (size // block_size) in
+    let nchunk_hashes = if nchunk_hashes <> 0 
+      then nchunk_hashes + 1 
+      else nchunk_hashes in
+    nchunk_hashes
+
 let queue_timeout = ref (60. *. 10.) (* 10 minutes *)
 
 let files_queries_per_minute = 3 (* queries for 3 files cost 3*16=48 server-credits; we did get 60 (1 each second) *)
@@ -343,30 +366,28 @@ let new_file file_diskname file_state md4 file_size filenames writable =
 
       if file_size <> zero && writable then (* do not truncate if not writable *)
         begin
-	  try
+    try
             Unix32.ftruncate64 t file_size !!create_file_sparse
-	  with e ->
-	    (try
-	      Unix32.remove t
-	     with e ->
+    with e ->
+      (try
+        Unix32.remove t
+       with e ->
     lprintf_nl "Unix32.remove %s exception %s"
-		  (file_diskname) (Printexc2.to_string e));
-	    Unix32.destroy t;
-	    failwith (Printf.sprintf "file size %s is too big, exception: %s"
-	      (size_of_int64 file_size) (Printexc2.to_string e))
-	end;
+      (file_diskname) (Printexc2.to_string e));
+      Unix32.destroy t;
+      failwith (Printf.sprintf "file size %s is too big, exception: %s"
+        (size_of_int64 file_size) (Printexc2.to_string e))
+  end;
 
-      let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
-      let md4s = if file_size <= block_size then
-          [md4]
-        else [] in
+      let md4s = if file_size < block_size then [md4] else [] in
       let rec file = {
           file_diskname = file_diskname;
           file_file = file_impl;
           file_shared = None;
           file_md4 = md4;
           file_swarmer = None;
-          file_nchunks = nchunks;
+          file_nchunks = get_nchunks file_size;
+          file_nchunk_hashes = get_nchunk_hashes file_size;
           file_filenames = filenames;
           file_computed_md4s = Array.of_list md4s;
           file_format = FormatNotComputed 0;
@@ -960,22 +981,22 @@ let _ =
       key_checked := true;
       if not (try String.sub !!client_private_key 0 4 = "MIIB" with e -> false) then
         if !key_check_again then
-	  begin
+    begin
       lprintf_nl "can not create proper client_private_key, exiting...";
-	    exit 70
-	  end
-	else
+      exit 70
+    end
+  else
           begin
             lprintf_nl "bad client_private_key detected, creating new key";
-	    set_simple_option donkey_ini "client_private_key" (DonkeySui.SUI.create_key ());
-	    key_check_again := true
-	  end
+      set_simple_option donkey_ini "client_private_key" (DonkeySui.SUI.create_key ());
+      key_check_again := true
+    end
     in
     if not !key_checked then check_client_private_key ();
     if !key_check_again then
       begin
   lprintf_nl "re-checking private key";
-	check_client_private_key ()
+  check_client_private_key ()
       end
     );
     end

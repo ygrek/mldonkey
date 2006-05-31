@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/05/31
+5145: EDK: Fix md4 hashing when filesize is an exact multiple
+      of edk chunk size, MLDonkey is now eMule-compatible (zet)
+
 2006/05/30
 5141: Swarmer: New option swarming_block_selection_algorithm (pango)
 * Allow to choose swarmer block selection algorithm at runtime.

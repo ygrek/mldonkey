@@ -877,21 +877,22 @@ let received_client_bitmap c file chunks =
     end;
   
   let chunks = 
-    if file_size file <= block_size then Bitv.create 1 true
-    else
-      if Bitv.length chunks = 0 then
-        Bitv.create file.file_nchunks true
-    else
-    if Bitv.length chunks <> file.file_nchunks then begin
-        if !verbose then
-      lprintf_nl "number of chunks is different %d/%d for %s(%s), size %Ld on %s"
-              (Bitv.length chunks)
-              file.file_nchunks 
-        (file_best_name file)
-              (Md4.to_string file.file_md4) 
-              (file_size file)
-        (full_client_identifier c);
-        Bitv.create file.file_nchunks false
+    if file_size file <= block_size 
+      then Bitv.create 1 true
+      else
+        if Bitv.length chunks = 0 
+          then Bitv.create file.file_nchunks true
+          else
+            if Bitv.length chunks <> file.file_nchunks then begin
+              if !verbose then
+                 lprintf_nl "number of chunks is different %d/%d for %s(%s), size %Ld on %s"
+                  (Bitv.length chunks)
+                  (file.file_nchunks)
+                  (file_best_name file)
+                  (Md4.to_string file.file_md4) 
+                  (file_size file)
+                  (full_client_identifier c);
+              Bitv.create file.file_nchunks false
 (* What should we do ?
 
 1) Try to recover the correct size of the file: we can use 
@@ -901,10 +902,10 @@ different instances of the file for each proposed size ?
   
 *)
       
-      end else 
-      chunks in
-    if is_useful_client file chunks then client_is_useful c file chunks
+            end else chunks 
+    in
 
+    if is_useful_client file chunks then client_is_useful c file chunks
 
 let send_pending_messages c sock =
   let module M = DonkeyProtoClient in
@@ -1464,9 +1465,9 @@ other one for unlimited sockets.  *)
                 (file_best_name file) (full_client_identifier c);
         
         if file.file_computed_md4s = [||] then begin
-        if file.file_nchunks = 1 then begin
+          if file.file_nchunk_hashes = 0 then begin
             lprintf_nl "[ERROR] file %s has only one chunk, ignoring QueryChunkMd4ReplyReq"
-        (file_best_name file);
+              (file_best_name file);
             file.file_computed_md4s <- [|file.file_md4|];
             match file.file_swarmer with
               None -> ()
@@ -1474,19 +1475,19 @@ other one for unlimited sockets.  *)
                 CommonSwarming.set_verifier swarmer 
                   (Verification [| Ed2k file.file_md4 |])
           end else
-        if t.Q.chunks = [||] then
-            lprintf_nl "[ERROR] received empty chunks md4 message for %s from %s"
-        (file_best_name file) (full_client_identifier c)
-        else
-        if Array.length t.Q.chunks <> file.file_nchunks then begin
-            if !verbose then
-        lprintf_nl "[ERROR] number of chunks does not match, received md4s %d/should be %d, for %s(%s):%Ld bytes from %s"
-          (Array.length t.Q.chunks)
-    file.file_nchunks
-    (file_best_name file)
-    (Md4.to_string file.file_md4)
-    (file_size file)
-    (full_client_identifier c)
+            if t.Q.chunks = [||] then
+              lprintf_nl "[ERROR] received empty chunks md4 message for %s from %s"
+                (file_best_name file) (full_client_identifier c)
+            else
+            if Array.length t.Q.chunks <> file.file_nchunk_hashes then begin
+              if !verbose then
+                lprintf_nl "[ERROR] number of chunks does not match, received md4s %d/should be %d, for %s(%s):%Ld bytes from %s"
+                  (Array.length t.Q.chunks)
+                  (file.file_nchunks)
+                  (file_best_name file)
+                  (Md4.to_string file.file_md4)
+                  (file_size file)
+                  (full_client_identifier c)
 (* What should we do ?
 
 1) Try to recover the correct size of the file: we can use 
@@ -1499,14 +1500,15 @@ is checked for the file.
   
 *)
           
-          end else begin
+              end else begin
 (* We should check the correctness of the Md4 array *)
-            
-            let md4s = t.Q.chunks in
-            let md4 = DonkeyShare.md4_of_array md4s in
-            if md4 <> file.file_md4 then begin
-                lprintf_nl "[ERROR] Chunks md4s do not match file_md4 for %s(%s) from %s"
-      (file_best_name file) (Md4.to_string file.file_md4) (full_client_identifier c);
+               let md4s = t.Q.chunks in
+               let md4 = DonkeyShare.md4_of_array md4s in
+               if md4 <> file.file_md4 then begin
+                 lprintf_nl "[ERROR] Chunks md4s do not match file_md4 for %s(%s) from %s"
+                    (file_best_name file) 
+                    (Md4.to_string file.file_md4) 
+                    (full_client_identifier c);
               end else begin
                 file.file_computed_md4s <- md4s;
                 match file.file_swarmer with
@@ -1936,8 +1938,8 @@ end else *)
               match file.file_swarmer with
                 None ->
                     (* file was found, if we have no swarmer, we have
-                       the file complete and share it! it's save to
-                       asume that we have all chunks! *)
+                       the file complete and share it! it's safe to
+                       assume that we have all chunks! *)
                     Bitv.create file.file_nchunks true
               | Some swarmer ->
                   let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
@@ -2610,7 +2612,7 @@ a FIFO from where they are removed after 30 minutes. What about using
         (CommonClient.as_client c.client_client);
       
       with
-	Not_found -> ()
+  Not_found -> ()
       | e -> 
         if !verbose then
           lprintf_nl "add_location: exception %s" (Printexc2.to_string e)
@@ -2625,7 +2627,7 @@ a FIFO from where they are removed after 30 minutes. What about using
         (CommonClient.as_client c.client_client);
         
       with
-	Not_found -> ()
+  Not_found -> ()
       | e -> 
         if !verbose then
           lprintf_nl "remove_location for file_md4 %s: exception %s"

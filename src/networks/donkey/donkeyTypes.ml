@@ -793,6 +793,7 @@ and file = {
     mutable file_swarmer : CommonSwarming.t option;
 
     mutable file_nchunks : int;
+    mutable file_nchunk_hashes : int;
     mutable file_diskname : string;
 (*    mutable file_chunks : chunk array; *)
 (*    mutable file_chunks_order : int array; *)
@@ -819,6 +820,7 @@ and file_to_share = {
     shared_size : int64;
     mutable shared_list : Md4.t list;
     mutable shared_pos : int64;
+    mutable shared_chunk : int;
     mutable shared_fd : Unix32.t;
     shared_shared : file_to_share CommonShared.shared_impl;
   }

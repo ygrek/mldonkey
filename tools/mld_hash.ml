@@ -131,8 +131,11 @@ let bitprint_filename filename partial =
 (*************************************************************************)
 
 let ed2k_hash_file fd file_size partial =
-  let nchunks = Int64.to_int (Int64.pred file_size // block_size) + 1 in
-  let md4 = if nchunks = 1 then
+  (* See: DonkeyGlobals *)
+  let nchunks = Int64.to_int (file_size // block_size) + 1 in
+  let nchunk_hashes = Int64.to_int (file_size // block_size) in
+  let nchunk_hashes = if nchunk_hashes <> 0 then nchunk_hashes + 1 else nchunk_hashes in
+  let md4 = if nchunk_hashes = 0 then
       Md4.digest_subfile fd zero file_size        
     else
     let chunks = String.create (nchunks*16) in
@@ -310,16 +313,16 @@ let check_external_functions size =
         let (sha1, tiger2) = bitprint_file file file_size partial in
         lprintf "urn:bitprint:%s.%s\n" (Sha1.to_string sha1) (TigerTree.to_string tiger2);
         
-	Unix32.close file;
+  Unix32.close file;
         lprintf (_b "Renaming...\n");
         Unix32.rename file (filename ^ ".final");
 
         lprintf (_b "Removing %s\n") filename;
         Unix32.remove file;
         let file = f' (filename ^ ".final") file_size in
-	Unix32.close file;
+  Unix32.close file;
         Unix32.remove file;
-	(try Sys.remove "zero_chunk" with _ -> ());
+  (try Sys.remove "zero_chunk" with _ -> ());
         
         lprintf "done\n"
       with e ->

@@ -125,16 +125,16 @@ let new_file_to_share sh codedname old_impl =
      *)
     match file.file_swarmer with
       Some s -> (let len = Array.length md4s in
-		 let ver_str = String.make len '3' in
-		     CommonSwarming.set_chunks_verified_bitmap s ver_str;
-		 (*
-		 CommonSwarming.set_present s [(Int64.zero, file_size file)];
-		 (* If we don't verify now, it will never happen! *)
-		 CommonSwarming.verify_all_blocks s true;
-		 *)
+     let ver_str = String.make len '3' in
+         CommonSwarming.set_chunks_verified_bitmap s ver_str;
+     (*
+     CommonSwarming.set_present s [(Int64.zero, file_size file)];
+     (* If we don't verify now, it will never happen! *)
+     CommonSwarming.verify_all_blocks s true;
+     *)
                 if !verbose_share then
                   lprintf_nl "verified map of %s = %s"
-		         (codedname) (CommonSwarming.chunks_verified_bitmap s))
+             (codedname) (CommonSwarming.chunks_verified_bitmap s))
       | None -> if !verbose_share then lprintf_nl "no swarmer for %s" codedname;
     (try
         file.file_format <- CommonMultimedia.get_info
@@ -181,14 +181,15 @@ let send_new_shared () =
               begin
                 if !verbose_share || !verbose then
                   lprintf_nl "send_new_shared: found master server %s:%d"
-		    (Ip.to_string s.server_ip) s.server_port;
-		tag := true;
+                   (Ip.to_string s.server_ip) s.server_port;
+                tag := true;
                 do_if_connected s.server_sock (fun sock ->
                   server_send_share s.server_has_zlib sock !new_shared_files)
-              end) (connected_servers ());
+              end
+          ) (connected_servers ());
           if !tag && (!verbose_share || !verbose) then
               lprintf_nl "send_new_shared: Sent %d new shared files to servers"
-                    (List.length !new_shared_files);
+                (List.length !new_shared_files);
           new_shared_files := []
         end
       else
@@ -203,12 +204,12 @@ files being shared !
 
 exception Wrong_file_size
 
-let computation = ref false
+let computing = ref false
 
 (*   Compute (at most) one MD4 chunk if needed. *)
 let check_shared_files () =
   let module M = CommonHasher in
-  if not !computation then
+  if not !computing then
     match !shared_files with
       [] -> ()
     | sh :: files ->
@@ -218,48 +219,50 @@ let check_shared_files () =
                 raise Not_found;
             if Unix32.getsize sh.shared_name <> sh.shared_size then
                 raise Wrong_file_size;
-            computation := true;
+
+            computing := true;
+
             let end_pos = sh.shared_pos ++ block_size in
-            let end_pos = if end_pos > sh.shared_size then sh.shared_size
-              else end_pos in
+            let end_pos = min end_pos sh.shared_size in
             let len = end_pos -- sh.shared_pos in
+
             if !verbose_md4 then
-        lprintf_nl "Hash chunk %Ld/%Ld of %s"
-	        ((Int64.div sh.shared_pos block_size) ++ one)
-		((Int64.div sh.shared_size block_size) ++ one)
-		sh.shared_name;
+              lprintf_nl "Hashing chunk %d: %Ld-%Ld (%Ld) of %s"
+                sh.shared_chunk sh.shared_pos end_pos len sh.shared_name;
 
             M.compute_md4 (Unix32.filename sh.shared_fd) sh.shared_pos len
               (fun job ->
-                computation := false;
+                computing := false;
                 if job.M.job_error then begin
-                    lprintf_nl "Error prevent sharing %s" sh.shared_name
-                  end else
-                let _ = () in
-                let new_md4 = job.M.job_result in
+                  lprintf_nl "Error prevent sharing %s" sh.shared_name
+                end else
+                  let new_md4 = job.M.job_result in
 
-                sh.shared_list <- new_md4 :: sh.shared_list;
-                sh.shared_pos <- end_pos;
-                if end_pos = sh.shared_size then begin
+                  sh.shared_list <- new_md4 :: sh.shared_list;
+                  sh.shared_pos <- end_pos;
+                  sh.shared_chunk <- sh.shared_chunk + 1;
+
+                  if sh.shared_chunk = get_nchunks sh.shared_size then begin
                     let s = {
                         sh_name = sh.shared_name;
                         sh_size = sh.shared_size;
                         sh_md4s = Array.of_list (List.rev sh.shared_list);
                         sh_mtime = Unix32.mtime sh.shared_name;
-                      } in
+                    } in
                     lprintf_nl "New shared file %s" sh.shared_name;
                     Hashtbl.add shared_files_info
                       (s.sh_name, s.sh_size, s.sh_mtime) s;
                     known_shared_files =:= s :: !!known_shared_files;
-		    shared_files := files;
+                    shared_files := files;
                     new_file_to_share s sh.shared_shared.impl_shared_codedname (Some sh.shared_shared);
                   end
                 else
-                  job_creater ())
+                  job_creater ()
+            )
           with e ->
-	      shared_files := files;
-              lprintf_nl "Exception %s prevents sharing of %s"
-                (Printexc2.to_string e) sh.shared_name
+            shared_files := files;
+            lprintf_nl "Exception %s prevents sharing of %s"
+              (Printexc2.to_string e) sh.shared_name
         in
         job_creater ()
 
@@ -291,9 +294,9 @@ lprintf "Searching %s" fullname; lprint_newline ();
           if !verbose_share then
               lprintf_nl "donkeyShare: No info on %s" fullname;
 
-	  let found = ref false in
-	  List.iter (fun sh -> if sh.shared_name = fullname then found := true) !shared_files;
-	  if not !found then begin
+    let found = ref false in
+    List.iter (fun sh -> if sh.shared_name = fullname then found := true) !shared_files;
+    if not !found then begin
         let magic =
           match Magic.M.magic_fileinfo fullname false with
             None -> None
@@ -308,7 +311,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
               impl_shared_num = 0;
               impl_shared_uploaded = Int64.zero;
               impl_shared_ops = pre_shared_ops;
-          	  impl_shared_id = Md4.null;
+              impl_shared_id = Md4.null;
               impl_shared_val = pre_shared;
               impl_shared_requests = 0;
               impl_shared_magic = magic;
@@ -318,12 +321,13 @@ lprintf "Searching %s" fullname; lprint_newline ();
               shared_name = fullname;
               shared_size = size;
               shared_list = [];
-              shared_pos = Int64.zero;
+              shared_pos = 0L;
+              shared_chunk = 0;
               shared_fd = Unix32.create_ro fullname;
             } in
           update_shared_num impl;
           shared_files := pre_shared :: !shared_files;
-	  end
+    end
   )
 
 let remember_shared_info file new_name =
@@ -340,7 +344,7 @@ let remember_shared_info file new_name =
         with _ ->
             if !verbose then
               lprintf_nl "Share: Trying mtime on new name %s, disk_name %s, TODO: too many files in shared_files_new.ini?"
-	        new_name (file_disk_name file);
+          new_name (file_disk_name file);
             Unix32.mtime new_name
       in
 
