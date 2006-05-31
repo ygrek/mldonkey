@@ -90,11 +90,17 @@ let bad_response () =
       (String.escaped !last_response))
   
 let read_response ic =
+  let rec iter () =
   last_response := input_line ic;
-  if String.length !last_response > 3 then
-    int_of_string (String.sub !last_response 0 3)
+    if String.length !last_response > 3 then begin
+      (* Ignore extended text *)
+      if (String.sub !last_response 3 1) = "-"
+        then iter ()
+        else int_of_string (String.sub !last_response 0 3)
+    end
   else 
     bad_response ()
+  in iter ()
 
 let make_mail mail new_style =
   let mail_date = Date.mail_string (Unix.time ()) in

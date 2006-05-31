@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/05/31
+5148: Mail: Fix for multiline SMTP responses (zet)
 5143: HTML/Telnet: Country codes for servers
 5147: G1/G2: Display proper filename (and therefore support rename) (zet)
 5145: EDK: Fix md4 hashing when filesize is an exact multiple
