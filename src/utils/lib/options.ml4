@@ -474,6 +474,16 @@ let append opfile filename =
 let ( !! ) o = o.option_value
 let ( =:= ) o v = o.option_value <- v; exec_chooks o; exec_hooks o
     
+let stringvalue_to_option v =
+  match v with
+    StringValue s -> if s = "None" then None else Some s
+  | _ -> failwith "Not a string option"
+
+let option_to_stringvalue v =
+  match v with
+    None -> StringValue "None"
+  | Some s -> StringValue s
+
 let rec value_to_string v =
   match v with
     StringValue s -> s

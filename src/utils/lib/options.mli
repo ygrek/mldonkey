@@ -151,6 +151,8 @@ val from_value : 'a option_class -> option_value -> 'a
 
 val value_to_string : option_value -> string
 val string_to_value : string -> option_value
+val option_to_stringvalue : string option -> option_value
+val stringvalue_to_option : option_value -> string option
 val value_to_int : option_value -> int
 val int_to_value : int -> option_value
 val value_to_int64 : option_value -> int64
