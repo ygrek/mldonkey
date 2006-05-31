@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/06/01
+5150: Log: Fix log when server list is empty in check_blocked_servers
+
 2006/05/31
 5149: Log: Some additions for commonSwarming
 5148: Mail: Fix for multiline SMTP responses (zet)

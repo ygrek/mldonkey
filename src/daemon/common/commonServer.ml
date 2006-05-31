@@ -334,8 +334,9 @@ let check_blocked_servers () =
                 info.G.server_port);
       end;
       server_must_update s)
-  with e ->
-    lprintf_nl "Exception in check_blocked_servers: %s" (Printexc2.to_string e)
+  with
+    Not_found -> ()
+  | e -> lprintf_nl "Exception in check_blocked_servers: %s" (Printexc2.to_string e)
 
 let server_must_update_all () =
   try
