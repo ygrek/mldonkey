@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/01
+5152: Do not connect friends from disabled networks
 5151: Options: New stringvalue functions needed for multiuser support
 5150: Log: Fix log when server list is empty in check_blocked_servers
 

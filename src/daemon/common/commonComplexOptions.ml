@@ -1155,3 +1155,9 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
   Unix32.max_cache_size := total_files - 20;
   calc_real_max_indirect_connections ()
 )
+
+let _ =
+  Heap.add_memstat "CommonComplexOptions" (fun level buf ->
+      Printf.bprintf buf "  friends: %d\n" (List.length !!friends);
+      Printf.bprintf buf "  contacts: %d\n" (List.length !contacts);
+  )

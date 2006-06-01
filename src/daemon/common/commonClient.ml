@@ -124,10 +124,6 @@ let client_to_option (client : client) =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_to_option client.impl_client_val
 
-let client_network (client : client) =
-  let client = as_client_impl client in
-  client.impl_client_ops.op_client_network
-
 let client_info (client : client) =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_info client.impl_client_val
@@ -173,6 +169,8 @@ let client_clear_files client=
   client.impl_client_ops.op_client_clear_files client.impl_client_val
 
 let client_browse client immediate =
+  if CommonNetwork.network_is_enabled
+     ((as_client_impl client).impl_client_ops.op_client_network) then
   let client = as_client_impl client in
   client.impl_client_ops.op_client_browse client.impl_client_val immediate
 

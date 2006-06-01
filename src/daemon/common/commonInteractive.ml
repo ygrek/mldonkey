@@ -426,7 +426,8 @@ let friend_add c =
       client_must_update c;
       friends =:= c :: !!friends;
       contacts := List2.removeq c !contacts;
-      impl.impl_client_ops.op_client_browse impl.impl_client_val true
+      if network_is_enabled ((as_client_impl c).impl_client_ops.op_client_network) then
+        impl.impl_client_ops.op_client_browse impl.impl_client_val true
     end
 
 (* Maybe we should not add the client to the contact list and completely remove
@@ -456,7 +457,8 @@ let contact_add c =
       set_contact c;
       client_must_update c;
       contacts := c :: !contacts;
-      impl.impl_client_ops.op_client_browse impl.impl_client_val true
+      if network_is_enabled ((as_client_impl c).impl_client_ops.op_client_network) then
+        impl.impl_client_ops.op_client_browse impl.impl_client_val true
     end
 
 let contact_remove c =

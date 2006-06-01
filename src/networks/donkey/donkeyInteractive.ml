@@ -1541,23 +1541,16 @@ let _ =
       | Some files ->
           List2.tail_map (fun r -> "", r) files);
   client_ops.op_client_browse <- (fun c immediate ->
-      lprintf_nl "*************** should browse  ***********";
+      if !verbose then lprintf_nl "connecting friend %s" (full_client_identifier c);
       match c.client_source.DonkeySources.source_sock with
-      | Connection sock    ->
-(*
-      lprintf "****************************************";
-      lprint_newline ();
-      lprintf "       ASK VIEW FILES         ";
-lprint_newline ();
-  *)
+      | Connection sock ->
+	  if !verbose then lprintf_nl "retrieving filelist from friend %s" (full_client_identifier c);
           client_send c (
             let module M = DonkeyProtoClient in
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);
       | NoConnection ->
-          lprintf_nl "****************************************";
-          lprintf_nl "       TRYING TO CONTACT FRIEND";
-
+	  if !verbose then lprintf_nl "re-connecting friend %s" (full_client_identifier c);
           reconnect_client c
       | _ -> ()
   );

@@ -401,10 +401,6 @@ let _ =
           else "", false
   )
   
-let browse_client c = 
-  lprintf "Gnutella: browse client not implemented\n";
-  ()
-  
 let _ =
   client_ops.op_client_info <- (fun c ->
       { (impl_client_info c.client_client) with
@@ -419,8 +415,7 @@ let _ =
 
       }
   );
-  client_ops.op_client_browse <- (fun c immediate ->
-      browse_client c
+  client_ops.op_client_browse <- (fun _ _ -> lprintf_nl "Gnutella: browse client not implemented";
   );
 
     client_ops.op_client_bprint <- (fun c buf ->

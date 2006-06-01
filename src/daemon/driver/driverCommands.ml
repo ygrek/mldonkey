@@ -1053,7 +1053,6 @@ let _ =
                       rs, r, 1
                   ) rs in
                 o.conn_user.ui_last_results <- [];
-                Printf.bprintf buf "Reinitialising download selectors\n";
                 DriverInteractive.print_results 0 buf o rs;
 
                 ()

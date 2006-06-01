@@ -790,10 +790,6 @@ let shared_of_file file =
 let query_view_files c =
   if client_browsed_tag land client_type c <> 0 then begin
       if last_time () > c.client_next_view_files then begin
-(*
-lprintf "****************************************\n";
-lprintf "       ASK VIEW FILES         \n";
-  *)
           c.client_next_view_files <- last_time () + 3600 * 6;
           client_send c (
             let module M = DonkeyProtoClient in
