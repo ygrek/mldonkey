@@ -341,6 +341,11 @@ let _ =
             "URL does not exists in web_infos"
     ), "<url> :\t\t\tremove URL from web_infos";
 
+    "force_web_infos", Arg_none (fun o ->
+	CommonWeb.load_web_infos false true;
+        "downloading all web_infos URLs"
+    ), ":\t\t\t\tforce downloading all web_infos URLs";
+
     "recover_temp", Arg_none (fun o ->
         networks_iter (fun r ->
             try

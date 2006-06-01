@@ -153,9 +153,9 @@ let load_file kind file =
 (*                                                                       *)
 (*************************************************************************)
 
-let load_web_infos core_start =
+let load_web_infos core_start force =
   List.iter (fun (kind, period, url) ->
-    if (core_start && period = 0) || (period <> 0 && !hours mod period = 0) then
+    if (core_start && period = 0) || (period <> 0 && !hours mod period = 0) || force then
       begin
         try
           load_url false kind url
