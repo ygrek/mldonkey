@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/06/07
+5157: add some line breaks to option help text for shorter lines (schlumpf)
+
 2006/06/01
 5153: New command: force_web_infos to manually download web_infos URLs
 5152: Do not connect friends from disabled networks

@@ -553,17 +553,20 @@ let current_section = networks_section
 
 let enable_overnet = define_option current_section
     ["enable_overnet"]
-  "Set to true if you also want mldonkey to run as an overnet client (enable_donkey must be true)"
+  "Set to true if you also want mldonkey to run as an overnet client
+   (enable_donkey must be true)"
     bool_option false
 
 let enable_kademlia = define_option current_section
     ["enable_kademlia"]
-  "Set to true if you also want mldonkey to run as an kademlia client (enable_donkey must be true, and only experimental)"
+  "Set to true if you also want mldonkey to run as an kademlia client
+   (enable_donkey must be true, and only experimental)"
     bool_option false
 
 let enable_servers = define_option current_section
     ["enable_servers"]
-  "Set to true if you also want mldonkey to run with edonkey servers (enable_donkey must be true, and only experimental)"
+  "Set to true if you also want mldonkey to run with edonkey servers
+   (enable_donkey must be true, and only experimental)"
     bool_option true
 
 let enable_bittorrent = define_option current_section
@@ -777,7 +780,8 @@ let html_mods_bw_refresh_delay = define_option current_section
     ["html_mods_bw_refresh_delay"] "bw_stats refresh delay (seconds)" int_option 11
 
 let html_mods_theme = define_option current_section
-    ["html_mods_theme"] "html_mods_theme to use (located in relative html_themes/<theme_name> directory, leave blank to use internal theme"
+    ["html_mods_theme"] "html_mods_theme to use (located in relative html_themes/<theme_name> directory
+     leave blank to use internal theme"
     string_option ""
 
 let use_html_mods o =
@@ -989,12 +993,14 @@ let current_section = download_section
 
 let auto_commit = define_option current_section
     ["auto_commit"]
-  "Set to false if you don't want mldonkey to automatically put completed files in incoming directory"
+  "Set to false if you don't want mldonkey to automatically put completed files
+   in incoming directory"
     bool_option true
 
 let pause_new_downloads = define_option current_section
     ["pause_new_downloads"]
-    "Set to true if you want all new downloads be paused immediatly, will be set to false on core start."
+    "Set to true if you want all new downloads be paused immediatly
+     will be set to false on core start."
     bool_option false
 
   (*

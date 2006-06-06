@@ -213,7 +213,8 @@ let upload_power = define_expert_option donkey_section ["upload_power"]
 let max_server_age = define_expert_option donkey_section ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
 
 let remove_old_servers_delay = define_expert_option donkey_section ["remove_old_servers_delay"]
-  "How often should remove old donkey servers (see max_server_age) be called (in seconds, 0 to disable)"
+  "How often should remove old donkey servers (see max_server_age) be called
+   (in seconds, 0 to disable)"
     float_option 900.
 
 let min_left_servers = define_expert_option donkey_section ["min_left_servers"]
