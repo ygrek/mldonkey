@@ -119,7 +119,7 @@ val set_file_comment : CommonTypes.file -> string -> unit
 val file_comment : CommonTypes.file -> string
 val file_magic : CommonTypes.file -> string option
 val set_file_magic : CommonTypes.file -> string option -> unit
-  
+val check_magic : CommonTypes.file -> unit  
 val recover_bytes : CommonTypes.file -> (int64 * int64) list
 val file_write : CommonTypes.file -> int64 -> string -> int -> int -> unit
 val file_verify : CommonTypes.file ->

@@ -451,7 +451,19 @@ let set_file_magic file magic =
   match magic with
     None -> ()
   | Some magic -> (as_file_impl file).impl_file_magic <- Some (HashMagic.merge files_magic magic)
-    
+
+let check_magic file =
+  let check file =
+    match Magic.M.magic_fileinfo (file_disk_name file) false with
+      None -> ()
+    | Some magic -> set_file_magic file (Some magic)
+  in
+  let magic = file_magic file in
+    match magic with
+      None -> check file
+    | Some magic when magic = "data" || magic = "empty" -> check file
+    | _ -> ()
+
 let set_file_last_seen file age =
   let impl = as_file_impl file in
   impl.impl_file_last_seen <- age

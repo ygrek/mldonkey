@@ -123,23 +123,6 @@ let hdd_check () =
     close_log ()
   end
 
-let file_magic_check () =
-  if !Autoconf.magic_works then begin
-    if !verbose then lprintf_nl "computing file magic values";
-    let check_magic file =
-      match Magic.M.magic_fileinfo (file_disk_name file) false with
-        None -> ()
-      | Some magic -> set_file_magic file (Some magic)
-    in
-    List.iter (fun file ->
-      let magic = file_magic file in
-      match magic with
-        None -> check_magic file
-      | Some magic when magic = "data" -> check_magic file
-      | _ -> ()
-    ) !!files
-  end
-
 (* ripped from gui_downloads *)
 
 let calc_file_eta f =

@@ -68,7 +68,6 @@ let do_daily () =
 
 let minute_timer () =
   DriverInteractive.hdd_check ();
-  DriverInteractive.file_magic_check ();
   CommonShared.shared_check_files ();
   CommonUploads.upload_credit_timer ();
   CommonInteractive.force_download_quotas ();
@@ -436,7 +435,6 @@ or getting a binary compiled with glibc %s.\n\n")
 
 (*  lprintf "(1) CommonComplexOptions.load\n"; *)
   CommonComplexOptions.load ();
-  DriverInteractive.file_magic_check ();
   CommonUploads.load ();
 
 (*  lprintf "(2) CommonComplexOptions.load done\n"; *)

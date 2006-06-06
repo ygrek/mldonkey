@@ -1247,6 +1247,7 @@ let set_frontend_bitmap_3 t j =
 	print_s "VERIFIED" s
     end;
     t.t_verified t.t_nverified_chunks j in
+    if j = 0 && !Autoconf.magic_works then check_magic t.t_file;
   match t.t_converted_verified_bitmap.[j] with
   | '0' | '1' ->
       t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1;

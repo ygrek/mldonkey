@@ -256,14 +256,24 @@ let op_file_print_html file buf =
 	  end in
   print_first_tracker file.file_trackers;
 
+  let check_magic file =
+    match Magic.M.magic_fileinfo file false with
+      None -> None
+    | Some s -> Some (HashMagic.merge CommonGlobals.files_magic s)
+  in
   let cntr = ref 0 in
-  List.iter (fun (filename, size, magic) ->
+  List.iter (fun (filename, size, _) ->
     Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
     let fs = Printf.sprintf "File %d" !cntr in
     let magic_string =
-      match magic with
-        None -> ""
-      | Some magic -> Printf.sprintf " / %s" magic
+      if !Autoconf.magic_works then
+	begin
+          let subfile = Filename.concat (file_disk_name file) filename in
+          match check_magic subfile with
+            None -> ""
+          | Some magic -> Printf.sprintf " / %s" magic
+	end
+      else ""
     in
     html_mods_td buf [
       (fs, "sr br", fs);
@@ -622,32 +632,6 @@ let retry_all_ft () =
       try ft.ft_retry ft with e ->
           lprintf_nl "ft_retry: exception %s" (Printexc2.to_string e)
   ) ft_by_num
-
-let file_magic_check () =
-  if !Autoconf.magic_works then begin
-    if !verbose then lprintf_nl "computing sub_file magic values";
-    let check_magic file = 
-      match Magic.M.magic_fileinfo file false with
-        None -> None
-      | Some s -> Some (HashMagic.merge CommonGlobals.files_magic s)
-    in
-    Hashtbl.iter (fun _ file ->
-      let updated = ref false in
-      let new_file_files = ref [] in
-      List.iter (fun (filename, size, magic) ->
-        let subfile = Filename.concat (file_disk_name file) filename in
-        let new_magic =
-          match magic with
-            None -> check_magic subfile
-          | Some magic when magic = "data" || magic = "empty" -> check_magic subfile
-          | _ -> magic
-        in
-        if new_magic <> magic then updated := true;
-        new_file_files := (filename, size, new_magic) :: !new_file_files
-        ) file.file_files;
-        if !updated then file.file_files <- !new_file_files
-    ) files_by_uid
-  end
 
 let load_torrent_from_web r ft =
   if !verbose then
