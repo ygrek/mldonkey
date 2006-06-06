@@ -184,7 +184,7 @@ LIB_SRCS=   \
   $(LIB)/hole_tab.ml $(LIB)/store.ml \
   $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml $(LIB)/host.ml  \
   $(LIB)/misc2.mlcpp $(LIB)/misc.ml $(LIB)/unix32.ml  $(LIB)/md4.ml \
-  $(LIB)/avifile.ml $(LIB)/http_lexer.mll $(LIB)/url.ml \
+  $(LIB)/http_lexer.mll $(LIB)/url.ml \
   $(RSS)/rss_date.ml \
   $(LIB)/date.ml  $(LIB)/fst_hash.c \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \

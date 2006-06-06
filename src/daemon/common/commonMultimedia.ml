@@ -546,19 +546,19 @@ let search_info_avi ic =
                 
                 let fccType = input_string4 ic in
                 let fccHandler = input_string4 ic in
-                let dwFlags = input_int32 ic in (* Contains AVITF_* flags *)
-                let wPriority = input_int16 ic in
-                let wLanguage = input_int16 ic in
-                let dwInitialFrames = input_int32 ic in
+                let _dwFlags = input_int32 ic in (* Contains AVITF_* flags *)
+                let _wPriority = input_int16 ic in
+                let _wLanguage = input_int16 ic in
+                let _dwInitialFrames = input_int32 ic in
                 let dwScale = input_int32 ic in
                 let dwRate = input_int32 ic in (* dwRate / dwScale == samples/second *)
-                let dwStart = input_int32 ic in
+                let _dwStart = input_int32 ic in
                 let dwLength = input_int32 ic in
-                let dwSuggestedBufferSize = input_int32 ic in
-                let dwQuality = input_int32 ic in
-                let dwSampleSize = input_int32 ic in
-                let rcFrame_x = input_int16 ic in
-                let rcFrame_y = input_int16 ic in
+                let _dwSuggestedBufferSize = input_int32 ic in
+                let _dwQuality = input_int32 ic in
+                let _dwSampleSize = input_int32 ic in
+                let _rcFrame_x = input_int16 ic in
+                let _rcFrame_y = input_int16 ic in
                 let rcFrame_dx = input_int16 ic in
                 let rcFrame_dy = input_int16 ic in
                 
@@ -573,6 +573,7 @@ let search_info_avi ic =
                 
                 
                 
+(*
                 print_string4 "fccType" fccType;
                 print_string4 "fccHandler" fccHandler;
                 print_int32 "dwFlags " dwFlags; (* Contains AVITF_* flags *)
@@ -590,6 +591,7 @@ let search_info_avi ic =
                 print_int16 "rcFrame_y" rcFrame_y;
                 print_int16 "rcFrame_dx" rcFrame_dx;
                 print_int16 "rcFrame_dy" rcFrame_dy;
+*)
                 ()
             | _ -> ()
           end;

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/07
+5160: Remove stale avifile.ml, clean commonMultimedia logging
 5159: Compute magic values only when needed
 5157: add some line breaks to option help text for shorter lines (schlumpf)
 
