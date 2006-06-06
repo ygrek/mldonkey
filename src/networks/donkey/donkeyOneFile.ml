@@ -133,9 +133,6 @@ let declare_completed_file file =
   CommonSwarming.remove_swarmer file.file_swarmer;
   file.file_swarmer <- None;
   unshare_file file;
-  ignore (CommonShared.new_shared "completed" 0 (
-      file_best_name file )
-    (file_disk_name file));
   (try
       let format = CommonMultimedia.get_info
           (file_disk_name file) in

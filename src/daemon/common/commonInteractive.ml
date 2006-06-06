@@ -359,9 +359,6 @@ let file_completed (file : file) =
         files =:= List2.removeq file !!files;
         done_files =:= file :: !!done_files;
         update_file_state impl FileDownloaded;
-        let file_name = file_disk_name file in
-        ignore (CommonShared.new_shared "completed" 0 (
-            file_best_name file ) file_name);
         (try mail_for_completed_file file with e ->
               lprintf_nl "Exception %s in sendmail" (Printexc2.to_string e);
               );
