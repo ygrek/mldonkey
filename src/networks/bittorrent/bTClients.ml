@@ -994,7 +994,7 @@ and client_to_client c sock msg =
                   if !verbose_msg_clients then lprintf_nl "%s:%d with software %s : Choke send, but no client bitmap"
                     (Ip.to_string ip) port (brand_to_string c.client_brand)
             | Some up ->
-                CommonSwarming.clear_uploader_ranges up
+                CommonSwarming.clear_uploader_intervals up
           end;
           c.client_ranges_sent <- [];
           c.client_range_waiting <- None;

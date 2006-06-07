@@ -15,6 +15,24 @@ ChangeLog
 =========
 
 2006/06/07
+5164: CommonSwarming: Pangos WIP5e'
+* When cutting a range, the reciprocal link of the range after the right part
+  still references the left part
+* When cutting a block in two parts can before empty, but then can also before
+  complete (if they have no ranges left)
+* Added bad_writes_is_back patch
+* When find_range can only find ranges already being downloaded, it now first
+  does a quick check to see if there's no other, probably more interesting,
+  blocks remaining. If so, it forces a block change (report no more ranges left)
+* While it's a good feature in itself, it's probably a workaround for a bug in
+  select_block (?); It seems that blocks oversaturated with sources happen way
+  too often (4 or 5 sources on a single range shouldn't happen).
+* Compute the size of unselected ranges in each blocks, so that sources don't
+  "rush" on blocks just left by a source.
+* Some BAD WRITEs seems to happen because we forget ranges we requested
+  (when switching blocks ?)
+* Replaced call to clear_uploader_ranges by a call to clear_uploader_intervals
+  in BitTorrent support Choke message handler.
 5063: EDK: remove duplicate entries in shared_files_new.ini (pango)
 5160: Remove stale avifile.ml, clean commonMultimedia logging
 5159: Compute magic values only when needed

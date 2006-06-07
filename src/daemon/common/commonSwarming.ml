@@ -57,8 +57,7 @@ open CommonTypes
 
 type strategy =
   LinearStrategy    (* one after the other one *)
-| AdvancedStrategy  (* first chunks first, rarest chunks second, 
-     complete first third, and random final *)
+| AdvancedStrategy
 
 exception VerifierNotReady
 
@@ -72,7 +71,6 @@ type verification =
 | ForceVerification
 | Verification of uid_type array
   
-(* let debug_all = true *)
 let exit_on_error = ref false
 
 let log_prefix = "[cSw]"
@@ -90,15 +88,10 @@ open CommonTypes
 open CommonClient
 
 
-(* Worst scenario?: 1 GB splitted in small ranges of 64 KB = 16 000 ranges.
-  In eDonkey, ranges are 180 kB long.
-*)
-
 (* If we want to become 'multinet', we should:
 * there shouldn't be any block_size, instead blocks should correspond
-  to the largest blocks which are completely included in one block for
+  to the largest blocks which are completely included in one chunk for
   every network.
-* the range_size should be the same for all networks.
 * a completed block should not be verified until all the blocks are
    completed for all networks.
 * swarmers should be loaded before other files, so that they can be
@@ -188,6 +181,8 @@ and block = {
 				      instead ? 
 				      or a balanced tree ? *)
     mutable block_remaining : int64; (* amount of bytes missing. *)
+    mutable block_unselected_remaining : int64; (* same, less ranges
+						   selected by sources. *)
   }
 
 and range = {
@@ -334,8 +329,6 @@ module HU = Weak.Make(struct
 
 let uploaders_by_num = HU.create 113
 
-let edonkey_range_size = Int64.of_int (180 * 1024)
-
 let swarmer_counter = ref 0
 
 let string_init n f =
@@ -399,6 +392,9 @@ let void_range b pos =
   in
   r
 
+let compute_range_size r =
+  r.range_end -- r.range_begin
+
 let rec ranges_iter f r =
   f r;
   match r.range_next with
@@ -447,31 +443,39 @@ let rec own_ranges b r =
 
 let cut_ranges_after b r cut_pos =
   let rec iter r =
+    (* after the cut position already ? *)
     if r.range_begin >= cut_pos then begin
       (match r.range_prev with
-        | None -> ()
-        | Some rp ->
-            rp.range_next <- None;
-            r.range_prev <- None);
+      | None -> 
+	  let b1 = r.range_block in
+	  b1.block_ranges <- void_range b1 cut_pos
+      | Some rp ->
+          rp.range_next <- None;
+          r.range_prev <- None);
       r
     end 
+      (* still before the cut position ? *)
     else if r.range_end <= cut_pos then
       match r.range_next with
-	| None -> void_range b cut_pos
-	| Some r -> iter r
+      | None -> void_range b cut_pos
+      | Some r -> iter r
     else
+      (* across cut position, must split a range *)
       (* "right" half *)
       let split_r = { r with
+	range_begin = cut_pos;
 	range_prev = None;
-	range_begin = max r.range_begin cut_pos
       } in
+      (match split_r.range_next with
+      | None -> ()
+      | Some rr -> rr.range_prev <- Some split_r);
+
       (* "left" half *)
-      r.range_next <- None;
       r.range_end <- cut_pos;
-      r.range_begin <- min r.range_begin cut_pos;
+      r.range_next <- None;
 
       if r.range_nuploading <> 0 then
-	lprintf_n "WARNING: Splitting a range currently being uploaded, don't know what to do with range_nuploading :/\n";
+	lprintf_nl "WARNING: Splitting a range currently being uploaded, don't know what to do with range_nuploading :/";
 
       split_r in
   let cut_ranges = iter r in
@@ -534,7 +538,7 @@ let compute_block_num s chunk_pos =
 (** Return true if ranges fully "cover" their block
     ("the block is made of holes") *)
 
-let empty_block b =
+let block_is_empty b =
   let rec iter begin_pos r =
     r.range_begin = begin_pos &&
     (match r.range_next with
@@ -542,7 +546,11 @@ let empty_block b =
      | None -> r.range_end = b.block_end)
   in
   iter b.block_begin b.block_ranges
-
+    
+let block_is_full b =
+  let r = b.block_ranges in
+  r.range_next = None && r.range_begin = r.range_end
+      
 let iter_intervals s f intervals =
   let nchunks = Array.length s.s_blocks in
   List.iter (fun (interval_begin, interval_end) ->
@@ -664,7 +672,8 @@ let split_blocks s chunk_size =
         iter (index_s+1) chunk_end new_blocks
 
     else begin
-(* We need to split this block in two parts *)
+      (* chunk_end < block_end
+	 We need to split this block in two parts *)
         s.s_block_pos.(index_s) <- chunk_end;
         match s.s_blocks.(index_s) with
 	| EmptyBlock | CompleteBlock | VerifiedBlock ->
@@ -686,13 +695,20 @@ let split_blocks s chunk_size =
                 block_end = b1.block_end;
                 block_ranges = b1.block_ranges; (* fixed below *)
                 block_num = 0; (* fixed below *)
-                block_remaining = zero; (* unused ? *)
+                block_remaining = zero; (* fixed below *)
+		block_unselected_remaining = zero; (* fixed below *)
               } in
 	    b2.block_ranges <- cut_ranges_after b2 b1.block_ranges chunk_end;
             b1.block_end <- chunk_end;
 
             let new_blocks =
-              (if empty_block b1 then
+              (if block_is_full b1 then
+(* lprintf "Partial block b1 should become CompleteBlock\n"; *)
+		(
+		  CompleteBlock,
+		  block_begin,
+		  '2'
+		) else if block_is_empty b1 then
 (* lprintf "Partial block b1 should become EmptyBlock\n"; *)
                   (
                     EmptyBlock,
@@ -705,12 +721,18 @@ let split_blocks s chunk_size =
                   ))
               :: new_blocks in
 
-            if empty_block b2 then begin
-(* lprintf "Partial block b2 should become EmptyBlock\n"; *)
-                s.s_blocks.(index_s) <- EmptyBlock;
-                s.s_verified_bitmap.[index_s] <- '0';
-              end else
-                s.s_blocks.(index_s) <- PartialBlock b2;
+	    if block_is_full b2 then begin
+	      (* lprintf "Partial block b2 should become CompleteBlock\n"; *)
+	      s.s_blocks.(index_s) <- CompleteBlock;
+	      s.s_verified_bitmap.[index_s] <- '2'
+	    end
+            else if block_is_empty b2 then begin
+	      (* lprintf "Partial block b2 should become EmptyBlock\n"; *)
+              s.s_blocks.(index_s) <- EmptyBlock;
+              s.s_verified_bitmap.[index_s] <- '0';
+            end 
+	    else
+              s.s_blocks.(index_s) <- PartialBlock b2;
             iter index_s chunk_end new_blocks
       end
   in
@@ -743,7 +765,21 @@ let split_blocks s chunk_size =
     | (b, pos, c) :: tail ->
         begin
           match b with
-	  | PartialBlock b -> b.block_num <- i
+	  | PartialBlock b -> 
+	      begin
+		b.block_num <- i;
+		let block_size = compute_block_end s i --
+		  compute_block_begin s i in
+		let remaining, unselected_remaining =
+		  block_ranges_fold (fun (racc, uracc) r ->
+		    let range_size = compute_range_size r in
+		    (racc -- range_size,
+		    if r.range_nuploading = 0 then 
+		      uracc -- range_size else uracc)
+		  ) (block_size, block_size) b in
+		b.block_remaining <- remaining;
+		b.block_unselected_remaining <- unselected_remaining;
+	      end
           | EmptyBlock | CompleteBlock | VerifiedBlock -> ()
         end;
         s.s_blocks.(i) <- b;
@@ -986,14 +1022,18 @@ let add_file_downloaded maybe_t s size =
 
 let close_block_ranges maybe_t s b =
   iter_block_ranges (fun r ->
-    let added = r.range_end -- r.range_begin in
+    let added = compute_range_size r in
     add_file_downloaded maybe_t s added;
     b.block_remaining <- b.block_remaining -- added;
+    if r.range_nuploading = 0 then
+      b.block_unselected_remaining <- b.block_unselected_remaining -- added;
     r.range_begin <- r.range_end;
     r.range_prev <- None;
     r.range_next <- None) b;
   if b.block_remaining <> 0L then
-    lprintf_nl "WARNING: block_remaining should be 0 after close_block_ranges"
+    lprintf_nl "WARNING: block_remaining should be 0 after close_block_ranges";
+  if b.block_unselected_remaining <> 0L then
+    lprintf_nl "WARNING: block_unselected_remaining should be 0 after close_block_ranges"
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1362,6 +1402,7 @@ let new_block s i =
 
   let block_begin = compute_block_begin s i in
   let block_end = compute_block_end s i in
+  let block_size = block_end -- block_begin in
   let rec b = {
       block_s = s;
 
@@ -1369,7 +1410,8 @@ let new_block s i =
       block_end = block_end;
       block_ranges = range;
       block_num = i;
-      block_remaining = block_end -- block_begin;
+      block_remaining = block_size;
+      block_unselected_remaining = block_size;
     }
 
   and range = {
@@ -1402,14 +1444,16 @@ let range_received maybe_t r interval_begin interval_end =
   if r.range_begin >= interval_begin && 
     r.range_begin < interval_end then begin
 (*      lprintf "... entered\n"; *)
-    let new_current_begin =
+    let new_begin =
       max (min interval_end r.range_end) r.range_begin in
-    let downloaded = new_current_begin -- r.range_begin in
+    let downloaded = new_begin -- r.range_begin in
     let b = r.range_block in
     let s = b.block_s in
     add_file_downloaded maybe_t s downloaded;
     b.block_remaining <- b.block_remaining -- downloaded;
-    r.range_begin <- new_current_begin;
+    if r.range_nuploading = 0 then
+      b.block_unselected_remaining <- b.block_unselected_remaining -- downloaded;
+    r.range_begin <- new_begin;
     if r.range_begin = r.range_end then begin
       (* range completed, unlink it *)
       (match r.range_next with
@@ -1422,21 +1466,20 @@ let range_received maybe_t r interval_begin interval_end =
            match r.range_next with
            | Some rr -> (* fix block's first range *)
 	       b.block_ranges <- rr
-           | None ->
-	       (* that was the last remaining range of the block *)
-               (match s.s_blocks.(b.block_num) with
-                | PartialBlock _ | EmptyBlock ->
-                    (match s.s_networks with
-		     | t :: _ -> 
-			 assert(t.t_primary);
-                         (match t.t_verifier with
-			  | NoVerification ->
-                              set_verified_block s b.block_num
-			  | _ ->
-                              set_completed_block (Some t) s b.block_num;
-                              must_verify_block s b.block_num)
-		     | [] -> assert false)
-                | _ -> () ));
+           | None -> (* that was the last remaining range of the block *)
+	       match s.s_blocks.(b.block_num) with
+	       | PartialBlock _ | EmptyBlock ->
+		   (match s.s_networks with
+		   | t :: _ -> 
+		       assert(t.t_primary);
+		       (match t.t_verifier with
+		       | NoVerification ->
+			   set_verified_block s b.block_num
+		       | _ ->
+			   set_completed_block (Some t) s b.block_num;
+			   must_verify_block s b.block_num)
+		   | [] -> assert false)
+	       | _ -> () );
       r.range_next <- None;
       r.range_prev <- None;
     end (* else begin
@@ -1690,7 +1733,13 @@ let clear_uploader_ranges up =
     if r.range_nuploading > 0 then
       r.range_nuploading <- r.range_nuploading - 1
     else
-      lprintf_nl "clear_uploader_ranges: some range_nuploading was about to become negative\n"
+      lprintf_nl "clear_uploader_ranges: some range_nuploading was about to become negative\n";
+    if r.range_nuploading = 0 then
+      let b = r.range_block in
+      b.block_unselected_remaining <-
+	b.block_unselected_remaining ++ (compute_range_size r);
+      if b.block_unselected_remaining > b.block_remaining then
+	lprintf_nl "clear_uploader_ranges: block_unselected_remaining larger than block_remaining!";
   ) up.up_ranges;
   up.up_ranges <- []
 
@@ -1701,6 +1750,8 @@ let clear_uploader_block up =
       let num = b.block_num in
       let t = up.up_t in
       let s = t.t_s in
+      if debug_all then
+	lprintf_nl "Client %d unselect %d" (client_num up.up_client) num;
       if s.s_nuploading.(num) > 0 then
 	s.s_nuploading.(num) <- s.s_nuploading.(num) - 1
       else
@@ -1888,8 +1939,9 @@ type choice = {
   choice_user_priority : int;
   choice_nuploaders : int;
   choice_remaining : int64;
+  choice_unselected_remaining : int64;
   choice_remaining_per_uploader : int64; (* algo 1 only *)
-  choice_saturated : bool; (* has enough uploades *) (* algo 2 only *)
+  choice_saturated : bool; (* has enough uploaders *) (* algo 2 only *)
   choice_other_complete : int Lazy.t; (* ...blocks in the same chunk *)
   choice_availability : int;
 }
@@ -1899,6 +1951,7 @@ let dummy_choice = {
   choice_user_priority = 0;
   choice_nuploaders = 0;
   choice_remaining = 0L;
+  choice_unselected_remaining = 0L;
   choice_remaining_per_uploader = 0L; (* algo 1 only *)
   choice_saturated = true; (* algo 2 only *)
   choice_other_complete = lazy 0;
@@ -1923,19 +1976,7 @@ let subarray_fold_lefti f x a firstidx lastidx =
   done;
   !r
 
-(* DEBUGGING *)
-let delta_needed = ref 0
-let delta_undecided = ref 0
-
 let select_block up =
-(* DEBUGGING *)
-  let compare_choices_saturation = ref 0 in
-  let compare_choices_priority = ref 0 in
-  let compare_choices_rarity = ref 0 in
-  let compare_choices_completion = ref 0 in
-  let compare_choices_siblings = ref 0 in
-  let compare_choices_failure = ref 0 in
-
   let t = up.up_t in
   let s = t.t_s in
   try
@@ -1980,6 +2021,56 @@ let select_block up =
 	  | 2 -> verification_available && t.t_nverified_chunks < 2
 	  | _ -> assert false in
 
+	let evaluate_choice n b =
+	  let nchunk = my_t.t_chunk_of_block.(b) in
+	  let block_begin = compute_block_begin s b in
+	  let block_end = compute_block_end s b in
+	  let size = block_end -- block_begin in
+	  let remaining, unselected_remaining = match s.s_blocks.(b) with
+	    | EmptyBlock -> size, size
+	    | PartialBlock b -> b.block_remaining, b.block_unselected_remaining
+	    | CompleteBlock | VerifiedBlock -> 0L, 0L in
+	  let nuploaders = s.s_nuploading.(b) in
+	  {
+	    choice_num = n;
+	    choice_user_priority = (* priority bitmap here instead ? *)
+	      if block_begin < preview_beginning then 3 else
+		if block_end > preview_end then 2 else 1;
+	    choice_nuploaders = nuploaders;
+	    choice_remaining = remaining;
+	    choice_unselected_remaining = unselected_remaining;
+	    choice_remaining_per_uploader = 
+	      if !!swarming_block_selection_algorithm = 1 then
+		unselected_remaining //
+		  (Int64.of_int (nuploaders + 1)) (* planned value *)
+	      else 0L;
+	    choice_saturated =
+	      if !!swarming_block_selection_algorithm = 2 then
+		unselected_remaining <= Int64.of_int nuploaders ** data_per_source
+	      (*
+		nuploaders >= Int64.to_int (
+		Int64.pred (
+		unselected_remaining ** Int64.of_int !!sources_per_chunk ++ size) 
+		// size)
+	      *)
+	      else true;
+	    choice_other_complete = completed_blocks_in_chunk.(nchunk);
+	    choice_availability = s.s_availability.(b);
+	  } in
+	
+	let print_choice c =
+	  lprintf_nl "choice %d:%d priority:%d nup:%d rem:%Ld rmu:%Ld rpu:%Ld sat:%B sib:%s av:%d" 
+	    c.choice_num up.up_complete_blocks.(c.choice_num)
+	    c.choice_user_priority 
+	    c.choice_nuploaders 
+	    c.choice_remaining 
+	    c.choice_unselected_remaining
+	    c.choice_remaining_per_uploader
+	    c.choice_saturated
+	    (if Lazy.lazy_is_val c.choice_other_complete then
+	      string_of_int (Lazy.force c.choice_other_complete) else "?") 
+	    c.choice_availability in
+
 	(** > 0 == c1 is best, < 0 = c2 is best, 0 == they're equivalent *)
 	let compare_choices1 c1 c2 =
 
@@ -1989,17 +2080,11 @@ let select_block up =
 	      c2.choice_remaining_per_uploader < data_per_source then
 		compare c1.choice_remaining_per_uploader 
 		  c2.choice_remaining_per_uploader else 0 in
-	  if cmp <> 0 then begin
-	    incr compare_choices_saturation;
-	    cmp 
-	  end else
+	  if cmp <> 0 then cmp else
 
 	  (* Do what Master asked for *)
 	  let cmp = compare c1.choice_user_priority c2.choice_user_priority in
-	  if cmp <> 0 then begin
-	    incr compare_choices_priority;
-	    cmp 
-	  end else
+	  if cmp <> 0 then cmp else
 
 	  (* Pick really rare gems: if average availability of all
 	     blocks is higher than 5 connected sources, pick in
@@ -2011,18 +2096,17 @@ let select_block up =
 	      (c1.choice_availability <= 3 || c2.choice_availability <= 3) then
 		compare c2.choice_availability c1.choice_availability 
 	    else 0 in
-	  if cmp <> 0 then begin
-	    incr compare_choices_rarity;
-	    cmp 
-	  end else
+	  if cmp <> 0 then cmp else
 
 	  (* try to quickly complete blocks *)
 	  let cmp = 
-	    compare c2.choice_remaining c1.choice_remaining in
-	  if cmp <> 0 then begin 
-	    incr compare_choices_completion;
-	    cmp 
-	  end else
+	    match c1.choice_unselected_remaining,
+	    c2.choice_unselected_remaining with
+	    | 0L, 0L -> 0
+	    | 0L, _ -> -1
+	    | _, 0L -> 1
+	    | ur1, ur2 -> compare ur2 ur1 in
+	  if cmp <> 0 then cmp else
 
 	  (* try to quickly complete (and validate) chunks; 
 	     if there's only one frontend, each chunk has only one
@@ -2032,76 +2116,52 @@ let select_block up =
 	      compare (Lazy.force c1.choice_other_complete)
 		(Lazy.force c2.choice_other_complete)
 	    else 0 in
-	  if cmp <> 0 then begin
-	    incr compare_choices_siblings;
-	    cmp 
-	  end else
+	  if cmp <> 0 then cmp else
 
-	  begin
 	    (* Can't tell *)
-	    incr compare_choices_failure;
-	    0 
-	  end in
+	    0 in
 
 	let compare_choices2 c1 c2 =
+	  (* "RULES" *)
+	  (* Avoid stepping on each other's feet *)
+	  let cmp =
+	    match c1.choice_unselected_remaining,
+	      c2.choice_unselected_remaining with
+	    | 0L, 0L -> 0
+	    | _, 0L -> 1
+	    | 0L, _ -> -1
+	    | _, _ -> 0 in
+	  if cmp <> 0 then cmp else
 
-	  (* avoid overly unbalanced situations *)
-	  let cmp = 
-	    match c1.choice_saturated, c2.choice_saturated with
-	    | false, false -> 0
-	    | true, false -> -1
-	    | false, true -> 1
-	    | true, true ->
-		let result =
-		(* both are saturated, try to balance situation *)
-		incr delta_needed;
-		let delta = 
-		  c1.choice_remaining ** Int64.of_int c2.choice_nuploaders -- 
-		  c2.choice_remaining ** Int64.of_int c1.choice_nuploaders in
-		if delta > c2.choice_remaining then 1
-		else if delta < Int64.neg c1.choice_remaining then -1
-		else begin
-		  (* either way we'll unbalance the situation *)
-		  incr delta_undecided;
-		  0 
-		end in
-		lprintf_nl "compare_choices needed delta %d times, which couldn't decide %d times" !delta_needed !delta_undecided;
-		result in
-	  if cmp <> 0 then begin
-	    incr compare_choices_saturation;
-	    cmp 
-	  end else
+          (* avoid overly unbalanced situations *)
+          let cmp =
+            match c1.choice_saturated, c2.choice_saturated with
+            | false, false -> 0
+            | false, true -> 1
+            | true, false -> -1
+            | true, true -> 0 in
+          if cmp <> 0 then cmp else
 
+          (* "WISHES" *)
 	  (* Do what Master asked for *)
 	  let cmp = compare c1.choice_user_priority c2.choice_user_priority in
-	  if cmp <> 0 then begin
-	    incr compare_choices_priority;
-	    cmp 
-	  end else
+	  if cmp <> 0 then cmp else
 
-	  (* Pick really rare gems: if average availability of all
-	     blocks is higher than 5 connected sources, pick in
-	     priority blocks present in at most 3 connected sources;
-	     is that too restrictive ? *)
-	  let cmp = 
-	    if not need_to_complete_some_blocks_quickly && 
-	      mean_availability > 5 &&
-	      (c1.choice_availability <= 3 || c2.choice_availability <= 3) then
-		compare c2.choice_availability c1.choice_availability 
-	    else 0 in
-	  if cmp <> 0 then begin
-	    incr compare_choices_rarity;
-	    cmp 
-	  end else
-
-	  (* try to quickly complete blocks *)
-	  let cmp = 
-	    compare c2.choice_remaining c1.choice_remaining in
-	  if cmp <> 0 then begin 
-	    incr compare_choices_completion;
-	    cmp 
-	  end else
-
+          (* "OPTIMIZATIONS" *)
+	    (* Pick really rare gems: if average availability of all
+	       blocks is higher than 5 connected sources, pick in
+	       priority blocks present in at most 3 connected sources;
+	       is that too restrictive ? *)
+            let cmp =
+              if not need_to_complete_some_blocks_quickly &&
+		mean_availability > 5 &&
+		(c1.choice_availability <= 3 || c2.choice_availability
+		<= 3) then
+		  compare c2.choice_availability
+		    c1.choice_availability
+              else 0 in
+            if cmp <> 0 then cmp else
+  
 	  (* try to quickly complete (and validate) chunks; 
 	     if there's only one frontend, each chunk has only one
 	     block, and looking at siblings make no sense *)
@@ -2110,16 +2170,17 @@ let select_block up =
 	      compare (Lazy.force c1.choice_other_complete)
 		(Lazy.force c2.choice_other_complete)
 	    else 0 in
-	  if cmp <> 0 then begin
-	    incr compare_choices_siblings;
-	    cmp 
-	  end else
+	  if cmp <> 0 then cmp else
 
-	  begin
+	  (* try to quickly complete blocks *)
+	  let cmp = 
+	    compare c2.choice_unselected_remaining
+	      c1.choice_unselected_remaining in
+	  if cmp <> 0 then cmp else
+
+	  (* "DEFAULT" *)
 	    (* Can't tell *)
-	    incr compare_choices_failure;
-	    0 
-	  end in
+	    0 in
 
 	let compare_choices =
 	  match !!swarming_block_selection_algorithm with
@@ -2131,49 +2192,15 @@ let select_block up =
 	  subarray_fold_lefti (fun ((best_choices, specimen) as acc) n b ->
 	  (* priority bitmap <> 0 here ? *)
 	  if not (should_download_block s b) then acc else
-	    let nchunk = my_t.t_chunk_of_block.(b) in
-	    let block_begin = compute_block_begin s b in
-	    let block_end = compute_block_end s b in
-	    let size = block_end -- block_begin in
-	    let remaining = match s.s_blocks.(b) with
-		| EmptyBlock -> size
-		| PartialBlock b -> b.block_remaining
-		| CompleteBlock | VerifiedBlock -> 0L in
-	    let nuploaders = s.s_nuploading.(b) in
-	    let this_choice = {
-	      choice_num = n;
-	      choice_user_priority = (* priority bitmap here instead ? *)
-		if block_begin < preview_beginning then 3 else
-		  if block_end > preview_end then 2 else 1;
-	      choice_nuploaders = nuploaders;
-	      choice_remaining = remaining;
-	      choice_remaining_per_uploader = 
-		if !!swarming_block_selection_algorithm = 1 then
-		  remaining //
-		    (Int64.of_int (nuploaders + 1)) (* planned value *)
-		else 0L;
-	      choice_saturated =
-		if !!swarming_block_selection_algorithm = 2 then
-		  not need_to_complete_some_blocks_quickly &&
-		    remaining <= Int64.of_int nuploaders ** data_per_source
-	      (*
-		nuploaders >= Int64.to_int (
-		Int64.pred (
-		remaining ** Int64.of_int !!sources_per_chunk ++ size) 
-		// size)
-	      *)
-		else true;
-	      choice_other_complete = completed_blocks_in_chunk.(nchunk);
-	      choice_availability = s.s_availability.(b);
-	    } in
+	    let this_choice = evaluate_choice n b in
 	    match best_choices with
 	    | [] -> [n], this_choice
 	    | _ :: _ ->
 		(* all the choices in the accumulator are supposed to
 		   be equivalent, compare against the specimen *)
 		let cmp = compare_choices this_choice specimen in
-		if cmp > 0 then [n], this_choice
-		else if cmp < 0 then acc
+		if cmp < 0 then acc
+		else if cmp > 0 then [n], this_choice
 		else n :: best_choices, specimen
 	  ) ([], dummy_choice) up.up_complete_blocks 0 (up.up_ncomplete - 1) in
 	(* what about up_partial_blocks ? 
@@ -2181,23 +2208,6 @@ let select_block up =
 	   fallback below *)
 
 	if debug_all then begin
-	  let nbest_choices = List.length best_choices in
-	  lprintf_nl "compare_choices: %d choices left based on saturation:%d priority:%d rarity:%d completion:%d siblings:%d failed:%d"
-	    nbest_choices
-	    !compare_choices_saturation !compare_choices_priority
-	    !compare_choices_rarity !compare_choices_completion
-	    !compare_choices_siblings !compare_choices_failure;
-	  let print_choice c =
-	    lprintf_nl "selected %d:%d priority:%d nup:%d rem:%Ld rpu:%Ld sat:%B sib:%s av:%d" 
-	      c.choice_num up.up_complete_blocks.(c.choice_num)
-	      c.choice_user_priority 
-	      c.choice_nuploaders 
-	      c.choice_remaining 
-	      c.choice_remaining_per_uploader
-	      c.choice_saturated
-	      (if Lazy.lazy_is_val c.choice_other_complete then
-		string_of_int (Lazy.force c.choice_other_complete) else "?") 
-	      c.choice_availability in
 	  print_choice specimen
 	end;
 
@@ -2212,6 +2222,40 @@ let select_block up =
 
           if debug_all then lprintf_nl "\nBlockFound %d"
             up.up_complete_blocks.(n);
+
+(*
+          (* DEBUG *)
+	  let block_num = up.up_complete_blocks.(n) in
+	  let probably_buggy =
+	    match s.s_blocks.(block_num) with
+	    | EmptyBlock -> false
+	    | PartialBlock b ->
+		block_ranges_for_all (fun r ->
+		  r.range_nuploading > 0) b
+	    | CompleteBlock | VerifiedBlock ->
+		true in
+	  if probably_buggy then begin
+	    lprintf_nl "Probably buggy choice:";
+	    subarray_fold_lefti (fun () n b ->
+	      if should_download_block s b then
+		let this_choice = evaluate_choice n b in
+		if List.mem n best_choices then lprintf "** "
+		else lprintf "   ";
+		print_choice this_choice;
+		match s.s_blocks.(b) with
+		| EmptyBlock | CompleteBlock | VerifiedBlock -> ()
+		| PartialBlock b ->
+		    let total_uploading =
+		      block_ranges_fold	(fun acc r ->
+			lprintf "%d " r.range_nuploading;
+			  acc + r.range_nuploading) 0 b in
+		    lprintf "total=%d" total_uploading;
+		    lprint_newline ()
+	    ) () up.up_complete_blocks 0 (up.up_ncomplete - 1);
+	  end;
+	  (* /DEBUG *)
+*)
+
           permute_and_return up n
 	with Not_found ->
 	  if !verbose_swarming then
@@ -2219,7 +2263,7 @@ let select_block up =
 	  linear_select_block up
   with Not_found ->
 
-      (* print_s "NO BLOCK FOUND" s; *)
+    (* print_s "NO BLOCK FOUND" s; *)
     raise Not_found
 
 (** If uploader is associated to a file being downloaded,
@@ -2252,12 +2296,19 @@ let find_block up =
 	 | None -> ()
          | Some b ->
              let num = b.block_num in
-             s.s_nuploading.(num) <- s.s_nuploading.(num) - 1;
+	     if debug_all then
+	       lprintf_nl "Client %d unselected %d" (client_num up.up_client) num;
+	     if s.s_nuploading.(num) > 0 then
+               s.s_nuploading.(num) <- s.s_nuploading.(num) - 1
+	     else
+	       lprintf_nl "find_block: s_nuploading was about to become negative";
              up.up_block <- None;
         );
 
         let b, block_begin, block_end = select_block up in
         let num = b.block_num in
+	if debug_all then
+	  lprintf_nl "Client %d selected %d" (client_num up.up_client) num;
         s.s_nuploading.(num) <- s.s_nuploading.(num) + 1;
         up.up_block <- Some b;
         up.up_block_begin <- block_begin;
@@ -2277,7 +2328,18 @@ let remove_completed_uploader_ranges up =
       r.range_begin < r.range_end) up.up_ranges in
   up.up_ranges <- not_completed_ranges;
   List.iter (fun (_,_,r) -> 
-    r.range_nuploading <- r.range_nuploading - 1) completed_ranges
+    if r.range_nuploading > 0 then
+      r.range_nuploading <- r.range_nuploading - 1
+    else
+      lprintf_nl "remove_completed_uploader_ranges: range_nuploading
+  was about to become negative!";
+    if r.range_nuploading = 0 then
+      let b = r.range_block in
+      b.block_unselected_remaining <-
+	b.block_unselected_remaining ++ (compute_range_size r);
+      if b.block_unselected_remaining > b.block_remaining then
+	lprintf_nl "remove_completed_uploader_ranges: block_unselected_remaining is larger than block_remaining";
+    ) completed_ranges
 
 (** uploader accessors *)
 
@@ -2309,8 +2371,8 @@ let uploader_ranges_fold_left f acc l =
 (** Find a range to upload from [up], that is at most [range_size]
     bytes long (split some range if necessary) *)
 
-(* Is merging at all useful ? Once range starts downloading, they can
-   no longer be merged, so it should be very rare... *)
+(* Is merging at all useful ? Once next range starts downloading, they
+   can no longer be merged, so it should be rare... *)
 let allow_merge_ranges = true
 
 type ranges_cluster = {
@@ -2324,6 +2386,9 @@ let dummy_ranges_cluster = {
   cluster_nuploading = 0;
   cluster_size = 0L
 }
+
+let is_dummy_cluster cluster = 
+  cluster.cluster_ranges = []
 
 let find_range up range_size =
 
@@ -2364,7 +2429,8 @@ let find_range up range_size =
   | FileShared
   | FileNew
   | FileDownloaded -> 
-      lprintf_nl "find_range: file %s in bad state %s" t.t_s.s_filename (string_of_state (file_state t.t_file));
+      lprintf_nl "find_range: file %s in bad state %s" 
+	t.t_s.s_filename (string_of_state (file_state t.t_file));
       raise Not_found
   | FileDownloading
   | FileQueued ->
@@ -2386,12 +2452,10 @@ let find_range up range_size =
 	  else 
 	    (* find if they're ranges to merge ahead *)
 	    let rec iter_cluster r cluster =
-	      if debug_all then
-		lprintf_nl "[%Ld-%Ld] " r.range_begin r.range_end;
 	      let cluster = { cluster with
 		cluster_ranges = r :: cluster.cluster_ranges;
 		cluster_size = cluster.cluster_size ++ 
-		  (r.range_end -- r.range_begin)
+		  (compute_range_size r)
 	      } in
 	      if not allow_merge_ranges ||
 		cluster.cluster_size >= range_size then cluster 
@@ -2409,7 +2473,7 @@ let find_range up range_size =
 		cluster_nuploading = r.range_nuploading } in
 	    if debug_all then
 	      lprint_newline ();
-	    if acc.cluster_ranges = [] then cluster
+	    if is_dummy_cluster acc then cluster
 	    else
 	      (* find a range with as few uploaders as possible *)
 	      let cmp = compare acc.cluster_nuploading
@@ -2419,7 +2483,7 @@ let find_range up range_size =
 
 	(* fast exit, and why I didn't use an iterator :/ 
 	   Could have used an exception, but I don't like that ;) *)
-	if best_cluster.cluster_ranges <> [] &&
+	if not (is_dummy_cluster best_cluster) &&
 	  best_cluster.cluster_nuploading = 0 then best_cluster
 	else
 	  match r.range_next with
@@ -2427,6 +2491,28 @@ let find_range up range_size =
 	  | Some rr -> iter best_cluster rr in
 
       let best_cluster = iter dummy_ranges_cluster b.block_ranges in
+      if not (is_dummy_cluster best_cluster) &&
+	best_cluster.cluster_nuploading > 0 then begin
+	(* it seems they're only sucky choices left on that block, is
+	   there really nothing else better elsewhere ? *)
+	let s = b.block_s in
+	let current_block = b.block_num in
+	for i = 0 to up.up_ncomplete - 1 do
+	  let block = up.up_complete_blocks.(i) in
+	  if block <> current_block then
+	    if should_download_block s block then (* priority bitmap <> 0 here ? *)
+	      let partial_found = match s.s_blocks.(block) with
+		| EmptyBlock -> true
+		| CompleteBlock | VerifiedBlock -> false
+		| PartialBlock b -> b.block_unselected_remaining > 0L in
+	      if partial_found then begin
+		if debug_all || !verbose then
+		  lprintf_nl "find_range: Client %d better switch block now!" 
+		    (client_num up.up_client);
+		raise Not_found
+	      end
+	done
+      end;
       match List.rev best_cluster.cluster_ranges with
       | [] -> 
 	  if debug_all then
@@ -2438,14 +2524,24 @@ let find_range up range_size =
 	  split_range r (min (r.range_begin ++ range_size)
 	   up.up_block_end);
 	  if debug_all then begin
-	    lprintf "=> [%Ld-%Ld], left:" r.range_begin r.range_end;
-	    iter_block_ranges (fun r ->
-	      lprintf " [%Ld-%Ld]" r.range_begin r.range_end
+	    lprintf "=> ";
+	    iter_block_ranges (fun rr ->
+	      let selected = if rr == r then "*" else "" in
+	      lprintf " %s[%Ld-%Ld]:%d%s" selected 
+		rr.range_begin rr.range_end rr.range_nuploading
+		selected
 	    ) b;
 	    lprint_newline ();
 	  end;
 	  let key = r.range_begin, r.range_end, r in
 	  up.up_ranges <- up.up_ranges @ [key];
+	  if r.range_nuploading = 0 then begin
+	    let b = r.range_block in
+	    b.block_unselected_remaining <-
+	      b.block_unselected_remaining -- (compute_range_size r);
+	    if b.block_unselected_remaining < 0L then
+	      lprintf_nl "find_range: block_unselected_remaining is negative!";
+	  end;
 	  r.range_nuploading <- r.range_nuploading + 1;
 	  key
 
@@ -2462,13 +2558,16 @@ let received up file_begin str string_begin string_len =
   assert (string_len >= 0);
   assert (string_begin + string_len <= String.length str);
 
-(*
-  let debug_bad_write r string_pos =
+  let t = up.up_t in
+  let s = t.t_s in
+
+  let debug_bad_write unexpected_intervals =
     if !verbose then begin
-      let t = up.up_t in
-      let s = t.t_s in
-      lprintf_nl "BAD WRITE in %s for range %Ld-%Ld (string_pos %d)"
-        (file_best_name t.t_file) r.range_begin r.range_end string_pos;
+      lprintf "BAD WRITE of %d in %s:" 
+	(client_num up.up_client) (file_best_name t.t_file);
+      List.iter (fun (i_begin, i_end) -> 
+	lprintf " %Ld-%Ld" i_begin i_end) unexpected_intervals;
+      lprint_newline ();
       lprintf_nl "  received: file_pos:%Ld string:%d %d"
         file_begin string_begin string_len;
       lprintf_nl "  ranges:";
@@ -2499,21 +2598,44 @@ let received up file_begin str string_begin string_len =
         let br = b.block_ranges in
         lprintf " first range: %Ld(%Ld)"
           br.range_begin
-          (br.range_end -- br.range_begin);
+          (compute_range_size br);
         lprint_newline ();
       ) up.up_ranges
     end;
-  if !exit_on_error then exit 2 in *)
+  if !exit_on_error then exit 2 in
 
   if string_len > 0 then
     let file_end = file_begin ++ (Int64.of_int string_len) in
-
     if !verbose_swarming then
       lprintf_nl "received on %Ld-%Ld" file_begin file_end;
 
-(* TODO: check that everything we received has been required *)
-    let t = up.up_t in
-    let s = t.t_s in
+    (* DEBUG *)
+    let intervals_out = 
+      let remove_interval intervals interval_begin interval_end =
+	let rec remove acc intervals =
+	  match intervals with 
+	  | [] -> List.rev acc
+	  | ((fi_begin, fi_end) as first_interval) :: others ->
+	      if fi_begin >= interval_end then
+		List.rev_append acc intervals 
+	      else if fi_end <= interval_begin then
+		remove (first_interval :: acc) others
+	      else 
+		remove (
+		  let acc = if fi_begin < interval_begin then
+		    (fi_begin, interval_begin) :: acc else acc in
+		  let acc = if fi_end > interval_end then
+		    (interval_end, fi_end) :: acc else acc in
+		  acc) others in
+	remove [] intervals in
+      List.fold_left (fun acc (_, _, r) ->
+	remove_interval acc r.range_begin r.range_end
+      ) [(file_begin, file_end)] up.up_ranges in
+    if intervals_out <> [] then
+      debug_bad_write intervals_out;
+    
+    let file_end = min file_end s.s_size in
+
     match file_state t.t_file with
     | FilePaused
     | FileAborted _
@@ -2536,12 +2658,6 @@ let received up file_begin str string_begin string_len =
                 let string_pos = string_begin +
                   Int64.to_int (r.range_begin -- file_begin) in
                 let string_length = Int64.to_int written_len in
-		(* None of those conditions can happen anymore *)
-(*                if string_pos < 0 || 
-                  string_pos < string_begin || 
-                  string_len < string_length then 
-		    debug_bad_write r string_pos
-		  else *)
                   if string_length > 0 then
 		    match s.s_networks with
                     | [] -> assert false
@@ -2554,6 +2670,8 @@ let received up file_begin str string_begin string_len =
 	  ) up.up_ranges;
 	  remove_completed_uploader_ranges up
 	with e ->
+	  lprintf_nl "Exception %s while receiving data"
+	    (Printexc2.to_string e);
 	  remove_completed_uploader_ranges up;
           raise e
 
