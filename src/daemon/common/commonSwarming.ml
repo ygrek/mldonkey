@@ -87,6 +87,73 @@ open CommonFile
 open CommonTypes
 open CommonClient
 
+module VerificationBitmap : (sig
+  type t
+  type part_state = 
+    State_missing | State_partial | State_complete | State_verified
+
+  val create : int -> part_state -> t
+  val get : t -> int -> part_state
+  val set : t -> int -> part_state -> unit
+  val length : t -> int
+
+  val iter : (int -> part_state -> unit) -> t -> unit
+  val existsi : (int -> part_state -> bool) -> t -> bool
+  val for_all : (part_state -> bool) -> t -> bool
+
+  val to_string : t -> string
+  val of_string : string -> t
+  val state_to_char : part_state -> char
+end) 
+  = (struct
+    type t = string
+    type part_state = 
+      State_missing | State_partial | State_complete | State_verified
+
+    let state_to_char = function
+      | State_missing -> '0'
+      | State_partial -> '1'
+      | State_complete -> '2'
+      | State_verified -> '3'
+
+    let char_to_state = function
+      | '0' -> State_missing
+      | '1' -> State_partial
+      | '2' -> State_complete
+      | '3' -> State_verified 
+      | _ -> assert false
+
+    let create n c = String.make n (state_to_char c)
+    let get x i = (char_to_state x.[i])
+    let set x i c = x.[i] <- state_to_char c
+    let length = String.length
+
+    let to_string x = x
+    let of_string x = x
+
+    let iter f x = 
+      let l = String.length x in
+      let rec aux i =
+	if i < l then begin
+	  f i (char_to_state x.[i]);
+	  aux (i+1)
+	end in
+      aux 0
+
+    let existsi p x = 
+      let l = String.length x in
+      let rec aux i =
+	i < l && (p i (char_to_state x.[i]) || aux (i+1)) in
+      aux 0
+
+    let for_all p s =
+      let l = String.length s in
+      let rec aux i =
+        i >= l || p (char_to_state s.[i]) && aux (i+1) in
+      aux 0
+  end)
+
+module VB = VerificationBitmap
 
 (* If we want to become 'multinet', we should:
 * there shouldn't be any block_size, instead blocks should correspond
@@ -124,7 +191,7 @@ type t = {
     t_chunk_size : int64;
 
     t_nchunks : int;
-    mutable t_converted_verified_bitmap : string;
+    mutable t_converted_verified_bitmap : VerificationBitmap.t;
     mutable t_last_seen : int array;
     mutable t_ncomplete_chunks : int;
     mutable t_nverified_chunks : int;
@@ -153,7 +220,7 @@ and swarmer = {
 				     t.t_s = s <=> t in s.s_networks *)
     mutable s_strategy : strategy;
 
-    mutable s_verified_bitmap : string;
+    mutable s_verified_bitmap : VerificationBitmap.t;
     mutable s_availability : int array;
     mutable s_nuploading : int array;
 (*    mutable s_last_seen : int array; *)
@@ -267,19 +334,19 @@ and uploader = {
 *)
 
 (* swarmer invariants ?
-   s.s_verified_bitmap.[i] = 0 <=> s_blocks.[i] = EmptyBlock
-   s.s_verified_bitmap.[i] = 1 <=> s_blocks.[i] = PartialBlock _
-   s.s_verified_bitmap.[i] = 2 <=> s_blocks.[i] = CompletedBlock
-   s.s_verified_bitmap.[i] = 3 <=> s_blocks.[i] = VerifiedBlock
+   s.s_verified_bitmap.[i] = State_missing <=> s_blocks.[i] = EmptyBlock
+   s.s_verified_bitmap.[i] = State_partial <=> s_blocks.[i] = PartialBlock _
+   s.s_verified_bitmap.[i] = State_complete <=> s_blocks.[i] = CompletedBlock
+   s.s_verified_bitmap.[i] = State_verified <=> s_blocks.[i] = VerifiedBlock
    If so, why not drop s_verified_bitmap, and replace it by some
    verified_bitmap s i and verified_bitmap_all s functions ?
 *)
 
 (* frontend invariants ?
    t_ncomplete_chunks = 
-   List.length (List.filter (fun x -> x >= '2') t_converted_verified_bitmap)
+   List.length (List.filter (fun x -> x >= State_complete) t_converted_verified_bitmap)
    t_nverified_chunks = 
-   List.length (List.filter (fun x -> x = '3') t_converted_verified_bitmap)
+   List.length (List.filter (fun x -> x = State_verified) t_converted_verified_bitmap)
 
    hence t_ncomplete_chunks >= t_nverified_chunks
 
@@ -368,8 +435,8 @@ let string_for_all p s =
 
 let compute_last_seen t =
   let last_seen_total = ref (BasicSocket.last_time ()) in
-  string_iter (fun i c -> 
-    if c > '2' then
+  VB.iter (fun i c -> 
+    if c = VB.State_verified then
       t.t_last_seen.(i) <- BasicSocket.last_time ()
     else
       last_seen_total := min !last_seen_total t.t_last_seen.(i)
@@ -588,7 +655,7 @@ let dummy_swarmer = {
     s_size = zero;
     s_networks = [];
     s_strategy = AdvancedStrategy;
-    s_verified_bitmap = "";
+    s_verified_bitmap = VB.create 0 VB.State_missing;
     s_blocks = [||];
     s_block_pos = [||];
     s_availability = [||];
@@ -619,7 +686,7 @@ let create_swarmer file_name file_size =
 
       s_strategy = AdvancedStrategy;
 
-      s_verified_bitmap = String.make nblocks '0';
+      s_verified_bitmap = VB.create nblocks VB.State_missing;
       s_blocks = Array.create nblocks EmptyBlock ;
       s_block_pos = Array.create nblocks zero;
       s_availability = Array.create nblocks 0;
@@ -659,7 +726,7 @@ let split_blocks s chunk_size =
         let new_blocks = (
             s.s_blocks.(index_s),
             block_begin,
-            s.s_verified_bitmap.[index_s]
+	    VB.get s.s_verified_bitmap index_s
           ) :: new_blocks in
         iter (index_s+1) chunk_begin new_blocks
 
@@ -667,7 +734,7 @@ let split_blocks s chunk_size =
         let new_blocks =  (
             s.s_blocks.(index_s),
             block_begin,
-            s.s_verified_bitmap.[index_s]
+            VB.get s.s_verified_bitmap index_s
           ) :: new_blocks in
         iter (index_s+1) chunk_end new_blocks
 
@@ -682,7 +749,7 @@ let split_blocks s chunk_size =
             let new_blocks =  (
                 s.s_blocks.(index_s),
                 block_begin,
-                s.s_verified_bitmap.[index_s]
+                VB.get s.s_verified_bitmap index_s
               ) :: new_blocks in
             iter index_s chunk_end new_blocks
 
@@ -707,29 +774,29 @@ let split_blocks s chunk_size =
 		(
 		  CompleteBlock,
 		  block_begin,
-		  '2'
+		  VB.State_complete
 		) else if block_is_empty b1 then
 (* lprintf "Partial block b1 should become EmptyBlock\n"; *)
                   (
                     EmptyBlock,
                     block_begin,
-                    '0'
+                    VB.State_missing
                   ) else (
                     PartialBlock b1,
                     block_begin,
-                    s.s_verified_bitmap.[index_s]
+                    VB.get s.s_verified_bitmap index_s
                   ))
               :: new_blocks in
 
 	    if block_is_full b2 then begin
 	      (* lprintf "Partial block b2 should become CompleteBlock\n"; *)
 	      s.s_blocks.(index_s) <- CompleteBlock;
-	      s.s_verified_bitmap.[index_s] <- '2'
+	      VB.set s.s_verified_bitmap index_s VB.State_complete
 	    end
             else if block_is_empty b2 then begin
 	      (* lprintf "Partial block b2 should become EmptyBlock\n"; *)
               s.s_blocks.(index_s) <- EmptyBlock;
-              s.s_verified_bitmap.[index_s] <- '0';
+              VB.set s.s_verified_bitmap index_s VB.State_missing;
             end 
 	    else
               s.s_blocks.(index_s) <- PartialBlock b2;
@@ -753,7 +820,7 @@ let split_blocks s chunk_size =
     lprintf_nl "WARNING: splitting a swarmer beging uploaded to";
 
   s.s_blocks <- Array.create nblocks EmptyBlock;
-  s.s_verified_bitmap <- String.make nblocks '0';
+  s.s_verified_bitmap <- VB.create nblocks VB.State_missing;
   s.s_block_pos <- Array.create nblocks zero;
   s.s_availability <- Array.create nblocks 0; (* not preserved ? *)
   s.s_nuploading <- Array.create nblocks 0; (* not preserved ? *)
@@ -783,7 +850,7 @@ let split_blocks s chunk_size =
           | EmptyBlock | CompleteBlock | VerifiedBlock -> ()
         end;
         s.s_blocks.(i) <- b;
-        s.s_verified_bitmap.[i] <- c;
+        VB.set s.s_verified_bitmap i c;
         s.s_block_pos.(i) <- pos;
 
         iter (i+1) tail
@@ -804,7 +871,7 @@ let associate is_primary t s =
   end;
 
   t.t_s <- s;
-  t.t_converted_verified_bitmap <- String.make t.t_nchunks '0';
+  t.t_converted_verified_bitmap <- VB.create t.t_nchunks VB.State_missing;
   t.t_last_seen <- Array.create t.t_nchunks 0;
   t.t_chunk_of_block <- [||];
   t.t_blocks_of_chunk <- Array.create t.t_nchunks [];
@@ -836,7 +903,7 @@ the t_chunk_of_block and t_blocks_of_chunk fields. *)
   let nblocks = Array.length s.s_blocks in
   (* For all networks, adjust the chunks and mappings *)
   List.iter (fun t ->
-      let nchunks = String.length t.t_converted_verified_bitmap in
+      let nchunks = VB.length t.t_converted_verified_bitmap in
       t.t_chunk_of_block <- Array.create nblocks 0;
       t.t_blocks_of_chunk <- Array.create nchunks [];
 
@@ -884,7 +951,7 @@ let create ss file chunk_size =
       t_ncomplete_chunks = 0;
       t_nverified_chunks = 0;
 
-      t_converted_verified_bitmap = String.make nchunks '0';
+      t_converted_verified_bitmap = VB.create nchunks VB.State_missing;
       t_last_seen = Array.create nchunks 0;
 
       t_verifier = NoVerification;
@@ -923,7 +990,7 @@ let check_finished t =
   | FilePaused -> 
       false
   | FileDownloading ->
-      if string_existsi (fun i c -> c <> '3')
+      if VB.existsi (fun i c -> c <> VB.State_verified)
 	t.t_converted_verified_bitmap then false
       else begin
         if file_size file <> file_downloaded t.t_file then
@@ -948,10 +1015,14 @@ let print_s str s =
       let block_begin = compute_block_begin s i in
       let block_end = compute_block_end s i in
       lprintf "%Ld - %Ld [%Ld] %c " block_begin block_end
-        (block_end -- block_begin) s.s_verified_bitmap.[i];
+        (block_end -- block_begin) 
+	(VB.state_to_char 
+	  (VB.get s.s_verified_bitmap i));
       List.iter (fun t ->
           let j = t.t_chunk_of_block.(i) in
-          lprintf "(b %d %c [" j t.t_converted_verified_bitmap.[j];
+          lprintf "(b %d %c [" j 
+	    (VB.state_to_char 
+	      (VB.get t.t_converted_verified_bitmap j));
           List.iter (fun ii -> lprintf "%d " ii) t.t_blocks_of_chunk.(j);
           lprintf "]";
       ) s.s_networks;
@@ -971,7 +1042,7 @@ let print_s str s =
     lprintf_nl "  File num: %d" (file_num t.t_file);
     lprintf_nl "  %s" (if t.t_primary then "primary" else "secondary");
     lprintf_nl "  Downloaded: %Ld" (file_downloaded t.t_file);
-    lprintf_nl "  Bitmap: %s" t.t_converted_verified_bitmap
+    lprintf_nl "  Bitmap: %s" (VB.to_string t.t_converted_verified_bitmap)
   ) s.s_networks
 
 (** iter function f over all the ranges of a block *)
@@ -1042,89 +1113,94 @@ let close_block_ranges maybe_t s b =
 (*************************************************************************)
 
 (* For every swarmer, there is a "primary" verifier, and secondary
-   verifiers.  When a block is downloaded, it is tagged '2' in the
-   verified_bitmap, and this '2' is propagated to the primary bitmap if
-   possible (if all sub-blocks are also '2'). If the primary chunk
-   becomes '2', then a verification is needed on the primary. If the
-   verification works, the verified_bitmap becomes '3', and the secondary
-   verifiers are tagged with '2' (if they use a different verification
-   scheme) or '3' (if no verification scheme or a verification scheme
+   verifiers.  When a block is downloaded, it is tagged State_complete in the
+   verified_bitmap, and this State_complete is propagated to the primary bitmap if
+   possible (if all sub-blocks are also State_complete). If the primary chunk
+   becomes State_complete, then a verification is needed on the primary. If the
+   verification works, the verified_bitmap becomes State_verified, and the secondary
+   verifiers are tagged with State_complete (if they use a different verification
+   scheme) or State_verified (if no verification scheme or a verification scheme
    that has already been used). *)
 
 (* corruption has been detected, and the block has been reset to 0 *)
-let set_swarmer_bitmap_0 s i =
-  (* shouldn't it be > '0' ? *)
-  if s.s_verified_bitmap.[i] > '1' then begin
-      s.s_verified_bitmap.[i] <- '0';
+let set_swarmer_state_missing s i =
+  (* shouldn't it be > VB.State_missing ? *)
+  let current_state = VB.get s.s_verified_bitmap i in
+  if (match current_state with
+      | VB.State_missing | VB.State_partial -> false
+      | VB.State_complete | VB.State_verified -> true) then begin
+      VB.set s.s_verified_bitmap i VB.State_missing;
       List.iter (fun t ->
           let j = t.t_chunk_of_block.(i) in
-	  match t.t_converted_verified_bitmap.[j] with
-	  | '0' -> ()
-	  | '1' ->
-	      if List.for_all (fun i -> s.s_verified_bitmap.[i] = '0')
+	  match VB.get t.t_converted_verified_bitmap j with
+	  | VB.State_missing -> ()
+	  | VB.State_partial ->
+	      if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_missing)
 		t.t_blocks_of_chunk.(j) then
-		  t.t_converted_verified_bitmap.[j] <- '0'
-	  | '2' -> lprintf_nl "set_swarmer_bitmap_0: invalidating a block within a completed chunk?"
-	  | '3' -> lprintf_nl "set_swarmer_bitmap_0: invalidating a block within a verified chunk?"
-	  | _ -> assert false
+		  VB.set t.t_converted_verified_bitmap j VB.State_missing
+	  | VB.State_complete -> 
+	      lprintf_nl "set_swarmer_state_missing: invalidating a block within a completed chunk?"
+	  | VB.State_verified -> 
+	      lprintf_nl "set_swarmer_state_missing: invalidating a block within a verified chunk?"
       ) s.s_networks
     end
 
 (* we have started downloading this block, so mark all containing blocks
   also as started. *)
-let set_swarmer_bitmap_1 s i =
-  match s.s_verified_bitmap.[i] with
-  | '0' ->
-      s.s_verified_bitmap.[i] <- '1';
+let set_swarmer_state_partial s i =
+  match VB.get s.s_verified_bitmap i with
+  | VB.State_missing ->
+      VB.set s.s_verified_bitmap i VB.State_partial;
       List.iter (fun t ->
         let j = t.t_chunk_of_block.(i) in
-        match t.t_converted_verified_bitmap.[j] with
-	| '0' -> t.t_converted_verified_bitmap.[j] <- '1'
-	| '1' -> ()
-	| '2' -> lprintf_nl "set_bitmap1: partial block within a completed chunk?"
-	| '3' -> lprintf_nl "set_bitmap1: partial block within a verified chunk?"
-	| _ -> assert false
+        match VB.get t.t_converted_verified_bitmap j with
+	| VB.State_missing -> 
+	    VB.set t.t_converted_verified_bitmap j VB.State_partial
+	| VB.State_partial -> ()
+	| VB.State_complete -> 
+	    lprintf_nl "set_bitmap1: partial block within a completed chunk?"
+	| VB.State_verified -> 
+	    lprintf_nl "set_bitmap1: partial block within a verified chunk?"
       ) s.s_networks
-  | '1' -> ()
-  | '2' -> lprintf_nl "set_swarmer_bitmap_1: trying to demote a completed block?"
-  | '3' -> lprintf_nl "set_swarmer_bitmap_1: trying to demote a verified block?"
-  | _ -> assert false
+  | VB.State_partial -> ()
+  | VB.State_complete -> 
+      lprintf_nl "set_swarmer_state_partial: trying to demote a completed block?"
+  | VB.State_verified -> 
+      lprintf_nl "set_swarmer_state_partial: trying to demote a verified block?"
 	
 
 (* we finished this block, trying to escalate to primary frontend
    verification bitmap *)
-let set_swarmer_bitmap_2 s i =
-  match s.s_verified_bitmap.[i] with
-  | '0' | '1' ->
-      (s.s_verified_bitmap.[i] <- '2';
+let set_swarmer_state_complete s i =
+  match VB.get s.s_verified_bitmap i with
+  | VB.State_missing | VB.State_partial ->
+      (VB.set s.s_verified_bitmap i VB.State_complete;
       match s.s_networks with
       | t :: _ ->
 	  assert (t.t_primary);
           let j = t.t_chunk_of_block.(i) in
-	  (match t.t_converted_verified_bitmap.[j] with
-	  | '0' | '1' -> 
-	      if List.for_all (fun i -> s.s_verified_bitmap.[i] = '2')
+	  (match VB.get t.t_converted_verified_bitmap j with
+	  | VB.State_missing | VB.State_partial -> 
+	      if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_complete)
 		t.t_blocks_of_chunk.(j) then begin
 		  t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1;
-		  t.t_converted_verified_bitmap.[j] <- '2'
+		  VB.set t.t_converted_verified_bitmap j VB.State_complete
 		end
-	  | '2' -> ()
-	  | '3' -> 
-	      (* lprintf_nl "set_swarmer_bitmap_2: trying to demote a verified block? (1)" *)
-	      ()
-	  | _ -> assert false)
+	  | VB.State_complete -> ()
+	  | VB.State_verified -> 
+	      (* lprintf_nl "set_swarmer_state_complete: trying to demote a verified block? (1)" *)
+	      ())
       | [] -> assert false)
-  | '2' -> ()
-  | '3' -> lprintf_nl "set_swarmer_bitmap_2: trying to demote a verified block? (2)"
-  | _ -> assert false
+  | VB.State_complete -> ()
+  | VB.State_verified -> lprintf_nl "set_swarmer_state_complete: trying to demote a verified block? (2)"
 
 (* the primary verifier has worked, so let ask secondary ones for
    verification too *)
-let set_swarmer_bitmap_3 s i =
-  match s.s_verified_bitmap.[i] with
-  | '0' | '1' | '2' ->
-      (s.s_verified_bitmap.[i] <- '3';
-(*      lprintf "set_swarmer_bitmap_3 %d done\n" i; *)
+let set_swarmer_state_verified s i =
+  match VB.get s.s_verified_bitmap i with
+  | VB.State_missing | VB.State_partial | VB.State_complete ->
+      (VB.set s.s_verified_bitmap i VB.State_verified;
+(*      lprintf "set_swarmer_state_verified %d done\n" i; *)
       match s.s_networks with
       | [] -> assert false
       | tprim :: secondaries ->
@@ -1136,44 +1212,42 @@ let set_swarmer_bitmap_3 s i =
 	  | NoVerification | VerificationNotAvailable -> ()
 	  | Verification _ | ForceVerification ->
 	      let jprim = tprim.t_chunk_of_block.(i) in
-	      assert (tprim.t_converted_verified_bitmap.[jprim] = '3');
+	      assert (VB.get tprim.t_converted_verified_bitmap jprim = VB.State_verified);
 	      List.iter (fun t ->
 		assert (not t.t_primary);
 		let j = t.t_chunk_of_block.(i) in
-		if List.for_all (fun i -> s.s_verified_bitmap.[i] = '3')
+		if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_verified)
                   t.t_blocks_of_chunk.(j) then
 		    match t.t_verifier with
 		    | NoVerification | VerificationNotAvailable ->
 			(* we have no way to check data integrity
 			   for this network, assume other(s) know
 			   better *)
-			(match t.t_converted_verified_bitmap.[j] with
-			 | '0' | '1' ->
-			     t.t_converted_verified_bitmap.[j] <- '3';
+			(match VB.get t.t_converted_verified_bitmap j with
+			 | VB.State_missing | VB.State_partial ->
+			     VB.set t.t_converted_verified_bitmap j VB.State_verified;
 			     t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1;
 			     t.t_nverified_chunks <- t.t_nverified_chunks + 1
-			 | '2' ->
-			     t.t_converted_verified_bitmap.[j] <- '3';
+			 | VB.State_complete ->
+			     VB.set t.t_converted_verified_bitmap j VB.State_verified;
 			     t.t_nverified_chunks <- t.t_nverified_chunks + 1
-			 | '3' -> ()
-			 | _ -> assert false)
+			 | VB.State_verified -> ())
 		    | ForceVerification
 		    | Verification _ ->
 			(* all chunks are verified, so set
-			   converted_verified_bitmap to '2',
+			   converted_verified_bitmap to State_complete,
 			   probably to trigger data verification later.
 			   
 			   Is that code necessary at all ? *)
-			(match t.t_converted_verified_bitmap.[j] with
-			 | '0' | '1' ->
-			     t.t_converted_verified_bitmap.[j] <- '2';
+			(match VB.get t.t_converted_verified_bitmap j with
+			 | VB.State_missing | VB.State_partial ->
+			     VB.set t.t_converted_verified_bitmap j VB.State_complete;
 			     t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1
-			 | '2' -> ()
-			 | '3' -> lprintf_nl "set_swarmer_bitmap_3: trying to demote a verified block in another frontend?"
-			 | _ -> assert false)
+			 | VB.State_complete -> ()
+			 | VB.State_verified -> 
+			     lprintf_nl "set_swarmer_state_verified: trying to demote a verified block in another frontend?")
 	      ) secondaries)
-  | '3' -> ()
-  | _ -> assert false
+  | VB.State_verified -> ()
 
 (** set block as completed, closing all remaining ranges, and
     incrementing amount downloaded by their total size.
@@ -1181,7 +1255,7 @@ let set_swarmer_bitmap_3 s i =
 
 let set_completed_block maybe_t s i =
   let mark_completed () =
-    set_swarmer_bitmap_2 s i;
+    set_swarmer_state_complete s i;
     s.s_blocks.(i) <- CompleteBlock in
   match s.s_blocks.(i) with
   | CompleteBlock | VerifiedBlock -> ()
@@ -1207,7 +1281,7 @@ let set_verified_block s j =
   | _ ->
       set_completed_block None s j;
       s.s_blocks.(j) <- VerifiedBlock;
-      set_swarmer_bitmap_3 s j
+      set_swarmer_state_verified s j
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1219,20 +1293,20 @@ let set_verified_block s j =
    verifications, now let's see the reverse *)
 	
 let set_frontend_bitmap_0 t j =
-  assert(t.t_converted_verified_bitmap.[j] = '2');
+  assert(VB.get t.t_converted_verified_bitmap j = VB.State_complete);
   let s = t.t_s in
-  assert(List.for_all (fun i -> s.s_verified_bitmap.[i] <> '3') t.t_blocks_of_chunk.(j));
+  assert(List.for_all (fun i -> VB.get s.s_verified_bitmap i <> VB.State_verified) t.t_blocks_of_chunk.(j));
   t.t_ncomplete_chunks <- t.t_ncomplete_chunks - 1;
-  if List.for_all (fun i -> s.s_verified_bitmap.[i] = '2') t.t_blocks_of_chunk.(j) then begin
+  if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_complete) t.t_blocks_of_chunk.(j) then begin
       if !verbose_swarming || !verbose then
         lprintf_nl "Complete block %d/%d of %s failed verification, reloading..."
           (j + 1) t.t_nchunks (file_best_name t.t_file);
       
-      t.t_converted_verified_bitmap.[j] <- '0';
+      VB.set t.t_converted_verified_bitmap j VB.State_missing;
       List.iter (fun i ->
         match s.s_blocks.(i) with
-	| EmptyBlock -> set_swarmer_bitmap_0 s i
-        | PartialBlock _ ->  set_swarmer_bitmap_1 s i
+	| EmptyBlock -> set_swarmer_state_missing s i
+        | PartialBlock _ ->  set_swarmer_state_partial s i
         | CompleteBlock ->
             let block_begin = compute_block_begin s i in
             let block_end = compute_block_end s i in
@@ -1240,7 +1314,7 @@ let set_frontend_bitmap_0 t j =
             add_file_downloaded None s (block_begin -- block_end);
 	      
             s.s_blocks.(i) <- EmptyBlock;
-            set_swarmer_bitmap_0 s i
+            set_swarmer_state_missing s i
 	      
         | VerifiedBlock -> assert false
       ) t.t_blocks_of_chunk.(j)
@@ -1251,31 +1325,30 @@ let set_frontend_bitmap_0 t j =
       let nsub = ref 0 in
       lprintf_n "  Swarmer was incomplete: ";
       List.iter (fun i ->
-        lprintf "%c" s.s_verified_bitmap.[i];
-        if s.s_verified_bitmap.[i] = '2' then incr nsub;
+        lprintf "%c" (VB.state_to_char (VB.get s.s_verified_bitmap i));
+        if VB.get s.s_verified_bitmap i = VB.State_complete then incr nsub;
       ) t.t_blocks_of_chunk.(j);
       lprintf_nl "   = %d/%d" !nsub (List.length t.t_blocks_of_chunk.(j))
     end;
-    t.t_converted_verified_bitmap.[j] <- '1'
+    VB.set t.t_converted_verified_bitmap j VB.State_partial
   end
 
 (* aka set_completed_chunk (internal) *)
 let set_frontend_bitmap_2 t j =
-  match t.t_converted_verified_bitmap.[j] with
-  | '0' | '1' ->
+  match VB.get t.t_converted_verified_bitmap j with
+  | VB.State_missing | VB.State_partial ->
       if !verbose_swarming || !verbose then
 	lprintf_nl "Completed block %d/%d of %s"
           (j + 1) t.t_nchunks (file_best_name t.t_file);
       let s = t.t_s in
       List.iter (fun i -> set_completed_block None s i)
 	t.t_blocks_of_chunk.(j)
-  | '2' | '3' -> ()
-  | _ -> assert false
+  | VB.State_complete | VB.State_verified -> ()
 
 (* aka set_verified_chunk (internal) *)
 let set_frontend_bitmap_3 t j =
   let mark_verified () =
-    t.t_converted_verified_bitmap.[j] <- '3';
+    VB.set t.t_converted_verified_bitmap j VB.State_verified;
     if !verbose_swarming || !verbose then
       lprintf_nl "Verified block %d/%d of %s"
         (j + 1) t.t_nchunks (file_best_name t.t_file);
@@ -1288,32 +1361,31 @@ let set_frontend_bitmap_3 t j =
     end;
     t.t_verified t.t_nverified_chunks j in
     if j = 0 && !Autoconf.magic_works then check_magic t.t_file;
-  match t.t_converted_verified_bitmap.[j] with
-  | '0' | '1' ->
+  match VB.get t.t_converted_verified_bitmap j with
+  | VB.State_missing | VB.State_partial ->
       t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1;
       t.t_nverified_chunks <- t.t_nverified_chunks + 1;
-      mark_verified ();
-  | '2' ->
+      mark_verified ()
+  | VB.State_complete ->
       t.t_nverified_chunks <- t.t_nverified_chunks + 1;
-      mark_verified ();
-  | '3' -> ()
-  | _ -> assert false
+      mark_verified ()
+  | VB.State_verified -> ()
 
 let set_chunks_verified_bitmap t bitmap =
-  string_iter (fun j c ->
+  VB.iter (fun j c ->
     match c with
-    | '0' | '1' -> 
+    | VB.State_missing | VB.State_partial -> 
 	()
-    | '2' ->
+    | VB.State_complete ->
 	set_frontend_bitmap_2 t j
-    | '3' ->
+    | VB.State_verified ->
 	set_frontend_bitmap_3 t j;
-        if t.t_converted_verified_bitmap.[j] <> '3' then
+        if VB.get t.t_converted_verified_bitmap j <> VB.State_verified then
           lprintf_nl "FIELD AS BEEN CLEARED"
-    | _ -> assert false
   ) bitmap
 
-let chunks_verified_bitmap t = t.t_converted_verified_bitmap
+let chunks_verified_bitmap t = 
+    VB.to_string t.t_converted_verified_bitmap
 
 (** Check the equality of the hash of [t]'s data between offsets
     [begin_pos] and [end_pos] against the value of [uid] *)
@@ -1328,8 +1400,8 @@ let verify_chunk t j =
   let verify t uid begin_pos end_pos =
     file_verify t.t_file uid begin_pos end_pos in
 
-  if t.t_converted_verified_bitmap.[j] = '2' then
-    let nchunks = String.length t.t_converted_verified_bitmap in
+  if VB.get t.t_converted_verified_bitmap j = VB.State_complete then
+    let nchunks = VB.length t.t_converted_verified_bitmap in
     match t.t_verifier with
     | NoVerification
     | VerificationNotAvailable -> ()
@@ -1355,16 +1427,18 @@ let verify_chunk t j =
         assert (Array.length chunks = 1);
 (*        let nchunks = String.length t.t_converted_verified_bitmap in *)
 
-	if string_for_all (fun x -> x >= '2') t.t_converted_verified_bitmap then
+	if VB.for_all (function
+	  | VB.State_missing | VB.State_partial -> false
+	  | VB.State_complete | VB.State_verified -> true) t.t_converted_verified_bitmap then
           try
             let s = t.t_s in
             if verify t chunks.(0) zero s.s_size then
-	      string_iter (fun j _ ->
+	      VB.iter (fun j _ ->
 		set_frontend_bitmap_3 t j
 	      ) t.t_converted_verified_bitmap
 	    else
-	      string_iter (fun j c ->
-		if c = '2' then set_frontend_bitmap_0 t j
+	      VB.iter (fun j c ->
+		if c = VB.State_complete then set_frontend_bitmap_0 t j
 	      ) t.t_converted_verified_bitmap
           with VerifierNotReady -> ()
 
@@ -1372,27 +1446,27 @@ let verify_chunk t j =
 (** mark a block as completed, ready for verification *)
 
 let must_verify_block s i =
-  set_swarmer_bitmap_2 s i
+  set_swarmer_state_complete s i
 
 (** mark all blocks as completed, ready for verification *)
 
 let verify_all_chunks t =
   let s = t.t_s in
-  string_iter (fun i _ -> must_verify_block s i) s.s_verified_bitmap
+  VB.iter (fun i _ -> must_verify_block s i) s.s_verified_bitmap
 
 (** same, and synchronously calls the verification of all chunks *)
 
 let verify_all_chunks_immediately t =
   verify_all_chunks t;
-  string_iter (fun i _ -> verify_chunk t i) t.t_converted_verified_bitmap
+  VB.iter (fun i _ -> verify_chunk t i) t.t_converted_verified_bitmap
     
 
 (** synchronously verify all completed chunks not yet verified *)
 
 let compute_bitmap t =
   if t.t_ncomplete_chunks > t.t_nverified_chunks then 
-    string_iter (fun i c -> 
-      if c = '2' then verify_chunk t i) t.t_converted_verified_bitmap
+    VB.iter (fun i c -> 
+      if c = VB.State_complete then verify_chunk t i) t.t_converted_verified_bitmap
 
 
 (** Replaces the ith block of the swarmer with a PartialBlock
@@ -1426,9 +1500,9 @@ let new_block s i =
 (*  lprintf "New block %Ld-%Ld\n" block_begin block_end; *)
 
   s.s_blocks.(i) <- PartialBlock b;
-  if s.s_verified_bitmap.[i] < '1' then
-    set_swarmer_bitmap_1 s i;
-  if debug_all then lprintf_nl "NB[%s]" s.s_verified_bitmap;
+  if VB.get s.s_verified_bitmap i = VB.State_missing then
+    set_swarmer_state_partial s i;
+  if debug_all then lprintf_nl "NB[%s]" (VB.to_string s.s_verified_bitmap);
   b
 
 (** Remove an interval from the beginning of a range, adding the size
@@ -1588,9 +1662,9 @@ let set_absent s list_absent =
 let intervals_to_string s intervals =
   match intervals with
   | AvailableIntervals intervals ->
-      let st = String.make (Array.length s.s_blocks) '0' in
-      iter_intervals s (fun i _ _ _ _ -> st.[i] <- '1') intervals;
-      st
+      let st = VB.create (Array.length s.s_blocks) VB.State_missing in
+      iter_intervals s (fun i _ _ _ _ -> VB.set st i VB.State_partial) intervals;
+      VB.to_string st
   | AvailableBitv b -> Bitv.to_string b
 
 (*************************************************************************)
@@ -1905,21 +1979,22 @@ let linear_select_block up =
 let should_download_block s n =
 (*  lprintf "should_download_block %d\n" n; *)
   let result =
-    match s.s_verified_bitmap.[n] with
-    | '0' | '1' -> true
-    | '2' ->
+    match VB.get s.s_verified_bitmap n with
+    | VB.State_missing | VB.State_partial -> true
+    | VB.State_complete ->
         (match s.s_networks with
          | t :: _ ->
 	     assert(t.t_primary);
              (try
                let n = t.t_chunk_of_block.(n) in
-               if t.t_converted_verified_bitmap.[n] = '2' then
+               if VB.get t.t_converted_verified_bitmap n = VB.State_complete then
                  verify_chunk t n
              with VerifierNotReady -> ());
 	 | [] -> assert false);
-        s.s_verified_bitmap.[n] < '2'
-    | '3' -> false
-    | _ -> assert false
+        (match VB.get s.s_verified_bitmap n with
+         | VB.State_missing | VB.State_partial ->  true
+	 | VB.State_complete | VB.State_verified -> false)
+    | VB.State_verified -> false
   in
 (*  if result then
     lprintf "should_download_block %d\n" n; *)
@@ -2006,7 +2081,7 @@ let select_block up =
 	  Array.init my_t.t_nchunks (fun i ->
             lazy (
               List.fold_left (fun acc b ->
-		if s.s_verified_bitmap.[b] = '2' then acc + 1 else acc
+		if VB.get s.s_verified_bitmap b = VB.State_complete then acc + 1 else acc
               ) 0 my_t.t_blocks_of_chunk.(i))) in
 
 	let preview_beginning = 10000000L in
@@ -2587,7 +2662,7 @@ let received up file_begin str string_begin string_len =
         let b = r.range_block in
         lprintf_n "        block: %d[%c] %Ld-%Ld [%s]"
           b.block_num
-          s.s_verified_bitmap.[b.block_num]
+          (VB.state_to_char (VB.get s.s_verified_bitmap b.block_num))
           b.block_begin b.block_end
           (match s.s_blocks.(b.block_num) with
             | EmptyBlock -> "empty"
@@ -2738,7 +2813,7 @@ let duplicate_chunks () =
   let chunks = Hashtbl.create 100 in
   HS.iter (fun s ->
     List.iter (fun t ->
-      let nchunks = String.length t.t_converted_verified_bitmap in
+      let nchunks = VB.length t.t_converted_verified_bitmap in
       match t.t_verifier with
       | Verification uids when Array.length uids = nchunks ->
 	  let rec iter j len pos =
@@ -2754,18 +2829,17 @@ let duplicate_chunks () =
                   let occurrences = dummy_chunk_occurrences () in
                   Hashtbl.add chunks c occurrences;
                   occurrences in
-	      (match t.t_converted_verified_bitmap.[j] with
-	      | '0' | '1' ->
+	      (match VB.get t.t_converted_verified_bitmap j with
+	      | VB.State_missing | VB.State_partial ->
 		occurrences.occurrence_missing <- 
 		  (t, j, pos) :: occurrences.occurrence_missing
-	      | '2' -> ()
-	      | '3' ->
+	      | VB.State_complete -> ()
+	      | VB.State_verified ->
 		occurrences.occurrence_present <- 
-		  (t, j, pos) :: occurrences.occurrence_present
-	      | _ -> assert false);
+		  (t, j, pos) :: occurrences.occurrence_present);
               iter (j+1) len (pos ++ t.t_chunk_size)
 	  in
-	  iter 0 (String.length t.t_converted_verified_bitmap) zero
+	  iter 0 (VB.length t.t_converted_verified_bitmap) zero
       | _ -> ()
     ) s.s_networks
   ) swarmers_by_name;
@@ -2791,7 +2865,7 @@ let downloaded t = file_downloaded t.t_file
 let block_chunk_num t b =
   t.t_chunk_of_block.(b.block_num)
 
-let partition_size t = String.length t.t_converted_verified_bitmap
+let partition_size t = VB.length t.t_converted_verified_bitmap
 
 let uploader_swarmer up = up.up_t
 
@@ -2892,16 +2966,16 @@ let value_to_frontend t assocs =
   (try
     try
       set_chunks_verified_bitmap t
-        (get_value  "file_chunks" value_to_string)
+        (VB.of_string (get_value  "file_chunks" value_to_string))
     with Not_found ->
       set_chunks_verified_bitmap t
-        (get_value  "file_all_chunks" value_to_string)
+        (VB.of_string (get_value  "file_all_chunks" value_to_string))
 	
   with e ->
     lprintf_nl "Exception %s while loading bitmap"
       (Printexc2.to_string e);
     (* force everything to be checked ASAP ? *)
-    set_chunks_verified_bitmap t (String.make (partition_size t) '2')
+    set_chunks_verified_bitmap t (VB.create (partition_size t) VB.State_complete)
   );
 
   (*
@@ -2972,9 +3046,9 @@ let verify_one_chunk s =
   (*  lprintf "verify_one_chunk: %d networks\n" (List.length s.s_networks);  *)
   List.exists (fun t ->
 (*      lprintf "verify_one_chunk of file %d\n" (file_num t.t_file); *)
-    string_existsi (fun i c ->
-      if c = '2' then verify_chunk t i;
-      c = '2') t.t_converted_verified_bitmap
+    VB.existsi (fun i c ->
+      if c = VB.State_complete then verify_chunk t i;
+      c = VB.State_complete) t.t_converted_verified_bitmap
   ) s.s_networks
 (*  lprintf "verify_one_chunk: nothing done\n"; *)
 
@@ -3104,7 +3178,7 @@ module SwarmerOption = struct
       Module [
         ("file_size", int64_to_value s.s_size);
         ("file_name", string_to_value s.s_filename);
-        ("file_bitmap", string_to_value s.s_verified_bitmap);
+        ("file_bitmap", string_to_value (VB.to_string s.s_verified_bitmap));
         ("file_chunk_sizes", list_to_value int64_to_value
             (List.map (fun t -> t.t_chunk_size) s.s_networks));
         ]
@@ -3124,15 +3198,15 @@ let check_swarmer s =
     | tprim :: tail ->
         assert(tprim.t_primary);
 
-	string_iter (fun i c ->
-	    if c = '3' then begin
-	      if List.exists (fun j -> s.s_verified_bitmap.[j] <> '3') 
+	VB.iter (fun i c ->
+	    if c = VB.State_verified then begin
+	      if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified) 
 		tprim.t_blocks_of_chunk.(i) then
-                  failwith "Bad propagation of 3 from primary to swarmer";
+                  failwith "Bad propagation of State_verified from primary to swarmer";
             end
-            else if List.exists (fun j -> s.s_verified_bitmap.[j] = '3')
+            else if List.exists (fun j -> VB.get s.s_verified_bitmap j = VB.State_verified)
 	      tprim.t_blocks_of_chunk.(i) then
-                failwith "Swarmer has 3 not coming from primary";
+                failwith "Swarmer has State_verified not coming from primary";
 	) tprim.t_converted_verified_bitmap;
 
         let fd = file_fd tprim.t_file in
@@ -3141,16 +3215,16 @@ let check_swarmer s =
           assert (not t.t_primary);
           assert (file_fd t.t_file == fd);
 	  
-	  string_iter (fun i c ->
-	    if c = '3' then begin
-	      if List.exists (fun j -> s.s_verified_bitmap.[j] <> '3')
+	  VB.iter (fun i c ->
+	    if c = VB.State_verified then begin
+	      if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified)
 		t.t_blocks_of_chunk.(i) then
-                  failwith "3 in secondary without 3 in primary"
+                  failwith "State_verified in secondary without State_verified in primary"
 	    end 
-	    else if c = '2' then begin
-	      if List.exists (fun j -> s.s_verified_bitmap.[j] <> '3')
+	    else if c = VB.State_complete then begin
+	      if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified)
 		t.t_blocks_of_chunk.(i) then
-                  failwith "2 in secondary without 3 in primary"
+                  failwith "State_complete in secondary without State_verified in primary"
 	    end 
 	  ) t.t_converted_verified_bitmap
         ) tail
@@ -3206,7 +3280,7 @@ let _ =
       let nblocks = ref 0 in
       let nranges = ref 0 in
       HS.iter (fun s ->
-          let n = String.length s.s_verified_bitmap in
+          let n = VB.length s.s_verified_bitmap in
           nchunks := !nchunks + n;
 
           Array.iter (fun b ->

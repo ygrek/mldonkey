@@ -126,7 +126,8 @@ let new_file_to_share sh codedname old_impl =
     match file.file_swarmer with
       Some s -> (let len = Array.length md4s in
      let ver_str = String.make len '3' in
-         CommonSwarming.set_chunks_verified_bitmap s ver_str;
+     CommonSwarming.set_chunks_verified_bitmap s
+       (CommonSwarming.VerificationBitmap.of_string ver_str);
      (*
      CommonSwarming.set_present s [(Int64.zero, file_size file)];
      (* If we don't verify now, it will never happen! *)

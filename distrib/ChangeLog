@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/06/11
+5166: Swarmer: New module to abstract verification bitmaps (pango)
+
 2006/06/07
 5164: CommonSwarming: Pangos WIP5e'
 * When cutting a range, the reciprocal link of the range after the right part
