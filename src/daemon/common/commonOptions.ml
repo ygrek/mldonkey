@@ -502,7 +502,7 @@ let max_opened_connections = define_option current_section
 let max_indirect_connections = define_option current_section
     ["max_indirect_connections"]
   "Amount of indirect connections in percent (min 30, max 70) of max_opened_connections"
-  int_option 20
+  int_option 30
 
 let max_upload_slots = define_option current_section ["max_upload_slots"]
     "How many slots can be used for upload"
