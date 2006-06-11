@@ -55,6 +55,7 @@ open CommonOptions
 open DonkeyStats
 open DonkeyUdp
 
+module VB = VerificationBitmap
 
 let result_name r =
   match r.result_names with
@@ -1027,9 +1028,9 @@ let _ =
             P.file_all_sources = file.file_sources.DonkeySources.manager_all_sources;
             P.file_active_sources = file.file_sources.DonkeySources.manager_active_sources;
             P.file_chunks = 
-                  (match file.file_swarmer with
-                   | None -> "" 
-                   | Some swarmer -> CommonSwarming.chunks_verified_bitmap swarmer);
+                (match file.file_swarmer with
+                | None -> None
+                | Some swarmer -> Some (CommonSwarming.chunks_verified_bitmap swarmer));
             P.file_availability =
               [
                 network.network_num,
@@ -1292,8 +1293,8 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
 
       let chunks =
       (match file.file_swarmer with
-       None -> "" | Some swarmer ->
-       CommonSwarming.chunks_verified_bitmap swarmer)
+      | None -> None 
+      | Some swarmer -> Some (CommonSwarming.chunks_verified_bitmap swarmer))
       in
 
       html_mods_table_header buf "sourcesTable" "sources al" ([
@@ -1326,12 +1327,16 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
           ( "1", "srh ar br", "Connected time (minutes)", "CT" ) ;
           ( "0", "srh br", "Client MD4", "MD4" ) ;
           ( "0", "srh", "Chunks (absent|partial|present|verified)",
-            (colored_chunks
-                (Array.init (String.length chunks)
-                (fun i -> ((int_of_char chunks.[i])-48)))) ) ;
+	  match chunks with
+	  | None -> ""
+	  | Some chunks -> colored_chunks chunks) ;
           ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-                (let fc = ref 0 in (String.iter (fun s -> if s = '3' then incr fc)
-                  chunks );!fc ))) ]);
+            (match chunks with
+	    | None -> 0
+	    | Some chunks ->
+		VerificationBitmap.fold_lefti (fun acc _ s ->
+		  if s = VerificationBitmap.State_verified then acc + 1
+		  else acc) 0 chunks))) ]);
 
 
       html_mods_cntr_init();
@@ -1409,8 +1414,12 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
                   let _, qchunks,_ = List.find (fun (qfile, _,_) ->
                         qfile == file) qfiles in
                   let tc = ref 0 in
-                  let arr = Array.init (Bitv.length qchunks) 
-                              (fun i -> if Bitv.get qchunks i then begin incr tc; 2 end else 0) in
+		  let arr = 
+		    VerificationBitmap.init (Bitv.length qchunks) (fun i -> 
+		    if Bitv.get qchunks i then begin
+		      incr tc;
+		      VerificationBitmap.State_complete
+		    end else VerificationBitmap.State_missing) in
                   Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>"
                     (CommonFile.colored_chunks arr) !tc;
                 with Not_found -> (

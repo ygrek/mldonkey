@@ -161,12 +161,7 @@ let check_file_downloaded file =
       | Some swarmer ->
           let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
 (*          lprintf "Verified bitmap: [%s]\n" bitmap; *)
-          let rec iter i =
-            if i =  String.length bitmap then true
-            else
-            if bitmap.[i] = '3' then iter (i+1) else false
-          in
-          let verified = iter 0 in
+	  let verified = VB.for_all (( = ) VB.State_verified) bitmap in
           
           let downloaded = CommonSwarming.downloaded swarmer in
           if file_downloaded file <> downloaded then begin
@@ -191,14 +186,8 @@ let check_files_downloaded () =
             None -> ()
           | Some swarmer ->
               let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
-              let rec iter i len =
-                if i < len then
-                  if bitmap.[i] = '3' then
-                    DonkeyShare.must_share_file file
-                  else
-                    iter (i+1) len
-              in
-              iter 0 (String.length bitmap)
+	      if VB.existsi (fun _ s -> s = VB.State_verified) bitmap then
+                DonkeyShare.must_share_file file
   ) files_by_md4
 
 let add_client_chunks c file client_chunks =

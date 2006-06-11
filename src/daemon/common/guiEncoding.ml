@@ -438,7 +438,9 @@ let buf_partial_file proto buf f =
     end;
   if f.file_fields.Fields_file_info.file_chunks then begin
       buf_int8 buf 9;
-      buf_string buf f.file_chunks;  
+    buf_string buf (match f.file_chunks with
+    | None -> ""
+    | Some chunks -> VerificationBitmap.to_string chunks);  
     end;
   if f.file_fields.Fields_file_info.file_availability then begin
       buf_int8 buf 10;
@@ -556,7 +558,9 @@ let buf_file proto buf f =
   buf_int buf f.file_all_sources;  
   buf_int buf f.file_active_sources;  
   buf_file_state proto buf f.file_state;  
-  buf_string buf f.file_chunks;  
+  buf_string buf (match f.file_chunks with
+  | None -> ""
+  | Some chunks -> VerificationBitmap.to_string chunks);  
   if proto > 17 then
     buf_list buf (fun buf (network, avail) ->
         buf_int buf network;

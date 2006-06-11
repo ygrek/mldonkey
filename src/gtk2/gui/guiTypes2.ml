@@ -239,7 +239,7 @@ type g_file_info = {
     mutable g_file_active_sources : int;
     mutable g_file_all_sources    : int;
     mutable g_file_state          : file_state;
-    mutable g_file_chunks         : string;
+    mutable g_file_chunks         : VerificationBitmap.t option;
     mutable g_file_availability   : (int * string) list;
     mutable g_file_sources        : int list option;
     mutable g_file_download_rate  : float;

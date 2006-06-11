@@ -710,8 +710,10 @@ let for_string_tag tag f =
 
 let partial_chunk c =
   match c with
-    '0' | '1' -> true
-  | _ -> false
+  | VerificationBitmap.State_missing | VerificationBitmap.State_partial -> 
+      true
+  | VerificationBitmap.State_complete | VerificationBitmap.State_verified -> 
+      false
 
 module Connections = struct
 

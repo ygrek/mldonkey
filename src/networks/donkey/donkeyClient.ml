@@ -52,6 +52,8 @@ open DonkeyTypes
 open DonkeyReliability
 open DonkeyThieves
 
+module VB = VerificationBitmap
+
 let log_prefix = "[EDK]"
 
 let lprintf_nl fmt =
@@ -853,12 +855,12 @@ let is_useful_client file chunks =
     None -> false
   | Some swarmer ->
       let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
-      let rec iter bitmap chunks i len =
-        if i = len then false else
-        if Bitv.get chunks i && bitmap.[i] < '2' then true else
-          iter bitmap chunks (i+1) len
-      in
-      iter bitmap chunks 0 (String.length bitmap)
+      VB.existsi (fun i s ->
+        Bitv.get chunks i && 
+	  (match s with
+	  | VB.State_missing | VB.State_partial -> true
+	  | VB.State_complete | VB.State_verified -> false)
+      ) bitmap
     
 let received_client_bitmap c file chunks =
   
@@ -869,7 +871,7 @@ let received_client_bitmap c file chunks =
       match file.file_swarmer with
         None -> ()
       | Some swarmer ->
-          lprintf_nl "   %s" (CommonSwarming.chunks_verified_bitmap swarmer);
+          lprintf_nl "   %s" (VB.to_string (CommonSwarming.chunks_verified_bitmap swarmer));
     end;
   
   let chunks = 
@@ -1939,8 +1941,8 @@ end else *)
                     Bitv.create file.file_nchunks true
               | Some swarmer ->
                   let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
-                  Bitv.init (String.length bitmap) 
-                      (fun i -> bitmap.[i] = '3')
+                  Bitv.init (VB.length bitmap) 
+                    (fun i -> VB.get bitmap i = VB.State_verified)
                   (* This is not very smart, as we might get banned for this request.
                      TODO We should probably check if we don't know already this source...
 
@@ -2532,8 +2534,8 @@ let _ =
             | Some swarmer ->
                 let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
                 let chunks = 
-                  Bitv.init (String.length bitmap) 
-                  (fun i -> bitmap.[i] = '3')
+                  Bitv.init (VB.length bitmap) 
+                    (fun i -> VB.get bitmap i = VB.State_verified)
                 in
                 let ncompletesources = if extendedrequest > 1 then
                     0 else -1 in

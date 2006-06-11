@@ -102,7 +102,7 @@ val sample_timer : unit -> unit
 val file_download_rate : 'a file_impl -> float
 val add_file_downloaded : CommonTypes.file -> Int64.t -> unit
 val file_downloaders : CommonTypes.file -> CommonTypes.ui_conn -> int -> bool
-val colored_chunks : int array -> string
+val colored_chunks : VerificationBitmap.t -> string
 val file_print : CommonTypes.file -> CommonTypes.ui_conn -> unit
 val file_size : CommonTypes.file -> int64
 val file_disk_name : CommonTypes.file -> string

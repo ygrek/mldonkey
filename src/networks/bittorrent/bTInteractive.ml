@@ -50,6 +50,8 @@ open Gettext
 let _s x = _s "BTInteractive" x
 let _b x = _b "BTInteractive" x
 
+module VB = VerificationBitmap
+
 exception Already_exists
 
 let op_file_all_sources file =
@@ -288,7 +290,7 @@ let op_file_print_sources_html file buf =
 
       let chunks = (match file.file_swarmer with
             None -> "" | Some swarmer ->
-              CommonSwarming.chunks_verified_bitmap swarmer) in
+              VB.to_string (CommonSwarming.chunks_verified_bitmap swarmer)) in
 
       let header_list = [
         ( "1", "srh br ac", "Client number", "Num" ) ;
@@ -320,8 +322,13 @@ let op_file_print_sources_html file buf =
         (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ;
 *)
         ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
-              (String.length (String2.replace
-                  (String2.replace chunks '0' "") '1' "")) )) 
+          (match file.file_swarmer with
+	  | None -> 0
+	  | Some swarmer ->
+	      let bitmap = 
+		CommonSwarming.chunks_verified_bitmap swarmer in
+	      VB.fold_lefti (fun acc _ s ->
+		if s = VB.State_verified then acc + 1 else acc)	0 bitmap)))
       ] in
 
       html_mods_table_header buf "sourcesTable" "sources al" header_list;
@@ -416,8 +423,8 @@ let op_file_info file =
     P.file_network = network.network_num;
     P.file_names = [file.file_name, P.noips()];
     P.file_chunks = (match file.file_swarmer with
-        None -> "" | Some swarmer ->
-          CommonSwarming.chunks_verified_bitmap swarmer);
+    | None -> None 
+    | Some swarmer -> Some (CommonSwarming.chunks_verified_bitmap swarmer));
     P.file_availability =
     [network.network_num,(match file.file_swarmer with
           None -> "" | Some swarmer ->
@@ -450,7 +457,7 @@ let op_ft_info ft =
     P.file_state = ft_state ft;
     P.file_sources = None;
     P.file_download_rate = 0.;
-    P.file_chunks = "";
+    P.file_chunks = None;
     P.file_availability =  [network.network_num, ""];
     P.file_format = FormatNotComputed 0;
     P.file_chunks_age = [| last_time () |];

@@ -595,7 +595,10 @@ let get_file proto s pos =
     file_all_sources = file_all_sources;
     file_active_sources = file_active_sources;
     file_state = state;
-    file_chunks = chunks;
+    file_chunks = 
+      if chunks <> "" then 
+	Some (VerificationBitmap.of_string chunks)
+      else None;
     file_availability = availability;
     file_download_rate = rate;
     file_chunks_age = chunks_age;

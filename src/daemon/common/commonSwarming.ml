@@ -87,72 +87,6 @@ open CommonFile
 open CommonTypes
 open CommonClient
 
-module VerificationBitmap : (sig
-  type t
-  type part_state = 
-    State_missing | State_partial | State_complete | State_verified
-
-  val create : int -> part_state -> t
-  val get : t -> int -> part_state
-  val set : t -> int -> part_state -> unit
-  val length : t -> int
-
-  val iter : (int -> part_state -> unit) -> t -> unit
-  val existsi : (int -> part_state -> bool) -> t -> bool
-  val for_all : (part_state -> bool) -> t -> bool
-
-  val to_string : t -> string
-  val of_string : string -> t
-  val state_to_char : part_state -> char
-end) 
-  = (struct
-    type t = string
-    type part_state = 
-      State_missing | State_partial | State_complete | State_verified
-
-    let state_to_char = function
-      | State_missing -> '0'
-      | State_partial -> '1'
-      | State_complete -> '2'
-      | State_verified -> '3'
-
-    let char_to_state = function
-      | '0' -> State_missing
-      | '1' -> State_partial
-      | '2' -> State_complete
-      | '3' -> State_verified 
-      | _ -> assert false
-
-    let create n c = String.make n (state_to_char c)
-    let get x i = (char_to_state x.[i])
-    let set x i c = x.[i] <- state_to_char c
-    let length = String.length
-
-    let to_string x = x
-    let of_string x = x
-
-    let iter f x = 
-      let l = String.length x in
-      let rec aux i =
-	if i < l then begin
-	  f i (char_to_state x.[i]);
-	  aux (i+1)
-	end in
-      aux 0
-
-    let existsi p x = 
-      let l = String.length x in
-      let rec aux i =
-	i < l && (p i (char_to_state x.[i]) || aux (i+1)) in
-      aux 0
-
-    let for_all p s =
-      let l = String.length s in
-      let rec aux i =
-        i >= l || p (char_to_state s.[i]) && aux (i+1) in
-      aux 0
-  end)
-
 module VB = VerificationBitmap
 
 (* If we want to become 'multinet', we should:
@@ -435,7 +369,7 @@ let string_for_all p s =
 
 let compute_last_seen t =
   let last_seen_total = ref (BasicSocket.last_time ()) in
-  VB.iter (fun i c -> 
+  VB.iteri (fun i c -> 
     if c = VB.State_verified then
       t.t_last_seen.(i) <- BasicSocket.last_time ()
     else
@@ -1380,7 +1314,7 @@ let set_frontend_bitmap_3 t j =
   | VB.State_verified -> ()
 
 let set_chunks_verified_bitmap t bitmap =
-  VB.iter (fun j c ->
+  VB.iteri (fun j c ->
     match c with
     | VB.State_missing | VB.State_partial -> 
 	()
@@ -1393,7 +1327,7 @@ let set_chunks_verified_bitmap t bitmap =
   ) bitmap
 
 let chunks_verified_bitmap t = 
-    VB.to_string t.t_converted_verified_bitmap
+    t.t_converted_verified_bitmap
 
 (** Check the equality of the hash of [t]'s data between offsets
     [begin_pos] and [end_pos] against the value of [uid] *)
@@ -1441,11 +1375,11 @@ let verify_chunk t j =
           try
             let s = t.t_s in
             if verify t chunks.(0) zero s.s_size then
-	      VB.iter (fun j _ ->
+	      VB.iteri (fun j _ ->
 		set_frontend_bitmap_3 t j
 	      ) t.t_converted_verified_bitmap
 	    else
-	      VB.iter (fun j c ->
+	      VB.iteri (fun j c ->
 		if c = VB.State_complete then set_frontend_bitmap_0 t j
 	      ) t.t_converted_verified_bitmap
           with VerifierNotReady -> ()
@@ -1460,20 +1394,20 @@ let must_verify_block s i =
 
 let verify_all_chunks t =
   let s = t.t_s in
-  VB.iter (fun i _ -> must_verify_block s i) s.s_verified_bitmap
+  VB.iteri (fun i _ -> must_verify_block s i) s.s_verified_bitmap
 
 (** same, and synchronously calls the verification of all chunks *)
 
 let verify_all_chunks_immediately t =
   verify_all_chunks t;
-  VB.iter (fun i _ -> verify_chunk t i) t.t_converted_verified_bitmap
+  VB.iteri (fun i _ -> verify_chunk t i) t.t_converted_verified_bitmap
     
 
 (** synchronously verify all completed chunks not yet verified *)
 
 let compute_bitmap t =
   if t.t_ncomplete_chunks > t.t_nverified_chunks then 
-    VB.iter (fun i c -> 
+    VB.iteri (fun i c -> 
       if c = VB.State_complete then verify_chunk t i) t.t_converted_verified_bitmap
 
 
@@ -3035,7 +2969,7 @@ let frontend_to_value t other_vals =
   [("file_primary", bool_to_value t.t_primary);
    ("file_swarmer", string_to_value t.t_s.s_filename);
    ("file_mtime", float_to_value (try file_mtime t.t_file with _ -> 0.));
-   ("file_chunks", string_to_value (chunks_verified_bitmap t))] @
+   ("file_chunks", string_to_value (VB.to_string (chunks_verified_bitmap t)))] @
   (if t.t_primary then
     [("file_present_chunks", List
       (List.map (fun (i1,i2) ->
@@ -3206,7 +3140,7 @@ let check_swarmer s =
     | tprim :: tail ->
         assert(tprim.t_primary);
 
-	VB.iter (fun i c ->
+	VB.iteri (fun i c ->
 	    if c = VB.State_verified then begin
 	      if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified) 
 		tprim.t_blocks_of_chunk.(i) then
@@ -3223,7 +3157,7 @@ let check_swarmer s =
           assert (not t.t_primary);
           assert (file_fd t.t_file == fd);
 	  
-	  VB.iter (fun i c ->
+	  VB.iteri (fun i c ->
 	    if c = VB.State_verified then begin
 	      if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified)
 		t.t_blocks_of_chunk.(i) then

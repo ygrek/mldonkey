@@ -64,6 +64,8 @@ open BTChooser
 open BTStats
 open TcpMessages
 
+module VB = VerificationBitmap
+
 let http_ok = "HTTP 200 OK"
 let http11_ok = "HTTP/1.1 200 OK"
 
@@ -383,28 +385,31 @@ let send_interested c =
 (** Send a Bitfield message to a client.
   @param c The client to send the Bitfield message
 *)
+
 let send_bitfield c =
-  let bitmap =
-    match c.client_file.file_swarmer with
-      None ->
-(* This must be a seeded file... *)
-        String.make (Array.length c.client_file.file_chunks) '3'
-    | Some swarmer ->
-        CommonSwarming.chunks_verified_bitmap swarmer
-  in
-
-  if !verbose_download then lprintf_nl "Sending verified bitmap: [%s]" bitmap;
-
-(* In the future, only accept bitmap.[n] > '2' when verification works *)
   send_client c (BitField
       (
-      let nchunks = String.length bitmap in
-      let len = (nchunks+7)/8 in
-      let s = String.make len '\000' in
-      for i = 0 to nchunks - 1 do
-        if bitmap.[i] >= '2' then set_bit s i;
-      done;
-      s
+      match c.client_file.file_swarmer with
+      | None ->
+	  (* This must be a seeded file... *)
+	  if !verbose_download then 
+	    lprintf_nl "Sending completed verified bitmap";
+	  let nchunks = Array.length c.client_file.file_chunks in
+	  let len = (nchunks+7)/8 in
+	  let s = String.make len '\000' in
+	  for i = 0 to nchunks - 1 do
+	    set_bit s i
+	  done;
+	  s
+      | Some swarmer ->
+	  let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
+	  if !verbose_download then 
+	    lprintf_nl "Sending verified bitmap: [%s]" (VB.to_string bitmap);
+	  let len = VB.length bitmap in
+	  let s = String.make len '\000' in
+	  VB.iteri (fun i c ->
+            if c = VB.State_verified then set_bit s i) bitmap;
+	  s
     ))
 
 let counter = ref 0
@@ -906,13 +911,15 @@ and client_to_client c sock msg =
                 disconnect_client c (Closed_for_error "Wrong bitfield length")
               end else begin
 
-                let verified = CommonSwarming.chunks_verified_bitmap swarmer in
+                let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
 
                 for i = 0 to npieces - 1 do
                   if is_bit_set p i then begin
                     c.client_new_chunks <- i :: c.client_new_chunks;
-                    if verified.[i] < '2' then
-                      c.client_interesting <- true;
+                    match VB.get bitmap i with
+		    | VB.State_missing | VB.State_partial ->
+                      c.client_interesting <- true
+		    | VB.State_complete | VB.State_verified -> ()
                   end 
                 done;
 
@@ -941,15 +948,16 @@ and client_to_client c sock msg =
             None -> ()
           | Some swarmer ->
               let n = Int64.to_int n in
-              let verified = CommonSwarming.chunks_verified_bitmap swarmer in
-              (* lprintf_nl "verified: %c;" verified.[n]; *)
+              let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
+              (* lprintf_nl "verified: %c;" (VB.state_to_char (VB.get bitmap n)); *)
               (* if the peer has a chunk we don't, tell him we're interested and update his bitmap *)
-              if verified.[n] < '2' then begin
+	      match VB.get bitmap n with
+	      | VB.State_missing | VB.State_partial ->
                   c.client_interesting <- true;
                   send_interested c;
                   c.client_new_chunks <- n :: c.client_new_chunks;
                   update_client_bitmap c;
-                end;
+	      | VB.State_complete | VB.State_verified -> ()
 
 (*        begin
           match c.client_bitmap, c.client_uploader with

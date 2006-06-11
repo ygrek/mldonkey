@@ -156,7 +156,7 @@ let check_if_interesting file c =
         | Some b ->
             let chunk_num = CommonSwarming.block_chunk_num swarmer b in
             let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
-            bitmap.[chunk_num] <> '3')
+            VB.get bitmap chunk_num <> VB.State_verified)
     in
     if must_send then
       begin

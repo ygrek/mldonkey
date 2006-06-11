@@ -191,7 +191,8 @@ LIB_SRCS=   \
   $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/sha1_c.c \
   $(LIB)/tiger.c \
   $(LIB)/stubs_c.c  $(LIB)/set2.ml $(LIB)/queues.ml \
-  $(LIB)/charsetstubs.c $(LIB)/charset.ml
+  $(LIB)/charsetstubs.c $(LIB)/charset.ml \
+  $(LIB)/verificationBitmap.ml
 
 ifeq ("$(MAGIC)", "yes")
   MAGIC_LIBS_flags += -cclib -lmagic

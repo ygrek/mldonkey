@@ -47,6 +47,8 @@ open GnutellaGlobals
 open GnutellaComplexOptions
 open GnutellaProtocol
 
+module VB = VerificationBitmap
+
 (* Don't share files greater than 10 MB on Gnutella and limit to 200 files. 
  Why ? Because we don't store URNs currently, and we don't want mldonkey
  to compute hashes for hours at startup *)
@@ -297,8 +299,9 @@ let _ =
         P.file_names = [file.file_name, P.noips()];
         
          P.file_chunks = (match file.file_swarmer with
-             None -> "" | Some swarmer ->
-               CommonSwarming.chunks_verified_bitmap swarmer);
+         | None -> None 
+	 | Some swarmer -> 
+	     Some (CommonSwarming.chunks_verified_bitmap swarmer));
         P.file_availability =   [network.network_num,
            (match file.file_swarmer with
            None -> "" | Some swarmer ->

@@ -510,7 +510,7 @@ let file_downloaders file o cnt =
 
 (* Use span for Opera DOM compatibility *)
 let colored_chunks chunks =
-  let chunks_length = Array.length chunks in
+  let chunks_length = VerificationBitmap.length chunks in
   let graph_width = min !!html_vd_chunk_graph_max_width (8 * chunks_length) in
   let ostr = Buffer.create 100 in
   Printf.bprintf ostr "\\<table cellspacing=0 cellpadding=0 width=\\\"%dpx\\\"\\>\\<tr\\>" graph_width;
@@ -527,34 +527,39 @@ let colored_chunks chunks =
       current_output_bit := new_output_bit
     end in
 
-  (match !!html_vd_chunk_graph_style with
+  (let color_of_state = function
+    | VerificationBitmap.State_missing -> 0
+    | VerificationBitmap.State_partial -> 1
+    | VerificationBitmap.State_complete -> 2
+    | VerificationBitmap.State_verified -> 3 in
+    match !!html_vd_chunk_graph_style with
      | 0 ->
-	 let previous = ref 0 in
+	 let previous = ref VerificationBitmap.State_missing in
 	 let runlength = ref 0 in
 
-	 Array.iter (fun b ->
+	 VerificationBitmap.iteri (fun _ b ->
 	   if b = !previous then
 	     incr runlength
 	   else begin
-	     display_bar !previous !runlength;
+	     if !runlength > 0 then
+	       display_bar (color_of_state !previous) !runlength;
 	     previous := b;
 	     runlength := 1
 	   end
 	 ) chunks;
-	 display_bar !previous !runlength
+	 display_bar (color_of_state !previous) !runlength
      | _ ->
 	 let missing = ref 0 in
 	 let partial = ref 0 in
 	 let complete = ref 0 in
 	 let verified = ref 0 in
 
-	 Array.iter (fun b -> 
+	 VerificationBitmap.iteri (fun _ b -> 
 	   match b with
-             | 0 -> incr missing
-             | 1 -> incr partial
-             | 2 -> incr complete
-             | 3 -> incr verified
-             | _ -> ()
+             | VerificationBitmap.State_missing -> incr missing
+             | VerificationBitmap.State_partial -> incr partial
+             | VerificationBitmap.State_complete -> incr complete
+             | VerificationBitmap.State_verified -> incr verified
 	 ) chunks;
 	 match !!html_vd_chunk_graph_style with
 	   | 1 ->
@@ -608,33 +613,35 @@ let file_print file o =
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
 
-      let tt = ref "0=Missing, 1=Partial, 2=Complete, 3=Verified" in
-      let tc = String.length info.G.file_chunks in
-      let c0 = ref 0 in
-      let c1 = ref 0 in
-      let c2 = ref 0 in
-      let c3 = ref 0 in   
+      (match info.G.file_chunks with 
+      | None -> ()
+      | Some chunks ->
+	  let tt = "0=Missing, 1=Partial, 2=Complete, 3=Verified" in
+	  let tc = VerificationBitmap.length chunks in
+	  let c0 = ref 0 in
+	  let c1 = ref 0 in
+	  let c2 = ref 0 in
+	  let c3 = ref 0 in   
 
-      String.iter (fun c ->
-        match c with
-        | '0' -> incr c0
-        | '1' -> incr c1
-        | '2' -> incr c2
-        | '3' -> incr c3
-        | _ -> ()
-      ) info.G.file_chunks;
+	  VerificationBitmap.iteri (fun _ c ->
+            match c with
+            | VerificationBitmap.State_missing -> incr c0
+            | VerificationBitmap.State_partial -> incr c1
+            | VerificationBitmap.State_complete -> incr c2
+            | VerificationBitmap.State_verified -> incr c3
+	  ) chunks;
       
-      let header = Printf.sprintf "%d (%d+%d+%d+%d): " tc !c0 !c1 !c2 !c3 in
+	  let header = Printf.sprintf "%d (%d+%d+%d+%d): " tc !c0 !c1 !c2 !c3 in
 
-      html_mods_td buf [
-        (!tt, "sr br", "Chunks");
-        (!tt, "sr", 
-          header ^ if !!html_vd_chunk_graph then
-          (colored_chunks (Array.init (String.length info.G.file_chunks)
-          (fun i -> ((int_of_char info.G.file_chunks.[i])-48))))
-          else
-            info.G.file_chunks
-        ) ];
+	  html_mods_td buf [
+            (tt, "sr br", "Chunks");
+            (tt, "sr", 
+            header ^ if !!html_vd_chunk_graph then
+              colored_chunks chunks
+            else
+              VerificationBitmap.to_string chunks
+            ) ]
+      );
 
       (match file_magic file with
         Some magic ->
@@ -662,7 +669,10 @@ let file_print file o =
         (Int64.to_string info.G.file_size)
         (Int64.to_string info.G.file_downloaded)
         (file_priority file);
-      Printf.bprintf buf "Chunks: [%-s]\n" info.G.file_chunks;
+      Printf.bprintf buf "Chunks: [%-s]\n"
+	(match info.G.file_chunks with
+	| None -> ""
+	| Some chunks -> VerificationBitmap.to_string chunks);
       (match impl.impl_file_probable_name with
           None -> ()
         | Some filename ->
@@ -1036,7 +1046,7 @@ let impl_file_info impl =
     T.file_all_sources = 0;
     T.file_active_sources = 0;
     T.file_sources = None;
-    T.file_chunks = "";
+    T.file_chunks = None;
     T.file_availability = [];
     T.file_format = FormatNotComputed 0;
     T.file_chunks_age = [||];

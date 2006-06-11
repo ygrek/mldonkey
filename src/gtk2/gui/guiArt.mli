@@ -28,6 +28,6 @@ val clean_icons : unit -> unit
 
 val create_color_blue_relative : unit -> unit
 
-val get_availability_of : string -> string -> bool -> GdkPixbuf.pixbuf
+val get_availability_of : string -> VerificationBitmap.t option -> bool -> GdkPixbuf.pixbuf
 
-val clean_avail_bars : (string * string * bool) list -> unit
+val clean_avail_bars : (string * VerificationBitmap.t option * bool) list -> unit

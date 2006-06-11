@@ -47,6 +47,8 @@ open Gettext
 let _s x = _s "FileTPInteractive" x
 let _b x = _b "FileTPInteractive" x
 
+module VB = VerificationBitmap
+
 let _ =
   network.op_network_connected <- (fun _ -> true);
   network.op_network_connected_servers <- (fun _ -> [])
@@ -92,8 +94,9 @@ let _ =
         P.file_all_sources = (List.length file.file_clients);
         P.file_active_sources = (List.length file.file_clients);
         P.file_chunks = (match file.file_swarmer with
-          None -> "" | Some swarmer ->
-            CommonSwarming.chunks_verified_bitmap swarmer);
+        | None -> None 
+	| Some swarmer ->
+            Some (CommonSwarming.chunks_verified_bitmap swarmer));
         P.file_availability =
         [network.network_num,(match file.file_swarmer with
           None -> "" | Some swarmer ->

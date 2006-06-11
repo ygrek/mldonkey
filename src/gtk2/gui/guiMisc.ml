@@ -33,6 +33,7 @@ module M = GuiMessages
 module A = GuiArt
 module U = GuiUtf8
 module G = GuiGlobal
+module VB = VerificationBitmap
 
 let (!!) = Options.(!!)
 let (=:=) = Options.(=:=)
@@ -751,17 +752,20 @@ let source_download_rate s_new s =
 (*************************************************************************)
 
 let chunks_to_string chunks =
-  let len = String.length chunks in
-  Printf.sprintf "%d" len
+  match chunks with
+  | None -> "0"
+  | Some chunks -> string_of_int (VB.length chunks)
 
 let completed_chunks_to_string chunks =
-  let len = String.length chunks in
-  let p = ref 0 in
-  for i = 0 to len - 1 do
-    if chunks.[i] >= '2'
-      then (incr p)
-  done;
-  (Printf.sprintf "%d (%d" !p (!p * 100 / len)) ^ "%)"
+  match chunks with
+  | None -> "0"
+  | Some chunks ->
+      let len = VB.length chunks in
+      let p = VB.fold_lefti (fun acc _ s -> match s with
+	| VB.State_missing | VB.State_partial -> acc
+	| VB.State_complete | VB.State_verified -> acc + 1
+      ) 0 chunks in
+      Printf.sprintf "%d (%d%%)" p (p * 100 / len)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -775,7 +779,7 @@ let some_is_available availability chunks =
       let rec loop i =
         if i < 0
           then false
-          else if CommonGlobals.partial_chunk chunks.[i] &&
+        else if CommonGlobals.partial_chunk (VerificationBitmap.get chunks i) &&
                   availability.[i] <> (char_of_int 0)
             then true
             else loop (i - 1)
@@ -790,18 +794,18 @@ let some_is_available availability chunks =
       !b
 
 let relative_availability_of avail chunks =
-  let rec loop i p n =
-    if i < 0
-      then if n = 0.
-        then "0." (* Watch out !! Don't modify, we have to keep a float format *)
-        else Printf.sprintf "%5.1f" (p /. n *. 100.)
-      else if CommonGlobals.partial_chunk chunks.[i]
-        then if avail.[i] <> (char_of_int 0)
-          then loop (i - 1) (p +. 1.) (n +. 1.)
-          else loop (i - 1) p (n +. 1.)
-        else loop (i - 1) p n
-  in
-  loop ((String.length avail) - 1) 0. 0.
+  match chunks with
+  | None -> "0."
+  | Some chunks ->
+      let rec loop i p n =
+	if i < 0 then
+	  if n = 0 then "0." (* Watch out !! Don't modify, we have to keep a float format *)
+	  else Printf.sprintf "%5.1f" ((float p) /. (float n) *. 100.)
+	else 
+	  loop (i - 1) 
+	    (if CommonGlobals.partial_chunk (VerificationBitmap.get chunks i) then p + 1 else p)
+            (if avail.[i] <> (char_of_int 0) then n + 1 else n) in
+      loop ((String.length avail) - 1) 0 0
 
 
 let absolute_availability_of s =
@@ -834,19 +838,26 @@ let availability_bar availability chunks b =
     end else None
 
 let get_availability_bar_image avail chunks av_max is_file =
-  for i = 0 to String.length avail - 1 do
-    if chunks.[i] >= '2'
-      then avail.[i] <- char_of_int av_max
-      else if chunks.[i] = '0'
-        then begin
-          let avail_int =
-            if is_file
-              then int_of_char avail.[i]
-              else if int_of_char avail.[i] > 48 then 1 else 0
-          in
-          avail.[i] <- char_of_int (min (av_max - 2) avail_int)
-        end else avail.[i] <- char_of_int (av_max - 1)
-  done;
+  (match chunks with
+  | None -> 
+      for i = 0 to String.length avail - 1 do
+	avail.[i] <- char_of_int (av_max - 1)
+      done
+  | Some chunks ->
+      for i = 0 to String.length avail - 1 do
+	avail.[i] <-
+	  char_of_int (match VB.get chunks i with
+	  | VB.State_complete | VB.State_verified ->
+	      av_max
+	  | VB.State_missing ->
+              let avail_int =
+		if is_file then int_of_char avail.[i]
+		else if int_of_char avail.[i] > 48 then 1 else 0
+              in
+              min (av_max - 2) avail_int
+	  | VB.State_partial ->
+	      av_max - 1)
+      done);
   avail
 
 let sort_availability_bar (av1, chunks1) (av2, chunks2) is_file =

@@ -38,6 +38,8 @@ open CommonUserDb
 open CommonTypes
 open Int64ops
 
+module VB = VerificationBitmap
+
 let log_prefix = "[dIve]"
 
 let lprintf_nl fmt =
@@ -159,21 +161,24 @@ let calc_file_eta f =
 let file_availability f =
   match f.file_availability with
     (_,avail) :: _ ->
-      let rec loop i p n =
-        if i < 0
-        then
-          if n < 0.0001
-          then 0.0
-          else (p /. n *. 100.0)
-        else
-        if partial_chunk f.file_chunks.[i]
-        then
-          if avail.[i] <> (char_of_int 0)
-          then loop (i - 1) (p +. 1.0) (n +. 1.0)
-          else loop (i - 1) p (n +. 1.0)
-        else loop (i - 1) p n
-      in
-      loop ((String.length avail) - 1) 0.0 0.0
+      (match f.file_chunks with
+      | None -> 0.
+      | Some chunks ->
+	  let rec loop i p n =
+            if i < 0
+            then
+              if n < 0.0001
+              then 0.0
+              else (p /. n *. 100.0)
+            else
+              if partial_chunk (VB.get chunks i)
+              then
+		if avail.[i] <> (char_of_int 0)
+		then loop (i - 1) (p +. 1.0) (n +. 1.0)
+		else loop (i - 1) p (n +. 1.0)
+              else loop (i - 1) p n
+	  in
+	  loop ((String.length avail) - 1) 0.0 0.0)
   | _ -> 0.0
 
 let string_availability s =
@@ -852,7 +857,13 @@ let print_human_readable file size =
     (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1073741824.) ("gb") )
   else if size < Int64.zero then
     (Printf.sprintf "%d chunks"
-    ((String.length file.file_chunks)-(String.length (String2.replace (String2.replace file.file_chunks '0' "") '1' ""))))
+      (match file.file_chunks with
+      | None -> 0
+      | Some chunks -> 
+	  VB.fold_lefti (fun acc _ s -> match s with
+	    | VB.State_missing | VB.State_partial -> acc
+	    | VB.State_complete | VB.State_verified -> acc + 1
+	  ) 0 chunks))
   else (Printf.sprintf "%8s%s" (Int64.to_string size) ("b") ) )
 
 let simple_print_file_list finished buf files format =

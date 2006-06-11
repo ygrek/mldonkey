@@ -37,6 +37,8 @@ open CommonOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
 
+module VB = VerificationBitmap
+
 let new_shared_files = ref []
 
 let must_share_file file codedname has_old_impl =
@@ -124,23 +126,26 @@ let new_file_to_share sh codedname old_impl =
      * regardless of the mtime being set.)
      *)
     match file.file_swarmer with
-      Some s -> (let len = Array.length md4s in
-     let ver_str = String.make len '3' in
-     CommonSwarming.set_chunks_verified_bitmap s
-       (CommonSwarming.VerificationBitmap.of_string ver_str);
+    | Some s -> 
+	let len = Array.length md4s in
+	let ver_str = String.make len (VB.state_to_char VB.State_verified) in
+	CommonSwarming.set_chunks_verified_bitmap s
+	  (VB.of_string ver_str);
      (*
      CommonSwarming.set_present s [(Int64.zero, file_size file)];
      (* If we don't verify now, it will never happen! *)
      CommonSwarming.verify_all_blocks s true;
      *)
-                if !verbose_share then
-                  lprintf_nl "verified map of %s = %s"
-             (codedname) (CommonSwarming.chunks_verified_bitmap s))
-      | None -> if !verbose_share then lprintf_nl "no swarmer for %s" codedname;
-    (try
-        file.file_format <- CommonMultimedia.get_info
-          (file_disk_name file)
-      with _ -> ());
+        if !verbose_share then
+          lprintf_nl "verified map of %s = %s"
+            (codedname) (VB.to_string (CommonSwarming.chunks_verified_bitmap s))
+    | None -> 
+	if !verbose_share then 
+	  lprintf_nl "no swarmer for %s" codedname;
+	(try
+          file.file_format <- CommonMultimedia.get_info
+            (file_disk_name file)
+	with _ -> ());
     (*
     (try
         DonkeyOvernet.publish_file file
