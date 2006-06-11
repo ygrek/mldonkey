@@ -431,7 +431,8 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
 (*                    Printf2.lprint_string m; *)
                 CommonEvent.add_event (Console_message_event m);
                 if e <> End_of_file then begin
-                    let m = "File paused.\n" in
+                    let m = Printf.sprintf "File %s paused, exception %s.\n"
+			      (file_best_name file) (Printexc2.to_string e) in
                     Printf2.lprint_string m;
                     CommonEvent.add_event (Console_message_event m);
                     file_pause (as_file file);

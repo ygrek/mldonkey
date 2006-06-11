@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/11
+5172: EDK: Log error which causes pausing a download
 5171: New command group "Driver/Users",
       print help text for "Bad number of arguments" error message
 5170: Fix default max_indirect_connections, minimum is 30
