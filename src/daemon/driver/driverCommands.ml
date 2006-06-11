@@ -1493,13 +1493,12 @@ let _ =
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
-\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show shares Tab (also related for incoming directory)\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show Web_infos Tab where you can add/remove automatic downloads like serverlists\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show Calendar Tab, there are informations about automatically jobs\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"voo\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
@@ -1518,7 +1517,11 @@ let _ =
                 strings_of_option force_client_ip;
               ] );
 
-            Printf.bprintf buf "\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
+            Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>";
+            
+            html_mods_table_one_row buf "downloaderTable" "downloaders" [
+            ("", "srh", "!! press ENTER to send changes to core !!"); ]
+
           end
 
         else
@@ -1573,14 +1576,21 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
 \\<td class=downloaded width=100%%\\>\\</td\\>";
 
 
-            List.iter (fun s ->
+            List.iter (fun (s,d) ->
                 incr tabnumber; incr mtabs;
-                Printf.bprintf buf "\\<td nowrap class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+%d'\\\"\\>%s\\</a\\>\\</td\\>"
-                  !tabnumber s
-            ) [ "Client" ; "Ports" ; "html" ; "Delays" ; "Files" ; "Mail" ; "Net" ; "Misc" ];
+                Printf.bprintf buf "\\<td nowrap title=\\\"%s\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+%d'\\\"\\>%s\\</a\\>\\</td\\>"
+                  d !tabnumber s
+            ) [ ("Client", "Client related options & Up/Download limitations ") ; 
+                ("Ports", "Interface ports, each Network port is stored in Network plugin options") ; 
+                ("html", "Show Webinterface related options") ; 
+                ("Delays", "Delays & timeouts") ; 
+                ("Files", "File related options") ; 
+                ("Mail", "eMail information options") ; 
+                ("Net", "activate/deaktivate Networks, some TCP/IP & IP blocking options") ; 
+                ("Misc", "miscellaneous") ];
 
             Printf.bprintf buf "
-\\<td nowrap class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show all options\\\" class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbig pr\\\"\\>
 \\<form style=\\\"margin: 0px;\\\" name=\\\"pluginForm\\\" id=\\\"pluginForm\\\"
 action=\\\"javascript:pluginSubmit();\\\"\\>
@@ -1830,12 +1840,11 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:parent.fstatus.location.href='submit?q=save'\\\"\\>Save\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show shares Tab (also related for incoming directory)\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show Web_infos Tab where you can add/remove automatic downloads like serverlists\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show Calendar Tab, there are informations about automatically jobs\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb pr\\\"\\>
 \\<form style=\\\"margin: 0px;\\\" name=\\\"htmlModsStyleForm\\\" id=\\\"htmlModsStyleForm\\\"
 action=\\\"javascript:submitHtmlModsStyle();\\\"\\>
@@ -1846,21 +1855,22 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
             Array.iteri (fun i style ->
                 Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n" i style.style_name
 	    ) CommonMessages.styles;
-
-            if Sys.file_exists html_themes_dir then
+	    
+            if Sys.file_exists html_themes_dir then begin
               let list = Unix2.list_directory html_themes_dir in
               List.iter (fun d ->
                   if Unix2.is_directory (Filename.concat html_themes_dir d) then
                     let sd = (if String.length d > 11 then String.sub d 0 11 else d) in
                     Printf.bprintf buf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" d sd;
               ) (List.sort (fun d1 d2 -> compare d1 d2) list);
-
-
-              Printf.bprintf buf "
-\\</select\\>\\</td\\>
-\\</tr\\>\\</form\\>\\</table\\>";
-              Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
+            end;
+            
+          Printf.bprintf buf "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>";
+          Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>";
+          html_mods_table_one_row buf "downloaderTable" "downloaders" [
+          ("", "srh", "!! press ENTER to send changes to core !!"); ];
           end
+           
         else begin
             list_options o (CommonInteractive.parse_simple_options args)
           end;

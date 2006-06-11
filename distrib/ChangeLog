@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/06/11
+5169: HTML, Options: add description to option section buttons,
+      remove 'save' button (schlumpf)
 5168: Global module to abstract verification bitmaps (pango)
 5167: Swarmer: Fix saving ini data for merged downloads (pango)
 5166: Swarmer: New module to abstract verification bitmaps (pango)
