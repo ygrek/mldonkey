@@ -86,7 +86,7 @@ let execute_command arg_list output cmd args =
               | Arg_one f, [arg] -> f arg  output
               | Arg_two f, [a1;a2] -> f a1 a2 output
               | Arg_three f, [a1;a2;a3] -> f a1 a2 a3 output
-              | _ -> bad_number_of_args
+              | _ -> bad_number_of_args command help
             )
           else
             iter tail
@@ -631,135 +631,6 @@ formID.msgText.value=\\\"\\\";
               _s "Usage: message <client num> <msg>\n";
 
     ), ":\t\t\t\t[<client num> <msg>]";
-
-    "useradd", Arg_multiple (fun args o ->
-        let buf = o.conn_buf in
-	let print_result o result =
-          if o.conn_output = HTML then
-            html_mods_table_one_row buf "serversTable" "servers" [
-              ("", "srh", result); ]
-          else
-            Printf.bprintf buf "%s" result
-	in
-	let add_new_user user pass mail =
-          if o.conn_user == default_user
-	    || o.conn_user == (find_ui_user user) then
-	    try
-	      ignore (user2_find user);
-	      ignore (user2_add user (Md4.string pass) "");
-	      print_result o (Printf.sprintf "Password of user %s changed" user)
-            with _ ->
-	      ignore (user2_add user (Md4.string pass) "");
-	      print_result o (Printf.sprintf "User %s added" user)
-          else
-	    print_result o "Only 'admin' is allowed to add users"
-	in begin
-        match args with
-	  user :: pass :: mail :: _ ->
-	    add_new_user user pass mail
-	| user :: pass :: _ ->
-	    add_new_user user pass "";
-	| _ -> print_result o "Wrong syntax: use 'useradd user pass <mail>'"
-	end;
-	_s ""
-    ), "<user> <passwd> [<mail>] :\t\tadd new mldonkey user/change user password";
-
-    "userdel", Arg_one (fun user o ->
-        let buf = o.conn_buf in
-	let print_result o result =
-          if o.conn_output = HTML then
-            html_mods_table_one_row buf "serversTable" "servers" [
-              ("", "srh", result); ]
-          else
-            Printf.bprintf buf "%s" result
-	in
-        if o.conn_user == default_user then
-	  if user = admin_user then
-	    print_result o "User 'admin' can not be removed"
-	  else
-	    try
-	      ignore (user2_find user);
-	      ignore (user2_remove user);
-              print_result o (Printf.sprintf "User %s removed" user)
-            with _ ->
-              print_result o (Printf.sprintf "User %s not found" user)
-        else
-          print_result o "Only 'admin' is allowed to remove users";
-	_s ""
-    ), "<user> :\t\t\tremove a mldonkey user";
-
-
-    "users", Arg_none (fun o ->
-        if o.conn_user == default_user then
-
-        let buf = o.conn_buf in
-
-        if use_html_mods o then begin
-            Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
-\\<tr\\>\\<td\\>
-\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
-                   var getdir = prompt('Input: <user> <pass>','user pass')
-                   var reg = new RegExp (' ', 'gi') ;
-                   var outstr = getdir.replace(reg, '+');
-                   parent.fstatus.location.href='submit?q=useradd+' + outstr;
-                   setTimeout('window.location.reload()',1000);
-                    }\\\"\\>Add User\\</a\\>
-\\</td\\>
-\\</tr\\>\\</table\\>
-\\</td\\>\\</tr\\>
-\\<tr\\>\\<td\\>";
-
-            html_mods_table_header buf "sharesTable" "shares" [
-              ( "0", "srh ac", "Click to remove user", "Remove" ) ;
-              ( "0", "srh", "User", "Username" ) ];
-
-            let counter = ref 0 in
-
-            user2_iter (fun name user ->
-                incr counter;
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
-                (if !counter mod 2 == 0 then "dl-1" else "dl-2");
-		if user.user_name <> admin_user then Printf.bprintf buf "
-        \\<td title=\\\"Click to remove user\\\"
-        onMouseOver=\\\"mOvr(this);\\\"
-        onMouseOut=\\\"mOut(this);\\\"
-        onClick=\\\'javascript:{
-        parent.fstatus.location.href=\\\"submit?q=userdel+\\\\\\\"%s\\\\\\\"\\\";
-        setTimeout(\\\"window.location.reload()\\\",1000);}'
-        class=\\\"srb\\\"\\>Remove\\</td\\>" user.user_name
-		else Printf.bprintf buf "
-        \\<td title=\\\"\\\"
-        class=\\\"srb\\\"\\>------\\</td\\>";
-		Printf.bprintf buf
-		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" user.user_name
-            );
-
-            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
-          end
-        else
-          begin
-            Printf.bprintf buf "Users:\n";
-            user2_iter (fun name user ->
-                Printf.bprintf buf "  %s\n"
-                user.user_name);
-          end;
-        ""
-        else
-          _s "Only 'admin' is allowed to list users"
-    ), ":\t\t\t\t\tprint users";
-
-    "whoami", Arg_none (fun o ->
-        let buf = o.conn_buf in
-	let whoami = o.conn_user.ui_user_name in
-        if use_html_mods o then
-          html_mods_table_one_row buf "serversTable" "servers" [
-            ("", "srh", whoami); ]
-        else
-          Printf.bprintf buf "%s" whoami;
-        _s ""
-    ), ":\t\t\t\tprint logged-in user name";
 
     "calendar_add", Arg_two (fun hour action o ->
         let buf = o.conn_buf in
@@ -2851,6 +2722,144 @@ let _ =
 
   ]
 
+(*************************************************************************)
+(*                                                                       *)
+(*                         Driver/Users                                  *)
+(*                                                                       *)
+(*************************************************************************)
+
+let _ =
+  register_commands "Driver/Users" [
+
+    "useradd", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+	let print_result o result =
+          if o.conn_output = HTML then
+            html_mods_table_one_row buf "serversTable" "servers" [
+              ("", "srh", result); ]
+          else
+            Printf.bprintf buf "%s" result
+	in
+	let add_new_user user pass mail =
+          if o.conn_user == default_user
+	    || o.conn_user == (find_ui_user user) then
+	    try
+	      ignore (user2_find user);
+	      ignore (user2_add user (Md4.string pass) "");
+	      print_result o (Printf.sprintf "Password of user %s changed" user)
+            with _ ->
+	      ignore (user2_add user (Md4.string pass) "");
+	      print_result o (Printf.sprintf "User %s added" user)
+          else
+	    print_result o "Only 'admin' is allowed to add users"
+	in begin
+        match args with
+	  user :: pass :: mail :: _ ->
+	    add_new_user user pass mail
+	| user :: pass :: _ ->
+	    add_new_user user pass "";
+	| _ -> print_result o "Wrong syntax: use 'useradd user pass <mail>'"
+	end;
+	_s ""
+    ), "<user> <passwd> [<mail>] :\tadd new mldonkey user/change user password";
+
+    "userdel", Arg_one (fun user o ->
+        let buf = o.conn_buf in
+	let print_result o result =
+          if o.conn_output = HTML then
+            html_mods_table_one_row buf "serversTable" "servers" [
+              ("", "srh", result); ]
+          else
+            Printf.bprintf buf "%s" result
+	in
+        if o.conn_user == default_user then
+	  if user = admin_user then
+	    print_result o "User 'admin' can not be removed"
+	  else
+	    try
+	      ignore (user2_find user);
+	      ignore (user2_remove user);
+              print_result o (Printf.sprintf "User %s removed" user)
+            with _ ->
+              print_result o (Printf.sprintf "User %s not found" user)
+        else
+          print_result o "Only 'admin' is allowed to remove users";
+	_s ""
+    ), "<user> :\t\t\tremove a mldonkey user";
+
+
+    "users", Arg_none (fun o ->
+        if o.conn_user == default_user then
+
+        let buf = o.conn_buf in
+
+        if use_html_mods o then begin
+            Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
+\\<tr\\>\\<td\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
+                   var getdir = prompt('Input: <user> <pass>','user pass')
+                   var reg = new RegExp (' ', 'gi') ;
+                   var outstr = getdir.replace(reg, '+');
+                   parent.fstatus.location.href='submit?q=useradd+' + outstr;
+                   setTimeout('window.location.reload()',1000);
+                    }\\\"\\>Add User\\</a\\>
+\\</td\\>
+\\</tr\\>\\</table\\>
+\\</td\\>\\</tr\\>
+\\<tr\\>\\<td\\>";
+
+            html_mods_table_header buf "sharesTable" "shares" [
+              ( "0", "srh ac", "Click to remove user", "Remove" ) ;
+              ( "0", "srh", "User", "Username" ) ];
+
+            let counter = ref 0 in
+
+            user2_iter (fun name user ->
+                incr counter;
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                (if !counter mod 2 == 0 then "dl-1" else "dl-2");
+		if user.user_name <> admin_user then Printf.bprintf buf "
+        \\<td title=\\\"Click to remove user\\\"
+        onMouseOver=\\\"mOvr(this);\\\"
+        onMouseOut=\\\"mOut(this);\\\"
+        onClick=\\\'javascript:{
+        parent.fstatus.location.href=\\\"submit?q=userdel+\\\\\\\"%s\\\\\\\"\\\";
+        setTimeout(\\\"window.location.reload()\\\",1000);}'
+        class=\\\"srb\\\"\\>Remove\\</td\\>" user.user_name
+		else Printf.bprintf buf "
+        \\<td title=\\\"\\\"
+        class=\\\"srb\\\"\\>------\\</td\\>";
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" user.user_name
+            );
+
+            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
+          end
+        else
+          begin
+            Printf.bprintf buf "Users:\n";
+            user2_iter (fun name user ->
+                Printf.bprintf buf "  %s\n"
+                user.user_name);
+          end;
+        ""
+        else
+          _s "Only 'admin' is allowed to list users"
+    ), ":\t\t\t\t\tprint users";
+
+    "whoami", Arg_none (fun o ->
+        let buf = o.conn_buf in
+	let whoami = o.conn_user.ui_user_name in
+        if use_html_mods o then
+          html_mods_table_one_row buf "serversTable" "servers" [
+            ("", "srh", whoami); ]
+        else
+          Printf.bprintf buf "%s" whoami;
+        _s ""
+    ), ":\t\t\t\tprint logged-in user name";
+  ]
 
 
 (*************************************************************************)

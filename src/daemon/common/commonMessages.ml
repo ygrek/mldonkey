@@ -882,7 +882,7 @@ let download_started = message "download_started"
 let no_such_command  = message "no_such_command"
     (T.boption (T.string T.bformat))   "No such command %s\n"
 
-let bad_number_of_args = _s    "Bad number of arguments"
+let bad_number_of_args cmd help = _s (Printf.sprintf "Bad number of arguments, see help for correct use:\n%s %s" cmd help)
 
 (* Colour arrays list for debug and devs
 

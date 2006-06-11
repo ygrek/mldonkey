@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/06/11
+5171: New command group "Driver/Users",
+      print help text for "Bad number of arguments" error message
 5170: Fix default max_indirect_connections, minimum is 30
 5169: HTML, Options: add description to option section buttons,
       remove 'save' button (schlumpf)

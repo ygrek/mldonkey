@@ -999,7 +999,7 @@ let from_gui (proto : int array) opcode s =
     | 5
     | 52 ->
         if proto < 14 then
-           let pass,_ = get_string s 2 in Password (CommonUserDb.admin_user, pass)
+           let pass = fst (get_string s 2) in Password (CommonUserDb.admin_user, pass)
         else
         let pass,pos = get_string s 2 in
         let login,pos = get_string s pos in
