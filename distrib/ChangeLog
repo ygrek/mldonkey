@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/11
+5167: Swarmer: Fix saving ini data for merged downloads (pango)
 5166: Swarmer: New module to abstract verification bitmaps (pango)
 
 2006/06/07

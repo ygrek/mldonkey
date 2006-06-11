@@ -876,15 +876,23 @@ let associate is_primary t s =
   t.t_chunk_of_block <- [||];
   t.t_blocks_of_chunk <- Array.create t.t_nchunks [];
 
-(* invariant: primary frontend is at the head of swarmer's [s_networks] *)
+(* invariant: primary frontend is at the head of swarmer's
+   [s_networks], and is the first associated with the swarmer *)
   if is_primary then begin
     t.t_primary <- true;
-    s.s_networks <- t :: s.s_networks;
+    assert(s.s_networks = []);
+    s.s_networks <- [t]
+    (* was   s.s_networks <- t :: s.s_networks; *)
   end else begin
-    (* TODO: transfer data into swarmer instead of discarding it *)
-    Unix32.remove (file_fd t.t_file);
-    t.t_primary <- false;
-    s.s_networks <- s.s_networks @ [t];
+    match s.s_networks with
+    | tprim :: _ ->
+	assert(tprim.t_primary);
+	if file_disk_name t.t_file <> file_disk_name tprim.t_file then
+	  (* TODO: transfer data into swarmer instead of discarding it *)
+	  Unix32.remove (file_fd t.t_file);
+	t.t_primary <- false;
+	s.s_networks <- s.s_networks @ [t];
+    | [] -> assert false
   end;
 
   (match s.s_networks with
@@ -3255,7 +3263,15 @@ let _ =
     HS.iter (fun s ->
       if s.s_networks <> [] then
         list := s :: !list) swarmers_by_name;
-    swarmers =:= !list
+    swarmers =:= !list;
+    (* put primary frontends to the head, so that swarmers' invariants
+       can be verified while downloads are being restored from ini files *)
+    let primary_files, secondary_files = 
+      List.partition (fun file -> 
+	match file_files file with
+	| primary_file :: _ when primary_file == file -> true
+	| _ -> false) !!CommonComplexOptions.files in
+    CommonComplexOptions.files =:= primary_files @ secondary_files
   );
   set_after_load_hook files_ini (fun _ ->
     List.iter (fun s ->

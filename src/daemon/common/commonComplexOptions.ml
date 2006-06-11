@@ -143,7 +143,7 @@ let done_files =
   
 let files = 
   define_option files_section ["files"] 
-    "The files currently being downloaded" (
+    "The files currently being downloaded, primary downloads must come first" (
     listiter_option (FileOption.t false)) []
 
 (*************************************************************************)
