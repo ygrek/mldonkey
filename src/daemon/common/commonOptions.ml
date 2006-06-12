@@ -488,7 +488,7 @@ let current_section = bandwidth_section
 let max_hard_upload_rate = define_option current_section ["max_hard_upload_rate"]
   "The maximal upload rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
-control and data messages." int_option 7
+control and data messages." int_option 10
 
 let max_hard_download_rate = define_option current_section ["max_hard_download_rate"]
   "The maximal download rate you can tolerate on your link in kBytes/s (0 = no limit)

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/12
+5144: Increase default max_upload_rate to 10 (schlumpf)
 5177: HTML, Options: update display after changing options (schlumpf)
 5176: Swarming: Change error message text and verbosity for BAD WRITE
       BAD WRITE is not really an error, MLDonkey just receives unwanted data

@@ -107,7 +107,8 @@ let keep_best_server = define_expert_option donkey_section
 
 let connect_only_preferred_server = define_expert_option donkey_section
   ["connect_only_preferred_server"]
-  "only servers which are set to 'preferred' will be connected"
+  "only servers which are set to 'preferred' will be connected, 
+  please note that any server must be set to preferred to use this feature"
   bool_option false
 
 let max_walker_servers = define_expert_option donkey_section
