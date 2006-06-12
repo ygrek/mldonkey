@@ -1959,7 +1959,8 @@ type choice = {
   choice_unselected_remaining : int64;
   choice_remaining_per_uploader : int64; (* algo 1 only *)
   choice_saturated : bool; (* has enough uploaders *) (* algo 2 only *)
-  choice_other_complete : int Lazy.t; (* ...blocks in the same chunk *)
+  choice_other_remaining : int Lazy.t; (* ...blocks in the same chunk,
+					  for all frontends *)
   choice_availability : int;
 }
 
@@ -1971,7 +1972,7 @@ let dummy_choice = {
   choice_unselected_remaining = 0L;
   choice_remaining_per_uploader = 0L; (* algo 1 only *)
   choice_saturated = true; (* algo 2 only *)
-  choice_other_complete = lazy 0;
+  choice_other_remaining = lazy 0;
   choice_availability = 0
 }
 
@@ -2019,6 +2020,22 @@ let select_block up =
 
 	let several_frontends = List.length s.s_networks > 1 in
 	(* many results may not be useful, evaluate them as needed *)
+ 	let remaining_blocks_in_chunks = 
+ 	  if several_frontends then
+ 	    let nblocks = VB.length s.s_verified_bitmap in
+ 	    Array.init nblocks (fun i ->
+               lazy (
+ 		List.fold_left (fun acc t ->
+ 		  let chunk = t.t_chunk_of_block.(i) in
+ 		  List.fold_left (fun acc b ->
+ 		    if b <> i &&
+ 		      (match VB.get s.s_verified_bitmap b with
+		      | VB.State_missing | VB.State_partial -> true
+		      | VB.State_complete | VB.State_verified -> false) then acc + 1
+ 		    else acc) acc t.t_blocks_of_chunk.(chunk)
+ 		) 0 s.s_networks
+ 	      ))
+ 	  else [||] in
 	let completed_blocks_in_chunk = 
 	  Array.init my_t.t_nchunks (fun i ->
             lazy (
@@ -2071,7 +2088,9 @@ let select_block up =
 		// size)
 	      *)
 	      else true;
-	    choice_other_complete = completed_blocks_in_chunk.(nchunk);
+	    choice_other_remaining = 
+	      if several_frontends then remaining_blocks_in_chunks.(b) 
+	      else Lazy.lazy_from_val 0;
 	    choice_availability = s.s_availability.(b);
 	  } in
 	
@@ -2084,8 +2103,8 @@ let select_block up =
 	    c.choice_unselected_remaining
 	    c.choice_remaining_per_uploader
 	    c.choice_saturated
-	    (if Lazy.lazy_is_val c.choice_other_complete then
-	      string_of_int (Lazy.force c.choice_other_complete) else "?") 
+	    (if Lazy.lazy_is_val c.choice_other_remaining then
+	      string_of_int (Lazy.force c.choice_other_remaining) else "?") 
 	    c.choice_availability in
 
 	(** > 0 == c1 is best, < 0 = c2 is best, 0 == they're equivalent *)
@@ -2115,6 +2134,16 @@ let select_block up =
 	    else 0 in
 	  if cmp <> 0 then cmp else
 
+	  (* try to quickly complete (and validate) chunks; 
+	     if there's only one frontend, each chunk has only one
+	     block, and looking at siblings make no sense *)
+	  let cmp = 
+	    if verification_available && several_frontends then 
+	      compare (Lazy.force c2.choice_other_remaining)
+		(Lazy.force c1.choice_other_remaining)
+	    else 0 in
+	  if cmp <> 0 then cmp else
+
 	  (* try to quickly complete blocks *)
 	  let cmp = 
 	    match c1.choice_unselected_remaining,
@@ -2123,16 +2152,6 @@ let select_block up =
 	    | 0L, _ -> -1
 	    | _, 0L -> 1
 	    | ur1, ur2 -> compare ur2 ur1 in
-	  if cmp <> 0 then cmp else
-
-	  (* try to quickly complete (and validate) chunks; 
-	     if there's only one frontend, each chunk has only one
-	     block, and looking at siblings make no sense *)
-	  let cmp = 
-	    if verification_available && several_frontends then 
-	      compare (Lazy.force c1.choice_other_complete)
-		(Lazy.force c2.choice_other_complete)
-	    else 0 in
 	  if cmp <> 0 then cmp else
 
 	    (* Can't tell *)
@@ -2184,8 +2203,8 @@ let select_block up =
 	     block, and looking at siblings make no sense *)
 	  let cmp = 
 	    if verification_available && several_frontends then 
-	      compare (Lazy.force c1.choice_other_complete)
-		(Lazy.force c2.choice_other_complete)
+	      compare (Lazy.force c2.choice_other_remaining)
+		(Lazy.force c1.choice_other_remaining)
 	    else 0 in
 	  if cmp <> 0 then cmp else
 
