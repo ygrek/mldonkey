@@ -110,8 +110,8 @@ let list_options_html o list =
       else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
 
       if String.contains o.option_value '\n' then
-        Printf.bprintf buf "
-                  \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>\\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\"\\>
+        Printf.bprintf buf "\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>\\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>
+                  \\<form action=\\\"submit\\\" target=\\\"$S\\\" onsubmit=\\\"javascript: {setTimeout('window.location.replace(window.location.href)',500);}\\\"\\>
                   \\<input type=hidden name=setoption value=q\\>
                   \\<input type=hidden name=option value=%s\\>\\</td\\>\\<td\\>\\<textarea
 					name=value rows=5 cols=20 wrap=virtual\\>
@@ -127,8 +127,8 @@ let list_options_html o list =
 
           Printf.bprintf buf "
               \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>\\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>\\</td\\>
-		      \\<td class=\\\"sr\\\"\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\"\\>\\<input type=hidden
-				name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"
+		      \\<td class=\\\"sr\\\"\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\" onsubmit=\\\"javascript: {setTimeout('window.location.replace(window.location.href)',500);}\\\"\\>
+		      \\<input type=hidden name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"
             o.option_help (String2.upp_initial o.option_name) o.option_name o.option_name;
 
           if o.option_value = "true" || o.option_value = "false" then
