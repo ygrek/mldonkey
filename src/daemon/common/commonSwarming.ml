@@ -2544,8 +2544,8 @@ let received up file_begin str string_begin string_len =
   let s = t.t_s in
 
   let debug_bad_write unexpected_intervals =
-    if !verbose then begin
-      lprintf "BAD WRITE of %d in %s:" 
+    if !verbose_swarming then begin
+      lprintf "Dismiss unwanted data from %d for %s:" 
 	(client_num up.up_client) (file_best_name t.t_file);
       List.iter (fun (i_begin, i_end) -> 
 	lprintf " %Ld-%Ld" i_begin i_end) unexpected_intervals;

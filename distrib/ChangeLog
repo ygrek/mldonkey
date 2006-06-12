@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/06/12
+5176: Swarming: Change error message text and verbosity for BAD WRITE
+      BAD WRITE is not really an error, MLDonkey just receives unwanted data
 5175: GTK1 oldgui: Last compile fix for abstract verification bitmaps (pango)
 5174: Abstract verification bitmaps:
       compile fixes for GTK1 GUIs, move generic code to CDK (pango)
