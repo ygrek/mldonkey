@@ -35,6 +35,7 @@ module P = Gpattern
 module O = Gui_options
 module G = Gui_global
 
+module VB = VerificationBitmap
       
 let preview file () =  Gui_com.send (Preview file.file_num)
 
@@ -517,16 +518,15 @@ let draw_chunks (drawing : unit GDraw.drawable) file =
             if i < nchunks then VerificationBitmap.get chunks i
 	    else VerificationBitmap.State_complete
 	  in
-	  let current = get p in
-	  for i = p+1 to p+group-1 do
-	    current <- (
-              match get i, current with
-	      | VB.State_missing, '0' -> '0'
-              | VB.State_partial, _ -> '1'
-              | (VB.State_complete | VB.State_verified), ('2'|'3') -> '2'
-              | _ -> '1')
+	  let current = ref 0 in
+	  for i = p to p+group-1 do
+	    match get i with
+	    | VB.State_missing -> ()
+	    | VB.State_partial -> if !current = 0 then current := 1
+	    | VB.State_complete | VB.State_verified ->
+		current := 2
 	  done;
-	  String.make 1 (char_of_int current)
+	  String.make 1 (char_of_int !current)
 	in
 	let dx = 1 in
 	let nchunks = nchunks / group in  

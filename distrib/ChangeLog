@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/12
+5175: GTK1 oldgui: Last compile fix for abstract verification bitmaps (pango)
 5174: Abstract verification bitmaps:
       compile fixes for GTK1 GUIs, move generic code to CDK (pango)
 5173: Swarmer: Small fix for merged downloads (WIP7b') (pango)
