@@ -30,6 +30,7 @@ module P = Gpattern
 module O = Gui_options
 module Mi = Gui_misc
 module G = Gui_global
+module VB = VerificationBitmap
 
 let (!!) = Options.(!!)
 
@@ -496,16 +497,25 @@ class box_list (client_info_box : GPack.box) friend_tab =
                       avail_label#misc#show ();
                       
                       let wx, wy = d#size in
-                      let nchunks = String.length file.file_chunks in
-                      let dx = if wx < nchunks then 1 else min !!O.chunk_width (wx / nchunks) in
-                      let dx2 = if dx <= 2 then dx else dx - 1 in
-                      for j = 0 to nchunks - 1 do
-                        if avail.[j] >= '1' then
-                          d#set_foreground (if file.file_chunks.[j] >= '2' then colorDGreen else colorGreen)
-                        else
-                          d#set_foreground (if file.file_chunks.[j] >= '2' then colorDRed else colorRed);
-                        d#rectangle ~filled: true ~x:(j*dx) ~y: 0 ~width: dx2 ~height:wy ();
-                      done;
+		      (match file.file_chunks with
+		      | None -> ()
+		      | Some chunks ->
+			  let nchunks = VB.length chunks in
+			  let dx = if wx < nchunks then 1 else min !!O.chunk_width (wx / nchunks) in
+			  let dx2 = if dx <= 2 then dx else dx - 1 in
+			  for j = 0 to nchunks - 1 do
+			    d#set_foreground
+                              (match avail.[j] >= '1', VB.get chunks j with
+			      | true, (VB.State_complete | VB.State_verified) ->
+				  colorDGreen
+			      | true, (VB.State_missing | VB.State_partial) ->
+				  colorGreen
+			      | false, (VB.State_complete | VB.State_verified) ->
+				  colorDRed
+			      | false, (VB.State_missing | VB.State_partial) ->
+				  colorRed);
+                            d#rectangle ~filled: true ~x:(j*dx) ~y: 0 ~width: dx2 ~height:wy ();
+			  done);
                       
                       false));
                 

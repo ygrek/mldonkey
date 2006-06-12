@@ -51,7 +51,7 @@ type gui_file_info = {
     mutable gfile_all_sources : int;
     mutable gfile_active_sources: int;
     mutable gfile_state : general_state;
-    mutable gfile_chunks : string;
+    mutable gfile_chunks : VerificationBitmap.t option;
     mutable gfile_availability : (int * string) list;
     mutable gfile_download_rate : float;
     mutable gfile_format : format;

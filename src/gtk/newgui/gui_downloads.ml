@@ -39,6 +39,7 @@ module M = Gui_messages
 module P = Gpattern
 module O = Gui_options
 module G = Gui_global
+module VB = VerificationBitmap
 
 let use_interested_in_sources = ref false
 let interested_in_sources = ref false
@@ -227,23 +228,15 @@ let some_is_available f =
       
       if !!Gui_options.use_relative_availability
       then
-        let rec loop i =
-          if i < 0
-          then false
-          else
-          if CommonGlobals.partial_chunk f.data.gfile_chunks.[i] &&
-            avail.[i] <> (char_of_int 0)
-          then true
-          else loop (i - 1)
-        in
-        loop ((String.length avail) - 1)
+	match f.data.gfile_chunks with
+	| None -> false
+	| Some chunks ->
+	    String2.existsi (fun i a ->
+	      CommonGlobals.partial_chunk (VB.get chunks i) &&
+		a <> (char_of_int 0)
+	    ) avail
       else
-      let b = ref false in
-      let len = String.length avail in
-      for i = 0 to len - 1 do
-        b := !b or int_of_char avail.[i] <> 0
-      done;
-      !b
+	String2.exists ((<>) (char_of_int 0)) avail
   | _ -> false
       
 let color_opt_of_file f =
@@ -264,21 +257,19 @@ let file_availability f =
   match f.data.gfile_availability with
     (_,avail) :: _ ->
       
-      let rec loop i p n =
-        if i < 0
-        then
-          if n = 0.0
-          then "---"
-          else Printf.sprintf "%5.1f" (p /. n *. 100.0)
-        else
-        if CommonGlobals.partial_chunk f.data.gfile_chunks.[i]
-        then
-          if avail.[i] <> (char_of_int 0)
-          then loop (i - 1) (p +. 1.0) (n +. 1.0)
-          else loop (i - 1) p (n +. 1.0)
-        else loop (i - 1) p n
-      in
-      loop ((String.length avail) - 1) 0.0 0.0
+      (match f.data.gfile_chunks with
+      | None -> "---"
+      | Some chunks ->
+	  let rec loop i p n =
+            if i < 0 then
+              if n = 0 then "---"
+              else Printf.sprintf "%5.1f" ((float p) /. (float n) *. 100.0)
+            else 
+	      loop (i - 1)
+		(if CommonGlobals.partial_chunk (VB.get chunks i) then p + 1 
+		else p)
+		(if avail.[i] <> (char_of_int 0) then n + 1 else n) in
+      loop ((String.length avail) - 1) 0 0)
   | _ -> "---"
       
 let string_availability s =
@@ -650,67 +641,51 @@ let get_avail_pixmap avail chunks is_file =
   let pixmap = GDraw.pixmap ~width:width ~height:height
       ~colormap:(Gdk.Color.get_system_colormap ()) ()
   in
-  let nchunks = String.length chunks in
-  try 
-    match avail with
-      (_,avail) :: _ ->
+  match chunks with
+  | None -> pixmap
+  | Some chunks ->
+      let nchunks = VB.length chunks in
+      try 
+	match avail with
+	| (_,avail) :: _ ->
         
-        
-        begin
-          for i = 0 to (width - 1) do
-            let ind = i * (nchunks - 1) / (width - 1) in
-            begin
-              if is_file then
-                if chunks.[ind] >= '2'
-                then pixmap#put_pixmap
-                    ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                    color_green#pixmap
-                else
-                let h = int_of_char (avail.[ind]) in
-                if h = 0
-                then if chunks.[ind] = '0' then
-                    pixmap#put_pixmap
-                      ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                      color_red#pixmap
-                  else
-                    pixmap#put_pixmap
-                      ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                      color_orange#pixmap
-                else begin
-                    let h = if h >= !!O.availability_max then
-                        0
-                      else (!!O.availability_max - h)
-                    in
-                    let color_blue = !color_blue_relative.(h) in
-                    pixmap#put_pixmap
-                      ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+            for i = 0 to (width - 1) do
+              let ind = i * (nchunks - 1) / (width - 1) in
+              pixmap#put_pixmap
+		~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+		(if is_file then
+		  match int_of_char(avail.[ind]), VB.get chunks ind with
+		  | _, (VB.State_complete | VB.State_verified) -> 
+		      color_green#pixmap
+
+		  | 0, VB.State_missing -> color_red#pixmap
+
+		  | 0, VB.State_partial -> color_orange#pixmap
+
+		  | h, (VB.State_missing | VB.State_partial) (* h > 0 *) ->
+                      let h = 
+			if h >= !!O.availability_max then 0
+			else (!!O.availability_max - h) in
+                      let color_blue = !color_blue_relative.(h) in
                       color_blue#pixmap
-                  end
-              else
-              if avail.[ind] >= '1'
-              then
-                if chunks.[ind] >= '2' then
-                  pixmap#put_pixmap
-                    ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                    color_black#pixmap
-                else
-                  pixmap#put_pixmap
-                    ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                    color_green#pixmap
-              else
-              if chunks.[ind] > '2' then
-                pixmap#put_pixmap
-                  ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                  color_orange#pixmap
-              else
-                pixmap#put_pixmap
-                  ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-                  color_red#pixmap
-            end
-          done;
-          pixmap
-        end
-    | _ -> raise Not_found  
+		else
+		  match int_of_char(avail.[ind]), VB.get chunks ind with
+		  | 0, VB.State_verified -> color_orange#pixmap
+
+		  | 0, (VB.State_missing | VB.State_partial |
+			VB.State_complete) -> 
+		      color_red#pixmap
+
+		  | _, (VB.State_complete | VB.State_verified) ->
+		      (* h > 0 *) 
+		      color_black#pixmap
+
+		  | _, (VB.State_missing | VB.State_partial) ->
+		      (* h > 0 *)
+		      color_green#pixmap)
+            done;
+            pixmap
+	| _ -> raise Not_found  
   with _ ->
       begin
         for i = 0 to (width - 1) do

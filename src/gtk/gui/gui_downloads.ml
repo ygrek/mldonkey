@@ -115,24 +115,22 @@ let float_avail s =
   with _ -> 0.0
 
 let file_availability f =
-  match f.file_availability with
-    (_,avail) :: _ ->
-      let rec loop i p n =
-        if i < 0
-        then
-          if n = 0.0
-          then "---"
-          else Printf.sprintf "%5.1f" (p /. n *. 100.0)
-        else
-          if CommonGlobals.partial_chunk f.file_chunks.[i]
-          then
-	    if avail.[i] <> (char_of_int 0)
-	    then loop (i - 1) (p +. 1.0) (n +. 1.0)
-	    else loop (i - 1) p (n +. 1.0)
-	  else loop (i - 1) p n
-      in
-      loop ((String.length avail) - 1) 0.0 0.0
-  | _ -> "---"
+  match f.file_chunks with
+  | None -> "---"
+  | Some chunks ->
+      match f.file_availability with
+	(_,avail) :: _ ->
+	  let rec loop i p n =
+            if i < 0 then
+              if n = 0 then "---"
+              else Printf.sprintf "%5.1f" ((float p) /. (float n) *. 100.0)
+            else 
+	      loop (i - 1)
+		(if CommonGlobals.partial_chunk (VerificationBitmap.get chunks i) then p + 1 else p)
+		(if avail.[i] <> (char_of_int 0) then n + 1 else n)
+	  in
+	  loop ((String.length avail) - 1) 0 0
+      | _ -> "---"
 
 let string_availability f =
   let maxi = ref 0. in
@@ -485,68 +483,69 @@ let drawing = ref (None :   [ `window] GDraw.drawable option)
 
   
 let draw_chunks (drawing : unit GDraw.drawable) file =
-  let wx, wy = drawing#size in
-  drawing#set_foreground colorWhite;
-  drawing#rectangle ~filled: true ~x:0 ~y:0 ~width:wx ~height:wy ();
-  let nchunks = String.length file.file_chunks in
-  let dx = min !!O.chunk_width (wx / nchunks) in
+  match file.file_chunks with
+  | None -> ()
+  | Some chunks ->
+      let wx, wy = drawing#size in
+      drawing#set_foreground colorWhite;
+      drawing#rectangle ~filled: true ~x:0 ~y:0 ~width:wx ~height:wy ();
+      let nchunks = VerificationBitmap.length chunks in
+      let dx = min !!O.chunk_width (wx / nchunks) in
   
-  if wx > nchunks*dx && dx > 0 then
+      if wx > nchunks*dx && dx > 0 then
     
-    let offset = (wx - nchunks * dx) / 2 in
-    let offset = if offset < 0 then 0 else offset in
-    let dx2 = if dx <= 2 then dx else dx - 1 in
-    for i = 0 to nchunks - 1 do
-      drawing#set_foreground (
-        match file.file_chunks.[i] with
-        | '0' -> colorRed
-        | '1' -> colorBlue
-        | '2' -> colorBlack
-        | _ -> colorGreen);
-      drawing#rectangle ~filled: true
-      ~x:(offset + i*dx) ~y: 0 
-        ~width: dx2 ~height:wy ()
-    done          
-  else
+	let offset = (wx - nchunks * dx) / 2 in
+	let offset = if offset < 0 then 0 else offset in
+	let dx2 = if dx <= 2 then dx else dx - 1 in
+	for i = 0 to nchunks - 1 do
+	  drawing#set_foreground (
+            match VerificationBitmap.get chunks i with
+            | VerificationBitmap.State_missing -> colorRed
+            | VerificationBitmap.State_partial -> colorBlue
+            | VerificationBitmap.State_complete -> colorBlack
+            | VerificationBitmap.State_verified -> colorGreen);
+	  drawing#rectangle ~filled: true
+	    ~x:(offset + i*dx) ~y: 0 
+            ~width: dx2 ~height:wy ()
+	done          
+      else
   
-  let group = (nchunks+wx-1) / wx in
-  let chunk n =
-    let p = n * group in
-    let get i = 
-      let v = 
-        if i < nchunks then file.file_chunks.[i] else '2'
-      in
-      v
-    in
-    let current = String.make 1 (get p) in
-    for i = p+1 to p+group-1 do
-      current.[0] <- (
-        match get i, current with
-          '0',"0" -> '0'
-        | '1', _ -> '1'
-        | ('2' | '3'), ("2"|"3") -> '2'
-        | _ -> '1')
-    done;
-    current.[0]
-  in
-  let dx = 1 in
-  let nchunks = nchunks / group in  
+	let group = (nchunks+wx-1) / wx in
+	let chunk n =
+	  let p = n * group in
+	  let get i = 
+            if i < nchunks then VerificationBitmap.get chunks i
+	    else VerificationBitmap.State_complete
+	  in
+	  let current = get p in
+	  for i = p+1 to p+group-1 do
+	    current <- (
+              match get i, current with
+	      | VB.State_missing, '0' -> '0'
+              | VB.State_partial, _ -> '1'
+              | (VB.State_complete | VB.State_verified), ('2'|'3') -> '2'
+              | _ -> '1')
+	  done;
+	  String.make 1 (char_of_int current)
+	in
+	let dx = 1 in
+	let nchunks = nchunks / group in  
   
-  let offset = (wx - nchunks * dx) / 2 in
-  let offset = if offset < 0 then 0 else offset in
-  let dx2 = if dx <= 2 then dx else dx - 1 in
-  for i = 0 to nchunks - 1 do
-    let chunk = chunk i in
-    drawing#set_foreground (
-        match file.file_chunks.[i] with
-        | '0' -> colorRed
-        | '1' -> colorBlue
-        | '2' -> colorBlack
-        | _ -> colorGreen);
-    drawing#rectangle ~filled: true
-    ~x:(offset + i*dx) ~y: 0 
-      ~width: dx2 ~height:wy ()
-  done
+	let offset = (wx - nchunks * dx) / 2 in
+	let offset = if offset < 0 then 0 else offset in
+	let dx2 = if dx <= 2 then dx else dx - 1 in
+	for i = 0 to nchunks - 1 do
+	  let chunk = chunk i in
+	  drawing#set_foreground (
+            match VerificationBitmap.get chunks i with
+            | VerificationBitmap.State_missing -> colorRed
+            | VerificationBitmap.State_partial -> colorBlue
+            | VerificationBitmap.State_complete -> colorBlack
+            | VerificationBitmap.State_verified -> colorGreen);
+	  drawing#rectangle ~filled: true
+	    ~x:(offset + i*dx) ~y: 0 
+	    ~width: dx2 ~height:wy ()
+	done
   
 let draw_availability (drawing: unit GDraw.drawable) availability =
   let wx, wy = drawing#size in

@@ -33,3 +33,32 @@ let max a =
   done;
   !max_val
   
+let exists p a =
+  let l = Array.length a in
+  let rec aux i = (i < l) && (p a.(i) || aux (i+1)) in
+  aux 0
+
+let existsi p a =
+  let l = Array.length a in
+  let rec aux i = (i < l) && (p i a.(i) || aux (i+1)) in
+  aux 0
+
+(* based on Array.fold_left code *)
+let fold_lefti f x a =
+  let r = ref x in
+  for i = 0 to Array.length a - 1 do
+    r := f !r i (Array.unsafe_get a i)
+  done;
+  !r
+
+let subarray_fold_lefti f x a firstidx lastidx =
+  let len = Array.length a in
+  assert(firstidx >= 0 && firstidx < len);
+  assert(lastidx >= 0 && lastidx < len);
+  let r = ref x in
+  for i = firstidx to lastidx do
+    r := f !r i (Array.unsafe_get a i)
+  done;
+  !r
+
+

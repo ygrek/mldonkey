@@ -309,3 +309,22 @@ let init n f =
     s.[i] <- f i 
   done;
   s
+
+let exists p s =
+  let l = String.length s in
+  let rec aux i =
+    i < l && (p s.[i] || aux (i+1)) in
+  aux 0
+
+let existsi p s =
+  let l = String.length s in
+  let rec aux i =
+    i < l && (p i s.[i] || aux (i+1)) in
+  aux 0
+
+let for_all p s =
+  let l = String.length s in
+  let rec aux i =
+    i >= l || p s.[i] && aux (i+1) in
+  aux 0
+

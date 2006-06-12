@@ -103,3 +103,6 @@ val stem : string -> string list
   
 val map : (char -> 'a) -> string -> 'a array
 val iteri: (int -> char -> unit) -> string -> unit
+val exists: (char -> bool) -> string -> bool
+val existsi: (int -> char -> bool) -> string -> bool
+val for_all: (char -> bool) -> string -> bool

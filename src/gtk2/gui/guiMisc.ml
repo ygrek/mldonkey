@@ -775,23 +775,13 @@ let completed_chunks_to_string chunks =
 
 let some_is_available availability chunks =
   if !!O.gtk_misc_relative_availability
-    then
-      let rec loop i =
-        if i < 0
-          then false
-        else if CommonGlobals.partial_chunk (VerificationBitmap.get chunks i) &&
-                  availability.[i] <> (char_of_int 0)
-            then true
-            else loop (i - 1)
-      in
-      loop ((String.length availability) - 1)
-    else
-      let b = ref false in
-      let len = String.length availability in
-      for i = 0 to len - 1 do
-        b := !b or int_of_char availability.[i] <> 0
-      done;
-      !b
+  then
+    String2.existsi (fun i a ->
+      CommonGlobals.partial_chunk (VerificationBitmap.get chunks i) &&
+        a <> (char_of_int 0)
+    ) availability
+  else
+    String2.exists ((<>) (char_of_int 0)) availability
 
 let relative_availability_of avail chunks =
   match chunks with

@@ -332,37 +332,6 @@ let uploaders_by_num = HU.create 113
 
 let swarmer_counter = ref 0
 
-let string_init n f =
-  let s = String.create n in
-  let rec aux i =
-    if i < n then begin
-      s.[i] <- f i;
-      aux (i+1)
-    end in 
-  aux 0;
-  s
-
-let string_iter f s =
-  let l = String.length s in
-  let rec aux i =
-    if i < l then begin
-      f i s.[i];
-      aux (i+1)
-    end in 
-  aux 0
-
-let string_existsi p s =
-  let l = String.length s in
-  let rec aux i =
-    i < l && (p i s.[i] || aux (i+1)) in
-  aux 0
-
-let string_for_all p s =
-  let l = String.length s in
-  let rec aux i =
-    i >= l || p s.[i] && aux (i+1) in
-  aux 0
-
 (** sets [t.t_last_seen] of the verified blocks to current time, and 
     associated file's [t.t_s.s_file] last seen value to the oldest of the
     remaining last seen values *)
@@ -743,14 +712,9 @@ let split_blocks s chunk_size =
   let nblocks = List.length blocks in
 (*  lprintf "%d blocks to generate\n" nblocks; *)
 
-  let array_exist p a =
-    let l = Array.length a in
-    let rec aux i = (i < l) && (p a.(i) || aux (i+1)) in
-    aux 0 in
-
-  if array_exist ((<>) 0) s.s_availability then
+  if Array2.exists ((<>) 0) s.s_availability then
     lprintf_nl "WARNING: splitting swarmer discarded availability counters";
-  if array_exist ((<>) 0) s.s_nuploading then
+  if Array2.exists ((<>) 0) s.s_nuploading then
     lprintf_nl "WARNING: splitting a swarmer beging uploaded to";
 
   s.s_blocks <- Array.create nblocks EmptyBlock;
@@ -1976,24 +1940,6 @@ let dummy_choice = {
   choice_availability = 0
 }
 
-(* based on Array.fold_left code *)
-let array_fold_lefti f x a =
-  let r = ref x in
-  for i = 0 to Array.length a - 1 do
-    r := f !r i (Array.unsafe_get a i)
-  done;
-  !r
-
-let subarray_fold_lefti f x a firstidx lastidx =
-  let len = Array.length a in
-  assert(firstidx >= 0 && firstidx < len);
-  assert(lastidx >= 0 && lastidx < len);
-  let r = ref x in
-  for i = firstidx to lastidx do
-    r := f !r i (Array.unsafe_get a i)
-  done;
-  !r
-
 let select_block up =
   let t = up.up_t in
   let s = t.t_s in
@@ -2225,7 +2171,7 @@ let select_block up =
 	  | _ -> assert false in
 
 	let best_choices, specimen = 
-	  subarray_fold_lefti (fun ((best_choices, specimen) as acc) n b ->
+	  Array2.subarray_fold_lefti (fun ((best_choices, specimen) as acc) n b ->
 	  (* priority bitmap <> 0 here ? *)
 	  if not (should_download_block s b) then acc else
 	    let this_choice = evaluate_choice n b in
@@ -2272,7 +2218,7 @@ let select_block up =
 		true in
 	  if probably_buggy then begin
 	    lprintf_nl "Probably buggy choice:";
-	    subarray_fold_lefti (fun () n b ->
+	    Array2.subarray_fold_lefti (fun () n b ->
 	      if should_download_block s b then
 		let this_choice = evaluate_choice n b in
 		if List.mem n best_choices then lprintf "** "
@@ -2729,7 +2675,7 @@ let present_intervals s =
 	    (last_interval_begin, interval_end) :: other_intervals in
 
   List.rev (
-    array_fold_lefti (fun acc i b -> 
+    Array2.fold_lefti (fun acc i b -> 
       match s.s_blocks.(i) with
       | EmptyBlock -> acc
       | CompleteBlock | VerifiedBlock ->
@@ -2834,7 +2780,7 @@ let uploader_swarmer up = up.up_t
 
 let chunks_availability t =
   let s = t.t_s in
-  string_init (partition_size t) (fun i ->
+  String2.init (partition_size t) (fun i ->
     char_of_int (
       let v = List2.min
         (List.map (fun i -> s.s_availability.(i)) t.t_blocks_of_chunk.(i)) in
