@@ -512,6 +512,10 @@ let friends_upload_slot = define_option current_section ["friends_upload_slot"]
     "Set aside a single reserved slot to upload to friends"
     bool_option true
 
+let small_files_slot_limit = define_option current_section ["small_files_slot_limit"]
+  "Maximum file size to benefit from the reserved slot for small files (0 to disable)"
+    int64_option 10240L
+
 let dynamic_slots = define_option current_section ["dynamic_slots"]
     "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
 

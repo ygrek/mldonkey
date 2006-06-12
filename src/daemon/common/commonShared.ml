@@ -166,6 +166,10 @@ let shared_fullname s =
   let impl = as_shared_impl s in
   impl.impl_shared_fullname  
 
+let shared_size s =
+  let impl = as_shared_impl s in
+  impl.impl_shared_size
+
 let shared_codedname s =
   let impl = as_shared_impl s in
   impl.impl_shared_codedname  

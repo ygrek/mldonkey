@@ -35,6 +35,7 @@ val files_scanned_size : int64 ref
 val new_shared : string -> int -> string -> string -> unit
 val shared_num : CommonTypes.shared -> int
 val shared_fullname : CommonTypes.shared -> string
+val shared_size : CommonTypes.shared -> Int64.t
 val shared_codedname : CommonTypes.shared -> string
 val shared_unshare : CommonTypes.shared -> unit
 val shared_dir : CommonTypes.shared option -> string

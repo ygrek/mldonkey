@@ -868,18 +868,26 @@ let add_pending_slot c =
   let csh = client_upload c in
   let cdir = shared_dir csh in
   let cprio = ref (shared_prio csh) in
-  let cfriend = ref (if !!friends_upload_slot then 1 else 0) in
+  let cfriend = ref (if is_friend c && !!friends_upload_slot then 1 else 0) in
+  let csmallfiles = ref (match csh with 
+    | None -> 0
+    | Some sh -> if shared_size sh <= !!small_files_slot_limit then 1 else 0) in
   (* if cdir <> "" then
     lprintf "Testing cdir %s\n" cdir; *)
   Intmap.iter (fun _ c ->
     let sh = client_upload c in
     if shared_dir sh = cdir then decr cprio;
     if client_has_a_friend_slot c then decr cfriend;
+    match sh with
+      | None -> ()
+      | Some sh ->
+	  if shared_size sh <= !!small_files_slot_limit then
+	    decr csmallfiles;
   ) !CommonClient.uploaders;
   (* if cdir <> "" then
-    lprintf "Testing cprio %d cfriend %d\n" !cprio !cfriend; *)
-  if !cprio > 0 || 
-     (is_friend c && !cfriend > 0) then begin
+     lprintf "Testing cprio %d cfriend %d csmallfiles\n" 
+     !cprio !cfriend !csmallfiles; *)
+  if !cprio > 0 || !cfriend > 0 || !csmallfiles > 0 then begin
     remove_pending_slot c;
     if client_is_connected c then begin
       set_client_has_a_slot c true;

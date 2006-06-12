@@ -1691,10 +1691,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option backup_options_format;
 			strings_of_option backup_options_delay;
 			strings_of_option backup_options_generations;
-			strings_of_option chat_app_port;
-			strings_of_option chat_app_host;
-			strings_of_option chat_console_id;
-			strings_of_option chat_warning_for_downloaded;
+			strings_of_option small_files_slot_limit;
                       ]
 
                   | _ ->

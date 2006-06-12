@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/06/12
+5061: New option small_files_slot_limit to push release of small files (pango)
+      all files below the configured file size (default 10kb) are uploaded
+      through one reserved slot
 5144: Increase default max_upload_rate to 10 (schlumpf)
 5177: HTML, Options: update display after changing options (schlumpf)
 5176: Swarming: Change error message text and verbosity for BAD WRITE
