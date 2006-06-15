@@ -107,6 +107,7 @@ td.fbig { color: @color_general_text@; cursor: pointer; padding-left: 2px; paddi
 border-top: @color_general_border@ solid 1px; border-left: @color_general_border@ solid 1px; }
 td.pr { border-right: @color_general_border@ solid 1px; }
 td.fbigb { border-top: @color_general_border@ solid 0px; border-bottom: @color_general_border@ solid 1px; }
+td.fbigpad { padding-top: 2px; padding-bottom: 2px; }
 td, tr {font-size: 12px; font-face: verdana; }
 td.sr { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: @color_general_text@; }
 td.srp { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 0px; padding-right: 4px; font-family: verdana; font-size: 10px; color: @color_one_td_text@; }

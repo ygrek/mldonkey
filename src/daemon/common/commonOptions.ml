@@ -808,6 +808,9 @@ let html_mods_js_tooltips_wait = define_expert_option current_section
 
 let html_mods_js_tooltips_timeout = define_expert_option current_section
     ["html_mods_js_tooltips_timeout"] "How long to display the tooltips" int_option 100000
+    
+let html_mods_use_js_helptext = define_expert_option current_section
+    ["html_mods_use_js_helptext"] "Use javascript to display option help text as js popup (true=use js, false=use html tables)" bool_option true
 
 
 (*************************************************************************)

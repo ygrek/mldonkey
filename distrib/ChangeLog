@@ -14,6 +14,13 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/06/15
+5156: HTML, improve Options output (schlumpf)
+* new command html_mods_use_js_helptext (true|false)
+  to change display of helptext between javascript popup`s and html table
+* fix some padding and border bugs
+* add "toggle js_helptext" button to 'vo' and 'voo' to directly toggle the style
+
 2006/06/12
 5061: New option small_files_slot_limit to push release of small files (pango)
       all files below the configured file size (default 10kb) are uploaded

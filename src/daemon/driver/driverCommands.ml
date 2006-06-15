@@ -94,63 +94,73 @@ let execute_command arg_list output cmd args =
     iter arg_list
   with Not_found -> ()
 
-
 let list_options_html o list =
   let buf = o.conn_buf in
-  html_mods_table_header buf "voTable" "vo" [
-    ( "0", "srh", "Option name", "Name (Help=mouseOver)" ) ;
-    ( "0", "srh", "Option value", "Value (press ENTER to save)" ) ;
-    ( "0", "srh", "Option default", "Default" ) ] ;
+  if !!html_mods_use_js_helptext then
+    html_mods_table_header buf "upstatsTable" "upstats" [
+      ( "0", "srh", "Option name", "Name (Help=mouseOver)" ) ;
+      ( "0", "srh", "Option value", "Value (press ENTER to save)" ) ;
+      ( "0", "srh", "Option default", "Default" ) ]
+  else
+    html_mods_table_header buf "voTable" "vo" [
+      ( "0", "srh", "Option name", "Name" ) ;
+      ( "0", "srh", "Option value", "Value (press ENTER to save)" ) ;
+      ( "0", "srh", "Option default", "Default" ) ;
+      ( "0", "srh", "Option description", "Help" ) ];
 
   let counter = ref 0 in
 
   List.iter (fun o ->
       incr counter;
-      if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-      else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+      if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\""
+      else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"";
+    
+        if !!html_mods_use_js_helptext then
+          Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
+          (Str.global_replace (Str.regexp "\n") "\\<br\\>" (Http_server.html_real_escaped o.option_help)) !!html_mods_js_tooltips_wait !!html_mods_js_tooltips_timeout !!html_mods_js_tooltips_wait
+        else
+          Printf.bprintf buf "\\>";
 
-      if String.contains o.option_value '\n' then
-        Printf.bprintf buf "\\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>\\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>
+      if String.contains o.option_value '\n' then begin
+        Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>
+                  \\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>
                   \\<form action=\\\"submit\\\" target=\\\"$S\\\" onsubmit=\\\"javascript: {setTimeout('window.location.replace(window.location.href)',500);}\\\"\\>
-                  \\<input type=hidden name=setoption value=q\\>
-                  \\<input type=hidden name=option value=%s\\>\\</td\\>\\<td\\>\\<textarea
-					name=value rows=5 cols=20 wrap=virtual\\>
-                  %s
-                  \\</textarea\\>\\<input type=submit value=Modify\\>
-                  \\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>
-                  \\</form\\>
-                  " o.option_help (String2.upp_initial o.option_name) o.option_name o.option_name o.option_value o.option_default
-
-      else
-
-        begin
-
-          Printf.bprintf buf "
-              \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>\\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>\\</td\\>
-		      \\<td class=\\\"sr\\\"\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\" onsubmit=\\\"javascript: {setTimeout('window.location.replace(window.location.href)',500);}\\\"\\>
-		      \\<input type=hidden name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"
-            o.option_help (String2.upp_initial o.option_name) o.option_name o.option_name;
+                  \\<input type=hidden name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>\\</td\\>
+                  \\<td\\>\\<textarea name=value rows=5 cols=20 wrap=virtual\\>%s\\</textarea\\>
+                  \\<input type=submit value=Modify\\>\\</td\\>\\</form\\>
+                  \\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+                  (String2.upp_initial o.option_name) o.option_name o.option_name o.option_value o.option_default;
+                  
+          if not !!html_mods_use_js_helptext then
+            Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (Str.global_replace (Str.regexp "\n") "\\<br\\>" o.option_help);
+            
+        Printf.bprintf buf "\\</tr\\>"
+        end
+      
+      else begin
+        Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>
+                  \\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>\\</td\\>
+                  \\<td class=\\\"sr\\\"\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\" onsubmit=\\\"javascript: {setTimeout('window.location.replace(window.location.href)',500);}\\\"\\>
+                  \\<input type=hidden name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"
+                  (String2.upp_initial o.option_name) o.option_name o.option_name;
 
           if o.option_value = "true" || o.option_value = "false" then
-
             Printf.bprintf buf "\\<select style=\\\"font-family: verdana; font-size: 10px;\\\"
-									name=\\\"value\\\" onchange=\\\"this.form.submit()\\\"\\>
-									\\<option selected\\>%s\\<option\\>%s\\</select\\>"
-              o.option_value
-              (if o.option_value="true" then "false" else "true")
+                                name=\\\"value\\\" onchange=\\\"this.form.submit()\\\"\\>
+                                \\<option selected\\>%s\\<option\\>%s\\</select\\>"
+                                o.option_value (if o.option_value="true" then "false" else "true")
           else
-
             Printf.bprintf buf "\\<input style=\\\"font-family: verdana; font-size: 10px;\\\"
-				type=text name=value size=20 value=\\\"%s\\\"\\>"
-              o.option_value;
+                                type=text name=value size=20 value=\\\"%s\\\"\\>"
+                                o.option_value;
 
-          Printf.bprintf buf "
-              \\</td\\>
-              \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-			  \\</tr\\>\\</form\\>
-              " (shorten o.option_default 40)
+          Printf.bprintf buf "\\</td\\>\\</form\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (shorten o.option_default 40);
+          
+          if not !!html_mods_use_js_helptext then
+            Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (Str.global_replace (Str.regexp "\n") "\\<br\\>" o.option_help);
+          
+          Printf.bprintf buf "\\</tr\\>"
         end;
-
 
   )list;
   Printf.bprintf  buf "\\</table\\>\\</div\\>"
@@ -1360,16 +1370,19 @@ let _ =
         let buf = o.conn_buf in
         if use_html_mods o then begin
 
-            Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
+          if !!html_mods_use_js_helptext then
+            Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
+            
+          Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap title=\\\"Show shares Tab (also related for incoming directory)\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Show Web_infos Tab where you can add/remove automatic downloads like serverlists\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Show Calendar Tab, there are informations about automatically jobs\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"voo\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show shares Tab (also related for incoming directory)\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show Web_infos Tab where you can add/remove automatic downloads like serverlists\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show Calendar Tab, there are informations about automatically jobs\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"voo\\\" class=\\\"fbig pr fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
@@ -1388,7 +1401,10 @@ let _ =
                 strings_of_option force_client_ip;
               ] );
 
-            Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>";
+            Printf.bprintf buf "\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap title=\\\"Toggle option helptext from javascript popup to html table\\\" class=\\\"fbig fbigb pr fbigpad\\\"\\>
+\\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=set+html_mods_use_js_helptext+%s'; setTimeout('window.location.replace(window.location.href)',1000);return true;}\\\"\\>Toggle js_helptext\\</a\\>
+\\</td\\>\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>" (if !!html_mods_use_js_helptext then "false" else "true");
             
             html_mods_table_one_row buf "downloaderTable" "downloaders" [
             ("", "srh", "!! press ENTER to send changes to core !!"); ]
@@ -1441,6 +1457,9 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
             let tabnumber = ref 0 in
             let mtabs = ref 1 in
 
+            if !!html_mods_use_js_helptext then
+             Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
+
             Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
@@ -1449,7 +1468,7 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
 
             List.iter (fun (s,d) ->
                 incr tabnumber; incr mtabs;
-                Printf.bprintf buf "\\<td nowrap title=\\\"%s\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+%d'\\\"\\>%s\\</a\\>\\</td\\>"
+                Printf.bprintf buf "\\<td nowrap title=\\\"%s\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+%d';setTimeout('window.location.replace(window.location.href)',500)\\\"\\>%s\\</a\\>\\</td\\>"
                   d !tabnumber s
             ) [ ("Client", "Client related options & Up/Download limitations ") ; 
                 ("Ports", "Interface ports, each Network port is stored in Network plugin options") ; 
@@ -1564,6 +1583,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option html_mods_use_js_tooltips;
 			strings_of_option html_mods_js_tooltips_wait;
 			strings_of_option html_mods_js_tooltips_timeout;
+			strings_of_option html_mods_use_js_helptext;
 			] @ (if Autoconf.has_gd then
 			[strings_of_option html_mods_vd_gfx;] else []) @
 			(if Autoconf.has_gd_jpg && Autoconf.has_gd_png
@@ -1712,7 +1732,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
 \\<td nowrap title=\\\"Show Web_infos Tab where you can add/remove automatic downloads like serverlists\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
 \\<td nowrap title=\\\"Show Calendar Tab, there are informations about automatically jobs\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb pr\\\"\\>
 \\<form style=\\\"margin: 0px;\\\" name=\\\"htmlModsStyleForm\\\" id=\\\"htmlModsStyleForm\\\"
 action=\\\"javascript:submitHtmlModsStyle();\\\"\\>
@@ -1733,12 +1752,17 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
               ) (List.sort (fun d1 d2 -> compare d1 d2) list);
             end;
             
-          Printf.bprintf buf "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>";
-          Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>";
+          Printf.bprintf buf "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=\\\"fbig fbigb fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Toggle option helptext from javascript popup to html table\\\" class=\\\"fbig fbigb pr fbigpad\\\"\\>
+\\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=set+html_mods_use_js_helptext+%s'; setTimeout('window.location.replace(window.location.href)',1000);return true;}\\\"\\>Toggle js_helptext\\</a\\>
+\\</td\\>\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>" (if !!html_mods_use_js_helptext then "false" else "true");
           html_mods_table_one_row buf "downloaderTable" "downloaders" [
           ("", "srh", "!! press ENTER to send changes to core !!"); ];
           end
-           
+                     
         else begin
             list_options o (CommonInteractive.parse_simple_options args)
           end;
