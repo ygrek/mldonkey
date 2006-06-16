@@ -80,8 +80,11 @@ let check_supported_os () =
 let dns_works = ref false
   
 let real_startup_message () =
+  let s =
   !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ()) 
   ^ (if not !dns_works then "DNS resolution does not work" else "")
+  in
+  if s = "" then None else Some s
 
 let hdd_check () =
   let dir_full dir mb =

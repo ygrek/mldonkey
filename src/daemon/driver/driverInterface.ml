@@ -392,8 +392,9 @@ let gui_initialize gui =
   networks_iter_all (fun n ->
       gui_send gui (Network_info (network_info n)));
   gui_send gui (Console ((DriverControlers.text_of_html !!motd_html) ^ "\n"));
-  gui_send gui (Console (DriverInteractive.real_startup_message ()));
-  
+  (match DriverInteractive.real_startup_message () with
+    Some s -> gui_send gui (Console s);
+  | None -> ());
   
   if gui.gui_poll then begin
       
