@@ -97,6 +97,10 @@ let numwant = define_option bittorrent_section ["numwant"]
     "Number of peers to request from tracker (Negative # = let tracker decide)"
     int_option (-1)
 
+let import_new_torrents_interval = define_option bittorrent_section ["import_new_torrents_interval"]
+    "Interval in seconds 'torrents/incoming' is scanned for new torrent files to be downloaded, 0 to deactivate, changes require restart"
+    float_option 60.
+
 let _ =
   begin
     option_hook max_uploaders_per_torrent

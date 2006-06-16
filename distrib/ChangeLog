@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/06/16
+5187: New option: BT_import_new_torrents_interval,
+      ignore Thumbs.db & desktop.ini in directory lists
 5186: GUI: Send only non-empty real_startup_message string
 
 2006/06/15

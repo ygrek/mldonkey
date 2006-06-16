@@ -60,7 +60,8 @@ let list_directory filename =
       while true do
 	let file = readdir dir in 
 	if file <> "." && file <> ".." &&
-	  not (file = ".DS_Store" || String2.check_prefix file "._") then
+	  not (file = ".DS_Store" || String2.check_prefix file "._" ||
+	       file = "Thumbs.db" || file = "desktop.ini") then
             list := file :: !list 
       done
     with End_of_file -> ());
