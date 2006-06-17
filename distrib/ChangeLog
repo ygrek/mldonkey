@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/06/17
+5158: HTML: Use table for printing buildinfo and runinfo data (schlumpf, pango)
+
 2006/06/16
 5187: New option: BT_import_new_torrents_interval,
       ignore Thumbs.db & desktop.ini in directory lists

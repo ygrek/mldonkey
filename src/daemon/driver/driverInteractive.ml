@@ -1744,144 +1744,227 @@ let print_gdstats buf o =
     DriverGraphics.G.do_draw_pic "" "" "" download_history download_history
 
 let buildinfo html buf =
-  let s =
-  (
-        "Version:\t MLNet Multi-Network p2p client version " ^ Autoconf.current_version
-      ^ (if Autoconf.scm_version <> "" then "\nSCM version:\t " ^ Autoconf.scm_version else "")
-      ^ "\nNetworks:\t " ^ !networks_string
-      ^ "\nOcaml version:\t " ^ Sys.ocaml_version
-      ^ " - C compiler version: " ^ Autoconf.cc_version
-      ^ (if Autoconf.cxx_version <> "" then " - C++ compiler version: " ^ Autoconf.cxx_version else "")
-      ^ "\nBuild on:\t " ^ Autoconf.build_system ^ " (" ^ Unix2.endianness () ^ ")"
-      ^ (if Autoconf.glibc_version = "" then "" 
-          else
-            let real_glibc_version = MlUnix.glibc_version_num () in
-            if real_glibc_version = "" || real_glibc_version = Autoconf.glibc_version 
-              then " with glibc " ^ Autoconf.glibc_version
-            else 
-              Printf.sprintf " (Warning: glibc version mismatch, %s present on your system, MlDonkey was compiled with %s)"
-              real_glibc_version Autoconf.glibc_version)  
-      ^ (if Autoconf.configure_arguments <> "" then
-           "\nConfigure args:\t " ^ Autoconf.configure_arguments else "")
-      ^ (if !patches_string <> "" then "\nPatches:/t " ^ !patches_string else "")
-      ^ "\nFeatures:\t "
-          ^ (if BasicSocket.has_threads () then "threads" else "no-threads")
-          ^ (let s = Zlib.zlib_version_num () in Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else ""))
-          ^ (if Autoconf.bzip2 then
-	       begin
-	         let s =
-	           (* catch the exception in the case Bzip2.bzlib_version_num returns an empty string *)
-	           try
-	             List.hd(String2.split_simplify
-		   (Misc2.bzlib_version_num ()) ',') 
-		   with e -> ""
-		 in
-	         Printf.sprintf " bzip2%s" (if s <> "" then "-" ^ s else "")
-	       end
-	     else " no-bzip2")
-          ^ (if Autoconf.has_gd && Autoconf.has_gd_png && Autoconf.has_gd_jpg then
-	       Printf.sprintf " gd(jpg/png%s)"
-	         (let s = DriverGraphics.G.png_version_num () in
-		    if s <> "" then "-" ^ s else "")
-	     else "")
-          ^ (if Autoconf.has_gd && Autoconf.has_gd_png && not Autoconf.has_gd_jpg then
-	       Printf.sprintf " gd(png%s)"
-	         (let s = DriverGraphics.G.png_version_num () in
-		    if s <> "" then "-" ^ s else "")
-	     else "")
-	  ^ (if Autoconf.has_gd && not Autoconf.has_gd_png && Autoconf.has_gd_jpg then " gd(jpg)" else "")
-	  ^ (if not Autoconf.has_gd then " no-gd" else "")
-          ^ (if Autoconf.has_iconv then " iconv" else " no-iconv")
-          ^ (if Autoconf.magic then
-	       begin
-	         if !Autoconf.magic_works then
-		   " magic(active)"
-		 else
-		   " magic(inactive)"
-	       end
-	     else " no-magic")
-          ^ (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
-  )
-  in
-  if html then
-    begin
-      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-      html_mods_table_header buf "versionTable" "results" [];
-      Printf.bprintf buf "\\<tr\\>";
-      html_mods_td buf [ ("", "srh", "Buildinfo"); ];
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-      html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" s); ];
-      Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-    end
-  else
-    Printf.bprintf buf "\n\t--Buildinfo--\n%s\n" s
+  let tack listref e =
+    listref := e :: !listref in
+  let list = ref [] in
+  tack list
+    (
+      "Version:\t", 
+      "MLNet Multi-Network p2p client version " ^ Autoconf.current_version 
+    );
+  if Autoconf.scm_version <> "" then 
+    tack list 
+      (
+	"SCM version:\t", 
+	Autoconf.scm_version
+      );
+  tack list
+    (
+      "Networks:\t", 
+      !networks_string 
+    );
+  tack list 
+    (
+      "Ocaml version:\t", 
+      Sys.ocaml_version ^ 
+      " - C compiler version: " ^ Autoconf.cc_version ^
+      (if Autoconf.cxx_version <> "" then 
+	" - C++ compiler version: " ^ Autoconf.cxx_version else "")
+    );
+  tack list 
+    (
+      "Build on:\t", 
+      Autoconf.build_system ^ " (" ^ Unix2.endianness () ^ ")" ^
+      (if Autoconf.glibc_version = "" then "" 
+      else
+        let real_glibc_version = MlUnix.glibc_version_num () in
+        if real_glibc_version = "" || 
+	  real_glibc_version = Autoconf.glibc_version 
+        then " with glibc " ^ Autoconf.glibc_version
+        else 
+          Printf.sprintf " (Warning: glibc version mismatch, %s present on your system, MlDonkey was compiled with %s)"
+	    real_glibc_version Autoconf.glibc_version)
+    );
+  if Autoconf.configure_arguments <> "" then 
+    tack list
+      (
+	"Configure args:\t", 
+	Autoconf.configure_arguments 
+      );
+  if !patches_string <> "" then 
+    tack list
+      (
+	"Patches:\t", 
+	!patches_string 
+      );
+  tack list 
+    (
+      "Features:\t",
+      (if BasicSocket.has_threads () then "threads" else "no-threads") ^
+      (let s = Zlib.zlib_version_num () in 
+         Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else "")) ^
+      (if Autoconf.bzip2 then
+        let s, _ = String2.cut_at (Misc2.bzlib_version_num ()) ',' in
+        Printf.sprintf " bzip2%s" (if s <> "" then "-" ^ s else "")
+      else " no-bzip2") ^
+	(match Autoconf.has_gd, Autoconf.has_gd_png, Autoconf.has_gd_jpg with
+	| false, _, _ -> " no-gd"
+	| _, true, true -> 
+	    let s = DriverGraphics.G.png_version_num () in
+            Printf.sprintf " gd(jpg/png%s)" (if s <> "" then "-" ^ s else "")
+	| _, true, false ->
+	    let s = DriverGraphics.G.png_version_num () in
+            Printf.sprintf " gd(png%s)" (if s <> "" then "-" ^ s else "")
+	| _, false, true ->
+	    " gd(jpg)"
+	| _, false, false ->
+	    " gd(neither jpg nor png ?)") ^
+      (if Autoconf.has_iconv then " iconv" else " no-iconv") ^
+      (match Autoconf.magic, !Autoconf.magic_works with
+       | true, true -> " magic(active)"
+       | true, false -> " magic(inactive)"
+       | false, _ -> " no-magic") ^
+      (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
+    );
+  let list = List.rev !list in
+     
+    if html then
+      html_mods_table_header buf "sharesTable" "shares" [
+       ( "0", "srh", "core Build informations", "Buildinfo" ) ;
+       ( "0", "srh", "", "" ) ]
+    else
+      Printf.bprintf buf "\n\t--Buildinfo--\n";
+    let counter = ref 0 in
+    List.iter (fun (desc, text) ->
+      incr counter;
+      if html then 
+	Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+          (if !counter mod 2 = 0 then "dl-1" else "dl-2") desc text
+      else
+	Printf.bprintf buf "%s %s\n" desc text;
+    ) list;
+    if html then 
+      Printf.bprintf buf "\\</table\\>\\</div\\>"
 
 let runinfo html buf o =
-  let dis_mess = "disabled, to enable adjust web_infos in downloads.ini for automatic download" in
-  let ui_user = o.conn_user.ui_user_name in
-  let bl_loc = (Ip_set.bl_length !CommonBlocking.ip_blocking_list) in
-  let bl_web = (Ip_set.bl_length !CommonBlocking.web_ip_blocking_list) in
-  let s =
-  (
-        "User:\t\t " ^ ui_user
-      ^   (if empty_password ui_user then " (Warning: empty Password)"
-           else " (PW Protected)")
-      ^	  " - uptime: " ^ Date.time_to_string (last_time () - start_time) "verbose"
-      ^ "\nEnabled nets:\t"
-      ^   (if Autoconf.donkey = "yes" && !!enable_donkey then " Donkey" else "")
-      ^   (if Autoconf.donkey = "yes" && !!enable_overnet then " Overnet" else "")
-      ^   (if Autoconf.donkey = "yes" && !!enable_kademlia then " Kademlia" else "")             
-      ^   (if Autoconf.bittorrent = "yes" && !!enable_bittorrent then " BitTorrent" else "")
-      ^   (if Autoconf.fasttrack = "yes" && !!enable_fasttrack then " Fasttrack" else "")
-      ^   (if Autoconf.gnutella = "yes" && !!enable_gnutella then " Gnutella" else "")
-      ^   (if Autoconf.gnutella2 = "yes" && !!enable_gnutella2 then " G2" else "")
-      ^   (if Autoconf.filetp = "yes" && !!enable_fileTP then " FileTP" else "")
-      ^ "\nServer usage:\t " ^ (if !!enable_servers then "enabled" else "disabled (you are not able to connect to ED2K Servers)")
-      ^ "\nGeoip:\t\t " ^ (if !Geoip.active then "enabled, GeoLite data created by MaxMind, available from http://maxmind.com/"
-          else dis_mess)
-      ^ "\nIP blocking:\t " ^ (if bl_loc = 0 && bl_web = 0 then "no blocking list loaded"
-          else Printf.sprintf "local: %d ranges - web: %d ranges" bl_loc bl_web)
-      ^ (if Autoconf.magic then
-           if !Autoconf.magic_works then
-             Printf.sprintf "\nLibmagic:\t file-type recognition database present"
-           else
-             Printf.sprintf "\nLibmagic:\t file-type recognition database not present"
-         else "")
-      ^ (if not !dns_works then
-	    Printf.sprintf "\nDNS:\t\t DNS resolution not available, web_infos %s not work"
-	      (if Autoconf.bittorrent = "yes" then "and BT does" else "do")
-	 else "")
-      ^ "\nSystem info:\t " ^ (let uname = Unix32.uname () in
-          if uname <> "" then uname ^
-	    (if not (Unix32.os_supported ()) then " - \nWARNING:\t not supported operating system" else "")
-          else "unknown")
-      ^ "\n\t\t language: " ^ Charset.default_language
-      ^ " - locale: " ^ Charset.locstr
-      ^ " - UTC offset: " ^ Rss_date.mk_timezone (Unix.time ())
-      ^ "\n\t\t max_string_length: " ^ string_of_int Sys.max_string_length
-      ^ " - word_size: " ^ string_of_int Sys.word_size
-      ^ " - max_array_length: " ^ string_of_int Sys.max_array_length
-      ^ "\n\t\t max file descriptors: " ^ string_of_int (Unix2.c_getdtablesize ())
-      ^ " - max useable file size: " ^ 
-	    (match Unix2.c_sizeofoff_t () with
-	     | 4 -> "2GB"
-	     |  _ -> Printf.sprintf "2^%d-1 bits (do the maths ;-p)" ((Unix2.c_sizeofoff_t () *8)-1)
-	     )
-  )    
-  in
-  if html then
-    begin
-      Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-      html_mods_table_header buf "versionTable" "results" [];
-      Printf.bprintf buf "\\<tr\\>";
-      html_mods_td buf [ ("", "srh", "Runinfo"); ];
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-      html_mods_td buf [ ("", "sr", Str.global_replace (Str.regexp "\n") "\\<br\\>" s); ];
-      Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-    end
-  else
-    Printf.bprintf buf "\n\t--Runinfo--\n%s\n" s
+  let bl_loc = Ip_set.bl_length !CommonBlocking.ip_blocking_list in
+  let bl_web = Ip_set.bl_length !CommonBlocking.web_ip_blocking_list in
 
+  let tack listref e = 
+    listref := e :: !listref in
+  let list = ref [] in
+  tack list
+    (
+      "User:\t\t", 
+      Printf.sprintf "%s (%s) - uptime: %s" 
+	o.conn_user.ui_user_name
+	(if empty_password o.conn_user.ui_user_name then "Warning: empty Password"
+	else "PW Protected")
+	(Date.time_to_string (last_time () - start_time) "verbose")
+    );
+  tack list
+    (
+      "Enabled nets:\t", 
+      List.fold_left (fun acc (c, s) -> 
+	if c then Printf.sprintf "%s %s" acc s else acc) ""
+	[(Autoconf.donkey = "yes" && !!enable_donkey, "Donkey");
+	 (Autoconf.donkey = "yes" && !!enable_overnet, "Overnet");
+	 (Autoconf.donkey = "yes" && !!enable_kademlia, "Kademlia");
+	 (Autoconf.bittorrent = "yes" && !!enable_bittorrent, "BitTorrent");
+	 (Autoconf.fasttrack = "yes" && !!enable_fasttrack, "Fasttrack");
+	 (Autoconf.gnutella = "yes" && !!enable_gnutella, "Gnutella");
+	 (Autoconf.gnutella2 = "yes" && !!enable_gnutella2, "G2");
+	 (Autoconf.filetp = "yes" && !!enable_fileTP, "FileTP")]
+    );
+  tack list
+    (
+      "Server usage:\t", 
+      if !!enable_servers then "enabled" 
+      else "disabled (you are not able to connect to ED2K Servers)"
+    );
+  tack list
+    (
+      "Geoip:\t\t", 
+      if !Geoip.active then "enabled, GeoLite data created by MaxMind, available from http://maxmind.com/"
+      else "disabled, to enable adjust web_infos in downloads.ini for automatic download"
+    );
+  tack list
+    ( 
+      "IP blocking:\t",
+      if bl_loc = 0 && bl_web = 0 then "no blocking list loaded"
+      else Printf.sprintf "local: %d ranges - web: %d ranges" bl_loc bl_web
+    );
+  if not !dns_works then 
+    tack list
+      (
+	"DNS:\t\t",
+	Printf.sprintf "DNS resolution not available, web_infos %s not work"
+          (if Autoconf.bittorrent = "yes" then "and BT does" else "do")
+      );
+  if Autoconf.magic then
+    tack list
+      (
+	"Libmagic:\t",
+	Printf.sprintf "file-type recognition database%s present"
+	  (if !Autoconf.magic_works then "" else " not")
+      );
+  tack list
+    (
+      "System info:\t",
+      let uname = Unix32.uname () in
+      if uname <> "" then 
+	uname ^
+        (if not (Unix32.os_supported ()) then 
+          " - \nWARNING:\t not supported operating system" else "")
+      else "unknown"
+    );
+  tack list
+    ( 
+      "",
+      Printf.sprintf "\t\t language: %s - locale: %s - UTC offset: %s"
+	Charset.default_language
+	Charset.locstr
+	(Rss_date.mk_timezone (Unix.time ()))
+    );
+  tack list
+    (
+      "", 
+      Printf.sprintf "\t\t max_string_length: %d - word_size: %d - max_array_length: %d"
+	Sys.max_string_length
+	Sys.word_size
+	Sys.max_array_length
+    );
+  tack list
+    (
+      "", 
+      Printf.sprintf "\t\t max file descriptors: %d - max useable file size: %s" 
+	(Unix2.c_getdtablesize ())
+	(match Unix2.c_sizeofoff_t () with
+         | 4 -> "2GB"
+         |  _ -> 
+	      Printf.sprintf "2^%d-1 bits (do the maths ;-p)"
+		((Unix2.c_sizeofoff_t () * 8)-1))
+    );
+  let list = List.rev !list in
+
+    if html then
+      html_mods_table_header buf "sharesTable" "shares" [
+       ( "0", "srh", "core runtime informations", "Runinfo" ) ;
+       ( "0", "srh", "", "" ) ]
+    else
+      Printf.bprintf buf "\n\t--Runinfo--\n";
+    let counter = ref 0 in
+    List.iter (fun (desc, text) ->
+      incr counter;
+      if html then 
+	Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+          (if !counter mod 2 = 0 then "dl-1" else "dl-2") desc text
+      else
+	Printf.bprintf buf "%s %s\n" desc text;
+    ) list;
+    if html then 
+      Printf.bprintf buf "\\</table\\>\\</div\\>"
+          
 let diskinfo html buf =
   let list = ref [] in
   ignore (search_incoming_files ());
@@ -1939,14 +2022,8 @@ let diskinfo html buf =
 	let filesystem = Unix32.filesystem dir in
 	if html then
 	  begin
-	    Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-	    (if !counter mod 2 == 0 then "dl-1" else "dl-2")
+	    Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+	    (if !counter mod 2 = 0 then "dl-1" else "dl-2")
 	    dir strategy diskused diskfree percentfree filesystem
 	  end
 	else
