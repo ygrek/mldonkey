@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/18
+5192: Fix deactivation of verbosity "gui"
 5163: Configure: CVS SCM support for Mac OS X 10.3 (gstat)
 
 2006/06/17

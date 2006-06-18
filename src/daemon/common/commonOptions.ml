@@ -1782,6 +1782,7 @@ let set_all v =
   TcpServerSocket.debug := v;
   UdpSocket.debug := v;
   Unix32.verbose := v;
+  GuiProto.verbose_gui_decoding := v;
   verbose_download := v;
   verbose_upload := v;
   verbose_no_login := v;
