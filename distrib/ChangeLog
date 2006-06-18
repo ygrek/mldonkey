@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/06/18
+5163: Configure: CVS SCM support for Mac OS X 10.3 (gstat)
+
 2006/06/17
 5158: HTML: Use table for printing buildinfo and runinfo data (schlumpf, pango)
 

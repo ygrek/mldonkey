@@ -157,14 +157,14 @@ fi
 
 if test -f ./CVS/Entries ; then
   AC_MSG_NOTICE(checking CVS checkout date)
-  AC_CHECK_PROG(STAT, stat, stat)
-  if test "$ac_cv_prog_STAT" = "stat"; then
+  AC_CHECK_PROGS(STAT, stat gstat, stat)
+  if [ test "$ac_cv_prog_STAT" = "stat" ] || [ test "$ac_cv_prog_STAT" = "gstat" ]; then
     AC_CHECK_PROG(SED, sed, sed)
     if test "$ac_cv_prog_SED" = "sed"; then
       AC_CHECK_PROG(CUT, cut, cut)
       if test "$ac_cv_prog_CUT" = "cut"; then
         SUB_VERSION3="CVS"
-	if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "macosx"] || [ test "$SYSTEM" = "netbsd"]; then
+	if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "netbsd"] || ( [ test "$SYSTEM" = "macosx" ] && [ test "$ac_cv_prog_STAT" != "gstat" ] ); then
 	  SCM_VERSION=`$STAT -f "%Sm" ./CVS/Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\4-\1-\2 \3/'`
 	else
 	  if [ test "$SYSTEM" = "openbsd"]; then
@@ -179,7 +179,7 @@ if test -f ./CVS/Entries ; then
 	        SCM_VERSION=`$STAT ./CVS/Entries  | $GREP Modify | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\) \(.*\)/\5-\2-\3 \4/'`
 	      fi
 	    else
-	      SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c0-19`
+	      SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c 1-19`
 	    fi
 	  fi
 	fi
