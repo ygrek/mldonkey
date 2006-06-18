@@ -139,39 +139,6 @@ let start_interfaces () =
   add_infinite_timer 1. second_timer
 
 
-let _ =
-  CommonWeb.add_web_kind "motd.html" "Information of the day in HTML format" 
-    (fun _ filename ->
-      lprintf_nl (_b "motd.html changed");
-    motd_html =:= File.to_string filename
-  );
-  CommonWeb.add_web_kind "motd.conf" "Setup changes of the day" 
-    (fun _ filename ->
-    try
-      Unix2.tryopen_read filename (fun ic ->
-	try
-	  while true do
-	    let line = input_line ic in
-	    let cmd, args = String2.cut_at line ' ' in
-	    let name, value = String2.cut_at args ' ' in
-	    match cmd with
-	      | "set" ->
-		  CommonInteractive.set_fully_qualified_options name value
-	      | "add_item" ->
-		  CommonInteractive.add_item_to_fully_qualified_options name value
-	      | "del_item" ->
-		  CommonInteractive.del_item_from_fully_qualified_options name value
-	      | _ ->
-      lprintf_nl (_b "UNUSED LINE: %s") line
-	  done
-	with End_of_file -> ())
-    with
-	e -> 
-    lprintf_nl (_b "Error while reading motd.conf(%s): %s") filename
-	    (Printexc2.to_string e)
-  )
-
-
 let save_mlsubmit_reg () =
 
 (* Generate the mlsubmit.reg file *)

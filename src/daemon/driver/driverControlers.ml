@@ -1157,15 +1157,10 @@ let http_handler o t r =
 
         | "oneframe.html" ->
             html_open_page buf t r true;
-            Buffer.add_string buf !!motd_html;
+            Buffer.add_string buf (Printf.sprintf "<br><div align=\"center\"><h3>Welcome to MLDonkey %s</h3></div>" Autoconf.current_version);
 	    (match DriverInteractive.real_startup_message () with
 	       Some s -> Buffer.add_string buf (Printf.sprintf "<p><pre><b><h3>%s</b></h3></pre>" s);
-	     | None -> ());
-	    Buffer.add_string buf "<pre>\n";
-	    ignore (buildinfo false buf);
-	    Buffer.add_string buf "\n";
-	    ignore (runinfo false buf o);
-	    Buffer.add_string buf "</pre>\n"
+	     | None -> ())
 
         | "bw_updown.png" ->
             (match http_error_no_gd "png" with

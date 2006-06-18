@@ -1375,10 +1375,6 @@ let html_frame_border = define_expert_option current_section ["html_frame_border
 
 let commands_frame_height = define_expert_option current_section ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 46
 
-let motd_html = define_expert_option current_section ["motd_html"]
-    "Message printed at startup (automatically downloaded from the previous
-    URL directory" string_option "<br><div align=\"center\"><h3>Welcome to MLDonkey</h3></div>"
-
 let compaction_delay = define_expert_option current_section ["compaction_delay"]
     "Force compaction every <n> hours (in [1..24])"
     int_option 2

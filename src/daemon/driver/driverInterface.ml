@@ -391,7 +391,7 @@ let gui_initialize gui =
   gui.gui_initialized <- true;
   networks_iter_all (fun n ->
       gui_send gui (Network_info (network_info n)));
-  gui_send gui (Console ((DriverControlers.text_of_html !!motd_html) ^ "\n"));
+  gui_send gui (Console (Printf.sprintf "Welcome to MLDonkey %s\n" Autoconf.current_version));
   (match DriverInteractive.real_startup_message () with
     Some s -> gui_send gui (Console s);
   | None -> ());
