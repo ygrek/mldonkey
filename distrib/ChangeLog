@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/06/18
+5194: HTML: Print warning on opening page when enable_servers is set to false
+
+2006/06/18
 5191: HTML: remove sysinfo on opening page & option motd_html
 5192: Fix deactivation of verbosity "gui"
 5163: Configure: CVS SCM support for Mac OS X 10.3 (gstat)

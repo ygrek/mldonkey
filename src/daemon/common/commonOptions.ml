@@ -569,7 +569,7 @@ let enable_kademlia = define_option current_section
 
 let enable_servers = define_option current_section
     ["enable_servers"]
-  "Set to true if you also want mldonkey to run with edonkey servers
+  "Set to true if you want mldonkey to connect to edonkey servers
    (enable_donkey must be true, and only experimental)"
     bool_option true
 

@@ -83,6 +83,9 @@ let real_startup_message () =
   let s =
   !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ()) 
   ^ (if not !dns_works then "DNS resolution does not work" else "")
+  ^ (if Autoconf.donkey = "yes" && not !!enable_servers && !!enable_donkey then
+     "You disabled option enable_servers, you will not be able to connect to ED2K servers"
+     else "")
   in
   if s = "" then None else Some s
 
