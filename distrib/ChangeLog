@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/18
+5196: IP: Store IPs with two int values instead of four to save RAM (pango)
 5195: BT: Log tracker error messages in UTF-8
 5194: HTML: Print warning on opening page when enable_servers is set to false
 
