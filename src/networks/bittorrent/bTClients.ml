@@ -1339,7 +1339,7 @@ let get_sources_from_tracker file =
 		t.tracker_enabled <- false;
 		(* remove_tracker t.tracker_url file; *)
                 lprintf_nl "Failure from Tracker %s in file: %s Reason: %s\nBT: Tracker %s disabled for failure"
-                  t.tracker_url file.file_name failure t.tracker_url
+                  t.tracker_url file.file_name (Charset.to_utf8 failure) t.tracker_url
             | String "warning message", String warning ->
                 lprintf_nl "Warning from Tracker %s in file: %s Reason: %s" t.tracker_url file.file_name warning
             | String "interval", Int n ->
