@@ -49,7 +49,7 @@ let client_uid = define_option bittorrent_section ["client_uid"]
 (* Check if the uid is in sync with Autoconf.current_version *)
 let check_client_uid () =
   let s = Sha1.direct_to_string !!client_uid in
-  if Autoconf.current_version != String.sub s 3 ((
+  if Autoconf.current_version <> String.sub s 3 ((
     try
       String.index_from s 1 s.[0]
     with

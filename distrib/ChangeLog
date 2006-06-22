@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/06/22
+5199: BT: Fix BT_client_uid changing between core start (orbit)
+-------------------------------------------------------------------------------
 2006/06/19: version 2.7.7 = tag release-2-7-7
 5196: IP: Store IPs with two int values instead of four to save RAM (pango)
 5195: BT: Log tracker error messages in UTF-8
