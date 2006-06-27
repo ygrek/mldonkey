@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/06/27
+5205: Telnet: Fix another UTF8.length exception in search results
+
 2006/06/22
 5199: BT: Fix BT_client_uid changing between core start (orbit)
 -------------------------------------------------------------------------------

@@ -315,7 +315,7 @@ type table_align =
 
 let col_sep = " "
 let add buf s align max_len =
-  let slen = Charset.utf8_length s in
+  let slen = try Charset.utf8_length s with e -> String.length s in
   let diff = max_len - slen in
   match align with
     Align_Center ->
@@ -339,7 +339,7 @@ let print_table_text buf alignments titles lines =
   List.iter (fun line ->
       let len = Array.length line in
       for i = 0 to len-1 do
-        let slen = Charset.utf8_length line.(i) in
+        let slen = try Charset.utf8_length line.(i) with e -> String.length line.(i) in
         if cols.(i) <  slen then cols.(i) <- slen
       done;
   ) (titles :: lines);
