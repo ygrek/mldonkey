@@ -876,7 +876,7 @@ let simple_print_file_list finished buf files format =
   let print_table = if format.conn_output = HTML then print_table_html 2
     else print_table_text in
   if not finished then
-    if format.conn_output = HTML && ( !!html_checkbox_vd_file_list  ) then
+    if format.conn_output = HTML && !!html_checkbox_vd_file_list then
       begin
         if !!html_mods then print_file_html_mods buf files
         else

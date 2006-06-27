@@ -1561,7 +1561,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option html_mods_vd_age;
 			strings_of_option html_mods_vd_last;
 			strings_of_option html_mods_vd_prio;
-			strings_of_option html_mods_vd_queues;
 			strings_of_option html_mods_show_pending;
 			strings_of_option html_mods_load_message_file;
 			strings_of_option html_mods_max_messages;

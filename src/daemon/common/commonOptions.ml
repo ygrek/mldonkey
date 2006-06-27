@@ -754,9 +754,6 @@ let html_mods_vd_last = define_expert_option current_section
 let html_mods_vd_prio = define_expert_option current_section
     ["html_mods_vd_prio"] "Whether to display the Priority column in vd output" bool_option true
 
-let html_mods_vd_queues = define_expert_option current_section
-    ["html_mods_vd_queues"] "Whether to display the Queues in vd # output" bool_option true
-
 let html_vd_barheight = define_expert_option current_section
     ["html_vd_barheight"] "Change height of download indicator bar in vd output" int_option 2
 

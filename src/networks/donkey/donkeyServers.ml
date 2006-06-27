@@ -818,7 +818,6 @@ let update_master_servers _ =
           if not s.server_master
             && (s.server_preferred
                  || connection_time > !!become_master_delay
-                 || !!immediate_master
                )
             then
               begin

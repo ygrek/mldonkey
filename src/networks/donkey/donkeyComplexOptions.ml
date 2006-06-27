@@ -179,7 +179,7 @@ let value_to_server assocs =
             ip, port
         | _ -> failwith  "Options: Not an server option"
     ) in
-  let l = DonkeyGlobals.new_server ip port !!initial_score in
+  let l = DonkeyGlobals.new_server ip port in
   
   (try
       l.server_description <- get_value "server_desc" value_to_string 
@@ -439,7 +439,7 @@ let force_add_server ip port =
   try
     DonkeyGlobals.find_server ip port
   with _ ->
-      let s = DonkeyGlobals.new_server ip port !!initial_score in
+      let s = DonkeyGlobals.new_server ip port in
       s        
       
 let check_add_server ip port =
@@ -454,7 +454,7 @@ let safe_add_server ip port =
     try
       ignore (DonkeyGlobals.find_server ip port)
     with _ ->
-        ignore (DonkeyGlobals.new_server ip port !!initial_score)
+        ignore (DonkeyGlobals.new_server ip port)
         
 let config_files_loaded = ref false  
       

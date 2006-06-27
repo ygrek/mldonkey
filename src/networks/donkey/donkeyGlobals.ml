@@ -480,7 +480,7 @@ let is_black_address ip port =
             lprintf_nl "%s:%d blocked: %s" (Ip.to_string ip) port reason;
           true))
 
-let new_server ip port score =
+let new_server ip port =
   let key = (ip) in
   try
     let found = Hashtbl.find servers_by_key key in
@@ -501,7 +501,7 @@ let new_server ip port score =
         server_search_queries = Fifo.create ();
         server_users_queries = Fifo.create ();
         server_connection_control = new_connection_control ();
-        server_score = score;
+        server_score = 5;
         server_tags = [];
         server_nfiles = Int64.zero;
         server_nusers = Int64.zero;

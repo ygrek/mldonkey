@@ -25,14 +25,8 @@ let donkey_ini = create_options_file "donkey.ini"
 
 let donkey_section = file_section donkey_ini ["Donkey"] "Donkey options"
 
-let initial_score = define_expert_option donkey_section ["initial_score"]
-  "Initial score for a new server" int_option 5
-
 let max_xs_packets = define_expert_option donkey_section ["max_xs_packets"]
   "Max number of UDP packets per round for eXtended Search" int_option 30
-
-let max_dialog_history = define_expert_option donkey_section ["max_dialog_history"]
-    "Max number of messages of Chat remembered" int_option 30
 
 let donkey_port = define_option donkey_section ["port"] "The port used for connection by other donkey clients." int_option 4662
 
@@ -287,12 +281,6 @@ let overnet_port =
     2: based on unified queues with scores, shared by files (2.02-6...2.02-9)
     3: based on separate file queues (2.02-10)
     " int_option 3 *)
-
-(* This option is used to avoid the delay when connecting to a server before
-sending the list of shared files, which is only sent to master servers. *)
-let immediate_master =
-  define_expert_option donkey_section ["immediate_master"]
-    "(only for development tests)" bool_option false
 
 let become_master_delay =
   define_expert_option donkey_section ["become_master_delay"]
