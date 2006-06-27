@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/27
+5204: Cleanup longhelp (anhi)
 5205: Telnet: Fix another UTF8.length exception in search results
 
 2006/06/22

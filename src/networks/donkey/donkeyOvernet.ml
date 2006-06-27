@@ -1629,7 +1629,7 @@ let _ =
            command_prefix_to_net ^ " store");
           ]);
         "";
-    ), (":\t\t\t" ^ command_prefix_to_net ^ " Stats commands");
+    ), (":\t\t\t" ^ command_prefix_to_net ^ " stats commands");
 
     "stats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -1704,7 +1704,7 @@ let _ =
           Printf.bprintf buf "\\</div\\>\n";
 
         "";
-    ), ":\t\t\t\t" ^ command_prefix_to_net ^ " Stats";
+    ), ":\t\t\t\t" ^ command_prefix_to_net ^ " stats";
 
     "web", Arg_multiple (fun args o ->
         let urls =

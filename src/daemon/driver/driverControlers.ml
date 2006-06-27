@@ -270,7 +270,7 @@ $bDownloads:$n
           $rcancel/pause/resume <num>$n : cancel/pause/resume download <num>
 
 $bSearches:$n
-          $rs  <keywords>$n : start a search for keywords <keywords> on the network
+          $rs <keywords>$n : start a search for keywords <keywords> on the network
           $rvr$n : view results of the last search
           $rd <num>$n : download result number <num>
           $rvs$n : view previous searches

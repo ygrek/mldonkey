@@ -354,7 +354,7 @@ let _ =
     "force_web_infos", Arg_none (fun o ->
 	CommonWeb.load_web_infos false true;
         "downloading all web_infos URLs"
-    ), ":\t\t\t\tforce downloading all web_infos URLs";
+    ), ":\t\t\tforce downloading all web_infos URLs";
 
     "recover_temp", Arg_none (fun o ->
         networks_iter (fun r ->
@@ -640,7 +640,7 @@ formID.msgText.value=\\\"\\\";
             else
               _s "Usage: message <client num> <msg>\n";
 
-    ), ":\t\t\t\t[<client num> <msg>]";
+    ), "<client num> <msg> :\t\tsend a message to a client";
 
     "calendar_add", Arg_two (fun hour action o ->
         let buf = o.conn_buf in
@@ -1080,7 +1080,7 @@ let _ =
         | [] ->
             _s "no command given"
         | _ -> "For arbitrary commands, you must set 'allowed_any_command'"
-    ), "<cmd> :\t\t\t\tstart command <cmd> (must be allowed in 'allowed_commands' option or by 'allow_any_command' if arguments)";
+    ), "<cmd> :\t\t\t\tstart command <cmd>\n\t\t\t\t\tmust be allowed in 'allowed_commands' option or by 'allow_any_command' if arguments";
 
 
   ]
