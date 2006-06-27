@@ -1316,8 +1316,7 @@ AC_OUTPUT(\
    ../src/daemon/driver/driverGraphics.ml \
    ../packages/rpm/mldonkey.spec \
    ../packages/rpm/Makefile \
-   ../packages/slackware/mldonkey.options \
-   ../packages/windows/mlnet.nsi)
+   ../packages/slackware/mldonkey.options)
 diff $AUTOCONF.new $AUTOCONF 2> /dev/null > /dev/null || cp -f $AUTOCONF.new $AUTOCONF
 diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTOCONF.new $GTK_AUTOCONF
 
