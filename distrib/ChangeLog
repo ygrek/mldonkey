@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/06/27
+5200: BT: Do not start downloads if no usable trackers are found in file.torrent
+      MLDonkey only supports http:// style trackers, not udp:// or dht://
+      Deactivated http:// trackers are better marked in HTML,vd #num
 5202: Remove mlchat and outdated IM (instant messenger) code
       Remove outdated files from ./packages/windows
 5204: Cleanup longhelp (anhi)

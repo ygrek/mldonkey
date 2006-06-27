@@ -1112,9 +1112,12 @@ search.op_search_end_reply_handlers;
     Failure s ->
       gui_send gui (Console (Printf.sprintf "Failure: %s\n" s))
   | e ->
-      gui_send gui (Console (    
-          Printf.sprintf "from_gui: exception %s for message %s\n" (
-            Printexc2.to_string e) (GuiProto.string_of_from_gui t)))
+      let error_text = Printexc2.to_string e in
+      if error_text = "BTInteractive.Torrent_can_not_be_used" then
+	gui_send gui (Console (Printf.sprintf "\nError: This torrent does not have valid tracker URLs\n"))
+      else
+	gui_send gui (Console (Printf.sprintf "from_gui: exception %s for message %s\n"
+          (Printexc2.to_string e) (GuiProto.string_of_from_gui t)))
 
 let gui_events () = 
   {

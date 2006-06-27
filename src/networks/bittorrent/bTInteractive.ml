@@ -53,6 +53,7 @@ let _b x = _b "BTInteractive" x
 module VB = VerificationBitmap
 
 exception Already_exists
+exception Torrent_can_not_be_used
 
 let op_file_all_sources file =
   let list = ref [] in
@@ -145,12 +146,15 @@ let op_file_print_html file buf =
   html_mods_td buf [
     ("Tracker(s)", "sr br", "Tracker(s)");
     ("", "sr",
-      (let tracker_string = ref "" in
+      (let enabled_tracker_string = ref "" in
+       let disabled_tracker_string = ref "" in
        List.iter (fun tracker ->
-         tracker_string := (if tracker.tracker_enabled then "" else "*") ^ 
-	   !tracker_string ^ (shorten tracker.tracker_url !!max_name_len) ^ " "
+	 if tracker.tracker_enabled then
+	   enabled_tracker_string := !enabled_tracker_string ^ (shorten tracker.tracker_url !!max_name_len) ^ " "
+	 else
+	   disabled_tracker_string := !disabled_tracker_string ^ (shorten tracker.tracker_url !!max_name_len) ^ " "
       ) file.file_trackers;
-      !tracker_string)) ];
+      (!enabled_tracker_string ^ (if !disabled_tracker_string <> "" then " - disabled: " ^ !disabled_tracker_string else "")))) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
@@ -475,6 +479,13 @@ let load_torrent_string s =
 
   (* Save the torrent, because we later want to put
      it in the seeded directory. *)
+  let torrent_is_usable = ref false in
+  let can_handle_tracker url =
+    String2.check_prefix url "http://" in
+  List.iter (fun url -> if can_handle_tracker url then torrent_is_usable := true)
+    (if torrent.torrent_announce_list <> [] then torrent.torrent_announce_list else [torrent.torrent_announce]);
+  if not !torrent_is_usable then raise Torrent_can_not_be_used;
+
   let torrent_diskname = Filename.concat
     downloads_directory
     torrent.torrent_name ^ ".torrent"
@@ -627,11 +638,16 @@ let scan_new_torrents_directory () =
   let filenames = Unix2.list_directory new_torrents_directory in
   List.iter (fun file ->
     let file = Filename.concat new_torrents_directory file in
+    let file_basename = Filename.basename file in
     if not (Unix2.is_directory file) then
     try
       load_torrent_file file;
       (try Sys.remove file with _ -> ())
-    with e -> lprintf_nl "Error %s in scan_new_torrents_directory" (Printexc2.to_string e)
+    with 
+      Torrent_can_not_be_used ->
+	Unix2.rename file (Filename.concat old_directory file_basename);
+	lprintf_nl "Torrent %s does not have valid tracker URLs, moved to torrents/old ..." file_basename
+    | e -> lprintf_nl "Error %s in scan_new_torrents_directory for %s" (Printexc2.to_string e) file_basename
   ) filenames
 
 let retry_all_ft () =
@@ -718,7 +734,9 @@ let op_network_parse_url url =
           try
             load_torrent_file url;
             "", true
-          with Already_exists -> "A torrent with this name is already in the download queue", false
+          with
+	    Already_exists -> "A torrent with this name is already in the download queue", false
+	  | Torrent_can_not_be_used -> "This torrent does not have valid tracker URLs", false
         with e ->
           lprintf_nl "Exception %s while 2nd loading" (Printexc2.to_string e);
 	  let s = Printf.sprintf "Can not load load torrent file: %s"
