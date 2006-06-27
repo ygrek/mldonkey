@@ -121,14 +121,6 @@ let start_interfaces () =
 
   Dp500.start ();
 
-  if !!chat_port <> 0 then begin
-      ignore (find_port "chat server" !!chat_bind_addr
-          chat_port DriverControlers.chat_handler);
-      try
-        CommonChat.send_hello ()
-      with _ -> if !verbose then lprintf (_b "CommonChat.send_hello failed");
-    end;
-
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
     gui_port gui_handler;
   if !!gift_port <> 0 then

@@ -22,7 +22,6 @@ val eval : bool ref -> string -> CommonTypes.ui_conn -> unit
 
   
 val telnet_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
-val chat_handler : TcpServerSocket.t -> TcpServerSocket.event -> unit
 val create_http_handler : unit -> unit
 
 val check_calendar : unit -> unit

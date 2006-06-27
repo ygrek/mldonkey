@@ -1545,12 +1545,10 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option gui_bind_addr;
 			strings_of_option telnet_bind_addr;
 			strings_of_option http_bind_addr;
-			strings_of_option chat_bind_addr;
 			strings_of_option client_bind_addr;
 			strings_of_option gui_port;
 			strings_of_option telnet_port;
 			strings_of_option http_port;
-			strings_of_option chat_port;
 			strings_of_option http_realm;
 			strings_of_option allowed_ips;
                       ]

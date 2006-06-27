@@ -79,7 +79,6 @@ install -m 755  distrib/kill_mldonkey %{buildroot}%{_bindir}/kill_mldonkey
 install -m 755  mlgui %{buildroot}%{_bindir}/mlgui
 install -m 755  mlnet+gui %{buildroot}%{_bindir}/mlnet+gui
 install -m 755  mlguistarter %{buildroot}%{_bindir}/mlguistarter
-install -m 755  mlchat %{buildroot}%{_bindir}/mlchat
 install -m 755  distrib/mldonkey_previewer %{buildroot}%{_bindir}/mldonkey_previewer
 
 # init 
@@ -125,7 +124,6 @@ install -m 644 distrib/ed2k_submit/ed2k.protocol  %{buildroot}%{_datadir}/servic
 %files gui
 %defattr(-,root,root)
 %doc COPYING
-%{_bindir}/mlchat
 %{_bindir}/mlgui
 %{_bindir}/mlnet+gui
 %{_bindir}/mlguistarter

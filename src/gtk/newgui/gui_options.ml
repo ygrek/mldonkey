@@ -376,8 +376,6 @@ let xpm_nbk_graphs_menu = define_option mldonkey_gui_section (xpm_label M.o_xpm_
 
 let xpm_about = define_option mldonkey_gui_section (xpm_label M.o_xpm_about)
     "" filename_option ""
-let xpm_im = define_option mldonkey_gui_section (xpm_label M.o_xpm_im)
-    "" filename_option ""
 let xpm_settings = define_option mldonkey_gui_section (xpm_label M.o_xpm_settings)
     "" filename_option ""
 let xpm_exit = define_option mldonkey_gui_section (xpm_label M.o_xpm_exit)
@@ -1043,7 +1041,6 @@ let table = [
   M.o_xpm_nbk_graphs_menu, (Nbk_graphs_menu_xpm.t, xpm_nbk_graphs_menu);
 
   M.o_xpm_about, (About_xpm.t, xpm_about);
-  M.o_xpm_im, (Im_xpm.t, xpm_im);
   M.o_xpm_settings, (Settings_xpm.t, xpm_settings);
   M.o_xpm_exit, (Exit_xpm.t, xpm_exit);
   M.o_xpm_gui, (Gui_xpm.t, xpm_gui);

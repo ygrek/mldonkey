@@ -997,9 +997,7 @@ file.---------> to be done urgently
         | Connection sock ->
             client_send c (DonkeyProtoClient.SayReq s)
       with
-        Not_found ->
-          CommonChat.send_text !!CommonOptions.chat_console_id None
-            (Printf.sprintf "client %s unknown" iddest)
+        Not_found -> ()
   );
   network.op_network_download <- (fun r ->
       result_download r r.result_names r.result_force

@@ -800,9 +800,6 @@ let mW_lb_not_connected =
 let mW_ti_about = 
   _s 
   "About"
-let mW_ti_im = 
-  _s 
-  "Im"
 let mW_ti_settings = 
   _s 
   "Settings"
@@ -1537,7 +1534,6 @@ let o_xpm_nbk_graphs_off = "nbk_graphs_off"
 let o_xpm_nbk_graphs_menu = "nbk_graphs_mini"
 
 let o_xpm_about = "about"
-let o_xpm_im = "im"
 let o_xpm_settings = "settings"
 let o_xpm_exit = "exit"
 let o_xpm_gui = "gui"

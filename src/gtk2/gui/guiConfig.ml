@@ -97,7 +97,6 @@ let string_to_section s =
     | "HTML mods" -> Some Interfaces
     | "MLgui" -> Some Interfaces
     | "MLguiDebug" -> Some Interfaces
-    | "MLChat" -> Some Mlchat
     | "Other" -> Some Other
     | "Paths" -> Some Tools
     | "Startup" -> Some Tools
@@ -131,7 +130,6 @@ let string_to_subsection s =
     | "HTML mods" -> Some Html_mods
     | "MLgui" -> Some Mlgui
     | "MLguiDebug" -> Some Debug
-    | "MLChat" -> None
     | "Other" -> None
     | "Paths" -> Some Paths
     | "Startup" -> Some Startup
@@ -169,13 +167,11 @@ let gift_reg = Str.regexp_case_fold ".*gift.*"
 let peer_reg = Str.regexp_case_fold ".*peer.*"
 let server_reg = Str.regexp_case_fold ".*server.*"
 let mail_reg = Str.regexp_case_fold ".*smtp.*\\|mail"
-let mlchat_server_reg = Str.regexp_case_fold ".*app.*"
 let tracker_reg = Str.regexp_case_fold ".*tracker.*"
 let overnet_reg = Str.regexp_case_fold ".*overnet.*"
 let shared_reg = Str.regexp_case_fold ".*shared.*"
 let display_reg = Str.regexp_case_fold ".*vd.*\\|.*show.*\\|.*availability.*"
 let look_reg = Str.regexp_case_fold ".*theme.*\\|.*style.*\\|.*checkbox.*\\|.*human_readable.*\\|html_mods"
-let mlchat_client_reg = Str.regexp_case_fold ".*addr.*\\|.*port.*"
 let dc_client_reg = Str.regexp_case_fold ".*login.*\\|.*firewalled.*\\|.*client.*"
 let dc_server_reg = Str.regexp_case_fold ".*hub.*\\|.*server*."
 let ed2k_client_reg = Str.regexp_case_fold ".*md4.*\\|.*login.*\\|.*high_id.*\\|.*port.*\\|.*max_xs.*\\|.*max_udp.*"
@@ -217,9 +213,6 @@ let groups_reg =
         [(Some gui_reg, Some Gui); (None, Some User)];
    (Some Tools, Some Mail),
         [(Some mail_reg, Some Mail_setup); (None, Some Others)];
-   (Some Mlchat, None),
-        [(Some mlchat_server_reg, Some Server); (Some mlchat_client_reg, Some Client);
-         (None, Some General_)];
    (Some Bittorrent, None),
         [(Some client_reg, Some Client); (Some tracker_reg, Some Tracker);
          (None, Some Others)];
@@ -420,7 +413,6 @@ let section_to_label sec =
       Some Main -> !M.cW_lb_main
     | Some Interfaces -> !M.cW_lb_interfaces
     | Some Tools -> !M.cW_lb_tools
-    | Some Mlchat -> !M.cW_lb_mlchat
     | Some Other -> !M.cW_lb_other
     | Some Bittorrent -> !M.cW_lb_bittorrent
     | Some Direct_connect -> !M.cW_lb_direct_connect
@@ -501,7 +493,6 @@ let icon_from_section section =
   match section with
       Some Main -> A.get_icon ~icon:M.icon_type_source_normal ~size:A.LARGE ()
     | Some Interfaces -> A.get_icon ~icon:M.icon_menu_interfaces ~size:A.LARGE ()
-    | Some Mlchat -> A.get_icon ~icon:M.icon_menu_mlchat ~size:A.LARGE ()
     | Some Other -> A.get_icon ~icon:M.icon_menu_others ~size:A.LARGE ()
     | Some Tools -> A.get_icon ~icon:M.icon_menu_tools ~size:A.LARGE ()
     | Some Bittorrent -> A.get_icon ~icon:M.icon_net_bittorrent ~size:A.LARGE ()

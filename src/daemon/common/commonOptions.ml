@@ -354,8 +354,6 @@ let mail_section = file_section downloads_ini ["Mail"]
   "Mail options"
 let path_section = file_section downloads_ini ["Paths"]
   "Paths options"
-let mlchat_section = file_section downloads_ini ["MLChat"]
-  "MLChat options"
 let security_section = file_section downloads_ini ["Security"]
   "Security options"
 let other_section = file_section downloads_ini ["Other"]
@@ -1207,50 +1205,6 @@ let allow_browse_share = define_option current_section ["allow_browse_share"]
 
 let messages_filter = define_option current_section ["messages_filter"]
     "Regexp of messages to filter out, example: string1|string2|string3" string_option "Your client is connecting too fast"
-
-
-
-
-(*************************************************************************)
-(*                                                                       *)
-(*                         MLchat section                                *)
-(*                                                                       *)
-(*************************************************************************)
-
-let current_section = mlchat_section
-
-(** {2 Chat} *)
-
-let chat_app_port =
-  define_expert_option current_section ["chat_app_port"]
-    "port of the external chat application"
-    int_option 5036
-
-let chat_app_host =
-  define_expert_option current_section ["chat_app_host"]
-    "hostname of the external chat application"
-    string_option "localhost"
-
-let chat_port =
-  define_expert_option current_section ["chat_port"]
-    "port used by the external chat application to use the core as a proxy"
-    int_option 4002
-
-let chat_bind_addr = define_expert_option current_section ["chat_bind_addr"]
-    "The IP address used to bind the chat server"
-    Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
-
-let chat_console_id =
-  define_expert_option current_section ["chat_console_id"]
-    "the id to use for communicating with the core console through chat interface"
-    string_option "donkey console"
-
-let chat_warning_for_downloaded = define_expert_option current_section
-    ["chat_warning_for_downloaded"]
-    "use the chat to indicate when a file has been downloaded"
-    bool_option true
-
-
 
 
 (*************************************************************************)

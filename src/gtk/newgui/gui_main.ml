@@ -602,9 +602,6 @@ let main () =
   ignore (gui#buttonAbout#connect#clicked 
       (fun () -> ignore (window_about ())));
 
-  ignore (gui#buttonIm#connect#clicked 
-      (fun () -> Gui_im.main_window#window#show ()));
-  
   (************ Some hooks ***************)
 
   option_hook Gui_options.notebook_tab 

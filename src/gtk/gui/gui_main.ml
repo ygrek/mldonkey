@@ -549,16 +549,6 @@ let main () =
     CommonGlobals.exit_properly 0
   in
   Gui_config.update_toolbars_style gui;
-  Gui_global.top_menus := ("IM", (fun menu ->
-        
-        let menu_item =
-          GMenu.menu_item ~label: "IM Window"
-            ~packing:menu#add ()
-        in
-        ignore (menu_item#connect#activate ~callback:(fun _ ->              
-              Gui_im.main_window#window#show ()));
-
-    )) :: !Gui_global.top_menus;
   List.iter (fun (menu, init) ->
       let _Menu = GMenu.menu_item ~label:menu  ~packing:(gui#menubar#add) ()
       in

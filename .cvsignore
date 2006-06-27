@@ -14,8 +14,6 @@ release-*
 contribs
 use_tags*
 .depend
-mlchat
-mlchat.byte
 test_*
 ocamlopt-*
 *.static

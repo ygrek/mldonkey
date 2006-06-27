@@ -123,11 +123,6 @@ class window () =
                      ~icon: (Gui_options.pixmap Gui_messages.o_xpm_about)#coerce
                    ();
   in
-  let buttonIm = wtool1#insert_button
-                  ~tooltip:(Gui_messages.mW_ti_im)
-                  ~icon: (Gui_options.pixmap Gui_messages.o_xpm_im)#coerce
-                 ();
-  in
   let buttonOptions = wtool1#insert_button
                        ~tooltip:(Gui_messages.mW_ti_settings)
                        ~icon: (Gui_options.pixmap Gui_messages.o_xpm_settings)#coerce
@@ -162,7 +157,6 @@ class window () =
     val box = box
     val notebook = notebook
     val buttonAbout = buttonAbout
-    val buttonIm = buttonIm
     val buttonOptions = buttonOptions
     val buttonQuit = buttonQuit
     val buttonGui = buttonGui
@@ -183,7 +177,6 @@ class window () =
 
     method notebook = notebook
     method buttonAbout = buttonAbout
-    method buttonIm = buttonIm
     method buttonOptions = buttonOptions
     method buttonQuit = buttonQuit
     method buttonGui = buttonGui

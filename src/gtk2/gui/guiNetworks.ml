@@ -169,7 +169,6 @@ let flags =
   NetworkHasRooms, M.icon_menu_rooms;
   NetworkHasMultinet, M.icon_net_globalshare;
   NetworkHasSearch, M.icon_menu_searches;
-  NetworkHasChat, M.icon_menu_mlchat;
   NetworkHasSupernodes, M.icon_net_supernode;
   NetworkHasUpload, M.icon_menu_uploads;
 ]

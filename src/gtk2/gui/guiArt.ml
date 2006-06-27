@@ -77,7 +77,6 @@ let table = [
   M.icon_menu_uploads, (Menu_uploads_svg.t, from_icons_dir M.icon_menu_uploads);
   M.icon_menu_console, (Menu_console_svg.t, from_icons_dir M.icon_menu_console);
   M.icon_menu_graph, (Menu_graph_svg.t, from_icons_dir M.icon_menu_graph);
-  M.icon_menu_im, (Menu_im_svg.t, from_icons_dir M.icon_menu_im);
   M.icon_menu_settings, (Menu_settings_svg.t, from_icons_dir M.icon_menu_settings);
   M.icon_menu_quit, (Menu_quit_svg.t, from_icons_dir M.icon_menu_quit);
   M.icon_menu_help, (Menu_help_svg.t, from_icons_dir M.icon_menu_help);
@@ -94,7 +93,6 @@ let table = [
   M.icon_menu_search_freedb, (Menu_search_freedb_svg.t, from_icons_dir M.icon_menu_search_freedb);
   M.icon_menu_search_imdb, (Menu_search_imdb_svg.t, from_icons_dir M.icon_menu_search_imdb);
   M.icon_menu_interfaces, (Menu_interfaces_svg.t, from_icons_dir M.icon_menu_interfaces);
-  M.icon_menu_mlchat, (Menu_mlchat_svg.t, from_icons_dir M.icon_menu_mlchat);
   M.icon_menu_tools, (Menu_tools_svg.t, from_icons_dir M.icon_menu_tools);
   M.icon_menu_others, (Menu_others_svg.t, from_icons_dir M.icon_menu_others);
 

@@ -48,15 +48,11 @@ ifeq ("$(GUI)", "newgui2")
   ICONS_CHOICE=icons/rsvg
   SRC_GUI=src/gtk2/gui
   GUI_CODE=GTK2GUI
-  IM_GUI=src/gtk2/im
-  CHAT_GUI=src/gtk2/chat
   GTK=gtk2
 else
   CONFIGWIN=src/gtk/configwin
   GPATTERN=src/gtk/gpattern
   OKEY=src/gtk/okey
-  IM_GUI=src/im
-  CHAT_GUI=src/gtk/chat
   GTK=gtk
   ifeq ("$(GUI)", "newgui1")
     SRC_PROGRESS=src/gtk/progress
@@ -77,7 +73,6 @@ NET=src/utils/net
 RSS=src/utils/ocamlrss
 XML=src/utils/xml-light
 
-CHAT=src/daemon/chat
 COMMON=src/daemon/common
 DRIVER=src/daemon/driver
 MP3=src/utils/mp3tagui
@@ -93,9 +88,7 @@ SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
 SRC_FILETP=src/networks/fileTP
 
-IM=src/im
-
-SUBDIRS=$(CDK) $(CHAT) $(CHAT_GUI) $(LIB) $(RSS) $(XML) $(NET) tools \
+SUBDIRS=$(CDK) $(LIB) $(RSS) $(XML) $(NET) tools \
    $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
 
 INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
@@ -215,13 +208,6 @@ NET_SRCS = \
 
 #  $(NET)/tcpClientSocket.ml 
 
-CHAT_SRCS = $(CHAT)/chat_messages.ml\
-	$(CHAT)/chat_misc.ml\
-        $(CHAT)/chat_proto.ml\
-        $(CHAT)/chat_types.ml\
-        $(CHAT)/chat_options.ml\
-        $(CHAT)/chat_config.ml
-
 XML_SRCS= \
   $(XML)/xml_types.ml $(XML)/xml_parser.mly $(XML)/xml_lexer.mll \
   $(XML)/xml_dtd.ml $(XML)/xmlParser.ml $(XML)/xml.ml
@@ -246,7 +232,6 @@ COMMON_SRCS = \
   $(COMMON)/giftParser.mly \
   $(COMMON)/giftEncoding.ml \
   $(COMMON)/giftDecoding.ml \
-  $(COMMON)/commonChat.ml \
   $(COMMON)/commonHasher.ml \
   $(COMMON)/commonHosts.ml \
   $(COMMON)/commonIndexing.ml \
@@ -507,12 +492,11 @@ DIRECT_CONNECT_SRCS= \
 
 OBSERVER_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
+  $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
   tools/observer.ml
 
 MLD_HASH_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) \
   tools/mld_hash.ml
 
 OCAMLPP_SRCS = \
@@ -529,12 +513,12 @@ MLSPLIT_SRCS = \
 
 MAKE_TORRENT_SRCS = \
   $(MAGIC_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
-  $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITTORRENT_SRCS) \
+  $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITTORRENT_SRCS) \
   tools/make_torrent.ml
 
 GET_RANGE_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
-  $(CHAT_SRCS)   tools/get_range.ml
+  tools/get_range.ml
 
 KDE_APPLET=yes
 
@@ -805,9 +789,6 @@ install:: opt
                rm -f $(DESTDIR)$(prefix)/bin/$$link; ln -s mlnet+gui $(DESTDIR)$(prefix)/bin/$$link; \
              done; \
          fi
-	if test -f mlim; then \
-             rm -f $(DESTDIR)$(prefix)/bin/mlim; cp -f mlim $(DESTDIR)$(prefix)/bin/mlim; \
-         fi
 
 
 ifneq ("$(GUI)" , "no")
@@ -853,7 +834,6 @@ GTK2GUI_ICONS= \
   $(ICONS_CHOICE)/menu_uploads.svg \
   $(ICONS_CHOICE)/menu_console.svg \
   $(ICONS_CHOICE)/menu_graph.svg \
-  $(ICONS_CHOICE)/menu_im.svg \
   $(ICONS_CHOICE)/menu_settings.svg \
   $(ICONS_CHOICE)/menu_quit.svg \
   $(ICONS_CHOICE)/menu_help.svg \
@@ -869,7 +849,6 @@ GTK2GUI_ICONS= \
   $(ICONS_CHOICE)/menu_search_complex.svg \
   $(ICONS_CHOICE)/menu_search_freedb.svg \
   $(ICONS_CHOICE)/menu_search_imdb.svg \
-  $(ICONS_CHOICE)/menu_mlchat.svg \
   $(ICONS_CHOICE)/menu_interfaces.svg \
   $(ICONS_CHOICE)/menu_tools.svg \
   $(ICONS_CHOICE)/menu_others.svg \
@@ -1025,7 +1004,6 @@ NEWGUI_ICONS= \
   $(ICONS_CHOICE)/nbk_graphs_on.xpm \
   $(ICONS_CHOICE)/nbk_graphs_menu.xpm \
   $(ICONS_CHOICE)/about.xpm \
-  $(ICONS_CHOICE)/im.xpm \
   $(ICONS_CHOICE)/settings.xpm \
   $(ICONS_CHOICE)/exit.xpm \
   $(ICONS_CHOICE)/gui.xpm \
@@ -1188,7 +1166,6 @@ GTK2GUI_SRCS=  \
   $(SRC_GUI)/guiFriends.ml \
   $(SRC_GUI)/guiUploads.ml \
   $(SRC_GUI)/guiNetworks.ml \
-  $(IM_GUI_CORE) \
   $(SRC_GUI)/guiConfig.ml \
   $(SRC_GUI)/guiWindow.ml
 
@@ -1220,7 +1197,6 @@ NEWGUI_SRCS=  \
   $(SRC_GUI)/gui_downloads_base.ml $(SRC_GUI)/gui_downloads.ml \
   $(SRC_GUI)/gui_networks.ml \
   $(SRC_GUI)/gui_window_base.ml $(SRC_GUI)/gui_window.ml \
-  $(IM_GUI_CORE) \
   $(SRC_GUI)/gui_config.ml \
   $(SRC_GUI)/gui_main.ml
 
@@ -1245,7 +1221,6 @@ OLDGUI_SRCS=  \
   $(SRC_GUI)/gui_servers_base.zog $(SRC_GUI)/gui_servers.ml \
   $(SRC_GUI)/gui_downloads_base.zog $(SRC_GUI)/gui_downloads.ml \
   $(SRC_GUI)/gui_window_base.zog $(SRC_GUI)/gui_window.ml \
-  $(IM_GUI_CORE) \
   $(SRC_GUI)/gui_config.ml \
   $(SRC_GUI)/gui_main.ml
 
@@ -1258,18 +1233,6 @@ else
 endif
 
 MLDONKEYGUI_SRCS= $(MAIN_SRCS)
-
-ifeq ("$(GUI)", "newgui2")
-  MLDONKEY_IM_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
-else
-  MLDONKEY_IM_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
-endif
-
-ifeq ("$(GUI)", "newgui2")
-  MLDONKEY_IM_SRCS= $(IM_GUI_CORE) $(IM_GUI)/guiImMain.ml  $(MAIN_SRCS)
-else
-  MLDONKEY_IM_SRCS= $(IM_GUI_CORE) $(IM_GUI)/gui_im_main.ml  $(MAIN_SRCS)
-endif
 
 ifeq ("$(GUI)", "newgui2")
   STARTER_CMXA=cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
@@ -1298,73 +1261,12 @@ MLPROGRESS_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 MLPROGRESS_SRCS = \
   $(PROGRESS_SRCS) $(MAIN_SRCS)
 
-
-#######################################################################
-
-#              Objects files for "mlchat"
-
-#######################################################################
-
-CHAT_EXE_SRCS= \
-  $(CHAT)/chat_data.ml \
-  $(CHAT)/chat_args.ml
-
-ifeq ("$(GUI)", "newgui2")
-  CHAT_EXE_SRCS += $(CHAT_GUI)/chat_art.ml $(CHAT_GUI)/chat_configwin.ml 
-endif
-
-CHAT_EXE_SRCS += \
-  $(CHAT)/chat_icons.ml \
-  $(CHAT_GUI)/chat_gui_base.ml \
-  $(CHAT_GUI)/chat_gui.ml \
-  $(CHAT_GUI)/chat_app.ml \
-  $(CHAT)/mlchat.ml \
-  $(CHAT_GUI)/chat_main.ml
-
-ifeq ("$(GUI)", "newgui2")
-  MLCHAT_CMXA= cdk.cmxa icons.cmxa
-else
-  MLCHAT_CMXA= cdk.cmxa gmisc.cmxa
-endif
-
-MLCHAT_SRCS=  $(CHAT_SRCS) $(CHAT_EXE_SRCS)
-
-
-TARGETS += mlgui$(EXE) mlchat$(EXE) mlguistarter$(EXE)
+TARGETS += mlgui$(EXE) mlguistarter$(EXE)
 ifeq ("$(GUI)", "newgui")
   TARGETS += mlprogress$(EXE)
 endif
 
 TARGETS +=  mlnet+gui$(EXE)
-
-
-#### IM stuff is now automatically included in the GUI
-
-SUBDIRS += $(IM) $(IM)/yahoo $(IM)/irc $(IM_GUI)
-
-IM_CORE += $(IM)/imTypes.ml $(IM)/imEvent.ml \
-   $(IM)/imProtocol.ml $(IM)/imIdentity.ml $(IM)/imAccount.ml \
-   $(IM)/imChat.ml $(IM)/imRoom.ml \
-   $(IM)/imOptions.ml
-
-IM_CORE +=  $(IM)/irc/irc.ml
-
-ifeq ("$(GUI)", "newgui2")
-  IM_GUI_CORE += $(IM_GUI)/guiImAccounts.ml $(IM_GUI)/guiImChat.ml \
-                 $(IM_GUI)/guiImRooms.ml    $(IM_GUI)/guiIm.ml
-else
-  IM_GUI_CORE += $(IM_GUI)/gui_im_base.ml $(IM_GUI)/gui_im.ml
-endif
-
-TARGETS += mlim
-
-#ifeq ("$(DEVEL)", "yes")
-#  SUBDIRS += $(IM)/msn
-#
-#  IM_CORE +=    $(IM)/yahoo/yahoo.ml   $(IM)/msn/msn.ml
-#endif
-
-IM_CORE +=   $(IM)/imMain.ml
 
 endif
 
@@ -1449,14 +1351,14 @@ EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 
 libcdk_SRCS=  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS)
 libmagic_SRCS= $(MAGIC_SRCS)
-libcommon_SRCS= $(CHAT_SRCS) $(COMMON_SRCS)
+libcommon_SRCS= $(COMMON_SRCS)
 libclient_SRCS= $(COMMON_CLIENT_SRCS)
 ifeq ("$(GUI)", "newgui2")
   libgmisc_SRCS=
 else
   libgmisc_SRCS= $(CONFIGWIN_SRCS) $(MP3TAGUI_SRCS) $(OKEY_SRCS) $(GPATTERN_SRCS)
 endif
-libguibase_SRCS= $(IM_CORE) $(GUI_BASE_SRCS)
+libguibase_SRCS= $(GUI_BASE_SRCS)
 libgui_SRCS=   $(GUI_SRCS)
 libgui3_SRCS=   $(GUI3_SRCS)
 libicons_SRCS= $(ALL_ICONS_SRCS)
@@ -1580,9 +1482,7 @@ EXPAND(mlfileTP,mlfiletp,NO,mlfileTP,GD,NO,MAGIC)
 EXPAND(mlfileTP+gui,mlfiletp+gui,GTK,mlfileTP+gui,GD,NO,MAGIC)
 EXPAND(mlslsk,mlslsk,NO,mlslsk,GD,NO,MAGIC)
 EXPAND(mlslsk+gui,mlslsk+gui,GTK,mlslsk+gui,GD,NO,MAGIC)
-EXPAND(MLDONKEY_IM,mlim,GTK,MLDONKEY_IM)
 EXPAND(STARTER,mlguistarter,GTK)
-EXPAND(MLCHAT,mlchat,GTK,MLCHAT)
 EXPAND(OBSERVER,observer)
 EXPAND(MLD_HASH,mld_hash)
 EXPAND(OCAMLPP,ocamlpp)
@@ -1833,7 +1733,7 @@ debug:
 RELEASE_TARGETS=mlnet 
 
 ifneq ("$(GUI)" , "no")
-RELEASE_TARGETS += mlgui mlnet+gui mlguistarter mlchat
+RELEASE_TARGETS += mlgui mlnet+gui mlguistarter
 endif
 
 release.shared: opt

@@ -306,8 +306,6 @@ AC_ARG_ENABLE(bzip2,       [  --disable-bzip2         disable the use of bzip2],
 MAGIC=yes
 AC_ARG_ENABLE(magic,       [  --disable-magic         disable the use of libmagic (GNU file)], [MAGIC="$enableval"])
 
-IM=yes
-
 if test "$FORCE_MINGW" = "yes"; then
     CC="$CC -mno-cygwin"
     CPP="$CPP -mno-cygwin"
@@ -1191,12 +1189,11 @@ if test "$GUI" = "newgui2" ; then
   GTKLLIBS="`pkg-config --libs-only-L gtk+-2.0`"
   GTKLFLAGS="`pkg-config --libs-only-l gtk+-2.0`"
 else
-  GUIS="mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE) mlchat\$(EXE)"
+  GUIS="mldonkey_gui\$(EXE) mldonkey_gui2\$(EXE)"
 fi
 
 if test "$LABLGTK_CONFIG" = "no"; then
   GUI="no"
-  IM=no
 else
   MORE_TARGETS="$MORE_TARGETS $GUIS"
   AC_MSG_CHECKING(GToolbox.popup_menu args)
@@ -1209,17 +1206,6 @@ else
   else
     GTOOLBOX_POPUPMENU=' ~x: button ~y: time '
     AC_MSG_RESULT(old)
-  fi
-  if test "$IM" = "yes" ; then
-    AC_MSG_CHECKING(IM)
-    if test -d ../src/im; then
-      AC_MSG_RESULT(yes)
-      IM=yes
-    else
-      IM=no
-    fi
-  else
-    IM=no
   fi
   echo "---------------------------------------------------------"
   echo "End of GTK GUI configuration."

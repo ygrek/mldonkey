@@ -540,11 +540,6 @@ let core_menu gui on_quit =
       kill_core#add_accelerator ~group:accel_menu
         ~modi:[`CONTROL] ~flags:[`VISIBLE] GdkKeysyms._k;
     end;
-  let im =
-    GMenu.image_menu_item ~label:!M.mW_me_im ~use_mnemonic:true
-      ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_im ~size:A.SMALL ()) ())
-      ~packing:menu#add ()
-  in
   let settings =
     GMenu.image_menu_item ~label:!M.mW_me_settings ~use_mnemonic:true
       ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_settings ~size:A.SMALL ()) ())
@@ -555,17 +550,12 @@ let core_menu gui on_quit =
       ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_quit ~size:A.SMALL ()) ())
       ~packing:menu#add ()
   in
-  ignore (im#connect#activate 
-    (fun _ -> GuiWindow.display_im gui ()
-  ));
   ignore (settings#connect#activate 
     (fun _ -> GuiWindow.display_settings gui value_reader ()
   ));
   ignore (quit#connect#activate 
     (fun _ -> on_quit ()
   ));
-  im#add_accelerator ~group:accel_menu
-    ~modi:[`CONTROL] ~flags:[`VISIBLE] GdkKeysyms._i;
   settings#add_accelerator ~group:accel_menu
     ~modi:[`CONTROL] ~flags:[`VISIBLE] GdkKeysyms._o;
   quit#add_accelerator ~group:accel_menu
@@ -628,11 +618,6 @@ let tray_menu gui on_quit =
       ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_interfaces ~size:A.SMALL ()) ())
       ~packing:menu#add ()
   in
-  let im =
-    GMenu.image_menu_item ~label:!M.mW_me_im ~use_mnemonic:true
-      ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_im ~size:A.SMALL ()) ())
-      ~packing:menu#add ()
-  in
   let settings =
     GMenu.image_menu_item ~label:!M.mW_me_settings ~use_mnemonic:true
       ~image:(GMisc.image ~pixbuf:(A.get_icon ~icon:M.icon_menu_settings ~size:A.SMALL ()) ())
@@ -647,9 +632,6 @@ let tray_menu gui on_quit =
     (fun _ ->
        gui.window#show ();
        G.tray.destroy_tray ();
-  ));
-  ignore (im#connect#activate 
-    (fun _ -> GuiWindow.display_im gui ()
   ));
   ignore (settings#connect#activate 
     (fun _ -> GuiWindow.display_settings gui value_reader ()

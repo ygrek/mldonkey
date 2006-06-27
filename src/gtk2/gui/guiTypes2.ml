@@ -90,7 +90,6 @@ type gui_section =
   Main
 | Interfaces
 | Tools
-| Mlchat
 | Other
 | Bittorrent
 | Direct_connect

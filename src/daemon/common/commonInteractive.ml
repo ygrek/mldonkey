@@ -349,9 +349,6 @@ let mail_for_completed_file file =
       } in
     M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
 
-let chat_for_completed_file file =
-  CommonChat.send_warning_for_downloaded_file (file_best_name file)
-  
 let file_completed (file : file) =
   try
     let impl = as_file_impl file in
@@ -362,9 +359,6 @@ let file_completed (file : file) =
         (try mail_for_completed_file file with e ->
               lprintf_nl "Exception %s in sendmail" (Printexc2.to_string e);
               );
-        if !!CommonOptions.chat_warning_for_downloaded then
-          chat_for_completed_file file;
-
       end
   with e ->
       lprintf_nl "Exception in file_completed: %s" (Printexc2.to_string e)

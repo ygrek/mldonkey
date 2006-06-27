@@ -331,7 +331,6 @@ let create_sections_params sections =
       Section (name,
         List.fold_left (fun list (message, optype, option) ->
             try
-              lprintf "Find %s in section %s\n" option name; 
               (match optype with
                 | GuiTypes.StringEntry ->
                     create_string_option message
@@ -344,7 +343,6 @@ let create_sections_params sections =
                     (Hashtbl.find options_values option).option_value
               ) :: list
             with Not_found ->
-                lprintf "No option %s\n" option; 
                 list
         ) [] !options)
   ) sections
