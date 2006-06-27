@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/06/27
+5206: Remove Kiss DP500 support
 5200: BT: Do not start downloads if no usable trackers are found in file.torrent
       MLDonkey only supports http:// style trackers, not udp:// or dht://
       Deactivated http:// trackers are better marked in HTML,vd #num

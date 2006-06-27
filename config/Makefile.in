@@ -543,7 +543,6 @@ DRIVER_SRCS+= \
   $(DRIVER)/driverGraphics.ml  \
   $(DRIVER)/driverInteractive.ml  \
   $(DRIVER)/driverCommands.ml  \
-  $(DRIVER)/driverLink.ml \
   $(DRIVER)/driverControlers.ml  \
   $(DRIVER)/driverInterface.ml \
   $(DRIVER)/driverMain.ml 
@@ -717,22 +716,6 @@ ANALYSER1_SRCS= \
   src/spider/analyser1/spiderStats.ml \
   \
   src/spider/analyser1/analyser1Main.ml \
-  src/daemon/common/commonMain.ml
-
-DP500_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  \
-  $(COMMON)/commonTypes.ml \
-  $(COMMON)/guiProto.ml \
-  $(COMMON)/commonOptions.ml \
-  $(COMMON)/commonMessages.ml \
-  $(COMMON)/commonUserDb.ml \
-  $(COMMON)/commonGlobals.ml \
-  \
-  src/daemon/driver/driverLink.ml \
-  tools/dp500.ml \
-  \
   src/daemon/common/commonMain.ml
 
 BTVIEW_SRCS= \
@@ -1502,7 +1485,6 @@ EXPAND(DISASM,disasm,CURSES)
 EXPAND(ANALYSER1,analyser1,BIGARRAY)
 EXPAND(BTVIEW,btview)
 EXPAND(CLUSTER,cluster)
-EXPAND(DP500,dp500)
 EXPAND(TESTRSS,testrss)
 EXPAND(SVG_CONVERTER,svg_converter)
 
@@ -1611,8 +1593,8 @@ clean:
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mlgui mlnet.exe mlgui.exe mldonkeytop mldonkeytop.exe
-	rm -f svg_converter svg_converter.byte mld_hash make_torrent copysources get_range subconv dp500 testrss
-	rm -f svg_converter.exe mld_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe dp500.exe testrss.exe
+	rm -f svg_converter svg_converter.byte mld_hash make_torrent copysources get_range subconv testrss
+	rm -f svg_converter.exe mld_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe testrss.exe
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)
@@ -1710,9 +1692,9 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML)
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
-utils: svg_converter mld_hash make_torrent copysources get_range subconv dp500
-utils.byte: mld_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte dp500.byte
-utils.static: svg_converter mld_hash.static make_torrent.static copysources.static get_range.static subconv.static dp500.static
+utils: svg_converter mld_hash make_torrent copysources get_range subconv
+utils.byte: mld_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte
+utils.static: svg_converter mld_hash.static make_torrent.static copysources.static get_range.static subconv.static
 
 #######################################################################
 

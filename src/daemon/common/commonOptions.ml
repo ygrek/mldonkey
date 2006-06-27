@@ -1341,22 +1341,6 @@ let client_bind_addr = define_option current_section ["client_bind_addr"]
     "The IP address used to bind the p2p clients"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
-let dp500_pclink =
-  define_expert_option current_section ["dp500_pclink"]
-    "(experimental)" bool_option false
-
-let dp500_port =
-  define_expert_option current_section ["dp500_port"]
-    "(experimental)" int_option 8000
-
-let dp500_buffer =
-  define_expert_option current_section ["dp500_buffer"]
-    "(experimental)" int_option 2000000
-
-let dp500_directory =
-  define_expert_option current_section ["dp500_directory"]
-    "(experimental)" string_option "dp500"
-
 let _ =
   option_hook client_bind_addr (fun _ ->
       TcpBufferedSocket.bind_address := Ip.to_inet_addr !!client_bind_addr

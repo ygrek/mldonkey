@@ -34,18 +34,6 @@ open CommonNetwork
 
 open DriverInterface
 
-module Dp500 = DriverLink.DP500(struct
-
-      module CommonTypes = CommonTypes
-      module CommonFile = CommonFile
-      module CommonOptions = CommonOptions
-
-      let incoming_directory () =
-        (CommonComplexOptions.incoming_files ()).shdir_dirname
-      let files () = !!CommonComplexOptions.files
-
-    end)
-
 open Gettext (* open last  as most modules redefine _s and _b *)
 
 let _s x = _s "DriverMain" x
@@ -108,7 +96,6 @@ let second_timer timer =
 
 let start_interfaces () =
 
-
   if !!http_port <> 0 then begin try
         ignore (DriverControlers.create_http_handler ());
       with e ->
@@ -118,8 +105,6 @@ let start_interfaces () =
 
   ignore (find_port  "telnet server" !!telnet_bind_addr
       telnet_port DriverControlers.telnet_handler);
-
-  Dp500.start ();
 
   gui_server_sock := find_port "gui server"  !!gui_bind_addr
     gui_port gui_handler;
