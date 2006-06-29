@@ -198,7 +198,8 @@ let file_commit file =
   if impl.impl_file_state = FileDownloaded then
     let subfiles = file_files file in
     match subfiles with
-      file :: secondary_files ->
+      primary :: secondary_files ->
+	if primary == file then
        (try
 	  let file_name = file_disk_name file in
 	  let incoming =
