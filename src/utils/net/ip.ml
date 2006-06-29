@@ -145,10 +145,12 @@ let to_sockaddr ip port =
   Unix.ADDR_INET (to_inet_addr ip, port)
 
 let get_non_local_ip list =
-  let list = List.filter ((<>) localhost) list in
   match list with
   | [] -> raise Not_found
-  | l -> l
+  | _ :: _ ->
+      match List.filter ((<>) localhost) list with
+      | (_ :: _) as l -> l
+      | [] -> list (* there's *only* local addresses, give up *)
 
 let gethostbyname name = 
   let h = Unix.gethostbyname name in

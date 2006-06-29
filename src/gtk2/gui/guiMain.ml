@@ -863,6 +863,11 @@ let main () =
     if !G.is_docked then G.tray.destroy_tray ()
   );
 
+  MlUnix.set_signal  Sys.sigint
+    (Sys.Signal_handle (fun _ -> CommonGlobals.exit_properly 0));
+
+  MlUnix.set_signal  Sys.sigterm
+    (Sys.Signal_handle (fun _ -> CommonGlobals.exit_properly 0));
 
   (************ Some hooks ***************)
 

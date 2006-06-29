@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/06/29
+5212: Fix DNS lookup of localhost (pango)
+      SIGTERM & SIGINT support for GTK2 GUI
+
 2006/06/27
 5207: Remove some obsolete options: html_mods_vd_queues, ED2K-initial_score,
       ED2K-max_dialog_history, ED2K-immediate_master

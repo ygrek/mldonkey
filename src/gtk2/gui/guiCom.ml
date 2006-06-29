@@ -67,8 +67,7 @@ let disconnect gui reason =
 
 let send t =
   match !connection with
-    None -> 
-      lprintf "Message not sent since not connected\n";
+    None -> ()
   | Some sock ->
       GuiEncoding.gui_send (GuiEncoding.from_gui from_gui_protocol_used) sock t
           
