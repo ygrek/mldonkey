@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/07/14
+5232: GUI: Fix decoding bug for Gnutella/G2/Fasttrack search results (zet)
+
 2006/06/29
 5213: Swarmer: Commit only primary downloads (pango)
 5212: Fix DNS lookup of localhost (pango)

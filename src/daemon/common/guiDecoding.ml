@@ -889,7 +889,7 @@ let get_user proto s pos =
   let name, pos = get_string s (pos+20) in
   let ip, pos = get_ip2 proto s pos in
   let port = get_int16 s pos in
-  let tags, pos = get_list2 proto get_tag s (pos+6) in
+  let tags, pos = get_list2 proto get_tag s (pos+2) in
   let server = get_int s pos in
   {
     user_num = num;
