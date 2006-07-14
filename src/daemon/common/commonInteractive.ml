@@ -91,12 +91,16 @@ let canonize_basename name =
 
 let last_sent_dir_warning = Hashtbl.create 10
 
+let hdd_full_log_closed = ref false
 let all_temp_queued = ref false
 
-let send_dirfull_warning dir line1 =
-  lprintf_nl "WARNING: Directory %s is full, %s" dir line1;
-  Printf.fprintf Pervasives.stderr "\nWARNING: Directory %s is full, %s\n" dir line1;
-  Pervasives.flush Pervasives.stderr;
+let send_dirfull_warning dir full line1 =
+  let status = if full then "is full" else "has enough space again" in
+  lprintf_nl "WARNING: Directory %s %s, %s" dir status line1;
+  if (not (keep_console_output ())) then begin
+    Printf.fprintf Pervasives.stderr "\n%s WARNING: Directory %s %s, %s\n" (log_time ()) dir status line1;
+    Pervasives.flush Pervasives.stderr;
+  end;
   if !!hdd_send_warning_interval <> 0 then
     let current_time = last_time () in
     let time_threshold =
@@ -108,12 +112,12 @@ let send_dirfull_warning dir line1 =
       with Not_found -> true in
 
     if send_mail_again then begin
-      Hashtbl.replace last_sent_dir_warning dir current_time;
+      if full then Hashtbl.replace last_sent_dir_warning dir current_time;
       CommonEvent.add_event (Console_message_event
-        (Printf.sprintf "\nWARNING: %s is full, %s\n" dir line1));
+        (Printf.sprintf "\nWARNING: %s %s, %s\n" dir status line1));
       if !!mail <> "" then
         let module M = Mailer in
-        let subject = Printf.sprintf "[mldonkey] AUTOMATED WARNING: %s is full" dir in
+        let subject = Printf.sprintf "[mldonkey@%s] AUTOMATED WARNING: %s %s" (Unix.gethostname ()) dir status in
         let mail = {
           M.mail_to = !!mail; M.mail_from = !!mail;
 	  M.mail_subject = subject; M.mail_body = line1;
@@ -216,7 +220,7 @@ let file_commit file =
 	    begin
 	      match Unix32.diskfree incoming.shdir_dirname with
 	        Some v -> if v < (file_size file) then begin
-		    send_dirfull_warning incoming.shdir_dirname
+		    send_dirfull_warning incoming.shdir_dirname true
 		      (Printf.sprintf "can not commit %s" (file_best_name file));
 		    raise Incoming_full
 		  end
@@ -322,9 +326,9 @@ let mail_for_completed_file file =
     in
 
     let subject = if !!filename_in_subject then
-        Printf.sprintf "[mldonkey] file received - %s" (file_best_name file)
+        Printf.sprintf "[mldonkey@%s] file received - %s" (Unix.gethostname ()) (file_best_name file)
       else
-        Printf.sprintf "mldonkey, file received"
+        Printf.sprintf "mldonkey@%s, file received" (Unix.gethostname ())
     in
 
     let incoming =

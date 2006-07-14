@@ -47,8 +47,6 @@ let lprintf_nl fmt =
 let lprintf_n fmt =
   lprintf2 log_prefix fmt
 
-
-let keep_console_output = ref false
 let pid = ref ""
 
 let do_daily () =
@@ -282,13 +280,13 @@ let load_config () =
           exit 0),
       _s " : display information on the implementations";
       "-stdout", Arg.Unit (fun _ ->
-          keep_console_output := true;
-          log_to_file stdout;
+	  lprintf_original_output := (Some stdout);
+          log_to_file stdout
       ),
        _s ": keep output to stdout after startup";
        "-stderr", Arg.Unit (fun _ ->
-           keep_console_output := true;
-           log_to_file stderr;
+	  lprintf_original_output := (Some stderr);
+          log_to_file stderr
        ),
        _s ": keep output to stderr after startup";
       "-daemon", Arg.Unit (fun _ ->
@@ -308,7 +306,7 @@ let load_config () =
 (*      Files.dump_file file; exit 0 *)
   ) "";
 
-  if not ini_files_exist && not !keep_console_output then log_file =:= "mlnet.log";
+  if not ini_files_exist && not (keep_console_output ()) then log_file =:= "mlnet.log";
 
   (**** CREATE DIRS   ****)
 
@@ -454,7 +452,7 @@ or getting a binary compiled with glibc %s.\n\n")
 	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!gui_bind_addr)  !!gui_port;
   lprintf_nl  (_b "If you connect from a remote machine adjust allowed_ips");
-  if Autoconf.system = "cygwin" && not !keep_console_output then lprintf (_b "%s") win_message;
+  if Autoconf.system = "cygwin" && not (keep_console_output ()) then lprintf (_b "%s") win_message;
 
   add_init_hook (fun _ ->
       if not !gui_included && ( !!start_gui || !!ask_for_gui ) then
@@ -576,7 +574,7 @@ for config files at the end. *)
 
 (* When a core is spawned from a gui, the only way to know the startup has
    succeeded is the string token "Core started". *)
-  if not !keep_console_output then
+  if not (keep_console_output ()) then
     begin
       try
         Printf.fprintf Pervasives.stderr "%sCore started\n" (log_time ());
@@ -613,7 +611,7 @@ for config files at the end. *)
       lprintf_nl (_b "Core stopped")
     );
 
-  if not !keep_console_output then
+  if not (keep_console_output ()) then
     if !!log_file = "" then 
       begin
         lprintf_nl (_b "Option log_file is empty, disable logging completely...");

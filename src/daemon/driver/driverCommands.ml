@@ -1353,6 +1353,7 @@ let _ =
     ), "<option_name> <option_value> :\t$bchange option value$n";
 
     "save", Arg_multiple (fun args o ->
+	if !allow_saving_ini_files then begin
         match args with
 	  ["options"] -> DriverInteractive.save_config (); _s "options saved"
 	| ["sources"] -> CommonComplexOptions.save_sources (); _s "sources saved"
@@ -1364,6 +1365,7 @@ let _ =
 	        _s "options, sources and backup saved"
 	| _ -> DriverInteractive.save_config ();
 	       CommonComplexOptions.save_sources (); _s "options and sources saved"
+	end else _s "base directory full, ini file saving disabled until core shutdown"
         ), "[<options|sources|backup>] :\tsave options and/or sources or backup (empty for options and sources)";
 
     "vo", Arg_none (fun o ->
@@ -2919,17 +2921,15 @@ let _ =
     "<width> <height> :\t\t\tset terminal width and height (devel)";
 
     "stdout", Arg_one (fun arg o ->
-        let b = bool_of_string arg in
-        set_logging b;
-	if b then
+	if (bool_of_string arg) then
 	  begin
-      lprintf_nl "Enable logging to stdout...";
+	    lprintf_nl "Enable logging to stdout...";
 	    log_to_file stdout;
-      lprintf_nl "Logging to stdout..."
+	    lprintf_nl "Logging to stdout..."
 	  end
 	else
 	  begin
-      lprintf_nl "Disable logging to stdout...";
+	    lprintf_nl "Disable logging to stdout...";
 	    close_log ();
 	    if !!log_file <> "" then
 	      begin
@@ -2939,7 +2939,7 @@ let _ =
 	      end
 	  end;
         Printf.sprintf (_b "log to stdout %s")
-        (if b then _s "enabled" else _s "disabled")
+        (if (bool_of_string arg) then _s "enabled" else _s "disabled")
     ), "<true|false> :\t\t\treactivate log to stdout";
 
     "debug_client", Arg_multiple (fun args o ->

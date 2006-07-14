@@ -19,6 +19,9 @@
 
 open Autoconf
 
+val lprintf_original_output : out_channel option ref
+val keep_console_output : unit -> bool
+
 val log_time : unit -> string
 val cprintf : (string -> unit) -> ('a, unit, unit) format -> 'a
 (** [cprintf k format arguments] is the same as [printf format arguments],
@@ -33,21 +36,11 @@ val lprint_newline : unit -> unit
 val lprint_char : char -> unit  
 val lprint_string : string -> unit  
 val lprint_int : int -> unit  
-
-(*
-val lprintf_to_stdout : bool ref  
-val lprintf_fifo : string Fifo.t
-val lprintf_max_size : int ref
-val lprintf_output : out_channel option ref
-val set_lprintf_handler : (string -> unit) -> unit
-*)
-
 val lprintf_max_size : int ref
   
 val detach : unit -> unit
 val log_to_file : out_channel -> unit
 val log_to_buffer : Buffer.t -> unit
-val set_logging : bool -> unit
 val close_log : unit -> unit
 
 val html_mods_big_header_start : Buffer.t -> string -> string list -> unit

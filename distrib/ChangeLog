@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/07/14
+5222: Improve log output when HDD is full
 5214: Gettext: Improve translations
 * added ./distrib/i18n/mlnet_strings.de_DE.utf8 for testing purposes
   startup messages should appear in German now, more strings have

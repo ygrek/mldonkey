@@ -82,9 +82,12 @@ let dns_works = ref false
 let real_startup_message () =
   let s =
   !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ()) 
-  ^ (if not !dns_works then "DNS resolution does not work" else "")
+  ^ (if not !dns_works then "DNS resolution does not work\n" else "")
+  ^ (if not !allow_saving_ini_files then "Base directory is full, ini file saving disabled\n" else "")
+  ^ (if !all_temp_queued then "Temp directory is full, all downloads are queued\n" else "")
+  ^ (if !hdd_full_log_closed then "Logfile directory is full, logging redirected to RAM\n" else "")
   ^ (if Autoconf.donkey = "yes" && not !!enable_servers && !!enable_donkey then
-     "You disabled option enable_servers, you will not be able to connect to ED2K servers"
+     "You disabled option enable_servers, you will not be able to connect to ED2K servers\n"
      else "")
   in
   if s = "" then None else Some s
@@ -99,37 +102,62 @@ let hdd_check () =
 
   if dir_full !!temp_directory !!hdd_temp_minfree then
     if !!hdd_temp_stop_core then begin
-      send_dirfull_warning !!temp_directory "MLDonkey temp directory partition full, shutting down...";
+      send_dirfull_warning !!temp_directory true "MLDonkey shuts down";
       CommonInteractive.clean_exit 0
       end
     else begin
-      send_dirfull_warning !!temp_directory "MLDonkey queues all downloads";
+      send_dirfull_warning !!temp_directory true "MLDonkey queues all downloads";
       all_temp_queued := true
     end
   else
     begin
       all_temp_queued := false;
-      try Hashtbl.remove last_sent_dir_warning !!temp_directory with _ -> ()
+      try
+	ignore (Hashtbl.find last_sent_dir_warning !!temp_directory);
+        (try Hashtbl.remove last_sent_dir_warning !!temp_directory with Not_found -> ());
+        send_dirfull_warning !!temp_directory false "MLDonkey unqueues all downloads"
+      with Not_found -> ()
     end;
 
   let core_dir = Sys.getcwd () in
   if dir_full core_dir !!hdd_coredir_minfree then
     if !!hdd_coredir_stop_core then begin
-      send_dirfull_warning core_dir "MLDonkey base directory partition full, shutting down...";
+      send_dirfull_warning core_dir true "MLDonkey shuts down";
       CommonInteractive.clean_exit 0
       end
     else
       begin
-        send_dirfull_warning core_dir "MLDonkey base directory partition full, stop saving ini files...";
-        allow_saving_ini_files := false
+        allow_saving_ini_files := false;
+        send_dirfull_warning core_dir true "MLDonkey base directory partition full, stop saving ini files"
       end
   else
-    allow_saving_ini_files := true;
+    begin
+      allow_saving_ini_files := true;
+      try
+	ignore (Hashtbl.find last_sent_dir_warning core_dir);
+        (try Hashtbl.remove last_sent_dir_warning core_dir with Not_found -> ());
+        send_dirfull_warning core_dir false "MLDonkey base directory partition has enough free space again, saving ini files again"
+      with Not_found -> ()
+    end;
 
+  if !!log_file <> "" && (not (keep_console_output ())) then begin
   let log_dir = Filename.dirname !!log_file in
-  if dir_full log_dir !!hdd_coredir_minfree then begin
-    send_dirfull_warning log_dir "MLDonkey logdirectory partition full, redirect log to RAM...";
-    close_log ()
+  if dir_full log_dir !!hdd_coredir_minfree then
+    begin
+      hdd_full_log_closed := true;
+      send_dirfull_warning log_dir true "MLDonkey logdirectory partition full, redirect log to RAM";
+      close_log ()
+    end
+  else
+    begin
+      if !hdd_full_log_closed then log_file =:= !!log_file;
+      hdd_full_log_closed := false;
+      try
+	ignore (Hashtbl.find last_sent_dir_warning log_dir);
+        (try Hashtbl.remove last_sent_dir_warning log_dir with Not_found -> ());
+        send_dirfull_warning log_dir false "MLDonkey logdirectory partition has enough free space again, re-enabling logging"
+      with Not_found -> ()
+    end
   end
 
 (* ripped from gui_downloads *)

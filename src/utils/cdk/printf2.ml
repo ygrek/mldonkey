@@ -221,14 +221,21 @@ let set_lprintf_handler f =
 let lprintf_max_size = ref 100
 let lprintf_size = ref 0
 let lprintf_fifo = Fifo.create ()
-let lprintf_to_stdout = ref true
+let lprintf_to_channel = ref true
 
 let lprintf_output = ref (Some stderr)
+let lprintf_original_output = ref None
+
+let keep_console_output () =
+  match !lprintf_original_output with
+    Some stdout -> true
+  | Some stderr -> true
+  | _ -> false
 
 let _ =
   set_lprintf_handler (fun s ->
       match !lprintf_output with
-        Some out when !lprintf_to_stdout ->
+        Some out when !lprintf_to_channel ->
           Printf.fprintf out "%s" s; flush out
       | _ ->
           if !lprintf_size >= !lprintf_max_size then
@@ -244,7 +251,7 @@ let detach () =
   | _ -> ()
 
 let close_log () =
-  lprintf_to_stdout := false;
+  lprintf_to_channel := false;
   match !lprintf_output with
     None -> ()
   | Some oc ->
@@ -255,7 +262,7 @@ let close_log () =
 let log_to_file oc =
   close_log ();
   lprintf_output := Some oc;
-  lprintf_to_stdout := true
+  lprintf_to_channel := true
 
 let log_to_buffer buf =
   try
@@ -265,9 +272,6 @@ let log_to_buffer buf =
       Buffer.add_string buf s
     done
   with _ -> ()
-
-let set_logging b =
-  lprintf_to_stdout := b
 
 (* html_mods *)
 
