@@ -35,6 +35,10 @@ let hidden_dir_prefix =
 
 let config_dir_basename = hidden_dir_prefix ^ "mldonkey"
 
+let pid_filename = Printf.sprintf "%s.pid" (Filename.basename Sys.argv.(0))
+
+let security_space_filename = "config_files_space.tmp"
+
 let home_dir =
   match Autoconf.system with
   | "cygwin"
@@ -107,6 +111,10 @@ let exit_message_dev file exit = Printf.sprintf
 If you are using a chroot environment, create it inside the chroot.\n"
   file (if exit then ", exiting..." else "")
 
+let windows_sleep seconds =
+  lprintf_nl "waiting %d seconds to exit..." seconds;
+  Unix.sleep seconds
+
 let _ =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
   let ulof_old = Unix2.c_getdtablesize () in
@@ -172,62 +180,75 @@ let _ =
 
   Unix2.can_write_to_directory (Filename2.temp_directory ());
 
-  if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet")
-    then
-      let pid_filename =
-        Printf.sprintf "%s.pid" (Filename.basename Sys.argv.(0)) in
-      let config_space = "config_files_space.tmp" in
-      if Sys.file_exists pid_filename || Sys.file_exists config_space
-      then begin
-        if Sys.file_exists pid_filename then
-          lprintf_nl "PID file %s exists."
-      (Filename.concat file_basedir pid_filename)
-  else
-    if Sys.file_exists config_space then begin
-            lprintf_nl "%s exists." (Filename.concat file_basedir config_space);
-      lprintf "%s" (exit_message config_space);
-      if Autoconf.windows then
-        begin
-          lprintf_nl "waiting 10 seconds to exit...";
-    Unix.sleep 10
-        end;
-      exit 2
-      end;
-        let pid =
-          try
-      Unix2.tryopen_read pid_filename (fun pid_ci ->
-              int_of_string (input_line pid_ci))
-          with _ ->
-            lprintf_nl "But it couldn't be read to check if the process still exists.";
-            lprintf_nl "To avoid doing any harm, MLDonkey will now stop.";
-            exit 2
-        in
-          try
-            Unix.kill pid 0;
-      lprintf "%s" (exit_message pid_filename);
-            exit 2
-          with
-            (* stalled pid file, disregard it *)
-            | Unix.Unix_error (Unix.ESRCH, _, _) ->
-         (lprintf_nl "Removing stalled file %s " pid_filename;
-         try Sys.remove pid_filename with _ -> ())
+  if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet") then begin
+    if Sys.file_exists pid_filename then begin
+      lprintf_nl "PID file %s exists." (Filename.concat file_basedir pid_filename);
+      let pid =
+	try
+	  Unix2.tryopen_read pid_filename (fun pid_ci ->
+	  int_of_string (input_line pid_ci))
+        with _ ->
+          lprintf_nl "But it couldn't be read to check if the process still exists.";
+          lprintf_nl "To avoid doing any harm, MLDonkey will now stop.";
+	  if Autoconf.windows then windows_sleep 10;
+          exit 2
+      in
+      try
+	lprintf_nl "Checking whether PID %d is still used..." pid;
+        Unix.kill pid 0;
+	lprintf "%s" (exit_message pid_filename);
+	exit 2
+      with (* stalled pid file, disregard it *)
+      | Unix.Unix_error (Unix.ESRCH, _, _) ->
+	  lprintf_nl "Removing stalled file %s..." pid_filename;
+	  (try Sys.remove pid_filename with _ -> ())
       | e -> 
-        lprintf "%s" (exit_message pid_filename);
-        if Autoconf.system = "mingw" then lprintf_nl
-          "can not check for stalled pid file because Unix.kill is not implemented on MinGW";
-        lprintf_nl "Exception %s, exiting..." (Printexc2.to_string e);
-        if Autoconf.system = "mingw" then begin
-          lprintf_nl "waiting 10 seconds to exit...";
-    Unix.sleep 10;
-        end;
-        exit 2
-      end;
-
+          lprintf "%s" (exit_message pid_filename);
+          if Autoconf.system = "mingw" then lprintf_nl
+            "can not check for stalled pid file because Unix.kill is not implemented on MinGW";
+          lprintf_nl "Exception %s, exiting..." (Printexc2.to_string e);
+          if Autoconf.system = "mingw" then windows_sleep 10;
+          exit 2
+    end;
+    if Sys.file_exists security_space_filename then begin
+      try
+        let security_space_oc =
+	  Unix.openfile security_space_filename [Unix.O_WRONLY; Unix.O_CREAT] 0o600 in
+        Unix.lockf security_space_oc Unix.F_TLOCK 0;
+        Unix.close security_space_oc;
+        lprintf_nl "Removing stalled file %s..."
+	  (Filename.concat file_basedir security_space_filename);
+	begin
+	  try
+	    (try Unix.close security_space_oc with _ -> ());
+            Sys.remove security_space_filename
+          with e ->
+	    lprintf_nl "can not remove %s: %s"
+	      (Filename.concat file_basedir security_space_filename)
+	      (Printexc2.to_string e);
+	    if Autoconf.windows then windows_sleep 10;
+	    exit 2
+	end
+      with
+	Unix.Unix_error ((Unix.EAGAIN | Unix.EACCES), _, _) ->
+          lprintf_nl "%s exists and is locked by another process."
+	    (Filename.concat file_basedir security_space_filename);
+          lprintf "%s" (exit_message security_space_filename);
+          if Autoconf.windows then windows_sleep 10;
+          exit 2
+      | e ->
+	  lprintf_nl "error while checking file %s: %s"
+	    (Filename.concat file_basedir security_space_filename)
+	    (Printexc2.to_string e);
+    	  if Autoconf.windows then windows_sleep 10;
+	  exit 2
+    end
+  end;
   let filename =
-        try
+    try
       Sys.getenv "MLDONKEY_STRINGS"
     with _ ->
-        "mlnet_strings"
+      "mlnet_strings"
   in
   set_strings_file filename
 

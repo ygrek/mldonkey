@@ -538,27 +538,27 @@ or getting a binary compiled with glibc %s.\n\n")
   if !verbose then lprintf_nl (_b "Activated system signal handling")
 
 let _ =
-  let security_space_filename = "config_files_space.tmp" in
+  let security_space_oc = ref None in
   begin
 (* Create a 'config_files_security_space' megabytes file to protect some space
 for config files at the end. *)
     try
-      let security_space_fd = Unix32.create_rw security_space_filename in
-      let _ =
+      let oc = Unix.openfile security_space_filename [Unix.O_WRONLY; Unix.O_CREAT] 0o600 in
         let len = 32768 in
-        let len64 = Int64.of_int len in
-        let s = String.create len in
+        let s = String.make len ' ' in
         let pos = ref zero in
         for i = 1 to !!config_files_security_space do
           for j = 1 to 32 do (* 32 = 1 MB / 32kB *)
-            Unix32.write security_space_fd !pos s 0 len;
-            pos := !pos ++ len64
+	    ignore(Unix2.c_seek64 oc !pos Unix.SEEK_SET);
+            Unix2.really_write oc s 0 len;
+            pos := !pos ++ (Int64.of_int len)
           done
-        done
-      in
-      Unix32.close security_space_fd;
-    with _ ->
-        lprintf_nl (_b "Cannot create Security space file:");
+        done;
+	ignore(Unix2.c_seek64 oc zero Unix.SEEK_SET);
+	Unix.lockf oc Unix.F_LOCK (!!config_files_security_space * 1024 * 1024);
+	security_space_oc := Some oc
+    with e ->
+        lprintf_nl (_b "Cannot create Security space file: %s") (Printexc2.to_string e);
         lprintf_nl (_b " not enough space on device or bad permissions");
         lprintf_nl (_b "Exiting...");
         exit 73;
@@ -566,9 +566,6 @@ for config files at the end. *)
   Unix32.external_start ();
 
   (
-    let pid_filename =
-      Printf.sprintf "%s.pid" (Filename.basename Sys.argv.(0))
-    in
     let pid_file, s =
         Filename.concat !pid pid_filename,
 	Printf.sprintf "%s\n" (string_of_int(Unix.getpid()))
@@ -605,7 +602,10 @@ for config files at the end. *)
       DriverGraphics.G.remove_files ();
       (* In case we have no more space on filesystem for
          config files, remove the security space file *)
-      Sys.remove security_space_filename;
+      (match !security_space_oc with
+	None -> ()
+      | Some oc -> Unix.close oc);
+      (try Sys.remove security_space_filename with _ -> ());
       CommonComplexOptions.allow_saving_ini_files := true;
       DriverInteractive.save_config ();
       CommonComplexOptions.save_sources ();
