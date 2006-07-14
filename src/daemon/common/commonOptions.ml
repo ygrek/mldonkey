@@ -25,6 +25,8 @@ open TcpBufferedSocket
 open Options
 open Unix
 
+let _s x = _s "CommonOptions" x
+let _b x = _b "CommonOptions" x
 
 let startup_message = ref ""
 
@@ -146,7 +148,16 @@ let _ =
      exit 2);
   Unix2.can_write_to_directory file_basedir;
   Unix.chdir file_basedir;
-  
+
+  let filename =
+    try
+      Sys.getenv "MLDONKEY_STRINGS"
+    with _ ->
+        "mlnet_strings"
+  in
+  set_strings_file filename;
+  lprintf_nl (_b "loaded language resource file");
+
   let uname = Unix32.uname () in
   if uname = "" then
     begin
@@ -155,7 +166,7 @@ let _ =
     end
   else
     if not (Unix32.os_supported ()) then begin
-      lprintf_nl "WARNING: MLDonkey is not suuported on %s" uname;
+      lprintf_nl "WARNING: MLDonkey is not supported on %s" uname;
       if Autoconf.windows then
         lprintf_nl "WARNING: MLDonkey is only supported on Windows NT/2000/XP/Server 2003."
     end;
@@ -243,18 +254,7 @@ let _ =
     	  if Autoconf.windows then windows_sleep 10;
 	  exit 2
     end
-  end;
-  let filename =
-    try
-      Sys.getenv "MLDONKEY_STRINGS"
-    with _ ->
-      "mlnet_strings"
-  in
-  set_strings_file filename
-
-
-let _s x = _s "CommonOptions" x
-let _b x = _b "CommonOptions" x
+  end
 
 let define_option a b ?desc c d e =
   match desc with
@@ -1615,12 +1615,12 @@ let _ =
       if (Unix32.getsize !!log_file)
        > (Int64ops.megabytes !!log_file_size) then begin
         Sys.remove !!log_file;
-              lprintf_nl "Logfile %s reset: bigger than %d MB" !!log_file !!log_file_size
+              lprintf_nl (_b "Logfile %s reset: bigger than %d MB") !!log_file !!log_file_size
       end;
           let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 !!log_file in
           lprintf_to_file := true;
           if Autoconf.system = "cygwin" then lprintf "%s" win_message;
-          lprintf_nl "Logging in %s" ( Filename.concat file_basedir !!log_file);
+          lprintf_nl (_b "Logging in %s") ( Filename.concat file_basedir !!log_file);
           log_to_file oc;
     lprintf_nl "Started logging..."
         with e ->

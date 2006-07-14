@@ -22,6 +22,10 @@ open Unix
 open Ip
 open Int64ops
 open Printf2
+open Gettext
+
+let _s x = _s "GeoIp" x
+let _b x = _b "GeoIp" x
 
 let country_begin = 16776960
 let state_begin_rev0 = 16700000
@@ -260,7 +264,7 @@ let init filename =
     end;
 
     active := true; 
-    lprintf_nl "[GeoIP] database loaded"
+    lprintf_nl (_b "[GeoIP] database loaded")
   with _ -> 
     active := false
 

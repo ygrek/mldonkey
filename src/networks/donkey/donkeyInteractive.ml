@@ -55,6 +55,11 @@ open CommonOptions
 open DonkeyStats
 open DonkeyUdp
 
+open Gettext
+
+let _s x = _s "DonkeyInteractive" x
+let _b x = _b "DonkeyInteractive" x
+
 module VB = VerificationBitmap
 
 let result_name r =
@@ -125,16 +130,16 @@ let unpack_server_met filename url =
 	      Unix2.tryopen_read_zip filename (fun ic ->
 		try
 		  let file = Zip.find_entry ic "server.met" in
-      lprintf_nl "server.met found in %s" url;
+		    lprintf_nl (_b "server.met found in %s") url;
 		  file.Zip.filename
 		with e ->
-      lprintf_nl "Exception %s while extracting server.met from %s"
+		    lprintf_nl (_b "Exception %s while extracting server.met from %s")
 		    (Printexc2.to_string e) url;
 		  raise e) in
 	    (try
 	      ignore(Misc.archive_extract filename "zip")
 	    with e ->
-        lprintf_nl "Exception %s while extracting server.met from %s"
+		lprintf_nl (_b "Exception %s while extracting server.met from %s")
 		(Printexc2.to_string e) url;
 	      raise e);
 	    result
@@ -170,18 +175,18 @@ let download_server_met url =
         let s = unpack_server_met filename url in
     let n = load_server_met s in
       if s <> filename then Sys.remove s;
-            lprintf_nl "server.met loaded from %s, %d servers found, %d new ones inserted"
+            lprintf_nl (_b "server.met loaded from %s, %d servers found, %d new ones inserted")
         url n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
       with e -> ()
     )
 
-let already_done = Failure "File already downloaded (use 'force_download' if necessary)"
+let already_done = Failure (Printf.sprintf (_b "File already downloaded (use 'force_download' if necessary)"))
 
-let no_download_to_force = Failure "No forceable download found"
+let no_download_to_force = Failure (Printf.sprintf (_b "No forceable download found"))
 
-let already_downloading = Failure "File is already in download queue"
+let already_downloading = Failure (Printf.sprintf (_b "File is already in download queue"))
 
-let already_shared = Failure "File is already shared"
+let already_shared = Failure (Printf.sprintf (_b "File is already shared"))
 
 let really_query_download filenames size md4 location old_file absents =
 
@@ -241,7 +246,7 @@ let really_query_download filenames size md4 location old_file absents =
             CommonSwarming.set_absent swarmer absents
   end;
 
-  if !verbose then lprintf_nl "Started new download, file %s, size %Ld, md4 %s"
+  if !verbose then lprintf_nl (_b "Started new download, file %s, size %Ld, md4 %s")
     (file_best_name file) size (Md4.to_string md4);
 
   DonkeyProtoOvernet.Overnet.recover_file file;
@@ -516,7 +521,7 @@ let parse_donkey_url url =
   | "file" :: name :: size :: md4 :: "/" :: "sources" :: sources :: _ ->
 (*  ed2k://|file|Wikipedia_3.3_noimages.iso|2666311680|747735CD46B61DA92973E9A8840A9C99|/|sources,62.143.4.124:4662|/  *)
       if Int64.of_string size >= 4294967295L then
-	"Files > 4GB are not allowed", false
+	(Printf.sprintf (_b "Files > 4GB are not allowed")), false
       else
         begin
 	  let md4 = if String.length md4 > 32 then
@@ -544,7 +549,7 @@ let parse_donkey_url url =
 	          List.iter (fun (source_ip, source_port) ->
     		    add_source new_file source_ip source_port Ip.null 0
     	          ) !new_sources;
-    	          (Printf.sprintf "added %d sources to new download" (List.length !new_sources)), true
+    	          (Printf.sprintf (_b "added %d sources to new download") (List.length !new_sources)), true
     	        end
     	      else "", true
     	    with e -> (Printexc2.to_string e), false
@@ -553,7 +558,7 @@ let parse_donkey_url url =
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
       if Int64.of_string size >= 4294967295L then
-	"Files > 4GB are not allowed", false
+	(Printf.sprintf (_b "Files > 4GB are not allowed")), false
       else
         let md4 = if String.length md4 > 32 then
           String.sub md4 0 32 else md4 in

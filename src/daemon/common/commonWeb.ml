@@ -29,6 +29,18 @@ open TcpBufferedSocket
 open CommonGlobals
 open CommonOptions
 open CommonTypes
+open Gettext
+
+let _s x = _s "CommonWeb" x
+let _b x = _b "CommonWeb" x
+
+let log_prefix = "[cWeb]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
 
 let days = ref 0
 let hours = ref 0
@@ -108,18 +120,18 @@ let mldonkey_wget url f =
 	    let file_time = Unix.gmtime file_date.Unix.LargeFile.st_mtime in
 	      if html_time <= file_time then
 	        begin
-	        lprintf_nl "[cWeb] using local version of %s, HTML header (%s)" file date;
+	        lprintf_nl (_b "using local version of %s, HTML header (%s)") file date;
 	        (f file : unit)
 	        end
 	      else
 	        begin
-	          lprintf_nl "[cWeb] downloading newer %s, HTML header (%s)" file date;
+	          lprintf_nl (_b "downloading newer %s, HTML header (%s)") file date;
 	          H.wget r f
 	        end
 	  end
       )
     with e -> 
-      lprintf_nl "[cWeb] Exception %s while loading %s"
+      lprintf_nl (_b "Exception %s while loading %s")
         (Printexc2.to_string e) url
     end
 
@@ -130,21 +142,21 @@ let load_url can_fail kind url =
     with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
   in
   try
-    lprintf_nl "[cWeb=%s] saving %s" kind url;
+    lprintf_nl (_b "saving %s (%s)") kind url;
     mldonkey_wget url f
   with e ->
     if can_fail then
       failwith (Printf.sprintf "Exception %s while loading %s"
           (Printexc2.to_string e) url)
     else
-      lprintf_nl "[cWeb] Exception %s while loading %s"
+      lprintf_nl (_b "Exception %s while loading %s")
           (Printexc2.to_string e) url
 
 let load_file kind file =
   try
     (List.assoc kind !file_kinds).f file file
   with e ->
-      lprintf_nl "[cWeb] Exception %s while loading kind %s"
+      lprintf_nl (_b "Exception %s while loading kind %s")
         (Printexc2.to_string e) kind
 
 (*************************************************************************)
@@ -160,7 +172,7 @@ let load_web_infos core_start force =
         try
           load_url false kind url
 	with e ->
-            lprintf_nl "[cWeb] %s while loading %s"
+            lprintf_nl (_b "%s while loading %s")
 	      (Printexc2.to_string e) url
       end
   ) !!CommonOptions.web_infos
@@ -176,7 +188,7 @@ let rss_feeds = Hashtbl.create 10
 let _ =
   add_web_kind "rss" "Syndication feeds to get periodically updated data" 
     (fun url filename ->
-      lprintf_nl "[cWeb=rss] parsing feed %s" url;
+      lprintf_nl (_b "parsing feed %s (rss)") url;
       let c = Rss.channel_of_file filename in
       (try Sys.remove filename with _ -> ());
       let feed =

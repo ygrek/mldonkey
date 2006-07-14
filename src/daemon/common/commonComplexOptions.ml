@@ -29,6 +29,10 @@ open CommonNetwork
 open CommonOptions
 open CommonTypes
 open CommonFile
+open Gettext
+
+let _s x = _s "CommonComplexOptions" x
+let _b x = _b "CommonComplexOptions" x
 
 let log_prefix = "[cCO]"
 
@@ -965,13 +969,13 @@ let save () =
         Options.save_with_help results_ini;
         results =:= [];
     end;
-  lprintf_nl "Options correctly saved"
+  lprintf_nl (_b "Options correctly saved")
   end
 
 let save_sources () =
   if !allow_saving_ini_files then begin
   networks_iter (fun n -> network_save_sources n);
-  lprintf_nl "Sources correctly saved"
+  lprintf_nl (_b "Sources correctly saved")
   end
 
 open Zip
@@ -1077,7 +1081,7 @@ let backup_options () =
       end
     with e -> lprintf_nl "Exception %s while options backup" (Printexc2.to_string e); raise e
   end;
-  lprintf_nl "Options backup as %s correctly saved" format
+  lprintf_nl (_b "Options backup as %s correctly saved") format
              
 let _ =
   CommonBlocking.add_update_hook CommonServer.check_blocked_servers;

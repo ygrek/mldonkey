@@ -1,6 +1,10 @@
 
 open Printf2
 open Ip
+open Gettext
+
+let _s x = _s "Ip_set" x
+let _b x = _b "Ip_set" x
 
 (* prints a new logline with date, module and starts newline *)
 let log_prefix = "[IPblock]"
@@ -215,7 +219,7 @@ let load_merge bl filename remove =
   if !error then lprint_newline ();
   if remove then (try Sys.remove filename with _ -> ());
   let optimized_bl = bl_optimize !bl in
-  lprintf_nl "%d ranges loaded - optimized to %d" !nranges (bl_length optimized_bl);
+  lprintf_nl (_b "%d ranges loaded - optimized to %d") !nranges (bl_length optimized_bl);
 (*    bl_optimizedp optimized_bl;
     for i=0 to 999999 do
       let random_ip = Ip.of_ints (Random.int 256, Random.int 256, Random.int 256, Random.int 256) in
@@ -227,7 +231,7 @@ let load_merge bl filename remove =
   optimized_bl
 
 let load filename =
-  lprintf_nl "loading %s" filename;
+  lprintf_nl (_b "loading %s") filename;
   if Sys.file_exists filename then
     let last_ext = String.lowercase (Filename2.last_extension filename) in
     if last_ext = ".zip" then
@@ -242,7 +246,7 @@ let load filename =
 		| h :: q ->
 		    try
 		      let file = Zip.find_entry ic h in
-          lprintf_nl "%s found in zip file" h;
+			lprintf_nl (_b "%s found in zip file") h;
 		      ignore(Misc.archive_extract filename "zip");
 		      load_merge bl_empty file.Zip.filename true
 		    with Not_found ->
@@ -281,7 +285,7 @@ let load filename =
         | _ -> load_merge bl_empty filename false
   else
     begin
-      lprintf_nl "file %s not found" filename;
+      lprintf_nl (_b "file %s not found") filename;
       bl_empty
     end
 

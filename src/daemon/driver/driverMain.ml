@@ -500,37 +500,35 @@ or getting a binary compiled with glibc %s.\n\n")
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sigchld
-      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl "Received SIGCHLD, doing nothing"));
+      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl (_b "Received SIGCHLD, doing nothing")));
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sighup
-      (Sys.Signal_handle (fun _ ->
-   lprintf_nl "Received SIGHUP, closing all files/sockets";
+      (Sys.Signal_handle (fun _ -> lprintf_nl (_b "Received SIGHUP, closing all files/sockets");
          BasicSocket.close_all ();
 	 Unix32.close_all ()
          ));
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sigpipe
-      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl "Received SIGPIPE, doing nothing"));
+      (Sys.Signal_handle (fun _ -> if !verbose then lprintf_nl (_b "Received SIGPIPE, doing nothing")));
 
   MlUnix.set_signal  Sys.sigint
-    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGINT, stopping MLDonkey...";
+    (Sys.Signal_handle (fun _ -> lprintf_nl (_b "Received SIGINT, stopping MLDonkey...");
         CommonInteractive.clean_exit 0));
 
   MlUnix.set_signal  Sys.sigterm
-    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGTERM, stopping MLDonkey...";
+    (Sys.Signal_handle (fun _ -> lprintf_nl (_b "Received SIGTERM, stopping MLDonkey...");
         CommonInteractive.clean_exit 0));
 
   if not Autoconf.windows then
   MlUnix.set_signal  Sys.sigusr1
-    (Sys.Signal_handle (fun _ -> lprintf_nl "Received SIGUSR1, saving options...";
+    (Sys.Signal_handle (fun _ -> lprintf_nl (_b "Received SIGUSR1, saving options...");
         DriverInteractive.save_config ()));
 
   if not Autoconf.windows then
   MlUnix.set_signal  Sys.sigusr2
-    (Sys.Signal_handle (fun _ ->
-  lprintf_n "Received SIGUSR2, starting garbage collection...";
+    (Sys.Signal_handle (fun _ -> lprintf_n (_b "Received SIGUSR2, starting garbage collection...");
 	Gc.compact ();
 	lprintf " finished";
 	lprint_newline ()));

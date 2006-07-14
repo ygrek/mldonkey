@@ -19,8 +19,13 @@
 
 (* This module uses 2 ints to save IPv4 numbers. *)
 
+open Gettext
 open Int64ops
 open Printf2
+
+let _s x = _s "Ip" x
+let _b x = _b "Ip" x
+
 type t = { hi: int; lo: int }
 
 let of_ints (a,b,c,d) = 
@@ -205,7 +210,7 @@ let get_entry_cached name =
       cache_entry
   with Not_found ->
     (* not in cache *)
-    lprintf_nl "[DNS] Resolving [%s] ..." name;
+    lprintf_nl (_b "[DNS] Resolving [%s] ...") name;
     let new_entry =
       make_entry_from_name ~time_limit:(current_time +. 3600.) name in
     Hashtbl.add ip_cache name new_entry;
@@ -336,7 +341,7 @@ let _ =
 (*        lprintf "Ip found for %s: %s\n" job.name (to_string ip);  *)
               job.handler ip
             end else begin
-              lprintf_nl "[DNS] could not resolve %s, check URL" job.name;
+              lprintf_nl (_b "[DNS] could not resolve %s, check URL") job.name;
               raise Not_found
             end
           end else raise Exit

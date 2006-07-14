@@ -339,10 +339,7 @@ let save_strings () =
             Hashtbl.iter (fun modname names ->
 
                 Printf.fprintf oc "(************************************)\n";
-                Printf.fprintf oc "(*                                  *)\n";
-                Printf.fprintf oc "\n         module \"%s\"\n\n"
-                  (String.escaped modname);
-                Printf.fprintf oc "(*                                  *)\n";
+                Printf.fprintf oc "         module \"%s\"\n" (String.escaped modname);
                 Printf.fprintf oc "(************************************)\n\n";
 
                 
@@ -398,6 +395,7 @@ in the default and in the translation. *)
 (*lprintf "Loading...\n"; *)
   (try
     Unix2.tryopen_read filename (fun ic ->
+      lprintf_nl "Loading language resource %s" filename;
       let s = Stream.of_channel ic in
       try
         let stream = lexer s in

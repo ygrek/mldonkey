@@ -54,7 +54,7 @@ let verify_user_admin () =
     if user2_password admin_user = blank_password then
       empty_pwd := true
     with e ->
-      lprintf_nl "SECURITY INFO: user 'admin' has to be present, creating...";
+      lprintf_nl (_b "SECURITY INFO: user 'admin' has to be present, creating...");
       empty_pwd := true;
       ignore (user2_add admin_user blank_password "")
   end;
@@ -809,7 +809,7 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
 end
 else
   html_mods_table_one_row buf "downloaderTable" "downloaders" [
-    ("", "srh", "!! No files, please use search or the dllink <url> command to add a new download !!"); ]
+    ("", "srh", (Printf.sprintf (_b "!! No files, please use search or the dllink <url> command to add a new download !!"))); ]
 
 let html_mods_done_files buf files =
 

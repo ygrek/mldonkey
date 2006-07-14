@@ -560,11 +560,11 @@ let print_connected_servers o =
            if use_html_mods o then begin
                Printf.bprintf buf "\\<div class=servers\\>";
                html_mods_table_one_row buf "serversTable" "servers" [
-                 ("", "srh", Printf.sprintf "--- Connected to %d servers on the %s network ---\n"
+                 ("", "srh", Printf.sprintf (_b "--- Connected to %d servers on the %s network ---\n")
                    (List.length list) r.network_name); ]
              end
            else
-             Printf.bprintf buf "--- Connected to %d servers on the %s network ---\n"
+             Printf.bprintf buf (_b "--- Connected to %d servers on the %s network ---\n")
                (List.length list) r.network_name;
            if use_html_mods o then Printf.bprintf buf "\\</div\\>";
           end;
@@ -579,8 +579,8 @@ let print_connected_servers o =
         if Autoconf.donkey = "yes" && r.network_name = "Donkey" && not !!enable_servers then
           begin
             if use_html_mods o then Printf.bprintf buf "\\<div class=servers\\>";
-            Printf.bprintf buf "You disabled server usage, therefore you are not able to connect ED2K servers.\n";
-            Printf.bprintf buf "To use servers again 'set enable_servers true'\n";
+            Printf.bprintf buf (_b "You disabled server usage, therefore you are not able to connect ED2K servers.\n");
+            Printf.bprintf buf (_b "To use servers again 'set enable_servers true'\n");
             if use_html_mods o then Printf.bprintf buf "\\</div\\>"
           end;
        with e ->
