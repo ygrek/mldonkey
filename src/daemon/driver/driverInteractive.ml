@@ -93,6 +93,7 @@ let hdd_check () =
   let dir_full dir mb =
     match Unix32.diskfree dir with
     | None -> false
+    | Some v when ((Unix32.filesystem dir = "NFS_SUPER_MAGIC") && v = zero) -> false
     | Some v -> v < megabytes mb
   in
 

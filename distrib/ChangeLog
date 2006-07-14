@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/07/14
+5238: Fix HDD space checks on CFS mounts
 5235: Lock config_files_space.tmp and delete unused file on startup
 5232: GUI: Fix decoding bug for Gnutella/G2/Fasttrack search results (zet)
 

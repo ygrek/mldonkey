@@ -1794,14 +1794,22 @@ let percentused dir =
 (* percentage of used disk space *)
   match diskfree dir, disktotal dir with
   | Some dfree, Some dtotal ->
-      Some (Int64.to_int (100L -- (dfree ** 100L // dtotal)))
+      begin
+	try
+	  Some (Int64.to_int (100L -- (dfree ** 100L // dtotal)))
+        with Division_by_zero -> None
+      end
   | _ -> None
 
 let percentfree dir =
 (* percentage of free disk space *)
   match diskfree dir, disktotal dir with
   | Some dfree, Some dtotal ->
-      Some (Int64.to_int (dfree ** 100L // dtotal))
+      begin
+	try
+          Some (Int64.to_int (dfree ** 100L // dtotal))
+	with Division_by_zero -> None
+      end
   | _ -> None
 
 let filesystem dir =
