@@ -45,3 +45,8 @@ let kilobytes x = kilobyte *.. x
 let megabytes x = megabyte *.. x
 let kilobytes64 = kilobytes 64
   
+let round_down64 x y =
+  (x // y) ** y
+let round_up64 x y =
+  ((Int64.pred (x ++ y)) // y) ** y
+

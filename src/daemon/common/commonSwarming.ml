@@ -149,12 +149,14 @@ and swarmer = {
     s_num : int;
     s_filename : string;
     s_size : int64;
+    s_disk_allocation_block_size : int64;
 
     mutable s_networks : t list; (** list of frontends, primary at head 
 				     t.t_s = s <=> t in s.s_networks *)
     mutable s_strategy : strategy;
 
     mutable s_verified_bitmap : VerificationBitmap.t;
+    mutable s_disk_allocated : Bitv.t;
     mutable s_availability : int array;
     mutable s_nuploading : int array;
 (*    mutable s_last_seen : int array; *)
@@ -556,9 +558,11 @@ let dummy_swarmer = {
     s_num = 0;
     s_filename = "";
     s_size = zero;
+    s_disk_allocation_block_size = zero;
     s_networks = [];
     s_strategy = AdvancedStrategy;
     s_verified_bitmap = VB.create 0 VB.State_missing;
+    s_disk_allocated = Bitv.create 0 false;
     s_blocks = [||];
     s_block_pos = [||];
     s_availability = [||];
@@ -579,17 +583,26 @@ let create_swarmer file_name file_size =
     incr swarmer_counter;
 
     let nblocks = 1 in
+    (* to avoid extreme disk fragmentation, space is pre-allocated in
+       blocks of this size *)
+    let disk_allocation_block_size = 
+      min (megabytes 10) 
+	(round_up64 (file_size // 200L) (megabytes 1)) in
+    let ndiskblocks =
+      1 + Int64.to_int (Int64.pred file_size // disk_allocation_block_size) in
     let rec s = {
 
       s_num = !swarmer_counter;
       s_filename = file_name;
       s_size = file_size;
+      s_disk_allocation_block_size = disk_allocation_block_size;
 
       s_networks = [];
 
       s_strategy = AdvancedStrategy;
 
       s_verified_bitmap = VB.create nblocks VB.State_missing;
+      s_disk_allocated = Bitv.create ndiskblocks false;
       s_blocks = Array.create nblocks EmptyBlock ;
       s_block_pos = Array.create nblocks zero;
       s_availability = Array.create nblocks 0;
@@ -869,6 +882,51 @@ let create ss file chunk_size =
   in
   associate true t ss;
   t
+
+(* copy the disk block over itself; Safer than overwriting it with zeroes *)
+
+let iter_disk_space f t interval_begin interval_end =
+
+  (* 0 <= chunk_pos < s.s_size *)
+  let compute_disk_block_num s chunk_pos =
+    assert (0L <= chunk_pos && chunk_pos < s.s_size);
+    Int64.to_int (chunk_pos // s.s_disk_allocation_block_size) in
+
+  if interval_begin < interval_end then
+    let s = t.t_s in
+    let fd = file_fd t.t_file in
+    let first_disk_block = compute_disk_block_num s interval_begin in
+    let last_disk_block = compute_disk_block_num s (Int64.pred interval_end) in
+    for disk_block = first_disk_block to last_disk_block do
+      f s fd disk_block
+    done
+
+exception Not_preallocated_block_found
+
+let is_fully_preallocated t interval_begin interval_end =
+  try
+    iter_disk_space (fun s fd disk_block ->
+      if not(Bitv.get s.s_disk_allocated disk_block) then
+	raise Not_preallocated_block_found
+    ) t interval_begin interval_end;
+    true
+  with Not_preallocated_block_found -> false
+  
+let preallocate_disk_space t interval_begin interval_end =
+  iter_disk_space (fun s fd disk_block ->
+    if not(Bitv.get s.s_disk_allocated disk_block) then begin
+      let pos = (Int64.of_int disk_block) ** s.s_disk_allocation_block_size in
+      let size = min (file_size t.t_file -- pos) s.s_disk_allocation_block_size in
+      if !verbose then lprintf_nl "preallocating %Ld bytes for %s" size (file_best_name t.t_file);
+      Unix32.copy_chunk fd fd pos pos (Int64.to_int size)
+    end;
+    Bitv.set s.s_disk_allocated disk_block true
+  ) t interval_begin interval_end
+
+let mark_disk_space_preallocated t interval_begin interval_end =
+  iter_disk_space (fun s fd disk_block ->
+    Bitv.set s.s_disk_allocated disk_block true
+  ) t interval_begin interval_end
 
 (** iter function f over all the blocks contained in the list of [intervals]
 
@@ -1541,7 +1599,13 @@ let set_present s intervals =
     | CompleteBlock | VerifiedBlock ->
 (*          lprintf "  Other\n"; *)
         ()
-  ) intervals
+  ) intervals;
+  match s.s_networks with
+  | tprim :: _ ->
+      List.iter (fun (interval_begin, interval_end) ->
+	mark_disk_space_preallocated tprim interval_begin interval_end;
+      ) intervals
+  | [] -> assert false
 
 (** reverse absent/present in the list and call set_present *)
 
@@ -1923,6 +1987,7 @@ type choice = {
   choice_unselected_remaining : int64;
   choice_remaining_per_uploader : int64; (* algo 1 only *)
   choice_saturated : bool; (* has enough uploaders *) (* algo 2 only *)
+  choice_preallocated : bool;
   choice_other_remaining : int Lazy.t; (* ...blocks in the same chunk,
 					  for all frontends *)
   choice_availability : int;
@@ -1935,6 +2000,7 @@ let dummy_choice = {
   choice_remaining = 0L;
   choice_unselected_remaining = 0L;
   choice_remaining_per_uploader = 0L; (* algo 1 only *)
+  choice_preallocated = false;
   choice_saturated = true; (* algo 2 only *)
   choice_other_remaining = lazy 0;
   choice_availability = 0
@@ -2017,6 +2083,7 @@ let select_block up =
 		unselected_remaining //
 		  (Int64.of_int (nuploaders + 1)) (* planned value *)
 	      else 0L;
+	    choice_preallocated = is_fully_preallocated t block_begin block_end;
 	    choice_saturated =
 	      if !!swarming_block_selection_algorithm = 2 then
 		unselected_remaining <= Int64.of_int nuploaders ** data_per_source
@@ -2034,13 +2101,14 @@ let select_block up =
 	  } in
 	
 	let print_choice c =
-	  lprintf_nl "choice %d:%d priority:%d nup:%d rem:%Ld rmu:%Ld rpu:%Ld sat:%B sib:%s av:%d" 
+	  lprintf_nl "choice %d:%d priority:%d nup:%d rem:%Ld rmu:%Ld rpu:%Ld pre:%B sat:%B sib:%s av:%d" 
 	    c.choice_num up.up_complete_blocks.(c.choice_num)
 	    c.choice_user_priority 
 	    c.choice_nuploaders 
 	    c.choice_remaining 
 	    c.choice_unselected_remaining
 	    c.choice_remaining_per_uploader
+	    c.choice_preallocated
 	    c.choice_saturated
 	    (if Lazy.lazy_is_val c.choice_other_remaining then
 	      string_of_int (Lazy.force c.choice_other_remaining) else "?") 
@@ -2091,6 +2159,14 @@ let select_block up =
 	    | 0L, _ -> -1
 	    | _, 0L -> 1
 	    | ur1, ur2 -> compare ur2 ur1 in
+	  if cmp <> 0 then cmp else
+
+	  (* pick blocks that won't require allocating more disk space *)
+	  let cmp =
+	    match c1.choice_preallocated, c2.choice_preallocated with
+	    | true, false -> 1
+	    | false, true -> -1
+	    | _ -> 0 in
 	  if cmp <> 0 then cmp else
 
 	    (* Can't tell *)
@@ -2151,6 +2227,14 @@ let select_block up =
 	  let cmp = 
 	    compare c2.choice_unselected_remaining
 	      c1.choice_unselected_remaining in
+	  if cmp <> 0 then cmp else
+
+	  (* pick blocks that won't require allocating more disk space *)
+	  let cmp =
+	    match c1.choice_preallocated, c2.choice_preallocated with
+	    | true, false -> 1
+	    | false, true -> -1
+	    | _ -> 0 in
 	  if cmp <> 0 then cmp else
 
 	  (* "DEFAULT" *)
@@ -2638,6 +2722,14 @@ let received up file_begin str string_begin string_len =
                     | [] -> assert false
 		    | tprim :: _ ->
 			assert (tprim.t_primary);
+			(try
+			  preallocate_disk_space tprim 
+			    r.range_begin file_end
+			with e ->
+			  lprintf_nl "Exception %s while preallocating disk space [%Ld-%Ld] for %s"
+			    (Printexc2.to_string e) 
+			    r.range_begin file_end
+			    (file_best_name t.t_file));
                         file_write tprim.t_file
                           r.range_begin
                           str string_pos string_length;
@@ -2694,20 +2786,28 @@ type chunk_occurrences = {
   mutable occurrence_missing : chunk_occurrence list;
 }
 
-let propagate_chunk t1 pos1 size destinations =
+let propagate_chunk t1 pos1 size destinations copy_data =
   List.iter (fun (t2, j2, pos2) ->
     if t1 != t2 || pos1 <> pos2 then begin
       lprintf_nl "Should propagate chunk from %s %Ld to %s %Ld [%Ld]"
         (file_best_name t1.t_file) pos1
         (file_best_name t2.t_file) pos2 size;
-      Unix32.copy_chunk (file_fd t1.t_file)  (file_fd t2.t_file)
-      pos1 pos2 (Int64.to_int size);
+      (* small catch here: if we don't really copy the data *and*
+	 chunk content is not the expected value, the chunk will be
+	 verified each time *)
+      if copy_data then
+	Unix32.copy_chunk (file_fd t1.t_file)  (file_fd t2.t_file)
+	  pos1 pos2 (Int64.to_int size);
       set_frontend_bitmap_2 t2 j2
     end
   ) destinations
 
 let dummy_chunk_occurrences () = 
   { occurrence_present = []; occurrence_missing = [] }
+
+(* Compute the digest of zeroed chunks to avoid copying them *)
+let known_chunks_sizes : (int64, unit) Hashtbl.t = Hashtbl.create 5
+let zeroed_chunks_hashes : (uid_type, unit) Hashtbl.t = Hashtbl.create 5
 
 let duplicate_chunks () =
   let chunks = Hashtbl.create 100 in
@@ -2722,7 +2822,26 @@ let duplicate_chunks () =
 		chunk_uid = uids.(j);
 		chunk_size = min (s.s_size -- pos) t.t_chunk_size;
               } in
-              let occurrences = 
+	      (try
+		ignore (Hashtbl.find known_chunks_sizes c.chunk_size)
+	      with Not_found ->
+		(* new chunk size, compute hashes for zeroed chunk of
+		   that size.
+		   No chunk size is bigger than 16MB I hope *)
+		if c.chunk_size < Int64.of_int (16 * 1024 * 1024) then begin
+		  let chunk_size = Int64.to_int c.chunk_size in
+		  let zeroed_buffer = String.make chunk_size '\000' in
+
+		  Hashtbl.add zeroed_chunks_hashes
+		    (Ed2k (Md4.Md4.string zeroed_buffer)) ();
+		  Hashtbl.add zeroed_chunks_hashes
+		    (Sha1 (Md4.Sha1.string zeroed_buffer)) ();
+		  Hashtbl.add zeroed_chunks_hashes
+		    (TigerTree (Md4.TigerTree.string zeroed_buffer)) ()
+		end;
+		Hashtbl.add known_chunks_sizes c.chunk_size ();
+	      );
+	      let occurrences = 
 		try
 		  Hashtbl.find chunks c
 		with Not_found ->
@@ -2748,7 +2867,12 @@ let duplicate_chunks () =
     | _ , []
     | [], _ -> ()
     | (t, _, pos) :: _, missing ->
-        propagate_chunk t pos c.chunk_size missing
+	let is_zeroed_chunk =
+	  try
+	    ignore(Hashtbl.find zeroed_chunks_hashes c.chunk_uid);
+	    false
+	  with Not_found -> true in
+        propagate_chunk t pos c.chunk_size missing (not is_zeroed_chunk)
   ) chunks
 
 
@@ -3065,6 +3189,14 @@ module SwarmerOption = struct
           let file_size = get_value "file_size" value_to_int64 in
           let file_name = get_value "file_name" value_to_string in
           let s = create_swarmer file_name file_size in
+	  (try
+	    let bitmap = Bitv.of_string (get_value "file_disk_allocation_bitmap"
+	      value_to_string) in
+	    if Bitv.length bitmap = Bitv.length s.s_disk_allocated then
+	      s.s_disk_allocated <- bitmap
+	  with _ -> ());
+	  (* s_disk_allocated missing or inconsistent ? 
+	     set_present will fix it *)
           let block_sizes = get_value "file_chunk_sizes"
               (value_to_list value_to_int64) in
           List.iter (fun bsize ->
@@ -3079,6 +3211,8 @@ module SwarmerOption = struct
         ("file_size", int64_to_value s.s_size);
         ("file_name", string_to_value s.s_filename);
         ("file_bitmap", string_to_value (VB.to_string s.s_verified_bitmap));
+	("file_disk_allocation_bitmap", string_to_value
+	  (Bitv.to_string s.s_disk_allocated));
         ("file_chunk_sizes", list_to_value int64_to_value
             (List.map (fun t -> t.t_chunk_size) s.s_networks));
         ]

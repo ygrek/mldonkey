@@ -15,6 +15,18 @@ ChangeLog
 =========
 
 2006/07/15
+5203: Swarmer: Anti-fragmentation (pango, antifrag_v7)
+* Each file is divided into blocks saved in new option
+* file_disk_allocation_bitmap in swarmer section of files.ini
+* Blocksize is computed like this: file_size / 200, rounded up to full
+  megabytes, if bigger than 10MB: 10 MB are used as maximum blocksize.
+  Preallocated blocks are marked file_disk_allocation_bitmap option.
+* Blocks already fully preallocated on disk are prefered for downloading.
+  That way one can get antifragmentation benefits without preallocating
+  too much space, specially for downloads with small chunks.
+* If the block about to be filled with data for the first time its read/written
+  back to disk to allocate the space.
+  Set verbosity to "verb" to enable logging of preallocation.
 5242: GTK2 GUI: Remove unnecessary linefeed in console,
       remove some log and compiler warnings
 5239: GTK2 GUI: Fix result sorting,
