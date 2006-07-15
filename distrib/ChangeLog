@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/07/15
+5242: GTK2 GUI: Remove unnecessary linefeed in console,
+      remove some log and compiler warnings
 5239: GTK2 GUI: Fix result sorting,
       update search results instead of double display (su_blanc)
 

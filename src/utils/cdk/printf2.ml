@@ -228,8 +228,7 @@ let lprintf_original_output = ref None
 
 let keep_console_output () =
   match !lprintf_original_output with
-    Some stdout -> true
-  | Some stderr -> true
+    Some c when c = stderr || c = stdout -> true
   | _ -> false
 
 let _ =

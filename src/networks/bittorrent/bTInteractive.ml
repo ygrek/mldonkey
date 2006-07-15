@@ -292,10 +292,6 @@ let op_file_print_sources_html file buf =
 
   if Hashtbl.length file.file_clients > 0 then begin
 
-      let chunks = (match file.file_swarmer with
-            None -> "" | Some swarmer ->
-              VB.to_string (CommonSwarming.chunks_verified_bitmap swarmer)) in
-
       let header_list = [
         ( "1", "srh br ac", "Client number", "Num" ) ;
         ( "0", "srh br", "Client UID", "UID" ) ;
@@ -1083,6 +1079,7 @@ let _ =
   network.op_network_connected <- op_network_connected;
   network.op_network_parse_url <- op_network_parse_url;
   network.op_network_share <- (fun fullname codedname size -> ());
+  network.op_network_close_search <- (fun s -> ());
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_connect_servers <- (fun s -> ());
   network.op_network_search <- (fun ss buf -> ());

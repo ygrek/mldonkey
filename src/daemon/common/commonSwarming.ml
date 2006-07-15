@@ -1982,12 +1982,6 @@ let select_block up =
  		) 0 s.s_networks
  	      ))
  	  else [||] in
-	let completed_blocks_in_chunk = 
-	  Array.init my_t.t_nchunks (fun i ->
-            lazy (
-              List.fold_left (fun acc b ->
-		if VB.get s.s_verified_bitmap b = VB.State_complete then acc + 1 else acc
-              ) 0 my_t.t_blocks_of_chunk.(i))) in
 
 	let preview_beginning = 10000000L in
 	let preview_end = (s.s_size ** 98L) // 100L in
@@ -2002,7 +1996,6 @@ let select_block up =
 	  | _ -> assert false in
 
 	let evaluate_choice n b =
-	  let nchunk = my_t.t_chunk_of_block.(b) in
 	  let block_begin = compute_block_begin s b in
 	  let block_end = compute_block_end s b in
 	  let size = block_end -- block_begin in

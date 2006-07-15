@@ -420,6 +420,7 @@ let _ =
   );
   file_ops.op_file_resume <- (fun file -> ());
   file_ops.op_file_print_html <- (fun file buf -> ());
+  network.op_network_close_search <- (fun s -> ());
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_connect_servers <- (fun s -> ());
   network.op_network_recover_temp <- (fun s -> ())

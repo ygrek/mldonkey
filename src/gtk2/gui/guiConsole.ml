@@ -139,7 +139,7 @@ let clear () =
 
 let insert t =
   let iter = text_buffer#get_iter `END in
-  let s = (U.utf8_of t) ^ "\n" in
+  let s = (U.utf8_of t) in
   text_buffer#insert ~iter s
 
 (*************************************************************************)
