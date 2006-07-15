@@ -150,10 +150,11 @@ type res_info =
   {
     res_num                     : int;
     res_network                 : int;
-    mutable res_computed        : bool;
-    mutable res_name            : string;
-    mutable res_uid             : string;
-    mutable res_size            : int64;
+    res_name                    : string;
+    res_uid                     : string;
+    res_size                    : int64;
+    mutable res_network_pixb    : GdkPixbuf.pixbuf option;
+    mutable res_name_pixb       : GdkPixbuf.pixbuf option;
     mutable res_format          : string;
     mutable res_type            : string;
     mutable res_duration        : string;
@@ -164,8 +165,7 @@ type res_info =
     mutable res_tags            : string;
     mutable res_comment         : string;
     mutable res_color           : string;
-    mutable res_network_pixb    : GdkPixbuf.pixbuf option;
-    mutable res_name_pixb       : GdkPixbuf.pixbuf option;
+    mutable res_has_query       : int list;
   }
 
 type g_file_tree =

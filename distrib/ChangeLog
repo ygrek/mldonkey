@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/07/15
+5239: GTK2 GUI: Fix result sorting,
+      update search results instead of double display (su_blanc)
+
 2006/07/14
 5222: Improve log output when HDD is full
 5214: Gettext: Improve translations

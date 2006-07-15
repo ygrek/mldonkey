@@ -341,10 +341,12 @@ let display_results (notebook : GPack.notebook) (qr : g_query) =
   qr.g_query_label <- Some label;
   qr.g_query_waiting_label <- Some query_status;
   let on_closure () =
-    let results = GuiResults.keys_to_results (qr.g_query_result#all_items ()) in
-    List.iter (fun r ->
-      Hashtbl.remove G.results r.res_num;
-    ) results;
+    Hashtbl.iter (fun _ r ->
+      r.res_has_query <- List.filter (fun query_num -> query_num <> qr.g_query_num) r.res_has_query;
+      match r.res_has_query with
+        [] -> Hashtbl.remove G.results r.res_num
+      | _ -> ()
+    ) G.results;
     close_query qr.g_query_num true;
     qr.g_query_result#clear ();
     main_evbox#destroy ();
@@ -896,36 +898,56 @@ let clear () =
 (*                                                                       *)
 (*************************************************************************)
 
+let add_result_to_query qr r =
+  if not (List.mem qr.g_query_num r.res_has_query)
+    then begin
+      qr.g_query_nresults <- qr.g_query_nresults + 1;
+      let f () =
+        let text = Printf.sprintf "%s (%d / %d)" qr.g_query_desc qr.g_query_result#nitems qr.g_query_nresults in
+        match qr.g_query_label with
+          None -> ()
+        | Some label -> label#set_text text
+      in
+      r.res_has_query <- qr.g_query_num :: r.res_has_query;
+      qr.g_query_result#add r ~f ();
+    end
+
+let remove_result_from_query qr r =
+  if not (List.mem qr.g_query_num r.res_has_query)
+    then r.res_has_query <- qr.g_query_num :: r.res_has_query
+
 let h_search_result query_num result_num =
   try
-    let qr = Hashtbl.find qresults query_num in
+    let r = Hashtbl.find G.results result_num in
     try
-      let r = Hashtbl.find G.results result_num in
-      if qr.g_query_nresults < qr.g_query_max_hits
-        then if r.res_availability >= qr.g_query_min_availability
-            then begin
-              qr.g_query_nresults <- qr.g_query_nresults + 1;
-              let f () =
-                let text = Printf.sprintf "%s (%d / %d)" qr.g_query_desc qr.g_query_result#nitems qr.g_query_nresults in
-                match qr.g_query_label with
-                  None -> ()
-                | Some label -> label#set_text text
-              in
-              qr.g_query_result#add r ~f ();
-            end else begin
-              Hashtbl.remove G.results result_num;  (* remove the result if the query does'nt exist *)
+      let qr = Hashtbl.find qresults query_num in
+      let k = GuiResults.result_key r.res_num in
+      try
+        (* update the result if it already exists *)
+        let row = qr.g_query_result#find_row k in
+         Gaux.may ~f:(fun rw -> qr.g_query_result#update_item rw r r) row
+      with _ ->
+        begin
+          if qr.g_query_nresults < qr.g_query_max_hits
+            then if r.res_availability >= qr.g_query_min_availability
+              then add_result_to_query qr r
+              (* don't add the result if availability is under the criterium *)
+              else remove_result_from_query qr r
+            (* stop the query if we exceeded the number of results *)
+            else begin
+              remove_result_from_query qr r;
+              close_query query_num false;
             end
-        else begin
-          Hashtbl.remove G.results result_num;  (* remove the result if we exceeded the number of results *)
-          close_query query_num false;          (* stop the query if we exceeded the number of results *)
         end
-    with Not_found -> (if !!verbose then lprintf' "result doesn't exist for query %d %s\n" query_num qr.g_query_desc)
+    with Not_found ->
+      begin
+        (* close the query if it does'nt exist *)
+        close_query query_num true;
+        match r.res_has_query with [] -> Hashtbl.remove G.results result_num | _ -> ();
+        if !!verbose then lprintf' "query %d doesn't exist\n" query_num
+      end
   with Not_found ->
-    begin
-      Hashtbl.remove G.results result_num;  (* remove the result if the query does'nt exist *)
-      close_query query_num true;           (* close the query if it does'nt exist *)
-      if !!verbose then lprintf' "query %d doesn't exist\n" query_num
-    end
+    (if !!verbose then lprintf' "result [%d] doesn't exist\n" result_num)
 
 let h_search_waiting query_num waiting =
   try
