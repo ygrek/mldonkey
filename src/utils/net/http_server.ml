@@ -20,6 +20,7 @@
 open Printf2
 open BasicSocket
 open TcpBufferedSocket
+open Ip_set
 
 let verbose = ref false
 
@@ -795,8 +796,6 @@ let request_closer sock msg =
   ()
 
 
-open Ip_set
-
 let handler config t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET(from_ip, from_port)) ->
@@ -821,6 +820,21 @@ let handler config t event =
       else begin
          lprintf_nl "connection from %s rejected (see allowed_ips setting)"
           (Ip.to_string from_ip);
+        let token = create_token unlimited_connection_manager in
+        let sock = TcpBufferedSocket.create_simple token "http connection" s in
+        let reject_message = Printf.sprintf
+"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n<html>\n
+<head><title>403 Forbidden</title></head>\n<h1>Forbidden</h1>\n
+<p>Connection from %s rejected (see downloads.ini, <a href=\"http://mldonkey.sourceforge.net/Allowed_ips\">allowed_ips</a>)</p>\n
+<hr><address>MLDonkey/%s at %s Port %d</address></html>\n"
+            (Ip.to_string from_ip) Autoconf.current_version
+	    (Ip.to_string (TcpBufferedSocket.my_ip sock)) config.port in
+        TcpBufferedSocket.write_string sock (Printf.sprintf
+"HTTP/1.1 403 Forbidden\nMLDonkey/%s\nConnection: close
+Content-Type: text/html; charset=iso-8859-1\nContent-length: %d\r\n"
+	    Autoconf.current_version (String.length reject_message));
+        TcpBufferedSocket.write_string sock reject_message;
+        shutdown sock Closed_connect_failed;
         Unix.close s
       end
   | _ -> ()

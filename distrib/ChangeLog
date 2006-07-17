@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/07/17
+5243: HTTP: Print 403 error for requests blocked by allowed_ips
+
 2006/07/15
 5203: Swarmer: Anti-fragmentation (pango, antifrag_v7)
 * Each file is divided into blocks saved in new option
