@@ -44,17 +44,17 @@ type entry =
     uncompressed_size: int;    (* size of original data in bytes *)
     compressed_size: int;      (* size of compressed data *)
     is_directory: bool;        (* whether this entry represents a directory *)
-    file_offset: int }         (* for internal use *)
+    file_offset: int64 }         (* for internal use *)
           (* Description of an entry in a ZIP file. *)
 
 (*** Reading from ZIP files *)
 
 type in_file
-          (* Abstract type representing a channel opened for reading from
+          (* Abstract type representing a handle opened for reading from
              a ZIP file. *)
 val open_in: string -> in_file
           (* Open the ZIP file with the given filename.  Return a
-             channel opened for reading from this file. *)
+             handle opened for reading from this file. *)
 val entries: in_file -> entry list
           (* Return a list of all entries in the given ZIP file. *)
 val comment: in_file -> string
@@ -85,16 +85,18 @@ val copy_entry_to_file: in_file -> entry -> string -> unit
              the file is set to that indicated in the ZIP entry [e],
              if possible. *)
 val close_in: in_file -> unit
-          (* Close the given ZIP file channel. *)
+          (* Close the given ZIP file handle.  If the ZIP file handle was
+             created by [open_in_channel], the underlying input channel
+             is closed. *)
 
-(*** Writing from ZIP files *)
+(*** Writing to ZIP files *)
 
 type out_file
-          (* Abstract type representing a channel opened for writing from
+          (* Abstract type representing a handle opened for writing to
              a ZIP file. *)
 val open_out: ?comment: string -> string -> out_file
           (* Create (or truncate to zero length) the ZIP file with
-             the given filename.  Return a channel opened for writing
+             the given filename.  Return a handle opened for writing
              to this file.  The optional argument [comment] is a
              comment string that is attached to the ZIP file as a whole
              (as opposed to the comments that can be attached to individual

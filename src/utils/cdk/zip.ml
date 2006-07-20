@@ -54,7 +54,7 @@ type entry =
     uncompressed_size: int;
     compressed_size: int;
     is_directory: bool;
-    file_offset: int }
+    file_offset: int64 }
 
 type in_file =
   { if_filename: string;
@@ -143,27 +143,30 @@ let read_ecd filename ic =
   let magic = read4 ic in
   let disk_no = read2 ic in
   let cd_disk_no = read2 ic in
-  let _ = read2 ic in (* disk_entries*)
+  let _disk_entries = read2 ic in
   let cd_entries = read2 ic in
-  let _ = read4_int ic in (* cd_size *)
-  let cd_offset = read4_int ic in
+  let cd_size = read4 ic in
+  let cd_offset = read4 ic in
   let comment_len = read2 ic in
   let comment = readstring ic comment_len in
-  assert (magic = 0x06054b50l);
+  assert (magic = Int32.of_int 0x06054b50);
   if disk_no <> 0 || cd_disk_no <> 0 then
     raise (Error(filename, "", "multi-disk ZIP files not supported"));
-  (cd_entries, cd_offset, comment)
+  (cd_entries, cd_size, cd_offset, comment)
 
 (* Read central directory *)
 
-let read_cd filename ic cd_entries cd_offset =
+let read_cd filename ic cd_entries cd_offset cd_bound =
+  let cd_bound = Int64.of_int32 cd_bound in
   try
-    seek_in ic cd_offset;
+    LargeFile.seek_in ic (Int64.of_int32 cd_offset);
     let e = ref [] in
-    for num_entry = 1 to cd_entries do
+    let entrycnt = ref 0 in
+    while (LargeFile.pos_in ic < cd_bound) do
+      incr entrycnt;
       let magic = read4 ic in
-      let _ = read2 ic in (* version_made_by *)
-      let _ = read2 ic in (* version_needed *)
+      let _version_made_by = read2 ic in
+      let _version_needed = read2 ic in
       let flags = read2 ic in
       let methd = read2 ic in
       let lastmod_time = read2 ic in
@@ -174,14 +177,14 @@ let read_cd filename ic cd_entries cd_offset =
       let name_len = read2 ic in
       let extra_len = read2 ic in
       let comment_len = read2 ic in
-      let _ = read2 ic in (* disk_number *)
-      let _ = read2 ic in (* internal_attr *)
-      let _ = read4 ic in (* external_attr *)
-      let header_offset = read4_int ic in
+      let _disk_number = read2 ic in
+      let _internal_attr = read2 ic in
+      let _external_attr = read4 ic in
+      let header_offset = Int64.of_int32(read4 ic) in
       let name = readstring ic name_len in
       let extra = readstring ic extra_len in
       let comment = readstring ic comment_len in
-      if magic <> 0x02014b50l then
+      if magic <> Int32.of_int 0x02014b50 then
         raise (Error(filename, name,
                      "wrong file header in central directory"));
       if flags land 1 <> 0 then
@@ -203,6 +206,8 @@ let read_cd filename ic cd_entries cd_offset =
              file_offset = header_offset
            } :: !e
     done;
+    assert((cd_bound = (LargeFile.pos_in ic)) &&
+           (cd_entries = 65535 || !entrycnt = cd_entries));
     List.rev !e
   with End_of_file ->
     raise (Error(filename, "", "end-of-file while reading central directory"))
@@ -211,8 +216,9 @@ let read_cd filename ic cd_entries cd_offset =
 
 let open_in filename =
   let ic = Pervasives.open_in_bin filename in
-  let (cd_entries, cd_offset, cd_comment) = read_ecd filename ic in
-  let entries = read_cd filename ic cd_entries cd_offset in
+  let (cd_entries, cd_size, cd_offset, cd_comment) = read_ecd filename ic in
+  let entries =
+    read_cd filename ic cd_entries cd_offset (Int32.add cd_offset cd_size) in
   let dir = Hashtbl.create (cd_entries / 3) in
   List.iter (fun e -> Hashtbl.add dir e.filename e) entries;
   { if_filename = filename;
@@ -236,23 +242,24 @@ let find_entry ifile name =
 let goto_entry ifile e =
   try
     let ic = ifile.if_channel in
-    seek_in ic e.file_offset;
+    LargeFile.seek_in ic e.file_offset;
     let magic = read4 ic in
-    let _ = read2 ic in (* version_needed *)
-    let _ = read2 ic in (* flags *)
-    let _ = read2 ic in (* methd *)
-    let _ = read2 ic in (* lastmod_time *)
-    let _ = read2 ic in (* lastmod_date *)
-    let _ = read4 ic in (* crc *)
-    let _ = read4_int ic in (* compr_size  *)
-    let _ = read4_int ic in (* uncompr_size *)
+    let _version_needed = read2 ic in
+    let _flags = read2 ic in
+    let _methd = read2 ic in
+    let _lastmod_time = read2 ic in
+    let _lastmod_date = read2 ic in
+    let _crc = read4 ic in
+    let _compr_size = read4_int ic in
+    let _uncompr_size = read4_int ic in
     let filename_len = read2 ic in
     let extra_len = read2 ic in
-    if magic <> 0x04034b50l then
+    if magic <> Int32.of_int 0x04034b50 then
        raise (Error(ifile.if_filename, e.filename, "wrong local file header"));
     (* Could validate information read against directory entry, but
        what the heck *)
-    seek_in ifile.if_channel (e.file_offset + 30 + filename_len + extra_len)
+    LargeFile.seek_in ifile.if_channel
+      (Int64.add e.file_offset (Int64.of_int (30 + filename_len + extra_len)))
   with End_of_file ->
     raise (Error(ifile.if_filename, e.filename, "truncated local file header"))
 
@@ -366,7 +373,7 @@ let open_out ?(comment = "") filename =
 (* Close a ZIP file for writing.  Add central directory. *)
 
 let write_directory_entry oc e =
-  write4 oc (0x02014b50l);  (* signature *)
+  write4 oc (Int32.of_int 0x02014b50);  (* signature *)
   let version = match e.methd with Stored -> 10 | Deflated -> 20 in
   write2 oc version;                    (* version made by *)
   write2 oc version;                    (* version needed to extract *)
@@ -384,7 +391,7 @@ let write_directory_entry oc e =
   write2 oc 0;                          (* disk number start *)
   write2 oc 0;                          (* internal attributes *)
   write4_int oc 0;                      (* external attributes *)
-  write4_int oc e.file_offset;          (* offset of local header *)
+  write4 oc (Int64.to_int32 e.file_offset); (* offset of local header *)
   writestring oc e.filename;            (* filename *)
   writestring oc e.extra;               (* extra info *)
   writestring oc e.comment              (* file comment *)
@@ -397,7 +404,7 @@ let close_out ofile =
   let num_entries = List.length ofile.of_entries in
   if num_entries >= 0x10000 then
     raise(Error(ofile.of_filename, "", "too many entries"));
-  write4 oc (0x06054b50l);  (* signature *)
+  write4 oc (Int32.of_int 0x06054b50);  (* signature *)
   write2 oc 0;                          (* disk number *)
   write2 oc 0;                          (* number of disk with central dir *)
   write2 oc num_entries;                (* # entries in this disk *)
@@ -420,8 +427,8 @@ let add_entry_header ofile extra comment level mtime filename =
   if String.length comment >= 0x10000 then
     raise(Error(ofile.of_filename, filename, "comment too long"));
   let oc = ofile.of_channel in
-  let pos = pos_out oc in
-  write4 oc (0x04034b50l);  (* signature *)
+  let pos = LargeFile.pos_out oc in
+  write4 oc (Int32.of_int 0x04034b50);  (* signature *)
   let version = if level = 0 then 10 else 20 in
   write2 oc version;                    (* version needed to extract *)
   write2 oc 8;                          (* flags *)
@@ -451,7 +458,7 @@ let add_entry_header ofile extra comment level mtime filename =
 
 let add_data_descriptor ofile crc compr_size uncompr_size entry =
   let oc = ofile.of_channel in
-  write4 oc (0x08074b50l);  (* signature *)
+  write4 oc (Int32.of_int 0x08074b50);  (* signature *)
   write4 oc crc;                        (* CRC *)
   write4_int oc compr_size;             (* compressed size *)
   write4_int oc uncompr_size;           (* uncompressed size *)
@@ -505,7 +512,7 @@ let copy_channel_to_entry ic ofile ?(extra = "") ?(comment = "")
           if r = 0 then sz else begin
             crc := Zlib.update_crc !crc buf 0 r;
             output ofile.of_channel buf 0 r;
-            sz + r
+            copy (sz + r)
           end in
         let size = copy 0 in
         (size, size)
@@ -544,4 +551,3 @@ let copy_file_to_entry infilename ofile ?(extra = "") ?(comment = "")
     Pervasives.close_in ic
   with x ->
     Pervasives.close_in ic; raise x
-

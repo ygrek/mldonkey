@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/07/20
+5247: Update camlzip library to version 1.02 (Xavier Leroy)
+- 64-bit incompatibility fixed
+- Better support for large ZIP files (> 2 Gb)
 5252: Update config.guess and config.sub to version 2006-07-02
 5251: HTML: Re-implement motd_html by popular demand
 * This patch brings motd_html back in addition to the current welcome message,

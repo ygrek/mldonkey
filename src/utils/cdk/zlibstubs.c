@@ -92,9 +92,9 @@ value camlzip_deflate(value vzs, value srcbuf, value srcpos, value srclen,
   long used_in, used_out;
   value res;
 
-  zs->next_in = &Byte(srcbuf, Long_val(srcpos));
+  zs->next_in = &Byte_u(srcbuf, Long_val(srcpos));
   zs->avail_in = Long_val(srclen);
-  zs->next_out = &Byte(dstbuf, Long_val(dstpos));
+  zs->next_out = &Byte_u(dstbuf, Long_val(dstpos));
   zs->avail_out = Long_val(dstlen);
   retcode = deflate(zs, camlzip_flush_table[Int_val(vflush)]);
   if (retcode < 0) camlzip_error("Zlib.deflate", vzs);
@@ -140,9 +140,9 @@ value camlzip_inflate(value vzs, value srcbuf, value srcpos, value srclen,
   long used_in, used_out;
   value res;
 
-  zs->next_in = &Byte(srcbuf, Long_val(srcpos));
+  zs->next_in = &Byte_u(srcbuf, Long_val(srcpos));
   zs->avail_in = Long_val(srclen);
-  zs->next_out = &Byte(dstbuf, Long_val(dstpos));
+  zs->next_out = &Byte_u(dstbuf, Long_val(dstpos));
   zs->avail_out = Long_val(dstlen);
   retcode = inflate(zs, camlzip_flush_table[Int_val(vflush)]);
   if (retcode < 0 || retcode == Z_NEED_DICT)
@@ -173,8 +173,8 @@ value camlzip_inflateEnd(value vzs)
 
 value camlzip_update_crc32(value crc, value buf, value pos, value len)
 {
-  return copy_int32(crc32(Int32_val(crc), 
-                          &Byte(buf, Long_val(pos)),
+  return copy_int32(crc32((uint32) Int32_val(crc), 
+                          &Byte_u(buf, Long_val(pos)),
                           Long_val(len)));
 }
 
