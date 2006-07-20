@@ -112,7 +112,7 @@ let supports_eep cb =
   match cb with
     Brand_lmule | Brand_newemule | Brand_cdonkey |
     Brand_emuleplus | Brand_hydranode | Brand_mldonkey3 |
-    Brand_shareaza | Brand_amule | Brand_lphant -> true
+    Brand_shareaza | Brand_amule | Brand_lphant | Brand_verycd -> true
   | _ -> false
 
 let ban_client c sock msg = 
@@ -643,6 +643,7 @@ let parse_compatible_client num old_brand =
     | 6 -> Brand_hydranode
     | 10 -> Brand_mldonkey3
     | 20 -> Brand_lphant
+    | 240 -> Brand_verycd
     | _ -> Brand_unknown
 
 let parse_mod_version s c =

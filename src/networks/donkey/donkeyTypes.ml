@@ -210,6 +210,7 @@ type brand =
 | Brand_lphant
 | Brand_emuleplus
 | Brand_hydranode
+| Brand_verycd
 
 let brand_list = [
    ( Brand_unknown   , "unknown"      , "unk" ) ;
@@ -227,6 +228,7 @@ let brand_list = [
    ( Brand_lphant    , "lPhant"       , "lPH" ) ;
    ( Brand_emuleplus , "ePlus"        , "eM+" ) ;
    ( Brand_hydranode , "Hydra"        , "Hyd" ) ;
+   ( Brand_verycd    , "VeryCD"       , "VCD" ) ;
   ]
 
 let brand_count = List.length brand_list
