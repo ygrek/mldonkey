@@ -223,6 +223,27 @@ let split_head s =
   in
   iter 0 []
 
+let error_page code from_ip from_port my_ip my_port =
+  let error_text, error_text_long =
+    match code with
+    | "401" -> "Unauthorized", "<p>Please login using a valid username and password</p>"
+    | "403" -> "Forbidden", Printf.sprintf
+"<p>Connection from %s rejected (see downloads.ini, <a href=\"http://mldonkey.sourceforge.net/Allowed_ips\">allowed_ips</a>)</p>\n"
+        from_ip
+    | _ -> Printf.sprintf "Unknown %s" code, ""
+  in
+  let reject_message = Printf.sprintf
+"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n<html>
+<head><title>%s %s</title></head>\n<h1>%s %s</h1>\n%s
+<hr><address>MLDonkey/%s at %s Port %s</address></html>"
+    code error_text code error_text error_text_long
+    Autoconf.current_version my_ip my_port
+  in
+  Printf.sprintf
+"HTTP/1.1 %s %s\nMLDonkey/%s\nConnection: close
+Content-Type: text/html; charset=iso-8859-1\nContent-length: %d\r\n"
+    code error_text Autoconf.current_version (String.length reject_message), reject_message
+
 let parse_head sock s =
   let h = split_head s in
 (*  List.iter (fun s -> lprintf_http_nl () "LINE: [%s]" (escaped s)) h; *)
@@ -822,18 +843,12 @@ let handler config t event =
           (Ip.to_string from_ip);
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple token "http connection" s in
-        let reject_message = Printf.sprintf
-"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n<html>\n
-<head><title>403 Forbidden</title></head>\n<h1>Forbidden</h1>\n
-<p>Connection from %s rejected (see downloads.ini, <a href=\"http://mldonkey.sourceforge.net/Allowed_ips\">allowed_ips</a>)</p>\n
-<hr><address>MLDonkey/%s at %s Port %d</address></html>\n"
-            (Ip.to_string from_ip) Autoconf.current_version
-	    (Ip.to_string (TcpBufferedSocket.my_ip sock)) config.port in
-        TcpBufferedSocket.write_string sock (Printf.sprintf
-"HTTP/1.1 403 Forbidden\nMLDonkey/%s\nConnection: close
-Content-Type: text/html; charset=iso-8859-1\nContent-length: %d\r\n"
-	    Autoconf.current_version (String.length reject_message));
-        TcpBufferedSocket.write_string sock reject_message;
+	let s1,s2 = error_page "403"
+	    (Ip.to_string from_ip)
+	    (string_of_int from_port)
+	    (Ip.to_string (TcpBufferedSocket.my_ip sock))
+	    (string_of_int config.port) in
+	TcpBufferedSocket.write_string sock (Printf.sprintf "%s\n%s" s1 s2);
         shutdown sock Closed_connect_failed;
         Unix.close s
       end

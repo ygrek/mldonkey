@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/07/20
+5246: HTTP: Print 401 error when login was unsuccessful
+
 2006/07/17
 5243: HTTP: Print 403 error for requests blocked by allowed_ips
 

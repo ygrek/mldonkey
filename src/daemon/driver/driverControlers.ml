@@ -947,10 +947,18 @@ let http_handler o t r =
   CommonInteractive.display_vd := false;
   CommonInteractive.display_bw_stats := false;
   clear_page buf;
+  if !Http_server.verbose && r.get_url.Url.short_file <> "" then
+    lprintf_nl "received URL %s %s"
+      r.get_url.Url.short_file
+      (let b = Buffer.create 100 in
+	 List.iter (fun (arg, value) -> Printf.bprintf b " %s %s" arg value) r.get_url.Url.args;
+	 if Buffer.contents b <> "" then Printf.sprintf "(%s)" (Buffer.contents b) else "");
 
   let user = if r.options.login = "" then admin_user else r.options.login in
   if not (valid_password user r.options.passwd) then begin
       clear_page buf;
+      http_file_type := HTM;
+      Buffer.add_string buf (snd(Http_server.error_page "401" "" "" (Ip.to_string (TcpBufferedSocket.my_ip r.sock)) (string_of_int !!http_port)));
       need_auth r !!http_realm
     end
   else

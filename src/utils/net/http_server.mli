@@ -77,3 +77,4 @@ val verbose : bool ref
   
 val request_range : request -> int64 * (int64 option)
 val parse_range : string -> int64 * int64 option * int64 option
+val error_page : string -> string -> string -> string -> string -> string * string
