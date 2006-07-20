@@ -175,7 +175,7 @@ let queued_timeout =
 let upload_timeout =
   define_expert_option donkey_section ["upload_timeout"]
     "How long can a silent client stay in the upload queue"
-    float_option 1800.
+    float_option 60.
 
 let upload_lifetime =
   define_expert_option donkey_section ["upload_lifetime"]

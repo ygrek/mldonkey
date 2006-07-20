@@ -45,6 +45,11 @@ open DonkeyClient
 open DonkeyThieves
 open DonkeyOptions
 
+let log_prefix = "[EDK]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
 let _ =
   network.op_network_is_enabled <- (fun _ -> !!enable_donkey);
   option_hook enable_donkey (fun _ ->
@@ -349,6 +354,10 @@ let rec update_options () =
       if !!max_sources_per_file = 20000 then
         max_sources_per_file =:= 5000;
       update 1
+  | 1 ->
+      if !!upload_timeout = 1800. then
+        upload_timeout =:= 60.;
+      update 2
   | _ -> ()
 
 

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/07/20
+5254: EDK: New default 60s for upload_timeout
 5247: Update camlzip library to version 1.02 (Xavier Leroy)
 - 64-bit incompatibility fixed
 - Better support for large ZIP files (> 2 Gb)
