@@ -282,7 +282,7 @@ let value_to_file file_size file_state assocs =
 
   (try
       set_file_best_name (as_file file)
-      (get_value "file_filename" value_to_string)
+      (get_value "file_filename" value_to_string) "" 0
     with _ -> update_best_name file);
   
   let md4s = try get_value "file_md4s" (value_to_array value_to_md4) 

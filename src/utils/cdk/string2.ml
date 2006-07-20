@@ -271,12 +271,6 @@ let replace_char s c1 c2 =
     if s.[i] == c1 then s.[i] <- c2
   done
 
-let shorten max s =
-  let len = String.length s in
-  if len > max then 
-    String.sub s 0 max
-  else s
-
 let stem s =
   let s = String.lowercase (String.copy s) in
   for i = 0 to String.length s - 1 do

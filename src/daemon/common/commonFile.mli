@@ -82,7 +82,7 @@ val file_pause : CommonTypes.file -> unit
 val file_resume : CommonTypes.file -> unit
 val set_file_state : CommonTypes.file -> CommonTypes.file_state -> unit
 val file_best_name : CommonTypes.file -> string
-val set_file_best_name : CommonTypes.file -> string -> unit
+val set_file_best_name : CommonTypes.file -> string -> string -> int -> unit
 val set_file_format : CommonTypes.file -> CommonTypes.format -> unit
 val file_check : CommonTypes.file -> unit
 val file_recover : CommonTypes.file -> unit

@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/07/20
+5253: Commit: Remove spaces at end of filename on FAT partitions,
+      respect max_name_len value for all filesystems (pango)
 5255: EDK: New client type VeryCD (compatibleclient 240)
 5254: EDK: New default 60s for upload_timeout
 5247: Update camlzip library to version 1.02 (Xavier Leroy)

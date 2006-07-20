@@ -109,15 +109,6 @@ let from_string filename =
 let to_string filename =
   List.fold_left (fun file f -> f file) filename !to_strings
 
-  
-let shorten max s =
-  let len = String.length s in
-  if len > max then 
-    Printf.sprintf "%s...%s" (String.sub s 0 (max - 7))
-    (String.sub s (len-4) 4)
-  else s
-    
-    
 let path_of_filename filename =
   let filename = String.copy filename in
   let len = String.length filename in
@@ -141,7 +132,7 @@ let basename filename =
   in
   iter (path_of_filename filename) filename
 
-let filesystem_compliant name fs =
+let filesystem_compliant name fs namemax =
   (* replace all illegal characters with a valid one.
      assumes all filesystems accept '_'s in filenames *)
   let escape_chars p filename =
@@ -202,12 +193,43 @@ let filesystem_compliant name fs =
       minimal_filter c || c = ':' in
     escape_chars macosx_filter name in
 
-  if Autoconf.windows then 
-    windows_compliant name
-  else if Autoconf.system = "macosx" then 
-    macosx_compliant name
-  else 
-    posix_compliant name
+  let sys_checked_name =
+    if Autoconf.windows then 
+      windows_compliant name
+    else if Autoconf.system = "macosx" then 
+      macosx_compliant name
+    else 
+      posix_compliant name in
+
+  let fs_checked_name =
+    let remove_last_spaces s =
+      let len = String.length s in
+      let rec aux n =
+        if n = 0 then n
+        else
+          let n1 = n - 1 in
+          if s.[n1] = ' ' then aux n1
+          else n in
+      let last_space = aux len in
+      if last_space = len then s
+      else String.sub s 0 last_space
+    in
+(* FAT filesystems do not allow files with space as last char *)
+    match fs with
+      "msdos" -> remove_last_spaces sys_checked_name
+    | _ -> sys_checked_name in
+
+  let length_checked_name =
+    if namemax = 0 || String.length sys_checked_name < namemax then
+      fs_checked_name
+    else
+      let ext = extension fs_checked_name in
+        if String.length ext > namemax then
+          String.sub fs_checked_name 0 namemax
+        else
+	  String.sub fs_checked_name 0 (namemax - (String.length ext)) ^ ext
+  in
+  length_checked_name
 
 let temp_directory () =
   match Sys.os_type with

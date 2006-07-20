@@ -128,22 +128,31 @@ let send_dirfull_warning dir full line1 =
     end
 
 let file_commited_name incoming_dir file =
-  let best_name = file_best_name file in
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
+  let fs = Unix32.filesystem incoming_dir in
+  let namemax =
+    match Unix32.fnamelen incoming_dir with
+      None -> 0
+    | Some v -> Int64.to_int v in
+
   let new_name =
-    Filename.concat incoming_dir (canonize_basename best_name)
-  in
+    Filename2.filesystem_compliant 
+      (canonize_basename (file_best_name file)) fs namemax in
+
   let new_name =
-    if Sys.file_exists new_name then
+    if Sys.file_exists (Filename.concat incoming_dir new_name) then
       let rec iter num =
-        let new_name = Printf.sprintf "%s.%d" new_name num in
-        if Sys.file_exists new_name then
-          iter (num+1)
-        else new_name
+        let new_name =
+	  Filename2.filesystem_compliant
+            (Printf.sprintf "%s_%d" new_name num) fs namemax in
+          if Sys.file_exists (Filename.concat incoming_dir new_name) then
+            iter (num+1)
+          else new_name
       in
       iter 1
     else new_name in
-  new_name
+  set_file_best_name file (file_best_name file) "" 0;
+  Filename.concat incoming_dir new_name
 
 let script_for_file file incoming new_name =
   let info = file_info file in
@@ -227,8 +236,7 @@ let file_commit file =
 	      | _ -> ()
 	    end;
 
-	  let new_name = file_commited_name
-            incoming.shdir_dirname file in
+	  let new_name = file_commited_name incoming.shdir_dirname file in
 	    if Unix2.is_directory file_name then begin
 	      Unix2.safe_mkdir new_name;
 	      Unix2.chmod new_name (Misc.int_of_octal_string !!create_dir_mask)

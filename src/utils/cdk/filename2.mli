@@ -54,15 +54,13 @@ val to_string : string -> string
 (*d [to_string filename] converts [filename] to a string using registered
 conversion functions. *)
   
-val shorten : int -> string -> string
-  
 (* transform a filename in a list of dirname *)
 val path_of_filename : string -> string list
   
 val basename : string -> string
   
-(* remove invalid chars in a filename, depending on the filesystem *)
-val filesystem_compliant : string -> string -> string
+(* remove invalid chars in a filename, depending on the filesystem, 
+   trim filename length to allowed limit on filesystem *)
+val filesystem_compliant : string -> string -> int -> string
 
 val temp_directory : unit -> string
-  

@@ -831,7 +831,7 @@ search.op_search_end_reply_handlers;
           
           | P.SaveFile (num, name) ->
               let file = file_find num in
-              set_file_best_name file name;
+              set_file_best_name file name "" 0;
               (match file_state file with
                   FileDownloaded ->
                     file_save_as file name;
@@ -888,7 +888,7 @@ search.op_search_end_reply_handlers;
           
           | P.RenameFile (num, new_name) ->
               let file = file_find num in
-              set_file_best_name file new_name;
+              set_file_best_name file new_name "" 0;
               addevent gui.gui_events.gui_files num true
           
           | P.ConnectFriend num 

@@ -251,10 +251,10 @@ let file_best_name (file : file) =
   let file = as_file_impl file in
   file.impl_file_best_name
   
-let set_file_best_name file name =
+let set_file_best_name file name fs namemax =
   let file = as_file_impl file in
   let old_name = file.impl_file_best_name in
-  let real_name = Filename2.filesystem_compliant name "" in
+  let real_name = Filename2.filesystem_compliant name fs namemax in
   if real_name = "" then
     lprintf_nl "can not rename file \"%s\" to \"%s\""
       (String.escaped file.impl_file_best_name) (String.escaped real_name)
@@ -661,7 +661,7 @@ let file_print file o =
       Printf.bprintf buf "[%-s %5d]\n%s\n%s%s\nTotal   %10s\nPartial %10s\npriority %d\n"
         n.network_name
         (file_num file)
-        (String2.shorten 80 (file_best_name file))
+        (shorten (file_best_name file) 80)
 	(match file_magic file with
 	   Some magic -> Printf.sprintf "%s\n" magic
 	 | None -> "")

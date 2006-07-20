@@ -104,7 +104,7 @@ module FileOption = struct
 
           (try
               set_file_best_name file
-              (get_value "file_filename" value_to_string)
+              (get_value "file_filename" value_to_string) "" 0
             with _ -> ());
           set_file_priority file priority;
 
