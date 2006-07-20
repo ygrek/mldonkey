@@ -74,7 +74,7 @@ let rfc2047_encode h encoding s =
   Buffer.contents buf
  
  
-let simple_connect hostname port = (* from netbase.ml *)
+let simple_connect hostname port =
   let s = socket PF_INET SOCK_STREAM 0 in
   let h = Ip.from_name  hostname in
   let addr = Ip.to_inet_addr h in

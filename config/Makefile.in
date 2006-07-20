@@ -95,7 +95,6 @@ INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES) $(GTKCFLAGS) $(GD_CFLAGS)
 
-# use_tags$(EXE) 
 TARGETS= mlnet$(EXE) 
 
 ifeq ("$(OS_FILES2)", "mingw")
@@ -144,9 +143,9 @@ CDK_SRCS += $(LIB)/autoconf.ml
 
 
 CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(CDK)/printf2.ml \
-  $(CDK)/heap.ml $(CDK)/dprintf.ml \
-  $(CDK)/printexc2.ml $(CDK)/genlex2.ml $(CDK)/sysenv.ml \
-  $(CDK)/netbase.ml $(CDK)/filepath.ml $(CDK)/string2.ml \
+  $(CDK)/heap.ml \
+  $(CDK)/printexc2.ml $(CDK)/genlex2.ml \
+  $(CDK)/filepath.ml $(CDK)/string2.ml \
   $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
   $(CDK)/unix2.ml $(CDK)/file.ml \
   $(CDK)/heap_c.c $(CDK)/array2.ml $(CDK)/sort2.ml
@@ -172,10 +171,10 @@ LIB_SRCS=   \
   src/config/$(OS_FILES)/os_stubs_c.c \
 	$(LIB)/bitv.ml \
   $(LIB)/intmap.ml $(LIB)/stringMap.ml \
-  $(LIB)/int64ops.ml $(LIB)/options.ml4 $(LIB)/numset.ml  \
+  $(LIB)/int64ops.ml $(LIB)/options.ml4 \
   $(LIB)/intset.ml \
-  $(LIB)/hole_tab.ml $(LIB)/store.ml \
-  $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml $(LIB)/host.ml  \
+  $(LIB)/store.ml \
+  $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml \
   $(LIB)/misc2.mlcpp $(LIB)/misc.ml $(LIB)/unix32.ml  $(LIB)/md4.ml \
   $(LIB)/http_lexer.mll $(LIB)/url.ml \
   $(RSS)/rss_date.ml \
@@ -1362,22 +1361,6 @@ EXPAND_LIB(libgui,gui)
 EXPAND_LIB(libguibase,guibase)
 
 
-#######################################################################
-
-#              Objects files for "use_tags"
-
-#######################################################################
-
-USE_TAGS_CMXA=cdk.cmxa
-USE_TAGS_SRCS = \
-  $(LIB)/cddb_lexer.mll $(LIB)/cddb_file.ml \
-  tools/use_tags.ml
-
-HASH_FILES_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(SRC_DONKEY)/donkeyHasher.ml tools/hash_files.ml
-
-
 ######################################################################
 
 #         From sources to objects files
@@ -1476,8 +1459,6 @@ EXPAND(CONTESTER,contester,CRYPT)
 EXPAND(SAFEEXEC,safeexec,CRYPT)
 EXPAND(GET_RANGE,get_range)
 EXPAND(COPYSOURCES,copysources)
-EXPAND(USE_TAGS,use_tags,NO,USE_TAGS)
-EXPAND(HASH_FILES,hash_files)
 EXPAND(INSTALLER,mldonkey_installer,GTK,INSTALLER)
 EXPAND(MLPIC,mlpic)
 EXPAND(SPIDER,mlspider)
