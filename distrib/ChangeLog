@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/07/20
+5256: GTK1 GUIs: Compile fix for patch 5253
 5253: Commit: Remove spaces at end of filename on FAT partitions,
       respect max_name_len value for all filesystems (pango)
 5255: EDK: New client type VeryCD (compatibleclient 240)

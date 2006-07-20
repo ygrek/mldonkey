@@ -40,7 +40,7 @@ let first_name r =
     [] -> gettext M.unknown
   | n :: _ -> n
 
-let shorten_name s = Filename2.shorten !!O.max_result_name_len s
+let shorten_name s = CommonGlobals.shorten s !!O.max_result_name_len
 
 let is_filtered r = false
 (* TODO RESULT

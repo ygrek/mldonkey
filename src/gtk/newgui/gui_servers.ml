@@ -238,9 +238,9 @@ class box columns users wl_status =
           else Printf.sprintf "%s [%s]" s.gserver_name s.gserver_description
       | Col_server_network ->
           Gui_global.network_name s.gserver_network
-      | Col_server_name -> if (String2.shorten 30 s.gserver_name) = ""
+      | Col_server_name -> if (shorten s.gserver_name 30) = ""
                              then "<unknown>"
-                             else String2.shorten 30 s.gserver_name
+                             else shorten s.gserver_name 30
     
     method content s =
       let strings = List.map 
