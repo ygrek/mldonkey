@@ -1091,6 +1091,7 @@ let http_handler o t r =
             html_open_page buf t r true;
             Buffer.add_string buf (Printf.sprintf "<br><div align=\"center\"><h3>%s %s</h3></div>"
 	      (Printf.sprintf (_b "Welcome to MLDonkey")) Autoconf.current_version);
+	    if !!motd_html <> "" then Buffer.add_string buf !!motd_html;
 	    (match DriverInteractive.real_startup_message () with
 	       Some s -> Buffer.add_string buf (Printf.sprintf "<p><pre><b><h3>%s</b></h3></pre>" s);
 	     | None -> ())
