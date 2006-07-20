@@ -599,6 +599,10 @@ let parse_donkey_url url =
 
   | _ -> "", false
 
+let ip_of_server_cid s =
+  match s.server_cid with
+    None -> Ip.null
+  | Some ip -> ip
 
 let op_file_check file =
   match file.file_swarmer with
@@ -714,15 +718,15 @@ let commands = [
     "id", Arg_none (fun o ->
         let buf = o.conn_buf in
         List.iter (fun s ->
-            Printf.bprintf buf "For %s:%d  --->   %s\n"
-              (Ip.to_string s.server_ip) s.server_port
+            Printf.bprintf buf "For %s:%d (%s) --->   %s\n"
+              (Ip.to_string s.server_ip) s.server_port s.server_name
               (match s.server_cid with
                 None -> "waiting"
               | Some ip ->
-                  if Ip.valid ip then
-                    Ip.to_string ip
+                  if low_id ip then
+                    Printf.sprintf "%s (LowID)" (Int64.to_string (Ip.to_int64 (Ip.rev ip)))
                   else
-                    Int64.to_string (Ip.to_int64 (Ip.rev ip)))
+                    Printf.sprintf "%s (HighID)" (Ip.to_string (ip_of_server_cid s)))
         ) (connected_servers());
         ""
     ), ":\t\t\t\t\tprint ID on connected servers";
@@ -1141,11 +1145,6 @@ let _ =
   );
   client_ops.op_client_debug <- (fun c debug ->
       c.client_debug <- debug)
-
-let ip_of_server_cid s =
-  match s.server_cid with
-    None -> Ip.null
-  | Some ip -> ip
 
 let _ =
   server_ops.op_server_remove <- (fun s ->

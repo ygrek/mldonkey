@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/07/20
+5250: EDK: Print High/LowID in cleartext for command "id", fix LowID display
 5249: Remove obsolete files from src/utils/[cdk;lib] and tools/
 5246: HTTP: Print 401 error when login was unsuccessful
 
