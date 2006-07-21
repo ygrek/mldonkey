@@ -14,6 +14,14 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/07/21
+5258: Add some files to src/utils/lib for later usage
+* from pango
+  ./src/utils/lib/levenshtein.ml
+* from http://packages.qa.debian.org/s/syslog-ocaml.html
+  ./src/utils/lib/syslog.ml
+  ./src/utils/lib/syslog.mli
+
 2006/07/20
 5256: GTK1 GUIs: Compile fix for patch 5253
 5253: Commit: Remove spaces at end of filename on FAT partitions,

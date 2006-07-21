@@ -172,6 +172,7 @@ LIB_SRCS=   \
 	$(LIB)/bitv.ml \
   $(LIB)/intmap.ml $(LIB)/stringMap.ml \
   $(LIB)/int64ops.ml $(LIB)/options.ml4 \
+  $(LIB)/syslog.ml $(LIB)/levenshtein.ml \
   $(LIB)/intset.ml \
   $(LIB)/store.ml \
   $(LIB)/indexer.ml $(LIB)/indexer1.ml $(LIB)/indexer2.ml \
