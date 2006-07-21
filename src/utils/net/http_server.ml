@@ -92,6 +92,9 @@ type auth =
 | Read_auth
 | Write_auth
 
+type error_reason =
+| Blocked
+| Not_allowed
 
 type header =
   Unknown of string * string
@@ -145,6 +148,7 @@ and config = {
     mutable port : int;
     requests : (string * handler) list;
     mutable addrs : Ip.t list;
+    use_ip_block_list : bool;
     base_ref : string;
     default : handler;
   }
@@ -223,13 +227,17 @@ let split_head s =
   in
   iter 0 []
 
-let error_page code from_ip from_port my_ip my_port =
+let error_page code from_ip from_port my_ip my_port reason =
   let error_text, error_text_long =
     match code with
     | "401" -> "Unauthorized", "<p>Please login using a valid username and password</p>"
-    | "403" -> "Forbidden", Printf.sprintf
+    | "403" -> "Forbidden", 
+		(match reason with
+		   Some Not_allowed -> Printf.sprintf
 "<p>Connection from %s rejected (see downloads.ini, <a href=\"http://mldonkey.sourceforge.net/Allowed_ips\">allowed_ips</a>)</p>\n"
-        from_ip
+				    from_ip
+		 | Some Blocked -> Printf.sprintf "IP %s is blocked, its part of the used IP blocklist " from_ip
+		 | None -> "")
     | _ -> Printf.sprintf "Unknown %s" code, ""
   in
   let reject_message = Printf.sprintf
@@ -822,13 +830,17 @@ let handler config t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET(from_ip, from_port)) ->
     (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
-      if Ip.matches from_ip config.addrs &&
-        (match !Ip.banned from_ip with
-           None -> true
-         | Some reason ->
-             lprintf_nl "%s:%d blocked: %s\n"
-               (Ip.to_string from_ip) from_port reason;
-             false) then
+      let ip_is_allowed from_ip = Ip.matches from_ip config.addrs in
+      let ip_is_blocked from_ip =
+	if config.use_ip_block_list then
+	  match !Ip.banned from_ip with
+            None -> false
+           | Some reason -> lprintf_nl "%s:%d blocked: %s"
+               (Ip.to_string from_ip) from_port reason; true
+        else
+	  false
+      in 
+      if ip_is_allowed from_ip && not (ip_is_blocked from_ip) then
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple
             token "http connection" s in
@@ -839,15 +851,18 @@ let handler config t event =
           (fun _ -> TcpBufferedSocket.close sock Closed_for_overflow;
          lprintf_nl "BUFFER OVERFLOW" );  ()
       else begin
-         lprintf_nl "connection from %s rejected (see allowed_ips setting)"
-          (Ip.to_string from_ip);
+        lprintf_nl "connection from %s rejected (%s)"
+          (Ip.to_string from_ip)
+	  (if ip_is_blocked from_ip then "IP is blocked" else "see allowed_ips setting");
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple token "http connection" s in
 	let s1,s2 = error_page "403"
 	    (Ip.to_string from_ip)
 	    (string_of_int from_port)
 	    (Ip.to_string (TcpBufferedSocket.my_ip sock))
-	    (string_of_int config.port) in
+	    (string_of_int config.port)
+	    (if not (ip_is_allowed from_ip) then Some Not_allowed else Some Blocked)
+	in
 	TcpBufferedSocket.write_string sock (Printf.sprintf "%s\n%s" s1 s2);
         shutdown sock Closed_connect_failed;
         Unix.close s

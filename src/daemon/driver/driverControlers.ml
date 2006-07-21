@@ -958,7 +958,7 @@ let http_handler o t r =
   if not (valid_password user r.options.passwd) then begin
       clear_page buf;
       http_file_type := HTM;
-      Buffer.add_string buf (snd(Http_server.error_page "401" "" "" (Ip.to_string (TcpBufferedSocket.my_ip r.sock)) (string_of_int !!http_port)));
+      Buffer.add_string buf (snd(Http_server.error_page "401" "" "" (Ip.to_string (TcpBufferedSocket.my_ip r.sock)) (string_of_int !!http_port) None));
       need_auth r !!http_realm
     end
   else
@@ -1524,6 +1524,7 @@ let create_http_handler () =
       port = !!http_port;
       requests = [];
       addrs = !!allowed_ips;
+      use_ip_block_list = false;
       base_ref = "";
       default = http_handler http_options;
     } in

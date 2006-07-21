@@ -557,6 +557,7 @@ let start_tracker () =
           requests = [];
           addrs = [ Ip.of_string "255.255.255.255" ];
           base_ref = "";
+	  use_ip_block_list = true;
           default = http_handler;
         } in
       let sock = TcpServerSocket.create "BT tracker"
