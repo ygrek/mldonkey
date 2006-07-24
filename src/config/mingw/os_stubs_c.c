@@ -188,7 +188,7 @@ void os_set_nonblock(OS_SOCKET fd)
 *******************************************************************/
 
 //http://lists.gnu.org/archive/html/bug-gnu-chess/2004-01/msg00020.html
-void gettimeofday(struct timeval* p, void* tz /* IGNORED */){
+void ml_gettimeofday(struct timeval* p, void* tz /* IGNORED */){
    union {
      long long ns100; /*time since 1 Jan 1601 in 100ns units */
      FILETIME ft;
