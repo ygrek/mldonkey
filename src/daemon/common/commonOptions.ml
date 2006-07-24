@@ -259,6 +259,7 @@ let _ =
 	  lprintf_nl "error while checking file %s: %s"
 	    (Filename.concat file_basedir security_space_filename)
 	    (Printexc2.to_string e);
+          lprintf "%s" (exit_message security_space_filename);
     	  if Autoconf.windows then windows_sleep 10;
 	  exit 2
     end

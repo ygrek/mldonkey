@@ -551,7 +551,7 @@ for config files at the end. *)
           done
         done;
 	ignore(Unix2.c_seek64 oc zero Unix.SEEK_SET);
-	Unix.lockf oc Unix.F_LOCK (!!config_files_security_space * 1024 * 1024);
+	(try Unix.lockf oc Unix.F_LOCK (!!config_files_security_space * 1024 * 1024) with _ -> ());
 	security_space_oc := Some oc
     with e ->
         lprintf_nl (_b "Cannot create Security space file: %s") (Printexc2.to_string e);

@@ -1206,6 +1206,10 @@ ml_iconv (iconv_t cd,
     return iconv (cd, inbuf, inbytes_left, outbuf, outbytes_left);
 }
 
+#ifndef EILSEQ
+#define EILSEQ ENOENT
+#endif
+
 char*
 ml_convert_with_iconv (const char *str,
                        size_t     len,
