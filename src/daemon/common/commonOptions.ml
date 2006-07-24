@@ -25,6 +25,14 @@ open TcpBufferedSocket
 open Options
 open Unix
 
+let log_prefix = "[cO]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
+
 let _s x = _s "CommonOptions" x
 let _b x = _b "CommonOptions" x
 
@@ -1518,6 +1526,12 @@ let log_file = define_expert_option current_section ["log_file"]
     also enable logging in a file after startup using the 'log_file' command."
   string_option "mlnet.log"
 
+let log_to_syslog = define_expert_option current_section ["log_to_syslog"]
+   "Post log messages to syslog. This setting is independent of log_file
+and its associated commands, therefore close_log does not stop log to syslog.
+Its therefore possible to log to syslog and log_file at the same time."
+    bool_option false
+
 let gui_log_size =
   define_expert_option current_section ["gui_log_size"]
     "number of lines for GUI console messages" int_option 30
@@ -1802,6 +1816,26 @@ let _ =
 
 
 let _ =
+  option_hook log_to_syslog (fun _ ->
+    match !Printf2.syslog_oc with
+      None ->
+	if !!log_to_syslog then
+	  begin
+	    Printf2.syslog_oc := (
+              try
+                Some (Syslog.openlog (Filename.basename Sys.argv.(0)))
+              with e -> log_to_syslog =:= false;
+	        lprintf_nl "error while opening syslog %s" (Printexc2.to_string e); None);
+	    lprintf_nl "activated syslog"
+	  end
+    | Some oc ->
+	if not !!log_to_syslog then
+	  begin
+	    lprintf_nl "deactivated syslog";
+	    Syslog.closelog oc;
+	    Printf2.syslog_oc := None
+	  end
+  );
   option_hook loop_delay (fun _ ->
      BasicSocket.loop_delay := (float_of_int !!loop_delay) /. 1000.;
   );

@@ -535,17 +535,13 @@ let save_sources _ =
 let guptime () = !!guptime - !diff_time
   
 let load_sources () =
-  (lprintf "(loading sources ";
-   try 
+  (try 
       let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
       cleaner ();
-      lprintf ".";
       Options.load file_sources_ini;
-      lprintf ".";
       cleaner ();
-      lprintf ".";
       sources_loaded := true;
-      lprintf " completed) ";
+      lprintf "loading sources completed) ";
     with _ -> ())
 
 let check_result r tags =

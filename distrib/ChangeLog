@@ -15,6 +15,11 @@ ChangeLog
 =========
 
 2006/07/24
+5260: Enable logging to syslog, update syslog.ml to version 1.3
+* New option log_to_syslog, default false
+  Post log messages to syslog. This setting is independent of log_file
+  and its associated commands, therefore close_log does not stop log to syslog.
+  Its therefore possible to log to syslog and log_file at the same time.
 5261: MinGW: Fix compile bug with mingw-runtime-3.10
 5259: Use Charset functions to determine extention of
       mlnet_strings file if $LANG is not set

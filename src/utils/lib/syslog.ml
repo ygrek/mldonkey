@@ -203,11 +203,10 @@ let syslog ?fac loginfo lev str =
       if String.length loginfo.tag > 0 then
 	Buffer.add_string msg ": ";
       Buffer.add_string msg str;
-      Buffer.add_char msg '\000';
       let realmsg = ref (Buffer.contents msg) in
 	if String.length !realmsg > 1024 then begin
 	  realmsg := String.sub !realmsg 0 1024;
-	  String.blit "<truncated>\000" 0 !realmsg 1012 12
+	  String.blit "<truncated>" 0 !realmsg 1012 11
 	end;
 	begin try
 	  ignore (Unix.write loginfo.fd !realmsg 0 (String.length !realmsg))
@@ -221,8 +220,10 @@ let syslog ?fac loginfo lev str =
 		log_console !realmsg
 	end;
 	if List.mem `LOG_PERROR loginfo.flags then begin
-	  ignore (Unix.write Unix.stderr !realmsg 0 (String.length !realmsg));
-	  ignore (Unix.write Unix.stderr "\n" 0 1)
+	  try
+	    ignore (Unix.write Unix.stderr !realmsg 0 (String.length !realmsg));
+	    ignore (Unix.write Unix.stderr "\n" 0 1)
+	  with _ -> ()
 	end
 
 let closelog loginfo =

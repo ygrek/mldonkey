@@ -19,6 +19,9 @@
 
 
 open Autoconf
+open Syslog
+
+let syslog_oc = ref None
 
 external format_int: string -> int -> string = "caml_format_int"
 external format_int32: string -> int32 -> string = "caml_int32_format"
@@ -190,24 +193,24 @@ let cprintf kont fmt =
     Buffer.add_string dest (printer ()); doprn i
   in doprn 0
 
-let lprintf_handler = ref (fun s ->
-      Printf.printf "Message [%s] discarded\n" s;
+let lprintf_handler = ref (fun s time ->
+      Printf.printf "%sMessage [%s] discarded\n" time s;
   )
 
 let lprintf fmt =
-  cprintf (fun s -> try !lprintf_handler s with _ -> ())
+  cprintf (fun s -> try !lprintf_handler "" s with _ -> ())
   (fmt : ('a,unit, unit) format )
 
 let lprintf2 m fmt =
-  cprintf (fun s -> try !lprintf_handler ((log_time ())^m^" "^s) with _ -> ())
+  cprintf (fun s -> try !lprintf_handler (log_time ()) (m^" "^s) with _ -> ())
   (fmt : ('a,unit, unit) format )
 
 let lprintf_nl fmt =
-  cprintf (fun s -> try !lprintf_handler ((log_time ())^s^"\n") with _ -> ())
+  cprintf (fun s -> try !lprintf_handler (log_time ()) (s^"\n") with _ -> ())
   (fmt : ('a,unit, unit) format )
 
 let lprintf_nl2 m fmt =
-  cprintf (fun s -> try !lprintf_handler ((log_time ())^m^" "^s^"\n") with _ -> ())
+  cprintf (fun s -> try !lprintf_handler (log_time ()) (m^" "^s^"\n") with _ -> ())
   (fmt : ('a,unit, unit) format )
 
 let lprint_newline () = lprintf "\n"
@@ -232,16 +235,19 @@ let keep_console_output () =
   | _ -> false
 
 let _ =
-  set_lprintf_handler (fun s ->
+  set_lprintf_handler (fun time s ->
+      (match !syslog_oc with
+	None -> ()
+      | Some oc -> Syslog.syslog oc `LOG_INFO s);
       match !lprintf_output with
         Some out when !lprintf_to_channel ->
-          Printf.fprintf out "%s" s; flush out
+          Printf.fprintf out "%s" (time ^ s); flush out
       | _ ->
           if !lprintf_size >= !lprintf_max_size then
             ignore (Fifo.take lprintf_fifo)
           else
             incr lprintf_size;
-          Fifo.put lprintf_fifo s
+          Fifo.put lprintf_fifo (time ^ s)
   )
 
 let detach () =

@@ -19,6 +19,8 @@
 
 open Autoconf
 
+val syslog_oc : Syslog.t option ref
+
 val lprintf_original_output : out_channel option ref
 val keep_console_output : unit -> bool
 
