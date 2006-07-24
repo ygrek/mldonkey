@@ -380,7 +380,7 @@ let set_strings_file filename =
   let filename =
     let extension = try
         Unix.getenv "LANG"
-      with _ -> "en"
+      with _ -> (Charset.default_language ^ "_" ^ Charset.locstr)
     in
     Printf.sprintf "%s.%s" filename extension
   in

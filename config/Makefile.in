@@ -181,10 +181,10 @@ LIB_SRCS=   \
   $(RSS)/rss_date.ml \
   $(LIB)/date.ml  $(LIB)/fst_hash.c \
   $(LIB)/md4_comp.c $(LIB)/md4_c.c \
+  $(LIB)/charsetstubs.c $(LIB)/charset.ml \
   $(LIB)/gettext.ml4 $(LIB)/md5_c.c $(LIB)/sha1_c.c \
   $(LIB)/tiger.c \
   $(LIB)/stubs_c.c  $(LIB)/set2.ml $(LIB)/queues.ml \
-  $(LIB)/charsetstubs.c $(LIB)/charset.ml \
   $(LIB)/verificationBitmap.ml
 
 ifeq ("$(MAGIC)", "yes")

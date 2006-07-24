@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/07/24
+5259: Use Charset functions to determine extention of
+      mlnet_strings file if $LANG is not set
+
 2006/07/21
 5257: HTML: Let allowed_ips allow connections from IPs part
       of IP blocklist for HTML interface only
