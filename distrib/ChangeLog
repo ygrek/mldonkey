@@ -21,7 +21,7 @@ ChangeLog
 * old syntax is converted to CIDR format:
   - 192.168.000.255 -> 192.168.000.000/24
   - 192.168.255.255 -> 192.168.000.000/16
-  - 192.255.255.255 -> 192.255.000.000/8
+  - 192.255.255.255 -> 192.000.000.000/8
   - 255.255.255.255 -> 000.000.000.000/0
 * new possible syntax, to calculate: http://www.subnet-calculator.com/cidr.php
   - CIDR, like 192.168.0.106/30 (192.168.0.104 - 192.168.0.107)
