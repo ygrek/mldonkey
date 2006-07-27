@@ -525,7 +525,7 @@ let save _ =
     end
 
 let save_sources _ =
-  if !sources_loaded then begin
+  if !sources_loaded && !!keep_sources then begin
       save_time =:= last_time ();
       let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
       Options.save_with_help file_sources_ini;
@@ -535,6 +535,7 @@ let save_sources _ =
 let guptime () = !!guptime - !diff_time
   
 let load_sources () =
+  if not !!keep_sources then () else
   (try 
       let cleaner = DonkeySources.attach_sources_to_file file_sources_section in
       cleaner ();

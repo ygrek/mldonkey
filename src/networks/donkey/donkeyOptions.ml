@@ -131,6 +131,10 @@ let max_sources_per_file = define_option donkey_section ["max_sources_per_file"]
     "Maximal number of sources for each file"
     int_option 5000
 
+let keep_sources = define_expert_option donkey_section ["keep_sources"]
+    "Save sources to file_sources.ini and reload them on core start."
+    bool_option true
+
 open Md4
 
 let mldonkey_md4 md4 =
