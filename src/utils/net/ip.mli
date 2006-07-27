@@ -41,6 +41,11 @@ val succ : t -> t
 val pred : t -> t
   
 val localhost : t
+
+val mask_of_shift : int -> t
+val network_address : t -> t -> t
+val broadcast_address : t -> t -> t
+
 val to_sockaddr : t -> int -> Unix.sockaddr
 
 val from_name : string -> t
@@ -76,3 +81,14 @@ val addr_option : addr Options.option_class
   
 val allow_local_network : bool ref
   
+type ip_range =
+  RangeSingleIp of t | RangeRange of t * t | RangeCIDR of t * int 
+
+val localhost_range : ip_range
+
+val range_option : ip_range Options.option_class
+val value_to_iprange : Options.option_value -> ip_range
+val iprange_to_value : ip_range -> Options.option_value
+
+val range_of_string : string -> ip_range
+val string_of_range : ip_range -> string

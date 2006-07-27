@@ -50,6 +50,12 @@ type blocking_range = {
   mutable blocking_hits: int
 }
 
+let dummy_range = {
+  blocking_description = unknown_description;
+  blocking_begin = Ip.null;
+  blocking_end = Ip.null;
+  blocking_hits = 0 }
+
 let store_blocking_descriptions = ref true
 
 (* Red-Black tree *)
@@ -290,39 +296,25 @@ let load filename =
     end
 
 let of_list l =
-  let rec of_list_aux l bl =
-    match l with
-	[] -> bl
-      | h :: q ->
-	  let range = match Ip.to_ints h with
-(* only the most standard usages of the old syntax are supported *)
-	      255, 255, 255, 255 -> 
-		{ blocking_description = unknown_description;
-		  blocking_begin = Ip.of_ints (0, 0, 0, 0);
-		  blocking_end = Ip.of_ints (255, 255, 255, 255);
-		  blocking_hits = 0 }
-	    | a, 255, 255, 255 -> 
-		{ blocking_description = unknown_description;
-		  blocking_begin = Ip.of_ints (a, 0, 0, 0);
-		  blocking_end = Ip.of_ints (a, 255, 255, 255);
-		  blocking_hits = 0 }
-	    | a, b, 255, 255 -> 
-		{ blocking_description = unknown_description;
-		  blocking_begin = Ip.of_ints (a, b, 0, 0);
-		  blocking_end = Ip.of_ints (a, b, 255,255);
-		  blocking_hits = 0 }
-	    | a, b, c, 255 -> 
-		{ blocking_description = unknown_description;
-		  blocking_begin = Ip.of_ints (a, b, c, 0);
-		  blocking_end = Ip.of_ints (a, b, c, 255);
-		  blocking_hits = 0 }
-	    | _ -> 
-		{ blocking_description = unknown_description;
-		  blocking_begin = h;
-		  blocking_end = h;
-		  blocking_hits = 0 } in
-	  of_list_aux q (add_range bl range) in
-  of_list_aux l BL_Empty
+  List.fold_left (fun acc r ->
+    let range =
+      match r with
+      | Ip.RangeSingleIp ip -> {
+	  dummy_range with
+	  blocking_begin = ip;
+	  blocking_end = ip }
+      | Ip.RangeRange (ip1, ip2) -> {
+	  dummy_range with
+	  blocking_begin = ip1;
+	  blocking_end = ip2 }
+      | Ip.RangeCIDR (ip, shift) ->
+	let mask = Ip.mask_of_shift shift in
+	{ dummy_range with
+	  blocking_begin = Ip.network_address ip mask;
+	  blocking_end = Ip.broadcast_address ip mask }
+    in 
+    add_range acc range
+  ) BL_Empty l
 
 let print_list buf bl =
   let rec print_list_aux bl =

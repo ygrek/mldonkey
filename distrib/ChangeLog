@@ -14,6 +14,17 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/07/27
+5264: allowed_ips: Support CIDR address/mask format and IP ranges (pango)
+* old syntax is converted to CIDR format:
+  - 192.168.000.255 -> 192.168.000.000/24
+  - 192.168.255.255 -> 192.168.000.000/16
+  - 192.255.255.255 -> 192.255.000.000/8
+  - 255.255.255.255 -> 000.000.000.000/0
+* new possible syntax, to calculate: http://www.subnet-calculator.com/cidr.php
+  - CIDR, like 192.168.0.106/30 (192.168.0.104 - 192.168.0.107)
+  - IP ranges, like 192.168.1.123 - 192.168.1.133
+
 2006/07/24
 5262: Small compile patch for Mac OS X 10.2.8 (Jaguar), small log fix
 5260: Enable logging to syslog, update syslog.ml to version 1.3

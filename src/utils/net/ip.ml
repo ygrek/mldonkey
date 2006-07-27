@@ -146,6 +146,15 @@ let banned = ref (fun (ip:t) -> None)
 
 let localhost = of_string "127.0.0.1"
 
+let mask_of_shift shift =
+  of_int64 (Int64.logand 0xffffffffL (Int64.shift_left 0xffffffffL (32 - shift)))
+
+let network_address ip mask =
+  of_int64 (Int64.logand (to_int64 ip) (to_int64 mask))
+
+let broadcast_address ip mask =
+  of_int64 (Int64.logor (to_int64 ip) (Int64.logand 0xffffffffL (Int64.lognot (to_int64 mask))))
+
 let to_sockaddr ip port =
   Unix.ADDR_INET (to_inet_addr ip, port)
 
@@ -378,3 +387,35 @@ let value_to_addr v = addr_of_string (value_to_string v)
 let addr_to_value ip = string_to_value (string_of_addr ip)
 
 let addr_option = define_option_class "Addr" value_to_addr addr_to_value
+
+type ip_range = 
+| RangeSingleIp of t
+| RangeRange of t * t
+| RangeCIDR of t * int 
+
+let localhost_range = RangeCIDR ((of_string "127.0.0.1"), 8)
+
+let single_ip = "\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)"
+let single_ip_regexp = Str.regexp ("^" ^ single_ip ^ "$")
+let range_regexp = Str.regexp ("^" ^ single_ip ^ "-" ^ single_ip ^ "$")
+let cidr_regexp = Str.regexp ("^" ^ single_ip ^ "/" ^ "\\([0-9]+\\)$")
+
+let string_of_range ip =
+  match ip with
+  | RangeSingleIp ip -> to_string ip
+  | RangeRange (ip1, ip2) -> Printf.sprintf "%s-%s" (to_string ip1) (to_string ip2)
+  | RangeCIDR (ip, shift) -> Printf.sprintf "%s/%d" (to_string ip) shift
+
+let range_of_string s =
+  if Str.string_match single_ip_regexp s 0 then
+    RangeSingleIp (of_string (Str.matched_group 1 s))
+  else if Str.string_match range_regexp s 0 then
+    RangeRange (of_string (Str.matched_group 1 s), of_string (Str.matched_group 2 s))
+  else if Str.string_match cidr_regexp s 0 then
+    RangeCIDR (of_string (Str.matched_group 1 s), int_of_string (Str.matched_group 2 s))
+  else failwith (Printf.sprintf "Unknown IP range syntax: %s" s)
+
+let value_to_iprange v = range_of_string (value_to_string v)
+let iprange_to_value ip = string_to_value (string_of_range ip)
+
+let range_option = define_option_class "Range" value_to_iprange iprange_to_value

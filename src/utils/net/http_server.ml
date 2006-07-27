@@ -147,7 +147,7 @@ and config = {
     bind_addr : Unix.inet_addr;
     mutable port : int;
     requests : (string * handler) list;
-    mutable addrs : Ip.t list;
+    mutable addrs : Ip_set.blocking_list;
     use_ip_block_list : bool;
     base_ref : string;
     default : handler;
@@ -830,7 +830,11 @@ let handler config t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET(from_ip, from_port)) ->
     (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
-      let ip_is_allowed from_ip = Ip.matches from_ip config.addrs in
+      let ip_is_allowed from_ip =
+	match Ip_set.match_ip config.addrs from_ip with
+	| Some br -> true
+	| None -> false
+      in
       let ip_is_blocked from_ip =
 	if config.use_ip_block_list then
 	  match !Ip.banned from_ip with

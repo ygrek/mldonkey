@@ -296,6 +296,8 @@ let servers_section = file_section servers_ini [] ""
 
 let ip_list_option = list_option Ip.option
 
+let ip_range_list_option = list_option Ip.range_option
+
 let int_list_option = list_option int_option
 
 let country_list_option = list_option string_option
@@ -326,6 +328,18 @@ let _ =
       let list = String2.tokens s in
       List.map (fun ip -> Ip.of_string ip) list
   );
+
+  Options.set_string_wrappers ip_range_list_option
+    (fun list ->
+      List.fold_left (fun s ip ->
+	  Printf.sprintf "%s %s" (Ip.string_of_range ip) s
+      ) "" list
+  )
+  (fun s ->
+      let list = String2.tokens s in
+      List.map (fun ip -> Ip.range_of_string ip) list
+  );
+
   Options.set_string_wrappers int_list_option
     (fun list ->
       List.fold_left (fun s i ->
@@ -418,11 +432,40 @@ let allowed_ips = define_option current_section ["allowed_ips"]
     ~desc: "Allowed IPs"
   "list of IP address allowed to connect to the core via telnet/GUI/WEB
 for internal command set: list separated by spaces
-example for internal command: set allowed_ips \"127.0.0.1 192.168.1.2\"
+example for internal command: set allowed_ips \"127.0.0.0/8 192.168.1.2\"
 or for editing the ini-file: list separated by semi-colon
-example for ini-file: allowed_ips = [ \"127.0.0.1\"; \"192.168.1.2\";]
-wildcard=255 ie: use 192.168.0.255 for 192.168.0.*"
-    ip_list_option [Ip.localhost]
+example for ini-file: allowed_ips = [ \"127.0.0.0/8\"; \"192.168.1.2\";]
+CIDR and range notations are supported: ie use 192.168.0.0/24 or 192.168.0.0-192.168.0.255 for 192.168.0.*"
+    ip_range_list_option [ Ip.RangeSingleIp Ip.localhost ]
+
+let allowed_ips_set = ref Ip_set.BL_Empty
+
+let _ =
+  option_hook allowed_ips (fun _ ->
+    let new_list = ref [] in
+    List.iter (fun i ->
+	let new_range =
+	  match i with
+	  | Ip.RangeSingleIp ip ->
+	    (let a, b, c, d = Ip.to_ints ip in
+	      match a = 255, b = 255, c = 255, d = 255 with
+	      |  true,  true,  true,  true -> Ip.RangeCIDR (Ip.null, 0)
+	      | false,  true,  true,  true -> Ip.RangeCIDR ((Ip.of_string (Printf.sprintf "%d.0.0.0" a)), 8)
+	      | false, false,  true,  true -> Ip.RangeCIDR ((Ip.of_string (Printf.sprintf "%d.%d.0.0" a b)), 16)
+	      | false, false, false,  true -> Ip.RangeCIDR ((Ip.of_string (Printf.sprintf "%d.%d.%d.0" a b c)), 24)
+	      | false, false, false, false -> i
+	      | _ -> i)
+	  | Ip.RangeRange (ip1, ip2) -> i
+	  | Ip.RangeCIDR (ip, shift) -> i
+	in
+	if i <> new_range then
+	  lprintf_nl "allowed_ips: converted %s to %s" (Ip.string_of_range i) (Ip.string_of_range new_range);
+	new_list := new_range :: !new_list
+    ) !!allowed_ips;
+    new_list := if !new_list = [] then [ Ip.localhost_range ] else List.rev !new_list;
+    if !new_list <> !!allowed_ips then allowed_ips =:= !new_list;
+    allowed_ips_set := (Ip_set.of_list !!allowed_ips))
+
 
 let gui_port =
   define_option current_section ["gui_port"]

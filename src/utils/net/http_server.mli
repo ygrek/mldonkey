@@ -60,7 +60,7 @@ and config = {
     bind_addr : Unix.inet_addr;
     mutable port : int;
     requests : (string * handler) list;
-    mutable addrs : Ip.t list;
+    mutable addrs : Ip_set.blocking_list;
     use_ip_block_list : bool;
     base_ref : string;
     default : handler;

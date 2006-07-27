@@ -591,7 +591,8 @@ let telnet_handler t event =
             conn_width = 80;
             conn_height = 0;
           } in
-      if Ip.matches from_ip !!allowed_ips then begin
+	(match Ip_set.match_ip !allowed_ips_set from_ip with
+	| Some br -> 
         TcpBufferedSocket.prevent_close sock;
         TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (user_reader o telnet);
@@ -611,8 +612,8 @@ let telnet_handler t event =
             "$cWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
 
         after_telnet_output o sock
-	end
-      else begin
+
+	| None ->
         before_telnet_output o sock;
 	let reject_message =
 	  Printf.sprintf "Telnet connection from %s rejected (see allowed_ips setting)\n"
@@ -621,8 +622,7 @@ let telnet_handler t event =
 	TcpBufferedSocket.write_string sock (dollar_escape o false reject_message);
 	shutdown sock Closed_connect_failed;
         if not !verbose_no_login then lprintf_n "%s" reject_message;
-	Unix.close s
-      end
+	Unix.close s)
 
   | _ -> ()
 
@@ -1523,12 +1523,13 @@ let create_http_handler () =
       bind_addr = Ip.to_inet_addr !!http_bind_addr ;
       port = !!http_port;
       requests = [];
-      addrs = !!allowed_ips;
+      addrs = Ip_set.of_list !!allowed_ips;
       use_ip_block_list = false;
       base_ref = "";
       default = http_handler http_options;
     } in
-  option_hook allowed_ips (fun _ -> config.addrs <- !!allowed_ips);
+  option_hook allowed_ips (fun _ ->
+    config.addrs <- Ip_set.of_list !!allowed_ips);
   ignore(find_port "http server" !!http_bind_addr http_port
       (Http_server.handler config));
   config.port <- !!http_port

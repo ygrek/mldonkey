@@ -1177,7 +1177,8 @@ let gui_handler t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
       if not !verbose_no_login then lprintf_nl "GUI connection from %s" (Ip.to_string from_ip);
-      if Ip.matches from_ip !!allowed_ips then 
+      (match Ip_set.match_ip !allowed_ips_set from_ip with
+      |	Some br ->
         
         let module P = GuiProto in
         let token = create_token unlimited_connection_manager in
@@ -1204,11 +1205,10 @@ let gui_handler t event =
             close sock Closed_for_overflow);
         (* sort GUIs in increasing order of their num *)
         
-      else begin
+      | None ->
           if not !verbose_no_login then lprintf_nl "GUI connection from %s rejected (see allowed_ips setting)"
             (Ip.to_string from_ip);
-          Unix.close s
-        end
+          Unix.close s)
   | _ -> ()
         
 let gift_handler t event = 
@@ -1216,7 +1216,8 @@ let gift_handler t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
       lprintf "Gift: Connection from %s\n" (Ip.to_string from_ip);
-      if Ip.matches from_ip !!allowed_ips then 
+      (match Ip_set.match_ip !allowed_ips_set from_ip with
+      | Some br ->
         
         let module P = GuiProto in
         let token = create_token unlimited_connection_manager in
@@ -1242,11 +1243,10 @@ let gift_handler t event =
             close sock Closed_for_overflow);
         (* sort GUIs in increasing order of their num *)
         
-      else begin
+      | None ->
           lprintf "Connection from IP %s not allowed\n"
             (Ip.to_string from_ip);
-          Unix.close s
-        end
+          Unix.close s)
   | _ -> ()
 
       
