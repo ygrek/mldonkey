@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/07/27
+5266: EDK: New default 600s for upload_timeout, 60s was too short
 5265: EDK: New option keep_sources, false to disable use of file_sources.ini
 5264: allowed_ips: Support CIDR address/mask format and IP ranges (pango)
 * old syntax is converted to CIDR format:

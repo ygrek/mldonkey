@@ -358,6 +358,10 @@ let rec update_options () =
       if !!upload_timeout = 1800. then
         upload_timeout =:= 60.;
       update 2
+  | 2 ->
+      if !!upload_timeout = 60. then
+        upload_timeout =:= 600.;
+      update 3
   | _ -> ()
 
 
