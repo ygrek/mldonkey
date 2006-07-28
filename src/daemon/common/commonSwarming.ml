@@ -587,7 +587,7 @@ let create_swarmer file_name file_size =
        blocks of this size *)
     let disk_allocation_block_size = 
       min (megabytes 10) 
-	(round_up64 (file_size // 200L) (megabytes 1)) in
+	(round_up64 (max 1L (file_size // 200L)) (megabytes 1)) in
     let ndiskblocks =
       1 + Int64.to_int (Int64.pred file_size // disk_allocation_block_size) in
     let rec s = {
