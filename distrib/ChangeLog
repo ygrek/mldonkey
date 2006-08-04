@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/04
+5272: Fix OS-detection bug in Unicode conversion when committing files
+- should solve file naming problems on non-UTF8 systems
+
 2006/07/29
 5269: Fix maximum filename length recognition on Mac OS X
 

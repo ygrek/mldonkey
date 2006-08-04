@@ -84,10 +84,10 @@ let canonize_basename name =
         Charset.add_uchar buf uc'
       end
   done;
-  if Autoconf.windows then
+  if not Autoconf.windows then
     Charset.to_locale (Buffer.contents buf)
   else
-    Buffer.contents buf
+    Buffer.contents buf (* Windows uses patched Ocaml which always uses Unicode chars *)
 
 let last_sent_dir_warning = Hashtbl.create 10
 
