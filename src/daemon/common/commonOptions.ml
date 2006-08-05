@@ -2082,4 +2082,13 @@ let rec update_options () =
       web_infos_add "nodes.gzip" 0 "http://update.kceasy.com/update/fasttrack/nodes.gzip";
       update 13
 
+  | 13 ->
+      if web_infos_exists "http://www.jd2k.com/server.met" then
+      begin
+        web_infos_remove
+          [("server.met", 0, "http://www.jd2k.com/server.met")];
+	web_infos_add "server.met" 0 "http://www.gruk.org/server.met.gz";
+      end;
+      update 14
+
   | _ -> ()
