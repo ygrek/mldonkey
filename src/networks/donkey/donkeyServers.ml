@@ -534,7 +534,7 @@ let rec connect_one_server restart =
                 lprintf_nl "Please import servers from a server.met file.";
                 lprintf_nl "Let MLDonkey use a file configured in web_infos";
                 lprintf_nl "or enter this link into MLDonkey:";
-    lprintf_nl "ed2k://|serverlist|http://www.jd2k.com/server.met|/"
+	        lprintf_nl "ed2k://|serverlist|http://www.gruk.org/server.met.gz|/"
               end;
 
               raise Not_found;

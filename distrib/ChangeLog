@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/06
+5276: web_infos, part II: Update server.met URL
+- fix defaults and server list URL
+
 2006/08/05
 5276: web_infos: Update server.met URL
 - http://www.jd2k.com/server.met does not exist anymore,
