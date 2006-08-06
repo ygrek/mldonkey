@@ -502,9 +502,11 @@ or getting a binary compiled with glibc %s.\n\n")
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sighup
-      (Sys.Signal_handle (fun _ -> lprintf_nl (_b "Received SIGHUP, closing all files/sockets");
-         BasicSocket.close_all ();
-	 Unix32.close_all ()
+      (Sys.Signal_handle (fun _ -> lprintf_nl (_b "Received SIGHUP, closing all files and client/server sockets");
+         networks_iter (fun r -> CommonNetwork.network_reset r); (* stop_all_bt *)
+	 CommonServer.disconnect_all_servers ();
+	 CommonClient.disconnect_all_clients ();
+	 Unix32.close_all () (* close all files *)
          ));
 
   if not Autoconf.windows then

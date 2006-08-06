@@ -211,6 +211,7 @@ that we can reuse queries *)
   network.op_network_forget_search <- (fun s ->
       Hashtbl.remove searches_by_uid (find_search s).search_uid  
   );
+  network.op_network_reset <- (fun _ -> ());
   network.op_network_connected <- (fun _ ->
       !connected_servers <> []
   );

@@ -94,4 +94,5 @@ val set_not_contact : CommonTypes.client -> unit
 val client_has_bitmap : CommonTypes.client -> CommonTypes.file -> string -> unit
 
 val clear_upload_slots : unit -> unit
+val disconnect_all_clients : unit -> unit
 val impl_client_info : 'a client_impl -> GuiTypes.client_info

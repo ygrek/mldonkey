@@ -379,6 +379,10 @@ let client_remove c =
   H.remove clients_by_num c;
   set_client_state c RemovedHost
 
+let disconnect_all_clients () =
+  H.iter (fun c -> client_disconnect c) clients_by_num;
+  Intmap.iter (fun _ c -> client_disconnect c) !uploaders
+
 let _ =
   Heap.add_memstat "CommonClient" (fun level buf ->
       let counter = ref 0 in

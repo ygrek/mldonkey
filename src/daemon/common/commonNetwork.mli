@@ -11,6 +11,7 @@ val new_network :
 
 val check_network_implementations : unit -> unit
 val network_clean_exit : CommonTypes.network -> bool
+val network_reset : CommonTypes.network -> unit
 val network_connected_servers :
   CommonTypes.network -> CommonTypes.server list
 val network_is_enabled : CommonTypes.network -> bool

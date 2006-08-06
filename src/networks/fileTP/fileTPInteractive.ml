@@ -423,4 +423,5 @@ let _ =
   network.op_network_close_search <- (fun s -> ());
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_connect_servers <- (fun s -> ());
+  network.op_network_reset <- (fun _ -> ());
   network.op_network_recover_temp <- (fun s -> ())

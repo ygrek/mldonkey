@@ -338,6 +338,16 @@ let check_blocked_servers () =
     Not_found -> ()
   | e -> lprintf_nl "Exception in check_blocked_servers: %s" (Printexc2.to_string e)
 
+let disconnect_all_servers () =
+  try
+    server_iter (fun s ->
+     (match (as_server_impl s).impl_server_state with
+	NotConnected _ -> ()
+      | _ -> server_disconnect s; server_must_update s))
+  with
+    Not_found -> ()
+  | e -> lprintf_nl "Exception in disconnect_all_servers: %s" (Printexc2.to_string e)
+
 let server_must_update_all () =
   try
     server_iter (fun s ->

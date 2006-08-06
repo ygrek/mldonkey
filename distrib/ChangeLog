@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/08/06
+5275: Change functions called when SIGHUP is sent
+- BT: stop_all_bt is called to improve disconnect recognition
+- instead of closing all sockets now all clients+servers are disconnected,
+  GUIs will not be disconnected anymore
 5276: web_infos, part II: Update server.met URL
 - fix defaults and server list URL
 
