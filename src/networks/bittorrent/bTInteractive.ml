@@ -669,8 +669,7 @@ let load_torrent_from_web r ft =
 
 let valid_torrent_extension url =
   let ext = String.lowercase (Filename2.last_extension url) in
-  if !verbose then lprintf_nl "Last extension: %s" ext;
-  if ext = ".torrent" || ext = ".tor" then true else false
+  ext = ".torrent" || ext = ".tor"
 
 let get_regexp_string text r =
   ignore (Str.search_forward r text 0);
@@ -966,7 +965,7 @@ let commands =
 	end
       else
         begin
-          let url = "Location: " ^ url in
+          let url = "Location: " ^ url ^ "\nContent-Type: application/x-bittorrent" in
           let result = fst (op_network_parse_url url) in
           Printf.bprintf buf "%s\n" result
 	end;

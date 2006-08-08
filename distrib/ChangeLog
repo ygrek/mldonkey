@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/08
+5281: BT: Allow startbt to use URLs without extension ".tor" and ".torrent"
+
 2006/08/06
 5275: Change functions called when SIGHUP is sent
 - BT: stop_all_bt is called to improve disconnect recognition
