@@ -915,7 +915,7 @@ let send_pending_messages c sock =
   c.client_pending_messages <- []
   
 let init_client_after_first_message sock c = 
-  (* we read something on socket so ip is now know for socket *)
+  (* we read something on socket so ip is now known for socket *)
   c.client_ip <- peer_ip sock;
   (* Add the Connected tag and when needed the NoLimit tag *)
   let t = client_type c lor client_initialized_tag in
