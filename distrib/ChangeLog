@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/08/09
+5287: Swarmer: Remove obsolete option file_bitmap from files.ini
 5286: Swarmer: (pango WIP10a)
       Fix commit of merged downloads + internal optimizations
 5283: EDK: Fix IP display in GUIs for some firewalled clients

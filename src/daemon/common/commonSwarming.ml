@@ -3342,7 +3342,6 @@ module SwarmerOption = struct
       Module [
         ("file_size", int64_to_value s.s_size);
         ("file_name", string_to_value s.s_filename);
-        ("file_bitmap", string_to_value (VB.to_string s.s_verified_bitmap));
 	("file_disk_allocation_bitmap", string_to_value
 	  (Bitv.to_string s.s_disk_allocated));
         ("file_chunk_sizes", list_to_value int64_to_value
