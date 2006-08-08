@@ -60,7 +60,7 @@ and download = {
     mutable download_chunks : (int64 * int64) list;
     mutable download_uploader : CommonSwarming.uploader option;
     mutable download_ranges : (int64 * int64 * CommonSwarming.range) list;
-    mutable download_block : CommonSwarming.block option;
+    mutable download_blocks : CommonSwarming.uploader_block list;
   }
 
 and tp_proto = {

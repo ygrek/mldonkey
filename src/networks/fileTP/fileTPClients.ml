@@ -175,23 +175,26 @@ let get_from_client sock (c: client) =
                   in
                   try
                     let rec iter () =
-                      match d.download_block with
-                        None ->
+                      match d.download_blocks with
+                      | [] ->
                           if !verbose_swarming then lprintf "No block\n";
-                          let b = CommonSwarming.find_block up in
+                          let _chunk, blocks = CommonSwarming.find_blocks up in
 
-(*                          lprintf "GOT BLOCK:\n"; *)
+(*                          lprintf "GOT BLOCKS:\n"; *)
                           if !verbose_swarming then CommonSwarming.print_uploaders swarmer;
 
                           if !verbose_swarming then begin
-                              lprintf "Block Found: "; CommonSwarming.print_block b;
+                              lprintf "Blocks Found: "; 
+			    List.iter (fun b ->
+                              CommonSwarming.print_block b.up_block) blocks;
                             end;
-                          d.download_block <- Some b;
+                          d.download_blocks <- blocks;
                           iter ()
-                      | Some b ->
+                      | blocks ->
 
                           if !verbose_swarming then  begin
-                              lprintf "Current Block: "; CommonSwarming.print_block b;
+                            lprintf "Current Blocks: "; List.iter (fun b -> 
+			      CommonSwarming.print_block b.up_block) blocks;
                             end;
                           try
                             let range_size = (min_range_size file) in
@@ -206,9 +209,9 @@ let get_from_client sock (c: client) =
                             (x,y)
                           with Not_found ->
                               if !verbose_swarming then
-                                lprintf "Could not find range in current block\n";
+                                lprintf "Could not find range in current blocks\n";
 (*                          d.download_blocks <- List2.removeq b d.download_blocks; *)
-                              d.download_block <- None;
+                              d.download_blocks <- [];
                               iter ()
                     in
                     iter ()

@@ -136,7 +136,7 @@ and download = {
     mutable download_chunks : (int64 * int64) list;
     mutable download_uploader : CommonSwarming.uploader option;
     mutable download_ranges : download_request list;
-    mutable download_block : CommonSwarming.block option;
+    mutable download_blocks : CommonSwarming.uploader_block list;
     mutable download_head_requested : bool;
     mutable download_ttr_requested : bool;
   }

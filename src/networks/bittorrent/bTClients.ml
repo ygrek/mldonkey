@@ -629,11 +629,12 @@ and get_from_client sock (c: client) =
 
         lprint_newline ();
           
-        lprintf_n "Current block: ";
+        lprintf_n "Current blocks: ";
           
-        match c.client_block with
+        match c.client_chunk with
         | None -> lprintf "none"
-        | Some b -> CommonSwarming.print_block b;
+        | Some (chunk, blocks) -> List.iter (fun b -> 
+	    CommonSwarming.print_block b.up_block) blocks;
 
         lprint_newline ();
       
@@ -648,20 +649,21 @@ and get_from_client sock (c: client) =
 
         let rec iter () =
 
-          match c.client_block with
+          match c.client_chunk with
 
-            None -> 
+          | None -> 
 
               if !verbose_swarming then lprintf_nl "No block";
               update_client_bitmap c;
               (try CommonSwarming.verify_one_chunk swarmer with _ -> ());
               (*Find a free block in the swarmer*)
-              let b = CommonSwarming.find_block up in
+              let chunk, blocks = CommonSwarming.find_blocks up in
               if !verbose_swarming then begin 
-                lprintf_n "Block Found: "; CommonSwarming.print_block b;
+                lprintf_n "Blocks Found: "; List.iter (fun b ->
+		  CommonSwarming.print_block b.up_block) blocks;
                 lprint_newline ()
               end;
-              c.client_block <- Some b;
+	      c.client_chunk <- Some (chunk, blocks);
 
              (*We put the found block in client_block to
                request range in this block. (Useful for
@@ -670,10 +672,11 @@ and get_from_client sock (c: client) =
 
               iter ()
 
-          | Some b ->
+          | Some (chunk, blocks) ->
 
               if !verbose_swarming then begin
-                lprintf_n "Current Block: "; CommonSwarming.print_block b;
+                lprintf_n "Current Blocks: "; List.iter (fun b ->
+		  CommonSwarming.print_block b.up_block) blocks;
                 lprint_newline ()
               end;
 
@@ -681,7 +684,7 @@ and get_from_client sock (c: client) =
                 (*Given a block find a range inside*)
                 let (x,y,r) =
                   match c.client_range_waiting with
-                    Some (x,y,r) ->
+		  | Some (x,y,r) ->
                         c.client_range_waiting <- None;
                         (x,y,r)
                   | None -> 
@@ -700,12 +703,13 @@ and get_from_client sock (c: client) =
                   c.client_ranges_sent <- c.client_ranges_sent @ [x,y, r];
 (*                CommonSwarming.alloc_range r; *)
                 
-                  let num = CommonSwarming.block_chunk_num swarmer b in
-
+(* naughty, naughty, was computing a block number instead of a chunk
+   number. Only matters with merged downloads, and even then other
+   clients didn't seem to care (?), so the bug remained hidden *)
                   if !verbose_swarming then 
-                    lprintf_nl "Asking %d For Range %Ld-%Ld" num x y;
+                    lprintf_nl "Asking %d For Range %Ld-%Ld" chunk x y;
                       
-                  num, x -- file.file_piece_size ** Int64.of_int num, y -- x, r
+                  chunk, x -- file.file_piece_size ** Int64.of_int chunk, y -- x, r
 
               with Not_found ->
   
@@ -715,7 +719,7 @@ and get_from_client sock (c: client) =
                     lprintf_nl "Could not find range in current block";
 (*                  c.client_blocks <- List2.removeq b c.client_blocks; *)
 
-                  c.client_block <- None;
+		  c.client_chunk <- None;
 
                   iter ()
         in

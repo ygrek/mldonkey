@@ -221,7 +221,7 @@ let add_download file c url =
           download_chunks = chunks;
           download_uploader = None;
           download_ranges = [];
-          download_block = None;
+          download_blocks = [];
         }];
       file.file_clients <- c :: file.file_clients;
       file_add_source (as_file file) (as_client c);

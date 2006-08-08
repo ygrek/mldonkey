@@ -185,7 +185,7 @@ type client = {
     mutable client_ranges_sent : (int64 * int64 * CommonSwarming.range) list;
     mutable client_range_waiting :
     (int64 * int64 * CommonSwarming.range) option;
-    mutable client_block : CommonSwarming.block option;
+    mutable client_chunk : (int * CommonSwarming.uploader_block list) option;
 
     mutable client_received_peer_id : bool;
     mutable client_sent_choke : bool; (* we sent a Choke to the client *)

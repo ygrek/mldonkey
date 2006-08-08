@@ -150,13 +150,14 @@ let check_if_interesting file c =
         | Some (x,y,r) ->
             let x,y = CommonSwarming.range_range r in
             x < y) &&
-(* The current block is also useless *)
-      (match c.client_block with
-          None -> true
-        | Some b ->
-            let chunk_num = CommonSwarming.block_chunk_num swarmer b in
+(* The current blocks are also useless *)
+      (match c.client_chunk with
+      | None -> true
+      | Some (chunk, blocks) ->
+	  List.for_all (fun b ->
+            let chunk_num = CommonSwarming.block_chunk_num swarmer b.up_block in
             let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
-            VB.get bitmap chunk_num <> VB.State_verified)
+            VB.get bitmap chunk_num <> VB.State_verified) blocks)
     in
     if must_send then
       begin
@@ -698,7 +699,7 @@ let new_client file peer_id kind =
           client_chunks = [];
           client_ranges_sent = [];
           client_range_waiting = None;
-          client_block = None;
+          client_chunk = None;
           client_uid = peer_id;
           client_brand = brand;
           client_release = release;

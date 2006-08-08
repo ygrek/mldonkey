@@ -1107,6 +1107,11 @@ let swarming_block_selection_algorithm =
     "What algorithm to use to select blocks (currently 1 or 2)"
     int_option 1
 
+let block_switching =
+  define_expert_option current_section ["block_switching"]
+    "Allows swarmer to switch a source to another block if current block is already totally selected by other sources"
+    bool_option true
+
   (*
 let delete_original = define_option current_section ["delete_original"]
   "Should MLdonkey delete the file downloaded when splitting has been succesful"

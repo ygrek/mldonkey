@@ -509,27 +509,29 @@ and get_from_client sock (c: client) =
                 ) d.download_ranges;
                 
                 lprintf "\n  Current blocks: ";
-(*          List.iter (fun b -> CommonSwarming.print_block b) d.download_blocks; *)
+(*          List.iter (fun b -> CommonSwarming.print_block b.up_block) d.download_blocks; *)
                 lprintf "\n\nFinding Range: \n";
               end;
             let range = 
               try
                 let rec iter () =
-                  match d.download_block with
-                    None -> 
+                  match d.download_blocks with
+                  | [] -> 
                       if !verbose_swarming then lprintf "No block\n";
                       (try CommonSwarming.verify_one_chunk swarmer with _ -> ());
-                      let b = CommonSwarming.find_block up in
+                      let _chunk, blocks = CommonSwarming.find_blocks up in
                       
                       if !verbose_swarming then begin
-                          lprintf "GOT BLOCK:\n";
+                          lprintf "GOT BLOCKS:\n";
                           CommonSwarming.print_uploaders swarmer;
-                          lprintf "Block Found: "; CommonSwarming.print_block b;
+                          lprintf "Blocks Found: "; 
+			  List.iter (fun b ->
+                            CommonSwarming.print_block b.up_block) blocks;
                         end;
                       
-                      d.download_block <- Some b;
+                      d.download_blocks <- blocks;
                       iter ()
-                  | Some b ->
+                  | blocks ->
 (*
                 if !verbose_swarming then begin
                     lprintf "Current Block: "; CommonSwarming.print_block b;
@@ -549,7 +551,7 @@ end;
                       with Not_found ->
                           if !verbose_swarming then 
                             lprintf "Could not find range in current block\n";
-                          d.download_block <- None;
+                          d.download_blocks <- [];
                           iter ()
                 in
                 iter ()
@@ -605,7 +607,7 @@ and disconnect_client c r =
               | Some up ->
                   d.download_uploader <- None;
                   CommonSwarming.unregister_uploader up;
-                  d.download_block <- None;
+                  d.download_blocks <- [];
                   d.download_ranges <- [];
           ) c.client_downloads;
           begin

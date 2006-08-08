@@ -305,7 +305,7 @@ let rec get_from_client c =
   | Some (file,up) ->
       
       try
-        let _ = CommonSwarming.current_block up in
+        let _ = CommonSwarming.current_blocks up in
         let ranges = CommonSwarming.current_ranges up in
         let before_find_range = List.length ranges in
 
@@ -344,7 +344,7 @@ let rec get_from_client c =
           try
             let swarmer = CommonSwarming.uploader_swarmer up in       
             (try CommonSwarming.verify_one_chunk swarmer with _ -> ());
-            let _ = CommonSwarming.find_block up in
+            let _ = CommonSwarming.find_blocks up in
             get_from_client c
             
           with Not_found ->
