@@ -208,7 +208,7 @@ thread. Moreover, we don't want to open all the filedescs for all the
 files being shared !
 *)
 
-exception Wrong_file_size
+exception Wrong_file_size of int64 * int64
 
 let computing = ref false
 
@@ -224,7 +224,7 @@ let check_shared_files () =
             if not (Sys.file_exists sh.shared_name) then
                 raise Not_found;
             if Unix32.getsize sh.shared_name <> sh.shared_size then
-                raise Wrong_file_size;
+                raise (Wrong_file_size ((Unix32.getsize sh.shared_name), sh.shared_size));
 
             computing := true;
 
@@ -265,7 +265,12 @@ let check_shared_files () =
                 else
                   job_creater ()
             )
-          with e ->
+          with
+	    Wrong_file_size (real,computed) -> 
+            shared_files := files;
+            lprintf_nl "Computed filesize %Ld does not match physical filesize %Ld, %s not shared"
+              computed real sh.shared_name
+	  | e ->
             shared_files := files;
             lprintf_nl "Exception %s prevents sharing of %s"
               (Printexc2.to_string e) sh.shared_name
