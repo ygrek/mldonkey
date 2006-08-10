@@ -284,6 +284,8 @@ let _ =
 module P = GuiTypes
   
 let _ =
+  file_ops.op_file_print_html <- (fun file buf -> ());
+  file_ops.op_file_print_sources_html <- (fun file buf -> ());
   file_ops.op_file_cancel <- (fun file ->
       CommonSwarming.remove_swarmer file.file_swarmer;
       file.file_swarmer <- None;

@@ -39,14 +39,14 @@ let check_array s pos =
   if check_bounds && pos >= Array.length s then
     raise outofboundsaccess
 
-let has_iconv = if "@ICONV@" = "yes" then true else false
+let has_iconv = "@ICONV@" = "yes"
 
-let has_gd = if "@GD@" = "yes" then true else false
-let has_gd_png = if "@GD_PNG@" = "yes" then true else false
-let has_gd_jpg = if "@GD_JPG@" = "yes" then true else false
+let has_gd = "@GD@" = "yes"
+let has_gd_png = "@GD_PNG@" = "yes"
+let has_gd_jpg = "@GD_JPG@" = "yes"
 
-let bzip2 = if "@BZIP2@" = "yes" then true else false
-let magic = if "@MAGIC@" = "yes" then true else false
+let bzip2 = "@BZIP2@" = "yes"
+let magic = "@MAGIC@" = "yes"
 let magic_works = ref false
 
 let zlib__uncompress_string2 s = Zlib.uncompress_string2 s

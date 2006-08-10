@@ -763,7 +763,7 @@ let get_theme_page page =
         let fname = Filename.concat theme page in fname
 
 let theme_page_exists page =
-        if Sys.file_exists (get_theme_page page) then true else false
+    Sys.file_exists (get_theme_page page)
 
 (* if files are small really_input should be okay *)
 let read_theme_page page =

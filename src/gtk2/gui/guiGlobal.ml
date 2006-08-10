@@ -168,9 +168,9 @@ open GuiTypes2
 open CommonTypes
 
 let check_usefull_source s =
-  let is_not_source = if s.source_files_requested = [] then true else false in
-  let is_not_friend = if client_browsed_tag land s.source_type = 0 then false else true in
-  let is_not_uploader = if source_only land s.source_has_upload = 1 then true else false in
+  let is_not_source = s.source_files_requested = [] in
+  let is_not_friend = not (client_browsed_tag land s.source_type = 0) in
+  let is_not_uploader = source_only land s.source_has_upload = 1 in
   if is_not_source && is_not_friend && is_not_uploader
     then (Hashtbl.remove sources s.source_num; false)
     else true

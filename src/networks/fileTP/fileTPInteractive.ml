@@ -257,10 +257,8 @@ let download_file url referer =
    bt-url-handler is called first. *)
 let is_http_torrent headers url =
   let ext = String.lowercase (Filename2.last_extension url) in
-  if ext = ".torrent" || ext = ".tor"
+  ext = ".torrent" || ext = ".tor"
      || (String2.contains headers "content-type application/x-bittorrent")
-    then true
-  else false
 
 let get_regexp_int text r =
   ignore (Str.search_forward r text 0);
@@ -281,9 +279,8 @@ let get_regexp_string text r =
 let op_network_parse_url url =
   let location_regexp = "Location: \\(.*\\)" in
   let real_url = get_regexp_string url (Str.regexp location_regexp) in
-  if !verbose then
-    lprintf_nl "real url: %s\n" real_url;
-  if (is_http_torrent url real_url) then "", false
+  if (is_http_torrent url real_url) && !!enable_bittorrent then
+    "this seems to be a torrent, ignoring...", false
   else
     if (String2.check_prefix real_url "http://") then (
       let length_regexp = "Content-Length: \\(.*\\)" in
@@ -420,6 +417,7 @@ let _ =
   );
   file_ops.op_file_resume <- (fun file -> ());
   file_ops.op_file_print_html <- (fun file buf -> ());
+  file_ops.op_file_print_sources_html <- (fun file buf -> ());
   network.op_network_close_search <- (fun s -> ());
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_connect_servers <- (fun s -> ());

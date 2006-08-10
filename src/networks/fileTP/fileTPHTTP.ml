@@ -333,10 +333,8 @@ lprintf "READ: buf_used %d\n" to_read_int;
 (*                CommonSwarming.free_range r; *)
                 d.download_ranges <- tail;
 (* If we have no more range to receive, disconnect *)
-                if d.download_ranges = [] then begin
-                  lprintf_nl "No more ranges";
+                if d.download_ranges = [] then
                   raise Exit;
-                end;
                 gconn.gconn_handler <- HttpHeader (client_parse_header c);
           end)
 
@@ -375,7 +373,6 @@ let http_check_size file url start_download_file =
     } in
 
   H.whead2 r (fun headers ->
-      if !verbose then lprintf_nl "RECEIVED HEADERS";
       let content_length = ref None in
       List.iter (fun (name, content) ->
           if String.lowercase name = "content-length" then

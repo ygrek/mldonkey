@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/10
+5294: Clean logging, small "if .. then true else false" function rewrites
+
 2006/08/09
 5288: EDK: Improve log when sharing is prevented due to inconsistent filesizes
 5287: Swarmer: Remove obsolete option file_bitmap from files.ini

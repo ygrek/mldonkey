@@ -2366,9 +2366,6 @@ let select_blocks up =
 	   currently they're taken care of by linear_select_block
 	   fallback below *)
 
-	if debug_memoization then
-	  lprintf_nl "memoization hits: %d/%d" !memoization_hits !memoization_calls;
-
 	if debug_all then begin
 	  print_choice specimen
 	end;
@@ -2692,9 +2689,11 @@ let find_range up range_size =
 		| CompleteBlock | VerifiedBlock -> false
 		| PartialBlock b -> b.block_unselected_remaining > 0L in
 	      if partial_found then begin
+(*
 		if debug_all || !verbose then
 		  lprintf_nl "find_range: Client %d better switch cluster now!" 
 		    (client_num up.up_client);
+*)
 		raise Not_found
 	      end
 	done

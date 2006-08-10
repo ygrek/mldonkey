@@ -500,7 +500,7 @@ let file_downloaders file o cnt =
           | _ -> ()
       ) srcs;
 
-	if !counter mod 2 = 0 then true else false
+	!counter mod 2 = 0
 
 (*************************************************************************)
 (*                                                                       *)

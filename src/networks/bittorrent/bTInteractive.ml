@@ -653,15 +653,8 @@ let retry_all_ft () =
   ) ft_by_num
 
 let load_torrent_from_web r ft =
-  if !verbose then
-      lprintf_nl "Loading torrent from web";
   let module H = Http_client in
-
-  if !verbose then
-      lprintf_nl "calling...";
   H.wget r (fun filename ->
-      if !verbose then
-          lprintf_nl "done...";
       if ft_state ft = FileDownloading then begin
           load_torrent_file filename;
           file_cancel (as_ft ft)
@@ -681,7 +674,6 @@ let op_network_parse_url url =
   let location_regexp = "Location: \\(.*\\)" in
   try
     let real_url = get_regexp_string url (Str.regexp location_regexp) in
-    if !verbose then lprintf_nl "Loading %s, really %s" url real_url;
     if (valid_torrent_extension real_url)
        || (String2.contains url "Content-Type: application/x-bittorrent")
       then (
@@ -716,7 +708,6 @@ let op_network_parse_url url =
         let ft = new_ft file_diskname in
         ft.ft_retry <- load_torrent_from_web r ;
         load_torrent_from_web r ft;
-        if !verbose then lprintf_nl "wget started";
         "started download", true
       )
     else
