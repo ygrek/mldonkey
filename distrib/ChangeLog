@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/11
+5295: Hard-coded minimum of 600s for min_reask_delay
+
 2006/08/10
 5294: Clean logging, small "if .. then true else false" function rewrites
 

@@ -1665,6 +1665,9 @@ let _ =
     end;
     calc_real_max_indirect_connections ()
   );
+  option_hook min_reask_delay (fun _ ->
+    if !!min_reask_delay < 600 then min_reask_delay =:= 600
+  );
   option_hook global_login (fun _ ->
       let len = String.length !!global_login in
       let prefix = "mldonkey_" in
