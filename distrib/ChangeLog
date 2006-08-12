@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/08/12
+5297: Force convertion of allowed_ips to IP blocklist when $MLDONKEY_DIR
+      and ini files are created for the first time
 5296: Telnet: Fix filesize display for 1kb, 1mb, 1gb values
 
 2006/08/11

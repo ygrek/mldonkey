@@ -60,6 +60,8 @@ let installer_ini = create_options_file (Filename.concat home_dir
 
 let installer_section = file_section installer_ini [] ""
 
+let created_new_base_directory = ref None
+
 let mldonkey_directory =
   define_option installer_section ["mldonkey_directory"]
     "The directory where mldonkey's option files are" string_option home_dir
@@ -146,7 +148,7 @@ let _ =
   if not (Sys.file_exists file_basedir) then begin
     lprint_newline ();
     lprintf_nl "creating new MLDonkey base directory in %s\n" file_basedir;
-    startup_message := (Printf.sprintf "MLDonkey created a new home directory in %s\n" file_basedir)
+    created_new_base_directory := Some file_basedir
   end;
   (try
      Unix2.safe_mkdir file_basedir

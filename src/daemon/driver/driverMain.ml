@@ -94,6 +94,14 @@ let second_timer timer =
 
 let start_interfaces () =
 
+  (* option_hook(s) are not called when ini files are created the first time
+     force re-load of allowed_ips to call option_hook which fills the IP blocklist *)
+  ( 
+  match !created_new_base_directory with
+    None -> ()
+  | Some dir -> allowed_ips =:= !!allowed_ips
+  );
+
   if !!http_port <> 0 then begin try
         ignore (DriverControlers.create_http_handler ());
       with e ->

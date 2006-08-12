@@ -83,6 +83,9 @@ let real_startup_message () =
   let s =
   !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ()) 
   ^ (if not !dns_works then "DNS resolution does not work\n" else "")
+  ^ (match !created_new_base_directory with
+       None -> ""
+     | Some dir -> (Printf.sprintf "MLDonkey created a new home directory in %s\n" dir))
   ^ (if not !allow_saving_ini_files then "Base directory is full, ini file saving disabled\n" else "")
   ^ (if !all_temp_queued then "Temp directory is full, all downloads are queued\n" else "")
   ^ (if !hdd_full_log_closed then "Logfile directory is full, logging redirected to RAM\n" else "")
