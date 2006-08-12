@@ -143,7 +143,7 @@ let eval auth cmd o =
           Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
           html_mods_td buf [
             ("", "sr", "< > : required parameter");
-            ("", "sr", "[< >] : optionnal parameter");
+            ("", "sr", "[< >] : optional parameter");
             ("", "sr", "< 1 | 2 > : alternative parameter"); ];
           Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>"
         end else
@@ -317,7 +317,10 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
             o.conn_user <- find_ui_user user;
             if not !verbose_no_login then lprintf_nl "Authenticated user: %s" user;
             let module M = CommonMessages in
-            Buffer.add_string buf M.full_access
+            Buffer.add_string buf M.full_access;
+            (match DriverInteractive.real_startup_message () with
+               Some s -> Buffer.add_string buf s;
+             | None -> ());
           end else
         let module M = CommonMessages in
         Buffer.add_string buf M.bad_login
@@ -604,9 +607,6 @@ let telnet_handler t event =
         before_telnet_output o sock;
         TcpBufferedSocket.write_string sock
 	   (Printf.sprintf "Welcome to MLDonkey %s\n" Autoconf.current_version);
-	(match DriverInteractive.real_startup_message () with
-	   Some s -> TcpBufferedSocket.write_string sock (s);
-	 | None -> ());
 
         TcpBufferedSocket.write_string sock (dollar_escape o false
             "$cWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
@@ -1092,6 +1092,7 @@ let http_handler o t r =
             Buffer.add_string buf (Printf.sprintf "<br><div align=\"center\"><h3>%s %s</h3></div>"
 	      (Printf.sprintf (_b "Welcome to MLDonkey")) Autoconf.current_version);
 	    if !!motd_html <> "" then Buffer.add_string buf !!motd_html;
+	    if user2_is_admin o.conn_user.ui_user_name then
 	    (match DriverInteractive.real_startup_message () with
 	       Some s -> Buffer.add_string buf (Printf.sprintf "<p><pre><b><h3>%s</b></h3></pre>" s);
 	     | None -> ())
@@ -1391,7 +1392,7 @@ let http_handler o t r =
                       Buffer.add_string buf "Option value changed"
 		    end
 		  else
-                    Buffer.add_string buf "Only 'admin' is allowed to change options"
+                    Buffer.add_string buf "You are not allowed to change options"
 
               | args ->
                   List.iter (fun (s,v) ->

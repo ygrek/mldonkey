@@ -325,13 +325,13 @@ let _ =
     ), ":\t\t\t\t\t$bclose telnet$n";
 
     "kill", Arg_none (fun o ->
-        if o.conn_user == default_user then
+        if user2_is_admin o.conn_user.ui_user_name then
 	  begin
             CommonInteractive.clean_exit 0;
 	    _s "exit"
 	  end
         else
-          _s "Only 'admin' is allowed to kill MLDonkey"
+          _s "You are not allowed to kill MLDonkey"
         ), ":\t\t\t\t\t$bsave and kill the server$n";
 
     "urladd", Arg_two (fun kind url o ->
@@ -420,35 +420,13 @@ let _ =
     ), "<num> :\t\t\t\tview client (use arg 'all' for all clients)";
 
     "version", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        let version = CommonGlobals.version () in
-        if o.conn_output = HTML then
-          begin
-            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-            html_mods_table_header buf "versionTable" "results" [];
-            Printf.bprintf buf "\\<tr\\>";
-            html_mods_td buf [ ("", "srh", version); ];
-            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-          end
-        else
-            Printf.bprintf buf "%s" version;
+	print_command_result o o.conn_buf (CommonGlobals.version ());
         ""
     ), ":\t\t\t\tprint mldonkey version";
 
     "uptime", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        let uptime = log_time () ^ "- up " ^
-	  Date.time_to_string (last_time () - start_time) "verbose" in
-        if o.conn_output = HTML then
-          begin
-            Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
-            html_mods_table_header buf "versionTable" "results" [];
-            Printf.bprintf buf "\\<tr\\>";
-            html_mods_td buf [ ("", "srh", uptime); ];
-            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
-          end
-        else
-            Printf.bprintf buf "%s" uptime;
+	print_command_result o o.conn_buf (log_time () ^ "- up " ^
+	  Date.time_to_string (last_time () - start_time) "verbose");
         ""
     ), ":\t\t\t\tcore uptime";
 
@@ -1336,7 +1314,7 @@ let _ =
     [
 
     "set", Arg_two (fun name value o ->
-	if (o.conn_user == default_user) || !!enable_user_config then begin
+	if user2_is_admin o.conn_user.ui_user_name then begin
         try
           try
             CommonInteractive.set_fully_qualified_options name value;
@@ -1349,7 +1327,7 @@ let _ =
             Printf.sprintf "Error %s" (Printexc2.to_string e)
 	  end
 	else
-	  _s "Only 'admin' is allowed to change options"
+	  _s "You are not allowed to change options"
     ), "<option_name> <option_value> :\t$bchange option value$n";
 
     "save", Arg_multiple (fun args o ->
@@ -1380,14 +1358,17 @@ let _ =
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap title=\\\"Show shares Tab (also related for incoming directory)\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
+%s
 \\<td nowrap title=\\\"Show Web_infos Tab where you can add/remove automatic downloads like serverlists\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
 \\<td nowrap title=\\\"Show Calendar Tab, there are informations about automatically jobs\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
 \\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap title=\\\"voo\\\" class=\\\"fbig pr fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
 \\</tr\\>\\</table\\>
 \\</td\\>\\</tr\\>
-\\<tr\\>\\<td\\>";
+\\<tr\\>\\<td\\>"
+(if (user2_is_admin o.conn_user.ui_user_name) then
+  "\\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>"
+ else "");
 
             list_options_html o  (
               [
@@ -1728,7 +1709,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap title=\\\"Show shares Tab (also related for incoming directory)\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>
+%s
 \\<td nowrap title=\\\"Show Web_infos Tab where you can add/remove automatic downloads like serverlists\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
 \\<td nowrap title=\\\"Show Calendar Tab, there are informations about automatically jobs\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
 \\<td nowrap class=\\\"fbig fbigb pr\\\"\\>
@@ -1736,12 +1717,15 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 action=\\\"javascript:submitHtmlModsStyle();\\\"\\>
 \\<select id=\\\"modsStyle\\\" name=\\\"modsStyle\\\"
 style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
-\\<option value=\\\"0\\\"\\>style/theme\n";
+\\<option value=\\\"0\\\"\\>style/theme\n"
+(if (user2_is_admin o.conn_user.ui_user_name) then
+  "\\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>"
+ else "");
 
             Array.iteri (fun i style ->
                 Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n" i style.style_name
 	    ) CommonMessages.styles;
-	    
+
             if Sys.file_exists html_themes_dir then begin
               let list = Unix2.list_directory html_themes_dir in
               List.iter (fun d ->
@@ -2704,7 +2688,7 @@ let _ =
             let list = List2.tail_map file_info !!files in
             DriverInteractive.display_file_list buf o list;
             ""
-    ), "<num> :\t\t\t\t$bview file info$n";
+    ), "[<num>|queued|paused|downloading] :\t\t\t\t$bview file info for download <num>, or lists of queued, paused or downloading files, or all downloads if no argument given$n";
 
     "preview", Arg_one (fun arg o ->
 
@@ -2869,15 +2853,9 @@ let _ =
     ), ":\t\t\t\t\tprint users";
 
     "whoami", Arg_none (fun o ->
-        let buf = o.conn_buf in
-	let whoami = o.conn_user.ui_user_name in
-        if use_html_mods o then
-          html_mods_table_one_row buf "serversTable" "servers" [
-            ("", "srh", whoami); ]
-        else
-          Printf.bprintf buf "%s" whoami;
+	print_command_result o o.conn_buf o.conn_user.ui_user_name;
         _s ""
-    ), ":\t\t\t\tprint logged-in user name";
+    ), "\t\t\t\tprint logged-in user name";
   ]
 
 

@@ -2093,16 +2093,6 @@ let select_blocks up =
  			else acc) 0 t.t_blocks_of_chunk.(chunk)) (t.t_num, i))
  	      ) 0 s.s_networks) i in
 
-	let memoize_completed_blocks_in_chunk = Hashtbl.create 17 in
-	let completed_blocks_in_chunk i = 
-	  assert(i >= 0 && i < my_t.t_nchunks);
-	  memoize memoize_completed_blocks_in_chunk
-	    (fun i ->
-              List.fold_left (fun acc b ->
-		if VB.get s.s_verified_bitmap b = VB.State_complete then acc + 1
-		else acc
-              ) 0 my_t.t_blocks_of_chunk.(i)) i in
-
 	let preview_beginning = 10000000L in
 	let preview_end = (s.s_size ** 98L) // 100L in
 
@@ -2138,7 +2128,7 @@ let select_blocks up =
 	let choice_num choice =
 	  choice.choice_num in
 
-	let choice_block choice =
+	let _choice_block choice =
 	  choice.choice_block in
 
 	let choice_user_priority choice =

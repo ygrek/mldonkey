@@ -39,6 +39,8 @@ type userdb = {
 
 let admin_user = "admin"
 
+let user2_is_admin user = user = admin_user
+
 let blank_password = Md4.string ""
 
 module UserOption = struct

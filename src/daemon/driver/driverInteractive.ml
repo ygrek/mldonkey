@@ -2174,3 +2174,10 @@ let dllink_parse html url =
       dllink_query_networks html (Printf.sprintf "Location: %s" url)
     else
       dllink_query_networks html url
+
+let print_command_result o buf result =
+  if use_html_mods o then
+    html_mods_table_one_row buf "serversTable" "servers" [
+      ("", "srh", result); ]
+  else
+    Printf.bprintf buf "%s" result

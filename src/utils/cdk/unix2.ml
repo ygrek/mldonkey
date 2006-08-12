@@ -114,11 +114,9 @@ let rec safe_mkdir dir =
       try
         Unix.mkdir dir 0o775
       with
-          e -> 
-	    lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir;
-	    exit 73
-    
-    
+	Unix.Unix_error (EEXIST, _, _) -> ()
+      | e -> lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir; exit 73
+
 (* same as in downloadClient.ml *)
 let rec really_write fd s pos len =
   if len = 0 then begin

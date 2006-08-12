@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/08/12
+5298: Some internal changes moved from multiuser patch to CVS
 5285: GUI: Self-test en-/decoding only down to protocol 24 to solve
       crash when system date is wrong
 5297: Force conversion of allowed_ips to IP blocklist when $MLDONKEY_DIR

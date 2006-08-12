@@ -41,10 +41,6 @@ module StatsOption = struct
     let value_to_stat v =
       match v with
         Options.Module assocs ->
-          let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv =
-            try conv (List.assoc name assocs) with _ -> []
-          in
           {
             brand_seen = value_to_int (List.assoc "seen" assocs);
             brand_banned = value_to_int (List.assoc "banned" assocs);
@@ -75,9 +71,6 @@ module ClientOption = struct
       | Module assocs ->
 
           let get_value name conv = conv (List.assoc name assocs) in
-          let get_value_nil name conv =
-            try conv (List.assoc name assocs) with _ -> []
-          in
           let client_ip = get_value "client_ip" (from_value Ip.option)
           in
           let client_port = get_value "client_port" value_to_int in
@@ -103,10 +96,6 @@ module ClientOption = struct
 
 let value_to_file file_size file_state assocs =
   let get_value name conv = conv (List.assoc name assocs) in
-  let get_value_nil name conv =
-    try conv (List.assoc name assocs) with _ -> []
-  in
-
   let file_trackers =
     try
       get_value "file_trackers" (value_to_list value_to_string)

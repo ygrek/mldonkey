@@ -470,19 +470,9 @@ let gui_initialize gui =
         P.Options_info (simple_options "" downloads_ini));
       networks_iter_all (fun r ->
           List.iter (fun opfile ->
-(*
-lprintf "options for net %s\n" r.network_name; 
-*)
               let prefix = r.network_shortname ^ "-" in
               let args = simple_options prefix opfile in
-(*
-lprintf "Sending for %s\n" prefix; 
- *)
-              gui_send gui (P.Options_info args)
-(*                            lprintf "sent for %s\n" prefix; *)
-          )
-          r.network_config_file 
-      );
+              gui_send gui (P.Options_info args)) r.network_config_file);
 
 (* Options panels defined in downloads.ini *)
       List.iter (fun s ->
@@ -623,14 +613,14 @@ let gui_reader (gui: gui_record) t _ =
               ) list
           
           | P.SetOption (name, value) ->
-	      if (gui.gui_conn.conn_user == default_user) || !!enable_user_config then
+	      if user2_is_admin gui.gui_conn.conn_user.ui_user_name || !!enable_user_config then
 		CommonInteractive.set_fully_qualified_options name value
 	      else
 	        begin
                   let o = gui.gui_conn in
                   let buf = o.conn_buf in
                   Buffer.reset buf; 
-                  Buffer.add_string buf "\nOnly 'admin' is allowed to change options\n";
+                  Buffer.add_string buf "\nYou are not allowed to change options\n";
                   gui_send gui (P.Console (
                       DriverControlers.dollar_escape o false
                         (Buffer.contents buf)))
@@ -680,14 +670,14 @@ let gui_reader (gui: gui_record) t _ =
                     network_extend_search r s e)
           
           | P.KillServer -> 
-	      if gui.gui_conn.conn_user == default_user then
+	      if user2_is_admin gui.gui_conn.conn_user.ui_user_name then
 		CommonInteractive.clean_exit 0
 	      else
 	        begin
                   let o = gui.gui_conn in
                   let buf = o.conn_buf in
                   Buffer.reset buf; 
-                  Buffer.add_string buf "\nOnly 'admin' is allowed to kill MLDonkey\n";
+                  Buffer.add_string buf "\nYou are not allowed to kill MLDonkey\n";
                   gui_send gui (P.Console (
                       DriverControlers.dollar_escape o false
                         (Buffer.contents buf)))
@@ -727,36 +717,16 @@ let gui_reader (gui: gui_record) t _ =
                   then
                     
                     r.op_network_search search buf);
-(*
-        search.op_search_end_reply_handlers <- 
-          (fun _ -> send_waiting gui num search.search_waiting) ::
-search.op_search_end_reply_handlers;
-  *)
           
           | P.Download_query (filenames, num, force) ->
-              begin
-                let r = find_result num in
-                let files = result_download r filenames force in
-                List.iter CommonInteractive.start_download files
-              end
+              let r = find_result num in
+              let files = result_download r filenames force in
+              List.iter CommonInteractive.start_download files
           
           | P.ConnectMore_query ->
               networks_iter network_connect_servers
           
           | P.Url url ->
-              (* changed with the new header-check code from dllink, but i
-                 didn't care about the read from file functionality that
-                 perhaps worked before:
-              
-              if not (networks_iter_until_true (fun n -> network_parse_url n url)) then
-                begin
-                  let file = File.to_string url in
-                  let lines = String2.split_simplify file '\n' in
-                  List.iter (fun line ->
-                      ignore (networks_iter_until_true (fun n -> network_parse_url n line))
-                  ) lines
-                end
-              *)
               let query_networks url = 
                 if not (networks_iter_until_true
                     (fun n ->
@@ -897,8 +867,7 @@ search.op_search_end_reply_handlers;
               let c = client_find num in
               client_connect c
           
-          | P.DisconnectClient num
-            ->
+          | P.DisconnectClient num ->
               let c = client_find num in
               client_disconnect c
           

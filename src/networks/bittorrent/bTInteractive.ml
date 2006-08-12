@@ -701,7 +701,7 @@ let op_network_parse_url url =
                   ) "" cookies
                 ) ]
             with Not_found -> []);
-      H.req_max_retry = 10;
+            H.req_max_retry = 10;
           } in
 
         let file_diskname = Filename.basename u.Url.short_file in
