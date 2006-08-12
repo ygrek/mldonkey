@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/08/12
+5285: GUI: Self-test en-/decoding only down to protocol 24 to solve
+      crash when system date is wrong
 5297: Force convertion of allowed_ips to IP blocklist when $MLDONKEY_DIR
       and ini files are created for the first time
 5296: Telnet: Fix filesize display for 1kb, 1mb, 1gb values
