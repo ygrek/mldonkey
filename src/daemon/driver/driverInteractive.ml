@@ -884,11 +884,11 @@ let html_mods_done_files buf files =
   Printf.bprintf buf "\\</form\\>"
 
 let print_human_readable file size =
- (if Int64.to_float size > 1024. && Int64.to_float size < 1048576. then
+ (if Int64.to_float size >= 1024. && Int64.to_float size < 1048576. then
     (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1024.) ("kb") )
-  else if size > Int64.of_float 1048576. && Int64.to_float size < 1073741824. then
+  else if size >= Int64.of_float 1048576. && Int64.to_float size < 1073741824. then
     (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1048576.) ("mb") )
-  else if size > Int64.of_float 1073741824. then
+  else if size >= Int64.of_float 1073741824. then
     (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1073741824.) ("gb") )
   else if size < Int64.zero then
     (Printf.sprintf "%d chunks"

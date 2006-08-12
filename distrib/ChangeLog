@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/12
+5296: Telnet: Fix filesize display for 1kb, 1mb, 1gb values
+
 2006/08/11
 5295: Hard-coded minimum of 600s for min_reask_delay
 
