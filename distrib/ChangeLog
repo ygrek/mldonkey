@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/08/15
+5299: Support magicdb in $MLDONKEY_DIR/magic/magic if present
+      this location is used in addition to the defaults of libmagic
 5277: MinGW: use new gettimeofday() from mingw-runtime-3.10 (Schlumpf)
 
 2006/08/12

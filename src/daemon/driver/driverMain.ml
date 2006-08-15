@@ -367,7 +367,9 @@ or getting a binary compiled with glibc %s.\n\n")
           real_glibc_version Autoconf.glibc_version Autoconf.glibc_version
   );
   (
-    if Autoconf.magic then
+    if Autoconf.magic then begin
+      (if Sys.file_exists "./magic/magic" then
+         try Unix.putenv "MAGIC" "./magic/magic" with _ -> ());
       if Magic.M.magic_works () then
         begin
 	  Autoconf.magic_works := true;
@@ -378,6 +380,7 @@ or getting a binary compiled with glibc %s.\n\n")
 	  Autoconf.magic_works := false;
           lprintf_nl (_b "Libmagic file-type recognition database not present")
 	end
+      end
   );
   load_config ();
   
