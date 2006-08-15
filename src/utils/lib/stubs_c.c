@@ -854,11 +854,7 @@ static void * hasher_thread(void * arg)
   pthread_mutex_lock(&mutex);
 
   while(1){
-#if defined(__MINGW32__)
-    ml_gettimeofday(&now, NULL);
-#else
     gettimeofday(&now, NULL);
-#endif
     timeout.tv_sec = now.tv_sec + 10;
     timeout.tv_nsec = now.tv_usec * 1000;
 

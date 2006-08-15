@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/15
+5277: MinGW: use new gettimeofday() from mingw-runtime-3.10 (Schlumpf)
+
 2006/08/12
 5298: Some internal changes moved from multiuser patch to CVS
 5285: GUI: Self-test en-/decoding only down to protocol 24 to solve
