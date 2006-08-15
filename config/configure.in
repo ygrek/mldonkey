@@ -825,6 +825,7 @@ if test "$ICONV" = "yes"; then
   [echo "Your iconv implementation is incomplete"; exit 1]))
   AC_CHECK_LIB(charset,locale_charset)
   AC_CHECK_HEADERS([libcharset.h])
+  AC_CHECK_HEADERS([langinfo.h])
   AC_CHECK_HEADERS([locale.h])
   fi
 else

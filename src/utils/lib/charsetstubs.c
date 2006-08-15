@@ -38,7 +38,8 @@
   #endif
   #ifdef HAVE_LIBCHARSET_H
     #include <libcharset.h>
-  #else
+  #endif
+  #ifdef HAVE_LANGINFO_H
     #include <langinfo.h>
   #endif
   #include <iconv.h>
