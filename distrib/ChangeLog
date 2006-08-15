@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/08/15
+5308: CryptoPP: Fix infinite loop when re-creating private key fails
 5307: CryptoPP: Deactivate compiler option -momit-leaf-frame-pointer
 5300: Fix iconv compile bug on Eisfair
 5299: Support magicdb in $MLDONKEY_DIR/magic/magic if present

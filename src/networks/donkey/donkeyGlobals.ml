@@ -42,6 +42,11 @@ open DonkeyTypes
 open DonkeyOptions
 open CommonOptions
 
+let log_prefix = "[EDK]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
 (*************************************************************
 
 Define the instances of the plugin classes, that we be filled
@@ -968,38 +973,37 @@ let clean_join_queue_tables () =
   ) list
 
 let client_public_key = ref ""
-
+let key_check_started = ref false
 
 let _ =
   option_hook client_private_key (fun _ ->
-    if Autoconf.donkey_sui_works () then begin
-    client_public_key := DonkeySui.SUI.load_key (!!client_private_key);
-    (
-    let key_checked = ref false in
-    let key_check_again = ref false in
-    let rec check_client_private_key () =
-      key_checked := true;
-      if not (try String.sub !!client_private_key 0 4 = "MIIB" with e -> false) then
-        if !key_check_again then
-    begin
-      lprintf_nl "can not create proper client_private_key, exiting...";
-      exit 70
-    end
-  else
-          begin
-            lprintf_nl "bad client_private_key detected, creating new key";
-      set_simple_option donkey_ini "client_private_key" (DonkeySui.SUI.create_key ());
-      key_check_again := true
-    end
-    in
-    if not !key_checked then check_client_private_key ();
-    if !key_check_again then
+    if Autoconf.donkey_sui_works () then
       begin
-  lprintf_nl "re-checking private key";
-  check_client_private_key ()
+	if not (try String.sub !!client_private_key 0 4 = "MIIB" with e -> false) then
+	  if !key_check_started then
+	    begin
+	      let s1 =
+		Printf.sprintf "can not create valid client_private_key, bad value found: %s"
+		  !!client_private_key in
+	      let s2 = "CryptoPP code seems not to work properly, do not use insane CFLAGS, exiting..." in
+	      Printf.fprintf Pervasives.stderr "%s[EDK] %s\n" (log_time ()) s1;
+	      Printf.fprintf Pervasives.stderr "%s[EDK] %s\n" (log_time ()) s2;
+	      Pervasives.flush Pervasives.stderr;
+	      lprintf_nl "%s" s1;
+	      lprintf_nl "%s" s2;
+	      exit 70
+	    end
+	  else
+	    begin
+	      key_check_started := true;
+	      lprintf_nl "found bad client_private_key: %s, creating new key..." !!client_private_key;
+	      client_private_key =:= (DonkeySui.SUI.create_key ());
+	    end
+	else
+	  begin
+	    client_public_key := DonkeySui.SUI.load_key (!!client_private_key);
+	  end
       end
-    );
-    end
   )
 
 let server_accept_multiple_getsources s =
