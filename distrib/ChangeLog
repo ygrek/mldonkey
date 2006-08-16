@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/08/16
+5309: Increase reserved number of FDs from 20 to 40 for dynamic libs
 5310: EDK: Request filelist from friends only when requested,
       disable automatic download (pango)
 5312: GTK2 GUI: Fix histograms (su_blanc)

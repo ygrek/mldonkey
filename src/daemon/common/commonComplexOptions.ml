@@ -1124,8 +1124,10 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
     max_opened_connections =:= min_conns
   end;
 
+  let reserved_fds = 40 in (* ini files, dynamic libs, etc. *)
+
   let total_files = (* maximum number of files in use at the same time *)
-    (maxi (List.length !!files) !!max_concurrent_downloads) + !!max_upload_slots + 20 (* ini files etc. *)
+    (maxi (List.length !!files) !!max_concurrent_downloads) + !!max_upload_slots + reserved_fds
   in
 
   let wanted_socks = !!max_opened_connections + total_files in
@@ -1156,7 +1158,7 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
   TcpBufferedSocket.set_max_opened_connections
     (fun _ -> !!max_opened_connections);
 
-  Unix32.max_cache_size := total_files - 20;
+  Unix32.max_cache_size := total_files - reserved_fds;
   calc_real_max_indirect_connections ()
 )
 
