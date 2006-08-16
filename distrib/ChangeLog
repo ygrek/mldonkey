@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/08/16
+5312: GTK2 GUI: Fix histograms (su_blanc)
 5313: CryptoPP: Check for g++ capabilities
 
 2006/08/15

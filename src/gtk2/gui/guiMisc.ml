@@ -786,14 +786,14 @@ let some_is_available availability chunks =
 let relative_availability_of avail chunks =
   match chunks with
   | None -> "0."
-  | Some chunks ->
+  | Some c ->
       let rec loop i p n =
 	if i < 0 then
 	  if n = 0 then "0." (* Watch out !! Don't modify, we have to keep a float format *)
 	  else Printf.sprintf "%5.1f" ((float p) /. (float n) *. 100.)
 	else 
 	  loop (i - 1) 
-	    (if CommonGlobals.partial_chunk (VerificationBitmap.get chunks i) then p + 1 else p)
+	    (try if CommonGlobals.partial_chunk (VerificationBitmap.get c i) then p + 1 else p with _ -> p)
             (if avail.[i] <> (char_of_int 0) then n + 1 else n) in
       loop ((String.length avail) - 1) 0 0
 

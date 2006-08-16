@@ -106,28 +106,6 @@ let _ =
     incr n
   ) graph_times
 
-
-(*************************************************************************)
-(*                                                                       *)
-(*                         c_values                                      *)
-(*                                                                       *)
-(*************************************************************************)
-
-let c_values nbpts =
-  let step = 1. /. nbpts in
-  let rec r_values t l =
-    let t2 = t *. t in 
-    let t3 = t2 *. t in
-    let ct = 1. -. t
-      and ct2 = 1. -. 2. *. t +. t2
-      and ct3 = 1. -. 3. *. t +. 3. *. t2 -. t3
-    in
-    if t > 1.
-      then l
-      else r_values (t +. step) ((t3, 3. *. t2 *. ct, 3. *. t *. ct2, ct3) :: l)
-  in
-  r_values 0. []
-
 (*************************************************************************)
 (*                                                                       *)
 (*                         Module Curve                                  *)
@@ -156,7 +134,7 @@ module Curve(C:
 
       val module_name      : string
 
-    end) = 
+    end) =
   (struct
 
   open C
@@ -195,19 +173,35 @@ let font = Pango.Font.from_string !!O.gtk_graph_font
 
 (*************************************************************************)
 (*                                                                       *)
-(*                         graph_data_to_list                            *)
+(*                         get_stack                                     *)
 (*                                                                       *)
 (*************************************************************************)
 
-let graph_data_to_list g =
+let get_stack g =
   match !!graph_time with
-      GraphQuarter -> g.quarter
-    | GraphHour -> g.hour
-    | GraphHalfDay -> g.halfday
-    | GraphDay -> g.day
-    | GraphWeek -> g.week
-    | GraphMonth -> g.month
-    | GraphYear -> g.year
+    GraphQuarter -> g.quarter
+  | GraphHour -> g.hour
+  | GraphHalfDay -> g.halfday
+  | GraphDay -> g.day
+  | GraphWeek -> g.week
+  | GraphMonth -> g.month
+  | GraphYear -> g.year
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         ref_time                                      *)
+(*                                                                       *)
+(*************************************************************************)
+
+let ref_time () =
+  match !!graph_time with
+    GraphQuarter -> Gb.quarter
+  | GraphHour -> Gb.hour
+  | GraphHalfDay -> Gb.halfday
+  | GraphDay -> Gb.day
+  | GraphWeek -> Gb.week
+  | GraphMonth -> Gb.month
+  | GraphYear -> Gb.year
 
 (*************************************************************************)
 (*                                                                       *)
@@ -226,7 +220,10 @@ let scalex () =
       | GraphMonth -> Gb.month
       | GraphYear -> Gb.year
   in
-  float_of_int graph_width /. t
+  let r = float_of_int graph_width /. t in
+  if r = 0.
+  then 1.
+  else r
 
 (*************************************************************************)
 (*                                                                       *)
@@ -234,13 +231,25 @@ let scalex () =
 (*                                                                       *)
 (*************************************************************************)
 
+let max_from t =
+  let m = GStack.fold_left (fun accu (_, r) -> max accu r) 0. t in
+  max 2. m
+
 let scaley () =
-  let max_rate = ref 1. in
-  let l = graph_data_to_list !graph_data in
-  List.iter (fun (_, r) ->
-    max_rate := max !max_rate r
-  ) l;
-  float_of_int graph_height /. (!max_rate *. 1.2)
+  let max_rate =
+    match !!graph_time with
+      GraphQuarter -> max_from !graph_data.quarter
+    | GraphHour -> max_from !graph_data.hour
+    | GraphHalfDay -> max_from !graph_data.halfday
+    | GraphDay -> max_from !graph_data.day
+    | GraphWeek -> max_from !graph_data.week
+    | GraphMonth -> max_from !graph_data.month
+    | GraphYear -> max_from !graph_data.year
+  in
+  let r = float_of_int graph_height /. (max_rate *. 1.2) in
+  if r = 0.
+  then 1.
+  else r
 
 (*************************************************************************)
 (*                                                                       *)
@@ -259,28 +268,40 @@ let compute_scales () =
 (*                                                                       *)
 (*************************************************************************)
 
-let draw_bezier_curve (x1, y1) (x2, y2) (x3, y3) (x4, y4) p =
+let draw_quadratic_curve (x1, y1) (x2, y2) (x3, y3) p =
   let fore_col = `NAME !!graph_foreground in
   let light_fore_col = lighten fore_col in
-  let points = float_of_int g_width (* (x4 -. x1) *. 1.3 *. !scale_x *) in
-  let draw_point (a, b, c, d) =
-    p#set_foreground fore_col;
-    let x = int_of_float ((x1 *. a +. x2 *. b +. x3 *. c +. x4 *. d) *. !scale_x) in
-    let y =
-      if vertical_flip
-        then int_of_float ((y1 *. a +. y2 *. b +. y3 *. c +. y4 *. d) *. !scale_y)
-        else graph_height - int_of_float ((y1 *. a +. y2 *. b +. y3 *. c +. y4 *. d) *. !scale_y)
+  let nbpts = floor ((x3 -. x1) *. !scale_x) in
+  let nbpts_int = int_of_float nbpts in
+  if nbpts_int > 0
+  then begin
+    let f i =
+      let v = (nbpts -. i) in
+      let v1 = v *. v in
+      let v2 = 2. *. i *. v in
+      let v3 = i *. i in
+      (y1 *. v1 +. y2 *. v2 +. y3 *. v3) /. nbpts /. nbpts
     in
-    let y0 =
-      if vertical_flip
-      then 0
-      else graph_height
-    in
-    p#line ~x ~y ~x ~y:y0;
-    p#set_foreground light_fore_col;
-    p#point ~x ~y
-  in
-  List.iter draw_point (c_values points)
+    let x1 = int_of_float (x1 *. !scale_x) in
+    for n = 0 to nbpts_int do
+      p#set_foreground fore_col;
+      let y = !scale_y *. (f (float_of_int n)) in
+      let y =
+        if vertical_flip
+          then int_of_float y
+          else graph_height - int_of_float y
+      in
+      let y0 =
+        if vertical_flip
+        then 0
+        else graph_height
+      in
+      let x = x1 + n in
+      p#line ~x ~y ~x ~y:y0;
+      p#set_foreground light_fore_col;
+      p#point ~x ~y
+    done
+  end
 
 (*************************************************************************)
 (*                                                                       *)
@@ -304,26 +325,31 @@ let draw_curve () =
   let grid_col = `NAME !!O.gtk_graph_grid in
   p#set_foreground (`NAME !!O.gtk_graph_background);
   p#rectangle ~x:0 ~y:0 ~width:graph_width ~height:graph_height ~filled:true ();
-  let l = graph_data_to_list !graph_data in
-  let n = List.length l - 4 in
-  (if !!verbose then lprintf'' "In draw_curve: data length = %d\n" (n + 4));
   p#set_line_attributes ~width:1 ~style:`SOLID ();
-  let x0 =
-    match l with
-        [] -> BasicSocket.current_time ()
-      | v :: _ -> fst v
+  let stack = get_stack !graph_data in
+  let ind_opt = GStack.get_index_last stack in
+  let x0 = Gb.last_time () -. ref_time () in
+  let _ =
+    match ind_opt with
+      None -> ()
+    | Some index ->
+        begin
+          let count = ref true in
+          let l = ref [] in
+          while !count do
+            let (t, r) = normalize_vector (GStack.get_at_index index stack) x0 in
+            l := (t, r) :: !l;
+            if (List.length !l) = 3 then begin
+              let v1 = List.nth !l 0 in
+              let v2 = List.nth !l 1 in
+              let v3 = List.nth !l 2 in
+              draw_quadratic_curve v1 v2 v3 p;
+              l := [v1]
+            end;
+            count := GStack.iter_next index stack && (t > 0.);
+          done
+        end
   in
-  let i = ref 0 in
-  (try
-     while !i <= n do
-       let v1 = normalize_vector (List.nth l !i) x0 in
-       let v2 = normalize_vector (List.nth l (!i + 1)) x0 in
-       let v3 = normalize_vector (List.nth l (!i + 2)) x0 in
-       let v4 = normalize_vector (List.nth l (!i + 3)) x0 in
-       draw_bezier_curve v1 v2 v3 v4 p;
-       i := !i + 3
-     done
-  with _ -> ());
   p#set_foreground grid_col;
   p#set_line_attributes ~width:1 ~style:`ON_OFF_DASH ();
   for i = 0 to step do
@@ -431,7 +457,7 @@ module DisplayCurve(D:
       val reset_graph_timer : unit -> unit
       val title             : string
 
-    end) = 
+    end) =
   (struct
 
   open D

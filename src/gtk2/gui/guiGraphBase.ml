@@ -31,18 +31,25 @@ let verbose = O.gtk_verbose_graphbase
 let lprintf' fmt =
   Printf2.lprintf ("GuiGraphBase: " ^^ fmt)
 
-let last_time = BasicSocket.current_time ()
+let last_time () = BasicSocket.current_time ()
 
-let dummy_graph () =
-  {
-   quarter = [last_time, 0.];
-   hour    = [last_time, 0.];
-   halfday = [last_time, 0.];
-   day     = [last_time, 0.];
-   week    = [last_time, 0.];
-   month   = [last_time, 0.];
-   year    = [last_time, 0.];
-  }
+let max_points = 200.
+let max_points_int = int_of_float max_points
+
+let init_queue () =
+  let q = GStack.make max_points_int in
+  GStack.add 0. q;
+  q
+
+let dummy_graph () = {
+  quarter = init_queue ();
+  hour    = init_queue ();
+  halfday = init_queue ();
+  day     = init_queue ();
+  week    = init_queue ();
+  month   = init_queue ();
+  year    = init_queue ();
+}
 
 let quarter = 15. *. 60.
 let hour = 4. *. quarter
@@ -51,6 +58,12 @@ let day = 2. *. halfday
 let week = 7. *. day
 let month = 4. *. week
 let year = 52. *. week
+
+
+let get_t (v : float * float) = fst v
+let get_r (v : float * float) = snd v
+let get_d v = fst v
+let get_u v = snd v
 
 (*************************************************************************)
 (*                                                                       *)
@@ -74,78 +87,87 @@ module GraphOption = struct
         (v1, v2)
       )
 
-    let check_graph_time l time_ref =
-      let last_graph_time, _ = List.hd (List.rev l) in
-      if last_time -. last_graph_time > time_ref
-        then [last_time, 0.] else l
+    let hook_graph_time l time_ref =
+      let t_ref = last_time () in
+      let l = List.filter (fun (t, _) -> t_ref -. t < time_ref) l in
+      match l with
+        [] -> [t_ref, 0.]
+      | _ -> l
 
     let value_to_graph v =
+      let t = last_time () in
       match v with
         Options.Module assocs ->
           let get_value name conv = conv (List.assoc name assocs) in
           let graph_quarter =
             try
               let l = get_value "graph_quarter" (value_to_list value_to_floats) in
-              check_graph_time l quarter
-            with _ -> [last_time, 0.]
+              let l = hook_graph_time l quarter in
+              GStack.from_list max_points_int l
+            with _ -> init_queue ()
           in
           let graph_hour =
             try
               let l = get_value "graph_hour" (value_to_list value_to_floats) in
-              check_graph_time l hour
-            with _ -> [last_time, 0.]
+              let l = hook_graph_time l hour in
+              GStack.from_list max_points_int l
+            with _ -> init_queue ()
           in
           let graph_halfday =
             try
               let l = get_value "graph_halfday" (value_to_list value_to_floats) in
-              check_graph_time l halfday
-            with _ -> [last_time, 0.]
+              let l = hook_graph_time l halfday in
+              GStack.from_list max_points_int l
+            with _ -> init_queue ()
           in
           let graph_day =
             try
               let l = get_value "graph_day" (value_to_list value_to_floats) in
-              check_graph_time l day
-            with _ -> [last_time, 0.]
+              let l = hook_graph_time l day in
+              GStack.from_list max_points_int l
+            with _ -> init_queue ()
           in
           let graph_week =
             try
               let l = get_value "graph_week" (value_to_list value_to_floats) in
-              check_graph_time l week
-            with _ -> [last_time, 0.]
+              let l = hook_graph_time l week in
+              GStack.from_list max_points_int l
+            with _ -> init_queue ()
           in
           let graph_month =
             try
               let l = get_value "graph_month" (value_to_list value_to_floats) in
-              check_graph_time l month
-            with _ -> [last_time, 0.]
+              let l = hook_graph_time l month in
+              GStack.from_list max_points_int l
+            with _ -> init_queue ()
           in
           let graph_year =
             try
               let l = get_value "graph_year" (value_to_list value_to_floats) in
-              check_graph_time l year
-            with _ -> [last_time, 0.]
-          in
-          {
-             quarter = graph_quarter;
-             hour    = graph_hour;
-             halfday = graph_halfday;
-             day     = graph_day;
-             week    = graph_week;
-             month   = graph_month;
-             year    = graph_year;
+              let l = hook_graph_time l year in
+              GStack.from_list max_points_int l
+            with _ -> init_queue ()
+          in {
+            quarter = graph_quarter;
+            hour    = graph_hour;
+            halfday = graph_halfday;
+            day     = graph_day;
+            week    = graph_week;
+            month   = graph_month;
+            year    = graph_year;
           }
 
       | _ -> assert false
 
     let graph_to_value graph =
       Options.Module (
-        ("graph_quarter", list_to_value floats_to_value graph.quarter) ::
-        ("graph_hour",    list_to_value floats_to_value graph.hour)    ::
-        ("graph_halfday", list_to_value floats_to_value graph.halfday) ::
-        ("graph_day",     list_to_value floats_to_value graph.day)     ::
-        ("graph_week",    list_to_value floats_to_value graph.week)    ::
-        ("graph_month",   list_to_value floats_to_value graph.month)   ::
-        ("graph_year",    list_to_value floats_to_value graph.year)    ::
+        ("graph_quarter", list_to_value floats_to_value (GStack.to_list_fif graph.quarter)) ::
+        ("graph_hour",    list_to_value floats_to_value (GStack.to_list_fif graph.hour))    ::
+        ("graph_halfday", list_to_value floats_to_value (GStack.to_list_fif graph.halfday)) ::
+        ("graph_day",     list_to_value floats_to_value (GStack.to_list_fif graph.day))     ::
+        ("graph_week",    list_to_value floats_to_value (GStack.to_list_fif graph.week))    ::
+        ("graph_month",   list_to_value floats_to_value (GStack.to_list_fif graph.month))   ::
+        ("graph_year",    list_to_value floats_to_value (GStack.to_list_fif graph.year))    ::
         []
       )
 
@@ -183,14 +205,21 @@ let _ =
 (*                                                                       *)
 (*************************************************************************)
 
-let (global_queue : (graph_record, (float * float) list ref) Hashtbl.t) = Hashtbl.create 63
+let (global_queue : (graph_record, (float * float) Queue.t) Hashtbl.t) = Hashtbl.create 63
 
 let _ =
-  Hashtbl.add  global_queue GraphDownloads (ref [List.hd (List.rev (fst !!global_graph).quarter)]);
-  Hashtbl.add  global_queue GraphUploads (ref [List.hd (List.rev (snd !!global_graph).quarter)]);
+  let q = Queue.create () in
+  Queue.add (GStack.last (get_d !!global_graph).quarter) q;
+  Hashtbl.add global_queue GraphDownloads q;
+  let q = Queue.create () in
+  Queue.add (GStack.last (get_u !!global_graph).quarter) q;
   List.iter (fun (file_uid, (down, up)) ->
-    Hashtbl.add  global_queue (GraphFile (file_uid, GraphDownloads)) (ref [List.hd (List.rev down.quarter)]);
-    Hashtbl.add  global_queue (GraphFile (file_uid, GraphUploads)) (ref [List.hd (List.rev up.quarter)]);
+    let q_d = Queue.create () in
+    Queue.add (GStack.last down.quarter) q_d;
+    let q_u = Queue.create () in
+    Queue.add (GStack.last up.quarter) q_u;
+    Hashtbl.add  global_queue (GraphFile (file_uid, GraphDownloads)) q_d;
+    Hashtbl.add  global_queue (GraphFile (file_uid, GraphUploads)) q_u;
   ) !!files_graph
 
 (*************************************************************************)
@@ -198,8 +227,6 @@ let _ =
 (*                         Global variables                              *)
 (*                                                                       *)
 (*************************************************************************)
-
-let max_points = 200.
 
 let quarter_step = quarter /. max_points
 let hour_step = hour /. max_points
@@ -215,18 +242,20 @@ let year_step = year /. max_points
 (*                                                                       *)
 (*************************************************************************)
 
-let r_avg l0 l1 =
-  let rx = ref 0. in
-  let min_t = ref (fst (List.hd l0)) in
-  let max_t = ref (fst (List.hd l1)) in
-  List.iter2 (fun (t0, r0) (t1, r1) ->
-    rx := !rx +. (r0 +. r1) *. (t1 -. t0) /. 2.;
-    min_t := min !min_t t0;
-    max_t := max !max_t t1;
-  ) l0 l1;
-  if (!max_t -. !min_t) > 0.
-    then !rx /. (!max_t -. !min_t)
-    else 0.
+let r_avg l =
+  match l with
+    [] -> 0.
+  | (x, y) :: _ ->
+      begin
+        let (r, tmin, tmax, _) =
+          List.fold_left (fun (s, tmin, tmax, (x0, y0)) (x1, y1) ->
+            if x1 = x0
+              then (s, tmin, tmax, (x1, y1))
+              else (s +. (y1 +. y0) *. (x0 -. x1) /. 2., min tmin x1, max tmax x1, (x1, y1))
+          ) (0., x, x, (x, y))  l
+        in
+        if tmax = tmin then r else r /. (tmax -. tmin)
+      end
 
 (*************************************************************************)
 (*                                                                       *)
@@ -235,50 +264,24 @@ let r_avg l0 l1 =
 (*************************************************************************)
 
 let vect_from previous current =
-  if !!verbose then
-    begin
-      lprintf' "In vect_from : current length %d\n" (List.length current);
-      List.iter (fun (a, b) ->
-        lprintf' "     * [%f, %f]\n" a b
-      ) current;
-      lprintf' "In vect_from : previous length %d\n" (List.length previous);
-      List.iter (fun (a, b) ->
-        lprintf' "     * [%f, %f]\n" a b
-      ) previous
-    end;
-  let (t_current, r_current) = List.nth current (List.length current - 1) in
-  (if !!verbose then lprintf' "In vect_from : (t_current, r_current) = (%f, %f)\n" t_current r_current);
-  let l = ref [] in
-  let store = ref true in
-  let n = ref (List.length previous - 1) in
-  let (t, _) = List.nth previous !n in
-  (if !!verbose then lprintf' "In vect_from : t = %f\n" t);
-  while !store && (!n >= 0) do
-    let (t_n, r_n) = List.nth previous !n in
-    if t_n > t_current
-      then begin
-        l := (t_n, r_n) :: !l;
-        decr n
-      end else store := false
-  done;
-  l := (t_current, r_current) :: !l;
-  let l2 = List.tl !l in
-  let l1 = List.rev (List.tl (List.rev !l)) in
-  if !!verbose
-    then begin
-      lprintf' "In vect_from : l1 length %d\n" (List.length l1);
-      List.iter (fun (a, b) ->
-        lprintf' "     * [%f, %f]\n" a b
-      ) l1;
-      lprintf' "In vect_from : l2 length %d\n" (List.length l2);
-      List.iter (fun (a, b) ->
-        lprintf' "     * [%f, %f]\n" a b
-      ) l2
-    end;
-  let r_avg = r_avg l1 l2 in
-  (if !!verbose then lprintf' "In vect_from : r_avg %f\n" r_avg);
-  (t, r_avg)
-
+  let t_ref, _ = GStack.last current in
+  let last_t, _ = GStack.last previous in
+  let index =
+    match (GStack.get_index_last previous) with
+      Some i -> i
+    | None -> raise Exit (* all stacks are init with dummy_graph so can't be empty *)
+  in
+  let rec iter l =
+    let (t, r) = GStack.get_at_index index previous in
+    if t > t_ref
+    then if (GStack.iter_next index previous)
+      then iter ((t, r) :: l)
+      else ((t, r) :: l)
+    else l
+  in
+  let pts = iter [] in
+  let r_avg = r_avg (List.rev pts) in
+  (last_t, r_avg)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -287,12 +290,8 @@ let vect_from previous current =
 (*************************************************************************)
 
 let record_year graph =
-  (if !!verbose then lprintf' "calculating record_year\n");
-  let vect = vect_from graph.month graph.year in
-  (if List.length graph.year < int_of_float max_points
-     then graph.year <- graph.year @ [vect]
-     else graph.year <- (List.tl graph.year) @ [vect]);
-  if !!verbose then lprintf' "record_year calculated successfully\n"
+  let (t, r) = vect_from graph.month graph.year in
+  GStack.put (t, r) graph.year
 
 (*************************************************************************)
 (*                                                                       *)
@@ -301,14 +300,10 @@ let record_year graph =
 (*************************************************************************)
 
 let record_month graph =
-  (if !!verbose then lprintf' "calculating record_month\n");
   let (t, r) = vect_from graph.week graph.month in
-  (if List.length graph.month < int_of_float max_points
-     then graph.month <- graph.month @ [t, r]
-     else graph.month <- (List.tl graph.month) @ [t, r]);
-  (if !!verbose then lprintf' "record_month calculated successfully\n");
-  let (t_h, _) = List.nth graph.year (List.length graph.year - 1) in
-  if (t -. t_h) > year_step
+  GStack.put (t, r) graph.month;
+  let next_t, _ = GStack.last graph.year in
+  if (t -. next_t) > year_step
     then record_year graph
 
 (*************************************************************************)
@@ -318,14 +313,10 @@ let record_month graph =
 (*************************************************************************)
 
 let record_week graph =
-  (if !!verbose then lprintf' "calculating record_week\n");
   let (t, r) = vect_from graph.day graph.week in
-  (if List.length graph.week < int_of_float max_points
-     then graph.week <- graph.week @ [t, r]
-     else graph.week <- (List.tl graph.week) @ [t, r]);
-  (if !!verbose then lprintf' "record_week calculated successfully\n");
-  let (t_h, _) = List.nth graph.month (List.length graph.month - 1) in
-  if (t -. t_h) > month_step
+  GStack.put (t, r) graph.week;
+  let next_t, _ = GStack.last graph.month in
+  if (t -. next_t) > month_step
     then record_month graph
 
 (*************************************************************************)
@@ -335,14 +326,10 @@ let record_week graph =
 (*************************************************************************)
 
 let record_day graph =
-  (if !!verbose then lprintf' "calculating record_day\n");
   let (t, r) = vect_from graph.halfday graph.day in
-  (if List.length graph.day < int_of_float max_points
-     then graph.day <- graph.day @ [t, r]
-     else graph.day <- (List.tl graph.day) @ [t, r]);
-  (if !!verbose then lprintf' "record_day calculated successfully\n");
-  let (t_h, _) = List.nth graph.week (List.length graph.week - 1) in
-  if (t -. t_h) > week_step
+  GStack.put (t, r) graph.day;
+  let next_t, _ = GStack.last graph.week in
+  if (t -. next_t) > week_step
     then record_week graph
 
 (*************************************************************************)
@@ -352,16 +339,11 @@ let record_day graph =
 (*************************************************************************)
 
 let record_halfday graph =
-  (if !!verbose then lprintf' "calculating record_halfday\n");
   let (t, r) = vect_from graph.hour graph.halfday in
-  (if List.length graph.halfday < int_of_float max_points
-     then graph.halfday <- graph.halfday @ [t, r]
-     else graph.halfday <- (List.tl graph.halfday) @ [t, r]);
-  (if !!verbose then lprintf' "record_halfday calculated successfully\n");
-  let (t_h, _) = List.nth graph.day (List.length graph.day - 1) in
-  if (t -. t_h) > day_step
+  GStack.put (t, r) graph.halfday;
+  let next_t, _ = GStack.last graph.day in
+  if (t -. next_t) > day_step
     then record_day graph
-
 
 (*************************************************************************)
 (*                                                                       *)
@@ -370,14 +352,10 @@ let record_halfday graph =
 (*************************************************************************)
 
 let record_hour graph =
-  (if !!verbose then lprintf' "calculating record_hour\n");
   let (t, r) = vect_from graph.quarter graph.hour in
-  (if List.length graph.hour < int_of_float max_points
-     then graph.hour <- graph.hour @ [t, r]
-     else graph.hour <- (List.tl graph.hour) @ [t, r]);
-  (if !!verbose then lprintf' "record_hour calculated successfully\n");
-  let (t_h, _) = List.nth graph.halfday (List.length graph.halfday - 1) in
-  if (t -. t_h) > halfday_step
+  GStack.put (t, r) graph.hour;
+  let next_t, _ = GStack.last graph.halfday in
+  if (t -. next_t) > halfday_step
     then record_halfday graph
 
 (*************************************************************************)
@@ -387,20 +365,18 @@ let record_hour graph =
 (*************************************************************************)
 
 let record_quarter queue graph =
-  (if !!verbose then lprintf' "calculating record_quarter\n");
-  let (t, _) = List.hd !queue in
-  let l1 = List.tl !queue in
-  let l2 = List.rev (List.tl (List.rev !queue)) in
-  let r_avg = r_avg l1 l2 in
-  let vect = (t, r_avg) in
-  queue := [vect];
-  (if List.length graph.quarter < int_of_float max_points
-     then graph.quarter <- graph.quarter @ [vect]
-     else graph.quarter <- (List.tl graph.quarter) @ [vect]);
-  (if !!verbose then lprintf' "record_quarter calculated successfully\n");
-  let (t_h, _) = List.nth graph.hour (List.length graph.hour - 1) in
-  if (t -. t_h) > hour_step
+  if not (Queue.is_empty queue)
+  then begin
+    let l = Queue.fold (fun accu v -> v :: accu) [] queue in
+    Queue.clear queue;
+    let (t, _) = List.hd l in
+    let r = r_avg l in
+    Queue.add (t, r) queue;
+    GStack.put (t, r) graph.quarter;
+    let next_t, _ = GStack.last graph.hour in
+    if (t -. next_t) > hour_step
     then record_hour graph
+  end
 
 (*************************************************************************)
 (*                                                                       *)
@@ -409,7 +385,7 @@ let record_quarter queue graph =
 (*************************************************************************)
 
 let print_graph q t s =
-  let n = List.length !q in
+  let n = Queue.length q in
   let str =
     match t with
       GraphDownloads -> Printf.sprintf "Global Downloads %d %s" n s
@@ -430,27 +406,27 @@ let save_record rate (graph_type : graph_record) =
       (if !!verbose then lprintf' "Record %s\n" (print_graph q graph_type "old"));
       q
     with _ ->
-      let q = ref [last_time, 0.] in
+      let q = Queue.create () in
       Hashtbl.add global_queue graph_type q;
        (if !!verbose then lprintf' "Record %s\n" (print_graph q graph_type "new"));
       q
   in
-  queue := last_vect :: !queue;
-  let first_vect = List.hd (List.rev !queue) in
-  let t_i = fst first_vect in
+  Queue.add last_vect queue;
+  let first_vect = Queue.peek queue in
+  let t_i = get_t first_vect in
   if (t -. t_i) > quarter_step
     then begin
       try
         match graph_type with
              GraphDownloads ->
                begin
-                 let graph = fst (!!global_graph) in
+                 let graph = get_d (!!global_graph) in
                  record_quarter queue graph
                end
 
            | GraphUploads ->
                begin
-                 let graph = snd (!!global_graph) in
+                 let graph = get_u (!!global_graph) in
                  record_quarter queue graph
                end
 
@@ -471,7 +447,7 @@ let save_record rate (graph_type : graph_record) =
                        with _ -> assert false
                      end
                  in
-                 let graph = fst records in
+                 let graph = get_d records in
                  (if !!verbose then lprintf'
                     "Found fst of %s GraphDownloads in !!files_graph\n" (string_of_uid file_uid));
                  record_quarter queue graph;
@@ -496,7 +472,7 @@ let save_record rate (graph_type : graph_record) =
                        with _ -> assert false
                      end
                  in
-                 let graph = snd records in
+                 let graph = get_u records in
                  (if !!verbose then lprintf'
                     "Found fst of %s GraphUploads in !!files_graph\n" (string_of_uid file_uid));
                  record_quarter queue graph;
@@ -538,7 +514,7 @@ let add_file file_uid =
         let uid = uid_of_string suid in
         (if !!verbose then lprintf' "In add_file : Adding file %s\n" suid);
         files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
-        let q = ref [last_time, 0.] in
+        let q = Queue.create () in
         Hashtbl.add global_queue (GraphFile (file_uid, GraphDownloads)) q;
         Hashtbl.add global_queue (GraphFile (file_uid, GraphUploads)) q
       with _ -> ()
