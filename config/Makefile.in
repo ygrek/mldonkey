@@ -293,7 +293,7 @@ Makefile: config/Makefile.in
 MAIN_SRCS=$(COMMON)/commonMain.ml
 
 ifeq ("$(DONKEY_SUI)", "yes")
-  CRYPTOPP_LIBS_flags += -cc '$(CXX) $(CXXFLAGS)' -ccopt -fno-omit-frame-pointer -ccopt -mno-omit-leaf-frame-pointer
+  CRYPTOPP_LIBS_flags += -cc '$(CXX) $(CXXFLAGS)' -ccopt '$(CRYPTOPPFLAGS)'
   DONKEY_SRCS += $(LIB)/CryptoPP.cc $(LIB)/CryptoPP_stubs.c $(SRC_DONKEY)/donkeySui1.ml $(SRC_DONKEY)/donkeySui.ml
 else
   DONKEY_SRCS += $(SRC_DONKEY)/donkeySui2.ml $(SRC_DONKEY)/donkeySui.ml
@@ -1952,7 +1952,7 @@ rpm: sourcedist
 	$(OCAMLC) -verbose -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" $(LIBS_flags) -c $<
 
 .cc.o :
-	$(CXX) $(CXXFLAGS) -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -o $*.o "-I$(OCAMLLIB)" -c $<
+	$(CXX) $(CXXFLAGS) $(CRYPTOPPFLAGS) -o $*.o "-I$(OCAMLLIB)" -c $<
 
 .cmo.byte:
 	$(OCAMLC) -o $*.byte $(LIBS) $<

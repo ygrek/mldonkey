@@ -1131,3 +1131,44 @@ fi
 AC_LANG_RESTORE
 ])dnl ACX_PTHREAD
 
+AC_DEFUN(ACX_CHECK_CC_FLAGS,
+[
+AC_REQUIRE([AC_PROG_CC])
+AC_CACHE_CHECK(whether ${CC} accepts $1, ac_$2,
+[echo 'void f(){}' > conftest.c
+if test -z "`${CC} $1 -c conftest.c 2>&1`"; then
+        ac_$2=yes
+else
+        ac_$2=no
+fi
+rm -f conftest*
+])
+if test "$ac_$2" = yes; then
+        :
+        $3
+else
+        :
+        $4
+fi
+])
+
+AC_DEFUN(ACX_CHECK_CXX_FLAGS,
+[
+AC_REQUIRE([AC_PROG_CXX])
+AC_CACHE_CHECK(whether ${CXX} accepts $1, ac_$2,
+[echo 'void f(){}' > conftest.cpp
+if test -z "`${CXX} $1 -c conftest.cpp 2>&1`"; then
+        ac_$2=yes
+else
+        ac_$2=no
+fi
+rm -f conftest*
+])
+if test "$ac_$2" = yes; then
+        :
+        $3
+else
+        :
+        $4
+fi
+])

@@ -896,6 +896,7 @@ echo "     Checking system libraries finished."
 echo -e "---------------------------------------------\n"
 
 CXX_VERSION=
+CRYPTOPPFLAGS=
 echo "--------------------------------------"
 echo "     Checking activated networks."
 echo "--------------------------------------"
@@ -916,6 +917,8 @@ echo "--------------------------------------"
 	  DONKEY_SUI=no
 	else
 	  AC_MSG_RESULT(yes)
+	  ACX_CHECK_CXX_FLAGS(-fno-omit-frame-pointer,no_omit_frame_pointer, CRYPTOPPFLAGS="-fno-omit-frame-pointer")
+	  ACX_CHECK_CXX_FLAGS(-mno-omit-leaf-frame-pointer,no_omit_leaf_frame_pointer, CRYPTOPPFLAGS="$CRYPTOPPFLAGS -mno-omit-leaf-frame-pointer")
 	  CXX=$NEWCXX
 	  CXX_VERSION=`$CXX -dumpversion`
 	  DONKEY_SUI_FILE=DonkeySui1
@@ -1264,6 +1267,7 @@ AC_SUBST(OPENFT)
 AC_SUBST(FASTTRACK)
 AC_SUBST(DONKEY)
 AC_SUBST(DONKEY_SUI)
+AC_SUBST(CRYPTOPPFLAGS)
 AC_SUBST(DONKEY_SUI_FILE)
 AC_SUBST(DONKEY_SERVER)
 AC_SUBST(GUI)

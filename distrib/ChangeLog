@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/16
+5313: CryptoPP: Check for g++ capabilities
+
 2006/08/15
 5308: CryptoPP: Fix infinite loop when re-creating private key fails
 5307: CryptoPP: Deactivate compiler option -momit-leaf-frame-pointer
