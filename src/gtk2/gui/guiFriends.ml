@@ -813,11 +813,11 @@ let remove_friend s =
 let h_update_friend s s_new =
   try
     let row = friendstore#find_row (friend_key s_new.source_num) in
-    if client_browsed_tag land s_new.source_type = 0
+    if (client_friend_tag lor client_contact_tag) land s_new.source_type = 0
       then remove_friend s
       else Gaux.may ~f:(fun r -> friendstore#update_item r s s_new) row
  with _ ->
-    if client_browsed_tag land s_new.source_type <> 0
+   if (client_friend_tag lor client_contact_tag) land s_new.source_type <> 0
       then begin
         friendstore#add_item s_new ~f:update_friends_label ()
       end

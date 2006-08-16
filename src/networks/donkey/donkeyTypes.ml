@@ -677,7 +677,6 @@ and client = {
       Bitv.t *
       CommonSwarming.uploader
       ) list;
-    mutable client_next_view_files :  int;
     mutable client_all_files : result list option;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;

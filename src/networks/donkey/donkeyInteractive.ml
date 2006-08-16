@@ -1563,7 +1563,9 @@ let _ =
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);
       | NoConnection ->
-	  if !verbose then lprintf_nl "re-connecting friend %s" (full_client_identifier c);
+	  if !verbose then lprintf_nl "re-connecting friend %s"
+	    (full_client_identifier c);
+	  set_must_browse (as_client c);
           reconnect_client c
       | _ -> ()
   );

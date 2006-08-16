@@ -582,7 +582,6 @@ let dummy_client =
       client_tags = [];
       client_name = "";
       client_all_files = None;
-      client_next_view_files = last_time () - 1;
 (*      client_all_chunks = ""; *)
       client_rating = 0;
       client_brand = Brand_unknown;
@@ -627,7 +626,6 @@ let create_client key =
 
       client_client = client_impl;
 (*      client_connection_control =  new_connection_control_recent_ok ( ()); *)
-      client_next_view_files = last_time () - 1;
       client_kind = key;
       client_upload = None;
       client_source = s;

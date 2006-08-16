@@ -284,17 +284,26 @@ let is_friend c =
 let is_contact c =
   (client_type c) land client_contact_tag <> 0
 
+let is_must_browse c =
+  (client_type c) land client_must_browse_tag <> 0
+
 let set_friend c =
   set_client_type c (client_type c lor client_friend_tag)
 
 let set_contact c =
   set_client_type c (client_type c lor client_contact_tag)
 
+let set_must_browse c =
+  set_client_type c (client_type c lor client_must_browse_tag)
+
 let set_not_friend c =
   set_client_type c (client_type c land (lnot client_friend_tag))
 
 let set_not_contact c =
   set_client_type c (client_type c land (lnot client_contact_tag))
+
+let set_not_must_browse c =
+  set_client_type c (client_type c land (lnot client_must_browse_tag))
 
 let is_nolimit c =
   (client_type c) land client_nolimit_tag <> 0

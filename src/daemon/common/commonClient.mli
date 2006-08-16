@@ -80,16 +80,19 @@ val uploaders : CommonTypes.client Intmap.t ref
   
 val is_friend : CommonTypes.client -> bool
 val is_contact : CommonTypes.client -> bool
+val is_must_browse : CommonTypes.client -> bool
 val is_nolimit : CommonTypes.client -> bool
 val is_initialized : CommonTypes.client -> bool
   
 val set_friend : CommonTypes.client -> unit
 val set_contact : CommonTypes.client -> unit
+val set_must_browse : CommonTypes.client -> unit
 val set_nolimit : CommonTypes.client -> unit
 val set_initialized : CommonTypes.client -> unit
   
 val set_not_friend : CommonTypes.client -> unit
 val set_not_contact : CommonTypes.client -> unit
+val set_not_must_browse : CommonTypes.client -> unit
 
 val client_has_bitmap : CommonTypes.client -> CommonTypes.file -> string -> unit
 

@@ -791,15 +791,13 @@ let shared_of_file file =
     | Some sh -> Some (as_shared sh)
 
 let query_view_files c =
-  if client_browsed_tag land client_type c <> 0 then begin
-      if last_time () > c.client_next_view_files then begin
-          c.client_next_view_files <- last_time () + 3600 * 6;
-          client_send c (
-            let module M = DonkeyProtoClient in
-            let module C = M.ViewFiles in
-            M.ViewFilesReq C.t);
-        end
-    end
+  if CommonClient.is_must_browse (as_client c) then begin
+    CommonClient.set_not_must_browse (as_client c);
+    client_send c (
+      let module M = DonkeyProtoClient in
+      let module C = M.ViewFiles in
+      M.ViewFilesReq C.t);
+  end
 
 (* client is valid if it's not us or if it's not yet connected *)
 let is_valid_client md4 =
