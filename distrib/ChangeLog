@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/08/21
+5319: Configure: New option --enable-minimum
+- Compile MLDonkey with Donkey only, without gd, magic, bzip2, sui
 5304: cleanup donkeyOptions.ml (whitespace, tabs, comments) (Schlumpf)
 5303: cleanup btOptions.ml (whitespace, tabs, comments) (Schlumpf)
 5302: cleanup commonOptions.ml (whitespace, tabs, comments) (Schlumpf)

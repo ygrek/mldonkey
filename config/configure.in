@@ -226,8 +226,13 @@ BITTORRENT=yes
 FASTTRACK=yes
 FILETP=yes
 MULTINET=yes
+MINIMUM=no
+GD=yes
+BZIP2=yes
+MAGIC=yes
 AC_ARG_ENABLE(multinet,      [  --disable-multinet      allows you to only compile support for edonkey + Overnet], [MULTINET="$enableval"])
-if test ! "$MULTINET" = "yes"; then
+AC_ARG_ENABLE(minimum,       [  --disable-minimum       compile MLDonkey with minimum features], [MINIMUM="$enableval"])
+if [ test ! "$MULTINET" = "yes" ] || [ test "$MINIMUM" = "yes" ]; then
   OPEN_NAPSTER=no
   GNUTELLA=no
   GNUTELLA2=no
@@ -237,7 +242,12 @@ if test ! "$MULTINET" = "yes"; then
   FASTTRACK=no
   FILETP=no
   BITTORRENT=no
-  RELEASENAME="$RELEASENAME-nomultinet"
+fi
+if [ test "$MINIMUM" = "yes" ]; then
+  DONKEY_SUI=no
+  GD=no
+  BZIP2=no
+  MAGIC=no
 fi
 AC_ARG_ENABLE(donkey,        [  --disable-donkey        allows you to remove support for eDonkey], [DONKEY="$enableval"])
 AC_ARG_ENABLE(donkeysui,     [  --disable-donkeysui     allows you to remove support for eMule SecureUserIdent], [DONKEY_SUI="$enableval"])
@@ -297,13 +307,10 @@ AC_ARG_ENABLE(pthread-lib, [  --enable-pthread-lib    legacy option], [USE_PTHRE
 ICONV=yes
 AC_ARG_ENABLE(iconv,       [  --disable-iconv         disable the use of iconv for compiling on broken windows environments], [ICONV="$enableval"])
 
-GD=yes
 AC_ARG_ENABLE(gd,       [  --disable-gd            disable the use of gd], [GD="$enableval"])
 
-BZIP2=yes
 AC_ARG_ENABLE(bzip2,       [  --disable-bzip2         disable the use of bzip2], [BZIP2="$enableval"])
 
-MAGIC=yes
 AC_ARG_ENABLE(magic,       [  --disable-magic         disable the use of libmagic (GNU file)], [MAGIC="$enableval"])
 
 if test "$FORCE_MINGW" = "yes"; then
@@ -1276,7 +1283,6 @@ AC_SUBST(REQUIRED_LABLGTK)
 AC_SUBST(ARCH)
 AC_SUBST(COMPRESS)
 AC_SUBST(COMPRESS_EXT)
-AC_SUBST(RELEASENAME)
 AC_SUBST(CHECKBOUNDS)
 AC_SUBST(MLDONKEY_VERSION)
 AC_SUBST(SCM_VERSION)
