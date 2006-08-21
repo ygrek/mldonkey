@@ -26,7 +26,7 @@ let bittorrent_ini = create_options_file "bittorrent.ini"
 let bittorrent_section = file_section bittorrent_ini ["Bittorrent"] "Bittorrent options"
 
 let client_port = define_option bittorrent_section ["client_port"]
-    "The port to bind the client to"
+  "The port to bind the client to"
     int_option 6882
 
 (* Generate client_uid *)
@@ -44,7 +44,8 @@ let generate_client_uid =
   client_uid_from_version ^ client_uid_random_tail
 
 let client_uid = define_option bittorrent_section ["client_uid"]
-    "The UID of this client" Sha1.option (Sha1.direct_of_string generate_client_uid)
+  "The UID of this client"
+    Sha1.option (Sha1.direct_of_string generate_client_uid)
 
 (* Check if the uid is in sync with Autoconf.current_version *)
 let check_client_uid () =
@@ -66,7 +67,7 @@ let gui_bittorrent_options_panel =
   ]
 
 let ask_tracker_threshold = define_option bittorrent_section ["ask_tracker_threshold"]
-    "Ask the tracker for new sources only if you have fewer than that number of sources"
+  "Ask the tracker for new sources only if you have fewer than that number of sources"
     int_option 20
 
    (** #4541 [egs]
@@ -74,31 +75,32 @@ let ask_tracker_threshold = define_option bittorrent_section ["ask_tracker_thres
      * and failover using redirect
     **)
 let max_tracker_redirect = define_option bittorrent_section ["max_tracker_redirect"]
-    "Maximum number of HTTP redirects before reaching the tracker - maximum 10, 0 to disable"
+  "Maximum number of HTTP redirects before reaching the tracker - maximum 10, 0 to disable"
     int_option 1
 
 
 let send_key = define_option bittorrent_section ["send_key"]
-    "Send client key to trackers"
+  "Send client key to trackers"
     bool_option true
 
 let max_uploaders_per_torrent = define_option bittorrent_section ["max_uploaders_per_torrent"]
-    "Maximum number of uploaders for one torrent"
+  "Maximum number of uploaders for one torrent"
     int_option 5
 
 let max_bt_uploaders = define_option bittorrent_section ["max_bt_uploaders"]
-    "Maximum number of uploaders for bittorrent"
+  "Maximum number of uploaders for bittorrent"
     int_option 5
 
 (* numwant: Optional. Number of peers that the client would like to receive from the tracker.
 This value is permitted to be zero. If omitted, typically defaults to 50 peers.   *)
 
 let numwant = define_option bittorrent_section ["numwant"]
-    "Number of peers to request from tracker (Negative # = let tracker decide)"
+  "Number of peers to request from tracker (Negative # = let tracker decide)"
     int_option (-1)
 
 let import_new_torrents_interval = define_option bittorrent_section ["import_new_torrents_interval"]
-    "Interval in seconds 'torrents/incoming' is scanned for new torrent files to be downloaded, 0 to deactivate, changes require restart"
+  "Interval in seconds 'torrents/incoming' is scanned for new torrent files to be downloaded,
+  0 to deactivate, changes require restart"
     float_option 60.
 
 let _ =
@@ -116,23 +118,24 @@ let _ =
   end
 
 let min_tracker_reask_interval = define_option bittorrent_section ["min_tracker_reask_interval"]
-    "Minimum time in seconds to wait between asking the tracker for sources"
+  "Minimum time in seconds to wait between asking the tracker for sources"
     int_option 300
 
 let client_timeout = define_option bittorrent_section ["client_timeout"]
-  "Timeout on client connections" float_option 90.
+  "Timeout on client connections"
+    float_option 90.
 
 let user_agent = define_option bittorrent_section ["user_agent"]
-    "User agent string (default = \"default\")"
+  "User agent string (default = \"default\")"
     string_option "default"
 
 let options_version = define_option bittorrent_section ["options_version"]
-    "(internal option)"
+  "(internal option)"
     int_option 0
 
-let old_files =
-  define_option bittorrent_section ["old_files"]
-    "" (list_option (tuple2_option (string_option, int64_option))) []
+let old_files = define_option bittorrent_section ["old_files"]
+  ""
+    (list_option (tuple2_option (string_option, int64_option))) []
 
 let get_user_agent () = 
   if !!user_agent = "default" then
