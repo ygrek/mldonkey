@@ -5,7 +5,7 @@ AC_INIT(Makefile.config.in)
 AC_CONFIG_HEADER(config.h)
 
 CONFIGURE_RUN=yes
-CONFIGURE_ARGUMENTS=$*
+CONFIGURE_ARGUMENTS=$ac_configure_args
 echo "Arguments to configure: $CONFIGURE_ARGUMENTS"
 
 cd ..

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/08/21
+5318: Fix wrong buildinfo configure args with autoconf 2.60
 5317: Compile fix for GTK1 newgui in addition to patch 5310
 
 2006/08/16
