@@ -62,9 +62,9 @@ let installer_section = file_section installer_ini [] ""
 
 let created_new_base_directory = ref None
 
-let mldonkey_directory =
-  define_option installer_section ["mldonkey_directory"]
-    "The directory where mldonkey's option files are" string_option home_dir
+let mldonkey_directory = define_option installer_section ["mldonkey_directory"]
+  "The directory where mldonkey's option files are" 
+    string_option home_dir
 
 let _ =
   (try Options.load installer_ini with _ -> ())
@@ -383,7 +383,7 @@ let main_section = file_section downloads_ini ["Main"]
 let interfaces_section = file_section downloads_ini ["Interfaces"]
   "Options to control ports used by mldonkey interfaces"
 let bandwidth_section = file_section downloads_ini ["Bandwidth"]
-  ""
+  "Bandwidth options"
 let networks_section = file_section downloads_ini ["Networks"]
   "Networks options"
 let network_section = file_section downloads_ini ["Network Config"]
@@ -417,7 +417,8 @@ let other_section = file_section downloads_ini ["Other"]
 let current_section = main_section
 
 let global_login = define_option current_section ["client_name"]
-    "small name of client" string_option (new_name ())
+  "small name of client"
+    string_option (new_name ())
 
 
 
@@ -431,13 +432,14 @@ let global_login = define_option current_section ["client_name"]
 let current_section = interfaces_section
 
 let allowed_ips = define_option current_section ["allowed_ips"]
-    ~desc: "Allowed IPs"
+  ~desc: "Allowed IPs"
   "list of IP address allowed to connect to the core via telnet/GUI/WEB
-for internal command set: list separated by spaces
-example for internal command: set allowed_ips \"127.0.0.0/8 192.168.1.2\"
-or for editing the ini-file: list separated by semi-colon
-example for ini-file: allowed_ips = [ \"127.0.0.0/8\"; \"192.168.1.2\";]
-CIDR and range notations are supported: ie use 192.168.0.0/24 or 192.168.0.0-192.168.0.255 for 192.168.0.*"
+  for internal command set: list separated by spaces
+  example for internal command: set allowed_ips \"127.0.0.0/8 192.168.1.2\"
+  or for editing the ini-file: list separated by semi-colon
+  example for ini-file: allowed_ips = [ \"127.0.0.0/8\"; \"192.168.1.2\";]
+  CIDR and range notations are supported: ie use 192.168.0.0/24
+  or 192.168.0.0-192.168.0.255 for 192.168.0.*"
     ip_range_list_option [ Ip.RangeSingleIp Ip.localhost ]
 
 let allowed_ips_set = ref Ip_set.BL_Empty
@@ -469,53 +471,55 @@ let _ =
     allowed_ips_set := (Ip_set.of_list !!allowed_ips))
 
 
-let gui_port =
-  define_option current_section ["gui_port"]
-    ~desc: "The port to connect the GUI"
-  "port for Graphical Interfaces" int_option 4001
+let gui_port = define_option current_section ["gui_port"]
+  ~desc: "The port to connect the GUI"
+  "port for Graphical Interfaces"
+    int_option 4001
 
-let gift_port =
-  define_option current_section ["gift_port"]
-    ~desc: "The port to connect for GiFT GUIs."
+let gift_port = define_option current_section ["gift_port"]
+  ~desc: "The port to connect for GiFT GUIs."
   "port for GiFT Graphical Interfaces interaction. It was 1213, but the default is
-now 0 for disabled, because it does not check for a password." int_option 0
+  now 0 for disabled, because it does not check for a password." 
+    int_option 0
 
-let http_port =
-  define_option current_section ["http_port"]
-    ~desc: "The port to connect via HTTP"
-  "The port used to connect to your client with a WEB browser" int_option 4080
+let http_port = define_option current_section ["http_port"]
+  ~desc: "The port to connect via HTTP"
+  "The port used to connect to your client with a WEB browser"
+    int_option 4080
 
 let telnet_port = define_option current_section ["telnet_port"]
-    ~desc: "The port to connect via telnet"
-  "port for user interaction" int_option 4000
+  ~desc: "The port to connect via telnet"
+  "port for user interaction"
+    int_option 4000
 
 let http_bind_addr = define_expert_option current_section ["http_bind_addr"]
-    "The IP address used to bind the http server"
+  "The IP address used to bind the http server"
     Ip.option (Ip.any)
 
 let gui_bind_addr = define_expert_option current_section ["gui_bind_addr"]
-    "The IP address used to bind the gui server"
+  "The IP address used to bind the gui server"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
 let telnet_bind_addr = define_expert_option current_section ["telnet_bind_addr"]
-    "The IP address used to bind the telnet server"
+  "The IP address used to bind the telnet server"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
-let print_all_sources =
-  define_expert_option current_section ["print_all_sources"] "Should *all* sources for a file be shown on HTML/telnet vd <num>" bool_option true
+let print_all_sources = define_expert_option current_section ["print_all_sources"] 
+  "Should *all* sources for a file be shown on HTML/telnet vd <num>"
+    bool_option true
 
-let improved_telnet =
-  define_expert_option current_section ["improved_telnet"] "Improved telnet interface" bool_option true
+let improved_telnet = define_expert_option current_section ["improved_telnet"]
+  "Improved telnet interface"
+    bool_option true
 
-let alias_commands =
-  define_option current_section ["alias_commands"]
+let alias_commands = define_option current_section ["alias_commands"]
   "Aliases to commands. The alias (fist string) has to be
-whitespaceless, the outcome of the alias (second string)
-may have spaces (put it in quotation then)."
-  (list_option (tuple2_option (string_option, string_option)))
-  [ "quit", "q";
-    "exit", "q";
-  ]
+  whitespaceless, the outcome of the alias (second string)
+  may have spaces (put it in quotation then)."
+    (list_option (tuple2_option (string_option, string_option)))
+    [ "quit", "q";
+      "exit", "q";
+    ]
 
 let verbosity = define_expert_option current_section ["verbosity"]
   "A space-separated list of keywords. Each keyword triggers
@@ -545,9 +549,10 @@ let verbosity = define_expert_option current_section ["verbosity"]
   hs : http_server messages
   act : debug activity
   bw : debug bandwidth
-  unexp : debug unexpected messages
-"
+  unexp : debug unexpected messages"
     string_option ""
+
+
 
 
 (*************************************************************************)
@@ -561,28 +566,29 @@ let current_section = bandwidth_section
 let max_hard_upload_rate = define_option current_section ["max_hard_upload_rate"]
   "The maximal upload rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
-control and data messages." int_option 10
+  control and data messages."
+    int_option 10
 
 let max_hard_download_rate = define_option current_section ["max_hard_download_rate"]
   "The maximal download rate you can tolerate on your link in kBytes/s (0 = no limit)
   The limit will apply on all your connections (clients and servers) and both
-control and data messages." int_option 50
+  control and data messages."
+    int_option 50
 
-let max_opened_connections = define_option current_section
-    ["max_opened_connections"] "Maximal number of opened connections"
-  int_option 200
+let max_opened_connections = define_option current_section ["max_opened_connections"]
+  "Maximal number of opened connections"
+    int_option 200
 
-let max_indirect_connections = define_option current_section
-    ["max_indirect_connections"]
+let max_indirect_connections = define_option current_section ["max_indirect_connections"]
   "Amount of indirect connections in percent (min 30, max 70) of max_opened_connections"
-  int_option 30
+    int_option 30
 
 let max_upload_slots = define_option current_section ["max_upload_slots"]
-    "How many slots can be used for upload"
+  "How many slots can be used for upload"
     int_option 5
 
 let friends_upload_slot = define_option current_section ["friends_upload_slot"]
-    "Set aside a single reserved slot to upload to friends"
+  "Set aside a single reserved slot to upload to friends"
     bool_option true
 
 let small_files_slot_limit = define_option current_section ["small_files_slot_limit"]
@@ -590,32 +596,30 @@ let small_files_slot_limit = define_option current_section ["small_files_slot_li
     int64_option 10240L
 
 let dynamic_slots = define_option current_section ["dynamic_slots"]
-    "Set this to true if you want to have dynamic upload slot allocation (experimental)" bool_option false
+  "Set this to true if you want to have dynamic upload slot allocation (experimental)"
+    bool_option false
 
-let max_connections_per_second = define_option current_section
-    ["max_connections_per_second"]
+let max_connections_per_second = define_option current_section ["max_connections_per_second"]
   "Maximal number of connections that can be opened per second"
-  int_option 5
+    int_option 5
 
-let loop_delay = define_expert_option current_section
-  ["loop_delay"]
-"The delay in milliseconds to wait in the event loop. Can be decreased to
-increase the bandwidth usage, or increased to lower the CPU usage."
-  int_option 20
+let loop_delay = define_expert_option current_section ["loop_delay"]
+  "The delay in milliseconds to wait in the event loop. Can be decreased to
+  increase the bandwidth usage, or increased to lower the CPU usage."
+    int_option 20
 
 let nolimit_ips = define_option current_section ["nolimit_ips"]
-    ~desc: "No-limit IPs"
+  ~desc: "No-limit IPs"
   "list of IP addresses allowed to connect to the core with no limit on
-upload/download and upload slots.  List separated by spaces, wildcard=255
-ie: use 192.168.0.255 for 192.168.0.* "
+  upload/download and upload slots.  List separated by spaces, wildcard=255
+  ie: use 192.168.0.255 for 192.168.0.* "
     ip_list_option [Ip.localhost]
 
-let copy_read_buffer = define_option current_section
-    ["copy_read_buffer"]
+let copy_read_buffer = define_option current_section ["copy_read_buffer"]
   "This option enables MLdonkey to always read as much data as possible
   from a channel, but use more CPU as it must then copy the data in the
-    channel buffer."
-  bool_option true
+  channel buffer."
+    bool_option true
 
 
 
@@ -628,71 +632,58 @@ let copy_read_buffer = define_option current_section
 
 let current_section = networks_section
 
-let enable_overnet = define_option current_section
-    ["enable_overnet"]
+let enable_overnet = define_option current_section ["enable_overnet"]
   "Set to true if you also want mldonkey to run as an overnet client
-   (enable_donkey must be true)"
+  (enable_donkey must be true)"
     bool_option false
 
-let enable_kademlia = define_option current_section
-    ["enable_kademlia"]
+let enable_kademlia = define_option current_section ["enable_kademlia"]
   "Set to true if you also want mldonkey to run as an kademlia client
-   (enable_donkey must be true, and only experimental)"
+  (enable_donkey must be true, and only experimental)"
     bool_option false
 
-let enable_servers = define_option current_section
-    ["enable_servers"]
+let enable_servers = define_option current_section ["enable_servers"]
   "Set to true if you want mldonkey to connect to edonkey servers
-   (enable_donkey must be true, and only experimental)"
+  (enable_donkey must be true, and only experimental)"
     bool_option true
 
-let enable_bittorrent = define_option current_section
-    ["enable_bittorrent"]
+let enable_bittorrent = define_option current_section ["enable_bittorrent"]
   "Set to true if you also want mldonkey to run as an Bittorrent client"
     bool_option false
 
-let enable_donkey = define_option current_section
-    ["enable_donkey"]
+let enable_donkey = define_option current_section ["enable_donkey"]
   "Set to true if you also want mldonkey to run as a donkey client"
     bool_option false
 
-let enable_opennap = define_option current_section
-    ["enable_opennap"]
+let enable_opennap = define_option current_section ["enable_opennap"]
   "Set to true if you also want mldonkey to run as a napster client (experimental)"
     bool_option false
 
-let enable_soulseek = define_option current_section
-    ["enable_soulseek"]
+let enable_soulseek = define_option current_section ["enable_soulseek"]
   "Set to true if you also want mldonkey to run as a soulseek client (experimental)"
     bool_option false
 
-let enable_gnutella = define_option current_section
-    ["enable_gnutella"]
+let enable_gnutella = define_option current_section ["enable_gnutella"]
   "Set to true if you also want mldonkey to run as a gnutella1 sub node (experimental)"
     bool_option false
 
-let enable_gnutella2 = define_option current_section
-    ["enable_gnutella2"]
+let enable_gnutella2 = define_option current_section ["enable_gnutella2"]
   "Set to true if you also want mldonkey to run as a gnutella2 sub node (experimental)"
     bool_option false
 
-let enable_fasttrack = define_option current_section
-    ["enable_fasttrack"]
+let enable_fasttrack = define_option current_section ["enable_fasttrack"]
   "Set to true if you also want mldonkey to run as a Fasttrack sub node (experimental)"
     bool_option false
 
-let enable_directconnect = define_option current_section
-    ["enable_directconnect"]
+let enable_directconnect = define_option current_section ["enable_directconnect"]
   "Set to true if you also want mldonkey to run as a direct-connect node (experimental)"
     bool_option false
 
-let enable_openft = define_expert_option current_section
-    ["enable_openft"]
+let enable_openft = define_expert_option current_section ["enable_openft"]
   "Set to true if you also want mldonkey to run as a OpenFT sub node (experimental)"
     bool_option false
 
-let enable_fileTP = define_option current_section
-    ["enable_fileTP"]
+let enable_fileTP = define_option current_section ["enable_fileTP"]
   "Set to true if you also want mldonkey to download HTTP files (experimental)"
     bool_option true
 
@@ -707,180 +698,215 @@ let enable_fileTP = define_option current_section
 
 let current_section = html_section
 
-let html_mods = define_expert_option current_section
-    ["html_mods"] "Whether to use the modified WEB interface" bool_option true
+let html_mods = define_expert_option current_section ["html_mods"]
+  "Whether to use the modified WEB interface"
+    bool_option true
 
-let html_mods_style = define_expert_option current_section
-    ["html_mods_style"] "Which html_mods style to use (set with html_mods_style command)" int_option 0
+let html_mods_style = define_expert_option current_section ["html_mods_style"]
+  "Which html_mods style to use (set with html_mods_style command)"
+    int_option 0
 
-let html_mods_human_readable = define_expert_option current_section
-    ["html_mods_human_readable"] "Whether to use human readable GMk number format" bool_option true
+let html_mods_human_readable = define_expert_option current_section ["html_mods_human_readable"]
+  "Whether to use human readable GMk number format"
+    bool_option true
 
-let html_mods_use_relative_availability = define_expert_option current_section
-    ["html_mods_use_relative_availability"] "Whether to use relative availability in the WEB interface" bool_option true
+let html_mods_use_relative_availability = define_expert_option current_section ["html_mods_use_relative_availability"]
+  "Whether to use relative availability in the WEB interface"
+    bool_option true
 
-let html_mods_vd_network = define_expert_option current_section
-    ["html_mods_vd_network"] "Whether to display the Net column in vd output" bool_option true
+let html_mods_vd_network = define_expert_option current_section ["html_mods_vd_network"]
+  "Whether to display the Net column in vd output"
+    bool_option true
 
-let html_mods_vd_active_sources = define_expert_option current_section
-    ["html_mods_vd_active_sources"] "Whether to display the Active Sources column in vd output" bool_option true
+let html_mods_vd_active_sources = define_expert_option current_section ["html_mods_vd_active_sources"]
+  "Whether to display the Active Sources column in vd output"
+    bool_option true
 
-let html_mods_vd_age = define_expert_option current_section
-    ["html_mods_vd_age"] "Whether to display the Age column in vd output" bool_option true
+let html_mods_vd_age = define_expert_option current_section ["html_mods_vd_age"]
+  "Whether to display the Age column in vd output"
+    bool_option true
 
-let html_mods_vd_gfx = define_expert_option current_section
-    ["html_mods_vd_gfx"] "Show graph in vd output" bool_option true
+let html_mods_vd_gfx = define_expert_option current_section ["html_mods_vd_gfx"]
+  "Show graph in vd output"
+    bool_option true
 
-let html_mods_vd_gfx_remove = define_expert_option current_section
-    ["html_mods_vd_gfx_remove"] "Remove graph files on core shutdown" bool_option false
-
-let html_mods_vd_gfx_fill = define_expert_option current_section
-    ["html_mods_vd_gfx_fill"] "Fill graph in vd output" bool_option true
-
-let html_mods_vd_gfx_split = define_expert_option current_section
-    ["html_mods_vd_gfx_split"] "Split download and upload graph in vd output"
+let html_mods_vd_gfx_remove = define_expert_option current_section ["html_mods_vd_gfx_remove"]
+  "Remove graph files on core shutdown"
     bool_option false
 
-let html_mods_vd_gfx_stack = define_expert_option current_section
-    ["html_mods_vd_gfx_stack"] "Stacked download and upload graph"
+let html_mods_vd_gfx_fill = define_expert_option current_section ["html_mods_vd_gfx_fill"]
+  "Fill graph in vd output"
     bool_option true
 
-let html_mods_vd_gfx_flip = define_expert_option current_section
-    ["html_mods_vd_gfx_flip"] "Flip up/side graph position in vd output"
+let html_mods_vd_gfx_split = define_expert_option current_section ["html_mods_vd_gfx_split"]
+  "Split download and upload graph in vd output"
+    bool_option false
+
+let html_mods_vd_gfx_stack = define_expert_option current_section ["html_mods_vd_gfx_stack"]
+  "Stacked download and upload graph"
     bool_option true
 
-let html_mods_vd_gfx_mean = define_expert_option current_section
-    ["html_mods_vd_gfx_mean"] "Show mean line on graph in vd output"
+let html_mods_vd_gfx_flip = define_expert_option current_section ["html_mods_vd_gfx_flip"]
+  "Flip up/side graph position in vd output"
     bool_option true
 
-let html_mods_vd_gfx_transparent = define_expert_option current_section
-    ["html_mods_vd_gfx_transparent"] "Show transparent graph in vd output (only for png)"
+let html_mods_vd_gfx_mean = define_expert_option current_section ["html_mods_vd_gfx_mean"]
+  "Show mean line on graph in vd output"
     bool_option true
 
-let html_mods_vd_gfx_png = define_expert_option current_section
-    ["html_mods_vd_gfx_png"] "Draw graph as png if true, else draw as jpg in vd output"
+let html_mods_vd_gfx_transparent = define_expert_option current_section ["html_mods_vd_gfx_transparent"]
+  "Show transparent graph in vd output (only for png)"
     bool_option true
 
-let html_mods_vd_gfx_h = define_expert_option current_section
-    ["html_mods_vd_gfx_h"] "Show hourly graph in vd output" bool_option true
+let html_mods_vd_gfx_png = define_expert_option current_section ["html_mods_vd_gfx_png"]
+  "Draw graph as png if true, else draw as jpg in vd output"
+    bool_option true
 
-let html_mods_vd_gfx_x_size = define_expert_option current_section
-    ["html_mods_vd_gfx_x_size"] "Graph x size in vd output ( 320 < x < 3600 )"
+let html_mods_vd_gfx_h = define_expert_option current_section ["html_mods_vd_gfx_h"]
+  "Show hourly graph in vd output"
+    bool_option true
+
+let html_mods_vd_gfx_x_size = define_expert_option current_section ["html_mods_vd_gfx_x_size"]
+  "Graph x size in vd output ( 320 < x < 3600 )"
     int_option 630
 
-let html_mods_vd_gfx_y_size = define_expert_option current_section
-    ["html_mods_vd_gfx_y_size"] "Graph y size in vd output ( 200 < y < 1200 )"
+let html_mods_vd_gfx_y_size = define_expert_option current_section ["html_mods_vd_gfx_y_size"]
+  "Graph y size in vd output ( 200 < y < 1200 )"
     int_option 200
 
-let html_mods_vd_gfx_tag = define_expert_option current_section
-    ["html_mods_vd_gfx_tag"] "Draw tag graph" bool_option false
+let html_mods_vd_gfx_tag = define_expert_option current_section ["html_mods_vd_gfx_tag"]
+  "Draw tag graph"
+    bool_option false
 
-let html_mods_vd_gfx_tag_use_source = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_use_source"] "Use tag source image " bool_option false
+let html_mods_vd_gfx_tag_use_source = define_expert_option current_section ["html_mods_vd_gfx_tag_use_source"]
+  "Use tag source image "
+    bool_option false
 
-let html_mods_vd_gfx_tag_source = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_source"] "Tag source image name" string_option "image"
+let html_mods_vd_gfx_tag_source = define_expert_option current_section ["html_mods_vd_gfx_tag_source"]
+  "Tag source image name"
+    string_option "image"
 
-let html_mods_vd_gfx_tag_png = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_png"] "Draw tag as png if true, else draw as jpg in vd output"
+let html_mods_vd_gfx_tag_png = define_expert_option current_section ["html_mods_vd_gfx_tag_png"]
+  "Draw tag as png if true, else draw as jpg in vd output"
     bool_option true
 
-let html_mods_vd_gfx_tag_enable_title = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_enable_title"] "Enable tag graph title" bool_option true
+let html_mods_vd_gfx_tag_enable_title = define_expert_option current_section ["html_mods_vd_gfx_tag_enable_title"]
+  "Enable tag graph title"
+    bool_option true
 
-let html_mods_vd_gfx_tag_title = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_title"] "Tag graph title" string_option "MLNet traffic"
+let html_mods_vd_gfx_tag_title = define_expert_option current_section ["html_mods_vd_gfx_tag_title"]
+  "Tag graph title"
+    string_option "MLNet traffic"
 
-let html_mods_vd_gfx_tag_title_x_pos = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_title_x_pos"] "Tag graph title x pos in vd output
-    " int_option 4
+let html_mods_vd_gfx_tag_title_x_pos = define_expert_option current_section ["html_mods_vd_gfx_tag_title_x_pos"]
+  "Tag graph title x pos in vd output"
+    int_option 4
 
-let html_mods_vd_gfx_tag_title_y_pos = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_title_y_pos"] "Tag graph title y pos in vd output "
+let html_mods_vd_gfx_tag_title_y_pos = define_expert_option current_section ["html_mods_vd_gfx_tag_title_y_pos"]
+  "Tag graph title y pos in vd output"
     int_option 1
 
-let html_mods_vd_gfx_tag_dl_x_pos = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_dl_x_pos"] "Tag graph download x pos in vd output "
+let html_mods_vd_gfx_tag_dl_x_pos = define_expert_option current_section ["html_mods_vd_gfx_tag_dl_x_pos"]
+  "Tag graph download x pos in vd output"
     int_option 4
 
-let html_mods_vd_gfx_tag_dl_y_pos = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_dl_y_pos"] "Tag graph download y pos in vd output "
+let html_mods_vd_gfx_tag_dl_y_pos = define_expert_option current_section ["html_mods_vd_gfx_tag_dl_y_pos"]
+  "Tag graph download y pos in vd output"
     int_option 17
 
-let html_mods_vd_gfx_tag_ul_x_pos = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_ul_x_pos"] "Tag graph upload x pos in vd output "
+let html_mods_vd_gfx_tag_ul_x_pos = define_expert_option current_section ["html_mods_vd_gfx_tag_ul_x_pos"]
+  "Tag graph upload x pos in vd output"
     int_option 4
 
-let html_mods_vd_gfx_tag_ul_y_pos = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_ul_y_pos"] "Tag graph upload y pos in vd output "
+let html_mods_vd_gfx_tag_ul_y_pos = define_expert_option current_section ["html_mods_vd_gfx_tag_ul_y_pos"]
+  "Tag graph upload y pos in vd output"
     int_option 33
 
-let html_mods_vd_gfx_tag_x_size = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_x_size"] "Tag graph x size in vd output ( 130 < x < 3600 )"
+let html_mods_vd_gfx_tag_x_size = define_expert_option current_section ["html_mods_vd_gfx_tag_x_size"]
+  "Tag graph x size in vd output ( 130 < x < 3600 )"
     int_option 80
 
-let html_mods_vd_gfx_tag_y_size = define_expert_option current_section
-    ["html_mods_vd_gfx_tag_y_size"] "Tag graph y size in vd output ( 50 < x < 1200 )"
+let html_mods_vd_gfx_tag_y_size = define_expert_option current_section ["html_mods_vd_gfx_tag_y_size"]
+  "Tag graph y size in vd output ( 50 < x < 1200 )"
     int_option 50
 
-let html_mods_vd_last = define_expert_option current_section
-    ["html_mods_vd_last"] "Whether to display the Last column in vd output" bool_option true
+let html_mods_vd_last = define_expert_option current_section ["html_mods_vd_last"]
+  "Whether to display the Last column in vd output"
+    bool_option true
 
-let html_mods_vd_prio = define_expert_option current_section
-    ["html_mods_vd_prio"] "Whether to display the Priority column in vd output" bool_option true
+let html_mods_vd_prio = define_expert_option current_section ["html_mods_vd_prio"]
+  "Whether to display the Priority column in vd output"
+    bool_option true
 
-let html_vd_barheight = define_expert_option current_section
-    ["html_vd_barheight"] "Change height of download indicator bar in vd output" int_option 2
+let html_vd_barheight = define_expert_option current_section ["html_vd_barheight"]
+  "Change height of download indicator bar in vd output"
+    int_option 2
 
-let html_vd_chunk_graph = define_expert_option current_section
-    ["html_vd_chunk_graph"] "Whether to display chunks list as graph or text in vd output" bool_option true
+let html_vd_chunk_graph = define_expert_option current_section ["html_vd_chunk_graph"]
+  "Whether to display chunks list as graph or text in vd output"
+    bool_option true
 
-let html_vd_chunk_graph_style = define_expert_option current_section
-    ["html_vd_chunk_graph_style"] "Change style of chunk graph" int_option 0
+let html_vd_chunk_graph_style = define_expert_option current_section ["html_vd_chunk_graph_style"]
+  "Change style of chunk graph"
+    int_option 0
 
-let html_vd_chunk_graph_max_width = define_expert_option current_section
-    ["html_vd_chunk_graph_max_width"] "Change max width of chunk graph" int_option 200
+let html_vd_chunk_graph_max_width = define_expert_option current_section ["html_vd_chunk_graph_max_width"]
+  "Change max width of chunk graph"
+    int_option 200
 
-let html_mods_show_pending = define_expert_option current_section
-    ["html_mods_show_pending"] "Whether to display the pending slots in uploaders command" bool_option true
+let html_mods_show_pending = define_expert_option current_section ["html_mods_show_pending"]
+  "Whether to display the pending slots in uploaders command"
+    bool_option true
 
-let html_mods_load_message_file = define_expert_option current_section
-    ["html_mods_load_message_file"] "Whether to load the mldonkey_messages.ini file (false=use internal settings)" bool_option false
+let html_mods_load_message_file = define_expert_option current_section ["html_mods_load_message_file"]
+  "Whether to load the mldonkey_messages.ini file (false=use internal settings)"
+    bool_option false
 
-let html_mods_max_messages = define_expert_option current_section
-    ["html_mods_max_messages"] "Maximum chat messages to log in memory" int_option 50
+let html_mods_max_messages = define_expert_option current_section ["html_mods_max_messages"]
+  "Maximum chat messages to log in memory"
+    int_option 50
 
-let html_mods_bw_refresh_delay = define_option current_section
-    ["html_mods_bw_refresh_delay"] "bw_stats refresh delay (seconds)" int_option 11
+let html_mods_bw_refresh_delay = define_option current_section ["html_mods_bw_refresh_delay"]
+  "bw_stats refresh delay (seconds)"
+    int_option 11
 
-let html_mods_theme = define_option current_section
-    ["html_mods_theme"] "html_mods_theme to use (located in relative html_themes/<theme_name> directory
-     leave blank to use internal theme"
+let html_mods_theme = define_option current_section ["html_mods_theme"]
+  "html_mods_theme to use (located in relative html_themes/<theme_name> directory
+  leave blank to use internal theme"
     string_option ""
 
 let use_html_mods o =
   o.CommonTypes.conn_output = CommonTypes.HTML && !!html_mods
 
-let html_checkbox_vd_file_list = define_expert_option current_section
-    ["html_checkbox_vd_file_list"] "Whether to use checkboxes in the WEB interface for download list" bool_option true
+let html_checkbox_vd_file_list = define_expert_option current_section ["html_checkbox_vd_file_list"]
+  "Whether to use checkboxes in the WEB interface for download list"
+    bool_option true
 
-let html_checkbox_search_file_list = define_expert_option current_section
-    ["html_checkbox_search_file_list"] "Whether to use checkboxes in the WEB interface for search result list" bool_option false
+let html_checkbox_search_file_list = define_expert_option current_section ["html_checkbox_search_file_list"]
+  "Whether to use checkboxes in the WEB interface for search result list"
+    bool_option false
 
-let html_use_gzip = define_expert_option current_section
-    ["html_use_gzip"] "Use gzip compression on web pages" bool_option false
+let html_use_gzip = define_expert_option current_section ["html_use_gzip"]
+  "Use gzip compression on web pages"
+    bool_option false
 
-let html_mods_use_js_tooltips = define_expert_option current_section
-    ["html_mods_use_js_tooltips"] "Whether to use the fancy javascript tooltips or plain html-title" bool_option true
+let html_mods_use_js_tooltips = define_expert_option current_section ["html_mods_use_js_tooltips"]
+  "Whether to use the fancy javascript tooltips or plain html-title"
+    bool_option true
 
-let html_mods_js_tooltips_wait = define_expert_option current_section
-    ["html_mods_js_tooltips_wait"] "How long to wait before displaying the tooltips" int_option 0
+let html_mods_js_tooltips_wait = define_expert_option current_section ["html_mods_js_tooltips_wait"]
+  "How long to wait before displaying the tooltips"
+    int_option 0
 
-let html_mods_js_tooltips_timeout = define_expert_option current_section
-    ["html_mods_js_tooltips_timeout"] "How long to display the tooltips" int_option 100000
+let html_mods_js_tooltips_timeout = define_expert_option current_section ["html_mods_js_tooltips_timeout"]
+  "How long to display the tooltips"
+    int_option 100000
     
-let html_mods_use_js_helptext = define_expert_option current_section
-    ["html_mods_use_js_helptext"] "Use javascript to display option help text as js popup (true=use js, false=use html tables)" bool_option true
+let html_mods_use_js_helptext = define_expert_option current_section ["html_mods_use_js_helptext"]
+  "Use javascript to display option help text as js popup (true=use js, false=use html tables)"
+    bool_option true
+
+
 
 
 (*************************************************************************)
@@ -892,16 +918,16 @@ let html_mods_use_js_helptext = define_expert_option current_section
 let current_section = network_section
 
 let set_client_ip = define_option current_section ["client_ip"]
-    "The last IP address used for this client" Ip.option
+  "The last IP address used for this client" Ip.option
     (Ip.my ())
 
 let force_client_ip = define_option current_section ["force_client_ip"]
-    "Use the IP specified by 'client_ip' instead of trying to determine it
-    ourself. Don't set this option to true if you have dynamic IP."
+  "Use the IP specified by 'client_ip' instead of trying to determine it
+  ourself. Don't set this option to true if you have dynamic IP."
     bool_option false
 
 let user_agent = define_option current_section ["user_agent"]
-    "User agent string (default = \"default\")"
+  "User agent string (default = \"default\")"
     string_option "default"
 
 let get_user_agent () = 
@@ -910,72 +936,71 @@ let get_user_agent () =
   else !!user_agent
 
 let web_infos = define_option current_section ["web_infos"]
-    "A list of lines to download on the WEB: each line has
-    the format: (kind, period, url), where kind is either
-    'server.met' for a server.met file (also in gz/bz2/zip format)
-                 containing ed2k server, or
-    'comments.met' for a file of comments, or
-    'guarding.p2p' for a blocklist file (also in gz/bz2/zip format), or
-    'ocl' for file in the ocl format containing overnet peers, or
-    'contact.dat' for an contact.dat file containing overnet peers,
-    'nodes.gzip' for a fasttrack nodes.gzip,
-    and period is the period between updates (in hours),
-    a period of zero means the file is only loaded once on startup,
-    and url is the url of the file to download.
-    IMPORTANT: Put the URL and the kind between quotes.
-    EXAMPLE:
- web_infos = [
-  (\"server.met\", 0, \"http://www.gruk.org/server.met.gz\");
-  (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/level1.gz\");
-  (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
-  (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
- ]
+  "A list of lines to download on the WEB: each line has
+  the format: (kind, period, url), where kind is either
+  'server.met' for a server.met file (also in gz/bz2/zip format)
+               containing ed2k server, or
+  'comments.met' for a file of comments, or
+  'guarding.p2p' for a blocklist file (also in gz/bz2/zip format), or
+  'ocl' for file in the ocl format containing overnet peers, or
+  'contact.dat' for an contact.dat file containing overnet peers,
+  'nodes.gzip' for a fasttrack nodes.gzip,
+  and period is the period between updates (in hours),
+  a period of zero means the file is only loaded once on startup,
+  and url is the url of the file to download.
+  IMPORTANT: Put the URL and the kind between quotes.
+  EXAMPLE:
+    web_infos = [
+    (\"server.met\", 0, \"http://www.gruk.org/server.met.gz\");
+    (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/level1.gz\");
+    (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
+    (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
+    ]
   "
-    (list_option (
-      tuple3_option (string_option, int_option, string_option)))
-  [
-    ("guarding.p2p", 96,
-      "http://www.bluetack.co.uk/config/level1.gz");
-    ("server.met", 0,
-      "http://www.gruk.org/server.met.gz");
-    ("contact.dat", 168,
-      "http://download.overnet.org/contact.dat");
-    ("geoip.dat", 0,
-      "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
-    ("nodes.gzip", 0,
-      "http://update.kceasy.com/update/fasttrack/nodes.gzip");
+    (list_option (tuple3_option (string_option, int_option, string_option)))
+    [
+      ("guarding.p2p", 96,
+        "http://www.bluetack.co.uk/config/level1.gz");
+      ("server.met", 0,
+        "http://www.gruk.org/server.met.gz");
+      ("contact.dat", 168,
+        "http://download.overnet.org/contact.dat");
+      ("geoip.dat", 0,
+        "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
+      ("nodes.gzip", 0,
+        "http://update.kceasy.com/update/fasttrack/nodes.gzip");
 (*
     ("slsk_boot", 0,
       "http://www.slsknet.org/slskinfo2");
 *)
-  ]
+    ]
 
 let rss_feeds = define_expert_option current_section ["rss_feeds"]
-    "URLs of RSS feeds"
+  "URLs of RSS feeds"
     (list_option Url.option) []
 
 let ip_blocking_descriptions = define_expert_option current_section ["ip_blocking_descriptions"]
-    "Keep IP blocking ranges descriptions in memory"
+  "Keep IP blocking ranges descriptions in memory"
     bool_option false
 
 let ip_blocking = define_expert_option current_section ["ip_blocking"]
-    "IP blocking list filename (peerguardian format), can also be in gz/bz2/zip format
+  "IP blocking list filename (peerguardian format), can also be in gz/bz2/zip format
   Zip files must contain either a file named guarding.p2p or guarding_full.p2p."
     string_option ""
 
 let ip_blocking_countries = define_expert_option current_section ["ip_blocking_countries"]
-    "List of countries to block connections from/to (requires Geoip).
+  "List of countries to block connections from/to (requires Geoip).
   Names are in ISO 3166 format, see http://www.maxmind.com/app/iso3166
   You can also at your own risk use \"Unknown\" for IPs Geoip won't recognize."
     country_list_option []
 
-let ip_blocking_countries_block = define_expert_option current_section
-   ["ip_blocking_countries_block"]
-    "false: use ip_blocking_countries as block list, all other countries are allowed
-  true: use ip_blocking_countries as allow list, all other countries are blocked" bool_option false
+let ip_blocking_countries_block = define_expert_option current_section ["ip_blocking_countries_block"]
+  "false: use ip_blocking_countries as block list, all other countries are allowed
+  true: use ip_blocking_countries as allow list, all other countries are blocked"
+    bool_option false
 
 let geoip_dat = define_expert_option current_section ["geoip_dat"]
-    "Location of GeoIP.dat (Get one from http://www.maxmind.com/download/geoip/database/)"
+  "Location of GeoIP.dat (Get one from http://www.maxmind.com/download/geoip/database/)"
     string_option ""
 
 let _ =
@@ -985,21 +1010,20 @@ let _ =
 
 let tcpip_packet_size = define_expert_option current_section ["tcpip_packet_size"]
   "The size of the header of a TCP/IP packet on your connection (ppp adds
-    14 bytes sometimes, so modify to take that into account)"
+  14 bytes sometimes, so modify to take that into account)"
     int_option 40
 
 let mtu_packet_size = define_expert_option current_section ["mtu_packet_size"]
   "The size of the MTU of a TCP/IP packet on your connection"
     int_option 1500
 
-let packet_frame_size = define_expert_option current_section
-    ["packet_frame_size"]
+let packet_frame_size = define_expert_option current_section ["packet_frame_size"]
   "The size of the frame packet on your network (on my cable link, it is 250)"
     int_option 250
 
 let minimal_packet_size = define_expert_option current_section ["minimal_packet_size"]
   "The size of the minimal packet you want mldonkey to send when data is
-available on the connection"
+  available on the connection"
     int_option !TcpBufferedSocket.minimal_packet_size
 
 let socket_keepalive = define_expert_option current_section ["socket_keepalive"]
@@ -1008,19 +1032,23 @@ let socket_keepalive = define_expert_option current_section ["socket_keepalive"]
     bool_option !BasicSocket.socket_keepalive
 
 let referers = define_option current_section ["referers"]
-    "Cookies send with a http request (used for .torrent files and web_infos)"
+  "Cookies send with a http request (used for .torrent files and web_infos)"
     (list_option (tuple2_option (string_option, string_option))) [(".*suprnova.*", "http://www.suprnova.org/")]
 
 let cookies = define_option current_section ["cookies"]
-    "Cookies send with a http request (used for .torrent files and web_infos)"
+  "Cookies send with a http request (used for .torrent files and web_infos)"
     (list_option (tuple2_option (string_option, list_option (tuple2_option (string_option, string_option))))) []
 
 let http_proxy_server = define_option current_section ["http_proxy_server"]
-    "Direct HTTP queries to HTTP proxy" string_option ""
+  "Direct HTTP queries to HTTP proxy"
+    string_option ""
+
 let http_proxy_port = define_option current_section ["http_proxy_port"]
-    "Port of HTTP proxy" int_option 8080
+  "Port of HTTP proxy"
+    int_option 8080
+
 let http_proxy_tcp = define_option current_section ["http_proxy_tcp"]
-    "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)"
+  "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)"
     bool_option false
 
 
@@ -1040,7 +1068,7 @@ let smtp_server = define_option current_section ["smtp_server"]
 
 let smtp_port = define_option current_section ["smtp_port"]
   "The port to use on the mail server (default 25)"
-  int_option 25
+    int_option 25
 
 let mail = define_option current_section ["mail"]
   "Your e-mail if you want to receive mails when downloads are completed"
@@ -1048,14 +1076,15 @@ let mail = define_option current_section ["mail"]
 
 let add_mail_brackets = define_option current_section ["add_mail_brackets"]
   "Does your mail-server need <...> around addresses"
-  bool_option false
+    bool_option false
 
 let filename_in_subject = define_option current_section ["filename_in_subject"]
-    "Send filename in mail subject" bool_option true
+  "Send filename in mail subject"
+    bool_option true
 
 let url_in_mail = define_option current_section ["url_in_mail"]
   "Put a prefix for the filename here which shows up in the notification mail"
-  string_option ""
+    string_option ""
 
 
 
@@ -1068,91 +1097,67 @@ let url_in_mail = define_option current_section ["url_in_mail"]
 
 let current_section = download_section
 
-let auto_commit = define_option current_section
-    ["auto_commit"]
+let auto_commit = define_option current_section ["auto_commit"]
   "Set to false if you don't want mldonkey to automatically put completed files
-   in incoming directory"
+  in incoming directory"
     bool_option true
 
-let pause_new_downloads = define_option current_section
-    ["pause_new_downloads"]
-    "Set to true if you want all new downloads be paused immediatly
-     will be set to false on core start."
+let pause_new_downloads = define_option current_section ["pause_new_downloads"]
+  "Set to true if you want all new downloads be paused immediatly
+  will be set to false on core start."
     bool_option false
 
-  (*
-let commit_unverified_files = define_option current_section
-    ["commit_unverified_files"]
-  "Set to true if you want MLdonkey to commit files without verifying them completely"
-    bool_option false
-*)
-
-let emulate_sparsefiles = define_expert_option current_section
-    ["emulate_sparsefiles"]
+let emulate_sparsefiles = define_expert_option current_section ["emulate_sparsefiles"]
   "Set to true if you want MLdonkey to emulate sparse files on your disk.
   Files will use less space, but <preview> and <recover> won't work anymore.
   Works only on Edonkey plugin. EXPERIMENTAL."
     bool_option false
 
-let max_concurrent_downloads = define_option current_section
-    ["max_concurrent_downloads"]
+let max_concurrent_downloads = define_option current_section ["max_concurrent_downloads"]
   "The maximal number of files in Downloading state (other ones are Queued)"
     int_option 50
 
-let sources_per_chunk =
-  define_expert_option current_section ["sources_per_chunk"]
-    "How many sources to use to download each chunk"
+let sources_per_chunk = define_expert_option current_section ["sources_per_chunk"]
+  "How many sources to use to download each chunk"
     int_option 3
 
-let swarming_block_selection_algorithm =
-  define_expert_option current_section ["swarming_block_selection_algorithm"]
-    "What algorithm to use to select blocks (currently 1 or 2)"
+let swarming_block_selection_algorithm = define_expert_option current_section ["swarming_block_selection_algorithm"]
+  "What algorithm to use to select blocks (currently 1 or 2)"
     int_option 1
 
-let block_switching =
-  define_expert_option current_section ["block_switching"]
-    "Allows swarmer to switch a source to another block if current block is already totally selected by other sources"
+let block_switching = define_expert_option current_section ["block_switching"]
+  "Allows swarmer to switch a source to another block if current block is already
+  totally selected by other sources"
     bool_option true
-
-  (*
-let delete_original = define_option current_section ["delete_original"]
-  "Should MLdonkey delete the file downloaded when splitting has been succesful"
-    bool_option false
-    *)
 
 let max_recover_gap = define_option current_section ["max_recover_zeroes_gap"]
   "The maximal length of zero bytes between non-zero bytes in a file that
-should be interpreted as downloaded during a recovery"
+  should be interpreted as downloaded during a recovery"
     int64_option 16L
 
-let file_completed_cmd = define_option current_section
-    ["file_completed_cmd"] "A command that is called when a file is committed, does not work on MinGW.
-    Arguments are (kept for compatability):
-      $1 - temp file name, without path
-      $2 - file size
-      $3 - filename of the committed file
-    Also these environment variables can be used (prefered way):
-      $TEMPNAME  - temp file name, including path
-      $FILEID    - same as $1
-      $FILESIZE  - same as $2
-      $FILENAME  - same as $3
-      $FILEHASH  - internal hash
-      $DURATION  - download duration
-      $INCOMING  - directory used for commit
-      $NETWORK   - network used for downloading
-      $ED2K_HASH - ed2k hash if MD4 is known"
+let file_completed_cmd = define_option current_section ["file_completed_cmd"]
+  "A command that is called when a file is committed, does not work on MinGW.
+  Arguments are (kept for compatability):
+    $1 - temp file name, without path
+    $2 - file size
+    $3 - filename of the committed file
+  Also these environment variables can be used (prefered way):
+    $TEMPNAME  - temp file name, including path
+    $FILEID    - same as $1
+    $FILESIZE  - same as $2
+    $FILENAME  - same as $3
+    $FILEHASH  - internal hash
+    $DURATION  - download duration
+    $INCOMING  - directory used for commit
+    $NETWORK   - network used for downloading
+    $ED2K_HASH - ed2k hash if MD4 is known
+  "
     string_option ""
 
-let file_started_cmd = define_option current_section
-    ["file_started_cmd"]
+let file_started_cmd = define_option current_section ["file_started_cmd"]
   "The command which is called when a download is started. Arguments
-are '-file <num>'"
+  are '-file <num>'"
     string_option ""
-
-  (*
-  (Filename.concat bin_dir "mlprogress")
-*)
-
 
 
 
@@ -1167,29 +1172,31 @@ let current_section = startup_section
 let run_as_user = define_option current_section ["run_as_user"]
   "The login of the user you want mldonkey to run as, after the ports
   have been bound (can be use not to run with root priviledges when
-a port < 1024 is needed)" string_option ""
+  a port < 1024 is needed)"
+    string_option ""
 
 let run_as_useruid = define_option current_section ["run_as_useruid"]
   "The UID of the user (0=disabled) you want mldonkey to run as, after the ports
   have been bound (can be use not to run with root priviledges when
-a port < 1024 is needed)" int_option 0
-
+  a port < 1024 is needed)"
+    int_option 0
 
 let ask_for_gui = define_option current_section ["ask_for_gui"]
-    "Ask for GUI start"    bool_option false
+  "Ask for GUI start"
+    bool_option false
 
 let start_gui = define_option current_section ["start_gui"]
-    "Automatically Start the GUI" bool_option false
+  "Automatically Start the GUI"
+    bool_option false
 
-let recover_temp_on_startup = define_option current_section
-    ["recover_temp_on_startup"]
+let recover_temp_on_startup = define_option current_section ["recover_temp_on_startup"]
   "Should MLdonkey try to recover downloads of files in temp/ at startup"
     bool_option true
 
-let config_files_security_space = define_expert_option current_section
-    ["config_files_security_space"]
+let config_files_security_space = define_expert_option current_section ["config_files_security_space"]
   "How many megabytes should MLdonkey keep for saving configuration files."
     int_option 10
+
 
 
 
@@ -1202,49 +1209,51 @@ let config_files_security_space = define_expert_option current_section
 let current_section = path_section
 
 let temp_directory = define_option current_section ["temp_directory"]
-    "The directory where temporary files should be put"
+  "The directory where temporary files should be put"
     string_option "temp"
 
 let create_dir_mask = define_option current_section ["create_dir_mask"]
-    "New directories in incoming_directories are created with these rights"
+  "New directories in incoming_directories are created with these rights"
     string_option "755"
 
 let create_file_sparse = define_option current_section ["create_file_sparse"]
-    "Create new files as sparse, only valid on MinGW for files on NTFS drives"
+  "Create new files as sparse, only valid on MinGW for files on NTFS drives"
     bool_option true
 
 let hdd_temp_minfree = define_option current_section ["hdd_temp_minfree"]
-    "Mininum free space in MB on temp_directory, minimum 50" int_option 50
+  "Mininum free space in MB on temp_directory, minimum 50"
+    int_option 50
 
 let hdd_temp_stop_core = define_option current_section ["hdd_temp_stop_core"]
-    "If true core shuts down when free space on temp dir is below hdd_temp_minfree,
-    otherwise all downloads are paused and a warning email is sent."
+  "If true core shuts down when free space on temp dir is below hdd_temp_minfree,
+  otherwise all downloads are paused and a warning email is sent."
     bool_option false
 
 let hdd_coredir_minfree = define_option current_section ["hdd_coredir_minfree"]
-    "Mininum free space in MB on core directory, minimum 20" int_option 50
+  "Mininum free space in MB on core directory, minimum 20"
+    int_option 50
 
 let hdd_coredir_stop_core = define_option current_section ["hdd_coredir_stop_core"]
-    "If true core shuts down when free space on core dir is below hdd_coredir_minfree,
-    otherwise all downloads are paused and a warning email is sent."
+  "If true core shuts down when free space on core dir is below hdd_coredir_minfree,
+  otherwise all downloads are paused and a warning email is sent."
     bool_option true
 
 let hdd_send_warning_interval = define_option current_section ["hdd_send_warning_interval"]
-    "Send a warning mail each <interval> hours for each directory, 0 to deactivate mail warnings."
+  "Send a warning mail each <interval> hours for each directory, 0 to deactivate mail warnings."
     int_option 1
 
 let previewer = define_expert_option current_section ["previewer"]
   "Name of program used for preview (first arg is local filename, second arg
-    is name of file as searched on eDonkey" string_option
-  "mldonkey_previewer"
+  is name of file as searched on eDonkey"
+    string_option "mldonkey_previewer"
 
 let mldonkey_bin = define_expert_option current_section ["mldonkey_bin"]
-    "Directory where mldonkey binaries are installed"
+  "Directory where mldonkey binaries are installed"
     string_option bin_dir
 
 let mldonkey_gui = define_expert_option current_section ["mldonkey_gui"]
-    "Name of GUI to start" string_option
-    (Filename.concat bin_dir "mlgui")
+  "Name of GUI to start"
+    string_option (Filename.concat bin_dir "mlgui")
 
 
 
@@ -1257,31 +1266,32 @@ let mldonkey_gui = define_expert_option current_section ["mldonkey_gui"]
 
 let current_section = security_section
 
-let allowed_commands = define_option current_section
-    ["allowed_commands"]
+let allowed_commands = define_option current_section ["allowed_commands"]
   "Commands that you are allowed to be call from the interface. These
-commands should short, so that the core is not blocked more than necessary."
+  commands should short, so that the core is not blocked more than necessary."
     (list_option (tuple2_option (string_option, string_option)))
-  [ "df", "df";
-    "ls", "ls incoming";
-  ]
+    [ "df", "df";
+      "ls", "ls incoming";
+    ]
 
-let allow_any_command = define_option current_section
-    ["allow_any_command"]
+let allow_any_command = define_option current_section ["allow_any_command"]
   "Allow you to use any command with ! in the interface instead of only the
-ones in allowed_commands"
+  ones in allowed_commands"
     bool_option false
 
-let enable_user_config = define_option current_section
-    ["enable_user_config"]
+let enable_user_config = define_option current_section ["enable_user_config"]
   "Are all users allowed to change MLDonkey options?"
     bool_option true
 
 let allow_browse_share = define_option current_section ["allow_browse_share"]
-  "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" allow_browse_share_option 1
+  "Allow others to browse our share list (0: none, 1: friends only, 2: everyone"
+    allow_browse_share_option 1
 
 let messages_filter = define_option current_section ["messages_filter"]
-    "Regexp of messages to filter out, example: string1|string2|string3" string_option "Your client is connecting too fast"
+  "Regexp of messages to filter out, example: string1|string2|string3"
+    string_option "Your client is connecting too fast"
+
+
 
 
 (*************************************************************************)
@@ -1293,20 +1303,23 @@ let messages_filter = define_option current_section ["messages_filter"]
 let current_section = other_section
 
 let save_results = define_option current_section ["save_results"]
-    "(experimental)" int_option 0
+  "(experimental)" 
+    int_option 0
 
-let use_result_history = define_expert_option current_section ["use_file_history"] "keep seen files in history to allow local search (can be expensive in memory)" bool_option false
+let use_result_history = define_expert_option current_section ["use_file_history"]
+  "keep seen files in history to allow local search (can be expensive in memory)"
+    bool_option false
 
 let filters = define_option current_section ["filters"]
-    "filters on replies (replies will be kept)."
+  "filters on replies (replies will be kept)."
     string_list_option ""
 
 let buffer_writes = define_option current_section ["buffer_writes"]
-    "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
+  "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
     bool_option false
 
 let buffer_writes_delay = define_expert_option current_section ["buffer_writes_delay"]
-    "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
+  "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
     float_option 30.
 
 let buffer_writes_threshold = define_expert_option current_section ["buffer_writes_threshold"]
@@ -1314,37 +1327,29 @@ let buffer_writes_threshold = define_expert_option current_section ["buffer_writ
     int_option 1024
 
 let emule_mods_count = define_option current_section ["emule_mods_count"]
-    "build statistics about eMule mods"
+  "build statistics about eMule mods"
     bool_option false
 
 let emule_mods_showall = define_option current_section ["emule_mods_showall"]
-    "show all eMule mods in statistics"
+  "show all eMule mods in statistics"
     bool_option false
 
 let backup_options_delay = define_option current_section ["backup_options_delay"]
-    "How often (in hours) should a backup of the ini files be written into old_config.
+  "How often (in hours) should a backup of the ini files be written into old_config.
   A value of zero means that a backup is written only when the core shuts down."
     int_option 0
 
 let backup_options_generations = define_option current_section ["backup_options_generations"]
-    "Define the total number of options archives in old_config."
+  "Define the total number of options archives in old_config."
     int_option 10
 
 let backup_options_format = define_option current_section ["backup_options_format"]
-    "Define the format of the archive, zip or tar.gz are valid."
+  "Define the format of the archive, zip or tar.gz are valid."
     string_option "tar.gz"
 
 let shutdown_timeout = define_option current_section ["shutdown_timeout"]
-    "The maximum time in seconds to wait for networks to cleanly shutdown."
+  "The maximum time in seconds to wait for networks to cleanly shutdown."
     int_option 3
-
-  (*
-let password = define_option current_section ["password"]
-  "The password to access your client from the GUI (setting it disables
-  the command-line client)" string_option ""
-*)
-
-
 
 
 (*************************************************************************)
@@ -1367,59 +1372,64 @@ let utf8_to_value s =
   Options.string_to_value s
 
 let utf8_option =
-    define_option_class "Utf8"
-    value_to_utf8 utf8_to_value
+  define_option_class "Utf8"
+  value_to_utf8 utf8_to_value
 
-let utf8_filename_conversions = define_expert_option current_section
-    ["utf8_filename_conversions"]
-    "The conversions to apply on Unicode characters"
+let utf8_filename_conversions = define_expert_option current_section ["utf8_filename_conversions"]
+  "The conversions to apply on Unicode characters"
     (list_option (tuple2_option (int_option, utf8_option))) []
 
 let interface_buffer = define_expert_option current_section ["interface_buffer"]
   "The size of the buffer between the client and its GUI. Can be useful
-to increase when the connection between them has a small bandwith" int_option
-  1000000
+  to increase when the connection between them has a small bandwith"
+    int_option 1000000
 
 let max_name_len = define_expert_option current_section ["max_name_len"]
-    "The size long names will be shortened to in the interface"
-  int_option 50
+  "The size long names will be shortened to in the interface"
+    int_option 50
 
 let max_client_name_len = define_expert_option current_section ["max_client_name_len"]
-    "The size long client names will be shortened to in the interface"
+  "The size long client names will be shortened to in the interface"
     int_option 25
 
 let term_ansi = define_expert_option current_section ["term_ansi"]
-    "Is the default terminal an ANSI terminal (escape sequences can be used)"
-  bool_option true
+  "Is the default terminal an ANSI terminal (escape sequences can be used)"
+    bool_option true
 
 let update_gui_delay = define_expert_option current_section ["update_gui_delay"]
-  "Delay between updates to the GUI" float_option 1.
+   "Delay between updates to the GUI"
+     float_option 1.
 
-let http_realm =
-  define_expert_option current_section ["http_realm"] "The realm shown when connecting with a WEB browser" string_option "MLdonkey"
+let http_realm = define_expert_option current_section ["http_realm"]
+  "The realm shown when connecting with a WEB browser"
+    string_option "MLdonkey"
 
 let use_html_frames = define_expert_option current_section ["use_html_frames"]
-    "This option controls whether the WEB interface should use frames or not" bool_option true
+  "This option controls whether the WEB interface should use frames or not"
+    bool_option true
 
 let html_frame_border = define_expert_option current_section ["html_frame_border"]
-    "This option controls whether the WEB interface should show frame borders or not" bool_option true
+  "This option controls whether the WEB interface should show frame borders or not"
+    bool_option true
 
-let commands_frame_height = define_expert_option current_section ["commands_frame_height"] "The height of the command frame in pixel (depends on your screen and browser sizes)" int_option 46
+let commands_frame_height = define_expert_option current_section ["commands_frame_height"]
+  "The height of the command frame in pixel (depends on your screen and browser sizes)"
+    int_option 46
 
 let motd_html = define_expert_option current_section ["motd_html"]
-    "Message printed at startup additional to welcome text"
+  "Message printed at startup additional to welcome text"
     string_option ""
 
 let compaction_delay = define_expert_option current_section ["compaction_delay"]
-    "Force compaction every <n> hours (in [1..24])"
+  "Force compaction every <n> hours (in [1..24])"
     int_option 2
 
 let vd_reload_delay = define_expert_option current_section ["vd_reload_delay"]
-    "The delay between reloads of the vd output in the WEB interface"
+  "The delay between reloads of the vd output in the WEB interface"
     int_option 120
 
 let client_bind_addr = define_option current_section ["client_bind_addr"]
-    "The IP address used to bind the p2p clients"
+  "The IP address used to bind the p2p clients"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
 let _ =
@@ -1437,79 +1447,50 @@ let _ =
       Unix32.create_dir_mask := !!create_dir_mask
   )
 
+let create_mlsubmit = define_expert_option current_section ["create_mlsubmit"]
+  "Should the MLSUBMIT.REG file be created"
+    bool_option true
 
-  (*
-let web_header = define_expert_option current_section
-    ["web_header"] "The header displayed in the WEB interface"
-    string_option
-    "
-  <h2>Connected to <a href=http://www.freesoftware.fsf.org/mldonkey/> MLdonkey </a>
-WEB server</h2>
-  <br>
-</table>
-<table width=100% border=0>
-<tr>
-  <td><a href=submit?q=vm $O> View Connected Servers </a></td>
-  <td><a href=submit?q=vma $O> View All Servers </a></td>
-  <td><a href=submit?q=c $O> Connect More Servers </a></td>
-  <td><a href=submit?q=view_custom_queries $O> Custom Searches </a></td>
-  <td><a href=submit?q=xs $O> Extended Search </a></td>
-  <td><a href=submit?q=upstats $O> Upload Statistics </a></td>
-  </tr>
-<tr>
-<td><a href=submit?q=vr $O> View Results </a></td>
-<td><a href=files $O> View Downloads </a></td>
-<td><a href=submit?q=commit $S> Commit Downloads </a></td>
-<td><a href=submit?q=vs $O> View Searches </a></td>
-<td><a href=submit?q=vo $O> View Options </a></td>
-<td><a href=submit?q=help $O> View Help </a></td>
-  </tr>
-  </table>
-<br>
-"
-    *)
-
-let create_mlsubmit =
-  define_expert_option current_section ["create_mlsubmit"] "Should the MLSUBMIT.REG file be created" bool_option true
-
-let minor_heap_size = define_expert_option current_section
-    ["minor_heap_size"] "Size of the minor heap in kB"
+let minor_heap_size = define_expert_option current_section ["minor_heap_size"]
+  "Size of the minor heap in kB"
     int_option 32
 
 let relevant_queues = define_expert_option current_section ["relevant_queues"]
-    "The source queues to display in source lists (see 'sources' command)"
+  "The source queues to display in source lists (see 'sources' command)"
     int_list_option [0;1;2;3;4;5;6;8;9;10]
 
 let min_reask_delay = define_expert_option current_section ["min_reask_delay"]
   "The minimal delay between two connections to the same client (in seconds)"
     int_option 600
 
-let display_downloaded_results = define_expert_option current_section
-    ["display_downloaded_results"] "Whether to display results already downloaded" bool_option true
+let display_downloaded_results = define_expert_option current_section ["display_downloaded_results"]
+  "Whether to display results already downloaded"
+    bool_option true
 
-let filter_table_threshold = define_expert_option current_section
-    ["filter_table_threshold"] "Minimal number of results for filter form to appear"
+let filter_table_threshold = define_expert_option current_section ["filter_table_threshold"]
+  "Minimal number of results for filter form to appear"
     int_option 50
 
-let client_buffer_size = define_expert_option current_section
-    ["client_buffer_size"] "Maximal size of the buffers of a client"
+let client_buffer_size = define_expert_option current_section ["client_buffer_size"]
+  "Maximal size of the buffers of a client"
     int_option 500000
 
-let save_options_delay =
-  define_expert_option current_section ["save_options_delay"]
-    "The delay between two saves of the 'downloads.ini' file (default is 15 minutes).
-    Changes to this option require a core restart."
-  float_option 900.0
+let save_options_delay = define_expert_option current_section ["save_options_delay"]
+  "The delay between two saves of the 'downloads.ini' file (default is 15 minutes).
+  Changes to this option require a core restart."
+    float_option 900.0
 
-let server_connection_timeout = define_expert_option current_section
-  ["server_connection_timeout"]
-  "timeout when connecting to a server" float_option 30.
+let server_connection_timeout = define_expert_option current_section ["server_connection_timeout"]
+  "timeout when connecting to a server"
+    float_option 30.
 
 let download_sample_rate = define_expert_option current_section ["download_sample_rate"]
-  "The delay between one glance at a file and another" float_option 1.
+  "The delay between one glance at a file and another"
+    float_option 1.
 
 let download_sample_size = define_expert_option current_section ["download_sample_size"]
-    "How many samples go into an estimate of transfer rates" int_option 10
+  "How many samples go into an estimate of transfer rates"
+    int_option 10
 
 let calendar = define_expert_option current_section ["calendar"]
   "This option defines a set of date at which some commands have to be executed.
@@ -1517,37 +1498,30 @@ let calendar = define_expert_option current_section ["calendar"]
   the second is a list of hours (from 0 to 23) and the last one a command to
   execute. Can be used with 'pause all' and 'resume all' for example to
   resume and pause downloads automatically for the night."
-    (list_option (tuple3_option (list_option int_option,list_option int_option,
-      string_option)))
-  []
+    (list_option (tuple3_option (list_option int_option,list_option int_option, string_option)))
+    []
 
-(* let ip_cache_timeout = define_expert_option current_section
-    ["ip_cache_timeout"]
-    "The time an ip address can be kept in the cache"
-    int_option 3600 *)
-
-let compaction_overhead = define_expert_option current_section
-    ["compaction_overhead"]
-    "The percentage of free memory before a compaction is triggered"
+let compaction_overhead = define_expert_option current_section ["compaction_overhead"]
+  "The percentage of free memory before a compaction is triggered"
     int_option 25
 
-let space_overhead = define_expert_option current_section
-    ["space_overhead"]
-    "The major GC speed is computed from this parameter. This is the memory
-    that will be \"wasted\" because the GC does not immediatly collect 
-    unreachable blocks. It is expressed as a percentage of the memory used
-    for live data. The GC will work more (use more CPU time and collect 
-    blocks more eagerly) if space_overhead is smaller."
+let space_overhead = define_expert_option current_section ["space_overhead"]
+  "The major GC speed is computed from this parameter. This is the memory
+  that will be \"wasted\" because the GC does not immediatly collect 
+  unreachable blocks. It is expressed as a percentage of the memory used
+  for live data. The GC will work more (use more CPU time and collect 
+  blocks more eagerly) if space_overhead is smaller."
     int_option 80
 
-let max_displayed_results = define_expert_option current_section
-    ["max_displayed_results"]
-    "Maximal number of results displayed for a search"
+let max_displayed_results = define_expert_option current_section ["max_displayed_results"]
+  "Maximal number of results displayed for a search"
     int_option 1000
 
 let options_version = define_expert_option current_section ["options_version"]
-    "(internal option)"
+  "(internal option)"
     int_option 13
+
+
 
 
 (*************************************************************************)
@@ -1558,34 +1532,35 @@ let options_version = define_expert_option current_section ["options_version"]
 
 let current_section = debug_section
 
-let allow_local_network =
-  define_expert_option current_section ["allow_local_network"]
+let allow_local_network = define_expert_option current_section ["allow_local_network"]
   "If this option is set, IP addresses on the local network are allowed
-(only for debugging)" bool_option false
+  (only for debugging)"
+     bool_option false
 
-let log_size =
-  define_expert_option current_section ["log_size"]
-    "size of log in number of records" int_option 300
+let log_size = define_expert_option current_section ["log_size"]
+  "size of log in number of records"
+    int_option 300
 
 let log_file_size = define_expert_option current_section ["log_file_size"]
-   "Maximum size of log_file in MB" int_option 2
+   "Maximum size of log_file in MB"
+     int_option 2
 
 let log_file = define_expert_option current_section ["log_file"]
   "The file in which you want mldonkey to log its debug messages. If you
   set this option, mldonkey will log this info in the file until you use the
-'close_log' command. The log file may become very large. You can
-    also enable logging in a file after startup using the 'log_file' command."
-  string_option "mlnet.log"
+  'close_log' command. The log file may become very large. You can
+  also enable logging in a file after startup using the 'log_file' command."
+    string_option "mlnet.log"
 
 let log_to_syslog = define_expert_option current_section ["log_to_syslog"]
-   "Post log messages to syslog. This setting is independent of log_file
-and its associated commands, therefore close_log does not stop log to syslog.
-Its therefore possible to log to syslog and log_file at the same time."
+  "Post log messages to syslog. This setting is independent of log_file
+  and its associated commands, therefore close_log does not stop log to syslog.
+  Its therefore possible to log to syslog and log_file at the same time."
     bool_option false
 
-let gui_log_size =
-  define_expert_option current_section ["gui_log_size"]
-    "number of lines for GUI console messages" int_option 30
+let gui_log_size = define_expert_option current_section ["gui_log_size"]
+  "number of lines for GUI console messages"
+    int_option 30
 
 
 
@@ -1598,13 +1573,13 @@ let gui_log_size =
 
 let current_section = other_section
 
-
 let last_high_id = ref Ip.null
 
 let client_ip sock =
   if !!force_client_ip then !!set_client_ip
   else
-    if !last_high_id <> Ip.null then begin
+    if !last_high_id <> Ip.null then
+      begin
         if !last_high_id <> Ip.localhost && !!set_client_ip <> !last_high_id then
           set_client_ip =:= !last_high_id;
         !last_high_id
@@ -1741,13 +1716,6 @@ let _ =
         ("ocl",1, "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl");
       ]
   );
-  (*
-  option_hook shared_extensions (fun _ ->
-      let list = List.map (fun ext ->
-            if String.length ext > 0 && ext.[0] <> '.' then "." ^ ext else ext
-        ) !!shared_extensions in
-      if list <> !!shared_extensions then shared_extensions =:= list
-  ); *)
   option_hook tcpip_packet_size (fun _ ->
       TcpBufferedSocket.ip_packet_size := !!tcpip_packet_size
   );
@@ -1796,7 +1764,6 @@ let verbose_activity = ref false
 let verbose_unexpected_messages = ref false
 
 let set_all v =
-
   verbose_msg_clients := v;
   verbose_msg_raw := v;
   verbose_msg_clienttags := v;
@@ -1937,6 +1904,7 @@ let _ =
       else (fun _ -> true))
 
 let http_proxy = ref None
+
 let http_proxy_tcp_update _ =
   if !!http_proxy_tcp then
     TcpBufferedSocket.http_proxy := !http_proxy
