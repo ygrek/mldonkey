@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/21
+5317: Compile fix for GTK1 newgui in addition to patch 5310
+
 2006/08/16
 5309: Increase reserved number of FDs from 20 to 40 for dynamic libs
 5310: EDK: Request filelist from friends only when requested,

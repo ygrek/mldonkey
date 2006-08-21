@@ -470,7 +470,7 @@ class box_friends box_files friend_tab =
       }
     
     method update_friend f_new =
-      if client_browsed_tag land f_new.client_type = 0 then
+      if (client_friend_tag lor client_contact_tag) land f_new.client_type = 0 then
         self#h_remove_friend f_new.client_num
       else
       try
@@ -527,7 +527,7 @@ class box_friends box_files friend_tab =
     method update_friend_type (num, friend_kind) =
       try
         let (row, fi) = self#find_client num in
-        if client_browsed_tag land friend_kind = 0 then
+        if (client_friend_tag lor client_contact_tag) land friend_kind = 0 then
           self#h_remove_friend num
           else begin
             fi.gclient_type <- friend_kind;
