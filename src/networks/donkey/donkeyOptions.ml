@@ -26,113 +26,106 @@ let donkey_ini = create_options_file "donkey.ini"
 let donkey_section = file_section donkey_ini ["Donkey"] "Donkey options"
 
 let max_xs_packets = define_expert_option donkey_section ["max_xs_packets"]
-  "Max number of UDP packets per round for eXtended Search" int_option 30
+  "Max number of UDP packets per round for eXtended Search"
+    int_option 30
 
-let donkey_port = define_option donkey_section ["port"] "The port used for connection by other donkey clients." int_option 4662
+let donkey_port = define_option donkey_section ["port"]
+  "The port used for connection by other donkey clients."
+    int_option 4662
 
-let check_client_connections_delay =
-  define_expert_option donkey_section ["check_client_connections_delay"]
-  "Delay used to request file sources" float_option 180.0
+let check_client_connections_delay = define_expert_option donkey_section ["check_client_connections_delay"]
+  "Delay used to request file sources"
+    float_option 180.0
 
-let check_connections_delay =
-  define_expert_option donkey_section ["check_connections_delay"]
-  "The delay between server connection rounds" float_option 5.0
+let check_connections_delay = define_expert_option donkey_section ["check_connections_delay"]
+  "The delay between server connection rounds"
+    float_option 5.0
 
 let client_timeout = define_expert_option donkey_section ["client_timeout"]
-  "Timeout on client connections when not queued" float_option 40.
+  "Timeout on client connections when not queued"
+    float_option 40.
 
-let max_connected_servers = define_option donkey_section
-  ["max_connected_servers"]
-    "The number of servers you want to stay connected to" int_option 3
+let max_connected_servers = define_option donkey_section ["max_connected_servers"]
+  "The number of servers you want to stay connected to"
+    int_option 3
 
 let max_udp_sends = define_expert_option donkey_section ["max_udp_sends"]
-    "The number of UDP packets you send every check_client_connections_delay"
-  int_option 10
+  "The number of UDP packets you send every check_client_connections_delay"
+    int_option 10
 
 let reliable_sources = define_option donkey_section ["reliable_sources"]
-    "Should mldonkey try to detect sources responsible for corruption and ban them" bool_option true
+  "Should mldonkey try to detect sources responsible for corruption and ban them"
+    bool_option true
 
 let ban_identity_thieves = define_option donkey_section ["ban_identity_thieves"]
-  "Should mldonkey try to detect sources masquerading as others and ban them" bool_option true
+  "Should mldonkey try to detect sources masquerading as others and ban them"
+    bool_option true
 
 let max_allowed_connected_servers () =
   BasicSocket.mini 5 !!max_connected_servers
 
-(*
-let local_index_find_cmd = define_expert_option donkey_section
-    ["local_index_find_cmd"] "A command used locally to find more results
-    during a search"
-    string_option "" (* (cmd_basedir ^ "local_index_find")  *)
-
-let local_index_add_cmd = define_expert_option donkey_section
-    ["local_index_add_cmd"] "A command used locally to add new results
-    to a local index after a search"
-    string_option "" (* (cmd_basedir ^ "local_index_add") *)
-*)
-
-let server_black_list = define_option donkey_section
-    ["server_black_list"] "A list of server IP to remove from server list.
-    Servers on this list can't be added, and will eventually be removed"
+let server_black_list = define_option donkey_section ["server_black_list"]
+  "A list of server IP to remove from server list.
+  Servers on this list can't be added, and will eventually be removed"
     (list_option Ip.option) []
 
 let force_high_id = define_option donkey_section ["force_high_id"]
-    "immediately close connection to servers that don't grant a High ID"
+  "immediately close connection to servers that don't grant a High ID"
     bool_option false
 
 let force_client_high_id = define_option donkey_section ["force_client_high_id"]
-    "send all clients your IP regardless of what ID was assigned by the server"
+  "send all clients your IP regardless of what ID was assigned by the server"
     bool_option false
 
-let update_server_list_server = define_option donkey_section
-    ["update_server_list_server"] "Set this option to false if you don't want to
-    receive new servers from servers" bool_option true
+let update_server_list_server = define_option donkey_section ["update_server_list_server"]
+  "Set this option to false if you don't want to
+  receive new servers from servers"
+    bool_option true
 
-let update_server_list_server_met = define_option donkey_section
-    ["update_server_list_server_met"] "Set this option to false if you don't want to
-    receive new servers from server.met" bool_option true
+let update_server_list_server_met = define_option donkey_section ["update_server_list_server_met"]
+  "Set this option to false if you don't want to
+  receive new servers from server.met"
+    bool_option true
 
-let update_server_list_client = define_option donkey_section
-    ["update_server_list_client"] "Set this option to false if you don't want to
-    receive new servers from clients" bool_option false
+let update_server_list_client = define_option donkey_section ["update_server_list_client"]
+  "Set this option to false if you don't want to
+  receive new servers from clients"
+    bool_option false
 
-let keep_best_server = define_expert_option donkey_section
-    ["keep_best_server"] "Set this option to false if you don't want mldonkey
-    to change the master servers it is connected to" bool_option true
+let keep_best_server = define_expert_option donkey_section ["keep_best_server"]
+  "Set this option to false if you don't want mldonkey
+  to change the master servers it is connected to"
+    bool_option true
 
-let connect_only_preferred_server = define_expert_option donkey_section
-  ["connect_only_preferred_server"]
+let connect_only_preferred_server = define_expert_option donkey_section ["connect_only_preferred_server"]
   "only servers which are set to 'preferred' will be connected, 
   please note that any server must be set to preferred to use this feature"
-  bool_option false
+    bool_option false
 
-let max_walker_servers = define_expert_option donkey_section
-    ["max_walker_servers"] "Number of servers that can be used to walk
-between servers" int_option 1
+let max_walker_servers = define_expert_option donkey_section ["max_walker_servers"]
+  "Number of servers that can be used to walk
+  between servers"
+    int_option 1
 
-let walker_server_lifetime = define_expert_option donkey_section
-    ["walker_server_lifetime"]
+let walker_server_lifetime = define_expert_option donkey_section ["walker_server_lifetime"]
   "The maximal delay a connection with a server should last when walking
-through the list (should be greater than become_master_delay)" int_option 300
+  through the list (should be greater than become_master_delay)"
+    int_option 300
 
-(* let max_sources_age = define_expert_option donkey_section
-    ["max_source_age"] "Sources that have not been connected for this number of days are removed"
-    int_option 3 *)
-
-let log_clients_on_console = define_expert_option donkey_section
-  ["log_clients_on_console"]
+let log_clients_on_console = define_expert_option donkey_section ["log_clients_on_console"]
   ""
     bool_option false
 
 let propagate_sources = define_expert_option donkey_section ["propagate_sources"]
-    "Allow mldonkey to propagate your sources to other donkey clients"
+  "Allow mldonkey to propagate your sources to other donkey clients"
     bool_option true
 
 let max_sources_per_file = define_option donkey_section ["max_sources_per_file"]
-    "Maximal number of sources for each file"
+  "Maximal number of sources for each file"
     int_option 5000
 
 let keep_sources = define_expert_option donkey_section ["keep_sources"]
-    "Save sources to file_sources.ini and reload them on core start."
+  "Save sources to file_sources.ini and reload them on core start."
     bool_option true
 
 open Md4
@@ -143,18 +136,17 @@ let mldonkey_md4 md4 =
   md4.[14] <- Char.chr 111;
   Md4.direct_of_string md4
 
-(* let server_client_md4 = define_option donkey_section ["server_client_md4"]
-    "The MD4 of this client" Md4.option ( (Md4.random ())) *)
-
 let client_md4 = define_option donkey_section ["client_md4"]
-    "The MD4 of this client" Md4.option (mldonkey_md4 (Md4.random ()))
+  "The MD4 of this client"
+    Md4.option (mldonkey_md4 (Md4.random ()))
 
 let client_private_key = define_option donkey_section ["client_private_key"]
-    "The RSA private key of this client"
+  "The RSA private key of this client"
     string_option (if Autoconf.donkey_sui_works () then DonkeySui.SUI.create_key () else "")
 
 let enable_sui = define_option donkey_section ["enable_sui"]
-    "Enable secure user identification support" bool_option true
+  "Enable secure user identification support"
+    bool_option true
 
 let _ =
   option_hook client_md4 (fun _ ->
@@ -163,42 +155,37 @@ let _ =
         client_md4 =:= m)
 
 let black_list = define_expert_option donkey_section ["black_list"]
-  ""    bool_option true
+  ""
+    bool_option true
 
-let port_black_list = define_expert_option donkey_section
-    ["port_black_list"] "A list of ports that specify servers to remove
-    from server list. Servers with ports on this list can't be added, and
-    will eventually be removed"
+let port_black_list = define_expert_option donkey_section ["port_black_list"]
+  "A list of ports that specify servers to remove
+  from server list. Servers with ports on this list can't be added, and
+  will eventually be removed"
     (list_option int_option) []
 
-let queued_timeout =
-  define_expert_option donkey_section ["queued_timeout"]
-    "How long should we wait in the queue of another client"
+let queued_timeout = define_expert_option donkey_section ["queued_timeout"]
+  "How long should we wait in the queue of another client"
     float_option 1800.
 
-let upload_timeout =
-  define_expert_option donkey_section ["upload_timeout"]
-    "How long can a silent client stay in the upload queue"
+let upload_timeout = define_expert_option donkey_section ["upload_timeout"]
+  "How long can a silent client stay in the upload queue"
     float_option 600.
 
-let upload_lifetime =
-  define_expert_option donkey_section ["upload_lifetime"]
-    "How long a downloading client can stay in my upload queue (in minutes >5)"
+let upload_lifetime = define_expert_option donkey_section ["upload_lifetime"]
+  "How long a downloading client can stay in my upload queue (in minutes >5)"
     int_option 90
 
-let dynamic_upload_lifetime =
-  define_expert_option donkey_section ["dynamic_upload_lifetime"]
-    "Each client upload lifetime depends on download-upload ratio"
+let dynamic_upload_lifetime = define_expert_option donkey_section ["dynamic_upload_lifetime"]
+  "Each client upload lifetime depends on download-upload ratio"
     bool_option false
 
-let dynamic_upload_threshold =
-  define_expert_option donkey_section ["dynamic_upload_threshold"]
-    "Uploaded zones (1 zone = 180 kBytes) needed to enable the dynamic upload lifetime"
+let dynamic_upload_threshold = define_expert_option donkey_section ["dynamic_upload_threshold"]
+  "Uploaded zones (1 zone = 180 kBytes) needed to enable the dynamic upload lifetime"
     int_option 10
 
-let connected_server_timeout =
-  define_expert_option donkey_section ["connected_server_timeout"]
-    "How long can a silent server stay connected"
+let connected_server_timeout = define_expert_option donkey_section ["connected_server_timeout"]
+  "How long can a silent server stay connected"
     float_option 1800.
 
 let upload_power = define_expert_option donkey_section ["upload_power"]
@@ -207,13 +194,16 @@ let upload_power = define_expert_option donkey_section ["upload_power"]
   connection will be allowed to send 5 times more information per second than
   an Open Napster connection. This is done to favorise donkey connections
   over other networks, where upload is less efficient, without preventing
-  upload from these networks." int_option 5
+  upload from these networks."
+    int_option 5
 
-let max_server_age = define_expert_option donkey_section ["max_server_age"] "max number of days after which an unconnected server is removed" int_option 2
+let max_server_age = define_expert_option donkey_section ["max_server_age"]
+  "max number of days after which an unconnected server is removed"
+    int_option 2
 
 let remove_old_servers_delay = define_expert_option donkey_section ["remove_old_servers_delay"]
   "How often should remove old donkey servers (see max_server_age) be called
-   (in seconds, 0 to disable)"
+  (in seconds, 0 to disable)"
     float_option 900.
 
 let min_left_servers = define_expert_option donkey_section ["min_left_servers"]
@@ -231,67 +221,59 @@ let _ =
         servers_walking_period =:= 4
   )
 
-let keep_cancelled_in_old_files = define_expert_option donkey_section
-    ["keep_cancelled_in_old_files"]
-    "Are the cancelled files added to the old files list to prevent re-download ?"
+let keep_cancelled_in_old_files = define_expert_option donkey_section ["keep_cancelled_in_old_files"]
+  "Are the cancelled files added to the old files list to prevent re-download ?"
     bool_option false
 
-let keep_downloaded_in_old_files = define_expert_option donkey_section
-    ["keep_downloaded_in_old_files"]
-    "Are the downloaded files added to the old files list to prevent re-download ?"
+let keep_downloaded_in_old_files = define_expert_option donkey_section ["keep_downloaded_in_old_files"]
+  "Are the downloaded files added to the old files list to prevent re-download ?"
     bool_option false
 
-let send_warning_messages = define_expert_option donkey_section
-    ["send_warning_messages"] "true if you want your mldonkey to lose some
-upload bandwidth sending messages to clients which are banned :)"
+let send_warning_messages = define_expert_option donkey_section ["send_warning_messages"]
+  "true if you want your mldonkey to lose some
+  upload bandwidth sending messages to clients which are banned :)"
     bool_option false
 
-let ban_queue_jumpers = define_expert_option donkey_section
-    ["ban_queue_jumpers"] "true if you want your client to ban
-    clients that try queue jumping (3 reconnections faster than 9 minutes)"
+let ban_queue_jumpers = define_expert_option donkey_section ["ban_queue_jumpers"]
+  "true if you want your client to ban
+  clients that try queue jumping (3 reconnections faster than 9 minutes)"
     bool_option true
 
-let use_server_ip = define_expert_option donkey_section
-    ["use_server_ip"] "true if you want your client IP to be set from servers ID"    bool_option true
+let use_server_ip = define_expert_option donkey_section ["use_server_ip"]
+  "true if you want your client IP to be set from servers ID"
+    bool_option true
 
-let ban_period = define_expert_option donkey_section
-    ["ban_period"] "Set the number of hours you want client to remain banned"
+let ban_period = define_expert_option donkey_section ["ban_period"]
+  "Set the number of hours you want client to remain banned"
     int_option 1
 
-let good_client_rank = define_expert_option donkey_section
-    ["good_client_rank"]
+let good_client_rank = define_expert_option donkey_section ["good_client_rank"]
   "Set the maximal rank of a client to be kept as a client"
     int_option 500
 
 let min_users_on_server = define_option donkey_section ["min_users_on_server"]
-     "min connected users for each server" int_option 0
+  "min connected users for each server"
+    int_option 0
 
 let login = define_option donkey_section ["login"]
-    "login of client on eDonkey network (nothing default to global one)" string_option ""
+  "login of client on eDonkey network (nothing default to global one)"
+    string_option ""
 
 let overnet_options_section_name = "Overnet"
 
 let overnet_section = file_section donkey_ini [ overnet_options_section_name ]
     "Overnet options"
 
-let overnet_port =
-  define_option overnet_section [overnet_options_section_name; "port"]
+let overnet_port = define_option overnet_section [overnet_options_section_name; "port"]
   "port for overnet"
     int_option (2000 + Random.int 20000)
 
-(* let source_management = define_expert_option donkey_section
-    ["source_management"] "Which source management to use:
-    1: based on separate time queues, shared by files (2.02-1...2.02-5)
-    2: based on unified queues with scores, shared by files (2.02-6...2.02-9)
-    3: based on separate file queues (2.02-10)
-    " int_option 3 *)
-
-let become_master_delay =
-  define_expert_option donkey_section ["become_master_delay"]
-    "(only for development tests)" int_option 120
+let become_master_delay = define_expert_option donkey_section ["become_master_delay"]
+  "(only for development tests)"
+    int_option 120
 
 let options_version = define_expert_option donkey_section ["options_version"]
-    "(internal option)"
+  "(internal option)"
     int_option 0
 
 let gui_donkey_options_panel =
@@ -315,6 +297,6 @@ let gui_donkey_options_panel =
     "Dynamic Slot Allocation", shortname dynamic_slots, "B";
   ]
 
-let old_files =
-  define_option donkey_section ["old_files"]
-    "The files that were downloaded" (list_option Md4.option) []
+let old_files = define_option donkey_section ["old_files"]
+  "The files that were downloaded"
+    (list_option Md4.option) []

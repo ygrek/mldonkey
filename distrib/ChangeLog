@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/08/21
+5304: cleanup donkeyOptions.ml (whitespace, tabs, comments) (Schlumpf)
 5303: cleanup btOptions.ml (whitespace, tabs, comments) (Schlumpf)
 5302: cleanup commonOptions.ml (whitespace, tabs, comments) (Schlumpf)
 5318: Fix wrong buildinfo configure args with autoconf 2.60
