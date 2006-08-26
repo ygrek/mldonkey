@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/08/26
+5320: some html_mods tables & css improvements (Schlumpf)
 5322: Use CXXFLAGS present at configure when compiling (smimram)
 
 2006/08/21

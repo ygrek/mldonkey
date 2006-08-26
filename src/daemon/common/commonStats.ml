@@ -259,8 +259,7 @@ let print_stats_html_mods buf arr l tl uptime =
       let seen_percent = if is_total then 100.0 else percent_of_ints r.brand_seen r_all.brand_seen in
       let freq_percent = if is_total then 100.0 else percent_of_ints r.brand_filerequest r_all.brand_filerequest in
 
-      let banned_percent = if is_total then percent_of_ints r.brand_banned r_all.brand_seen
-                                       else percent_of_ints r.brand_banned r_all.brand_banned in
+      let banned_percent = if is_total then 100.0 else percent_of_ints r.brand_banned r_all.brand_banned in
 
       let upload_percent = if is_total then 100.0 else percent_of_int64s r.brand_upload r_all.brand_upload in
       let upload_akbs = (Int64.to_float r.brand_upload) /.  (float_of_int uptime) /. 1024.0 in
@@ -272,26 +271,26 @@ let print_stats_html_mods buf arr l tl uptime =
                   else (Int64.to_float r.brand_download) /. (Int64.to_float r.brand_upload) in
 
       html_mods_td buf [
-        ("", "sr", brandlist_int_to_string l i);
-        ("", "sr", ":");
-        ("", "sr ar", Printf.sprintf "%d" r.brand_seen );
-        ("", "srp", Printf.sprintf "(%.f%%)" seen_percent );
-        ("", "sr", "|");
-        ("", "sr ar", Printf.sprintf "%d" r.brand_filerequest);
-        ("", "srp", Printf.sprintf "(%.f%%)" freq_percent);
-        ("", "sr", "|");
-        ("", "sr ar", Printf.sprintf "%d" r.brand_banned);
-        ("", "srp", Printf.sprintf "(%.0f%%)" banned_percent);
-        ("", "sr", "|");
-        ("", "sr ar", size_of_int64 r.brand_upload);
-        ("", "srp", Printf.sprintf "(%.0f%%)" upload_percent);
-        ("", "sr ar", Printf.sprintf "%.1f" upload_akbs);
-        ("", "sr", "|");
-        ("", "sr ar", size_of_int64 r.brand_download);
-        ("", "srp", Printf.sprintf "(%.0f%%)" download_percent );
-        ("", "sr ar", Printf.sprintf "%.1f" download_akbs);
-        ("", "sr", "|");
-        ("", "sr", Printf.sprintf "1:%.2f" ratio);
+        ("", (if is_total then "sr total" else "sr"), brandlist_int_to_string l i);
+        ("", (if is_total then "sr total" else "sr"), ":");
+        ("", (if is_total then "sr ar total" else "sr ar"), Printf.sprintf "%d" r.brand_seen );
+        ("", (if is_total then "srp total" else "srp"), Printf.sprintf "(%.f%%)" seen_percent );
+        ("", (if is_total then "sr total" else "sr"), "|");
+        ("", (if is_total then "sr ar total" else "sr ar"), Printf.sprintf "%d" r.brand_filerequest);
+        ("", (if is_total then "srp total" else "srp"), Printf.sprintf "(%.f%%)" freq_percent);
+        ("", (if is_total then "sr total" else "sr"), "|");
+        ("", (if is_total then "sr ar total" else "sr ar"), Printf.sprintf "%d" r.brand_banned);
+        ("", (if is_total then "srp total" else "srp"), Printf.sprintf "(%.f%%)" banned_percent);
+        ("", (if is_total then "sr total" else "sr"), "|");
+        ("", (if is_total then "sr ar total" else "sr ar"), size_of_int64 r.brand_upload);
+        ("", (if is_total then "srp total" else "srp"), Printf.sprintf "(%.0f%%)" upload_percent);
+        ("", (if is_total then "sr ar total" else "sr ar"), Printf.sprintf "%.1f" upload_akbs);
+        ("", (if is_total then "sr total" else "sr"), "|");
+        ("", (if is_total then "sr ar total" else "sr ar"), size_of_int64 r.brand_download);
+        ("", (if is_total then "srp total" else "srp"), Printf.sprintf "(%.0f%%)" download_percent );
+        ("", (if is_total then "sr ar total" else "sr ar"), Printf.sprintf "%.1f" download_akbs);
+        ("", (if is_total then "sr total" else "sr"), "|");
+        ("", (if is_total then "sr total" else "sr"), Printf.sprintf "1:%.2f" ratio);
       ];
 
       Printf.bprintf buf "\\</tr\\>\n";

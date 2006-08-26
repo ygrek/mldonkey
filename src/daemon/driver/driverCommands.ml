@@ -3153,9 +3153,9 @@ let _ =
 	List.iter (fun (tablename, l) ->
 	  html_mods_cntr_init ();
 	  html_mods_table_header buf tablename "servers" [
-	    ( "0", "srh br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
-	    ( "0", "srh", "Hits", "Hits") ;
-	    ( "0", "srh", "Range", "Range")];
+	    ( "0", "srh ac br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
+	    ( "0", "srh ac br", "Hits", "Hits") ;
+	    ( "0", "srh ac", "Range", "Range")];
           let nhits, nranges = 
 	    Ip_set.bl_fold_left (fun br (nhits, nranges) ->
 	      if br.Ip_set.blocking_hits > 0 then begin
@@ -3163,8 +3163,8 @@ let _ =
 		  (html_mods_cntr ());
 		html_mods_td buf [
 		  ("Description", "sr br", br.Ip_set.blocking_description);
-		  ("Hits", "sr br", string_of_int br.Ip_set.blocking_hits);
-		  ("Range", "sr br", Printf.sprintf "%s - %s"
+		  ("Hits", "sr ar br", string_of_int br.Ip_set.blocking_hits);
+		  ("Range", "sr", Printf.sprintf "%s - %s"
 		    (Ip.to_string br.Ip_set.blocking_begin)
 		    (Ip.to_string br.Ip_set.blocking_end))];
 		Printf.bprintf buf "\\</tr\\>";
@@ -3175,14 +3175,14 @@ let _ =
 	    (html_mods_cntr ());
 	  if nranges > 0 then
 	  html_mods_td buf [
-	    ("Total ranges", "sr br", ("Total " ^ string_of_int nranges));
-	    ("Hits", "sr br", ("Total " ^ string_of_int nhits));
-	    ("", "sr br", "")]
+	    ("Total ranges", "sr br total", ("Total ranges " ^ string_of_int nranges));
+	    ("Hits", "sr ar br total", Printf.sprintf "%s" (string_of_int nhits));
+	    ("", "sr br total", "")]
 	  else begin
 	  html_mods_td buf [
-	    ("no " ^ tablename ^ " loaded", "sr br", "no " ^ tablename ^ " loaded");
-	    ("", "sr br", "");
-	    ("", "sr br", "")];
+	    ("no " ^ tablename ^ " loaded", "sr", "no " ^ tablename ^ " loaded");
+	    ("", "sr", "");
+	    ("", "sr", "")];
 	  end;
 	  Printf.bprintf buf "\\</tr\\>\\</table\\>\\<P\\>";
 	) [

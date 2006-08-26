@@ -114,6 +114,7 @@ td.srp { white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-lef
 td.srw { padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px; font-family: verdana; font-size: 10px; color: @color_general_text@; }
 td.srh { cursor: pointer; vertical-align: top; background: @color_table_header_background@; white-space: nowrap; padding-top: 2px; padding-bottom: 2px; padding-left: 4px; padding-right: 4px;
 font-family: verdana; font-size: 10px; color: @color_general_text@;  }
+td.total { border-top: @color_general_border@ solid 1px; border-bottom: @color_general_border@ solid 1px; }
 tr.dl-1, td.dl-1 { background: @color_dl1_back@; }
 tr.dl-2, td.dl-2 { background: @color_dl2_back@; }
 .mOvr1, tr.mOvr1 {background: @color_mOver1_back@; cursor: pointer; }
