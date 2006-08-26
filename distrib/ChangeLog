@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/08/26
+5322: Use CXXFLAGS present at configure when compiling (smimram)
+
 2006/08/21
 5319: Configure: New option --enable-minimum
 - Compile MLDonkey with Donkey only, without gd, magic, bzip2, sui
