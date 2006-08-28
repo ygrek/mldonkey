@@ -50,6 +50,56 @@ case $host in
     OS_FILES2=mingw
     PTHREAD_LIBS="-lpthreadGC2 -lwsock32"
     PTHREAD_CFLAGS="-DPTW32_STATIC_LIB"
+    AC_MSG_CHECKING(for mingw-runtime version)
+      
+cat >mingw_rt_ver.c <<'END'
+#include <stdio.h>
+#include <_mingw.h>
+main(int argc, char *argv[[]])  {
+
+int required_runtime_major=3;       /**********     change required mingw-runtime   **********/
+int required_runtime_minor=10;      /**********              version here           **********/
+
+#ifdef __MINGW32_MAJOR_VERSION
+#  ifdef __MINGW32_MINOR_VERSION
+     switch(argv[[1]][[0]]) {
+       case 'x':
+         printf("%d.%d", __MINGW32_MAJOR_VERSION, __MINGW32_MINOR_VERSION);
+         break;
+       case 'y':
+         if ((__MINGW32_MAJOR_VERSION == required_runtime_major && __MINGW32_MINOR_VERSION < required_runtime_minor) || 
+             (__MINGW32_MAJOR_VERSION < required_runtime_major)) {
+           printf("no");
+           break; }
+         else {
+           printf("yes");
+           break; }
+       case 'z':
+         printf("%d.%d", required_runtime_major, required_runtime_minor);
+         break;
+     }
+     return 0;
+#  else
+   printf("__MINGW32_MINOR_VERSION not defined in _mingw.h");
+   return 0;
+#  endif
+#else
+ printf("__MINGW32_MAJOR_VERSION not defined in _mingw.h");
+ return 0;
+#endif
+}
+END
+
+    $CC -o mingw_rt_ver ./mingw_rt_ver.c
+    MINGW_RT_VER="`./mingw_rt_ver x`"
+    MINGW_RT_VER_OK="`./mingw_rt_ver y`"
+    MINGW_RT_VER_REQ="`./mingw_rt_ver z`"
+    rm -f mingw_rt_ver mingw_rt_ver.*
+    AC_MSG_RESULT($MINGW_RT_VER)
+    if test "$MINGW_RT_VER_OK" = "no"; then
+      echo "********  mingw-runtime version $MINGW_RT_VER_REQ is required  *********" 1>&2;
+      exit 1
+    fi
     ;;
   *cygwin*)
     SYSTEM=cygwin
