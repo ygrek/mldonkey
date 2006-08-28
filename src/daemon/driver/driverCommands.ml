@@ -2717,6 +2717,12 @@ let _ =
         with e -> Printf.sprintf (_b "No file number %d, error %s") num (Printexc2.to_string e)
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
 
+    "filenames_variability", Arg_none (fun o ->
+      let list = List2.tail_map file_info !!files in
+      DriverInteractive.filenames_variability o list;
+      _s "done"
+    ), ":\t\t\t\tTell what files have several very different names";
+
     "dllink", Arg_multiple (fun args o ->
         let url = String2.unsplit args ' ' in
         dllink_parse (o.conn_output = HTML) url
