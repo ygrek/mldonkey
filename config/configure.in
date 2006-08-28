@@ -1,4 +1,8 @@
 
+# **********                                                                                  **********
+# **********                            Autoconf, configure internals                         **********
+# **********                                                                                  **********
+
 AC_REVISION(norev)
 AC_PREREQ(2.53)
 AC_INIT(Makefile.config.in)
@@ -12,14 +16,26 @@ cd ..
 SOURCE_DIR=`pwd`
 cd config
 
+# **********                                                                                  **********
+# **********                                   MLDonkey version                               **********
+# **********                                                                                  **********
+
 MAJOR_VERSION=2
 MINOR_VERSION=7
 SUB_VERSION=7   # range 0-7 due to eMule limitations
+
+# **********                                                                                  **********
+# **********                                  check for C compiler                            **********
+# **********                                                                                  **********
 
 AC_PROG_CC
 CC_VERSION=`$CC -dumpversion`
 AC_EXEEXT
 AC_PROG_CPP
+
+# **********                                                                                  **********
+# **********                                    System checks                                 **********
+# **********                                                                                  **********
 
 AC_CANONICAL_HOST
 
@@ -144,6 +160,10 @@ esac
 
 ARCH=$arch
 
+# **********                                                                                  **********
+# **********               Parse checkout date (CVS) or revision (SVN) if available           **********
+# **********                                                                                  **********
+
 if test -d .svn; then
   AC_MSG_NOTICE(checking SVN revision)
   AC_CHECK_PROG(SVNVERSION,svnversion,svnversion)
@@ -151,7 +171,7 @@ if test -d .svn; then
     SUB_VERSION3="SVN"
     SCM_VERSION=`svnversion -n .`
   else AC_MSG_NOTICE(cannot checking SVN revision... no SVNVERSION)
-       SCM_VERSION="cannot find out SVN revision (no SVNVERSION)"  
+    SCM_VERSION="cannot find out SVN revision (no SVNVERSION)"  
   fi     
 fi
 
@@ -164,25 +184,25 @@ if test -f ./CVS/Entries ; then
       AC_CHECK_PROG(CUT, cut, cut)
       if test "$ac_cv_prog_CUT" = "cut"; then
         SUB_VERSION3="CVS"
-	if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "netbsd"] || ( [ test "$SYSTEM" = "macosx" ] && [ test "$ac_cv_prog_STAT" != "gstat" ] ); then
-	  SCM_VERSION=`$STAT -f "%Sm" ./CVS/Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\4-\1-\2 \3/'`
-	else
-	  if [ test "$SYSTEM" = "openbsd"]; then
-	    AC_CHECK_PROG(GREP, grep, grep)
-	    if test "$ac_cv_prog_GREP" = "grep"; then
-	      SCM_VERSION=`$STAT -f %a ./CVS/Entries | $GREP -v Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\1-\2-\4 \3/'`
-	    fi
-	  else
-	    if [ test "$SYSTEM" = "mingw"] || [ test "$SYSTEM" = "cygwin"]; then
-	      AC_CHECK_PROG(GREP, grep, grep)
-	      if test "$ac_cv_prog_GREP" = "grep"; then
-	        SCM_VERSION=`$STAT ./CVS/Entries  | $GREP Modify | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\) \(.*\)/\5-\2-\3 \4/'`
-	      fi
-	    else
-	      SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c 1-19`
-	    fi
-	  fi
-	fi
+        if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "netbsd"] || ( [ test "$SYSTEM" = "macosx" ] && [ test "$ac_cv_prog_STAT" != "gstat" ] ); then
+          SCM_VERSION=`$STAT -f "%Sm" ./CVS/Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\4-\1-\2 \3/'`
+        else
+        if [ test "$SYSTEM" = "openbsd"]; then
+          AC_CHECK_PROG(GREP, grep, grep)
+          if test "$ac_cv_prog_GREP" = "grep"; then
+            SCM_VERSION=`$STAT -f %a ./CVS/Entries | $GREP -v Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\1-\2-\4 \3/'`
+          fi
+        else
+        if [ test "$SYSTEM" = "mingw"] || [ test "$SYSTEM" = "cygwin"]; then
+          AC_CHECK_PROG(GREP, grep, grep)
+          if test "$ac_cv_prog_GREP" = "grep"; then
+            SCM_VERSION=`$STAT ./CVS/Entries  | $GREP Modify | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\) \(.*\)/\5-\2-\3 \4/'`
+          fi
+        else
+          SCM_VERSION=`$STAT -Lc %y ./CVS/Entries | $SED -e 's#\.[0-9]*##' | $CUT -c 1-19`
+        fi  #if [ test "$SYSTEM" = "mingw"] || ...
+        fi  #if [ test "$SYSTEM" = "openbsd"]
+        fi  #if [ test "$SYSTEM" = "freebsd"] || ...
       else
         AC_MSG_NOTICE(cannot checking CVS checkout date... no CUT)
         SCM_VERSION="cannot find out SCM Version (no CUT)"
@@ -196,6 +216,11 @@ if test -f ./CVS/Entries ; then
     SCM_VERSION="cannot find out SCM Version (no STAT)"
   fi
 fi
+
+# **********                                                                                  **********
+# **********             build MLDonkey version, Required Ocaml and LablGTK versions          **********
+# **********                                                                                  **********
+
 MLDONKEY_VERSION=$MAJOR_VERSION.$MINOR_VERSION.$SUB_VERSION
 if test -f ./subrelease; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION`cat ./subrelease`
@@ -203,6 +228,7 @@ fi
 if test ! -z "$SUB_VERSION3"; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION3
 fi
+
 REQUIRED_OCAML=3.09.2
 DOWNLOAD_OCAML_MAJOR=3.09
 DOWNLOAD_OCAML=3.09.2
@@ -213,79 +239,101 @@ touch install-sh
 
 LABLGTK_NAME=lablgtk
 
+# **********                                                                                  **********
+# **********                    Network and Feature configure switch variables                **********
+# **********                                                                                  **********
+
+# **********   currently not working Networks, can't be enabled
+
+SOULSEEK=no
 OPEN_NAPSTER=no
+OPENFT=no
+DIRECT_CONNECT=no
+
+# **********   working Networks, enabled by default
+
+DONKEY=yes
+BITTORRENT=yes
 GNUTELLA=yes
 GNUTELLA2=yes
-DIRECT_CONNECT=no
-SOULSEEK=no
-OPENFT=no
-DONKEY=yes
-DONKEY_SUI=yes
-DONKEY_SUI_FILE=DonkeySui2
-BITTORRENT=yes
 FASTTRACK=yes
 FILETP=yes
+
+# **********   predefined configure variations
+
 MULTINET=yes
 MINIMUM=no
+
+# **********   Features, enabled by default
+
+DONKEY_SUI=yes
+DONKEY_SUI_FILE=DonkeySui2
 GD=yes
 BZIP2=yes
 MAGIC=yes
-AC_ARG_ENABLE(multinet,      [  --disable-multinet      allows you to only compile support for edonkey + Overnet], [MULTINET="$enableval"])
-AC_ARG_ENABLE(minimum,       [  --disable-minimum       compile MLDonkey with minimum features], [MINIMUM="$enableval"])
-if [ test ! "$MULTINET" = "yes" ] || [ test "$MINIMUM" = "yes" ]; then
-  OPEN_NAPSTER=no
+ICONV=yes
+USE_PTHREAD=yes
+
+# **********
+
+BATCH=no
+FORCE_OCAML=no
+FORCE_MINGW=no
+PROFILE=no
+DEBUG=no
+GUI=no
+CHECKBOUNDS=false
+
+# **********                                                                                  **********
+# **********                Network and Feature configure switches and dependency             **********
+# **********                                                                                  **********
+
+AC_ARG_ENABLE(multinet,      [  --disable-multinet      allows you to only compile support for eDonkey (incl. Overnet and Kademlia)], [MULTINET="$enableval"])
+AC_ARG_ENABLE(minimum,       [  --enable-minimum        compile MLDonkey with minimum features and Networks (eDonkey, iconv and thread enabled)], [MINIMUM="$enableval"])
+AC_ARG_ENABLE(minimum,       [  --enable-minimum=all    disable all optional features and Networks excepting eDonkey], [MINIMUM="$enableval"])
+
+if [ test ! "$MULTINET" = "yes" ] || [ test "$MINIMUM" = "yes" ] || [ test "$MINIMUM" = "all" ]; then
   GNUTELLA=no
   GNUTELLA2=no
-  DIRECT_CONNECT=no
-  SOULSEEK=no
-  OPENFT=no
   FASTTRACK=no
   FILETP=no
   BITTORRENT=no
 fi
-if [ test "$MINIMUM" = "yes" ]; then
+if [ test "$MINIMUM" = "yes" ] || [ test "$MINIMUM" = "all" ]; then
   DONKEY_SUI=no
   GD=no
   BZIP2=no
   MAGIC=no
 fi
+if [ test "$MINIMUM" = "all" ]; then
+  USE_PTHREAD=no
+  ICONV=no
+fi
+
+#AC_ARG_ENABLE(soulseek,      [  --disable-soulseek      allows you to remove support for SoulSeek], [SOULSEEK="$enableval"])
+#AC_ARG_ENABLE(opennap,       [  --disable-opennap       allows you to remove support for Open Napster], [OPEN_NAPSTER="$enableval"])
+#AC_ARG_ENABLE(directconnect, [  --disable-directconnect allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
+#AC_ARG_ENABLE(openft,        [  --disable-openft        allows you to remove support for OpenFT], [OPENFT="$enableval"])
+
 AC_ARG_ENABLE(donkey,        [  --disable-donkey        allows you to remove support for eDonkey], [DONKEY="$enableval"])
 AC_ARG_ENABLE(donkeysui,     [  --disable-donkeysui     allows you to remove support for eMule SecureUserIdent], [DONKEY_SUI="$enableval"])
 AC_ARG_ENABLE(bittorrent,    [  --disable-bittorrent    allows you to remove support for Bittorent], [BITTORRENT="$enableval"])
 AC_ARG_ENABLE(filetp,        [  --disable-filetp        allows you to remove support for fileTP], [FILETP="$enableval"])
-AC_ARG_ENABLE(gnutella, [  --disable-gnutella      allows you to remove support for Gnutella], [GNUTELLA="$enableval"])
-AC_ARG_ENABLE(gnutella2, [  --disable-gnutella2     allows you to remove support for Gnutella2], [GNUTELLA2="$enableval"])
-#AC_ARG_ENABLE(soulseek, [  --disable-soulseek      allows you to remove support for SoulSeek], [SOULSEEK="$enableval"])
+AC_ARG_ENABLE(gnutella,      [  --disable-gnutella      allows you to remove support for Gnutella], [GNUTELLA="$enableval"])
+AC_ARG_ENABLE(gnutella2,     [  --disable-gnutella2     allows you to remove support for Gnutella2], [GNUTELLA2="$enableval"])
 AC_ARG_ENABLE(fasttrack,     [  --disable-fasttrack     allows you to remove support for FastTrack], [FASTTRACK="$enableval"])
-#AC_ARG_ENABLE(opennap,       [  --disable-opennap       allows you to remove support for Open Napster], [OPEN_NAPSTER="$enableval"])
-#AC_ARG_ENABLE(directconnect, [  --disable-directconnect  allows you to remove support for Direct Connect], [DIRECT_CONNECT="$enableval"])
-#AC_ARG_ENABLE(openft,        [  --disable-openft        allows you to remove support for OpenFT], [OPENFT="$enableval"])
 
-BATCH=no
-AC_ARG_ENABLE(batch, [  --enable-batch          reply YES to all queries in this script], [BATCH="$enableval"])
-
-FORCE_OCAML=no
-AC_ARG_ENABLE(force-ocaml, [  --enable-force-ocaml    force usage of self-compiled Ocaml], [FORCE_OCAML="$enableval"])
-
-AC_ARG_ENABLE(ocamlver, [  --enable-ocamlver=VER   force usage of specific Ocaml version (3.08.1|CVS), ], [REQUIRED_OCAML="$enableval"])
-
-FORCE_MINGW=no
-AC_ARG_ENABLE(mingw, [  --enable-mingw          forces compilation with MINGW on Cygwin], [FORCE_MINGW="$enableval"])
-
-AC_ARG_ENABLE(checks, [  --enable-checks         force mldonkey to perform bound checks on array/string access], [CHECKBOUNDS="$enableval"])
+AC_ARG_ENABLE(batch,         [  --enable-batch          reply YES to all queries in this script], [BATCH="$enableval"])
+AC_ARG_ENABLE(force-ocaml,   [  --enable-force-ocaml    force usage of self-compiled Ocaml], [FORCE_OCAML="$enableval"])
+AC_ARG_ENABLE(ocamlver,      [  --enable-ocamlver=VER   force usage of specific Ocaml version (3.08.1|CVS), ], [REQUIRED_OCAML="$enableval"])
+AC_ARG_ENABLE(mingw,         [  --enable-mingw          forces compilation with MINGW on Cygwin], [FORCE_MINGW="$enableval"])
+AC_ARG_ENABLE(checks,        [  --enable-checks         force mldonkey to perform bound checks on array/string access], [CHECKBOUNDS="$enableval"])
 if test "$CHECKBOUNDS" = "yes"; then
   CHECKBOUNDS=true
-else
-  CHECKBOUNDS=false
 fi
 
-PROFILE=no
-AC_ARG_ENABLE(profile, [  --enable-profile        allows you to profile mlnet using gprof], [PROFILE="$enableval"])
-
-DEBUG=no
-AC_ARG_ENABLE(debug, [  --enable-debug          allows you to compile mlnet with debug symbols], [DEBUG="$enableval"])
-
-GUI=no
+AC_ARG_ENABLE(profile,       [  --enable-profile        allows you to profile mlnet using gprof], [PROFILE="$enableval"])
+AC_ARG_ENABLE(debug,         [  --enable-debug          allows you to compile mlnet with debug symbols], [DEBUG="$enableval"])
 AC_ARG_ENABLE(gui,           [  --disable-gui           allows you to disable GUI build (default)], [GUI="$enableval"])
 AC_ARG_ENABLE(gui,           [  --enable-gui=oldgui|newgui1|newgui2
                           allows you to choose a GUI (default: newgui2 - is a GTK2 GUI, other GUIs use GTK1)], [GUI="$enableval"])
@@ -300,18 +348,12 @@ if test ! "$GUI" = "newgui2"; then
   fi
 fi
 
-USE_PTHREAD=yes
-AC_ARG_ENABLE(pthread, [  --disable-pthread       allows you to disable pthread support in mldonkey, hurts performance!], [USE_PTHREAD="$enableval"])
-AC_ARG_ENABLE(pthread-lib, [  --enable-pthread-lib    legacy option], [USE_PTHREAD="$enableval"])
-
-ICONV=yes
-AC_ARG_ENABLE(iconv,       [  --disable-iconv         disable the use of iconv for compiling on broken windows environments], [ICONV="$enableval"])
-
-AC_ARG_ENABLE(gd,       [  --disable-gd            disable the use of gd], [GD="$enableval"])
-
-AC_ARG_ENABLE(bzip2,       [  --disable-bzip2         disable the use of bzip2], [BZIP2="$enableval"])
-
-AC_ARG_ENABLE(magic,       [  --disable-magic         disable the use of libmagic (GNU file)], [MAGIC="$enableval"])
+AC_ARG_ENABLE(pthread,       [  --disable-pthread       allows you to disable pthread support in mldonkey, hurts performance!], [USE_PTHREAD="$enableval"])
+AC_ARG_ENABLE(pthread-lib,   [  --enable-pthread-lib    legacy option], [USE_PTHREAD="$enableval"])
+AC_ARG_ENABLE(iconv,         [  --disable-iconv         disable the use of iconv], [ICONV="$enableval"])
+AC_ARG_ENABLE(gd,            [  --disable-gd            disable the use of gd], [GD="$enableval"])
+AC_ARG_ENABLE(bzip2,         [  --disable-bzip2         disable the use of bzip2], [BZIP2="$enableval"])
+AC_ARG_ENABLE(magic,         [  --disable-magic         disable the use of libmagic (GNU file)], [MAGIC="$enableval"])
 
 if test "$FORCE_MINGW" = "yes"; then
     CC="$CC -mno-cygwin"
@@ -332,16 +374,16 @@ AC_CHECK_PROG(GNU_MAKE, gmake, gmake)
 AC_CHECK_PROG(GNU_MAKE, make, make)
 
 if test "x$GNU_MAKE" != "x"; then
-    AC_MSG_CHECKING( [if $GNU_MAKE is GNU make] )
-    $GNU_MAKE --version > /dev/null 2>&1
-    if test "$?" != "0"; then
-        AC_MSG_RESULT([no])
+  AC_MSG_CHECKING( [if $GNU_MAKE is GNU make] )
+  $GNU_MAKE --version > /dev/null 2>&1
+  if test "$?" != "0"; then
+    AC_MSG_RESULT([no])
 	AC_MSG_ERROR(GNU make not found)
-    else
-        AC_MSG_RESULT([yes])
-    fi
+  else
+    AC_MSG_RESULT([yes])
+  fi
 else
-    AC_MSG_ERROR(GNU make not found)
+  AC_MSG_ERROR(GNU make not found)
 fi
 
 AC_CHECK_PROG(COMPRESS, bzip2, bzip2)
@@ -406,6 +448,16 @@ fi
 
 if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
 
+  if [ test "$SYSTEM" = "mingw" ]; then
+    echo "********         Objective-Caml $REQUIRED_OCAML is required               *********" 1>&2;
+    echo "********     no valid Ocaml compiler found on your system        *********" 1>&2;
+    echo "********   on MinGW there is no possibility to let configure     *********" 1>&2;
+    echo "********   build the Ocaml compiler with the included script     *********" 1>&2;
+    echo "********    check http://mldonkey.sourceforge.net/Windows        *********" 1>&2;
+    echo "********   for instuctions how to compile Ocaml under MinGW      *********" 1>&2;
+    exit 1
+  else  
+    
   echo "********  Objective-Caml $REQUIRED_OCAML is required  *********" 1>&2;
   if [ test "$WGET" = "" ] && [ test "$REQUIRED_OCAML" != "CVS" ]; then
     echo "********          wget is missing          *********" 1>&2;
@@ -422,10 +474,10 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
       if [ test "$REQUIRED_OCAML" = "CVS" ]; then
         rm -rf $BUILD_DIR
         mkdir -p $BUILD_DIR
-	cd $BUILD_DIR
-	cvs -d:pserver:anoncvs:""@camlcvs.inria.fr:/caml login
-	cvs -z3 -d:pserver:anoncvs@camlcvs.inria.fr:/caml co -P ocaml
-	cd ocaml
+        cd $BUILD_DIR
+        cvs -d:pserver:anoncvs:""@camlcvs.inria.fr:/caml login
+        cvs -z3 -d:pserver:anoncvs@camlcvs.inria.fr:/caml co -P ocaml
+        cd ocaml
       else
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           echo Downloading ...
@@ -433,11 +485,13 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           $WGET http://caml.inria.fr/pub/distrib/ocaml-3.08/ocaml-"$REQUIRED_OCAML".tar.gz
-	fi
+        fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
-          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.07/ocaml-"$REQUIRED_OCAML".tar.gz
-	fi
-        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then exit 1; fi
+          echo "********        download Ocaml $REQUIRED_OCAML not successful, try do download it manually       *********" 1>&2;
+          echo "********        from http://caml.inria.fr/pub/distrib/                                   *********" 1>&2;
+          echo "********        and copy the tar.gz into $PATCH_DIR              *********" 1>&2;
+          exit 1
+        fi
 
         echo Uncompressing ...
         mkdir -p $BUILD_DIR
@@ -489,6 +543,7 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
       ;;
    *)  exit 1;;
   esac
+  fi
 fi
 
 if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc.opt ; then
@@ -1420,6 +1475,8 @@ fi
 
 echo -e "\nCore features:"
 
+echo " - zlib (required)   enabled"
+
 echo -n " - threads           "
 if test "$USE_PTHREAD" = "yes"; then
   echo "enabled"
@@ -1427,7 +1484,6 @@ else
   echo "        disabled"
 fi
 
-echo " - zlib              enabled"
 echo -n " - bzip2             "
 if test "$BZIP2" = "yes"; then
   echo "enabled"
