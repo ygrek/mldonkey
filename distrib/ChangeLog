@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/08/28
+5332: New command option: rem blocked - remove all IP blocked servers
 5330: Configure: Check MinGW version, at least 3.10 is needed (Schlumpf)
 5329: some configure improvements and cleanups (Schlumpf)
 

@@ -711,21 +711,31 @@ let _ =
     ""), ":\t\t\t\t\tlist all known servers";
 
     "rem", Arg_multiple (fun args o ->
-        if args = ["all"] then
-	  begin
+	let counter = ref 0 in
+	match args with
+	  ["all"] ->
             Intmap.iter ( fun _ s ->
-              server_remove s
+              server_remove s;
+	      incr counter
             ) !!servers;
-            "Removed all servers"
-          end else begin
+            Printf.sprintf (_b "Removed all %d servers") !counter
+	| ["blocked"] ->
+            Intmap.iter ( fun _ s ->
+              if server_blocked s then
+		begin
+		  server_remove s;
+		  incr counter
+		end
+            ) !!servers;
+            Printf.sprintf (_b "Removed %d blocked servers") !counter
+	| _ ->
             List.iter (fun num ->
                 let num = int_of_string num in
                 let s = server_find num in
                 server_remove s
             ) args;
             Printf.sprintf (_b"%d servers removed") (List.length args)
-          end
-    ), "<server numbers> :\t\t\tremove server (use arg 'all' for all servers)";
+    ), "<server numbers> :\t\t\tremove server (use 'all' for all servers, 'blocked' for all IP blocked servers)";
 
     "server_banner", Arg_one (fun num o ->
         let num = int_of_string num in
