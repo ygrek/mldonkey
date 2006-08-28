@@ -104,6 +104,7 @@ val add_file_downloaded : CommonTypes.file -> Int64.t -> unit
 val file_downloaders : CommonTypes.file -> CommonTypes.ui_conn -> int -> bool
 val colored_chunks : VerificationBitmap.t -> string
 val file_print : CommonTypes.file -> CommonTypes.ui_conn -> unit
+val file_print_ed2k_link : string -> int64 -> Md4.Md4.t -> string
 val file_size : CommonTypes.file -> int64
 val file_disk_name : CommonTypes.file -> string
 val file_fd : CommonTypes.file -> Unix32.t

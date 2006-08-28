@@ -164,13 +164,6 @@ let script_for_file file incoming new_name =
   in
   let network = network_find_by_num info.G.file_network in
   let filename = Filename.basename new_name in
-  let ed2k_hash =
-    if info.G.file_md4 = Md4.null then "" else
-       Printf.sprintf "ed2k://|file|%s|%s|%s|/"
-        (Url.encode filename)
-        (Int64.to_string (file_size file))
-        (Md4.to_string info.G.file_md4)
-  in
   begin try
   MlUnix.fork_and_exec !!file_completed_cmd
       [|  (* keep those for compatibility *)
@@ -188,7 +181,7 @@ let script_for_file file incoming new_name =
 	    ("DLFILES",   string_of_int (List.length !!files)); 
 	    ("INCOMING",  incoming);
 	    ("NETWORK",   network.network_name);
-	    ("ED2K_HASH", ed2k_hash)]
+	    ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4))]
   with e -> 
       lprintf_nl "Exception %s while executing %s"
         (Printexc2.to_string e) !!file_completed_cmd

@@ -1240,16 +1240,10 @@ let _ =
 	)
        ];
       tr ();
+      let ed2k = file_print_ed2k_link (file_best_name file) (file_size file) file.file_md4 in
       html_mods_td buf [
         ("ed2k link", "sr br", "ed2k link");
-        ("", "sr", Printf.sprintf "\\<a href=\\\"ed2k://|file|%s|%s|%s|/\\\"\\>ed2k://|file|%s|%s|%s|/\\</A\\>"
-            (Url.encode (file_best_name file))
-          (Int64.to_string (file_size file))
-          (Md4.to_string file.file_md4)
-          (file_best_name file)
-          (Int64.to_string (file_size file))
-          (Md4.to_string file.file_md4)) ];
-
+        ("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</A\\>" ed2k ed2k) ];
       tr ();
       let optionlist = ref "" in
       List.iter (fun (name,_) ->
@@ -1456,10 +1450,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
       DonkeyProtoKademlia.Kademlia.cancel_recover_file file;
   );
   file_ops.op_file_comment <- (fun file ->
-      Printf.sprintf "ed2k://|file|%s|%Ld|%s|"
-        (Url.encode (file_best_name file))
-      (file_size file)
-      (Md4.to_string file.file_md4)
+      file_print_ed2k_link (file_best_name file) (file_size file) file.file_md4
   );
   file_ops.op_file_files <- (fun file impl ->
       match file.file_swarmer with

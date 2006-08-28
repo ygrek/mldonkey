@@ -1172,7 +1172,19 @@ let old_print_search buf o results =
               in
               
                 if use_html_mods o 
-                  then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" network_name
+                  then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+		   (let rec iter uids =
+		      match uids with
+			[] -> network_name
+		      | uid :: tail ->
+			  match Uid.to_uid uid with
+			    Ed2k md4 ->
+			      Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
+				(file_print_ed2k_link (List.hd r.result_names) r.result_size md4)
+				network_name
+			    | _  -> iter tail
+		    in
+		    iter r.result_uids)
                   else Printf.bprintf  buf "[%5d] %s " !counter network_name;
 
               if o.conn_output = HTML then begin

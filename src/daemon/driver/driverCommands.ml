@@ -2197,10 +2197,9 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
               begin
                 incr counter;
 
-                let ed2k = Printf.sprintf "ed2k://|file|%s|%s|%s|/"
-                    (Url.encode (Filename.basename impl.impl_shared_codedname))
-                  (Int64.to_string impl.impl_shared_size)
-                  (Md4.to_string impl.impl_shared_id) in
+                let ed2k = file_print_ed2k_link
+                    (Filename.basename impl.impl_shared_codedname)
+                  impl.impl_shared_size impl.impl_shared_id in
 
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\""
                   (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
@@ -2272,10 +2271,9 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
 
         List.iter (fun impl ->
           if (impl.impl_shared_id <> Md4.null) then
-           Printf.bprintf buf "ed2k://|file|%s|%s|%s|/\n"
-              (Url.encode (Filename.basename impl.impl_shared_codedname))
-              (Int64.to_string impl.impl_shared_size)
-              (Md4.to_string impl.impl_shared_id);
+	    Printf.bprintf buf "%s\n" (file_print_ed2k_link
+	      (Filename.basename impl.impl_shared_codedname)
+	      impl.impl_shared_size impl.impl_shared_id);
         ) list;
         "Done"
     ), ":\t\t\t\t\tlist links of shared files";

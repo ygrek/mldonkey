@@ -697,6 +697,11 @@ let file_print file o =
     
     with _ -> ())
 
+let file_print_ed2k_link filename filesize md4hash =
+  if md4hash = Md4.null then "" else
+  Printf.sprintf "ed2k://|file|%s|%s|%s|/"
+    (Url.encode filename) (Int64.to_string filesize) (Md4.to_string md4hash)
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         add_segment (internal)                        *)
