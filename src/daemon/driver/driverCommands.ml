@@ -1047,7 +1047,7 @@ let _ =
           match arg with
             c :: tail ->
               let args = String2.unsplit tail ' ' in
-              let cmd = List.assoc c !!allowed_commands in
+              let cmd = try List.assoc c !!allowed_commands with Not_found -> c in
               let tmp = Filename.temp_file "com" ".out" in
               let ret = Sys.command (Printf.sprintf "%s %s > %s"
                     cmd args tmp) in
@@ -1058,6 +1058,7 @@ let _ =
         else
         match arg with
           [arg] ->
+	    (try
             let cmd = List.assoc arg !!allowed_commands in
             let tmp = Filename.temp_file "com" ".out" in
             let ret = Sys.command (Printf.sprintf "%s > %s"
@@ -1065,6 +1066,7 @@ let _ =
             let output = File.to_string tmp in
             Sys.remove tmp;
             Printf.sprintf (_b "%s\n---------------- Exited with code %d") output ret
+	    with e -> "For arbitrary commands, you must set 'allowed_any_command'")
         | [] ->
             _s "no command given"
         | _ -> "For arbitrary commands, you must set 'allowed_any_command'"
