@@ -1006,7 +1006,7 @@ dec: [(63)]
 
             let computed_checksum = 
               Int64.of_int (fst_hash_checksum shared_hash) in
-            if computed_checksum <> shared_checksum then begin
+            if computed_checksum <> shared_checksum && !verbose then begin
                 lprintf "Bad COMPUTED checksum for hash\n";
               end;
             let shared_hash = Md5Ext.direct_of_string shared_hash in
@@ -1074,7 +1074,7 @@ dec: [(63)]
 
                 let computed_checksum = 
                   Int64.of_int (fst_hash_checksum result_hash) in
-                if computed_checksum <> result_checksum then begin
+                if computed_checksum <> result_checksum && !verbose then begin
                     lprintf "Bad COMPUTED checksum for hash\n";
                   end;
 
@@ -1257,7 +1257,7 @@ dec: [(63)]
 
             let computed_checksum = 
               Int64.of_int (fst_hash_checksum shared_hash) in
-            if computed_checksum <> shared_checksum then begin
+            if computed_checksum <> shared_checksum && !verbose then begin
                 lprintf "Bad COMPUTED checksum for hash\n";
               end;
             let shared_hash = Md5Ext.direct_of_string shared_hash in

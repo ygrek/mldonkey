@@ -2910,7 +2910,7 @@ type chunk_occurrences = {
 let propagate_chunk t1 pos1 size destinations copy_data =
   List.iter (fun (t2, j2, pos2) ->
     if t1.t_num <> t2.t_num || pos1 <> pos2 then begin
-      lprintf_nl "Should propagate chunk from %s %Ld to %s %Ld [%Ld]"
+      if !verbose then lprintf_nl "Should propagate chunk from %s %Ld to %s %Ld [%Ld]"
         (file_best_name t1.t_file) pos1
         (file_best_name t2.t_file) pos2 size;
       (* small catch here: if we don't really copy the data *and*

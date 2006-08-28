@@ -542,7 +542,7 @@ let load_sources () =
       Options.load file_sources_ini;
       cleaner ();
       sources_loaded := true;
-      lprintf "loading sources completed) ";
+      lprintf "(loading sources completed) ";
     with _ -> ())
 
 let check_result r tags =

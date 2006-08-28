@@ -254,7 +254,7 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
 (* probably XML. print to remember that we should be able to use this
 information. *)
               else
-                  lprintf "info: %s\n" (String.escaped s);
+                if !verbose then lprintf "info: %s\n" (String.escaped s);
           ) f.Q.info;
           
           if !verbose then
