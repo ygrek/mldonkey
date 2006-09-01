@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/01
+5344: Small code optimization for stderr warnings (thx to pango)
+
 2006/08/28
 5341: New command: filenames_variability
 - compute differences between the filenames of a file to detect fakes

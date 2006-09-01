@@ -97,10 +97,8 @@ let all_temp_queued = ref false
 let send_dirfull_warning dir full line1 =
   let status = if full then "is full" else "has enough space again" in
   lprintf_nl "WARNING: Directory %s %s, %s" dir status line1;
-  if (not (keep_console_output ())) then begin
-    Printf.fprintf Pervasives.stderr "\n%s WARNING: Directory %s %s, %s\n" (log_time ()) dir status line1;
-    Pervasives.flush Pervasives.stderr;
-  end;
+  if (not (keep_console_output ())) then
+    Printf.eprintf "\n%s WARNING: Directory %s %s, %s\n%!" (log_time ()) dir status line1;
   if !!hdd_send_warning_interval <> 0 then
     let current_time = last_time () in
     let time_threshold =

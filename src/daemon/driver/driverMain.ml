@@ -590,8 +590,7 @@ for config files at the end. *)
   if not (keep_console_output ()) then
     begin
       try
-        Printf.fprintf Pervasives.stderr "%sCore started\n" (log_time ());
-        Pervasives.flush Pervasives.stderr;
+        Printf.eprintf "%s[dMain] Core started\n%!" (log_time ());
       with _ -> ()
     end;
 

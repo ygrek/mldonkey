@@ -984,9 +984,8 @@ let _ =
 		Printf.sprintf "can not create valid client_private_key, bad value found: %s"
 		  !!client_private_key in
 	      let s2 = "CryptoPP code seems not to work properly, do not use insane CFLAGS, exiting..." in
-	      Printf.fprintf Pervasives.stderr "%s[EDK] %s\n" (log_time ()) s1;
-	      Printf.fprintf Pervasives.stderr "%s[EDK] %s\n" (log_time ()) s2;
-	      Pervasives.flush Pervasives.stderr;
+	      Printf.eprintf "%s[EDK] %s\n%!" (log_time ()) s1;
+	      Printf.eprintf "%s[EDK] %s\n%!" (log_time ()) s2;
 	      lprintf_nl "%s" s1;
 	      lprintf_nl "%s" s2;
 	      exit 70
