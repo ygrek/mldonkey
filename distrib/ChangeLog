@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/01
+5355: Move buffer_writes_delay timer from Donkey to Global module
 5344: Small code optimization for stderr warnings (thx to pango)
 
 2006/08/28

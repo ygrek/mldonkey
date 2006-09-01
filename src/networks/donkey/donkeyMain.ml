@@ -312,9 +312,6 @@ be useful when users want to share files that they had already previously
           DonkeyServers.udp_query_sources ()
          );
       
-      add_session_option_timer enabler buffer_writes_delay 
-        (fun _ -> Unix32.flush ());
-      
       add_session_option_timer enabler check_connections_delay 
         DonkeyServers.check_server_connections;
 

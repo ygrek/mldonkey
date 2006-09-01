@@ -436,6 +436,7 @@ or getting a binary compiled with glibc %s.\n\n")
   add_infinite_timer 10. ten_second_timer;
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
+  add_infinite_timer !!buffer_writes_delay (fun _ -> Unix32.flush ());
 
   if Autoconf.system = "mingw" then
     add_infinite_timer 1. (fun timer ->

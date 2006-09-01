@@ -420,18 +420,6 @@ let new_file file_diskname file_state md4 file_size filenames writable =
             let swarmer = CommonSwarming.create kernel (as_file file) block_size
             in
             file.file_swarmer <- Some swarmer;
-(*
-        CommonSwarming.set_writer swarmer (fun offset s pos len ->
-(*
-      lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
-      AnyEndian.dump_sub s pos len;
-*)
-
-            if !!CommonOptions.buffer_writes then
-              Unix32.buffered_write_copy t offset s pos len
-            else
-              Unix32.write  t offset s pos len
-        ); *)
             CommonSwarming.set_verifier swarmer
               (if md4s = [] then VerificationNotAvailable else
                 Verification (Array.of_list (List.map (fun md4 -> Ed2k md4) md4s))
