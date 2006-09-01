@@ -1511,7 +1511,7 @@ let http_handler o t r =
     else s
 
 let http_options = {
-    conn_buf = Buffer.create 10000;
+    conn_buf = Buffer.create 100000;
     conn_output = HTML;
     conn_sortvd = NotSorted;
     conn_filter = (fun _ -> ());

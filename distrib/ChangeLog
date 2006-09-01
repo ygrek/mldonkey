@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/01
+5360: HTML: Increase webinterface buffer to avoid problems with long output
 5315: EDK: Change some internal server data to option values
 5354: New option: max_filenames, maximum number of different filenames
 5355: Move buffer_writes_delay timer from Donkey to Global module
