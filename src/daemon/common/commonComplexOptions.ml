@@ -68,6 +68,8 @@ module FileOption = struct
       match v with
         Options.Module assocs ->
           let get_value name conv = conv (List.assoc name assocs) in
+	  let get_value_nil name conv =
+	    try conv (List.assoc name assocs) with Not_found -> [] in
           let network = try get_value "file_network" value_to_string
             with _ -> "Donkey" in
           let network = 
@@ -106,6 +108,12 @@ module FileOption = struct
               set_file_best_name file
               (get_value "file_filename" value_to_string) "" 0
             with _ -> ());
+
+          (try
+	    List.iter (fun s -> add_file_filenames file s)
+	      (get_value_nil "file_filenames" (value_to_list value_to_string))
+            with _ -> ());
+
           set_file_priority file priority;
 
           if !verbose then lprintf_nl "New %s file %s"
@@ -127,6 +135,8 @@ module FileOption = struct
         ("file_priority", int_to_value (file_priority file)) ::
         ("file_state", state_to_value (file_state file)) ::
         ("file_filename", string_to_value (file_best_name file)) ::
+	("file_filenames", List
+	(List.map string_to_value impl.impl_file_filenames)) ::
         ("file_age", IntValue (Int64.of_int impl.impl_file_age)) ::
           (file_to_option file)
         )
@@ -934,6 +944,7 @@ shared_directories *)
 
 let load () =
   Options.load files_ini;
+  shorten_all_file_filenames !!max_filenames;
   Options.load servers_ini;
   Options.load searches_ini;
   Options.load results_ini;
@@ -1102,6 +1113,9 @@ let _ =
     try
       CommonBlocking.set_geoip_dat !!geoip_dat
     with _ -> ()
+  );
+  option_hook max_filenames (fun _ ->
+    shorten_all_file_filenames !!max_filenames
   );
   option_hook max_opened_connections (fun _ ->
   if !verbose then lprintf_nl

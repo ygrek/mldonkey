@@ -321,7 +321,6 @@ let new_file file_temporary file_name file_size file_uids =
       file_uids = file_uids;
       file_swarmer = None;
       file_searches = [];
-      file_filenames = [file_name, GuiTypes.noips()];
       file_clients_queue = Queues.workflow (fun _ -> false);
       file_nconnected_clients = 0;      
       file_ttr = None;
@@ -334,6 +333,7 @@ let new_file file_temporary file_name file_size file_uids =
       impl_file_ops = file_ops;
       impl_file_age = last_time ();          
       impl_file_best_name = file_name;
+      impl_file_filenames = [file_name];
     } 
   in
   if !verbose then

@@ -311,7 +311,7 @@ let update_best_name file =
           set_file_best_name file best_name "" 0
     with Not_found -> ()
 
-let new_file file_diskname file_state md4 file_size filenames writable =
+let new_file file_diskname file_state md4 file_size filename writable =
 
   try
       let file = find_file md4 in
@@ -393,7 +393,6 @@ let new_file file_diskname file_state md4 file_size filenames writable =
           file_swarmer = None;
           file_nchunks = get_nchunks file_size;
           file_nchunk_hashes = get_nchunk_hashes file_size;
-          file_filenames = filenames;
           file_computed_md4s = Array.of_list md4s;
           file_format = FormatNotComputed 0;
           file_sources = DonkeySources.create_file_sources_manager
@@ -407,6 +406,7 @@ let new_file file_diskname file_state md4 file_size filenames writable =
           impl_file_size = file_size;
           impl_file_fd = Some t;
           impl_file_best_name = Filename.basename file_diskname;
+          impl_file_filenames = (if filename = "" then [] else [filename]);
           impl_file_last_seen = last_time () - 100 * 24 * 3600;
         }
       in

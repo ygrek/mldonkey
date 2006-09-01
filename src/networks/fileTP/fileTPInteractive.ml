@@ -90,7 +90,6 @@ let _ =
       { (impl_file_info file.file_file) with
         P.file_fields = P.Fields_file_info.all;
         P.file_network = network.network_num;
-        P.file_names = file.file_filenames;
         P.file_all_sources = (List.length file.file_clients);
         P.file_active_sources = (List.length file.file_clients);
         P.file_chunks = (match file.file_swarmer with

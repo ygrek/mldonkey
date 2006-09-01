@@ -99,15 +99,11 @@ let new_file_to_share sh codedname old_impl =
       lprintf_nl "Sharing file with MD4: %s" (Md4.to_string md4);
 
     let file = new_file sh.sh_name FileShared md4 sh.sh_size
-        [Filename.basename sh.sh_name, GuiTypes.noips()]
-        false in
+        "" false in
     must_share_file file codedname old_impl;
     file.file_computed_md4s <- md4s;
-    let sh_name = Filename.basename sh.sh_name in
-    if not (List.mem_assoc sh_name file.file_filenames) then begin
-        file.file_filenames <- file.file_filenames @ [sh_name, GuiTypes.noips()];
-        update_best_name file;
-      end;
+    add_file_filenames (as_file file) (Filename.basename sh.sh_name);
+    update_best_name file;
 (*  file.file_chunks <- Array.make file.file_nchunks PresentVerified; *)
 (*    file.file_absent_chunks <- []; *)
 (*    file.file_all_chunks <- String.make file.file_nchunks '1'; *)

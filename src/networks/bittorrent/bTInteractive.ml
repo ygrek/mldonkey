@@ -421,7 +421,6 @@ let op_file_info file =
 
     P.file_name = file.file_name;
     P.file_network = network.network_num;
-    P.file_names = [file.file_name, P.noips()];
     P.file_chunks = (match file.file_swarmer with
     | None -> None 
     | Some swarmer -> Some (CommonSwarming.chunks_verified_bitmap swarmer));
@@ -448,7 +447,7 @@ let op_ft_info ft =
     P.file_name = ft.ft_filename;
     P.file_num = ft_num ft;
     P.file_network = network.network_num;
-    P.file_names = [ft.ft_filename, P.noips()];
+    P.file_names = [ft.ft_filename];
     P.file_md4 = Md4.null;
     P.file_size = ft_size ft;
     P.file_downloaded = zero;

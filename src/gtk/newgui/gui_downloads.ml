@@ -129,7 +129,7 @@ let get_source_pix client_type =
   
 let save_menu_items file =
   List.map
-    (fun (name,_) ->
+    (fun name ->
       `I (name, 
         (fun _ -> 
             match file.data.gfile_state with
@@ -467,7 +467,7 @@ class box columns sel_mode () =
               Printf.sprintf "%5.1f" 
                  (Int64.to_float f.data.gfile_downloaded /. Int64.to_float f.data.gfile_size *. 100.)
               else ""
-            else fst (List.hd f.data.gfile_names)
+            else List.hd f.data.gfile_names
       |	Col_file_rate ->
           if (List.length f.data.gfile_num) = 1 then
             if f.data.gfile_download_rate > 0. then
@@ -1155,7 +1155,7 @@ class box_downloads wl_status () =
               if icons_are_used then
                 Printf.sprintf "Client %d" client_num
                 else "   |-- " ^ (Printf.sprintf "Client %d" client_num);
-            gfile_names = ["", noips()];
+            gfile_names = [""];
             gfile_md4 = file.data.gfile_md4;
             gfile_size = Int64.of_string "0";
             gfile_downloaded = Int64.of_string "0";
@@ -1387,8 +1387,7 @@ class box_downloads wl_status () =
                                                      then c.client_software
                                                      else (c.client_software ^ 
                                                            " - " ^
-                                                           c.client_emulemod)),
-                                                   noips()];
+                                                           c.client_emulemod))];
                         child.data.gfile_size <- c.client_uploaded;
                         child.data.gfile_downloaded <- c.client_downloaded;
                         child.data.gfile_state  <- client_to_general_state c.client_state (List.hd f.data.gfile_num);
@@ -1410,8 +1409,7 @@ class box_downloads wl_status () =
                 begin
                   f.data.gfile_names <- [c.client_software ^ 
                                          " - " ^
-                                         c.client_emulemod,
-                                         noips()];
+                                         c.client_emulemod];
                   f.data.gfile_state <- client_to_general_state c.client_state file_num;
                   f.data.gfile_size <- c.client_uploaded;
                   f.data.gfile_downloaded <- c.client_downloaded;

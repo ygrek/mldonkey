@@ -42,7 +42,7 @@ let preview file () =  Gui_com.send (Preview file.file_num)
   
 let save_menu_items file =
   List.map
-    (fun (name,_) ->
+    (fun name ->
       `I (name, 
         (fun _ -> 
             Gui_com.send (GuiProto.SaveFile (file.file_num, name))

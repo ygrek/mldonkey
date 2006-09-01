@@ -548,7 +548,6 @@ let get_file proto s pos =
   let comment, pos = if proto > 21 then
       get_string s pos
     else "", pos in
-  let names = List.map (fun name -> name, noips()) names in
   let last_seen = BasicSocket.last_time () - last_seen in
   let uids, pos = 
     if proto < 31 then

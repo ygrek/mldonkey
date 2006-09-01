@@ -56,6 +56,7 @@ type 'a file_impl = {
     mutable impl_file_last_received : (int64 * int) list;
     mutable impl_file_last_rate : float;
     mutable impl_file_best_name : string;
+    mutable impl_file_filenames : string list;
     mutable impl_file_magic : string option;
     mutable impl_file_priority: int; (* normal = 0, low < 0, high > 0 *)
     mutable impl_file_last_seen : int;
@@ -127,6 +128,7 @@ let dummy_file_impl = {
     impl_file_last_received = [];
     impl_file_last_rate = 0.0;
     impl_file_best_name = "<UNKNOWN>";
+    impl_file_filenames = [];
     impl_file_magic = None;
     impl_file_priority = 0;
     impl_file_last_seen = 0;
@@ -267,6 +269,25 @@ let set_file_best_name file name fs namemax =
       lprintf_nl "best_name of \"%s\" changed to \"%s\""
         (String.escaped old_name) (String.escaped file.impl_file_best_name)
   end
+
+let add_file_filenames file name =
+  let impl = as_file_impl file in
+  if name <> ""
+  && not (List.mem name impl.impl_file_filenames) 
+  && List.length impl.impl_file_filenames < !!max_filenames then
+    impl.impl_file_filenames <- name :: impl.impl_file_filenames;
+  file_must_update file
+
+let shorten_all_file_filenames length =
+  H.iter (fun file ->
+    let impl = as_file_impl file in
+    if List.length impl.impl_file_filenames > length then
+      begin
+        let new_list, _ = List2.cut !!max_filenames impl.impl_file_filenames in
+        impl.impl_file_filenames <- new_list;
+	file_must_update file
+      end
+  ) files_by_num
 
 let set_file_format (file : file) format =
   let file = as_file_impl file in
@@ -677,7 +698,7 @@ let file_print file o =
           None -> ()
         | Some filename ->
             Printf.bprintf buf "Probable name: %s\n" filename);
-      List.iter (fun (name,_) -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names
+      List.iter (fun name -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names
     end;
 
   (try
@@ -1036,6 +1057,7 @@ let impl_file_info impl =
     T.file_fields = T.Fields_file_info.all;
     T.file_comment = impl.impl_file_comment;
     T.file_name = impl.impl_file_best_name;
+    T.file_names = impl.impl_file_filenames;
     T.file_num = impl.impl_file_num;
     T.file_size = impl.impl_file_size;
     T.file_downloaded = impl.impl_file_downloaded;
@@ -1046,7 +1068,6 @@ let impl_file_info impl =
     T.file_last_seen = impl.impl_file_last_seen;
 
     T.file_network = 0;
-    T.file_names = [];
     T.file_md4 = Md4.null;
     T.file_all_sources = 0;
     T.file_active_sources = 0;

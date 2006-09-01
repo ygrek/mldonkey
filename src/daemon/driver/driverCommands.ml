@@ -1697,6 +1697,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option messages_filter;
 			strings_of_option max_displayed_results;
 			strings_of_option max_name_len;
+			strings_of_option max_filenames;
 			strings_of_option max_client_name_len;
 			strings_of_option emule_mods_count;
 			strings_of_option emule_mods_showall;

@@ -1405,23 +1405,8 @@ other one for unlimited sockets.  *)
           c.client_rating <- c.client_rating + 1;
           
           client_has_file c file;
-          
-          begin
-            let ips = 
-              try
-                List.assoc t.Q.name file.file_filenames
-              with Not_found ->
-                  let ips = noips() in
-                  file.file_filenames <- file.file_filenames @ [t.Q.name, ips];
-                  update_best_name file;
-                  ips
-            in
-            if not (List.mem c.client_ip ips.ips) then begin
-                ips.ips <- c.client_ip :: ips.ips;
-                ips.nips <- 1 + ips.nips;
-              end
-          end;
-          
+	  add_file_filenames (as_file file) t.Q.name;
+
           if file_size file <= block_size then begin
               client_is_useful c file (Bitv.create 1 true)
             end else begin

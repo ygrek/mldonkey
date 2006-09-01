@@ -231,10 +231,7 @@ let value_to_int32pair v =
 
 let value_to_file file_size file_state assocs =
   let get_value name conv = conv (List.assoc name assocs) in
-  let get_value_nil name conv = 
-    try conv (List.assoc name assocs) with _ -> []
-  in
-  
+
   let file_md4 = 
     try
       get_value "file_md4" value_to_string
@@ -274,11 +271,8 @@ let value_to_file file_size file_state assocs =
     filename
   in
 
-  let filenames = List.map (fun name -> name, GuiTypes.noips()) 
-    (get_value_nil "file_filenames" (value_to_list value_to_string)) in
-  
   let file = DonkeyGlobals.new_file file_diskname file_state
-    (Md4.of_string file_md4) file_size filenames true in
+    (Md4.of_string file_md4) file_size "" true in
 
   (try
       set_file_best_name (as_file file)
@@ -309,8 +303,6 @@ let file_to_value file =
       "file_diskname", string_to_value file.file_diskname;
       ("file_md4s", 
         array_to_value Md4.hash_to_value file.file_computed_md4s);
-      "file_filenames", List
-        (List.map (fun (s,_) -> string_to_value s) file.file_filenames);
     ]
   in
   let fields = 

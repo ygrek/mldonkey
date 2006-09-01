@@ -49,7 +49,6 @@ and file = {
 (*    mutable file_name : string;*)
     mutable file_swarmer : CommonSwarming.t option;
     mutable file_clients : client list;
-    mutable file_filenames : (string * ips_list) list;
     mutable file_clients_queue : client  Queues.Queue.t;
     mutable file_nconnected_clients : int;
   }

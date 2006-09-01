@@ -198,24 +198,13 @@ the FasttrackSupernode module, and get rid of it. *)
                   CommonInteractive.search_add_result false sss rs
 
               | FileUidSearch (file, file_hash) -> ()
-                  (*
-                  let c = new_client user.user_kind in
-                  add_download file c ()(* (FileByUrl url) *);
-
-                  if not (List.mem_assoc result_name file.file_filenames) then
-                    file.file_filenames <- file.file_filenames @ [
-                      result_name, GuiTypes.noips()] ;
-*)
             end;
 
             try
               let file = Hashtbl.find files_by_uid meta.M.meta_hash in
               let c = new_client fuser.user_kind in
               add_download file c ()(* (FileByUrl url) *);
-
-              if not (List.mem_assoc result_name file.file_filenames) then
-                file.file_filenames <- file.file_filenames @ [
-                  result_name, GuiTypes.noips()] ;
+	      add_file_filenames (as_file file) result_name
 
             with _ -> ()
         ) results

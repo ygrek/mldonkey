@@ -232,7 +232,7 @@ type g_file_info = {
 
     mutable g_file_comment        : string;
     mutable g_file_name           : string;
-    mutable g_file_names          : (string * ips_list) list;
+    mutable g_file_names          : string list;
     mutable g_file_size           : int64;
     mutable g_file_downloaded     : int64;
     mutable g_file_active_sources : int;

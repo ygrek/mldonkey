@@ -33,6 +33,7 @@ type 'a file_impl = {
   mutable impl_file_last_received : (int64 * int) list;
   mutable impl_file_last_rate : float;
   mutable impl_file_best_name : string;
+  mutable impl_file_filenames : string list;
   mutable impl_file_magic : string option;
   mutable impl_file_priority : int;
     mutable impl_file_last_seen : int;
@@ -83,6 +84,8 @@ val file_resume : CommonTypes.file -> unit
 val set_file_state : CommonTypes.file -> CommonTypes.file_state -> unit
 val file_best_name : CommonTypes.file -> string
 val set_file_best_name : CommonTypes.file -> string -> string -> int -> unit
+val add_file_filenames : CommonTypes.file -> string -> unit
+val shorten_all_file_filenames : int -> unit
 val set_file_format : CommonTypes.file -> CommonTypes.format -> unit
 val file_check : CommonTypes.file -> unit
 val file_recover : CommonTypes.file -> unit

@@ -410,7 +410,7 @@ let buf_partial_file proto buf f =
     end;
   if f.file_fields.Fields_file_info.file_names then begin
       buf_int8 buf 2;
-      buf_list buf buf_string (List.map fst f.file_names);  
+      buf_list buf buf_string f.file_names;
     end;      
   if f.file_fields.Fields_file_info.file_md4 then begin
       buf_int8 buf 3;
@@ -489,7 +489,7 @@ let buf_file_field proto buf field =
       buf_int buf x
   | Fields_file_info.File_names x ->
       buf_int8 buf 2;
-      buf_list buf buf_string (List.map fst x);  
+      buf_list buf buf_string x;  
   | Fields_file_info.File_md4 x ->
       buf_int8 buf 3;
       buf_md4 buf x
@@ -551,7 +551,7 @@ let buf_sub_files buf l =
 let buf_file proto buf f =
   buf_int buf f.file_num;
   buf_int buf f.file_network;  
-  buf_list buf buf_string (List.map fst f.file_names);  
+  buf_list buf buf_string f.file_names;
   buf_md4 buf f.file_md4;  
   buf_int64_2 proto buf f.file_size;  
   buf_int64_2 proto buf f.file_downloaded;  

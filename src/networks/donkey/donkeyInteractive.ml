@@ -69,7 +69,7 @@ let result_name r =
 
 
 let op_file_proposed_filenames file =
-  List2.tail_map fst file.file_filenames
+  file.file_file.impl_file_filenames
 
 let reconnect_all file =
   DonkeyProtoOvernet.Overnet.recover_file file;
@@ -188,7 +188,7 @@ let already_downloading = Failure (Printf.sprintf (_b "File is already in downlo
 
 let already_shared = Failure (Printf.sprintf (_b "File is already shared"))
 
-let really_query_download filenames size md4 location old_file absents =
+let really_query_download filename size md4 location old_file absents =
 
   begin
     try
@@ -226,15 +226,7 @@ let really_query_download filenames size md4 location old_file absents =
   end;
 
 (* TODO RESULT  let other_names = DonkeyIndexer.find_names md4 in *)
-  let filenames =
-    let other_names = [] in
-    let filenames = List.fold_left (fun names name ->
-          if List.mem name names then names else names @ [name]
-      ) filenames other_names in
-    (List.map (fun name -> name , { ips=[]; nips=0}) filenames)
-  in
-
-  let file = new_file file_diskname FileDownloading md4 size filenames true in
+  let file = new_file file_diskname FileDownloading md4 size filename true in
   begin
     match absents with
       None -> ()
@@ -303,7 +295,7 @@ with _ -> ()
   );
   as_file file
 
-let query_download filenames size md4 location old_file absents force =
+let query_download filename size md4 location old_file absents force =
   if force then
     if !forceable_download = [] then
       raise no_download_to_force
@@ -311,7 +303,7 @@ let query_download filenames size md4 location old_file absents force =
       begin
         let f = List.hd !forceable_download in
 	  forceable_download := [];
-          really_query_download f.result_names f.result_size md4 None None None
+	  really_query_download (List.hd f.result_names) f.result_size md4 None None None
       end
   else
     begin
@@ -332,7 +324,7 @@ let query_download filenames size md4 location old_file absents force =
           (* copy file info into result for later usage in force_download *)
           let r = { dummy_result with
 	      result_uids = [Uid.create (Ed2k md4)];
-              result_names = filenames;
+              result_names = [filename];
               result_size = size;
               result_force = true; (* marker for force_download *)
 	      result_modified = false;
@@ -344,7 +336,7 @@ let query_download filenames size md4 location old_file absents force =
         else
           begin
             forceable_download := [];
-            really_query_download filenames size md4 location old_file absents
+            really_query_download filename size md4 location old_file absents
           end
         end
     end
@@ -356,7 +348,7 @@ let result_download r filenames force =
     | uid :: tail ->
         match Uid.to_uid uid with
           Ed2k md4 ->
-            query_download filenames r.result_size md4 None None None force
+            query_download (List.hd filenames) r.result_size md4 None None None force
         | _  -> iter tail
   in
   iter r.result_uids
@@ -383,19 +375,22 @@ let import_temp temp_dir =
           if Sys.file_exists met then
             let s = File.to_string met in
             let f = P.read s in
-            let filenames = ref [] in
+            let filename_met = ref None in
             let size = ref Int64.zero in
             List.iter (fun tag ->
                 match tag with
                   { tag_name = Field_Filename; tag_value = String s } ->
                     lprintf_nl "Import Donkey %s" s;
 
-                    filenames := s :: !filenames;
+                    filename_met := Some s;
                 | { tag_name = Field_Size; tag_value = Uint64 v } ->
                     size := v
                 | _ -> ()
             ) f.P.tags;
-            ignore (really_query_download !filenames !size f.P.md4 None
+            ignore (really_query_download
+		(match !filename_met with
+		   None -> filename
+		| Some s -> s) !size f.P.md4 None
               (Some filename) (Some (List.rev f.P.absents)));
       with _ -> ()
   ) list
@@ -540,7 +535,7 @@ let parse_donkey_url url =
           end) s;
           begin
 	    try
-              let file = query_download [name] (Int64.of_string size)
+              let file = query_download name (Int64.of_string size)
                 (Md4.of_string md4) None None None false in
 	      let new_file = find_file (Md4.of_string md4) in
 	      CommonInteractive.start_download file;
@@ -570,7 +565,7 @@ let parse_donkey_url url =
 	      name2
 	in
           begin try
-            let file = query_download [name] (Int64.of_string size)
+            let file = query_download name (Int64.of_string size)
               (Md4.of_string md4) None None None false;
             in
             CommonInteractive.start_download file;
@@ -924,7 +919,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
 
 (* TODO RESULT *)
     "dd", Arg_two(fun size md4 o ->
-        let file = query_download [] (Int64.of_string size)
+        let file = query_download md4 (Int64.of_string size)
           (Md4.of_string md4) None None None false in
         CommonInteractive.start_download file;
         "download started"
@@ -1030,7 +1025,6 @@ let _ =
             { (impl_file_info file.file_file) with
 
             P.file_network = network.network_num;
-            P.file_names = file.file_filenames;
             P.file_md4 = file.file_md4;
             P.file_all_sources = file.file_sources.DonkeySources.manager_all_sources;
             P.file_active_sources = file.file_sources.DonkeySources.manager_active_sources;
@@ -1187,7 +1181,7 @@ let _ =
 
 let _ =
   file_ops.op_file_save_as <- (fun file name ->
-      file.file_filenames <- [name, noips()];
+      add_file_filenames (as_file file) name;
       set_file_best_name (as_file file) name "" 0
   );
   file_ops.op_file_set_format <- (fun file format ->
@@ -1246,9 +1240,9 @@ let _ =
         ("", "sr", Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</A\\>" ed2k ed2k) ];
       tr ();
       let optionlist = ref "" in
-      List.iter (fun (name,_) ->
+      List.iter (fun name ->
           optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\n" name name;
-      ) file.file_filenames;
+      ) file.file_file.impl_file_filenames;
 
 
       let input_size = (Printf.sprintf "%d" ((String.length (file_best_name file))+3)) in
@@ -1465,16 +1459,10 @@ let try_recover_temp_file filename md4 =
       let file_diskname = Filename.concat !!temp_directory filename in
       let size = Unix32.getsize file_diskname in
       if size <> zero then
-        let names =
-            (* TODO RESULT
-            try DonkeyIndexer.find_names md4
-            with _ -> *)
-            []
-        in
-        let _ =
-          really_query_download names size md4 None (Some file_diskname) None
-        in
-        recover_md4s md4
+	begin
+	  ignore (really_query_download (Md4.to_string md4) size md4 None (Some file_diskname) None);
+	  recover_md4s md4
+	end
 
 let _ =
   network.op_network_extend_search <- (fun s e ->

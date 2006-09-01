@@ -325,19 +325,16 @@ let add_file_names (table : GPack.table) f top =
   let file_name = U.utf8_of f.g_file_name in
   let cols = new GTree.column_list in
   let file_names = cols#add Gobject.Data.string in
-  let file_count = cols#add Gobject.Data.int in
   let file_names_pixb = cols#add Gobject.Data.gobject_option in
   let liststore = GTree.list_store cols in
   let listmodel = GTree.model_sort liststore in
   listmodel#set_sort_func 0 (sort_function file_names);
-  listmodel#set_sort_func 1 (sort_function file_count);
-  List.iter (fun (name, ips) ->
+  List.iter (fun name ->
     let s = U.utf8_of name in
     let pixb = (Mi.file_type_of_name name ~size:A.SMALL) in
     let row = liststore#append () in
     liststore#set ~row ~column:file_names_pixb pixb;
     liststore#set ~row ~column:file_names s;
-    liststore#set ~row ~column:file_count ips.nips;
   ) f.g_file_names;
   let col_name =
     let col =  GTree.view_column ~title:!M.fW_lb_file_names_col () in
@@ -354,17 +351,6 @@ let add_file_names (table : GPack.table) f top =
     col#set_sort_column_id 0;
     col
   in
-  let col_count =
-    let col =  GTree.view_column ~title:!M.fW_lb_file_count_col () in
-    col#set_resizable true;
-    col#set_clickable true;
-    col#set_sizing `FIXED;
-    let renderer = GTree.cell_renderer_text [`XALIGN 0.] in
-    col#pack renderer;
-    col#add_attribute renderer "text" file_count;
-    col#set_sort_column_id 1;
-    col
-  in
   let vbox = GPack.vbox ~homogeneous:false ~spacing:6 () in
   let scrolled_box =
     GBin.scrolled_window ~hpolicy:`AUTOMATIC ~vpolicy:`AUTOMATIC
@@ -373,7 +359,6 @@ let add_file_names (table : GPack.table) f top =
   in
   let view = GTree.view ~model:listmodel ~height ~packing:scrolled_box#add () in
   ignore (view#append_column col_name);
-  ignore (view#append_column col_count);
   let hbox =
     GPack.hbox ~homogeneous:false ~spacing:6
       ~packing:(vbox#pack ~expand:true ~fill:true) ()

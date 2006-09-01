@@ -139,7 +139,6 @@ let _ =
         P.file_name = file.file_name;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
-        P.file_names = [file.file_name, P.noips()];
         P.file_md4 = file.file_id;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;

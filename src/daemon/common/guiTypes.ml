@@ -20,13 +20,6 @@
 open Md4
 open CommonTypes
 
-type ips_list = {
-    mutable nips : int;
-    mutable ips : Ip.t list;
-  }
-
-let noips () = { ips = []; nips = 0; }
-  
 type 'a search_request = {
     mutable search_num : int;
     mutable search_type : search_type;
@@ -97,7 +90,7 @@ which fields it is interesting in (why send the availability when the
     | File_network of int
     | File_comment of string
     | File_name of string
-    | File_names of (string * ips_list) list
+    | File_names of string list
     | File_md4 of Md4.t        
     | File_size of int64
     | File_downloaded of int64
@@ -125,7 +118,7 @@ type file_info = {
     file_network : int;
     mutable file_comment : string;
     mutable file_name : string;
-    mutable file_names : (string * ips_list) list;
+    mutable file_names : string list;
     mutable file_md4 : Md4.t;        
     mutable file_size : int64;
     mutable file_downloaded : int64; (* LOT OF CHANGES *)
@@ -315,7 +308,7 @@ let file_info_test =
     file_name = "tratra";
     file_num = 356;
     file_network = 873;
-    file_names = ["toto", noips(); "tutu", noips()];
+    file_names = ["toto"; "tutu"];
     file_md4 = Md4.random ();
     file_size = Int64.of_string "68758765";
     file_active_sources = 12;

@@ -44,7 +44,7 @@ type gui_file_info = {
 
     mutable gfile_network : int;
     mutable gfile_name : string;
-    mutable gfile_names : (string * ips_list)list;
+    mutable gfile_names : string list;
     mutable gfile_md4 : Md4.t;
     mutable gfile_size : int64;
     mutable gfile_downloaded : int64;

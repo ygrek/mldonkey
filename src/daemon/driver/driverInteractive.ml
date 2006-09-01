@@ -2256,7 +2256,6 @@ let filenames_variability o list =
 
   let score_list =
     List.map (fun fileinfo ->
-      let filenameset = List.map fst fileinfo.file_names in
       (* canonize filenames by keeping only lowercase words, and
 	 sorting them so that initial order doesn't matter;
 	 Remove duplicate canonized filenames *)
@@ -2264,7 +2263,7 @@ let filenames_variability o list =
 	let new_fn =
 	  Array.of_list (List.sort String.compare (canonized_words fn)) in
 	if List.mem new_fn acc then acc else new_fn :: acc
-      ) [] filenameset) in
+      ) [] fileinfo.file_names) in
       (* precalculate all Levenshtein distances 
 	 That's currently the most expensive phase when lots of
 	 different filenames exist 

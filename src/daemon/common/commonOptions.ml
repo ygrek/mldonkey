@@ -1388,6 +1388,10 @@ let max_name_len = define_expert_option current_section ["max_name_len"]
   "The size long names will be shortened to in the interface"
     int_option 50
 
+let max_filenames = define_expert_option current_section ["max_filenames"]
+  "The maximum number of different filenames used by MLDonkey"
+    int_option 50
+
 let max_client_name_len = define_expert_option current_section ["max_client_name_len"]
   "The size long client names will be shortened to in the interface"
     int_option 25
