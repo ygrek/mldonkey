@@ -555,8 +555,8 @@ type server = (*[]*){
     mutable server_connection_control : connection_control;
     mutable server_score : int;
     mutable server_tags : CommonTypes.tag list;
-    mutable server_nusers : int64;
-    mutable server_nfiles : int64;
+    mutable server_nusers : int64 option;
+    mutable server_nfiles : int64 option;
     mutable server_name : string;
     mutable server_description : string;
     mutable server_banner : string;
@@ -578,10 +578,10 @@ type server = (*[]*){
 
     mutable server_flags : int;
     mutable server_version : string;
-    mutable server_lowid_users : int64;
-    mutable server_soft_limit : int64;
-    mutable server_hard_limit : int64;
-    mutable server_max_users : int64;
+    mutable server_lowid_users : int64 option;
+    mutable server_soft_limit : int64 option;
+    mutable server_hard_limit : int64 option;
+    mutable server_max_users : int64 option;
   }
 
 

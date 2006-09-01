@@ -68,12 +68,13 @@ let create_online_sig () =
   let server_ip = ref "" in
   let server_port = ref 0 in
   List.iter (fun s -> 
-      if s.server_nusers > !most_users then begin 
+      match s.server_nusers with
+      | Some v when v > !most_users ->
           server_name := s.server_name;
           server_ip := (Ip.to_string s.server_ip);
           server_port := s.server_port;
-          most_users := s.server_nusers;
-        end
+          most_users := (match s.server_nusers with None -> 0L | Some v -> v)
+      | _ -> ()
   ) (connected_servers());
   
   Unix2.tryopen_write "onlinesig.dat" (fun oc ->

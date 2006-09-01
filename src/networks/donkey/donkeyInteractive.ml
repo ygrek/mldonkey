@@ -1060,17 +1060,17 @@ let _ =
           P.server_port = s.server_port;
           P.server_realport = (match s.server_realport with Some x -> x | None -> 0);
           P.server_score = s.server_score;
-          P.server_nusers = s.server_nusers;
-          P.server_nfiles = s.server_nfiles;
+          P.server_nusers = (match s.server_nusers with None -> 0L | Some v -> v);
+          P.server_nfiles = (match s.server_nfiles with None -> 0L | Some v -> v);
           P.server_name = s.server_name;
           P.server_description = s.server_description;
           P.server_banner = s.server_banner;
           P.server_preferred = s.server_preferred;
-	  P.server_version = s.server_version;
-          P.server_max_users = s.server_max_users;
-          P.server_soft_limit = s.server_soft_limit;
-          P.server_hard_limit = s.server_hard_limit;
-          P.server_lowid_users = s.server_lowid_users;
+          P.server_version = s.server_version;
+          P.server_max_users = (match s.server_max_users with None -> 0L | Some v -> v);
+          P.server_soft_limit = (match s.server_soft_limit with None -> 0L | Some v -> v);
+          P.server_hard_limit = (match s.server_hard_limit with None -> 0L | Some v -> v);
+          P.server_lowid_users = (match s.server_lowid_users with None -> 0L | Some v -> v);
           P.server_ping = s.server_ping;
 
         }

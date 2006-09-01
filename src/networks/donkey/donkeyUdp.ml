@@ -265,23 +265,23 @@ let udp_client_handler t p =
       let now = Unix.gettimeofday() in
       s.server_ping <- int_of_float ((now -. s.server_last_ping) *. 1000.);
       s.server_last_message <- last_time ();
-      s.server_nfiles <- t.M.files;
-      s.server_nusers <- t.M.users;
+      if t.M.files > 0L then s.server_nfiles <- Some t.M.files;
+      if t.M.users > 0L then s.server_nusers <- Some t.M.users;
       (match t.M.max_users with
-           Some x -> s.server_max_users <- x
-         | None -> ());
+           Some x when x > 0L -> s.server_max_users <- Some x
+         | _ -> ());
       (match t.M.flags with
            Some x -> s.server_flags <- x
-         | None -> ());
+         | _ -> ());
       (match t.M.lowid_users with
-           Some x -> s.server_lowid_users <- x
-         | None -> ());
+           Some x when x > 0L -> s.server_lowid_users <- Some x
+         | _ -> ());
       (match t.M.soft_limit with
-           Some x -> s.server_soft_limit <- x
-         | None -> ());
+           Some x when x > 0L -> s.server_soft_limit <- Some x
+         | _ -> ());
       (match t.M.hard_limit with
-           Some x -> s.server_hard_limit <- x
-         | None -> ());
+           Some x when x > 0L -> s.server_hard_limit <- Some x
+         | _ -> ());
       server_must_update s
 
   | Udp.ServerDescReplyUdpReq t ->

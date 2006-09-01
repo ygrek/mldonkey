@@ -281,16 +281,6 @@ let client_to_server s t sock =
         end
 
   | M.MessageReq msg ->
-
-      (* This is stupid *)
-      if s.server_version = "" then begin
-        try
-          let prefix = String.sub msg 0 15 in
-          if prefix = "server version " then 
-            s.server_version <- String.sub msg 15 4
-        with _ -> ()
-      end;
-
       if !last_message_sender <> server_num s then begin
           let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------"
               s.server_name (Ip.to_string s.server_ip) s.server_port in
@@ -345,8 +335,8 @@ let client_to_server s t sock =
       s.server_queries_credit <-  0
 
   | M.InfoReq (users, files) ->
-      s.server_nusers <- Int64.of_int users;
-      s.server_nfiles <- Int64.of_int files;
+      s.server_nusers <- Some (Int64.of_int users);
+      s.server_nfiles <- Some (Int64.of_int files);
       if (users < !!min_users_on_server && not s.server_preferred) then
         begin
           lprintf_nl "%s:%d remove server min_users_on_server limit hit!"
@@ -740,7 +730,9 @@ let udp_walker_timer () =
 let compare_servers s2 s1 =
   let n = compare s1.server_preferred s2.server_preferred in
   if n = 0 then
-    Int64.to_int (s1.server_nusers -- s2.server_nusers)
+    Int64.to_int
+    ((match s1.server_nusers with None -> 0L | Some v -> v) --
+     (match s2.server_nusers with None -> 0L | Some v -> v))
   else n
 
 (* check connected servers *)
@@ -814,7 +806,9 @@ let update_master_servers _ =
           in
           if !verbose_location then
               lprintf_nl "master servers: Checking ip:%s, users: %Ld, ct:%d"
-          (Ip.to_string s.server_ip) s.server_nusers connection_time;
+          (Ip.to_string s.server_ip)
+	  (match s.server_nusers with None -> 0L | Some v -> v)
+	  connection_time;
           if not s.server_master
             && (s.server_preferred
                  || connection_time > !!become_master_delay
@@ -832,13 +826,21 @@ let update_master_servers _ =
                   match !masters with
                       [] -> disconnect_old_server s
                     | ss :: tail ->
+			let ss_nusers =
+			  match ss.server_nusers with
+			    None -> 0L
+			  | Some v -> v in
+			let s_nusers =
+			  match s.server_nusers with
+			    None -> 0L
+			  | Some v -> v in
                         (* check if the non-master has more users
                            or is a preferred one *)
                         if (s.server_preferred && not ss.server_preferred)
                           || (!!keep_best_server
-                               && mini ((Int64.to_int ss.server_nusers) + 1000)
-                                       ((Int64.to_int ss.server_nusers) * 5)
-                                  < (Int64.to_int s.server_nusers)
+                               && mini ((Int64.to_int ss_nusers) + 1000)
+                                       ((Int64.to_int ss_nusers) * 5)
+                                  < (Int64.to_int s_nusers)
                              )
                           then
                             begin
