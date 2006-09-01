@@ -25,37 +25,39 @@ module Make (C : Chain) = struct
   let distance lc =
     fun s1 ->
       let l1 = C.length s1 in
-      let m = Array.make (l1 + 1) 0 in
-      let n = Array.make (l1 + 1) 0 in
+      let current_row = Array.make (l1 + 1) 0 in
+      let next_row = Array.make (l1 + 1) 0 in
       fun s2 ->
 	let l2 = C.length s2 in
 	(* invariant:
 	   matrix.(a).(b) = 
 	   levenshtein.distance lc (String.sub s1 0 a) (String.sub s2 0 b) 
 	 
-	   m.(i) = matrix.(i).(j)
-	   n.(i) = matrix.(i).(j+1) *)
-	m.(0) <- 0;
+	   current_row.(i) = matrix.(i).(j)
+	   next_row.(i) = matrix.(i).(j+1) *)
+	current_row.(0) <- 0;
 	for i = 1 to l1 do
-	  m.(i) <- m.(i - 1) + lc.delete_cost
+	  current_row.(i) <- current_row.(i - 1) + lc.delete_cost
 	done;
-	let rec aux j m n =
-	  if j = l2 then m.(l1)
+	let min_3int a b c : int =
+	  let min = if a <= b then a else b in
+	  if min <= c then min else c in
+	let rec aux j current_row next_row =
+	  if j = l2 then current_row.(l1)
 	  else
 	    let c2 = C.get s2 j in
-	    n.(0) <- m.(0) + lc.insert_cost;
+	    next_row.(0) <- current_row.(0) + lc.insert_cost;
 	    for i = 1 to l1 do
 	      let i1 = i - 1 in
-	      n.(i) <-
-		min
-	        (min 
-		  (n.(i1) + lc.delete_cost)
-		  (m.(i) + lc.insert_cost))
-	        (m.(i1) + 
-		  (if C.equal (C.get s1 i1) c2 then 0 else lc.replace_cost))
+	      next_row.(i) <-
+		min_3int
+		  (next_row.(i1) + lc.delete_cost)
+		  (current_row.(i) + lc.insert_cost)
+		  (if C.equal (C.get s1 i1) c2 then current_row.(i1) 
+		   else current_row.(i1) + lc.replace_cost)
 	    done;
-	    aux (j + 1) n m in
-	aux 0 m n
+	    aux (j + 1) next_row current_row in (* swap rows *)
+	aux 0 current_row next_row
 end
 
 module ChainString = struct

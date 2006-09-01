@@ -2194,9 +2194,35 @@ let print_command_result o buf result =
   else
     Printf.bprintf buf "%s" result
 
+module UnionFind = struct
+  type t = int array
+  let create_sets n =
+    Array.init n (fun i -> i) (* each element is its own leader *)
+  let find_leader t i =
+    let rec fix_point i =
+      let parent = t.(i) in
+      if parent <> i then fix_point parent 
+      else i in
+    let leader = fix_point i in
+    t.(i) <- leader;
+    leader
+  let merge_sets t i j =
+    let leaderi = find_leader t i in
+    let leaderj = find_leader t j in
+    t.(leaderi) <- leaderj
+  let number_of_sets t =
+    let nsets = ref 0 in
+    Array.iteri (fun i ti ->
+      if i = ti then incr nsets) t;
+    !nsets
+end
+
 let filenames_variability o list =
   let debug = false in
 
+  (* over this number of filenames, exact variability is not computed
+     (too expensive) *)
+  let bypass_threshold = 100 in
   (* minimum distance that must exist between two groups of filenames
      so they're considered separate *)
   let gap_threshold = 4 in
@@ -2212,47 +2238,36 @@ let filenames_variability o list =
   let canonized_words s =
     let len = String.length s in
     let current_word = Buffer.create len in
-    let rec aux i wl =
+    let rec outside_word i wl =
       if i < len then
-	if not (is_alphanum s.[i]) then aux (i + 1) wl
-	else begin
+	if not (is_alphanum s.[i]) then outside_word (i + 1) wl
+	else begin (* start of a new word *)
 	  Buffer.add_char current_word (Char.lowercase s.[i]);
-	  aux2 (i + 1) wl
+	  inside_word (i + 1) wl
 	end
       else wl
-    and aux2 i wl =
+    and inside_word i wl =
       if i < len then 
-	if not (is_alphanum s.[i]) then begin
+	if not (is_alphanum s.[i]) then begin (* end of the word *)
 	  let wl = Buffer.contents current_word :: wl in
 	  Buffer.reset current_word;
-	  aux i wl
+	  outside_word i wl
 	end else begin
 	  Buffer.add_char current_word (Char.lowercase s.[i]);
-	  aux2 (i + 1) wl
+	  inside_word (i + 1) wl
 	end
       else Buffer.contents current_word :: wl
     in
-    aux 0 [] in
+    outside_word 0 [] in
 
   let costs = { 
     Levenshtein.insert_cost = 1; 
     Levenshtein.delete_cost = 1; 
     Levenshtein.replace_cost = 2 } in
+  (* we can only assume the distance is symetric if insert and
+     delete costs are the same *)
+  assert (costs.Levenshtein.insert_cost = costs.Levenshtein.delete_cost);
   let dist = Levenshtein.ForWords.distance costs in
-
-  (* fold over all the pairs that can be made with the elements of l *)
-  let list_pair_fold f acc l =
-    let rec aux acc e1 l =
-      let rec aux2 acc e1 l =
-	match l with
-	| [] -> acc
-	| h :: q -> aux2 (f acc e1 h) e1 q in
-      match l with
-      | [] -> acc
-      | h :: q -> aux (aux2 acc e1 l) h q in
-    match l with
-    | [] -> acc
-    | h :: q -> aux acc h q in
 
   let score_list =
     List.map (fun fileinfo ->
@@ -2264,88 +2279,20 @@ let filenames_variability o list =
 	  Array.of_list (List.sort String.compare (canonized_words fn)) in
 	if List.mem new_fn acc then acc else new_fn :: acc
       ) [] fileinfo.file_names) in
-      (* precalculate all Levenshtein distances 
-	 That's currently the most expensive phase when lots of
-	 different filenames exist 
-      *)
-      let n = Array.length fns in
-      let matrix = Array.make_matrix n n 0 in
-      (* we can only assume the matrix is symetric if insert and
-	 delete costs are the same *)
-      assert (costs.Levenshtein.insert_cost = costs.Levenshtein.delete_cost);
-      for i = 0 to n - 2 do
-	let d1 = dist fns.(i) in
-	for j = i + 1 to n - 1 do
-	  matrix.(i).(j) <- d1 fns.(j)
-	done
-      done;
 
-      (* for debugging only *)
-      let rec string_of_set (s, d) = 
-	Printf.sprintf "[%s] (%d)" 
-	  (String.concat "/" 
-	    (List.map (fun i -> 
-	      String.concat " " (Array.to_list fns.(i))
-	    ) s)) d in
-      
-      (* there's one more cluster than gaps between clusters *)
-      let number_of_clusters (s, d) = d + 1 in
-      
-      let pair_dist i1 i2 =
-	(* again we assume the matrix is symetric,
-	   and that i1 <> i2 *)
-	if i1 < i2 then matrix.(i1).(i2) else matrix.(i2).(i1) in
-
-      (* usual definition of distance between two sets 
-	 d(E1,E2) = min { e1 in E1, e2 in E2 / d(e1,e2) }
-      *)
-      let rec sets_dist s1 s2 =
-	match s1, s2 with
-	| ([i1], _), ([i2], _) -> pair_dist i1 i2
-	| ([i1], _), (h2 :: q2, d2) ->
-	    min (pair_dist i1 h2) (sets_dist s1 (q2, d2)) 
-	| (h1 :: q1, d1), s2 -> 
-	    min (sets_dist ([h1], d1) s2) (sets_dist (q1, d1) s2) 
-	| _ -> assert false in
-      
-      (* initially, each filename is in its own set *)
-      let initial_list_of_sets = 
-	let rec aux n l =
-	  let n1 = n - 1 in
-	  if n1 >= 0 then 
-	    aux n1 (([n1], 0) :: l) 
-	  else l in
-	aux n [] in
-
-      let gap d =
-	if d < gap_threshold then 0 else 1 in
-      
-      let rec coalesce_sets ls =
-	match ls with
-	| [s] -> s
-	| _ ->
-	    (* find two sets with minimal distance and coalesce them *)
-	    match (
-	      list_pair_fold (fun acc e1 e2 ->
-		let d = sets_dist e1 e2 in
-		match acc with
-		| None -> Some (e1, e2, d)
-		| Some (bs1, bs2, min_dist) ->
-		    if d < min_dist then Some (e1, e2, d)
-		    else acc) None ls) with
-	    | Some (((s1, d1) as e1), ((s2, d2) as e2), min_dist) ->
-		if debug then
-		  Printf.printf "Coalesce\n%s and\n%s (distance %d)\n"
-		    (string_of_set e1) (string_of_set e2) min_dist;
-		coalesce_sets 
-		  ((s1 @ s2, d1 + d2 + (gap min_dist)) ::
-		    (List.filter (fun e -> e != e1 && e != e2) ls))
-	    | None -> assert false
-      in
-      let coalesced_set = coalesce_sets initial_list_of_sets in
-      let nclusters = number_of_clusters coalesced_set in
-      
-      fileinfo, nclusters
+      let nfilenames = Array.length fns in
+      if nfilenames > bypass_threshold then
+	fileinfo, bypass_threshold
+      else
+	let unionfind_sets = UnionFind.create_sets nfilenames in
+	for i = 0 to nfilenames - 2 do
+	  let d1 = dist fns.(i) in
+	  for j = i + 1 to nfilenames - 1 do
+	    if d1 fns.(j) < gap_threshold then
+	      UnionFind.merge_sets unionfind_sets i j
+	  done
+	done;
+	fileinfo, UnionFind.number_of_sets unionfind_sets
     ) list in
 
   (* files with most clusters at the end of results table *)
