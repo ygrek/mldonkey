@@ -37,10 +37,6 @@ let check_client_connections_delay = define_expert_option donkey_section ["check
   "Delay used to request file sources"
     float_option 180.0
 
-let check_connections_delay = define_expert_option donkey_section ["check_connections_delay"]
-  "The delay between server connection rounds"
-    float_option 5.0
-
 let client_timeout = define_expert_option donkey_section ["client_timeout"]
   "Timeout on client connections when not queued"
     float_option 40.
@@ -49,12 +45,8 @@ let max_connected_servers = define_option donkey_section ["max_connected_servers
   "The number of servers you want to stay connected to"
     int_option 3
 
-let max_udp_sends = define_expert_option donkey_section ["max_udp_sends"]
-  "The number of UDP packets you send every check_client_connections_delay"
-    int_option 10
-
 let reliable_sources = define_option donkey_section ["reliable_sources"]
-  "Should mldonkey try to detect sources responsible for corruption and ban them"
+  "Should mldonkey try to detect sources responsible for corruption and ban them, currently disabled"
     bool_option true
 
 let ban_identity_thieves = define_option donkey_section ["ban_identity_thieves"]

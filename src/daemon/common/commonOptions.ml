@@ -1549,7 +1549,8 @@ let log_size = define_expert_option current_section ["log_size"]
     int_option 300
 
 let log_file_size = define_expert_option current_section ["log_file_size"]
-   "Maximum size of log_file in MB"
+   "Maximum size of log_file in MB, this value is only checked on startup,
+   log_file will be deleted if its bigger than log_file_size."
      int_option 2
 
 let log_file = define_expert_option current_section ["log_file"]

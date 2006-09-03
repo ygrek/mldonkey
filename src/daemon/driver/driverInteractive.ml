@@ -2218,8 +2218,6 @@ module UnionFind = struct
 end
 
 let filenames_variability o list =
-  let debug = false in
-
   (* over this number of filenames, exact variability is not computed
      (too expensive) *)
   let bypass_threshold = 100 in

@@ -2841,7 +2841,9 @@ let received up file_begin str string_begin string_len =
 			(try
 			  preallocate_disk_space tprim 
 			    r.range_begin file_end
-			with e ->
+			with
+			  End_of_file -> ()
+			| e ->
 			  lprintf_nl "Exception %s while preallocating disk space [%Ld-%Ld] for %s"
 			    (Printexc2.to_string e) 
 			    r.range_begin file_end

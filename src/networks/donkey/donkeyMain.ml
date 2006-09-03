@@ -83,6 +83,7 @@ let second_timer timer =
   DonkeyServers.udp_walker_timer ()
 
 let five_second_timer timer =
+  DonkeyServers.check_server_connections;
   DonkeyServers.walker_timer ();
   DonkeyOneFile.check_files_downloaded ();
   DonkeyShare.check_shared_files ()
@@ -311,10 +312,6 @@ be useful when users want to share files that they had already previously
           DonkeyUdp.extent_search ();
           DonkeyServers.udp_query_sources ()
          );
-      
-      add_session_option_timer enabler check_connections_delay 
-        DonkeyServers.check_server_connections;
-
       
       add_session_timer enabler 3600. hourly_timer;
       add_session_timer enabler 60. min_timer;
