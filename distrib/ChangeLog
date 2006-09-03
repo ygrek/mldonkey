@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/03
+5365: Accept FTP URLs on command line
 5364: Update options descriptions, remove obsolete options, clean log
 5363: Limit max_hard_download_rate when max_hard_upload_rate < 10
 - upload >= 10    -> unlimited download
