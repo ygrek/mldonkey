@@ -83,7 +83,7 @@ let second_timer timer =
   DonkeyServers.udp_walker_timer ()
 
 let five_second_timer timer =
-  DonkeyServers.check_server_connections;
+  DonkeyServers.check_server_connections ();
   DonkeyServers.walker_timer ();
   DonkeyOneFile.check_files_downloaded ();
   DonkeyShare.check_shared_files ()
