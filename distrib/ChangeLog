@@ -14,6 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/03
+5363: Limit max_hard_download_rate when max_hard_upload_rate < 10
+- upload >= 10    -> unlimited download
+- upload < 10 > 3 -> download limited to upload * 4
+- upload < 4      -> download limited to upload * 3
+
 2006/09/01
 5361: Faster filenames_variability computation (pango)
 5360: HTML: Increase webinterface buffer to avoid problems with long output

@@ -213,8 +213,21 @@ let download_control = TcpBufferedSocket.create_read_bandwidth_controler
 
 let payload_bandwidth = ref 0.
 
+let check_ul_dl_ratio () =
+  if !!max_hard_upload_rate < 0 then max_hard_upload_rate =:= 0;
+  if !!max_hard_download_rate < 0 then max_hard_download_rate =:= 0;
+  if !!max_hard_upload_rate < 4 &&
+     (!!max_hard_upload_rate * 3 < !!max_hard_download_rate ||
+       !!max_hard_download_rate = 0) then
+      max_hard_download_rate =:= !!max_hard_upload_rate * 3
+  else
+    if !!max_hard_upload_rate < 10 && (!!max_hard_upload_rate * 4 <
+       !!max_hard_download_rate || !!max_hard_download_rate = 0) then
+	  max_hard_download_rate =:= !!max_hard_upload_rate * 4
+
 let _ =
   option_hook max_hard_upload_rate (fun _ ->
+      check_ul_dl_ratio ();
       TcpBufferedSocket.change_rate upload_control
         (!!max_hard_upload_rate * 1024);
       payload_bandwidth :=
@@ -224,9 +237,9 @@ let _ =
 	   maxi (!!max_hard_upload_rate * 1024) 1024) *. 0.90;
   );
   option_hook max_hard_download_rate (fun _ ->
-      let rate = !!max_hard_download_rate in
+      check_ul_dl_ratio ();
       TcpBufferedSocket.change_rate download_control
-        (rate * 1024))
+        (!!max_hard_download_rate * 1024))
 
 let udp_write_controler = UdpSocket.new_bandwidth_controler upload_control
 
