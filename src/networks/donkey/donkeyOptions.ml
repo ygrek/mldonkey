@@ -31,7 +31,7 @@ let max_xs_packets = define_expert_option donkey_section ["max_xs_packets"]
 
 let donkey_port = define_option donkey_section ["port"]
   "The port used for connection by other donkey clients."
-    int_option 4662
+    int_option (2000 + Random.int 20000)
 
 let check_client_connections_delay = define_expert_option donkey_section ["check_client_connections_delay"]
   "Delay used to request file sources"

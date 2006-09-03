@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/09/03
+5367: EDK: Use random default for ED2K_port instead of fixed 4662
+- existing ini files are never changed
+- after donkey.ini is created the value is not changed automatically
 5366: HTML: Remove obsolete EDK history links
 5365: Accept FTP URLs on command line
 5364: Update options descriptions, remove obsolete options, clean log
