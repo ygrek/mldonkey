@@ -266,7 +266,7 @@ let become_master_delay = define_expert_option donkey_section ["become_master_de
 
 let options_version = define_expert_option donkey_section ["options_version"]
   "(internal option)"
-    int_option 0
+    int_option 3
 
 let gui_donkey_options_panel =
   [

@@ -1526,7 +1526,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 
 let options_version = define_expert_option current_section ["options_version"]
   "(internal option)"
-    int_option 13
+    int_option 14
 
 
 
