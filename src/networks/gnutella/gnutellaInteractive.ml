@@ -215,6 +215,10 @@ that we can reuse queries *)
   network.op_network_connected <- (fun _ ->
       !connected_servers <> []
   );
+  network.op_network_ports <- (fun _ ->
+    [
+    !!client_port, "client_port TCP+UDP";
+    ]);
   network.op_network_share <- (fun fullname codedname size ->
       (*
       lprintf "*************** op_network_share %s\n

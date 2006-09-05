@@ -1410,6 +1410,10 @@ let enable () =
       let sock = (UdpSocket.create (Ip.to_inet_addr !!client_bind_addr)
           (!!overnet_port) (Proto.udp_handler udp_client_handler)) in
       udp_sock := Some sock;
+      if Proto.redirector_section = "DKKO" then
+	overnet_port_info := !!overnet_port;
+      if Proto.redirector_section = "DKKA" then
+	kademlia_port_info := !!overnet_port;
       UdpSocket.set_write_controler sock udp_write_controler;
 
 (* copy all boot_peers to unknown_peers *)
@@ -1511,6 +1515,10 @@ let disable () =
         | Some sock ->
             udp_sock := None;
             UdpSocket.close sock Closed_by_user);
+      if Proto.redirector_section = "DKKO" then
+	overnet_port_info := 0;
+      if Proto.redirector_section = "DKKA" then
+	kademlia_port_info := 0;
     end
 
 let _ =

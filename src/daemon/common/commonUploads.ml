@@ -239,6 +239,13 @@ let _ =
         network_downloaded = Int64.zero;
         network_connected = 0;
       });
+  network.op_network_ports <- (fun _ ->
+    [
+    !!http_port, "http_port";
+    !!telnet_port, "telnet_port";
+    !!gui_port, "gui_port";
+    !!gift_port, "gift_port";
+    ]);
   network.op_network_connected_servers <- (fun _ -> [])
 
 let (shared_ops : shared_file CommonShared.shared_ops) =

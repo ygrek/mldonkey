@@ -436,6 +436,8 @@ let _ =
         if o.conn_output = HTML then Printf.bprintf buf "\\<P\\>";
         ignore(runinfo (o.conn_output = HTML) buf o);
         if o.conn_output = HTML then Printf.bprintf buf "\\<P\\>";
+        ignore(portinfo (o.conn_output = HTML) buf);
+        if o.conn_output = HTML then Printf.bprintf buf "\\<P\\>";
         ignore(diskinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey core build, runtime and disk information";
@@ -451,6 +453,12 @@ let _ =
         ignore(runinfo (o.conn_output = HTML) buf o);
         ""
     ), ":\t\t\t\tprint mldonkey runtime information";
+
+    "portinfo", Arg_none (fun o ->
+	let buf = o.conn_buf in
+        ignore(portinfo (o.conn_output = HTML) buf);
+        ""
+    ), ":\t\t\t\tprint mldonkey port usage information";
 
     "diskinfo", Arg_none (fun o ->
 	let buf = o.conn_buf in

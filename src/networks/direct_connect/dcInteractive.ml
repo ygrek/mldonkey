@@ -298,7 +298,7 @@ let _ =
         P.file_name = file.file_name;
         P.file_num = (file_num file);
         P.file_network = network.network_num;
-        P.file_names = [file.file_name, noips()];
+        P.file_names = [file.file_name];
         P.file_md4 = file.file_id;
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
@@ -307,7 +307,7 @@ let _ =
         P.file_state = file_state file;
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = "0";
+        P.file_chunks = None;
         P.file_availability = [network.network_num, "0"];
         P.file_format = FormatUnknown;
         P.file_chunks_age = [|0|];
@@ -376,6 +376,12 @@ let _ =
           ) list)
 
 let _ =
+  network.op_network_ports <- (fun _ ->
+    [
+    !!dc_port, "client_port";
+    ]);
+  network.op_network_recover_temp <- (fun s -> ());
+  network.op_network_load_complex_options <- (fun _ -> ());
   network.op_network_save_complex_options <- (fun _ -> ());
   network.op_network_save_sources <- (fun _ -> ());
   network.op_network_update_options <- (fun _ -> ());

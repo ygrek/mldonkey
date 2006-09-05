@@ -181,6 +181,9 @@ let _ =
   *)
 
 let _ =
+  network.op_network_ports <- (fun _ -> []);
+  network.op_network_recover_temp <- (fun s -> ());
+  network.op_network_load_complex_options <- (fun _ -> ());
   network.op_network_download <- (fun r ->
       download r []   
   )
@@ -200,7 +203,7 @@ let _ =
         P.file_downloaded = file_downloaded file;
         P.file_state = file_state file;
         P.file_download_rate = file_download_rate file.file_file;
-        P.file_chunks = "0";
+        P.file_chunks = None;
         P.file_availability = [network.network_num,"0"];
         P.file_format = FormatNotComputed 0;
         P.file_chunks_age = [|0|];

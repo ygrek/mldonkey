@@ -385,6 +385,13 @@ let _ =
         network_downloaded = !donkey_download_counter;
         network_connected = List.length (connected_servers ());
       });
+  network.op_network_ports <- (fun _ ->
+    [
+    !!donkey_port, "client_port TCP";
+    !!donkey_port+4, "client_port UDP";
+    !overnet_port_info, "overnet_port TCP+UDP";
+    !kademlia_port_info, "kademlia_port UDP";
+    ]);
   CommonInteractive.register_gui_options_panel "eDonkey" 
     gui_donkey_options_panel;
   CommonInteractive.register_gui_options_panel "Overnet" 

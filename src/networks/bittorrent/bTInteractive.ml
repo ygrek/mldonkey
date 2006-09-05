@@ -1085,6 +1085,11 @@ let _ =
   );
   network.op_network_reset <- (fun _ ->
     List.iter (fun file -> BTClients.file_stop file) !current_files);
+  network.op_network_ports <- (fun _ ->
+    [
+    !!client_port, "client_port TCP";
+    !!BTTracker.tracker_port, "tracker_port TCP";
+    ]);
 
   client_ops.op_client_info <- op_client_info;
   client_ops.op_client_connect <- op_client_connect;

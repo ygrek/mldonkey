@@ -399,19 +399,21 @@ or getting a binary compiled with glibc %s.\n\n")
     save_results =:= old_save_results;
   end;
 
-(*  lprintf "(3) networks_iter load_complex_options\n"; *)
   lprintf_nl (_b "Check http://www.mldonkey.net/ for updates");
   networks_iter (fun r -> network_load_complex_options r);
-  lprintf (_b "%senabling networks: ") (log_time ());
+  lprintf_nl (_b "enabling networks: ");
   networks_iter (fun r ->
-(*      lprintf "(4) networks_iter enabling\n"; *)
-      lprintf (_b "%s ") r.network_name;
+      lprintf_nl (_b "---- enabling %s ----") r.network_name;
       network_enable r;
+      List.iter (fun (p,s) -> if p <> 0 then lprintf_nl "using port %d (%s)" p s) (network_ports r);
 (* are there drawbacks to start recover_temp unconditionally here ? *)
       if !!recover_temp_on_startup then
         network_recover_temp r;
   );
-  lprintf (_b "\n%sdisabled networks: ") (log_time ());
+  lprintf_nl (_b "---- enabling interfaces ----");
+  List.iter (fun (p,s) -> if p <> 0 then lprintf_nl "using port %d (%s)" p s)
+    (network_ports (network_find_by_name "Global Shares"));
+  lprintf (_b "%sdisabled networks: ") (log_time ());
   let found = ref false in
     networks_iter_all (fun r ->
         if not (network_is_enabled r) then

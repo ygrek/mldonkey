@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/05
+5369: New command portinfo, display used ports during start-up
+
 2006/09/04
 5370: Correct option_versions defaults, remove commented EDK code
 

@@ -34,6 +34,7 @@ open CommonFile
 open OpennapGlobals
 open Options
 open OpennapComplexOptions
+open OpennapOptions
 open OpennapTypes
 module OG = OpennapGlobals
 
@@ -143,7 +144,7 @@ let _ =
         P.file_size = file_size file;
         P.file_downloaded = file_downloaded file;
         P.file_state = file_state file;
-        P.file_chunks = "0";
+        P.file_chunks = None;
         P.file_availability = [network.network_num, "0"];
         P.file_format = FormatUnknown;
         P.file_chunks_age = [|0 |];
@@ -236,6 +237,10 @@ let _ =
 
   network.op_network_parse_url <- (fun _ -> "", false);
   network.op_network_load_complex_options <- (fun _ -> ());
+  network.op_network_ports <- (fun _ ->
+    [
+    !!client_port, "client_port TCP";
+    ]);
 
   network.op_network_recover_temp <- (fun s -> ());
 

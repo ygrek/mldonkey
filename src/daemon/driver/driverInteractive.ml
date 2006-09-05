@@ -2011,7 +2011,51 @@ let runinfo html buf o =
     ) list;
     if html then 
       Printf.bprintf buf "\\</table\\>\\</div\\>"
-          
+
+type port_info = {
+    netname : string;
+    port : int;
+    portname : string
+  }
+
+let portinfo html buf =
+  let max_network_name_len = ref 4 in (* "Core" *)
+  let list = ref [] in
+  networks_iter (fun r ->
+    if String.length r.network_name > !max_network_name_len then
+      max_network_name_len := String.length r.network_name;
+    List.iter (fun (p,s) -> if p <> 0 then list := !list @
+      [{netname = r.network_name; port = p; portname = s}]) (network_ports r)
+  );
+  List.iter (fun (p,s) -> if p <> 0 then list := !list @
+      [{netname = "Core"; port = p; portname = s}])
+    (network_ports (network_find_by_name "Global Shares"));
+
+  let fill_network s = String.make (!max_network_name_len - 7) s in
+  if html then
+      html_mods_table_header buf "sharesTable" "shares" [
+       ( "0", "srh", "Network", "Network" ) ;
+       ( "0", "srh ar", "Port", "Port" ) ;
+       ( "1", "srh", "Type", "Type" ) ]
+  else
+    begin
+      Printf.bprintf buf "\n\t--Portinfo--\n";
+      Printf.bprintf buf "Network%s|  Port|Type\n" (fill_network ' ');
+      Printf.bprintf buf "-------%s+------+-------------------\n" (fill_network '-')
+    end;
+
+  html_mods_cntr_init ();
+  List.iter (fun p ->
+    if html then
+      Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+	(html_mods_cntr ()) p.netname p.port p.portname
+    else
+      Printf.bprintf buf "%-*s|%6d|%s\n"
+	(maxi !max_network_name_len (!max_network_name_len - String.length p.netname)) p.netname p.port p.portname
+    ) (List.sort (fun p1 p2 -> String.compare p1.netname p2.netname) !list);
+  if html then
+    Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
+
 let diskinfo html buf =
   let list = ref [] in
   ignore (search_incoming_files ());

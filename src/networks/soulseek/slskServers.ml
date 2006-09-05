@@ -121,7 +121,7 @@ let server_to_client s m sock =
           let c = Hashtbl.find clients_by_name name in
           c.client_addr <- Some (ip, port);
 
-          if client_browsed_tag land client_type c <> 0 then
+          if (client_friend_tag lor client_contact_tag) land client_type c <> 0 then
                SlskClients.connect_peer c 300 [C2C.GetSharedFileListReq]
           
         with Not_found ->

@@ -47,6 +47,7 @@ val network_find_by_num : int -> CommonTypes.network
 val network_commands : (string * string * CommonTypes.arg_kind * string) list ref
 val register_commands : (string * string * CommonTypes.arg_kind * string) list -> unit
 val network_connect_servers : CommonTypes.network -> unit
+val network_ports : CommonTypes.network -> (int * string) list
 val network_forget_search : CommonTypes.network -> CommonTypes.search -> unit
 val network_close_search : CommonTypes.network -> CommonTypes.search -> unit
 val network_private_message : CommonTypes.network -> string -> string -> unit

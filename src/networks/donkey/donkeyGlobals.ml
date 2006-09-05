@@ -847,6 +847,8 @@ let left_bytes = "MLDK"
 let overnet_server_ip = ref Ip.null
 let overnet_server_port = ref 0
 
+let overnet_port_info = ref 0
+let kademlia_port_info = ref 0
 
 
 (*************************************************************

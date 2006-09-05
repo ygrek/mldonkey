@@ -51,6 +51,7 @@ module VB = VerificationBitmap
 
 let _ =
   network.op_network_connected <- (fun _ -> true);
+  network.op_network_ports <- (fun _ -> []);
   network.op_network_connected_servers <- (fun _ -> [])
 
 

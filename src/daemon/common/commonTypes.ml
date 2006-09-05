@@ -497,6 +497,7 @@ type network = {
     mutable op_network_display_stats : (Buffer.t -> ui_conn -> unit);
     mutable op_network_clean_exit : (unit -> bool);
     mutable op_network_reset : (unit -> unit);
+    mutable op_network_ports : (unit -> (int * string) list);
   }
 
 and   ui_user = {
