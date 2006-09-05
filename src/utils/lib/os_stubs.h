@@ -127,10 +127,6 @@ typedef off_t OFF_T;
 extern void unix_error (int errcode, char * cmdname, value arg) Noreturn;
 extern void uerror (char * cmdname, value arg) Noreturn;
 
-static int seek_command_table[] = {
-  SEEK_SET, SEEK_CUR, SEEK_END
-};
-
 extern OFF_T os_lseek(OS_FD fd, OFF_T pos, int dir);
 extern void os_ftruncate(OS_FD fd, OFF_T len, int sparse);
 extern ssize_t os_read(OS_FD fd, char *buf, size_t len);
