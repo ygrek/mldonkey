@@ -44,7 +44,7 @@ type 'a file_impl = {
     mutable impl_file_update : int;
     mutable impl_file_state : file_state;
 
-    mutable impl_file_comment : string;
+    mutable impl_file_comment : string list;
     mutable impl_file_num : int;
     mutable impl_file_val : 'a;
     mutable impl_file_ops : 'a file_ops;
@@ -85,7 +85,6 @@ it will happen soon. *)
     mutable op_file_recover : ('a -> unit);
     mutable op_file_all_sources : ('a -> client list);
     mutable op_file_active_sources : ('a -> client list);
-    mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
     mutable op_file_print_html : ('a -> Buffer.t -> unit);
     mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
@@ -132,7 +131,7 @@ let dummy_file_impl = {
     impl_file_magic = None;
     impl_file_priority = 0;
     impl_file_last_seen = 0;
-    impl_file_comment = "";
+    impl_file_comment = [];
     impl_file_probable_name = None;
   }
 
@@ -209,10 +208,6 @@ let file_save_as (file : file) name =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_save_as file.impl_file_val name
 
-let file_comment (file : file) =
-  let file = as_file_impl file in
-  file.impl_file_ops.op_file_comment file.impl_file_val
-
 let file_network (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_network
@@ -242,13 +237,16 @@ let set_file_state file state =
   update_file_state impl state
 
 let set_file_comment file comment =
-  let impl = as_file_impl file in
-  impl.impl_file_comment <- comment
+  if not (List.mem comment (as_file_impl file).impl_file_comment) then
+  (as_file_impl file).impl_file_comment <-
+    (as_file_impl file).impl_file_comment @ [(HashComments.merge file_comments comment)]
 
-let file_comment file = 
-  let impl = as_file_impl file in
-  impl.impl_file_comment
-      
+let file_comment file =
+  (as_file_impl file).impl_file_comment
+
+let file_comment_length file =
+  List.length (as_file_impl file).impl_file_comment
+
 let file_best_name (file : file) =
   let file = as_file_impl file in
   file.impl_file_best_name
@@ -607,32 +605,33 @@ let file_print file o =
 
   if use_html_mods o then begin
 
+      html_mods_cntr_init ();
       html_mods_table_header buf "sourcesInfo" "sourcesInfo" [
         ( "0", "srh br", "File Info", "Info" ) ;
         ( "0", "srh", "Value", "Value" ) ];
 
-      Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
+      Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [
         ("File number/Network", "sr br", "[#] Network");
         ("", "sr", Printf.sprintf "[%d] %s" (file_num file) n.network_name) ];
 
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [
         ("Downloaded/Total size", "sr br", "DLed/Size");
         ("", "sr", Printf.sprintf "%s bytes of %s bytes"
             (Int64.to_string info.G.file_downloaded) (Int64.to_string info.G.file_size) ) ];
 
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [
         ("File priority", "sr br", "Priority");
         ("", "sr", Printf.sprintf "%d" (file_priority file)) ];
 
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [
         ("Number of file sources", "sr br", "Sources");
         ("", "sr", Printf.sprintf "%d" (List.length srcs)) ];
 
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
       (match info.G.file_chunks with 
       | None -> ()
@@ -666,11 +665,27 @@ let file_print file o =
 
       (match file_magic file with
         Some magic ->
-	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 	    html_mods_td buf [
             ("File type computed by libmagic", "sr br", "File magic");
             ("", "sr", magic) ]
        | _ -> ());
+
+      (
+	if file_comment file <> [] then
+	  begin
+	    let list_header = ref true in
+	    List.iter (fun s ->
+	      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+	      if !list_header then html_mods_td buf [
+		("File comments", "sr br", "File comments");
+		("", "sr", s) ]
+	      else
+	        html_mods_td buf [
+		("", "sr br", "");
+		("", "sr", s) ];
+	    if !list_header then list_header := false) (file_comment file);
+	  end);
 
       file_print_html file buf;
       
@@ -866,7 +881,6 @@ let new_file_ops network =
       op_file_set_format = (fun _ -> fni network "file_set_format");
       op_file_all_sources = (fun _ -> fni network "file_all_sources");
       op_file_active_sources = (fun _ -> fni network "file_active_sources");
-      op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
       op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
       op_file_print_html = (fun _ _ -> ni_ok network "file_print_html");
       op_file_print_sources_html = (fun _ _ -> fni network "file_print_sources_html");
@@ -938,6 +952,9 @@ let _ =
       let counter = ref 0 in
       HashMagic.iter (fun _ -> incr counter) files_magic;
       Printf.bprintf buf "  files_magic: %d\n" !counter;
+      let counter = ref 0 in
+      HashComments.iter (fun _ -> incr counter) file_comments;
+      Printf.bprintf buf "  files_comments: %d\n" !counter
   )
 
 
@@ -1055,7 +1072,7 @@ let impl_file_info impl =
   let module T = GuiTypes in
   {
     T.file_fields = T.Fields_file_info.all;
-    T.file_comment = impl.impl_file_comment;
+    T.file_comment = "";
     T.file_name = impl.impl_file_best_name;
     T.file_names = impl.impl_file_filenames;
     T.file_num = impl.impl_file_num;

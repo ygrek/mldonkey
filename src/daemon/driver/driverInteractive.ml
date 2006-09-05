@@ -679,8 +679,13 @@ Printf.bprintf buf
 "\\<td title=\\\"Sort by filename\\\" class=dlheader\\>\\<input class=headbutton type=submit value=File name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by size\\\" class=dlheader\\>\\<input class=headbutton type=submit value=Size name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by size downloaded\\\" class=dlheader\\>\\<input class=\\\"headbutton ar\\\" type=submit value=DLed name=sortby\\>\\</td\\>
-\\<td title=\\\"Sort by percent\\\" class=dlheader\\>\\<input class=headbutton type=submit value=%% name=sortby\\>\\</td\\>
-\\<td title=\\\"Sort by number of sources\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Srcs name=sortby\\>\\</td\\>";
+\\<td title=\\\"Sort by percent\\\" class=dlheader\\>\\<input class=headbutton type=submit value=%% name=sortby\\>\\</td\\>";
+
+if !!html_mods_vd_comments then Printf.bprintf buf
+"\\<td title=\\\"Sort by comments\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Cm name=sortby\\>\\</td\\>";
+
+Printf.bprintf buf
+"\\<td title=\\\"Sort by number of sources\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Srcs name=sortby\\>\\</td\\>";
 
 if !!html_mods_vd_active_sources then Printf.bprintf buf
 "\\<td title=\\\"Sort by number of active sources\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=A name=sortby\\>\\</td\\>";
@@ -710,13 +715,21 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
         [|
           (if !!html_mods_use_js_tooltips then
                         Printf.sprintf "
-                                onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%sFile#: %d<br>Network: %s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
+                                onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%sFile#: %d<br>Network: %s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
                         (Http_server.html_real_escaped file.file_name)
 			(match file_magic (file_find file.file_num) with
 			   None -> ""
 			 | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
 			file.file_num
                         (net_name file)
+			(let comments = file_comment (file_find file.file_num) in
+			   if comments = [] then "" else
+			    begin
+			      let buf1 = Buffer.create 100 in
+			      Printf.bprintf buf1 "<br><br>Comments:<br>";
+			      List.iter (fun s -> Printf.bprintf buf1 "%s<br>" (Http_server.html_real_escaped s)) comments;
+			      Buffer.contents buf1
+			    end)
 			!!html_mods_js_tooltips_wait
 			!!html_mods_js_tooltips_timeout
 			!!html_mods_js_tooltips_wait
@@ -778,6 +791,12 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
           (ctd file.file_num (size_of_int64 file.file_size));
           (ctd file.file_num (size_of_int64 file.file_downloaded));
           (ctd file.file_num (Printf.sprintf "%.1f" (percent file)));
+
+          (if !!html_mods_vd_comments then
+			Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
+			class=\\\"dl al\\\"\\>%d\\</td\\>"
+			file.file_num (file_comment_length (file_find file.file_num)) else "");
+
           (ctd file.file_num (Printf.sprintf "%d" (number_of_sources file)));
 
           (if !!html_mods_vd_active_sources then
@@ -1093,6 +1112,7 @@ let display_active_file_list buf o list =
         | ByLast -> (fun f1 f2 -> f1.file_last_seen >= f2.file_last_seen)
         | ByNet -> (fun f1 f2 -> net_name f1 <= net_name f2)
         | ByAvail -> (fun f1 f2 -> get_file_availability f1 >= get_file_availability f2)
+        | ByComments -> (fun f1 f2 -> file_comment_length (file_find f1.file_num) >= file_comment_length (file_find f2.file_num))
         | NotSorted -> raise Not_found
       in
       Sort.list sorter list

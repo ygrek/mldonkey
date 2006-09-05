@@ -375,6 +375,7 @@ type sortvd_type =
 | ByASources
 | ByNet
 | ByAvail
+| ByComments
 | NotSorted
   
 type room_state = 

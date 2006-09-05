@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2006/09/05
+5371: EDK: Support for eMule comments (read-only)
+- new option html_mods_vd_comments to enable column in HTML, vd
+- comments are shown in javascript popups and vd #num
 5369: New command portinfo, display used ports during start-up
 
 2006/09/04

@@ -1312,6 +1312,7 @@ let http_handler o t r =
                       | "A" -> o.conn_sortvd <- ByASources
                       | "N" -> o.conn_sortvd <- ByNet
                       | "Avail" -> o.conn_sortvd <- ByAvail
+                      | "Cm" -> o.conn_sortvd <- ByComments
                       | _ -> ()
                     end
                 | _ -> ()

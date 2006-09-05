@@ -1560,6 +1560,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option html_mods_use_relative_availability;
 			strings_of_option html_mods_human_readable;
 			strings_of_option html_mods_vd_network;
+			strings_of_option html_mods_vd_comments;
 			strings_of_option html_mods_vd_active_sources;
 			strings_of_option html_mods_vd_age;
 			strings_of_option html_mods_vd_last;

@@ -835,7 +835,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
         \\<input style=\\\"font: 8pt sans-serif\\\" name=\\\"newName\\\" type=text size=50 value=\\\"%s\\\"\\>\\</input\\>\\</td\\>\\</form\\>
                 \\<td class=\\\"sr \\\"\\>%s\\</td\\>
                 \\<td class=\\\"sr \\\"\\>\\<A HREF=\\\"%s\\\"\\>%s\\</A\\>\\</td\\>\\</tr\\>"
-                    !tr fnum fnum fnum (file_best_name file) "Downloading" (file_comment (as_file file)) filename
+                    !tr fnum fnum fnum (file_best_name file) "Downloading" (file_print_ed2k_link (file_best_name file) (file_size file) file.file_md4) filename
                 else
                   Printf.bprintf buf "%s is %s %s\n" filename
                     (file_best_name file)
@@ -1441,9 +1441,6 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
         old_files =:= file.file_md4 :: !!old_files;
       DonkeyProtoOvernet.Overnet.cancel_recover_file file;
       DonkeyProtoKademlia.Kademlia.cancel_recover_file file;
-  );
-  file_ops.op_file_comment <- (fun file ->
-      file_print_ed2k_link (file_best_name file) (file_size file) file.file_md4
   );
   file_ops.op_file_files <- (fun file impl ->
       match file.file_swarmer with

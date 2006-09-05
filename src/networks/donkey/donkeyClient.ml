@@ -1271,6 +1271,9 @@ let client_to_client for_files c t sock =
             lprintf_nl "Exception in ViewFilesReply %s"
               (Printexc2.to_string e); 
       end;
+
+  | M.EmuleFileDescReq (rate, comment) ->
+      if comment <> "" then set_file_comment c.client_last_asked_file comment
   
   | M.AvailableSlotReq _ ->
       set_lifetime sock active_lifetime;
@@ -2507,6 +2510,7 @@ let _ =
       try
         let c = find_client_by_key s_uid in
         let file = find_file (Md4.of_string file_uid) in
+	c.client_last_asked_file <- (as_file file);
         c.client_requests_sent <- c.client_requests_sent + 1;
         let module M = DonkeyProtoClient in
         

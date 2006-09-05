@@ -443,7 +443,7 @@ let op_ft_info ft =
   {
     P.file_fields = P.Fields_file_info.all;
 
-    P.file_comment = file_comment (as_ft ft);
+    P.file_comment = "";
     P.file_name = ft.ft_filename;
     P.file_num = ft_num ft;
     P.file_network = network.network_num;

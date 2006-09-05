@@ -563,6 +563,7 @@ let dummy_client =
       client_file_queue = [];
       client_tags = [];
       client_name = "";
+      client_last_asked_file = dummy_file;
       client_all_files = None;
       client_rating = 0;
       client_brand = Brand_unknown;

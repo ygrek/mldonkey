@@ -519,6 +519,7 @@ and client = {
       CommonSwarming.uploader
       ) list;
     mutable client_all_files : result list option;
+    mutable client_last_asked_file : CommonTypes.file;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
     mutable client_rating : int ;

@@ -1081,7 +1081,7 @@ type t =
 | EmuleQueueRankingReq of EmuleQueueRanking.t
 | EmuleRequestSourcesReq of EmuleRequestSources.t
 | EmuleRequestSourcesReplyReq of EmuleRequestSourcesReply.t
-| EmuleFileDescReq of string
+| EmuleFileDescReq of int * string
 | EmulePublicKeyReq of EmulePublicKeyReq.t
 | EmuleSignatureReq of EmuleSignatureReq.t
 | EmuleSecIdentStateReq  of EmuleSecIdentStateReq.t
@@ -1133,8 +1133,8 @@ let rec print t =
     | EmuleRequestSourcesReplyReq t ->
         EmuleRequestSourcesReply.print t
 
-    | EmuleFileDescReq t ->
-        lprintf "EMULE FILE DESC %s" t
+    | EmuleFileDescReq (rating, comment) ->
+        lprintf "EMULE FILE DESC %s" comment
 
     | EmuleMultiPacketReq (md4, list) ->
         lprintf_nl "EmuleMultiPacket for %s:" (Md4.to_string md4);
@@ -1198,7 +1198,7 @@ let rec parse_emule_packet emule opcode len s =
     | 0x61 (* 97 *) ->
         let rating = get_uint8 s 1 in
         let (comment,_) = get_string32 s 2 in
-        EmuleFileDescReq (Printf.sprintf "(%d) %s" rating comment)
+        EmuleFileDescReq (rating, comment)
 
     | 0x81 (* 129 *) -> EmuleRequestSourcesReq (EmuleRequestSources.parse len s)
     | 0x82 (* 130 *) ->
@@ -1514,10 +1514,10 @@ let write emule buf t =
     | EmuleRequestSourcesReplyReq t ->
         buf_int8 buf 0x82;
         EmuleRequestSourcesReply.write emule buf t
-    | EmuleFileDescReq t ->
+    | EmuleFileDescReq (rating, comment) ->
         buf_int8 buf 0x61;
-        buf_int8 buf 1;
-        buf_string buf t
+        buf_int8 buf rating;
+        buf_string buf comment
 
     | EmuleCompressedPart (md4, statpos, newsize, bloc) ->
         buf_int8 buf 0x40;

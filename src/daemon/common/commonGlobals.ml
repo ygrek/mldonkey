@@ -893,3 +893,11 @@ module HashMagic = Weak.Make(struct
       end)
 
 let files_magic = HashMagic.create 100
+
+module HashComments = Weak.Make(struct
+        type t = string
+        let hash s = Hashtbl.hash s
+        let equal x y = x = y
+      end)
+
+let file_comments = HashComments.create 1000

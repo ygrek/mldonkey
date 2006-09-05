@@ -721,6 +721,10 @@ let html_mods_vd_network = define_expert_option current_section ["html_mods_vd_n
   "Whether to display the Net column in vd output"
     bool_option true
 
+let html_mods_vd_comments = define_expert_option current_section ["html_mods_vd_comments"]
+  "Whether to display the Comments column in vd output"
+    bool_option true
+
 let html_mods_vd_active_sources = define_expert_option current_section ["html_mods_vd_active_sources"]
   "Whether to display the Active Sources column in vd output"
     bool_option true
