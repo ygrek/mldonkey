@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/09/05
+5294: HTML: Fix sources display for Gnutella/G2/Fasttrack/Filetp
+      broken by patch #5294 (thx to z)
 5368: Remove unused code from md5_c.c & os_stubs.h
 5371: EDK: Support for eMule comments (read-only)
 - new option html_mods_vd_comments to enable column in HTML, vd
