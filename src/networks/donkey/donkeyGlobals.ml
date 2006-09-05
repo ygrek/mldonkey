@@ -604,6 +604,7 @@ let create_client key =
   let module D = DonkeyProtoClient in
   let s = DonkeySources.find_source_by_uid key in
   let rec c = { dummy_client with
+      client_client = client_impl;
       client_kind = key;
       client_source = s;
       client_debug = Intset.mem s.DonkeySources.source_num !debug_clients;
