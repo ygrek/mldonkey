@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/07
+5369: Portinfo: fix String.length problems in Telnet (5369_2.patch)
+
 2006/09/05
 5294: HTML: Fix sources display for Gnutella/G2/Fasttrack/Filetp
       broken by patch #5294 (thx to z)

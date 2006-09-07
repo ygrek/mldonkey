@@ -2039,11 +2039,11 @@ type port_info = {
   }
 
 let portinfo html buf =
-  let max_network_name_len = ref 4 in (* "Core" *)
+  let network_name_list_width = ref 7 in (* "Network" *)
   let list = ref [] in
   networks_iter (fun r ->
-    if String.length r.network_name > !max_network_name_len then
-      max_network_name_len := String.length r.network_name;
+    if String.length r.network_name > !network_name_list_width then
+      network_name_list_width := String.length r.network_name;
     List.iter (fun (p,s) -> if p <> 0 then list := !list @
       [{netname = r.network_name; port = p; portname = s}]) (network_ports r)
   );
@@ -2051,7 +2051,7 @@ let portinfo html buf =
       [{netname = "Core"; port = p; portname = s}])
     (network_ports (network_find_by_name "Global Shares"));
 
-  let fill_network s = String.make (!max_network_name_len - 7) s in
+  let fill_network s = String.make (max 0 (!network_name_list_width - 7)) s in
   if html then
       html_mods_table_header buf "sharesTable" "shares" [
        ( "0", "srh", "Network", "Network" ) ;
@@ -2071,7 +2071,7 @@ let portinfo html buf =
 	(html_mods_cntr ()) p.netname p.port p.portname
     else
       Printf.bprintf buf "%-*s|%6d|%s\n"
-	(maxi !max_network_name_len (!max_network_name_len - String.length p.netname)) p.netname p.port p.portname
+	(max !network_name_list_width (!network_name_list_width - String.length p.netname)) p.netname p.port p.portname
     ) (List.sort (fun p1 p2 -> String.compare p1.netname p2.netname) !list);
   if html then
     Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
