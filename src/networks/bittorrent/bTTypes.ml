@@ -103,6 +103,7 @@ type brand =
 | Brand_jvtorrent
 | Brand_retriever
 | Brand_osprey
+| Brand_rufus
 
 let brand_list = [ 
    ( Brand_unknown          , "unknown"                , "unk" ) ;
@@ -161,6 +162,7 @@ let brand_list = [
    ( Brand_jvtorrent        , "JVtorrent"              , "jvt" ) ;
    ( Brand_retriever        , "Retriever"              , "ret" ) ;
    ( Brand_osprey           , "Osprey permaseed"       , "osp" ) ;
+   ( Brand_rufus            , "Rufus"                  , "ruf" ) ;
   ] 
 
 let brand_count = List.length brand_list

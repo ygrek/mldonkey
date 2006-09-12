@@ -359,9 +359,28 @@ let dot_string_of_list s l =
   List.iter (fun i -> Buffer.add_char buf s.[i]) l;
   dot_string (Buffer.contents buf)
 
+let dot_string_of_string s =
+  let buf = Buffer.create 20 in
+  let found_non_int = ref false in
+  String.iter (fun s ->
+    match s with
+    | '0' .. '9' ->
+	if !found_non_int then Buffer.add_char buf '.';
+	found_non_int := false;
+	Buffer.add_char buf s
+    | _ -> found_non_int := true
+  ) s;
+  Buffer.contents buf
+
 let check_all s c l =
   let ch = char_of_int c in
   List.for_all (fun i -> s.[i] = ch) l
+
+let check_int s p =
+  try
+    ignore (int_of_string (String.sub s p 1));
+    true
+  with _ -> false
 
 (* from azureus/gpl *)
 let decode_az_style s =
@@ -419,7 +438,7 @@ let decode_az_style s =
   None
 
 let decode_tornado_style s =
-  if check_all s 45 [4;5] then begin
+  if check_all s 45 [5] then begin
     let check_brand s =
      match s with
      | "T" -> Brand_bittornado
@@ -447,7 +466,7 @@ let decode_tornado_style s =
   None
 
 let decode_mainline_style s =
-  if check_all s 45 [2;4;6;7] then begin
+  if check_all s 45 [2;7] && check_int s 1 then begin
     let s_id = String.sub s 0 1 in
     let brand =
       match s_id with
@@ -455,7 +474,7 @@ let decode_mainline_style s =
      | _ -> Brand_unknown
     in
     if brand = Brand_unknown then None
-    else Some (brand, (dot_string_of_list s [1;3;5]))
+    else Some (brand, (dot_string_of_string (String.sub s 1 6)))
   end else
   None
 
@@ -508,9 +527,17 @@ let decode_opera s =
      Some (Brand_opera, (dot_string_of_list s [2;3;4;5]))
   else None
 
+let decode_rufus s =
+  let release s =
+    let minor = Char.code s.[1] in
+    Printf.sprintf "%d.%d.%d" (Char.code s.[0]) (minor / 10) (minor mod 10) in
+  if "RS" = String.sub s 2 2 then
+     Some (Brand_rufus, release s)
+  else None
+
 let decode_bow s =
   if "BOW" = String.sub s 0 3 ||
-  (check_all s 45 [0;7] && "BOW" = String.sub s 1 4) then
+  (check_all s 45 [0;7] && "BOW" = String.sub s 1 3) then
     Some (Brand_bitsonwheels, (String.sub s 4 3))
   else None
 
@@ -554,6 +581,7 @@ let decode_bitspirit s =
     let bv = ref None in
     if s.[1] = (char_of_int 0) then bv := Some (Brand_bitspirit, "v1");
     if s.[1] = (char_of_int 2) then bv := Some (Brand_bitspirit, "v2");
+    if s.[1] = (char_of_int 3) then bv := Some (Brand_bitspirit, "v3");
     !bv
   end else
   None
@@ -659,9 +687,10 @@ let decoder_list = [
     decode_non_zero;
     decode_mldonkey_style;
     decode_opera;
+    decode_rufus;
   ]
 
-let parse_software s = 
+let parse_software s =
   let default = (Brand_unknown, "") in
   let rec iter l =
     match l with
