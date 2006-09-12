@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/13
+5384: BT: Fix serious bug causing bad performance introduced
+      by abstract bitmaps patch (pango)
+
 2006/09/07
 5369: Portinfo: fix String.length problems in Telnet (5369_2.patch)
 

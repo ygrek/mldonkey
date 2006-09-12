@@ -405,7 +405,7 @@ let send_bitfield c =
 	  let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
 	  if !verbose_download then 
 	    lprintf_nl "Sending verified bitmap: [%s]" (VB.to_string bitmap);
-	  let len = VB.length bitmap in
+	  let len = (VB.length bitmap + 7)/8 in
 	  let s = String.make len '\000' in
 	  VB.iteri (fun i c ->
             if c = VB.State_verified then set_bit s i) bitmap;
