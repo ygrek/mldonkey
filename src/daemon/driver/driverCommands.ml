@@ -2706,7 +2706,7 @@ let _ =
             let list = List2.tail_map file_info !!files in
             DriverInteractive.display_file_list buf o list;
             ""
-    ), "[<num>|queued|paused|downloading] :\t\t\t\t$bview file info for download <num>, or lists of queued, paused or downloading files, or all downloads if no argument given$n";
+    ), "[<num>|queued|paused|downloading] :\t$bview file info for download <num>, or lists of queued, paused or downloading files, or all downloads if no argument given$n";
 
     "preview", Arg_one (fun arg o ->
 
@@ -2879,7 +2879,7 @@ let _ =
     "whoami", Arg_none (fun o ->
 	print_command_result o o.conn_buf o.conn_user.ui_user_name;
         _s ""
-    ), "\t\t\t\tprint logged-in user name";
+    ), "\t\t\t\t\tprint logged-in user name";
   ]
 
 
