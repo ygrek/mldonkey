@@ -3138,11 +3138,14 @@ let _ =
 
     ), "<theme> :\t\t\tselect html_theme";
 
-    "mem_stats", Arg_one (fun level o ->
+    "mem_stats", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
-        Heap.print_memstats (int_of_string level) buf (use_html_mods o);
+	let level = match args with
+	  [] -> 0
+	| n :: _ -> int_of_string n in
+        Heap.print_memstats level buf (use_html_mods o);
         ""
-    ), ":\t\t\t\tprint memory stats";
+    ), ":\t\t\t\tprint memory stats [<verbosity #num>]";
 
     "close_all_sockets", Arg_none (fun o ->
         BasicSocket.close_all ();
