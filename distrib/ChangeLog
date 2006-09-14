@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/14
+5390: Distinguish between charsets zh_cn and zh_tw
 5389: Fix verify_chunks (pango)
 5388: Small log update
 

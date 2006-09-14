@@ -1303,10 +1303,15 @@ let charset_from_string s =
 (**********************************************************************************)
 
 let normalize_language s =
+  let s = String.uppercase s in
   if String.length s > 1
   then begin
-    let s = String.sub s 0 2 in
-    String.uppercase s
+(* We have to distinguish between ZH_tw and ZH_cn here
+   ZH_tw = BIG5/Chinese traditional -- ZH_cn = GBK/Chinese simplified *)
+    if String.sub s 0 2 = "ZH" && String.length s > 4 then
+      String.sub s 0 5
+    else
+      String.sub s 0 2
   end else "EN"
 
 (**********************************************************************************)
@@ -1726,6 +1731,8 @@ let charset_list_from_language lang =
       | "SL" -> li := central_european :: !li
       | "SH"
       | "SR" -> li := central_european :: cyrillic ::!li
+      | "ZH_CN" -> li := chinese_simplified :: !li
+      | "ZH_TW" -> li := chinese_traditional :: !li
       | "ZH" -> li := chinese_traditional :: chinese_simplified :: !li
       | "BE"
       | "BG"
