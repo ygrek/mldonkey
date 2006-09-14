@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/14
+5388: Small log update
+
 2006/09/13
 5386: Telnet: Longhelp cleanup
 5385: Command mem_stats: verbosity 0 is default now

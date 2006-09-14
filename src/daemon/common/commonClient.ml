@@ -24,6 +24,11 @@ open Options
 open CommonTypes
 open CommonGlobals
 
+let log_prefix = "[cCl]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
 type 'a client_impl = {
     mutable impl_client_type : client_type;
     mutable impl_client_state : host_state;
@@ -466,7 +471,7 @@ let clear_upload_slots () =
       if i.GuiTypes.client_uploaded = Int64.zero && ctime > 1 then
         begin
 	  client_disconnect c;
-          if !verbose then lprintf_nl "[cCl] disconnected client %d: [%s %s] %s after %d %s of silence."
+          if !verbose then lprintf_nl "disconnected client %d: [%s %s] %s after %d %s of silence."
 	    (client_num c)
 	    i.GuiTypes.client_software
 	    i.GuiTypes.client_release
