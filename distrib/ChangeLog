@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/16
+5380: BT: Add file_num to certain log entries (jave)
 5392: fix typos in help texts (schlotter)
 5394: Fix max_hard_up/download_rate computation
 - crashed on Windows when max_hard_upload_rate = 0

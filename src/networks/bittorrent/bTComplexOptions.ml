@@ -249,7 +249,7 @@ send us more clients.
         CommonSwarming.frontend_to_value swarmer assocs
   with
     e ->
-      lprintf_nl "exception %s in file_to_value"
+      lprintf_file_nl file "exception %s in file_to_value"
         (Printexc2.to_string e); raise e
 
 

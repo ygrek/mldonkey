@@ -126,6 +126,10 @@ let log_prefix = "[BT]"
 let lprintf_nl fmt =
   lprintf_nl2 log_prefix fmt
 
+let lprintf_file_nl  file fmt  =
+  lprintf_nl2 (log_prefix^" [file_num "^(string_of_int (file_num file))^"]") fmt
+
+    
 let lprintf_n fmt =
   lprintf2 log_prefix fmt
 

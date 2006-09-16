@@ -101,7 +101,7 @@ let op_file_commit file new_name =
       set_file_state file FileShared;
 
       if Unix32.destroyed (file_fd file) then
-        if !verbose then lprintf_nl "op_file_commit: FD is destroyed... repairing";
+        if !verbose then lprintf_file_nl file "op_file_commit: FD is destroyed... repairing";
 
 (* During the commit operation, for security, the file_fd is destroyed. So
   we create it again to be able to share this file again. *)
@@ -110,7 +110,7 @@ let op_file_commit file new_name =
         (create_temp_file new_name (List.map (fun (file,size,_) -> (file,size)) file.file_files) (file_state file));
 
       if Unix32.destroyed (file_fd file) then
-        lprintf_nl "op_file_commit: FD is destroyed... could not repair!";
+        lprintf_file_nl file "op_file_commit: FD is destroyed... could not repair!";
 
       let new_torrent_diskname =
         Filename.concat seeded_directory
@@ -119,7 +119,7 @@ let op_file_commit file new_name =
       (try
           Unix2.rename file.file_torrent_diskname new_torrent_diskname;
         with _ ->
-          (lprintf_nl "op_file_commit: failed to rename %s to %s"
+          (lprintf_file_nl file "op_file_commit: failed to rename %s to %s"
               file.file_torrent_diskname new_torrent_diskname));
       file.file_torrent_diskname <- new_torrent_diskname;
 
@@ -383,10 +383,10 @@ let op_file_print_sources_html file buf =
     end
 
 let op_file_check file =
-  lprintf_nl "Checking chunks of %s" file.file_name;
+  lprintf_file_nl file "Checking chunks of %s" file.file_name;
   match file.file_swarmer with
     None ->
-      lprintf_nl "verify_chunks: no swarmer to verify chunks"
+      lprintf_file_nl file "verify_chunks: no swarmer to verify chunks"
   | Some swarmer ->
       CommonSwarming.verify_all_chunks_immediately swarmer
 
@@ -516,21 +516,21 @@ let parse_tracker_reply file t filename =
 (*This is the function which will be called by the http client
 for parsing the response*)
 (* Interested only in interval*)
-  if !verbose_msg_servers then lprintf_nl "Filename %s" filename;
+  if !verbose_msg_servers then lprintf_file_nl file "Filename %s" filename;
     let tracker_reply =
       try
         File.to_string filename
-      with e -> lprintf_nl "Empty reply from tracker"; ""
+      with e -> lprintf_file_nl file "Empty reply from tracker"; ""
     in
     let v =
        match tracker_reply with
        | "" ->
         if !verbose_connect then
-          lprintf_nl "Empty reply from tracker";
+          lprintf_file_nl file "Empty reply from tracker";
         Bencode.decode ""
        | _ -> Bencode.decode tracker_reply
     in
-  if !verbose_msg_servers then lprintf_nl "Received: %s" (Bencode.print v);
+  if !verbose_msg_servers then lprintf_file_nl file "Received: %s" (Bencode.print v);
   t.tracker_interval <- 600;
   match v with
     Dictionary list ->
@@ -538,9 +538,9 @@ for parsing the response*)
           match (key, value) with
             String "interval", Int n ->
               t.tracker_interval <- Int64.to_int n;
-              if !verbose_msg_servers then lprintf_nl ".. interval %d .." t.tracker_interval
+              if !verbose_msg_servers then lprintf_file_nl file ".. interval %d .." t.tracker_interval
           | String "failure reason", String failure ->
-                lprintf_nl "Failure from Tracker in file: %s Reason: %s" file.file_name failure
+                lprintf_file_nl file "Failure from Tracker in file: %s Reason: %s"  file.file_name failure
           (*TODO: merge with f from get_sources_from_tracker and parse the rest of the answer, too.
             also connect to the sources we receive or instruct tracker to send none, perhaps based
             on an config option. firewalled people could activate the option and then seed torrents, too.*)
@@ -578,7 +578,7 @@ let try_share_file torrent_diskname =
     let file = new_file file_id torrent torrent_diskname
         filename FileShared in
     BTShare.must_share_file file;
-    if !verbose_share then lprintf_nl "Sharing file %s" filename;
+    if !verbose_share then lprintf_file_nl file "Sharing file %s" filename;
     BTClients.connect_trackers file "started"
       (parse_tracker_reply file)
   with
@@ -986,7 +986,7 @@ let commands =
           Hashtbl.iter (fun _ file ->
               if file_num file = num then begin
                   if !verbose then
-                    lprintf_nl "adding trackers for file %i" num;
+                    lprintf_file_nl file "adding trackers for file %i" num;
                   set_trackers file !urls;
                   raise Exit
                 end
@@ -1009,7 +1009,7 @@ let commands =
             _s ""
         | _ ->
             if !verbose then
-              lprintf_nl "Not enough or wrong parameters.";
+              lprintf_nl  "Not enough or wrong parameters.";
             let buf = o.conn_buf in
             if o.conn_output = HTML then
               html_mods_table_one_row buf "serversTable" "servers" [
@@ -1101,7 +1101,7 @@ let _ =
   CommonNetwork.register_commands commands;
 
   shared_ops.op_shared_unshare <- (fun file ->
-      (if !verbose_share then lprintf_nl "unshare file");
+      (if !verbose_share then lprintf_file_nl file "unshare file");
       BTShare.unshare_file file);
   shared_ops.op_shared_info <- (fun file ->
    let module T = GuiTypes in
