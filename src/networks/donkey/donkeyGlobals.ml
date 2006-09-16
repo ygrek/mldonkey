@@ -348,6 +348,7 @@ let new_file file_diskname file_state md4 file_size filename writable =
         lprintf_nl "New file with md4: %s" (Md4.to_string md4);
 
       let t =
+(*  emulate_sparsefiles does not work, temporarily disabled
         if
 (* Don't use this for shared files ! *)
           writable &&
@@ -358,6 +359,7 @@ let new_file file_diskname file_state md4 file_size filename writable =
         then
           Unix32.create_sparsefile file_diskname writable
         else
+*)
           Unix32.create_diskfile file_diskname writable
       in
       let file_size =

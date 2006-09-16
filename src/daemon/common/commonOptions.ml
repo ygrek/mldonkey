@@ -1114,11 +1114,13 @@ let pause_new_downloads = define_option current_section ["pause_new_downloads"]
   will be set to false on core start."
     bool_option false
 
+(*  emulate_sparsefiles does not work, temporarily disabled
 let emulate_sparsefiles = define_expert_option current_section ["emulate_sparsefiles"]
   "Set to true if you want MLdonkey to emulate sparse files on your disk.
   Files will use less space, but <preview> and <recover> won't work anymore.
   Works only on Edonkey plugin. EXPERIMENTAL."
     bool_option false
+*)
 
 let max_concurrent_downloads = define_option current_section ["max_concurrent_downloads"]
   "The maximal number of files in Downloading state (other ones are Queued)"
