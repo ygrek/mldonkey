@@ -216,15 +216,18 @@ let payload_bandwidth = ref 0.
 let check_ul_dl_ratio () =
   if !!max_hard_upload_rate < 0 then max_hard_upload_rate =:= 0;
   if !!max_hard_download_rate < 0 then max_hard_download_rate =:= 0;
-  if !!max_hard_upload_rate < 4 && !!max_hard_upload_rate > 0 &&
-     (!!max_hard_upload_rate * 3 < !!max_hard_download_rate ||
-       !!max_hard_download_rate = 0) then
-      max_hard_download_rate =:= !!max_hard_upload_rate * 3
-  else
-    if !!max_hard_upload_rate < 10 && !!max_hard_upload_rate > 0 &&
-       (!!max_hard_upload_rate * 4 < !!max_hard_download_rate ||
-         !!max_hard_download_rate = 0) then
-	  max_hard_download_rate =:= !!max_hard_upload_rate * 4
+  let max_max_hard_download_rate =
+    match !!max_hard_upload_rate with
+    | 0 -> None
+    | x when x < 4 -> Some (x * 3)
+    | x when x < 10 -> Some (x * 4)
+    | x -> None in
+  match max_max_hard_download_rate with
+  | None -> ()
+  | Some limit ->
+      if !!max_hard_download_rate = 0 ||
+	!!max_hard_download_rate > limit then
+	  max_hard_download_rate =:= limit
 
 let _ =
   option_hook max_hard_upload_rate (fun _ ->
