@@ -971,7 +971,7 @@ let commands =
       else
         Printf.bprintf buf "started sending stops...\n";
        _s ""
-    ), _s ":\t\t\t\tstops all bittorrent downloads, use this if you want to make sure that the stop signal actually\n\t\t\t\t\tgets to the tracker when shuting mlnet down, but you have to wait till the stops get to the\n\t\t\t\t\ttracker and not wait too long, so mldonkey reconnects to the tracker :)";
+    ), _s ":\t\t\t\tstops all bittorrent downloads, use this if you want to make sure that the stop signal actually\n\t\t\t\t\tgets to the tracker when shutting mlnet down, but you have to wait till the stops get to the\n\t\t\t\t\ttracker and not wait too long, so mldonkey reconnects to the tracker :)";
 
     "tracker", "Network/Bittorrent", Arg_multiple (fun args o ->
         try

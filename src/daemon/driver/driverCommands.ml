@@ -302,7 +302,7 @@ let _ =
 	end;
 
 	!out
-    ), ":\t\t\t\t\t$badd an command alias\n"
+    ), ":\t\t\t\t\t$badd a command alias\n"
        ^"\t\t\t\t\tfor example: \"alias ca cancel all\" makes an alias\n"
        ^"\t\t\t\t\t\"ca\" performing \"cancel all\"\n"
        ^"\t\t\t\t\tto substitute an alias just make a new one\n"
@@ -2729,7 +2729,7 @@ let _ =
       let list = List2.tail_map file_info !!files in
       DriverInteractive.filenames_variability o list;
       _s "done"
-    ), ":\t\t\t\tTell what files have several very different names";
+    ), ":\t\t\ttell which files have several very different names";
 
     "dllink", Arg_multiple (fun args o ->
         let url = String2.unsplit args ' ' in
