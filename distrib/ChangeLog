@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/17
+5400: Allow use of Ocaml 3.09.3, keep 3.09.2 as default
 5399: EDK, Telnet: Fix and clarify message when starting a search (schlotter)
 
 2006/09/16
