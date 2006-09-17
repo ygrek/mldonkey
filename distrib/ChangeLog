@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2006/09/17
+2006/09/17 version 2.8.1 = tag release-2-8-1
 5401: Fix question whether to compile Ocaml with some bash versions (pango)
 5400: Allow use of Ocaml 3.09.3, keep 3.09.2 as default
 5399: EDK, Telnet: Fix and clarify message when starting a search (schlotter)
@@ -27,7 +27,7 @@ ChangeLog
 5394: Fix max_hard_up/download_rate computation
 - crashed on Windows when max_hard_upload_rate = 0
 - when max_hard_upload_rate = 0 max_hard_download_rate was badly computed
-
+-------------------------------------------------------------------------------
 2006/09/14 version 2.8.0 = tag release-2-8-0
 5390: Distinguish between charsets zh_cn and zh_tw
 5389: Fix verify_chunks (pango)
