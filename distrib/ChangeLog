@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/17
+5399: EDK, Telnet: Fix and clarify message when starting a search (schlotter)
+
 2006/09/16
 5397: EDK: Disable broken option emulate_sparsefiles
 5395: Improve max_hard_up/download_rate computation code (pango)

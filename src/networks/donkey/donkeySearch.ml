@@ -190,11 +190,11 @@ let _ =
       match ss.search_type with
         RemoteSearch ->
           send_search search query;
-          Printf.bprintf buf "Query %d Sent to %d\n"
+          Printf.bprintf buf "Query %d sent to %d server(s)\n"
             ss.search_num (List.length (connected_servers()))
       | LocalSearch -> ()
       | SubscribeSearch ->
           send_subscribe search query;
-          Printf.bprintf buf "Query %d Sent to %d\n"
+          Printf.bprintf buf "Query %d sent to %d server(s)\n"
             search.search_num (List.length (connected_servers()))
   )
