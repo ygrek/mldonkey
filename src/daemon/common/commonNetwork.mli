@@ -56,6 +56,6 @@ val network_extend_search :
   CommonTypes.search -> CommonTypes.extend_search -> unit
 val network_connected : CommonTypes.network -> bool
 val network_clean_servers : CommonTypes.network -> unit
-val network_parse_url : CommonTypes.network -> string -> string * bool
+val network_parse_url : CommonTypes.network -> string -> string -> string * bool
 val network_info : CommonTypes.network -> CommonTypes.network_info
 val commands_by_kind : (string, (string * string) list ref) Hashtbl.t

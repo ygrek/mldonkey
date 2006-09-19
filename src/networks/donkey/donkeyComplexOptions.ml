@@ -273,7 +273,7 @@ let value_to_file file_size file_state assocs =
   in
 
   let file = DonkeyGlobals.new_file file_diskname file_state
-    (Md4.of_string file_md4) file_size "" true in
+    (Md4.of_string file_md4) file_size "" true CommonUserDb.admin_user in
 
   (try
       set_file_best_name (as_file file)

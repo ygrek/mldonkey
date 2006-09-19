@@ -267,7 +267,7 @@ let new_result file_name file_size tags hashes _ =
 
 let min_range_size = megabyte
 
-let new_file file_temporary file_name file_size file_hash =
+let new_file file_temporary file_name file_size file_hash user =
   let file_temp = Filename.concat !!temp_directory file_temporary in
 (*      (Printf.sprintf "FT-%s" (Md4.to_string file_id)) in *)
   let t = Unix32.create_rw file_temp in
@@ -293,6 +293,8 @@ let new_file file_temporary file_name file_size file_hash =
       impl_file_fd = Some t;
       impl_file_size = file_size;
       impl_file_downloaded = Int64.zero;
+      impl_file_owner = user;
+      impl_file_group = CommonUserDb.user2_user_default_group user;
       impl_file_val = file;
       impl_file_ops = file_ops;
       impl_file_age = last_time ();
@@ -335,7 +337,7 @@ let new_file file_temporary file_name file_size file_hash =
 
 exception FileFound of file
 
-let new_file file_id file_name file_size file_uids =
+let new_file file_id file_name file_size file_uids user =
   let file = ref None in
   List.iter (fun uid ->
       match Uid.to_uid uid with
@@ -343,7 +345,7 @@ let new_file file_id file_name file_size file_uids =
           file := Some (try
               Hashtbl.find files_by_uid file_hash
             with _ ->
-                let file = new_file file_id file_name file_size file_hash in
+                let file = new_file file_id file_name file_size file_hash user in
                 Hashtbl.add files_by_uid file_hash file;
                 file)
       | _ -> ()

@@ -1301,7 +1301,7 @@ let _ =
 	  begin
 	    let r = List.hd !forceable_download in
 	      CommonNetwork.networks_iter (fun n ->
-	        ignore(n.op_network_download r));
+	        ignore (n.op_network_download r o.conn_user.ui_user_name));
 
             let output = (if o.conn_output = HTML then begin
                 let buf = Buffer.create 100 in
@@ -1702,7 +1702,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                   | 8 ->
                       [
 			strings_of_option term_ansi;
-			strings_of_option enable_user_config;
 			strings_of_option messages_filter;
 			strings_of_option max_displayed_results;
 			strings_of_option max_name_len;
@@ -2160,6 +2159,17 @@ let _ =
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
 
+        if not (user2_can_view_uploads o.conn_user.ui_user_name) then
+          begin
+            if use_html_mods o then
+              html_mods_table_one_row buf "upstatsTable" "upstats" [
+                ("", "srh", "You are not allowed to see upload statistics") ]
+            else
+              Printf.bprintf buf "You are not allowed to see upload statistics\n"
+          end
+        else
+        begin
+
         if use_html_mods o then begin
 
 if !!html_mods_use_js_tooltips then Printf.bprintf buf 
@@ -2258,14 +2268,23 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
               (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len);
         ) list;
 
-        if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>";
-
-
+        if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>"
+        end;
         _s ""
     ), ":\t\t\t\tstatistics on upload";
 
     "links", Arg_none (fun o ->
         let buf = o.conn_buf in
+        if not (user2_can_view_uploads o.conn_user.ui_user_name) then
+          begin
+            if use_html_mods o then
+              html_mods_table_one_row buf "upstatsTable" "upstats" [
+                ("", "srh", "You are not allowed to see shared files list") ]
+            else
+              Printf.bprintf buf "You are not allowed to see shared files list\n"
+          end
+        else begin
+
         let list = ref [] in
         shared_iter (fun s ->
           let impl = as_shared_impl s in
@@ -2285,11 +2304,25 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
 	      (Filename.basename impl.impl_shared_codedname)
 	      impl.impl_shared_size impl.impl_shared_id);
         ) list;
+        end;
         "Done"
     ), ":\t\t\t\t\tlist links of shared files";
 
     "uploaders", Arg_none (fun o ->
         let buf = o.conn_buf in
+
+        if not (user2_can_view_uploads o.conn_user.ui_user_name) then
+          begin
+            begin
+              if use_html_mods o then
+                html_mods_table_one_row buf "upstatsTable" "upstats" [
+                  ("", "srh", "You are not allowed to see uploaders list") ]
+              else
+                Printf.bprintf buf "You are not allowed to see uploaders list\n";
+            end;
+            ""
+          end
+        else begin
 
         let nuploaders = Intmap.length !uploaders in
 
@@ -2457,6 +2490,7 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
 
 
           end
+      end
 
 
     ), ":\t\t\t\tshow users currently uploading";
@@ -2504,7 +2538,7 @@ let _ =
           "yes" | "y" | "true" ->
             List.iter (fun file ->
                 try
-                  file_cancel file
+                  file_cancel file o.conn_user.ui_user_name
                 with e ->
                     lprintf "Exception %s in cancel file %d\n"
                       (Printexc2.to_string e) (file_num file)
@@ -2541,7 +2575,7 @@ let _ =
           if not (List.memq num !to_cancel) then
             to_cancel := num :: !to_cancel
         in
-        if args = ["all"] then
+        if args = ["all"] && user2_is_admin o.conn_user.ui_user_name then
           List.iter (fun file ->
               file_cancel file
           ) !!files
@@ -2611,32 +2645,30 @@ let _ =
     ), "<num> :\t\t\tverify chunks of file <num>";
 
     "pause", Arg_multiple (fun args o ->
-        if args = ["all"] then
+        if args = ["all"] && user2_is_admin o.conn_user.ui_user_name then
           List.iter (fun file ->
-              file_pause file;
+              file_pause file admin_user;
           ) !!files
         else
           List.iter (fun num ->
               let num = int_of_string num in
               List.iter (fun file ->
-                  if (as_file_impl file).impl_file_num = num then begin
-                      file_pause file
-                    end
+                  if (as_file_impl file).impl_file_num = num then
+                      file_pause file o.conn_user.ui_user_name
               ) !!files) args; ""
     ), "<num> :\t\t\t\tpause a download (use arg 'all' for all files)";
 
     "resume", Arg_multiple (fun args o ->
-        if args = ["all"] then
+        if args = ["all"] && user2_is_admin o.conn_user.ui_user_name then
           List.iter (fun file ->
-              file_resume file
+              file_resume file admin_user
           ) !!files
         else
           List.iter (fun num ->
               let num = int_of_string num in
               List.iter (fun file ->
-                  if (as_file_impl file).impl_file_num = num then begin
-                      file_resume file
-                    end
+                  if (as_file_impl file).impl_file_num = num then
+                      file_resume file o.conn_user.ui_user_name
               ) !!files) args; ""
     ), "<num> :\t\t\t\tresume a paused download (use arg 'all' for all files)";
 
@@ -2655,20 +2687,19 @@ let _ =
 
     "vd", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
+        let list = user2_filter_files !!files o.conn_user.ui_user_name in
+        let filelist = List2.tail_map file_info list in
         match args with
           | ["queued"] ->
-              let list = List2.tail_map file_info !!files in
-              let list = List.filter ( fun f -> f.file_state = FileQueued ) list in
+              let list = List.filter ( fun f -> f.file_state = FileQueued ) filelist in
               DriverInteractive.display_active_file_list buf o list;
               ""
           | ["paused"] ->
-              let list = List2.tail_map file_info !!files in
-              let list = List.filter ( fun f -> f.file_state = FilePaused ) list in
+              let list = List.filter ( fun f -> f.file_state = FilePaused ) filelist in
               DriverInteractive.display_active_file_list buf o list;
               ""
           | ["downloading"] ->
-              let list = List2.tail_map file_info !!files in
-              let list = List.filter ( fun f -> f.file_state = FileDownloading ) list in
+              let list = List.filter ( fun f -> f.file_state = FileDownloading ) filelist in
               DriverInteractive.display_file_list buf o list;
               ""
           | [arg] ->
@@ -2696,15 +2727,14 @@ let _ =
             List.iter
               (fun file -> if (as_file_impl file).impl_file_num = num then
                   CommonFile.file_print file o)
-            !!files;
+            list;
             List.iter
               (fun file -> if (as_file_impl file).impl_file_num = num then
                   CommonFile.file_print file o)
             !!done_files;
             ""
         | _ ->
-            let list = List2.tail_map file_info !!files in
-            DriverInteractive.display_file_list buf o list;
+            DriverInteractive.display_file_list buf o filelist;
             ""
     ), "[<num>|queued|paused|downloading] :\t$bview file info for download <num>, or lists of queued, paused or downloading files, or all downloads if no argument given$n";
 
@@ -2726,14 +2756,15 @@ let _ =
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
 
     "filenames_variability", Arg_none (fun o ->
-      let list = List2.tail_map file_info !!files in
+      let list = List2.tail_map file_info
+	(user2_filter_files !!files o.conn_user.ui_user_name) in
       DriverInteractive.filenames_variability o list;
       _s "done"
     ), ":\t\t\ttell which files have several very different names";
 
     "dllink", Arg_multiple (fun args o ->
         let url = String2.unsplit args ' ' in
-        dllink_parse (o.conn_output = HTML) url
+        dllink_parse (o.conn_output = HTML) url o.conn_user.ui_user_name
         ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
 
     "dllinks", Arg_one (fun arg o ->
@@ -2741,7 +2772,7 @@ let _ =
         let file = File.to_string arg in
         let lines = String2.split_simplify file '\n' in
         List.iter (fun line ->
-	  Buffer.add_string result (dllink_parse (o.conn_output = HTML) line);
+	  Buffer.add_string result (dllink_parse (o.conn_output = HTML) line o.conn_user.ui_user_name);
 	  Buffer.add_string result (if o.conn_output = HTML then "\\<P\\>" else "\n")
         ) lines;
         (Buffer.contents result)
@@ -2760,65 +2791,148 @@ let _ =
 
     "useradd", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
-	let print_result o result =
-          if o.conn_output = HTML then
-            html_mods_table_one_row buf "serversTable" "servers" [
-              ("", "srh", result); ]
-          else
-            Printf.bprintf buf "%s" result
-	in
-	let add_new_user user pass mail =
-          if o.conn_user == default_user
-	    || o.conn_user == (find_ui_user user) then
+	let add_new_user user pass_string =
+          if user2_is_admin o.conn_user.ui_user_name
+	    || o.conn_user.ui_user_name = (find_ui_user user).ui_user_name then
 	    try
-	      ignore (user2_find user);
-	      ignore (user2_add user (Md4.string pass) "");
-	      print_result o (Printf.sprintf "Password of user %s changed" user)
-            with _ ->
-	      ignore (user2_add user (Md4.string pass) "");
-	      print_result o (Printf.sprintf "User %s added" user)
+	      user2_user_set_password user pass_string;
+	      print_command_result o buf (Printf.sprintf "Password of user %s changed" user)
+            with Not_found ->
+	      user2_user_add user (Md4.string pass_string) ();
+	      print_command_result o buf (Printf.sprintf "User %s added with default values" user)
           else
-	    print_result o "Only 'admin' is allowed to add users"
+	    print_command_result o buf "You are not allowed to add users"
 	in begin
         match args with
-	  user :: pass :: mail :: _ ->
-	    add_new_user user pass mail
-	| user :: pass :: _ ->
-	    add_new_user user pass "";
-	| _ -> print_result o "Wrong syntax: use 'useradd user pass <mail>'"
+	  user :: pass_string :: _ ->
+	    add_new_user user pass_string;
+	| _ -> print_command_result o buf "Wrong syntax: use 'useradd user pass'"
 	end;
 	_s ""
-    ), "<user> <passwd> [<mail>] :\tadd new mldonkey user/change user password";
+    ), "<user> <passwd> :\t\tadd new mldonkey user/change user password";
 
     "userdel", Arg_one (fun user o ->
         let buf = o.conn_buf in
-	let print_result o result =
-          if o.conn_output = HTML then
-            html_mods_table_one_row buf "serversTable" "servers" [
-              ("", "srh", result); ]
+        if user <> o.conn_user.ui_user_name then
+          if user2_is_admin o.conn_user.ui_user_name then
+	    if user = admin_user then
+	      print_command_result o buf "User 'admin' can not be removed"
+	    else
+	      try
+	        let n = user2_user_dls_count user in if n <> 0 then raise (User_has_downloads n);
+	        ignore (user2_user_find user);
+	        ignore (user2_user_remove user);
+                print_command_result o buf (Printf.sprintf "User %s removed" user)
+              with
+	        Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	      | User_has_downloads n -> print_command_result o buf
+		    (Printf.sprintf "User %s has %d downloads, can not delete" user n)
           else
-            Printf.bprintf buf "%s" result
-	in
-        if o.conn_user == default_user then
-	  if user = admin_user then
-	    print_result o "User 'admin' can not be removed"
-	  else
-	    try
-	      ignore (user2_find user);
-	      ignore (user2_remove user);
-              print_result o (Printf.sprintf "User %s removed" user)
-            with _ ->
-              print_result o (Printf.sprintf "User %s not found" user)
+            print_command_result o buf "You are not allowed to remove users"
         else
-          print_result o "Only 'admin' is allowed to remove users";
+          print_command_result o buf "You can not remove yourself";
 	_s ""
     ), "<user> :\t\t\tremove a mldonkey user";
 
+    "passwd", Arg_one (fun passwd o ->
+        let buf = o.conn_buf in
+	let user = o.conn_user.ui_user_name in
+	begin
+	  try
+	    user2_user_set_password user passwd;
+	    print_command_result o buf (Printf.sprintf "Password of user %s changed" user)
+	  with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	end;
+	_s ""
+    ), "<passwd> :\t\tchange own password";
+
+    "usermail", Arg_two (fun user mail o ->
+        let buf = o.conn_buf in
+        if user2_is_admin o.conn_user.ui_user_name
+	  || o.conn_user.ui_user_name = (find_ui_user user).ui_user_name then
+	  begin
+	    try
+	      user2_user_set_mail user mail;
+	      print_command_result o buf (Printf.sprintf "User %s has new mail %s" user mail)
+	    with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	  end
+        else print_command_result o buf "You are not allowed to change mail addresses";
+	_s ""
+    ), "<user> <mail> :\t\tchange user mail address";
+
+    "userdls", Arg_two (fun user dls o ->
+        let buf = o.conn_buf in
+        if user2_is_admin o.conn_user.ui_user_name
+	  || o.conn_user.ui_user_name = (find_ui_user user).ui_user_name then
+	  begin
+	    try
+	      user2_user_set_dls user (int_of_string dls);
+	      print_command_result o buf (Printf.sprintf "User %s has now %s downloads allowed" user (user2_print_user_dls user))
+	    with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	  end
+        else print_command_result o buf "You are not allowed to change this value";
+	_s ""
+    ), "<user> <num> :\t\tchange number of allowed concurrent downloads";
+
+    "usercommit", Arg_two (fun user dir o ->
+        let buf = o.conn_buf in
+        if user2_is_admin o.conn_user.ui_user_name
+	  || o.conn_user.ui_user_name = (find_ui_user user).ui_user_name then
+	  begin
+	    try
+	      user2_user_set_commit_dir user dir;
+	      print_command_result o buf (Printf.sprintf "User %s has new commit dir %s" user (user2_print_user_commit_dir user))
+	    with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	  end
+        else print_command_result o buf "You are not allowed to change this value";
+	_s ""
+    ), "<user> <dir> :\t\tchange user specific commit directory";
+
+    "groupadd", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
+	let add_new_group group admin mail =
+          if user2_is_admin o.conn_user.ui_user_name then
+	    if user2_group_exists group then
+	      print_command_result o buf (Printf.sprintf "Group %s already exists, use groupmod for updates" group)
+	    else
+	      begin
+	        user2_group_add group ?mail:(Some mail) ?admin:(Some admin) ();
+	        print_command_result o buf (Printf.sprintf "Group %s added" group)
+	      end
+          else
+	    print_command_result o buf "You are not allowed to add group"
+	in begin
+        match args with
+	  group :: admin :: mail :: _ ->
+	    let a =
+	      try
+		bool_of_string admin
+	      with _ -> false
+	    in
+	    add_new_group group a mail
+	| group :: admin :: _ ->
+	    let a =
+	      try
+		bool_of_string admin
+	      with _ -> false
+	    in
+	    add_new_group group a ""
+	| _ -> print_command_result o buf "Wrong syntax: use 'groupadd group true|false'"
+	end;
+	_s ""
+    ), "<group> <admin: true | false> [<mail>] :\t\tadd new mldonkey group";
+
+    "groupdel", Arg_one (fun group o ->
+        let buf = o.conn_buf in
+(*        if user2_is_admin o.conn_user.ui_user_name then _s ""
+        else
+          print_command_result o buf "You are not allowed to remove users"; *)
+	_s ""
+    ), "<group> :\t\t\tremove an unused mldonkey group";
 
     "users", Arg_none (fun o ->
-        if o.conn_user == default_user then
-
         let buf = o.conn_buf in
+        if user2_is_admin o.conn_user.ui_user_name then begin
 
         if use_html_mods o then begin
             Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
@@ -2831,23 +2945,27 @@ let _ =
                    var outstr = getdir.replace(reg, '+');
                    parent.fstatus.location.href='submit?q=useradd+' + outstr;
                    setTimeout('window.location.reload()',1000);
-                    }\\\"\\>Add User\\</a\\>
-\\</td\\>
-\\</tr\\>\\</table\\>
-\\</td\\>\\</tr\\>
-\\<tr\\>\\<td\\>";
+                    }\\\"\\>Add user\\</a\\>
+\\</td\\>\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>";
 
             html_mods_table_header buf "sharesTable" "shares" [
               ( "0", "srh ac", "Click to remove user", "Remove" ) ;
-              ( "0", "srh", "User", "Username" ) ];
+              ( "0", "srh", "Username", "User" ) ;
+              ( "0", "srh ac", "Admin", "Admin" ) ;
+              ( "0", "srh", "Member of groups", "Groups" ) ;
+              ( "0", "srh", "Default group", "Default group" ) ;
+              ( "0", "srh", "Mail address", "Email" ) ;
+              ( "0", "srh", "Commit dir", "Commit dir" ) ;
+              ( "0", "srh ar", "Download quota", "Max DLs" ) ;
+              ( "0", "srh ar", "Download count", "DLs" ) ];
 
             let counter = ref 0 in
-
-            user2_iter (fun name user ->
+            user2_user_iter (fun user ->
                 incr counter;
+		let u_dls = user2_user_dls_count user.user_name in
                 Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
                 (if !counter mod 2 == 0 then "dl-1" else "dl-2");
-		if user.user_name <> admin_user then Printf.bprintf buf "
+		if user.user_name <> admin_user && (u_dls = 0) then Printf.bprintf buf "
         \\<td title=\\\"Click to remove user\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
@@ -2859,27 +2977,144 @@ let _ =
         \\<td title=\\\"\\\"
         class=\\\"srb\\\"\\>------\\</td\\>";
 		Printf.bprintf buf
-		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>" user.user_name
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" user.user_name;
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr ac\\\"\\>%b\\</td\\>" (user2_is_admin user.user_name);
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (user2_print_user_groups user.user_name);
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (user2_print_user_default_group user.user_name);
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (user2_print_user_mail user.user_name);
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (user2_print_user_commit_dir user.user_name);
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>" (user2_print_user_dls user.user_name);
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" u_dls
             );
+            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
+	    print_option_help o userlist;
+            Printf.bprintf buf "\\<P\\>";
 
-            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>";
+            Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
+\\<tr\\>\\<td\\>
+\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
+                   var getdir = prompt('Input: <group> <admin: true|false> [<mail>]','group true')
+                   var reg = new RegExp (' ', 'gi') ;
+                   var outstr = getdir.replace(reg, '+');
+                   parent.fstatus.location.href='submit?q=groupadd+' + outstr;
+                   setTimeout('window.location.reload()',1000);
+                    }\\\"\\>Add group\\</a\\>
+\\</td\\>\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>";
+
+            html_mods_table_header buf "sharesTable" "shares" [
+              ( "0", "srh ac", "Click to remove group", "Remove" ) ;
+              ( "0", "srh", "Groupname", "Group" ) ;
+              ( "0", "srh ac", "Admin group", "Admin" ) ;
+              ( "0", "srh", "Mail address", "Email" ) ;
+              ( "0", "srh ar", "Download count", "DLs" ) ];
+
+            let counter = ref 0 in
+            user2_group_iter (fun group ->
+                incr counter;
+		let g_dls = user2_group_dls_count group.group_name in
+                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
+                (if !counter mod 2 == 0 then "dl-1" else "dl-2");
+		if g_dls = 0 then Printf.bprintf buf "
+        \\<td title=\\\"Click to remove group\\\"
+        onMouseOver=\\\"mOvr(this);\\\"
+        onMouseOut=\\\"mOut(this);\\\"
+        onClick=\\\'javascript:{
+        parent.fstatus.location.href=\\\"submit?q=groupdel+\\\\\\\"%s\\\\\\\"\\\";
+        setTimeout(\\\"window.location.reload()\\\",1000);}'
+        class=\\\"srb\\\"\\>Remove\\</td\\>" group.group_name
+		else Printf.bprintf buf "
+        \\<td title=\\\"\\\"
+        class=\\\"srb\\\"\\>------\\</td\\>";
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" group.group_name;
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr ac\\\"\\>%b\\</td\\>" group.group_admin;
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" group.group_mail;
+		Printf.bprintf buf
+		  "\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>" g_dls
+            );
+            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
+	    print_option_help o grouplist;
+            Printf.bprintf buf "\\<P\\>";
+
+            Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>";
+            html_mods_table_header buf "helpTable" "results" [];
+            Buffer.add_string buf "\\<tr\\>";
+            html_mods_td buf [
+              ("", "srh", "");
+              ("", "srh", "Commands to manipulate user data");
+              ("", "srh", ""); ];
+            Buffer.add_string buf "\\</tr\\>";
+            html_mods_cntr_init ();
+            let list = Hashtbl2.to_list2 commands_by_kind in
+            let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) list in
+            List.iter (fun (s,list) ->
+	      if s = "Driver/Users" then
+              let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) !list in
+              List.iter (fun (cmd, help) ->
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+                html_mods_td buf [
+                  ("", "sr", "\\<a href=\\\"submit?q=" ^ cmd ^
+                    "\\\"\\>" ^ cmd ^ "\\</a\\>");
+                  ("", "srw", Str.global_replace (Str.regexp "\n") "\\<br\\>" help);
+                  ("", "sr", "\\<a href=\\\"http://mldonkey.sourceforge.net/" ^ (String2.upp_initial cmd) ^
+                    "\\\"\\>wiki\\</a\\>"); ];
+                Printf.bprintf buf "\\</tr\\>\n"
+              ) list
+          ) list
           end
         else
           begin
             Printf.bprintf buf "Users:\n";
-            user2_iter (fun name user ->
+            user2_user_iter (fun user ->
                 Printf.bprintf buf "  %s\n"
                 user.user_name);
+            Printf.bprintf buf "\nGroup:\n";
+            user2_group_iter (fun group ->
+                Printf.bprintf buf "  %s\n"
+                group.group_name);
           end;
-        ""
-        else
-          _s "Only 'admin' is allowed to list users"
-    ), ":\t\t\t\t\tprint users";
+	end else print_command_result o buf "You are not allowed to list users";
+          _s ""
+    ), "\t\t\t\t\tprint users";
 
     "whoami", Arg_none (fun o ->
 	print_command_result o o.conn_buf o.conn_user.ui_user_name;
         _s ""
     ), "\t\t\t\t\tprint logged-in user name";
+
+    "chgrp", Arg_two (fun group filenum o ->
+        let num = int_of_string filenum in
+        try
+          let file = file_find num in
+          if set_file_group_safe file o.conn_user.ui_user_name (if (String.lowercase group) = "none" then None else Some group) then
+            Printf.sprintf (_b "Changed group of download %d to %s") num group
+	  else
+            Printf.sprintf (_b "Could not change group of download %d to %s") num group
+        with e -> Printf.sprintf (_b "No file number %d, error %s") num (Printexc2.to_string e)
+    ), "<group> \"<num>\" :\t\tchange group of download <num> to <group>, group = none for private file";
+
+    "chown", Arg_two (fun new_owner filenum o ->
+        let num = int_of_string filenum in
+        try
+          let file = file_find num in
+          if set_file_owner_safe file o.conn_user.ui_user_name new_owner then
+            Printf.sprintf (_b "Changed owner of download %d to %s") num new_owner
+	  else
+            Printf.sprintf (_b "Could not change owner of download %d to %s") num new_owner
+        with e -> Printf.sprintf (_b "No file number %d, error %s") num (Printexc2.to_string e)
+    ), "<user> \"<num>\" :\t\tchange owner of download <num> to <user>";
+
   ]
 
 

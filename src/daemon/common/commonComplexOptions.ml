@@ -27,6 +27,7 @@ open CommonClient
 open CommonServer
 open CommonNetwork
 open CommonOptions
+open CommonUserDb
 open CommonTypes
 open CommonFile
 open Gettext
@@ -102,6 +103,45 @@ module FileOption = struct
               impl.impl_file_age <- 
                 normalize_time (get_value "file_age" value_to_int)
             with _ -> ());
+
+	  let file_user = try
+	      let u = get_value "file_owner" value_to_string in
+	      if user2_user_exist u then u else begin
+		lprintf_nl "file_owner %s of %s does not exist, changing to %s"
+		  u (get_value "file_filename" value_to_string) admin_user;
+		admin_user
+	      end
+	    with _ -> admin_user
+	  in
+	  set_file_owner file file_user;
+
+	  let file_group = try
+	      match (get_value "file_group" stringvalue_to_option) with
+		None -> None
+	      | Some g ->
+		  if user2_group_exists g then
+		    if user2_user_is_group_member file_user g then
+		      Some g
+		    else begin
+		      lprintf_nl "file_owner %s is not member of file_group %s, changing file_group of %s to user_default_group %s"
+			file_user
+			g
+			(get_value "file_filename" value_to_string)
+			(user2_print_user_default_group file_user);
+		      user2_user_default_group file_user
+		    end
+		  else begin
+		    lprintf_nl "file_group %s of %s does not exist, changing file_group of %s to user_default_group %s"
+		      g
+		      (get_value "file_filename" value_to_string)
+		      file_user
+		      (user2_print_user_default_group file_user);
+		    user2_user_default_group file_user
+		  end
+	    with _ -> user2_user_default_group file_user
+	  in
+	  set_file_group file file_group;
+
           set_file_state file file_state;       
 
           (try
@@ -138,6 +178,8 @@ module FileOption = struct
 	("file_filenames", List
 	(List.map string_to_value impl.impl_file_filenames)) ::
         ("file_age", IntValue (Int64.of_int impl.impl_file_age)) ::
+        ("file_owner", string_to_value (file_owner file)) ::
+        ("file_group", option_to_stringvalue (file_group file)) ::
           (file_to_option file)
         )
           

@@ -142,13 +142,13 @@ let dummy_result = {
     result_source_network = 0;
   }
   
-let result_download rs names force =
+let result_download rs names force user =
   let r = IndexedResults.get_result rs in
   let files = ref [] in
   CommonNetwork.networks_iter (fun n ->
       (* Temporarily download results only from the network that returned the result *)
       if (n.network_num = r.result_source_network) then
-      files := (n.op_network_download r) :: !files
+      files := (n.op_network_download r user) :: !files
   );
   !files  
     

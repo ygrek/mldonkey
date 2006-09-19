@@ -1000,15 +1000,15 @@ let http_handler o t r =
                     "VDC" ->
                       let num = int_of_string value in
                       let file = file_find num in
-                      file_cancel file
+                      file_cancel file o.conn_user.ui_user_name
                   | "VDP" ->
                       let num = int_of_string value in
                       let file = file_find num in
-                      file_pause file
+                      file_pause file o.conn_user.ui_user_name
                   | "VDR" ->
                       let num = int_of_string value in
                       let file = file_find num in
-                      file_resume file
+                      file_resume file o.conn_user.ui_user_name
                   | _ -> ()
               ) r.get_url.Url.args;
 
@@ -1265,7 +1265,7 @@ let http_handler o t r =
                       try
                         let num = int_of_string value in
                         let r = find_result num in
-                        let files = result_download r [] false in
+                        let files = result_download r [] false o.conn_user.ui_user_name in
                         List.iter CommonInteractive.start_download files;
 
                         let module M = CommonMessages in
@@ -1285,15 +1285,15 @@ let http_handler o t r =
                   "cancel" ->
                     let num = int_of_string value in
                     let file = file_find num in
-                    file_cancel file
+                    file_cancel file o.conn_user.ui_user_name
                 | "pause" ->
                     let num = int_of_string value in
                     let file = file_find num in
-                    file_pause file
+                    file_pause file o.conn_user.ui_user_name
                 | "resume" ->
                     let num = int_of_string value in
                     let file = file_find num in
-                    file_resume file
+                    file_resume file o.conn_user.ui_user_name
                 | "sortby" ->
                     begin
                       match value with
@@ -1319,7 +1319,7 @@ let http_handler o t r =
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in
 
-            let list = (List2.tail_map file_info !!files) in
+            let list = List2.tail_map file_info (user2_filter_files !!files o.conn_user.ui_user_name) in
             DriverInteractive.display_file_list b o list;
             html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
@@ -1333,7 +1333,7 @@ let http_handler o t r =
                     List.iter (fun url ->
 		      if url <> "\013" && url <> "" then
 		        begin
-                          Buffer.add_string buf (html_escaped (dllink_parse (o.conn_output = HTML) url));
+                          Buffer.add_string buf (html_escaped (dllink_parse (o.conn_output = HTML) url o.conn_user.ui_user_name));
                           Buffer.add_string buf (html_escaped "\\<P\\>")
 			end
                     ) (String2.split links '\n')
@@ -1388,7 +1388,7 @@ let http_handler o t r =
 
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf t r true;
-		  if (o.conn_user == default_user) || !!enable_user_config then
+		  if user2_is_admin o.conn_user.ui_user_name then
 		    begin
                       CommonInteractive.set_fully_qualified_options name value;
                       Buffer.add_string buf "Option value changed"

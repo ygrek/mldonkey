@@ -322,7 +322,7 @@ let really_recover_file file =
       )  file.file_searches
   ) !connected_servers
 
-let really_download_file (r : CommonTypes.result_info) =
+let really_download_file (r : CommonTypes.result_info) user =
   let rec iter uids =
     match uids with
       uid :: tail ->
@@ -334,7 +334,7 @@ let really_download_file (r : CommonTypes.result_info) =
   let hash,file_temp = iter r.result_uids in
 
   let file = new_file file_temp (List.hd r.result_names)
-    r.result_size [Uid.create (Md5Ext hash)] in
+    r.result_size [Uid.create (Md5Ext hash)] user in
   if !verbose then
     lprintf "DOWNLOAD FILE %s\n" file.file_name;
   if not (List.memq file !current_files) then begin

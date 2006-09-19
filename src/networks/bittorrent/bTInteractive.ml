@@ -469,7 +469,7 @@ let op_ft_info ft =
 
 
 
-let load_torrent_string s =
+let load_torrent_string s user =
   let file_id, torrent = BTTorrent.decode_torrent s in
 
   (* Save the torrent, because we later want to put
@@ -495,13 +495,13 @@ let load_torrent_string s =
   if !verbose then
     lprintf_nl "Starting torrent download with diskname: %s"
         torrent_diskname;
-  let file = new_download file_id torrent torrent_diskname in
+  let file = new_download file_id torrent torrent_diskname user in
   BTClients.get_sources_from_tracker file;
   BTShare.must_share_file file;
   CommonInteractive.start_download (file_find (file_num file));
   file
 
-let load_torrent_file filename =
+let load_torrent_file filename user =
   if !verbose then
     lprintf_nl "load_torrent_file %s" filename;
   let s = File.to_string filename in
@@ -510,7 +510,7 @@ let load_torrent_file filename =
   if Sys.file_exists filename
       && (Filename.dirname filename) = downloads_directory then
     Sys.remove filename;
-  ignore (load_torrent_string s)
+  ignore (load_torrent_string s user)
 
 let parse_tracker_reply file t filename =
 (*This is the function which will be called by the http client
@@ -576,7 +576,7 @@ let try_share_file torrent_diskname =
     in
 
     let file = new_file file_id torrent torrent_diskname
-        filename FileShared in
+        filename FileShared CommonUserDb.admin_user in
     BTShare.must_share_file file;
     if !verbose_share then lprintf_file_nl file "Sharing file %s" filename;
     BTClients.connect_trackers file "started"
@@ -636,7 +636,8 @@ let scan_new_torrents_directory () =
     let file_basename = Filename.basename file in
     if not (Unix2.is_directory file) then
     try
-      load_torrent_file file;
+      let user = fst (Unix32.owner file) in
+      load_torrent_file file (if not (CommonUserDb.user2_user_exist user) then CommonUserDb.admin_user else user);
       (try Sys.remove file with _ -> ())
     with 
       Torrent_can_not_be_used ->
@@ -651,12 +652,12 @@ let retry_all_ft () =
           lprintf_nl "ft_retry: exception %s" (Printexc2.to_string e)
   ) ft_by_num
 
-let load_torrent_from_web r ft =
+let load_torrent_from_web r user ft =
   let module H = Http_client in
   H.wget r (fun filename ->
       if ft_state ft = FileDownloading then begin
-          load_torrent_file filename;
-          file_cancel (as_ft ft)
+          load_torrent_file filename user;
+          file_cancel (as_ft ft) CommonUserDb.admin_user
         end)
 
 let valid_torrent_extension url =
@@ -669,7 +670,7 @@ let get_regexp_string text r =
   let b = Str.group_end 1 in
   String.sub text a (b - a)
 
-let op_network_parse_url url =
+let op_network_parse_url url user =
   let location_regexp = "Location: \\(.*\\)" in
   try
     let real_url = get_regexp_string url (Str.regexp location_regexp) in
@@ -700,13 +701,13 @@ let op_network_parse_url url =
                   ) "" cookies
                 ) ]
             with Not_found -> []);
-            H.req_max_retry = 10;
+	  H.req_max_retry = 10;
           } in
 
         let file_diskname = Filename.basename u.Url.short_file in
-        let ft = new_ft file_diskname in
-        ft.ft_retry <- load_torrent_from_web r ;
-        load_torrent_from_web r ft;
+        let ft = new_ft file_diskname user in
+        ft.ft_retry <- (load_torrent_from_web r user);
+        load_torrent_from_web r user ft;
         "started download", true
       )
     else
@@ -717,7 +718,7 @@ let op_network_parse_url url =
         try
           if !verbose then lprintf_nl "Not_found and trying to load %s" url;
           try
-            load_torrent_file url;
+            load_torrent_file url user;
             "", true
           with
 	    Already_exists -> "A torrent with this name is already in the download queue", false
@@ -950,13 +951,13 @@ let commands =
       let buf = o.conn_buf in
       if Sys.file_exists url then
         begin
-          load_torrent_file url;
+	  load_torrent_file url o.conn_user.ui_user_name;
           Printf.bprintf buf "loaded file %s\n" url
 	end
       else
         begin
           let url = "Location: " ^ url ^ "\nContent-Type: application/x-bittorrent" in
-          let result = fst (op_network_parse_url url) in
+	  let result = fst (op_network_parse_url url o.conn_user.ui_user_name) in
           Printf.bprintf buf "%s\n" result
 	end;
       _s ""
@@ -1031,12 +1032,12 @@ let commands =
 open LittleEndian
 open GuiDecoding
 
-let op_gui_message s =
+let op_gui_message s user =
   match get_int16 s 0 with
     0 ->
       let text = String.sub s 2 (String.length s - 2) in
       if !verbose then lprintf_nl "received torrent from gui...";
-      ignore (load_torrent_string text)
+      ignore (load_torrent_string text user)
   | 1 -> (* 34+ *)
       let n = get_int s 2 in
       let a, pos = get_string s 6 in
@@ -1072,7 +1073,7 @@ let _ =
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_connect_servers <- (fun s -> ());
   network.op_network_search <- (fun ss buf -> ());
-  network.op_network_download <- (fun r -> dummy_file);
+  network.op_network_download <- (fun r user -> dummy_file);
   network.op_network_recover_temp <- (fun s -> ());
   let clean_exit_started = ref false in
   network.op_network_clean_exit <- (fun s ->

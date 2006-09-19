@@ -435,7 +435,7 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
 			      (file_best_name file) (Printexc2.to_string e) in
                     Printf2.lprint_string m;
                     CommonEvent.add_event (Console_message_event m);
-                    file_pause (as_file file);
+                    file_pause (as_file file) CommonUserDb.admin_user;
                     raise e
                   end
           

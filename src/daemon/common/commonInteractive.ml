@@ -40,6 +40,7 @@ open CommonResult
 open CommonServer
 open CommonTypes
 open CommonComplexOptions
+open CommonUserDb
 
 let log_prefix = "[cInt]"
 
@@ -179,7 +180,11 @@ let script_for_file file incoming new_name =
 	    ("DLFILES",   string_of_int (List.length !!files)); 
 	    ("INCOMING",  incoming);
 	    ("NETWORK",   network.network_name);
-	    ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4))]
+	    ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4));
+	    ("FILE_OWNER",(file_owner file));
+	    ("FILE_GROUP",(file_group_text file));
+	    ]
+
   with e -> 
       lprintf_nl "Exception %s while executing %s"
         (Printexc2.to_string e) !!file_completed_cmd
@@ -279,7 +284,8 @@ let file_commit file =
               lprintf_nl "Exception in file_commit: %s" (Printexc2.to_string e))
     | _ -> assert false
 
-let file_cancel file =
+let file_cancel file user =
+  if user2_allow_file_admin file user then
   try
     let impl = as_file_impl file in
     if impl.impl_file_state <> FileCancelled then
@@ -308,7 +314,8 @@ let file_cancel file =
       lprintf_nl "Exception in file_cancel: %s" (Printexc2.to_string e)
 
 let mail_for_completed_file file =
-  if !!mail <> "" then
+  let usermail = user2_user_mail (file_owner file) in
+  if !!mail <> "" || usermail <> "" then begin
     let module M = Mailer in
     let info = file_info file in
     let line1 = "mldonkey has completed the download of:\r\n\r\n" in
@@ -348,13 +355,22 @@ let mail_for_completed_file file =
         Printf.sprintf "\r\nauto_commit is disabled, file is not committed to incoming"
     in
 
-    let mail = {
-        M.mail_to = !!mail;
-        M.mail_from = !!mail;
+    let line6 =
+      Printf.sprintf "\r\nUser/Group: %s:%s\r\n" (file_owner file) (file_group_text file)
+    in
+      
+    let send_mail address admin =
+      let mail = {
+        M.mail_to = address;
+        M.mail_from = address;
         M.mail_subject = subject;
-        M.mail_body = line1 ^ line2 ^ line3 ^ line4 ^ line5;
+        M.mail_body = line1 ^ line2 ^ line3 ^ line4 ^ line5 ^ (if admin then line6 else "");
       } in
-    M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
+        M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
+    in
+    if !!mail <> "" then send_mail !!mail true; (* Multiuser ToDo: this mail is for the admin user, optional? *)
+    if usermail <> "" && usermail <> !!mail then (try send_mail usermail false with Not_found -> ())
+  end
 
 let file_completed (file : file) =
   try
@@ -502,7 +518,7 @@ let display_vd = ref false
 let display_bw_stats = ref false
 
 let start_download file =
-  if !!pause_new_downloads then file_pause file;
+  if !!pause_new_downloads then file_pause file admin_user;
   if !!file_started_cmd <> "" then
       MlUnix.fork_and_exec  !!file_started_cmd
       [|
@@ -521,7 +537,7 @@ let download_file o arg =
       | Some s ->
           let result = List.assoc (int_of_string arg) user.ui_last_results in
           let files = CommonResult.result_download
-            result [] false in
+            result [] false user.ui_user_name in
           List.iter start_download files;
           "download started"
     with
@@ -940,92 +956,123 @@ files with the highest priority are in FileDownloading state,
 and the ones with lowest priority in FileQueued state, if there
 is a max_concurrent_downloads constraint.
 
-In the future, we could try to mix this with the multi-users
-system to give some fairness between downloads of different
-users.
-
 **************************************************************)
 
 open CommonFile
 
+type user_file_list = {
+  file_list : file list;
+  downloads_allowed : int option;
+}
+
 let force_download_quotas () =
-  let files = List.sort (fun f1 f2 ->
-    let v = file_priority f2 - file_priority f1 in
-    if v <> 0 then v else
-      (**
-	 * [egs] do not start downloading
-         * a small file against an already active download
-      **)
-      let d1 = file_downloaded f1 in
-      let d2 = file_downloaded f2 in
-      if d1 = 0L && d2 > 0L then 1
-      else 
-	if d1 > 0L && d2 = 0L then -1
-        else 
-          (* Try to download in priority files with fewer bytes missing
-             Rationale: once completed, it may allow to recover some disk space *)
-          let r1 = file_size f1 -- d1 in
-          let r2 = file_size f2 -- d2 in
-          if r1 = r2 then 0 else
-            if r2 < r1 then 1 else -1
-    ) !!CommonComplexOptions.files in
 
-  (** move running and queued downloads from [list] to [files]
-      accumulator, until a drop of priority (or end of list) is
-      encountered; Then submit the batches of downloads with same
-      priority to [iter_line].
+  let queue_files files =
+    List.iter (fun file ->
+      if file_state file = FileDownloading then
+	set_file_state file FileQueued
+    ) files in
 
-      @param ndownloads number of running downloads no longer in [list]
-      @param nqueued number of queued downloads in [files]
-  *)
-  let rec iter list priority files ndownloads nqueued =
-    match list, files with
-    | [], [] -> ()
-    | [], _ ->
-        iter_line list priority files ndownloads nqueued
-    | f :: tail , _ :: _ when file_priority f < priority ->
-        iter_line list priority files ndownloads nqueued
-    | f :: tail, files ->
-        match file_state f with
-        | FileDownloading ->
-            iter tail (file_priority f) (f :: files) (ndownloads+1) nqueued
-        | FileQueued ->
-            iter tail (file_priority f) (f :: files) ndownloads (nqueued+1)
-        | _ ->
-            iter tail (file_priority f) files ndownloads nqueued
+  let queue_user_file_list (_user, user_file_list) =
+    queue_files user_file_list.file_list in
 
-  (** queue or unqueue downloads from [files] list to match quotas *)
-  and iter_line list priority files ndownloads nqueued =
-    if ndownloads > !!max_concurrent_downloads then
-      match files with
-      | [] -> assert false
-      | f :: tail ->
-          match file_state f with
-          | FileDownloading ->
-              set_file_state f FileQueued;
-              iter_line list priority tail (ndownloads-1) nqueued
-          | _ -> iter_line list priority tail ndownloads (nqueued-1)
-    else
-    if ndownloads < !!max_concurrent_downloads && nqueued > 0 then
-      match files with
-      | [] -> assert false
-      | f :: tail ->
-          match file_state f with
-	  | FileQueued ->
-              set_file_state f FileDownloading;
-              iter_line list priority tail (ndownloads+1) (nqueued-1)
-          | _ -> iter_line list priority tail ndownloads nqueued
-    else
-      iter list priority [] ndownloads 0
-
-  in
-  if not !all_temp_queued then
-    iter files max_int [] 0 0
+  if !all_temp_queued then
+    queue_files !!CommonComplexOptions.files
   else
-    List.iter (fun f ->
-      if file_state f = FileDownloading then
-	set_file_state f FileQueued
-    ) files
+
+  (* create the assoc list of downloads of each user *)
+    let files_by_user = List.fold_left (fun acc f ->
+      let owner = CommonFile.file_owner f in
+      try
+	let owner_file_list = List.assoc owner acc in
+	(owner, { owner_file_list with 
+	  file_list = f :: owner_file_list.file_list }) :: 
+	  List.remove_assoc owner acc
+      with Not_found ->
+	(owner, { 
+	  downloads_allowed = 
+	    (match (user2_user_find owner).user_max_concurrent_downloads with
+	    | 0 -> None
+	    | i -> Some i);
+	  file_list = [f] }) :: acc
+    ) [] !!CommonComplexOptions.files in
+
+    (* sort each user's list separately *)
+    let files_by_user = List.map (fun (owner, owner_file_list) ->
+      owner, { owner_file_list with
+	file_list = List.sort (fun f1 f2 ->
+	  let v = compare (file_priority f2) (file_priority f1) in
+	  if v <> 0 then v else
+	    (* [egs] do not start downloading a small file 
+	       against an already active download *)
+	    let d1 = file_downloaded f1 in
+	    let d2 = file_downloaded f2 in
+	    let active1 = d1 > 0L in
+	    let active2 = d2 > 0L in
+	    if not active1 && active2 then 1
+	    else if active1 && not active2 then -1
+            else 
+              (* Try to download in priority files with fewer bytes missing
+		 Rationale: once completed, it may allow to recover some disk space *)
+              let remaining1 = file_size f1 -- d1 in
+              let remaining2 = file_size f2 -- d2 in
+	      compare remaining1 remaining2
+	) owner_file_list.file_list }
+    ) files_by_user in
+
+    (* sort the assoc list itself with user with highest quota first *)
+    let files_by_user = 
+      List.sort (fun (_owner1, { downloads_allowed = allowed1 }) 
+		     (_owner2, { downloads_allowed = allowed2 }) ->
+        match allowed1, allowed2 with
+	| None, None -> 0
+	| None, _ -> -1
+        | _, None -> 1
+        | Some allowed1, Some allowed2 -> compare allowed2 allowed1
+      ) files_by_user in
+
+    (* serve users round-robin, starting with the one with highest quota *)
+    let rec iter downloads_left to_serve served =
+      if downloads_left = 0 then begin
+	List.iter queue_user_file_list to_serve;
+	List.iter queue_user_file_list served
+      end else
+	match to_serve with
+	| [] ->
+	    if served = [] then () (* nothing left to rotate *)
+	    else (* new round *)
+	      iter downloads_left served []
+	| (_owner, { file_list = [] }) :: others ->
+	    (* user satisfied, remove from lists *)
+	    iter downloads_left others served
+	| ((_owner, { downloads_allowed = Some 0 }) as first) :: others ->
+	    (* reached quota, remove from future rounds *)
+	    queue_user_file_list first;
+	    iter downloads_left others served
+	| (owner, { file_list = first_file :: other_files; 
+	            downloads_allowed = allowed }) :: others ->
+	    let is_downloading =
+	      match file_state first_file with
+	      | FileDownloading -> true
+	      | FileQueued ->
+		  set_file_state first_file FileDownloading;
+		  true
+	      | _ -> false in
+	    if is_downloading then
+	      iter (downloads_left - 1) others 
+		((owner, { 
+		  file_list = other_files;
+		  downloads_allowed = match allowed with
+		    | None -> None
+		    | Some i -> Some (i - 1)
+		}) :: served)
+	    else 
+	      iter downloads_left others
+		((owner, {
+		  file_list = other_files;
+		  downloads_allowed = allowed
+		}) :: served) in
+    iter !!max_concurrent_downloads files_by_user []
 
 let _ =
   option_hook max_concurrent_downloads (fun _ ->

@@ -18,6 +18,8 @@
 *)
 
 type 'a file_impl = {
+    mutable impl_file_owner : string;
+    mutable impl_file_group : string option;
     mutable impl_file_update : int;
     mutable impl_file_state : CommonTypes.file_state;
     
@@ -77,8 +79,8 @@ val file_to_option : CommonTypes.file -> (string * Options.option_value) list
 val file_save_as : CommonTypes.file -> string -> unit
 val file_network : CommonTypes.file -> CommonTypes.network
 val file_info : CommonTypes.file -> GuiTypes.file_info
-val file_pause : CommonTypes.file -> unit
-val file_resume : CommonTypes.file -> unit
+val file_pause : CommonTypes.file -> string -> unit
+val file_resume : CommonTypes.file -> string -> unit
 val set_file_state : CommonTypes.file -> CommonTypes.file_state -> unit
 val file_best_name : CommonTypes.file -> string
 val set_file_best_name : CommonTypes.file -> string -> string -> int -> unit
@@ -136,3 +138,15 @@ val propose_filename : CommonTypes.file -> unit
 
 val forceable_download : CommonTypes.result_info list ref
 val impl_file_info : 'a file_impl -> GuiTypes.file_info
+
+val user2_filter_files : CommonTypes.file list -> string -> CommonTypes.file list
+val user2_user_dls_count : string -> int
+val user2_group_dls_count : string -> int
+val user2_allow_file_admin : CommonTypes.file -> string -> bool
+val set_file_owner : CommonTypes.file -> string -> unit
+val set_file_owner_safe : CommonTypes.file -> string -> string -> bool
+val file_owner : CommonTypes.file -> string
+val set_file_group : CommonTypes.file -> string option -> unit
+val set_file_group_safe : CommonTypes.file -> string -> string option -> bool
+val file_group : CommonTypes.file -> string option
+val file_group_text : CommonTypes.file -> string

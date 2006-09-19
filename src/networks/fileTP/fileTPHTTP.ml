@@ -174,7 +174,7 @@ let rec client_parse_header c gconn sock header =
       end;
 
     if code < 200 || code > 299 then begin
-      pause_for_cause file (Printf.sprintf "%d" code);
+      pause_for_cause file (Printf.sprintf "%d" code) CommonUserDb.admin_user;
       failwith "Bad HTTP code";
     end;
 
@@ -386,7 +386,7 @@ let http_check_size file url start_download_file =
   (fun c ->
     match c with 
      x when x < 200 || x > 299 -> 
-       pause_for_cause file (string_of_int x);
+       pause_for_cause file (string_of_int x) CommonUserDb.admin_user;
     | _ -> ()
   )
 

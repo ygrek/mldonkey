@@ -181,14 +181,11 @@ let download_server_met url =
     )
 
 let already_done = Failure (Printf.sprintf (_b "File already downloaded (use 'force_download' if necessary)"))
-
 let no_download_to_force = Failure (Printf.sprintf (_b "No forceable download found"))
+exception Already_downloading of string
+exception Already_shared of string
 
-let already_downloading = Failure (Printf.sprintf (_b "File is already in download queue"))
-
-let already_shared = Failure (Printf.sprintf (_b "File is already shared"))
-
-let really_query_download filename size md4 location old_file absents =
+let really_query_download filename size md4 location old_file absents user =
 
   begin
     try
@@ -226,7 +223,7 @@ let really_query_download filename size md4 location old_file absents =
   end;
 
 (* TODO RESULT  let other_names = DonkeyIndexer.find_names md4 in *)
-  let file = new_file file_diskname FileDownloading md4 size filename true in
+  let file = new_file file_diskname FileDownloading md4 size filename true user in
   begin
     match absents with
       None -> ()
@@ -295,7 +292,7 @@ with _ -> ()
   );
   as_file file
 
-let query_download filename size md4 location old_file absents force =
+let query_download filename size md4 location old_file absents force user =
   if force then
     if !forceable_download = [] then
       raise no_download_to_force
@@ -303,20 +300,23 @@ let query_download filename size md4 location old_file absents force =
       begin
         let f = List.hd !forceable_download in
 	  forceable_download := [];
-	  really_query_download (List.hd f.result_names) f.result_size md4 None None None
+	  really_query_download (List.hd f.result_names) f.result_size md4 None None None user
       end
   else
     begin
       try
         let file = find_file md4 in
 	  if (file_state file) = FileShared then
-	    raise already_shared
+	    raise (Already_shared (Printf.sprintf (_b "File is already shared%s")
+	      (match file.file_shared with
+		 None -> ""
+	       | Some sh -> (" in " ^ (Filename2.dirname sh.impl_shared_fullname)))))
 	  else
 	    begin
 (* jave TODO: if a user currently not downloading this file is requesting the download add this user
    to the list of users currently downloading this file *)
 	      forceable_download := [];
-	      raise already_downloading 
+	      raise (Already_downloading (Printf.sprintf (_b "File is already in download queue of %s") (file_owner (as_file file))))
 	    end
       with Not_found ->
         begin
@@ -336,19 +336,19 @@ let query_download filename size md4 location old_file absents force =
         else
           begin
             forceable_download := [];
-            really_query_download filename size md4 location old_file absents
+            really_query_download filename size md4 location old_file absents user
           end
         end
     end
 
-let result_download r filenames force =
+let result_download r filenames force user =
   let rec iter uids =
     match uids with
       [] -> raise IgnoreNetwork
     | uid :: tail ->
         match Uid.to_uid uid with
           Ed2k md4 ->
-            query_download (List.hd filenames) r.result_size md4 None None None force
+            query_download (List.hd filenames) r.result_size md4 None None None force user
         | _  -> iter tail
   in
   iter r.result_uids
@@ -391,7 +391,7 @@ let import_temp temp_dir =
 		(match !filename_met with
 		   None -> filename
 		| Some s -> s) !size f.P.md4 None
-              (Some filename) (Some (List.rev f.P.absents)));
+              (Some filename) (Some (List.rev f.P.absents)) CommonUserDb.admin_user);
       with _ -> ()
   ) list
 
@@ -508,7 +508,7 @@ let recover_md4s md4 =
 
 
 
-let parse_donkey_url url =
+let parse_donkey_url url user =
   let url = Str.global_replace (Str.regexp "|sources,") "|sources|" url in
   match String2.split url '|' with
 (* TODO RESULT *)
@@ -536,7 +536,7 @@ let parse_donkey_url url =
           begin
 	    try
               let file = query_download name (Int64.of_string size)
-                (Md4.of_string md4) None None None false in
+                (Md4.of_string md4) None None None false user in
 	      let new_file = find_file (Md4.of_string md4) in
 	      CommonInteractive.start_download file;
 	      if !new_sources <> [] then
@@ -547,7 +547,10 @@ let parse_donkey_url url =
     	          (Printf.sprintf (_b "added %d sources to new download") (List.length !new_sources)), true
     	        end
     	      else "", true
-    	    with e -> (Printexc2.to_string e), false
+    	    with
+	      Already_downloading (s)
+	    | Already_shared (s) -> s, false
+	    | e -> (Printexc2.to_string e), false
     	  end
     	end
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
@@ -566,12 +569,14 @@ let parse_donkey_url url =
 	in
           begin try
             let file = query_download name (Int64.of_string size)
-              (Md4.of_string md4) None None None false;
+              (Md4.of_string md4) None None None false user;
             in
             CommonInteractive.start_download file;
             "", true
-          with e ->
-            (Printexc2.to_string e), false
+          with
+	    Already_downloading (s)
+	  | Already_shared (s) -> s, false
+	  | e -> (Printexc2.to_string e), false
           end
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
@@ -776,6 +781,7 @@ let commands = [
     "<port> :\t\t\t\tchange connection port";
 
     "scan_temp", Arg_none (fun o ->
+	if CommonUserDb.user2_is_admin o.conn_user.ui_user_name then begin
         let buf = o.conn_buf in
         let list = Unix2.list_directory !!temp_directory in
 
@@ -873,23 +879,21 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
         ) list;
 
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
+        "" end
+	else begin
+	  CommonUserDb.print_command_result o o.conn_buf "You are not allowed to use scan_temp";
+	"" end
 
-        ""
     ), ":\t\t\t\tprint temp directory content";
 
     "sources", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        DonkeySources.print buf o.conn_output;
-        ""
+	if CommonUserDb.user2_is_admin o.conn_user.ui_user_name then begin
+          DonkeySources.print o.conn_buf o.conn_output;
+          "" end
+	else begin
+	  CommonUserDb.print_command_result o o.conn_buf "You are not allowed to list sources";
+	  "" end
     ), ":\t\t\t\tshow sources currently known";
-
-    (*
-    "update_sources", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        DonkeySources.recompute_ready_sources ();
-        "done"
-    ), ":\t\t\trecompute order of connections to sources (experimental)";
-*)
 
     "xs", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -920,7 +924,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
 (* TODO RESULT *)
     "dd", Arg_two(fun size md4 o ->
         let file = query_download md4 (Int64.of_string size)
-          (Md4.of_string md4) None None None false in
+          (Md4.of_string md4) None None None false o.conn_user.ui_user_name in
         CommonInteractive.start_download file;
         "download started"
     ), "<size> <md4> :\t\t\tdownload from size and md4";
@@ -1003,8 +1007,8 @@ file.---------> to be done urgently
       with
         Not_found -> ()
   );
-  network.op_network_download <- (fun r ->
-      result_download r r.result_names r.result_force
+  network.op_network_download <- (fun r user ->
+      result_download r r.result_names r.result_force user
   )
 
 module P = GuiTypes

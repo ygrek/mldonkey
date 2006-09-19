@@ -234,7 +234,7 @@ and find_mirrors file u =
 
 let previous_url = ref ""  
   
-let download_file url referer = 
+let download_file url referer user =
   let u = Url.of_string url in
 
   if List.mem u !!old_files && !previous_url <> url then begin
@@ -242,7 +242,7 @@ let download_file url referer =
       failwith "URL already downloaded: repeat command again to force";
     end;
 
-  let file = new_file (Md4.random ()) u.Url.full_file zero in
+  let file = new_file (Md4.random ()) u.Url.full_file zero user in
   
   if !verbose then
     lprintf_nl "Started new download: %s from %s" (file_best_name file) url; 
@@ -276,7 +276,7 @@ let get_regexp_string text r =
    It returns true if this file can be handled by fileTP,
    and false otherwise.
  *)
-let op_network_parse_url url =
+let op_network_parse_url url user =
   let location_regexp = "Location: \\(.*\\)" in
   let real_url = get_regexp_string url (Str.regexp location_regexp) in
   if (is_http_torrent url real_url) && !!enable_bittorrent then
@@ -286,7 +286,7 @@ let op_network_parse_url url =
       let length_regexp = "Content-Length: \\(.*\\)" in
        try let length = get_regexp_int url (Str.regexp length_regexp) in
          if (length > 0) then begin
-           download_file real_url ""; "started FileTP download", true
+           download_file real_url "" user; "started FileTP download", true
          end
          else "can not parse Content-Length", false
        with Not_found -> 
@@ -295,7 +295,7 @@ let op_network_parse_url url =
     else 
       if (String2.check_prefix real_url "ftp://") ||
          (String2.check_prefix real_url "ssh://") then (
-      download_file real_url "";
+      download_file url "" user;
       "started FileTP download", true)
     else
       "invalid URL", false
@@ -310,8 +310,8 @@ let commands = [
     "http", "Network/FileTP", Arg_multiple (fun args o ->
         try
         (match args with
-          url :: [referer] -> download_file url referer
-        | [url] -> download_file url ""
+          url :: [referer] -> download_file url referer o.conn_user.ui_user_name
+        | [url] -> download_file url "" o.conn_user.ui_user_name
         | _ -> raise Not_found);
         let buf = o.conn_buf in
         if o.conn_output = HTML then
@@ -405,7 +405,7 @@ let _ =
   CommonNetwork.register_commands commands;
   network.op_network_share <- (fun fullname codedname size -> ());
   network.op_network_search <- (fun ss buf -> ());
-  network.op_network_download <- (fun r -> dummy_file);
+  network.op_network_download <- (fun r user -> dummy_file);
   file_ops.op_file_commit <- (fun file new_name -> clean_stop file);
   file_ops.op_file_pause <- (fun file -> 
     List.iter (fun c ->

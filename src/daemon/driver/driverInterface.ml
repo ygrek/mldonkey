@@ -246,6 +246,8 @@ let send_event gui ev =
     
 let send_update_file gui file_num update =
   let file = file_find file_num in
+  if user2_can_view_file gui.gui_conn.conn_user.ui_user_name (file_owner file) (file_group file) then
+  begin
   let impl = as_file_impl file in
   let file_info = if update then
       P.File_info (file_info file) 
@@ -256,6 +258,7 @@ let send_update_file gui file_num update =
         impl.impl_file_last_seen)
   in
   gui_send gui file_info
+  end
 
 let send_update_user gui user_num update =
   let user = user_find user_num in
@@ -428,7 +431,7 @@ let gui_initialize gui =
                   (File_add_source_event (file,c))
                 :: gui.gui_events.gui_new_events
             ) sources
-      ) !!files;
+      ) (user2_filter_files !!files gui.gui_conn.conn_user.ui_user_name);
       
       List.iter (fun file ->
           addevent gui.gui_events.gui_files (file_num file) true;
@@ -458,6 +461,7 @@ let gui_initialize gui =
             end
       );
       
+      if user2_can_view_uploads gui.gui_conn.conn_user.ui_user_name then
       shared_iter (fun s ->
           addevent gui.gui_events.gui_shared_files (shared_num s) true
       );
@@ -466,8 +470,11 @@ let gui_initialize gui =
           gui.gui_events.gui_new_events <- ev :: gui.gui_events.gui_new_events
       ) console_messages;                
       
+      if user2_is_admin gui.gui_conn.conn_user.ui_user_name then
       gui_send gui (
         P.Options_info (simple_options "" downloads_ini));
+
+      if user2_is_admin gui.gui_conn.conn_user.ui_user_name then
       networks_iter_all (fun r ->
           List.iter (fun opfile ->
               let prefix = r.network_shortname ^ "-" in
@@ -475,6 +482,7 @@ let gui_initialize gui =
               gui_send gui (P.Options_info args)) r.network_config_file);
 
 (* Options panels defined in downloads.ini *)
+      if user2_is_admin gui.gui_conn.conn_user.ui_user_name then
       List.iter (fun s ->
           let section = section_name s in
           List.iter (fun o ->
@@ -484,6 +492,7 @@ let gui_initialize gui =
       ) (sections downloads_ini);
 
 (* Options panels defined in users.ini *)
+      if user2_is_admin gui.gui_conn.conn_user.ui_user_name then
       List.iter (fun s ->
           let section = section_name s in
           List.iter (fun o ->
@@ -493,6 +502,7 @@ let gui_initialize gui =
       ) (sections users_ini);
 
 (* Options panels defined in each plugin *)
+      if user2_is_admin gui.gui_conn.conn_user.ui_user_name then
       networks_iter_all (fun r ->
           let prefix = r.network_shortname ^ "-" in
           List.iter (fun file ->
@@ -554,7 +564,7 @@ let gui_reader (gui: gui_record) t _ =
                     (File_add_source_event (file,c))
                     :: gui.gui_events.gui_new_events
                 ) (file_active_sources file)
-            ) !!files;
+            ) (user2_filter_files !!files gui.gui_conn.conn_user.ui_user_name);
             
           end
     
@@ -613,7 +623,7 @@ let gui_reader (gui: gui_record) t _ =
               ) list
           
           | P.SetOption (name, value) ->
-	      if user2_is_admin gui.gui_conn.conn_user.ui_user_name || !!enable_user_config then
+	      if user2_is_admin gui.gui_conn.conn_user.ui_user_name then
 		CommonInteractive.set_fully_qualified_options name value
 	      else
 	        begin
@@ -644,6 +654,7 @@ let gui_reader (gui: gui_record) t _ =
               end
           
           | P.EnableNetwork (num, bool) ->
+	      if user2_is_admin gui.gui_conn.conn_user.ui_user_name then
               let n = network_find_by_num num in
               if n.op_network_is_enabled () <> bool then
                 (try
@@ -720,7 +731,7 @@ let gui_reader (gui: gui_record) t _ =
           
           | P.Download_query (filenames, num, force) ->
               let r = find_result num in
-              let files = result_download r filenames force in
+              let files = result_download r filenames force gui.gui_conn.conn_user.ui_user_name in
               List.iter CommonInteractive.start_download files
           
           | P.ConnectMore_query ->
@@ -731,7 +742,7 @@ let gui_reader (gui: gui_record) t _ =
                 if not (networks_iter_until_true
                     (fun n ->
                        try
-                         let s,r = network_parse_url n url in r
+                         let s,r = network_parse_url n url gui.gui_conn.conn_user.ui_user_name in r
                        with e ->
                          lprintf "Exception %s for network %s\n"
                            (Printexc2.to_string e) (n.network_name);
@@ -765,11 +776,13 @@ let gui_reader (gui: gui_record) t _ =
                 query_networks url
           
           | P.GetUploaders ->
+              if user2_can_view_uploads gui.gui_conn.conn_user.ui_user_name then
               gui_send gui (P.Uploaders
                   (List2.tail_map (fun c -> client_num c) 
                   (Intmap.to_list !uploaders)))
           
           | P.GetPending ->
+              if user2_can_view_uploads gui.gui_conn.conn_user.ui_user_name then
               gui_send gui (P.Pending (
                   List2.tail_map (fun c -> client_num c)
                   (Intmap.to_list !CommonUploads.pending_slots_map)))
@@ -778,13 +791,13 @@ let gui_reader (gui: gui_record) t _ =
               server_remove (server_find num)
           
           | P.SaveOptions_query list ->
-              
+	      if user2_is_admin gui.gui_conn.conn_user.ui_user_name then
               List.iter (fun (name, value) ->
                   CommonInteractive.set_fully_qualified_options name value) list;
               DriverInteractive.save_config ()
           
           | P.RemoveDownload_query num ->
-              file_cancel (file_find num)
+              file_cancel (file_find num) gui.gui_conn.conn_user.ui_user_name
           
           | P.ViewUsers num -> 
               let s = server_find num in
@@ -868,6 +881,7 @@ let gui_reader (gui: gui_record) t _ =
               client_connect c
           
           | P.DisconnectClient num ->
+              if user2_can_view_uploads gui.gui_conn.conn_user.ui_user_name then
               let c = client_find num in
               client_disconnect c
           
@@ -905,9 +919,9 @@ let gui_reader (gui: gui_record) t _ =
           | P.SwitchDownload (num, resume) ->
               let file = file_find num in
               if resume then
-                file_resume file          
+                file_resume file gui.gui_conn.conn_user.ui_user_name
               else
-                file_pause file
+                file_pause file gui.gui_conn.conn_user.ui_user_name
           
           | P.FindFriend user -> 
               networks_iter (fun n ->
@@ -1026,7 +1040,7 @@ let gui_reader (gui: gui_record) t _ =
   
           | NetworkMessage (num, s) ->
               let n = network_find_by_num num in
-              n.op_network_gui_message s
+              n.op_network_gui_message s gui.gui_conn.conn_user.ui_user_name
                 
           | AddServer_query (num, ip, port) ->
               let n = network_find_by_num num in
@@ -1036,7 +1050,7 @@ let gui_reader (gui: gui_record) t _ =
               let s = n.op_network_add_server (Ip.addr_of_ip ip) port in
               server_connect s
           | RefreshUploadStats ->
-              
+              if user2_can_view_uploads gui.gui_conn.conn_user.ui_user_name then
               shared_iter (fun s ->
                   update_shared_info s;
               ) 

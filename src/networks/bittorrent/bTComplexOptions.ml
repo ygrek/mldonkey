@@ -183,8 +183,9 @@ let value_to_file file_size file_state assocs =
             (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
         file_temp
   in
-  let file = new_file file_id torrent torrent_diskname file_temp file_state in
-
+  let file = new_file file_id torrent torrent_diskname
+	       file_temp file_state CommonUserDb.admin_user in
+    
   let file_uploaded = try
       value_to_int64 (List.assoc "file_uploaded" assocs)
     with _ -> zero

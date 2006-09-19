@@ -678,14 +678,14 @@ let get_file_from_source c file =
 (*                                                                       *)
 (*************************************************************************)
     
-let really_download_file (r : result_info) =
+let really_download_file (r : result_info) user =
   if !verbose then
     lprintf "download_file\n";
   let file_temp = match r.result_uids with
       [] -> assert false
     | uid :: _ -> Uid.to_file_string uid in
   let file = new_file file_temp
-    (List.hd r.result_names) r.result_size r.result_uids in
+    (List.hd r.result_names) r.result_size r.result_uids user in
   if !verbose then
     lprintf "DOWNLOAD FILE %s\n" file.file_name; 
   if not (List.memq file !current_files) then begin

@@ -49,19 +49,10 @@ let lprintf_n fmt =
   lprintf2 log_prefix fmt
 
 let verify_user_admin () =
-  let empty_pwd = ref false in
-  begin try
-    if user2_password admin_user = blank_password then
-      empty_pwd := true
-    with e ->
-      lprintf_nl (_b "SECURITY INFO: user 'admin' has to be present, creating...");
-      empty_pwd := true;
-      ignore (user2_add admin_user blank_password "")
-  end;
   let warning =
     "SECURITY WARNING: user admin has an empty password, use command: useradd admin password\n"
   in
-  if !empty_pwd && not !!enable_user_config then
+  if empty_password admin_user then
     begin
       lprintf_n "%s" warning;
       warning
@@ -1867,7 +1858,8 @@ let buildinfo html buf =
   tack list 
     (
       "Features:\t",
-      (if BasicSocket.has_threads () then "threads" else "no-threads") ^
+      ("multiuser") ^
+      (if BasicSocket.has_threads () then " threads" else " no-threads") ^
       (let s = Zlib.zlib_version_num () in 
          Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else "")) ^
       (if Autoconf.bzip2 then
@@ -2186,11 +2178,11 @@ let dllink_print_result html url header results =
   if html then Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
   Buffer.contents buf
 
-let dllink_query_networks html url =
+let dllink_query_networks html url user =
   let result = ref [] in
   if not (networks_iter_until_true (fun n ->
     try
-      let s,r = network_parse_url n url in
+      let s,r = network_parse_url n url user in
         if s = "" then
           r
         else
@@ -2208,7 +2200,7 @@ let dllink_query_networks html url =
   else
     dllink_print_result html url "Added link" !result
 
-let dllink_parse html url =
+let dllink_parse html url user =
   if (String2.starts_with url "http") then (
     let u = Url.of_string url in
     let module H = Http_client in
@@ -2242,21 +2234,14 @@ let dllink_parse html url =
       let concat_headers =
         (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
       in
-      ignore (dllink_query_networks html concat_headers)
+      ignore (dllink_query_networks html concat_headers user)
     );
     dllink_print_result html url "Parsing HTTP url" [])
   else
     if (String2.starts_with url "ftp") then
-      dllink_query_networks html (Printf.sprintf "Location: %s" url)
+      dllink_query_networks html (Printf.sprintf "Location: %s" url) user
     else
-      dllink_query_networks html url
-
-let print_command_result o buf result =
-  if use_html_mods o then
-    html_mods_table_one_row buf "serversTable" "servers" [
-      ("", "srh", result); ]
-  else
-    Printf.bprintf buf "%s" result
+      dllink_query_networks html url user
 
 module UnionFind = struct
   type t = int array

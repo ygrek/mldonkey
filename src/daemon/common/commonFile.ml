@@ -25,6 +25,7 @@ open Options
 open CommonTypes
 open CommonOptions
 open CommonGlobals
+open CommonUserDb
 
 let log_prefix = "[cF]"
 
@@ -41,6 +42,8 @@ let lprintf_n fmt =
 (*************************************************************************)
 
 type 'a file_impl = {
+    mutable impl_file_owner : string;
+    mutable impl_file_group : string option;
     mutable impl_file_update : int;
     mutable impl_file_state : file_state;
 
@@ -133,6 +136,8 @@ let dummy_file_impl = {
     impl_file_last_seen = 0;
     impl_file_comment = [];
     impl_file_probable_name = None;
+    impl_file_owner = admin_user;
+    impl_file_group = Some system_user_default_group;
   }
 
 let dummy_file = as_file dummy_file_impl
@@ -216,7 +221,22 @@ let file_info (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_info file.impl_file_val
 
-let file_pause (file : file) =
+let file_owner file =
+  (as_file_impl file).impl_file_owner
+
+let file_group file =
+  (as_file_impl file).impl_file_group
+
+let file_group_text file =
+  match (as_file_impl file).impl_file_group with
+    Some group -> group
+  | None -> "None"
+
+let user2_allow_file_admin file gui_user =
+  user2_is_admin gui_user || file_owner file = gui_user
+
+let file_pause (file : file) user =
+  if user2_allow_file_admin file user then
   let file = as_file_impl file in
   match file.impl_file_state with
   | FileDownloading | FileQueued ->
@@ -224,13 +244,55 @@ let file_pause (file : file) =
       file.impl_file_ops.op_file_pause file.impl_file_val
   | _ -> ()
 
-let file_resume (file : file) =
+let file_resume (file : file) user =
+  if user2_allow_file_admin file user then
   let file = as_file_impl file in
   match file.impl_file_state with
   | FilePaused | FileAborted _ ->
       update_file_state file FileDownloading;
       file.impl_file_ops.op_file_resume file.impl_file_val
   | _ -> ()
+
+let set_file_owner file owner =
+  (as_file_impl file).impl_file_owner <- owner
+
+let set_file_group file group =
+  (as_file_impl file).impl_file_group <- group
+
+let set_file_owner_safe file user new_owner =
+  if (user2_user_exist new_owner) &&
+     (user2_allow_file_admin file user) then
+    begin
+      set_file_owner file new_owner;
+      true
+    end
+  else
+    false
+
+let set_file_group_safe file gui_user new_group =
+  if (user2_group_exists_option new_group) &&
+     (user2_allow_file_admin file gui_user) then
+    begin
+      set_file_group file new_group;
+      true
+    end
+  else
+    false
+
+let user2_filter_files files gui_user =
+  let newlist = List.filter
+    (fun file -> user2_can_view_file gui_user (file_owner file) (file_group file)) files in
+  newlist
+
+let user2_user_dls_count user =
+  let n = ref 0 in
+  H.iter (fun f -> if file_owner f = user then incr n) files_by_num;
+  !n
+
+let user2_group_dls_count group =
+  let n = ref 0 in
+  H.iter (fun f -> if file_group f = Some group then incr n) files_by_num;
+  !n
 
 let set_file_state file state =
   let impl = as_file_impl file in
@@ -627,6 +689,71 @@ let file_print file o =
         ("", "sr", Printf.sprintf "%d" (file_priority file)) ];
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+      if user2_allow_file_admin file o.conn_user.ui_user_name then
+        let optionlist = ref "" in
+        user2_user_iter (fun user ->
+	  if user.user_name <> (file_owner file) then
+            optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" user.user_name user.user_name;
+        );
+
+        html_mods_td buf [("Change file owner by selecting an alternate user", "sr br", "User");
+          ("Change owner", "sr", Printf.sprintf "
+\\<script type=\\\"text/javascript\\\"\\>
+\\<!--
+function submitChownForm(i) {
+var formID = document.getElementById(\\\"chownForm\\\" + i)
+var v = formID.newOwner.value;
+parent.fstatus.location.href='submit?q=chown+'+v+'+%d';
+}
+//--\\>
+\\</script\\>" (file_num file)
+   ^ "\\<form name=\\\"chownForm1\\\" id=\\\"chownForm1\\\" action=\\\"javascript:submitChownForm(1);\\\"\\>"
+   ^ "\\<select name=\\\"newOwner\\\" id=\\\"newOwner\\\" "
+   ^ "style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>"
+   ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\\</option\\>\n" (file_owner file) (file_owner file)
+   ^ !optionlist ^ "\\</select\\>\\</form\\>\\</input\\>" ) ];
+
+      else
+        html_mods_td buf [("File owner", "sr br", "User"); ("", "sr", (file_owner file))];
+
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      if user2_allow_file_admin file o.conn_user.ui_user_name &&
+         user2_user_groups_safe o.conn_user.ui_user_name <> [] then
+        let optionlist =
+          if (file_group_text file) = "None" then
+            ref ""
+          else
+            ref "\\<option value=\\\"None\\\"\\>None\\</option\\>\n"
+        in
+        user2_user_groups_iter o.conn_user.ui_user_name (fun group ->
+	  if group <> (file_group_text file) then
+            optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" group group;
+        );
+
+        html_mods_td buf [("Change file group by selecting an alternate group", "sr br", "Group");
+          ("Change group", "sr", Printf.sprintf "
+\\<script type=\\\"text/javascript\\\"\\>
+\\<!--
+function submitChgrpForm(i) {
+var formID = document.getElementById(\\\"chgrpForm\\\" + i)
+var v = formID.newGroup.value;
+parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
+}
+//--\\>
+\\</script\\>" (file_num file)
+   ^ "\\<form name=\\\"chgrpForm1\\\" id=\\\"chgrpForm1\\\" action=\\\"javascript:submitChgrpForm(1);\\\"\\>"
+   ^ "\\<select name=\\\"newGroup\\\" id=\\\"newGroup\\\" "
+   ^ "style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>"
+   ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\\</option\\>\n" (file_group_text file) (file_group_text file)
+   ^ !optionlist ^ "\\</select\\>\\</form\\>\\</input\\>" ) ];
+
+      else
+        html_mods_td buf [("File group", "sr br", "Group");
+        ("", "sr", (match file_group file with
+          Some group -> Printf.sprintf "%s" group
+        | None -> "None"))];
+
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
       html_mods_td buf [
         ("Number of file sources", "sr br", "Sources");
         ("", "sr", Printf.sprintf "%d" (List.length srcs)) ];
@@ -694,7 +821,7 @@ let file_print file o =
 
     end else
     begin
-      Printf.bprintf buf "[%-s %5d]\n%s\n%s%s\nTotal   %10s\nPartial %10s\npriority %d\n"
+      Printf.bprintf buf "[%-s %5d]\n%s\n%s%s\nTotal   %10s\nPartial %10s\npriority %d\nOwner/Group: %s/%s\n"
         n.network_name
         (file_num file)
         (shorten (file_best_name file) 80)
@@ -704,7 +831,11 @@ let file_print file o =
         (string_of_uids info.G.file_uids)
         (Int64.to_string info.G.file_size)
         (Int64.to_string info.G.file_downloaded)
-        (file_priority file);
+        (file_priority file)
+        (file_owner file)
+	(match file_group file with
+	   Some group -> Printf.sprintf "%s" group
+	 | None -> "private");
       Printf.bprintf buf "Chunks: [%-s]\n"
 	(match info.G.file_chunks with
 	| None -> ""

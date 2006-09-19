@@ -63,9 +63,9 @@ let nranges file =
   if (filesize = 0L || !!chunk_size = 0) then 1
   else Int64.to_int ((filesize) // (min_range_size file)) + 5
 
-let pause_for_cause f r = 
+let pause_for_cause f r user =
   lprintf_nl "Pausing file %s (%s)" (file_best_name f) r;
-  file_pause (as_file f)
+  file_pause (as_file f) user
 
 let disconnect_client c r =
   match c.client_sock with

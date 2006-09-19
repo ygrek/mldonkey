@@ -310,7 +310,7 @@ List.iter iter_uid other_uids;
 let megabyte = Int64.of_int (1024 * 1024)
 let megabytes10 = Int64.of_int (10 * 1024 * 1024)
       
-let new_file file_temporary file_name file_size file_uids = 
+let new_file file_temporary file_name file_size file_uids user =
   let file_temp = Filename.concat !!temp_directory file_temporary in
   let t = Unix32.create_rw file_temp in
   let rec file = {
@@ -329,6 +329,8 @@ let new_file file_temporary file_name file_size file_uids =
       impl_file_fd = Some t;
       impl_file_size = file_size;
       impl_file_downloaded = Int64.zero;
+      impl_file_owner = user;
+      impl_file_group = CommonUserDb.user2_user_default_group user;
       impl_file_val = file;
       impl_file_ops = file_ops;
       impl_file_age = last_time ();          
@@ -357,7 +359,7 @@ let new_file file_temporary file_name file_size file_uids =
 
 exception FileFound of file
   
-let new_file file_id file_name file_size file_uids =
+let new_file file_id file_name file_size file_uids user =
 (*  if file_uids = [] then 
     try Hashtbl.find files_by_key (file_name, file_size) with
       _ -> 
@@ -370,7 +372,7 @@ let new_file file_id file_name file_size file_uids =
         try  raise (FileFound (Hashtbl.find files_by_uid uid))
         with Not_found -> ()
     ) file_uids;
-    let file = new_file file_id file_name file_size file_uids in
+    let file = new_file file_id file_name file_size file_uids user in
     List.iter (fun uid -> 
         if !verbose then
           lprintf "Adding file %s\n" (Uid.to_string uid);

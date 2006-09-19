@@ -223,7 +223,7 @@ let rec set_trackers file file_trackers =
 	  file.file_trackers <-  t :: file.file_trackers;
 	set_trackers file q
 
-let new_file file_id t torrent_diskname file_temp file_state =
+let new_file file_id t torrent_diskname file_temp file_state user =
   try
     Hashtbl.find files_by_uid file_id
   with Not_found ->
@@ -252,6 +252,8 @@ let new_file file_id t torrent_diskname file_temp file_state =
           file_shared = None;
         } and file_impl =  {
           dummy_file_impl with
+          impl_file_owner = user;
+          impl_file_group = CommonUserDb.user2_user_default_group user;
           impl_file_fd = Some file_fd;
           impl_file_size = t.torrent_length;
           impl_file_downloaded = Int64.zero;
@@ -299,15 +301,15 @@ let new_file file_id t torrent_diskname file_temp file_state =
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
       file
 
-let new_download file_id t torrent_diskname =
+let new_download file_id t torrent_diskname user =
   let file_temp = Filename.concat !!DO.temp_directory
       (Printf.sprintf "BT-%s" (Sha1.to_string file_id)) in
-  new_file file_id t torrent_diskname file_temp FileDownloading
+  new_file file_id t torrent_diskname file_temp FileDownloading user
 
 let ft_by_num = Hashtbl.create 13
 let ft_counter = ref 0
 
-let new_ft file_name =
+let new_ft file_name user =
   incr ft_counter;
   let rec ft = {
       ft_file = file_impl;
@@ -316,6 +318,8 @@ let new_ft file_name =
       ft_retry = (fun _ -> ());
     } and file_impl =  {
       dummy_file_impl with
+      impl_file_owner = user;
+      impl_file_group = CommonUserDb.user2_user_default_group user;
       impl_file_fd = None;
       impl_file_size = zero;
       impl_file_downloaded = Int64.zero;

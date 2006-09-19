@@ -138,7 +138,7 @@ let set_file_size file size =
       file_must_update (as_file file);
     end
 
-let new_file file_id file_name file_size =
+let new_file file_id file_name file_size user =
   let file_temp = Filename.concat !!temp_directory
       (Printf.sprintf "FileTP-%s" (Md4.to_string file_id)) in
   let t = Unix32.create_rw file_temp in
@@ -152,6 +152,8 @@ let new_file file_id file_name file_size =
       file_nconnected_clients = 0;
     } and file_impl =  {
       dummy_file_impl with
+      impl_file_owner = user;
+      impl_file_group = CommonUserDb.user2_user_default_group user;
       impl_file_fd = Some t;
       impl_file_size = zero;
       impl_file_downloaded = zero;
@@ -168,11 +170,11 @@ let new_file file_id file_name file_size =
 (*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
   file
 
-let new_file file_id file_name file_size =
+let new_file file_id file_name file_size users =
   try
     Hashtbl.find files_by_uid file_id
   with _ ->
-      let file = new_file file_id file_name file_size  in
+      let file = new_file file_id file_name file_size users in
       Hashtbl.add files_by_uid file_id file;
       file
 

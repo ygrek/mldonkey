@@ -480,7 +480,7 @@ type network = {
     mutable op_network_share : (
       string -> string -> int64 -> unit);
     mutable op_network_private_message : (string -> string -> unit);
-    mutable op_network_parse_url : (string -> string * bool);
+    mutable op_network_parse_url : (string -> string -> string * bool);
     mutable op_network_connect_servers : (unit -> unit);
     
     mutable op_network_search : (search -> Buffer.t -> unit);
@@ -492,9 +492,9 @@ type network = {
     mutable op_network_info : (unit -> network_info);
     
     mutable op_network_connected : (unit -> bool);
-    mutable op_network_gui_message : (string -> unit);
+    mutable op_network_gui_message : (string -> string -> unit);
     
-    mutable op_network_download : (result_info -> file);
+    mutable op_network_download : (result_info -> string -> file);
     mutable op_network_display_stats : (Buffer.t -> ui_conn -> unit);
     mutable op_network_clean_exit : (unit -> bool);
     mutable op_network_reset : (unit -> unit);

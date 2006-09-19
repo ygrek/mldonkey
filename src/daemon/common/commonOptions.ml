@@ -1288,10 +1288,6 @@ let allow_any_command = define_option current_section ["allow_any_command"]
   ones in allowed_commands"
     bool_option false
 
-let enable_user_config = define_option current_section ["enable_user_config"]
-  "Are all users allowed to change MLDonkey options?"
-    bool_option true
-
 let allow_browse_share = define_option current_section ["allow_browse_share"]
   "Allow others to browse our share list (0: none, 1: friends only, 2: everyone"
     allow_browse_share_option 1
