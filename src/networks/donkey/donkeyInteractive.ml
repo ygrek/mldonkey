@@ -1460,7 +1460,7 @@ let try_recover_temp_file filename md4 =
       let size = Unix32.getsize file_diskname in
       if size <> zero then
 	begin
-	  ignore (really_query_download (Md4.to_string md4) size md4 None (Some file_diskname) None);
+	  ignore (really_query_download (Md4.to_string md4) size md4 None (Some file_diskname) None CommonUserDb.admin_user);
 	  recover_md4s md4
 	end
 

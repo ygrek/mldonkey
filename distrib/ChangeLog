@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/19
+5406: Multiuser: Small bug fixed in recover_temp (mu2.patch)
 5406: Main multiuser patch, see docs/multiuser.txt for details
       thx to jave, pango, zet and many other people who have helped
       to make this work possible
