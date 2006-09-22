@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/22
+5411: Portinfo: Rename gift_port to gift_port GUI
+
 2006/09/19
 5406: Multiuser: Small bug fixed in recover_temp (mu2.patch)
 5406: Main multiuser patch, see docs/multiuser.txt for details

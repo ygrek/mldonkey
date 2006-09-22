@@ -244,7 +244,7 @@ let _ =
     !!http_port, "http_port";
     !!telnet_port, "telnet_port";
     !!gui_port, "gui_port";
-    !!gift_port, "gift_port";
+    !!gift_port, "gift_port GUI";
     ]);
   network.op_network_connected_servers <- (fun _ -> [])
 
