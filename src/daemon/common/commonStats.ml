@@ -87,12 +87,16 @@ let build_all a =
   done;
   s
 
-let brandlist_int_to_string l i =
+let brandlist_int_to_2string l i =
   if List.length l > i then
-    let (_,ls,_) = List.nth l i in
-    ls
+    let (_,ls,ss) = List.nth l i in
+    ls,ss
   else
-    "Total"
+    "Total","Ttl"
+
+let brandlist_int_to_string l i =
+  let (ls,_) = brandlist_int_to_2string l i in 
+  ls
 
 let print_stats_old buf arr l tl uptime =
 
@@ -233,6 +237,26 @@ let stats_html_header buf =
    ( "0", "srh", "Separator", "|" );
    ( "1", "srh", "Total uploads:downloads ratio", "U:DL" );
   ]
+
+let stats_list l arr = 
+  let sl = ref [] in
+  for i = 0 to (Array.length arr) - 1 do
+    let r = arr.(i) in
+    if r.brand_seen > 0 then begin
+      let ls,ss = brandlist_int_to_2string l i in
+      let s = {
+        string_long = ls;
+        string_short = ss;
+        seen = r.brand_seen;
+        banned = r.brand_banned;
+        filerequest = r.brand_filerequest;
+        download = r.brand_download;
+        upload = r.brand_upload;
+      } in
+      sl := s :: !sl
+    end
+  done;
+  !sl
 
 let print_stats_html_mods buf arr l tl uptime =
 

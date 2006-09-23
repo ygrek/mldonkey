@@ -890,18 +890,30 @@ let _ =
       activity := new_activity ()
   )
 
-module HashMagic = Weak.Make(struct
+module StringIntern = Weak.Make(struct
         type t = string
         let hash s = Hashtbl.hash s
         let equal x y = x = y
       end)
 
-let files_magic = HashMagic.create 100
+let intern_table = StringIntern.create 1000
+let intern s = StringIntern.merge intern_table s
 
-module HashComments = Weak.Make(struct
-        type t = string
-        let hash s = Hashtbl.hash s
-        let equal x y = x = y
-      end)
 
-let file_comments = HashComments.create 1000
+let _ =
+  Heap.add_memstat "CommonGlobals" (fun level buf ->
+      let counter = ref 0 in
+      StringIntern.iter (fun f -> incr counter;) intern_table;
+      Printf.bprintf buf "  intern_table: %d\n" !counter;
+      Printf.bprintf buf " core_gui_fifo: %d\n" (Fifo.length core_gui_fifo);
+      Printf.bprintf buf " gui_core_fifo: %d\n" (Fifo.length gui_core_fifo);
+      Printf.bprintf buf " chat_message_fifo: %d\n" (Fifo.length chat_message_fifo);
+      Printf.bprintf buf " upload_history: %d\n" (Fifo.length upload_history);
+      Printf.bprintf buf " download_history: %d\n" (Fifo.length download_history);
+      Printf.bprintf buf " upload_h_history: %d\n" (Fifo.length upload_h_history);
+      Printf.bprintf buf " download_h_history: %d\n" (Fifo.length download_h_history);
+      Printf.bprintf buf " bandwidth_samples: %d\n" (Fifo.length bandwidth_samples);
+      Printf.bprintf buf " short_delay_bandwidth_samples: %d\n" (Fifo.length short_delay_bandwidth_samples);
+      Printf.bprintf buf " dummy_sample: %d\n" (Array.length dummy_sample);
+      Printf.bprintf buf " activities: %d\n" (Fifo.length activities);
+  )

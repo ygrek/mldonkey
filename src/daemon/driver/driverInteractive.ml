@@ -230,6 +230,8 @@ if !!html_mods_use_relative_availability
 	then file_availability f
 	else string_availability f.file_availability
 
+let number_of_comments f =
+  List.length f.file_comments
 
 (* WARNING: these computations are much more expensive as they seem.
 We use the ShortLazy to avoid recomputing the result too many times,
@@ -671,7 +673,6 @@ Printf.bprintf buf
 \\<td title=\\\"Sort by size\\\" class=dlheader\\>\\<input class=headbutton type=submit value=Size name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by size downloaded\\\" class=dlheader\\>\\<input class=\\\"headbutton ar\\\" type=submit value=DLed name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by percent\\\" class=dlheader\\>\\<input class=headbutton type=submit value=%% name=sortby\\>\\</td\\>";
-
 if !!html_mods_vd_comments then Printf.bprintf buf
 "\\<td title=\\\"Sort by comments\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=Cm name=sortby\\>\\</td\\>";
 
@@ -713,19 +714,21 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
 			 | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
 			file.file_num
                         (net_name file)
-			(let comments = file_comment (file_find file.file_num) in
-			   if comments = [] then "" else
+
+      (if file.file_comments = [] then "" else
 			    begin
-			      let buf1 = Buffer.create 100 in
-			      Printf.bprintf buf1 "<br><br>Comments:<br>";
-			      List.iter (fun s -> Printf.bprintf buf1 "%s<br>" (Http_server.html_real_escaped s)) comments;
+           let num_comments = number_of_comments file in
+           let buf1 = Buffer.create (100 * num_comments) in
+           Printf.bprintf buf1 "<br><br>Comments(%d):<br>" (num_comments);
+           (* What if there are 100 comments? big tooltip... *)
+           List.iter (fun (_,_,_,s) -> Printf.bprintf buf1 "%s<br>" (Http_server.html_real_escaped s)) file.file_comments;
 			      Buffer.contents buf1
 			    end)
+
 			!!html_mods_js_tooltips_wait
 			!!html_mods_js_tooltips_timeout
 			!!html_mods_js_tooltips_wait
-			 else Printf.sprintf "
-                               onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>");
+       else Printf.sprintf " onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>");
 
 	(if downloading file then
               Printf.sprintf "\\<td class=\\\"dl al np\\\"\\>\\<input class=checkbox name=pause type=checkbox value=%d\\>\\</td\\>
@@ -763,14 +766,14 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
             (truncate ( (1. -. downloaded /. size) *. 100.))
 	 else
 	     Printf.sprintf "\\<TD onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
-                        title=\\\"[File#: %d] [Net: %s]%s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
+                        title=\\\"[File#: %d] [Net: %s] [Comments: %d]%s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
                         \\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
                         \\<td class=\\\"loaded\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
                         \\<td class=\\\"remain\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
                         \\</tr\\>\\</table\\>\\</td\\>"
             file.file_num
             file.file_num
-                        (net_name file)
+                        (net_name file) (number_of_comments file)
                         (if !!max_name_len < String.length file.file_name then " " ^ file.file_name else "")
             (short_name file)
             (!!html_vd_barheight)
@@ -784,9 +787,8 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
           (ctd file.file_num (Printf.sprintf "%.1f" (percent file)));
 
           (if !!html_mods_vd_comments then
-			Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
-			class=\\\"dl al\\\"\\>%d\\</td\\>"
-			file.file_num (file_comment_length (file_find file.file_num)) else "");
+            ctd file.file_num (Printf.sprintf "%d" (number_of_comments file))
+            else "");
 
           (ctd file.file_num (Printf.sprintf "%d" (number_of_sources file)));
 
@@ -1103,7 +1105,7 @@ let display_active_file_list buf o list =
         | ByLast -> (fun f1 f2 -> f1.file_last_seen >= f2.file_last_seen)
         | ByNet -> (fun f1 f2 -> net_name f1 <= net_name f2)
         | ByAvail -> (fun f1 f2 -> get_file_availability f1 >= get_file_availability f2)
-        | ByComments -> (fun f1 f2 -> file_comment_length (file_find f1.file_num) >= file_comment_length (file_find f2.file_num))
+        | ByComments -> (fun f1 f2 -> (number_of_comments f1) >= (number_of_comments f2))
         | NotSorted -> raise Not_found
       in
       Sort.list sorter list

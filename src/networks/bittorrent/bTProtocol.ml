@@ -233,7 +233,7 @@ open BTTypes
 
 type ghandler =
   BTHeader of (gconn -> TcpBufferedSocket.t ->
-  (string * Sha1.t) -> unit)
+  (string * string * Sha1.t) -> unit)
 | Reader of (gconn -> TcpBufferedSocket.t -> unit)
 
 and gconn = {
@@ -538,8 +538,9 @@ let handlers info gconn =
               let file_id = Sha1.direct_of_string
                 (String.sub b.buf (b.pos+9+slen) 20) in
               let proto,pos = get_string8 b.buf b.pos in
+              let rbits = (String.sub b.buf (b.pos+pos) 8) in
               buf_used b (slen+29);
-              h gconn sock (proto, file_id);
+              h gconn sock (proto, rbits, file_id);
             end
           else if (TcpBufferedSocket.closed sock) then
               let (ip,port) = (TcpBufferedSocket.peer_addr sock) in

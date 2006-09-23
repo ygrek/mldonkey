@@ -1044,6 +1044,29 @@ module EmuleRequestSourcesReply = struct
       done
 
   end
+module EmuleFileDesc = struct
+
+    type t = {
+        rating : int;
+        comment : string;
+      }
+
+    let parse len s =
+      let rating = get_uint8 s 1 in
+      let (comment, _) = get_string32 s 2 in
+      {
+        rating = rating;
+        comment = comment;
+      }
+
+    let print t =
+      lprintf_nl "EmuleFileDesc [%d][%s]" t.rating t.comment
+
+    let write buf t =
+      buf_int8 buf t.rating;
+      buf_string buf t.comment
+  end
+
 
 type t =
 | ConnectReq of Connect.t
@@ -1081,7 +1104,7 @@ type t =
 | EmuleQueueRankingReq of EmuleQueueRanking.t
 | EmuleRequestSourcesReq of EmuleRequestSources.t
 | EmuleRequestSourcesReplyReq of EmuleRequestSourcesReply.t
-| EmuleFileDescReq of int * string
+| EmuleFileDescReq of EmuleFileDesc.t 
 | EmulePublicKeyReq of EmulePublicKeyReq.t
 | EmuleSignatureReq of EmuleSignatureReq.t
 | EmuleSecIdentStateReq  of EmuleSecIdentStateReq.t
@@ -1133,8 +1156,8 @@ let rec print t =
     | EmuleRequestSourcesReplyReq t ->
         EmuleRequestSourcesReply.print t
 
-    | EmuleFileDescReq (rating, comment) ->
-        lprintf "EMULE FILE DESC %s" comment
+    | EmuleFileDescReq t ->
+        EmuleFileDesc.print t
 
     | EmuleMultiPacketReq (md4, list) ->
         lprintf_nl "EmuleMultiPacket for %s:" (Md4.to_string md4);
@@ -1195,10 +1218,7 @@ let rec parse_emule_packet emule opcode len s =
 
     | 0x60 (* 96 *) -> EmuleQueueRankingReq (EmuleQueueRanking.parse len s)
 
-    | 0x61 (* 97 *) ->
-        let rating = get_uint8 s 1 in
-        let (comment,_) = get_string32 s 2 in
-        EmuleFileDescReq (rating, comment)
+    | 0x61 (* 97 *) -> EmuleFileDescReq (EmuleFileDesc.parse len s)
 
     | 0x81 (* 129 *) -> EmuleRequestSourcesReq (EmuleRequestSources.parse len s)
     | 0x82 (* 130 *) ->
@@ -1514,11 +1534,9 @@ let write emule buf t =
     | EmuleRequestSourcesReplyReq t ->
         buf_int8 buf 0x82;
         EmuleRequestSourcesReply.write emule buf t
-    | EmuleFileDescReq (rating, comment) ->
+    | EmuleFileDescReq t ->
         buf_int8 buf 0x61;
-        buf_int8 buf rating;
-        buf_string buf comment
-
+        EmuleFileDesc.write buf t
     | EmuleCompressedPart (md4, statpos, newsize, bloc) ->
         buf_int8 buf 0x40;
         buf_md4 buf md4;

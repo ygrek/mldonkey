@@ -519,7 +519,6 @@ and client = {
       CommonSwarming.uploader
       ) list;
     mutable client_all_files : result list option;
-    mutable client_last_asked_file : CommonTypes.file;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
     mutable client_rating : int ;
@@ -549,6 +548,7 @@ and client = {
     mutable client_req_challenge : Int64.t;
     mutable client_public_key : string option;
     mutable client_sui_verified : bool option;
+    mutable client_last_file_req_md4 : Md4.t option;
   }
 
 and compressed_parts = {
@@ -590,6 +590,7 @@ and file = {
     mutable file_format : format;
     mutable file_shared : file CommonShared.shared_impl option;
     mutable file_sources : DonkeySources.file_sources_manager;
+    mutable file_comments : (Ip.t * string * int * string) list;
   }
 
 and file_to_share = {

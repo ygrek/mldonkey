@@ -170,6 +170,21 @@ let print_stats o style mods =
 let _ =
   network.op_network_display_stats <- (fun buf o -> print_stats o New false);
 
+  network.op_network_stat_info_list <- (fun _ ->
+    let r = ref [] in
+    let l1 = stats_list brand_list stats_array in
+    let l2 = stats_list brand_list !!gstats_array in
+    let u1 = BasicSocket.last_time () - !start_session in
+    let u2 = (guptime() + u1) in
+    r := [("Session clients", u1, l1); ("Global clients", u2, l2)];
+    if !!emule_mods_count then begin
+      let l3 = stats_list brand_mod_list stats_mod_array in
+      let l4 = stats_list brand_mod_list !!gstats_mod_array in
+      r := !r @ [ ("Session mods", u1, l3); ("Global mods", u2, l4)]
+    end;
+    !r
+  );
+
   register_commands
     [
     "client_stats", "Network/Donkey",Arg_none (fun o ->

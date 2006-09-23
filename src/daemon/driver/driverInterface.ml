@@ -1058,6 +1058,11 @@ let gui_reader (gui: gui_record) t _ =
           | P.GetVersion ->
               gui_send gui (P.Version Autoconf.current_version)
 
+          | P.GetStats num ->
+              let n = network_find_by_num num in
+              let l = n.op_network_stat_info_list () in
+              gui_send gui (P.Stats (num, l))
+
           | P.GiftAttach (profile, version, client) ->
 	      let user, pass =
 		try

@@ -452,6 +452,16 @@ type extend_search =
   ExtendSearchLocally
 | ExtendSearchRemotely
   
+type network_stat_info  = {
+  mutable string_long : string;
+  mutable string_short : string;
+  mutable seen : int;
+  mutable banned : int;
+  mutable filerequest : int;
+  mutable download : Int64.t;
+  mutable upload : Int64.t;
+}
+  
 type network = {
     network_name : string;
     network_num : int;
@@ -496,6 +506,7 @@ type network = {
     
     mutable op_network_download : (result_info -> string -> file);
     mutable op_network_display_stats : (Buffer.t -> ui_conn -> unit);
+    mutable op_network_stat_info_list : unit -> (string * int * (network_stat_info list)) list;
     mutable op_network_clean_exit : (unit -> bool);
     mutable op_network_reset : (unit -> unit);
     mutable op_network_ports : (unit -> (int * string) list);

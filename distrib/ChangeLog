@@ -14,6 +14,16 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/23
+5414: Edonkey comments, update gui prot, some bt peer ids (zet)
+- Reimplement edonkey file comments with ratings (ro)
+  (fixes exploitable DOS introduced in patch #5371)
+- Add options "comments_filter", "max_comments_per_file", "max_comment_length"
+- GUI protocol updated for comments, stats, libmagic, users/groups
+- BT: Identify some more peer ids, as well as the reserved bits
+- Fix some html code and other bugs
+- Minor code cleanup
+
 2006/09/22
 5411: Portinfo: Rename gift_port to gift_port GUI
 

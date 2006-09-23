@@ -1560,7 +1560,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option html_mods_use_relative_availability;
 			strings_of_option html_mods_human_readable;
 			strings_of_option html_mods_vd_network;
-			strings_of_option html_mods_vd_comments;
 			strings_of_option html_mods_vd_active_sources;
 			strings_of_option html_mods_vd_age;
 			strings_of_option html_mods_vd_last;
@@ -1703,6 +1702,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                       [
 			strings_of_option term_ansi;
 			strings_of_option messages_filter;
+      strings_of_option comments_filter;
 			strings_of_option max_displayed_results;
 			strings_of_option max_name_len;
 			strings_of_option max_filenames;
@@ -2922,6 +2922,7 @@ let _ =
 	_s ""
     ), "<group> <admin: true | false> [<mail>] :\t\tadd new mldonkey group";
 
+(* This does nothing, why is it here?
     "groupdel", Arg_one (fun group o ->
         let buf = o.conn_buf in
 (*        if user2_is_admin o.conn_user.ui_user_name then _s ""
@@ -2929,6 +2930,7 @@ let _ =
           print_command_result o buf "You are not allowed to remove users"; *)
 	_s ""
     ), "<group> :\t\t\tremove an unused mldonkey group";
+*)
 
     "users", Arg_none (fun o ->
         let buf = o.conn_buf in

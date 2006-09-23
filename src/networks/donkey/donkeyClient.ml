@@ -1272,9 +1272,6 @@ let client_to_client for_files c t sock =
               (Printexc2.to_string e); 
       end;
 
-  | M.EmuleFileDescReq (rate, comment) ->
-      if comment <> "" then set_file_comment c.client_last_asked_file comment
-  
   | M.AvailableSlotReq _ ->
       set_lifetime sock active_lifetime;
       set_rtimeout sock !!queued_timeout; 
@@ -1424,6 +1421,28 @@ other one for unlimited sockets.  *)
         with _ -> ()
       end  
   
+  | M.EmuleFileDescReq t ->
+      begin
+        match c.client_last_file_req_md4 with
+          Some md4 -> 
+            begin
+              try 
+                let file = find_file md4 in
+                let module Q = M.EmuleFileDesc in
+                let slen = String.length t.Q.comment in
+                if slen > 0 && slen <= !!max_comment_length && (!is_not_comment_spam) t.Q.comment then begin
+                  (* Disallow dups from single IP, but allow comment updates *)
+                  file.file_comments <- List.filter (fun (i,_,_,_) -> i <> c.client_ip) file.file_comments;
+                  if List.length file.file_comments < !!max_comments_per_file then begin
+                    file.file_comments <- (c.client_ip, c.client_name, t.Q.rating, (intern t.Q.comment)) :: file.file_comments;
+                    file_must_update file;
+                  end;
+                end
+              with _ -> ()
+            end
+         | None -> ()
+      end
+
   | M.QueryChunksReplyReq t ->
       let module Q = M.QueryChunksReply in
       begin
@@ -2510,7 +2529,6 @@ let _ =
       try
         let c = find_client_by_key s_uid in
         let file = find_file (Md4.of_string file_uid) in
-	c.client_last_asked_file <- (as_file file);
         c.client_requests_sent <- c.client_requests_sent + 1;
         let module M = DonkeyProtoClient in
         
@@ -2538,6 +2556,7 @@ let _ =
 (* TODO build the extension if needed *)
             M.QueryFile.emule_extension = emule_extension;
           });
+          c.client_last_file_req_md4 <- Some file.file_md4;
             let know_file_chunks = List.exists (fun (f,_,_) -> f == file) c.client_file_queue in
             if not know_file_chunks then
               DonkeyProtoCom.client_send c (

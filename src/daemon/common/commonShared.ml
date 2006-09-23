@@ -352,6 +352,7 @@ let impl_shared_info impl =
     T.shared_requests = impl.impl_shared_requests; 
     T.shared_uids = [];
     T.shared_sub_files = [];
+    T.shared_magic = impl.impl_shared_magic;
   }
   
 let shared_info s =

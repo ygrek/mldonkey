@@ -29,9 +29,9 @@ type gift_command =
   
 let gui_extension_poll = 1
   
-let to_gui_last_opcode = 58
-let from_gui_last_opcode = 67
-let best_gui_version = 40
+let to_gui_last_opcode = 59
+let from_gui_last_opcode = 68
+let best_gui_version = 41
   
 (* I will try to report all changes to the protocol here: send me patches
 if I don't !
@@ -166,6 +166,7 @@ the messages (it will use the version specified in CoreProtocol instead
 (* Understood by core protocol 32 *)
 | ServerRename of (int * string)
 | ServerSetPreferred of (int * bool)
+| GetStats of int
 
 type to_gui =
 (* This message is the first message sent by the core *)
@@ -233,6 +234,7 @@ type to_gui =
   
 | GiftServerAttach of string * string
 | GiftServerStats of (string * string * string * string) list
+| Stats of int * (string * int * network_stat_info list) list  
   
   
 let string_of_from_gui t = 
@@ -311,6 +313,7 @@ let string_of_from_gui t =
 
   | ServerRename _ -> "ServerRename"
   | ServerSetPreferred _ -> "ServerSetPreferred"
+  | GetStats _ -> "GetStats"
 
 let string_of_to_gui t =
   match t with
@@ -380,6 +383,7 @@ let string_of_to_gui t =
       
   | GiftServerAttach _ -> "GiftServerAttach"
   | GiftServerStats _ -> "GiftServerStats"
+  | Stats _ -> "Stats"
       
 type gui_record = {
     mutable gui_num : int;

@@ -327,11 +327,8 @@ let mail_for_completed_file file =
       (let age = (BasicSocket.last_time ()) - info.G.file_age in Date.time_to_string age "verbose")
     in
 
-    let line3 = if (file_comment file) = [] then "" else
-	let buf = Buffer.create 1000 in
-        Printf.bprintf buf "\r\nComments:\r\n";
-	List.iter (fun s -> Printf.bprintf buf "%s\r\n" s;) (file_comment file);
-	Buffer.contents buf
+    let line3 = if (file_comment file) = "" then "" else
+        Printf.sprintf "\r\nComment: %s\r\n" (file_comment file)
     in
 
     let subject = if !!filename_in_subject then

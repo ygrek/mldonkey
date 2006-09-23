@@ -136,6 +136,10 @@ type file_info = {
     mutable file_priority : int;
     mutable file_uids : Uid.t list;
     mutable file_sub_files : (string * int64 * string option) list;
+    mutable file_magic : string option;
+    mutable file_comments : (Ip.t * string * int * string) list;
+    mutable file_user : string;
+    mutable file_group : string;
   }
   
 type user_info = {
@@ -240,6 +244,7 @@ type shared_info = {
     mutable shared_requests : int;
     mutable shared_uids : Uid.t list; (* net file UID *)
     mutable shared_sub_files : (string * int64 * string option) list;
+    mutable shared_magic : string option;
   }
   
   
@@ -326,5 +331,9 @@ let file_info_test =
     file_priority = 0;
    file_uids = [];
     file_sub_files = [];
+    file_magic = Some "";
+    file_comments = [];
+    file_user = "";
+    file_group = "";
  } 
   

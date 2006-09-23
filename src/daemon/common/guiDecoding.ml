@@ -506,12 +506,28 @@ let get_int_date proto s pos =
 let get_int_pos s pos =
   get_int s pos, pos + 4
   
-let get_sub_files s pos =
+let get_sub_files proto s pos =
   get_list (fun s pos ->
     let name, pos = get_string s pos in
     let size, pos = get_int64 s pos, pos+8 in
-    (name, size, Some ""), pos
+    let magic, pos = 
+      if proto > 40 then
+        get_string s pos
+      else
+        "", pos
+    in
+    (name, size, Some magic), pos
   ) s pos
+  
+let get_file_comments proto s pos = 
+  get_list (fun s pos ->
+     let ip, pos = get_ip2 proto s pos in
+     let name, pos = get_string s pos in
+     let rating, pos = get_uint8 s pos, pos+1 in
+     let comment, pos = get_string s pos in
+     (ip, name, rating, comment), pos
+  ) s pos
+
   
 let get_file proto s pos = 
   let num = get_int s pos in
@@ -557,10 +573,31 @@ let get_file proto s pos =
   in
   let sub_files, pos =
     if proto > 35 then
-      get_sub_files s pos
+      get_sub_files proto s pos
     else [], pos
   in
-
+  let magic, pos = 
+    if proto > 40 then
+      let ms, pos = get_string s pos
+      in Some ms, pos 
+    else
+      Some "", pos
+  in
+  let comments, pos = 
+    if proto > 40 then
+      get_file_comments proto s pos
+    else [], pos
+  in
+  let user, pos = 
+    if proto > 40 
+      then get_string s pos
+      else "", pos
+  in
+  let group, pos = 
+    if proto > 40 
+      then get_string s pos
+      else "", pos
+  in
   (*
   assert (num = file_info_test.file_num);
   assert (net = file_info_test.file_network);
@@ -609,6 +646,10 @@ let get_file proto s pos =
     file_priority = priority;
     file_uids = uids;
     file_sub_files = sub_files;
+    file_magic = magic;
+    file_comments = comments;
+    file_user = user;
+    file_group = group;
   }, pos
 
 let get_host_state proto s pos =
@@ -940,6 +981,7 @@ let get_shared_info proto s pos =
     shared_requests = requests;
     shared_uids = [];
     shared_sub_files = [];
+    shared_magic = Some "";
   }
 
 let get_shared_info_version_10 proto s pos =
@@ -957,8 +999,15 @@ let get_shared_info_version_10 proto s pos =
   in
   let sub_files, pos =
     if proto > 36 then
-      get_sub_files s pos
+      get_sub_files proto s pos
     else [], pos
+  in
+  let magic, pos = 
+    if proto > 40 then
+      let ms, pos = get_string s (pos) in
+      Some ms, pos
+    else
+      Some "", pos
   in
   {
     shared_num = num;
@@ -969,6 +1018,7 @@ let get_shared_info_version_10 proto s pos =
     shared_requests = requests;
     shared_uids = uids;
     shared_sub_files = sub_files;
+    shared_magic = magic;
   }
 
 
@@ -1261,6 +1311,10 @@ let from_gui (proto : int array) opcode s =
          let num = get_int s 2 in
          let b = get_bool s 6 in
          ServerSetPreferred (num, b)
+
+    | 68 ->
+         let num = get_int s 2 in
+         GetStats num
 
     | _ -> 
         lprintf_nl "FROM GUI:Unknown message %d" opcode; 

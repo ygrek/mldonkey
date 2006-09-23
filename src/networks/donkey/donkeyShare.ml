@@ -50,7 +50,7 @@ let must_share_file file codedname has_old_impl =
       let magic =
         match Magic.M.magic_fileinfo full_name false with
           None -> None
-        | Some magic -> Some (HashMagic.merge files_magic magic)
+        | Some magic -> Some (intern magic)
       in
 
       let impl = {
@@ -307,7 +307,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
         let magic =
           match Magic.M.magic_fileinfo fullname false with
             None -> None
-          | Some magic -> Some (HashMagic.merge files_magic magic)
+          | Some magic -> Some (intern magic)
         in
 
           let rec impl = {

@@ -398,7 +398,8 @@ let new_file file_diskname file_state md4 file_size filename writable user =
           file_computed_md4s = Array.of_list md4s;
           file_format = FormatNotComputed 0;
           file_sources = DonkeySources.create_file_sources_manager
-            (Md4.to_string md4)
+            (Md4.to_string md4);
+          file_comments = [];
         }
       and file_impl = {
           dummy_file_impl with
@@ -567,7 +568,6 @@ let dummy_client =
       client_file_queue = [];
       client_tags = [];
       client_name = "";
-      client_last_asked_file = dummy_file;
       client_all_files = None;
       client_rating = 0;
       client_brand = Brand_unknown;
@@ -594,6 +594,7 @@ let dummy_client =
       client_sent_challenge = Int64.zero;
       client_public_key = None;
       client_sui_verified = None;
+      client_last_file_req_md4 = None;
       } and
     client_impl = {
       dummy_client_impl with
@@ -618,7 +619,6 @@ let create_client key =
       client_file_queue = [];
       client_tags = [];
       client_name = "";
-      client_last_asked_file = dummy_file;
       client_all_files = None;
       client_rating = 0;
       client_brand = Brand_unknown;
@@ -645,6 +645,7 @@ let create_client key =
       client_sent_challenge = Int64.zero;
       client_public_key = None;
       client_sui_verified = None;
+      client_last_file_req_md4 = None;
       } and    client_impl = {
       dummy_client_impl with
       impl_client_val = c;

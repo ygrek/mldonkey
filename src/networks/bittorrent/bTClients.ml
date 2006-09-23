@@ -414,6 +414,17 @@ let send_bitfield c =
 
 let counter = ref 0
 
+let parse_reserved rbits c =
+  let has_bit pos h = Char.code rbits.[pos] land h <> 0 in
+  
+  c.client_dht <- has_bit 7 0x01;
+  c.client_cache_extension <- has_bit 7 0x02;
+  c.client_fast_extension <- has_bit 7 0x04;
+
+  c.client_utorrent_extension <- has_bit 5 0x10;
+
+  c.client_azureus_messaging_protocol <- has_bit 0 0x80
+
 
 (** This function is called to parse the first message that
   a client send.
@@ -428,7 +439,7 @@ let counter = ref 0
 (* removed: @param peer_id The hash (sha1) of the client. (Should be checked)
 *)
 let rec client_parse_header counter cc init_sent gconn sock
-    (proto, file_id) =
+    (proto, rbits, file_id) =
   try
     set_lifetime sock 600.;
     if !verbose_msg_clients then
@@ -481,6 +492,8 @@ let rec client_parse_header counter cc init_sent gconn sock
           lprintf_nl "Client %d: Connected from %s:%d" (client_num c)
             (Ip.to_string ip) port;
       end;
+
+    parse_reserved rbits c;
 
     (match c.client_sock with
         NoConnection ->

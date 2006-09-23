@@ -357,6 +357,7 @@ let _ =
   String2.tokens
 
 let is_not_spam = ref (fun _ -> true)
+let is_not_comment_spam = ref (fun _ -> true)
 
 
 
@@ -1296,6 +1297,10 @@ let messages_filter = define_option current_section ["messages_filter"]
   "Regexp of messages to filter out, example: string1|string2|string3"
     string_option "Your client is connecting too fast"
 
+let comments_filter = define_option current_section ["comments_filter"]
+  "Regexp of comments to filter out, example: string1|string2|string3"
+    string_option "http://|https://|www\\."
+
 
 
 
@@ -1531,6 +1536,13 @@ let options_version = define_expert_option current_section ["options_version"]
     int_option 14
 
 
+let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
+  "Maximum number of comments per file"
+  int_option 100
+
+let max_comment_length = define_expert_option current_section ["max_comment_length"]
+  "Maximum length of file comments"
+  int_option 256
 
 
 (*************************************************************************)
@@ -1904,14 +1916,25 @@ let quote_unquote_bars m =
   in aux 0
       
 let _ =
-  option_hook messages_filter (fun _ ->
-      is_not_spam := if !!messages_filter <> "" then
-        let r = Str.regexp_case_fold (quote_unquote_bars !!messages_filter) in
-        (fun s -> try
+  let regex_fun str = 
+    if str <> "" then
+      let r = Str.regexp_case_fold (quote_unquote_bars str) in
+      (fun s -> 
+        try
               ignore (Str.search_forward r s 0);
               false
-            with Not_found -> true)
-      else (fun _ -> true))
+        with Not_found -> true
+      )
+    else (fun _ -> true)
+  in
+
+  option_hook messages_filter (fun _ ->
+      is_not_spam := regex_fun !!messages_filter
+  );
+
+  option_hook comments_filter (fun _ ->
+      is_not_comment_spam := regex_fun !!comments_filter
+  )
 
 let http_proxy = ref None
 

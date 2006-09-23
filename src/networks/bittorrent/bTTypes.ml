@@ -104,6 +104,14 @@ type brand =
 | Brand_retriever
 | Brand_osprey
 | Brand_rufus
+| Brand_tribler
+| Brand_cachelogic
+| Brand_electricsheep
+| Brand_qbittorrent
+| Brand_qt4
+| Brand_uleecher
+
+
 
 let brand_list = [ 
    ( Brand_unknown          , "unknown"                , "unk" ) ;
@@ -163,6 +171,12 @@ let brand_list = [
    ( Brand_retriever        , "Retriever"              , "ret" ) ;
    ( Brand_osprey           , "Osprey permaseed"       , "osp" ) ;
    ( Brand_rufus            , "Rufus"                  , "ruf" ) ;
+   ( Brand_tribler          , "Tribler"                , "trb" ) ;
+   ( Brand_cachelogic       , "CacheLogic"             , "cl"  ) ;
+   ( Brand_electricsheep    , "Electric sheep"         , "els" ) ;
+   ( Brand_qbittorrent      , "qBittorrent"            , "qbt" ) ;
+   ( Brand_qt4              , "QT4"                    , "qt4" ) ;
+   ( Brand_uleecher         , "uLeecher!"              , "ul!" ) ;
   ] 
 
 let brand_count = List.length brand_list
@@ -218,6 +232,13 @@ type client = {
     mutable client_incoming : bool;
     mutable client_registered_bitfield : bool;
     mutable client_last_optimist : int;
+
+    mutable client_dht : bool;
+    mutable client_cache_extension : bool;
+    mutable client_fast_extension : bool;
+    mutable client_utorrent_extension : bool;
+    mutable client_azureus_messaging_protocol : bool;
+
   }
 
 and tracker_info = {

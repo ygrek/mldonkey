@@ -542,10 +542,25 @@ let buf_file_field proto buf field =
       buf_int8 buf 18;
       buf_string buf x
     
-let buf_sub_files buf l =
-  buf_list buf (fun buf (name, size, _) ->
+let magic_string m =
+  match m with
+     Some s -> s
+   | None -> ""
+    
+let buf_sub_files proto buf l =
+  buf_list buf (fun buf (name, size, magic) ->
     buf_string buf name;
-    buf_int64 buf size
+    buf_int64 buf size;
+    if proto > 40 then
+      buf_string buf (magic_string magic)
+  ) l
+
+let buf_file_comments proto buf l =
+  buf_list buf (fun buf (ip, name, rating, comment) ->
+    buf_ip2 proto buf ip;
+    buf_string buf name;
+    buf_int8 buf rating;
+    buf_string buf comment;
   ) l
     
 let buf_file proto buf f =
@@ -587,7 +602,13 @@ let buf_file proto buf f =
     if proto > 30 then
       buf_list buf buf_uid f.file_uids;
     if proto > 35 then
-      buf_sub_files buf f.file_sub_files
+      buf_sub_files proto buf f.file_sub_files;
+    if proto > 40 then begin
+      buf_string buf (magic_string f.file_magic);
+      buf_file_comments proto buf f.file_comments;
+      buf_string buf f.file_user;
+      buf_string buf f.file_group;
+    end
       
 let buf_addr proto buf addr =
   (match addr with
@@ -727,8 +748,23 @@ let buf_shared_info proto buf s =
     else
       buf_list buf buf_uid s.shared_uids;
   if proto > 36 then
-    buf_sub_files buf s.shared_sub_files
+    buf_sub_files proto buf s.shared_sub_files;
+  if proto > 40 then
+    buf_string buf (magic_string s.shared_magic)
 
+let buf_stat_info proto buf n =
+  buf_string buf n.string_long;
+  buf_string buf n.string_short;
+  buf_int buf n.seen;
+  buf_int buf n.banned;
+  buf_int buf n.filerequest;
+  buf_int64 buf n.download;
+  buf_int64 buf n.upload
+
+let buf_stat_info_list proto buf (s,i,l) =
+  buf_string buf s;
+  buf_int buf i;
+  buf_list2 proto buf buf_stat_info l
 
 (***************
 
@@ -1004,6 +1040,13 @@ let rec to_gui (proto : int array) buf t =
     
     | GiftServerAttach _ -> assert false
     | GiftServerStats _ -> assert false
+
+    | Stats (num, l) ->
+        let proto = proto.(59) in
+        buf_opcode buf 59;
+        buf_int buf num;
+        buf_list2 proto buf buf_stat_info_list l
+
   with e ->
       lprintf "GuiEncoding.to_gui: Exception %s\n"
         (Printexc2.to_string e)
@@ -1217,6 +1260,9 @@ protocol version. Do not send them ? *)
         buf_opcode buf 67;
         buf_int buf num;
         buf_bool buf preferred
+    | GetStats n ->
+        buf_opcode buf 68;
+        buf_int buf n
 
   with e ->
       lprintf "GuiEncoding.from_gui: Exception %s\n"

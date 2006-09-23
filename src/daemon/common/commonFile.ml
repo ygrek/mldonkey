@@ -47,7 +47,7 @@ type 'a file_impl = {
     mutable impl_file_update : int;
     mutable impl_file_state : file_state;
 
-    mutable impl_file_comment : string list;
+    mutable impl_file_comment : string;
     mutable impl_file_num : int;
     mutable impl_file_val : 'a;
     mutable impl_file_ops : 'a file_ops;
@@ -88,6 +88,7 @@ it will happen soon. *)
     mutable op_file_recover : ('a -> unit);
     mutable op_file_all_sources : ('a -> client list);
     mutable op_file_active_sources : ('a -> client list);
+    mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
     mutable op_file_print_html : ('a -> Buffer.t -> unit);
     mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
@@ -134,7 +135,7 @@ let dummy_file_impl = {
     impl_file_magic = None;
     impl_file_priority = 0;
     impl_file_last_seen = 0;
-    impl_file_comment = [];
+    impl_file_comment = "";
     impl_file_probable_name = None;
     impl_file_owner = admin_user;
     impl_file_group = Some system_user_default_group;
@@ -213,6 +214,10 @@ let file_save_as (file : file) name =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_save_as file.impl_file_val name
 
+let file_comment (file : file) =
+  let file = as_file_impl file in
+  file.impl_file_ops.op_file_comment file.impl_file_val
+
 let file_network (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_network
@@ -227,10 +232,13 @@ let file_owner file =
 let file_group file =
   (as_file_impl file).impl_file_group
 
-let file_group_text file =
-  match (as_file_impl file).impl_file_group with
+let impl_group_text impl =
+  match impl.impl_file_group with
     Some group -> group
   | None -> "None"
+
+let file_group_text file =
+  impl_group_text (as_file_impl file)
 
 let user2_allow_file_admin file gui_user =
   user2_is_admin gui_user || file_owner file = gui_user
@@ -299,15 +307,12 @@ let set_file_state file state =
   update_file_state impl state
 
 let set_file_comment file comment =
-  if not (List.mem comment (as_file_impl file).impl_file_comment) then
-  (as_file_impl file).impl_file_comment <-
-    (as_file_impl file).impl_file_comment @ [(HashComments.merge file_comments comment)]
+  let impl = as_file_impl file in
+  impl.impl_file_comment <- comment
 
 let file_comment file =
-  (as_file_impl file).impl_file_comment
-
-let file_comment_length file =
-  List.length (as_file_impl file).impl_file_comment
+  let impl = as_file_impl file in
+  impl.impl_file_comment
 
 let file_best_name (file : file) =
   let file = as_file_impl file in
@@ -531,7 +536,9 @@ let file_magic file =
 let set_file_magic file magic =
   match magic with
     None -> ()
-  | Some magic -> (as_file_impl file).impl_file_magic <- Some (HashMagic.merge files_magic magic)
+  | Some magic -> 
+    (as_file_impl file).impl_file_magic <- Some (intern magic);
+    file_must_update file
 
 let check_magic file =
   let check file =
@@ -707,16 +714,19 @@ parent.fstatus.location.href='submit?q=chown+'+v+'+%d';
 }
 //--\\>
 \\</script\\>" (file_num file)
+   ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>"
    ^ "\\<form name=\\\"chownForm1\\\" id=\\\"chownForm1\\\" action=\\\"javascript:submitChownForm(1);\\\"\\>"
+   ^ "\\<td\\>"
    ^ "\\<select name=\\\"newOwner\\\" id=\\\"newOwner\\\" "
    ^ "style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>"
    ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\\</option\\>\n" (file_owner file) (file_owner file)
-   ^ !optionlist ^ "\\</select\\>\\</form\\>\\</input\\>" ) ];
+   ^ !optionlist ^ "\\</select\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>"
+    ) ];
 
       else
         html_mods_td buf [("File owner", "sr br", "User"); ("", "sr", (file_owner file))];
 
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       if user2_allow_file_admin file o.conn_user.ui_user_name &&
          user2_user_groups_safe o.conn_user.ui_user_name <> [] then
         let optionlist =
@@ -741,11 +751,14 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
 }
 //--\\>
 \\</script\\>" (file_num file)
+   ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>"
    ^ "\\<form name=\\\"chgrpForm1\\\" id=\\\"chgrpForm1\\\" action=\\\"javascript:submitChgrpForm(1);\\\"\\>"
+   ^ "\\<td\\>"
    ^ "\\<select name=\\\"newGroup\\\" id=\\\"newGroup\\\" "
    ^ "style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>"
    ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\\</option\\>\n" (file_group_text file) (file_group_text file)
-   ^ !optionlist ^ "\\</select\\>\\</form\\>\\</input\\>" ) ];
+   ^ !optionlist ^ "\\</select\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>"
+  ) ];
 
       else
         html_mods_td buf [("File group", "sr br", "Group");
@@ -753,7 +766,7 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
           Some group -> Printf.sprintf "%s" group
         | None -> "None"))];
 
-      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [
         ("Number of file sources", "sr br", "Sources");
         ("", "sr", Printf.sprintf "%d" (List.length srcs)) ];
@@ -797,22 +810,6 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
             ("File type computed by libmagic", "sr br", "File magic");
             ("", "sr", magic) ]
        | _ -> ());
-
-      (
-	if file_comment file <> [] then
-	  begin
-	    let list_header = ref true in
-	    List.iter (fun s ->
-	      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-	      if !list_header then html_mods_td buf [
-		("File comments", "sr br", "File comments");
-		("", "sr", s) ]
-	      else
-	        html_mods_td buf [
-		("", "sr br", "");
-		("", "sr", s) ];
-	    if !list_header then list_header := false) (file_comment file);
-	  end);
 
       file_print_html file buf;
       
@@ -1012,6 +1009,7 @@ let new_file_ops network =
       op_file_set_format = (fun _ -> fni network "file_set_format");
       op_file_all_sources = (fun _ -> fni network "file_all_sources");
       op_file_active_sources = (fun _ -> fni network "file_active_sources");
+      op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
       op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
       op_file_print_html = (fun _ _ -> ni_ok network "file_print_html");
       op_file_print_sources_html = (fun _ _ -> fni network "file_print_sources_html");
@@ -1080,12 +1078,6 @@ let _ =
       ) files_by_num;
       Printf.bprintf buf "  files: %d\n" !counter;
       Printf.bprintf buf "  files_ops: %d\n" (List.length !files_ops);
-      let counter = ref 0 in
-      HashMagic.iter (fun _ -> incr counter) files_magic;
-      Printf.bprintf buf "  files_magic: %d\n" !counter;
-      let counter = ref 0 in
-      HashComments.iter (fun _ -> incr counter) file_comments;
-      Printf.bprintf buf "  files_comments: %d\n" !counter
   )
 
 
@@ -1203,7 +1195,7 @@ let impl_file_info impl =
   let module T = GuiTypes in
   {
     T.file_fields = T.Fields_file_info.all;
-    T.file_comment = "";
+    T.file_comment = impl.impl_file_comment;
     T.file_name = impl.impl_file_best_name;
     T.file_names = impl.impl_file_filenames;
     T.file_num = impl.impl_file_num;
@@ -1226,4 +1218,8 @@ let impl_file_info impl =
     T.file_chunks_age = [||];
     T.file_uids = [];
     T.file_sub_files = [];
+    T.file_magic = impl.impl_file_magic;
+    T.file_comments = [];
+    T.file_user = impl.impl_file_owner;
+    T.file_group = (impl_group_text impl);
   }

@@ -99,6 +99,8 @@ let check_network_implementations () =
         lprintf_nl "op_network_clean_servers";
       if c.op_network_display_stats == cc.op_network_display_stats then 
         lprintf_nl "op_network_display_stats";
+      if c.op_network_stat_info_list == cc.op_network_stat_info_list then
+        lprintf_nl "op_network_stat_info_list";
       if c.op_network_info == cc.op_network_info then 
         lprintf_nl "op_network_info";
       if c.op_network_clean_exit == cc.op_network_clean_exit then 
@@ -275,6 +277,7 @@ let new_network shortname name flags =
       op_network_gui_message = (fun _ _ -> ni_ok name "gui_message");
       op_network_download = (fun _ _ -> fni name "network_download");
       op_network_display_stats = (fun _ _ -> ni_ok name "display_stats");
+      op_network_stat_info_list = (fun _ -> []);
       op_network_clean_exit = (fun _ -> true);
       op_network_reset = (fun _ -> ni_ok name "reset");
       op_network_ports = (fun _ -> ni_ok name "ports"; []);

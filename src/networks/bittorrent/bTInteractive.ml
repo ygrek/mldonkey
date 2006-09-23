@@ -127,8 +127,6 @@ let op_file_commit file new_name =
 
 let op_file_print_html file buf =
 
-  html_mods_cntr_init ();
-
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
     ("Filename", "sr br", "Filename");
@@ -262,24 +260,42 @@ let op_file_print_html file buf =
 	  end in
   print_first_tracker file.file_trackers;
 
+  (* This is bad.  Magic info should be automatically filled in when 
+     the corresponding chunks complete. (see CommonSwarming)
+
+     This code only fills in the magic info for subfiles when a user 
+     manually performs a "vd #".  (interfaces out of sync)
+  
+     Magic info for shared files with subfiles is missing as well?
+  *)
+  if !Autoconf.magic_works then begin
   let check_magic file =
     match Magic.M.magic_fileinfo file false with
       None -> None
-    | Some s -> Some (HashMagic.merge CommonGlobals.files_magic s)
+    | Some s -> Some (intern s)
   in
+    let fdn = file_disk_name file in
+    let new_file_files = ref [] in
+  
+    List.iter (fun (f, s, m) -> 
+      let subfile = Filename.concat fdn f in
+      new_file_files := (f,s, check_magic subfile) :: !new_file_files;
+    ) file.file_files;
+
+    file.file_files <- List.rev !new_file_files;
+    file_must_update file; (* Send update to guis *)
+
+  end;
+  (* -- End bad -- *)
+
   let cntr = ref 0 in
-  List.iter (fun (filename, size, _) ->
+  List.iter (fun (filename, size, magic) ->
     Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
     let fs = Printf.sprintf "File %d" !cntr in
     let magic_string =
-      if !Autoconf.magic_works then
-	begin
-          let subfile = Filename.concat (file_disk_name file) filename in
-          match check_magic subfile with
+      match magic with 
             None -> ""
-          | Some magic -> Printf.sprintf " / %s" magic
-	end
-      else ""
+      | Some m -> Printf.sprintf " / %s" m;
     in
     html_mods_td buf [
       (fs, "sr br", fs);
@@ -316,6 +332,11 @@ let op_file_print_sources_html file buf =
         ( "0", "srh ar", "Last optimist", "L.Opt" );
         ( "0", "srh br ar", "Num try", "N" );
 
+        ( "0", "srh", "DHT [T]rue, [F]alse", "D" );
+        ( "0", "srh", "Cache extensions [T]rue, [F]alse", "C" );
+        ( "0", "srh", "Fast extensions [T]rue, [F]alse", "F" );
+        ( "0", "srh", "uTorrent extensions [T]rue, [F]alse", "U" );
+        ( "0", "srh br", "Azureus messaging protocol [T]rue, [F]alse", "A" );
 (*
         ( "0", "srh", "Bitmap (absent|partial|present|verified)", (colored_chunks
         (Array.init (String.length info.G.file_chunks)
@@ -336,6 +357,7 @@ let op_file_print_sources_html file buf =
       Hashtbl.iter (fun _ c ->
           Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr());
 
+          let btos b = if b then "T" else "F" in
           let cc,cn = Geoip.get_country (fst c.client_host) in
           let td_list = [
             ("", "sr br ar", Printf.sprintf "%d" (client_num c));
@@ -346,24 +368,30 @@ let op_file_print_sources_html file buf =
             ] @ (if !Geoip.active then [( cn, "sr br", cc)] else []) @ [
             ("", "sr ar", (size_of_int64 c.client_uploaded));
             ("", "sr ar br", (size_of_int64 c.client_downloaded));
-            ("", "sr", (if c.client_interested then "T" else "F"));
-            ("", "sr", (if c.client_choked then "T" else "F"));
+            ("", "sr", (btos c.client_interested));
+            ("", "sr", (btos c.client_choked));
             ("", "sr br ar", (Int64.to_string c.client_allowed_to_write));
 (* This is way too slow for 1000's of chunks on a page with 100's of sources
     ("", "sr", (CommonFile.colored_chunks (Array.init (String.length c.client_bitmap)
        (fun i -> (if c.client_bitmap.[i] = '1' then 2 else 0)) )) );
 *)
-            ("", "sr", (if c.client_interesting then "T" else "F"));
-            ("", "sr", (if c.client_alrd_sent_interested then "T" else "F"));
-            ("", "br sr", (if c.client_alrd_sent_notinterested then "T" else "F"));
+            ("", "sr", (btos c.client_interesting));
+            ("", "sr", (btos c.client_alrd_sent_interested));
+            ("", "br sr", (btos c.client_alrd_sent_notinterested));
 
-            ("", "sr", (if c.client_good then "T" else "F"));
-            ("", "sr", (if c.client_incoming then "T" else "F"));
-            ("", "br sr", (if c.client_registered_bitfield then "T" else "F"));
+            ("", "sr", (btos c.client_good));
+            ("", "sr", (btos c.client_incoming));
+            ("", "br sr", (btos c.client_registered_bitfield));
 
             ("", "sr", Printf.sprintf "%d" c.client_optimist_time);
             ("", "ar sr", string_of_date c.client_last_optimist);
             ("", "br sr", Printf.sprintf "%d" c.client_num_try);
+
+            ("", "sr", (btos c.client_dht)); 
+            ("", "sr", (btos c.client_cache_extension)); 
+            ("", "sr", (btos c.client_fast_extension)); 
+            ("", "sr", (btos c.client_utorrent_extension)); 
+            ("", "br sr", (btos c.client_azureus_messaging_protocol)); 
 
             ("", "sr ar", (let fc = ref 0 in
                 (match c.client_bitmap with
@@ -434,6 +462,7 @@ let op_file_info file =
     P.file_sub_files = file.file_files;
     P.file_active_sources = List.length (op_file_active_sources file);
     P.file_all_sources = (Hashtbl.length file.file_clients);
+    P.file_comment = file.file_comment;
   }
 
 let op_ft_info ft =
@@ -443,7 +472,7 @@ let op_ft_info ft =
   {
     P.file_fields = P.Fields_file_info.all;
 
-    P.file_comment = "";
+    P.file_comment = file_comment (as_ft ft);
     P.file_name = ft.ft_filename;
     P.file_num = ft_num ft;
     P.file_network = network.network_num;
@@ -465,6 +494,10 @@ let op_ft_info ft =
     P.file_priority = 0;
     P.file_uids = [];
     P.file_sub_files = [];
+    P.file_magic = None;
+    P.file_comments = [];
+    P.file_user = "";
+    P.file_group = "";
   }
 
 

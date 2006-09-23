@@ -423,6 +423,11 @@ let decode_az_style s =
       | "TR" -> Brand_transmission
       | "HN" -> Brand_hydranode
       | "RT" -> Brand_retriever
+      | "PC" -> Brand_cachelogic
+      | "ES" -> Brand_electricsheep
+      | "qB" -> Brand_qbittorrent
+      | "QT" -> Brand_qt4
+      | "UL" -> Brand_uleecher
       | _ -> Brand_unknown
     in
     if brand = Brand_unknown then None else
@@ -454,6 +459,7 @@ let decode_tornado_style s =
      | "A" -> Brand_abc
      | "U" -> Brand_upnp
      | "O" -> Brand_osprey
+     | "R" -> Brand_tribler
      | _ -> Brand_unknown
     in
     let bv = ref None in
@@ -757,6 +763,11 @@ let new_client file peer_id kind =
           client_incoming = false;
           client_registered_bitfield = false;
           client_last_optimist = 0;
+          client_dht = false;
+          client_cache_extension = false;
+          client_fast_extension = false;
+          client_utorrent_extension = false;
+          client_azureus_messaging_protocol = false;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;

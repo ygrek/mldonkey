@@ -23,7 +23,7 @@ type 'a file_impl = {
     mutable impl_file_update : int;
     mutable impl_file_state : CommonTypes.file_state;
     
-  mutable impl_file_comment : string list;
+    mutable impl_file_comment : string;
   mutable impl_file_num : int;
   mutable impl_file_val : 'a;
   mutable impl_file_ops : 'a file_ops;
@@ -55,6 +55,7 @@ and 'a file_ops = {
   mutable op_file_recover : 'a -> unit;
   mutable op_file_all_sources : 'a -> CommonTypes.client list;
   mutable op_file_active_sources : 'a -> CommonTypes.client list;
+  mutable op_file_comment : 'a -> string;
   mutable op_file_set_priority : 'a -> int -> unit;
     mutable op_file_print_html: 'a -> Buffer.t -> unit;
     mutable op_file_print_sources_html : 'a -> Buffer.t -> unit;
@@ -77,6 +78,7 @@ val update_file_num : 'a file_impl -> unit
 val update_file_state : 'a file_impl -> CommonTypes.file_state -> unit
 val file_to_option : CommonTypes.file -> (string * Options.option_value) list
 val file_save_as : CommonTypes.file -> string -> unit
+val file_comment : CommonTypes.file -> string
 val file_network : CommonTypes.file -> CommonTypes.network
 val file_info : CommonTypes.file -> GuiTypes.file_info
 val file_pause : CommonTypes.file -> string -> unit
@@ -120,8 +122,7 @@ val set_file_priority : CommonTypes.file -> int -> unit
 val set_file_last_seen : CommonTypes.file -> int -> unit
 val file_debug : CommonTypes.file -> string
 val set_file_comment : CommonTypes.file -> string -> unit
-val file_comment : CommonTypes.file -> string list
-val file_comment_length : CommonTypes.file -> int
+val file_comment : CommonTypes.file -> string
 val file_magic : CommonTypes.file -> string option
 val set_file_magic : CommonTypes.file -> string option -> unit
 val check_magic : CommonTypes.file -> unit  

@@ -370,8 +370,8 @@ let server_print_html_header buf ext =
     ( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ;
     ( "0", "srh", "Network name", "Network" ) ;
     ( "0", "srh", "Connection status", "Status" ) ;
-    ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
     ( "0", "srh br", "IP address", "IP address" ) ;
+    ] @ (if !Geoip.active then [( "0", "srh br", "Country Code/Name", "CC" )] else []) @ [
     ( "1", "srh ar", "Number of connected users", "Users" ) ;
     ( "1", "srh ar br", "Max number of users", "MaxUsers" ) ;
     ( "1", "srh ar br", "LowID users", "LowID" ) ;
@@ -399,50 +399,34 @@ let server_print s o =
   if use_html_mods o then begin
   let snum = (server_num s) in
 
-    Printf.bprintf buf "
-    \\<tr class=\\\"dl-%d\\\"\\>
+    Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>
     \\<td class=\\\"srb\\\" %s \\>%d\\</td\\>
-    %s
-    %s
-    %s
-    \\<td class=\\\"sr\\\" %s\\</td\\>
-    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-    %s
-    \\<td class=\\\"sr br\\\"\\>%s:%s\\</td\\>
-    \\<td class=\\\"sr ar\\\"\\>%Ld\\</td\\>
-    \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
-    \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
-    \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
-    \\<td class=\\\"sr ar\\\"\\>%Ld\\</td\\>
-    \\<td class=\\\"sr ar br\\\"\\>%Ld\\</td\\>
-    \\<td class=\\\"sr ar br\\\"\\>%d\\</td\\>
-    \\<td class=\\\"sr br\\\"\\>%s\\</td\\>
-    \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-    \\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
+      %s %s %s"
     (html_mods_cntr ())
     (match impl.impl_server_state with
-        Connected _ -> Printf.sprintf "title=\\\"Server Banner\\\"
+        Connected _ -> 
+            Printf.sprintf "title=\\\"Server Banner\\\"
             onMouseOver=\\\"mOvr(this);\\\"
             onMouseOut=\\\"mOut(this);\\\"
-            onClick=\\\"location.href='submit?q=server_banner+%d'\\\"" snum
+            onClick=\\\"location.href='submit?q=server_banner+%d'\\\"" 
+            snum
         | _ -> "")
     snum
       (
-        if server_blocked s && (match impl.impl_server_state with
-         NotConnected _ -> true
-             | _ -> false) then "\\<td class=\\\"srb\\\"\\>blk\\</td\\>" else
-        Printf.sprintf
+     let not_connected =
+        match impl.impl_server_state with
+        | NotConnected _ -> true
+        | _ -> false 
+      in 
+      if server_blocked s && not_connected 
+        then "\\<td class=\\\"srb\\\"\\>blk\\</td\\>" 
+        else Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\" title=\\\"Connect|Disconnect\\\"
         onClick=\\\"parent.fstatus.location.href='submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
-        (match impl.impl_server_state with
-           NotConnected _ -> "c"
-         | _ -> "x")
+              (if not_connected then "c" else "x")
         snum
-        (match impl.impl_server_state with
-           NotConnected _ -> "Conn"
-         | _ -> "Disc")
+              (if not_connected then "Conn" else "Disc")
       )
       (
         Printf.sprintf
@@ -465,12 +449,13 @@ let server_print s o =
         onClick=\\\"parent.fstatus.location.href='submit?q=preferred+true+%s'\\\"\\>F\\</TD\\>"
         (Ip.string_of_addr info.G.server_addr)
         end
-      )
-      (if n.network_name = "Donkey" then
-         begin
+      );
+
+      let id_title, id_text = 
+        match n.network_name with
+          "Donkey" -> begin
            match impl.impl_server_state with
-           | Connected _ ->
-               begin
+                Connected _ -> begin
                  let cid = (server_cid s) in
                  let (label,shortlabel,our_ip) =
                    if not (server_low_id s) then
@@ -478,49 +463,57 @@ let server_print s o =
                       (if !!set_client_ip <> cid then
                          Printf.sprintf "(clientIP: %s)"
                            (Ip.to_string !!set_client_ip)
-                       else ""
-                      )
-                     )
-                   else
-                     ("LowID","Lo","")
+                       else ""))
+                    else ("LowID","Lo","")
                  in
-                 Printf.sprintf
-                    "title=\\\"%s: %s = %s %s\\\" \\>%s"
+                   Printf.sprintf "%s: %s = %s %s"
                       label
                       (Int64.to_string (Ip.to_int64 (Ip.rev cid)))
                       (Ip.to_string cid)
                       our_ip
-                      shortlabel
+                 ,shortlabel
                end
-           | _ -> "\\>"
+               | _ -> "",""
          end
-       else "\\>"
-      )
-      n.network_name
-      (match impl.impl_server_state with
-        NotConnected _ -> if server_blocked s then "IP blocked"
-        else (string_of_connection_state impl.impl_server_state)
-      | _ -> (string_of_connection_state impl.impl_server_state))
-      (if !Geoip.active then 
-	 Printf.sprintf "\\<td class=\\\"sr\\\" title=\\\"%s\\\" \\>%s\\</td\\>" cn cc
-       else "")
+      | _ -> "",""
+    in
+
+    let server_state_string = 
+      match impl.impl_server_state with
+        NotConnected _ when server_blocked s -> "IP blocked"
+      | _ -> string_of_connection_state impl.impl_server_state
+    in
+
+    let ip_port_string = 
+      Printf.sprintf "%s:%s%s" 
       (Ip.string_of_addr info.G.server_addr)
-      (Printf.sprintf "%s%s"
        (string_of_int info.G.server_port)
        (if info.G.server_realport <> 0 
           then "(" ^ (string_of_int info.G.server_realport) ^ ")" 
-          else ""))
-      info.G.server_nusers
-      info.G.server_max_users
-      info.G.server_lowid_users
-      info.G.server_nfiles
-      info.G.server_soft_limit
-      info.G.server_hard_limit
-      info.G.server_ping
-      info.G.server_version
-      info.G.server_name
-      info.G.server_description
+            else ""
+        )
+    in
 
+    let cc,cn = Geoip.get_country (Ip.ip_of_addr info.G.server_addr) in
+    html_mods_td buf ([
+      (id_title, "sr", id_text);
+      ("", "sr", n.network_name);
+      ("", "sr", server_state_string);
+      ("", "sr br", ip_port_string);
+      ] @ (if !Geoip.active then [(cn, "sr br", cc)] else []) @ [
+      ("", "sr ar", Printf.sprintf "%Ld" info.G.server_nusers);
+      ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_max_users);
+      ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_lowid_users);
+      ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_nfiles);
+      ("", "sr ar", Printf.sprintf "%Ld" info.G.server_soft_limit);
+      ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_hard_limit);
+      ("", "sr ar br", Printf.sprintf "%d" info.G.server_ping);
+      ("", "sr br", info.G.server_version);
+      ("", "sr", info.G.server_name);
+    ]);
+
+    Printf.bprintf buf "\\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
+      info.G.server_description;
   end
    else
   begin

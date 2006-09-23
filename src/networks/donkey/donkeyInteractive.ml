@@ -1046,6 +1046,7 @@ let _ =
             P.file_format = file.file_format;
             P.file_chunks_age = last_seen;
             P.file_uids = [Uid.create (Ed2k file.file_md4)];
+            P.file_comments = file.file_comments
           } in
         v
       with e ->
@@ -1214,8 +1215,6 @@ let _ =
   );
   file_ops.op_file_print_html <- (fun file buf ->
 
-     html_mods_cntr_init ();
-
      let tr () =
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ())
      in
@@ -1226,6 +1225,16 @@ let _ =
         ("", "sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://bitzi.com/lookup/urn:ed2k:%s\\\"\\>[Bitzi-Bitpedia]\\</a\\> \\<a target=\\\"_blank\\\" href=\\\"http://www.filedonkey.com/url/%s\\\"\\>[FileDonkey]\\</a\\>"
             (Md4.to_string file.file_md4) (Md4.to_string file.file_md4)
         ) ];
+
+      let cntr = ref 0 in
+      List.iter (fun (ip, n, r, c) -> 
+        tr ();
+        html_mods_td buf [
+          ("Comment", "sr br", Printf.sprintf "Comment %d" !cntr);
+          ("User rating and comment", "sr", Printf.sprintf "Rating(%d): %s (%s/%s)" r c n (Ip.to_string ip));
+        ];
+        incr cntr;
+      ) file.file_comments;
 
       tr ();
       html_mods_td buf [
@@ -1261,13 +1270,15 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
 //--\\>
 \\</script\\>" (file_num file)
 
-   ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>"
+   ^ "\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>"
    ^ "\\<form name=\\\"renameForm1\\\" id=\\\"renameForm1\\\" action=\\\"javascript:submitRenameForm(1);\\\"\\>"
+   ^ "\\<td\\>"
    ^ "\\<select name=\\\"newName\\\" id=\\\"newName\\\" onchange=\\\"javascript:renameForm2.newName.value=renameForm1.newName.options[renameForm1.newName.selectedIndex].value;this.form.submit();\\\"\\>"
    ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\n" (file_best_name file) (file_best_name file)
    ^ !optionlist
-   ^ "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\<tr\\>\\<td\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
-   ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>"
+   ^ "\\</select\\>\\</td\\>\\</form\\>\\</tr\\>\\<tr\\>\\<form name=\\\"renameForm2\\\" id=\\\"renameForm2\\\" action=\\\"javascript:submitRenameForm(2);\\\"\\>"
+   ^ "\\<td\\>"
+   ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>"
     ) ];
 
 

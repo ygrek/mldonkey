@@ -93,6 +93,14 @@ let print_stats o style =
 let _ =
   network.op_network_display_stats <- (fun buf o -> print_stats o New);
 
+  network.op_network_stat_info_list <- (fun _ ->
+    let l1 = stats_list brand_list stats_array in
+    let l2 = stats_list brand_list !!gstats_array in
+    let u1 = BasicSocket.last_time () - BasicSocket.start_time in
+    let u2 = (guptime() + u1) in
+    [("Session clients", u1, l1); ("Global clients", u2, l2)]
+  );
+
   register_commands
     [
     "client_stats_bt", "Network/Bittorrent",Arg_none (fun o ->
