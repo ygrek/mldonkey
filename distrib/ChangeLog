@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/24
+5419: EDK: Remove titanesel.ws links
 5418: Gnutella/G2/Fasttrack: Support client_bind_addr
 5417: Edonkey comments: Telnet support, UTF-8 output in HTML
 5416: Makefile.in: New variable $DEVFLAGSOPT for .cmx files (jave)
