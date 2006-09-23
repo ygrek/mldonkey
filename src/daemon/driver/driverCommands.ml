@@ -736,6 +736,16 @@ let _ =
 		end
             ) !!servers;
             Printf.sprintf (_b "Removed %d blocked servers") !counter
+	| ["disc"] ->
+            Intmap.iter (fun _ s ->
+	      match server_state s with
+		NotConnected _ ->
+		  begin
+		    server_remove s;
+		    incr counter
+		  end
+	      | _ -> ()) !!servers;
+            Printf.sprintf (_b "Removed %d disconnected servers") !counter
 	| _ ->
             List.iter (fun num ->
                 let num = int_of_string num in
@@ -743,7 +753,7 @@ let _ =
                 server_remove s
             ) args;
             Printf.sprintf (_b"%d servers removed") (List.length args)
-    ), "<server numbers> :\t\t\tremove server (use 'all' for all servers, 'blocked' for all IP blocked servers)";
+    ), "<server numbers|all|blocked|disc> :\t\t\tremove server(s) ('all'/'blocked'/'disc' = all/IP blocked/disconnected servers)";
 
     "server_banner", Arg_one (fun num o ->
         let num = int_of_string num in
