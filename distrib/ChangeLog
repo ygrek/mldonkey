@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/24
+5417: Edonkey comments: Telnet support, UTF-8 output in HTML
 5416: Makefile.in: New variable $DEVFLAGSOPT for .cmx files (jave)
 5415: New command option: rem disc - remove all disconnected servers
 

@@ -57,6 +57,7 @@ and 'a file_ops = {
   mutable op_file_active_sources : 'a -> CommonTypes.client list;
   mutable op_file_comment : 'a -> string;
   mutable op_file_set_priority : 'a -> int -> unit;
+    mutable op_file_print_plain: 'a -> Buffer.t -> unit;
     mutable op_file_print_html: 'a -> Buffer.t -> unit;
     mutable op_file_print_sources_html : 'a -> Buffer.t -> unit;
     mutable op_file_files : ('a -> 'a file_impl -> CommonTypes.file list);    

@@ -90,6 +90,7 @@ it will happen soon. *)
     mutable op_file_active_sources : ('a -> client list);
     mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
+    mutable op_file_print_plain : ('a -> Buffer.t -> unit);
     mutable op_file_print_html : ('a -> Buffer.t -> unit);
     mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
     mutable op_file_files : ('a -> 'a file_impl -> file list);    
@@ -203,12 +204,6 @@ let update_file_state impl state =
 let file_to_option (file : file) =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_to_option file.impl_file_val
-
-  (*
-let file_print (file : file) buf =
-  let file = as_file_impl file in
-  file.impl_file_ops.op_file_print file.impl_file_val buf
-    *)
 
 let file_save_as (file : file) name =
   let file = as_file_impl file in
@@ -434,6 +429,10 @@ let file_print_sources_html (file : file) buf =
 let file_print_html file buf =
   let impl = as_file_impl file in
   impl.impl_file_ops.op_file_print_html impl.impl_file_val buf
+
+let file_print_plain file buf =
+  let impl = as_file_impl file in
+  impl.impl_file_ops.op_file_print_plain impl.impl_file_val buf
 
 let file_find num =
   H.find files_by_num (as_file {
@@ -841,7 +840,8 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
           None -> ()
         | Some filename ->
             Printf.bprintf buf "Probable name: %s\n" filename);
-      List.iter (fun name -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names
+      List.iter (fun name -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names;
+      file_print_plain file buf
     end;
 
   (try
@@ -1011,6 +1011,7 @@ let new_file_ops network =
       op_file_active_sources = (fun _ -> fni network "file_active_sources");
       op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
       op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
+      op_file_print_plain = (fun _ _ -> ni_ok network "file_print_plain");
       op_file_print_html = (fun _ _ -> ni_ok network "file_print_html");
       op_file_print_sources_html = (fun _ _ -> fni network "file_print_sources_html");
       op_file_debug = (fun _ -> "");
@@ -1053,6 +1054,8 @@ let check_file_implementations () =
         lprintf_nl "op_file_all_sources";
       if c.op_file_active_sources == cc.op_file_active_sources then
         lprintf_nl "op_file_active_sources";
+      if c.op_file_print_plain == cc.op_file_print_plain then
+        lprintf_nl "op_file_print_plain";
       if c.op_file_print_html == cc.op_file_print_html then
         lprintf_nl "op_file_print_html";
       if c.op_file_print_sources_html == cc.op_file_print_sources_html then

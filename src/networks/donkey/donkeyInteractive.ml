@@ -1213,6 +1213,13 @@ let _ =
       ) file.file_sources;
       !list
   );
+  file_ops.op_file_print_plain <- (fun file buf ->
+    let cntr = ref 0 in
+    List.iter (fun (ip, n, r, c) ->
+      incr cntr;
+      Printf.bprintf buf
+	"Comment %d: Rating(%d): %s (%s/%s)\n" !cntr r (Charset.to_utf8 c) n (Ip.to_string ip)) file.file_comments
+  );
   file_ops.op_file_print_html <- (fun file buf ->
 
      let tr () =
@@ -1228,12 +1235,12 @@ let _ =
 
       let cntr = ref 0 in
       List.iter (fun (ip, n, r, c) -> 
+        incr cntr;
         tr ();
         html_mods_td buf [
           ("Comment", "sr br", Printf.sprintf "Comment %d" !cntr);
-          ("User rating and comment", "sr", Printf.sprintf "Rating(%d): %s (%s/%s)" r c n (Ip.to_string ip));
+          ("User rating and comment", "sr", Printf.sprintf "Rating(%d): %s (%s/%s)" r (Charset.to_utf8 c) n (Ip.to_string ip));
         ];
-        incr cntr;
       ) file.file_comments;
 
       tr ();

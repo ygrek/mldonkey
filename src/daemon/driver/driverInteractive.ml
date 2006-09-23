@@ -718,10 +718,15 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
       (if file.file_comments = [] then "" else
 			    begin
            let num_comments = number_of_comments file in
-           let buf1 = Buffer.create (100 * num_comments) in
+           let buf1 = Buffer.create (!!max_comment_length * num_comments) in
            Printf.bprintf buf1 "<br><br>Comments(%d):<br>" (num_comments);
-           (* What if there are 100 comments? big tooltip... *)
-           List.iter (fun (_,_,_,s) -> Printf.bprintf buf1 "%s<br>" (Http_server.html_real_escaped s)) file.file_comments;
+	   let comments =
+	     if List.length file.file_comments > 5 then
+	       fst (List2.cut 5 file.file_comments) @ [Ip.null, "", 0, (_s "MLDonkey note: click file for more comments")]
+	     else
+	       file.file_comments
+	   in
+           List.iter (fun (_,_,_,s) -> Printf.bprintf buf1 "%s<br>" (Http_server.html_real_escaped (Charset.to_utf8 s))) comments;
 			      Buffer.contents buf1
 			    end)
 
@@ -944,6 +949,7 @@ let simple_print_file_list finished buf files format =
           |] else
           [|
             "$nNum";
+	    "Comm";
             "File";
             "    %";
             "    Done";
@@ -988,6 +994,7 @@ let simple_print_file_list finished buf files format =
                     file.file_num
                       (if downloading file then "PAUSE" else "RESUME")
                   else ""));
+	      (Printf.sprintf "%4d" (number_of_comments file));
               (short_name file);
               (Printf.sprintf "%3.1f" (percent file));
               (if !!improved_telnet then (print_human_readable file file.file_downloaded)
