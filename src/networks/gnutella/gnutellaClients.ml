@@ -1041,7 +1041,7 @@ let get_handler get_request cc gconn sock (first_line, headers) =
 let listen () =
   try
     let sock = TcpServerSocket.create "gnutella client server" 
-        Unix.inet_addr_any
+        (Ip.to_inet_addr !!client_bind_addr)
         !!client_port
         (fun sock event ->
           match event with
