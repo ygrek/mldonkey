@@ -141,6 +141,7 @@ type charset =
 (** [convert ~from_charset ~to_charset s]
     raise CharsetError if the string s is not entirely convertible. *)
 val convert : from_charset : charset -> to_charset : charset -> string -> string
+val safe_convert: string -> string -> string
 
 (** [is_utf8 s]
     returns TRUE if s is a valid UTF-8, otherwise returns FALSE.

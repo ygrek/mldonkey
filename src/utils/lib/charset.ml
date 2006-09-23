@@ -1817,6 +1817,17 @@ let convert ~from_charset ~to_charset s =
     convert_string s t f
   end else s
 
+let safe_convert enc s =
+  match enc with
+    "" -> s
+  | enc ->
+    try
+      convert
+        ~from_charset: (charset_from_string enc)
+        ~to_charset: (charset_from_string "UTF-8")
+        s
+    with _ -> s
+
 (**********************************************************************************)
 (*                                                                                *)
 (*                          slow_encode_from_utf8                                 *)

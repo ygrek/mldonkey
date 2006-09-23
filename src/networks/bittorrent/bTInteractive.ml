@@ -130,7 +130,7 @@ let op_file_print_html file buf =
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
     ("Filename", "sr br", "Filename");
-    ("", "sr", file.file_name) ];
+    ("", "sr", (Charset.safe_convert file.file_encoding file.file_name)) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
@@ -158,7 +158,7 @@ let op_file_print_html file buf =
 
   html_mods_td buf [
     ("Torrent Filename", "sr br", "Torrent Fname");
-    ("", "sr", file.file_torrent_diskname) ];
+    ("", "sr", (Charset.safe_convert file.file_encoding file.file_torrent_diskname)) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
@@ -166,14 +166,14 @@ let op_file_print_html file buf =
     ("Comment", "sr br", "Comment");
     ("", "sr", match file.file_comment with
         "" -> "-"
-      | _ -> file.file_comment) ];
+      | _ -> (Charset.safe_convert file.file_encoding file.file_comment)) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
     ("Created by", "sr br", "Created by");
     ("", "sr", match file.file_created_by with
         "" -> "-"
-      | _ -> file.file_created_by) ];
+      | _ -> (Charset.safe_convert file.file_encoding file.file_created_by)) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
@@ -185,7 +185,7 @@ let op_file_print_html file buf =
     ("Modified by", "sr br", "Modified by");
     ("", "sr", match file.file_modified_by with
         "" -> "-"
-      | _ -> file.file_modified_by) ];
+      | _ -> (Charset.safe_convert file.file_encoding file.file_modified_by)) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
