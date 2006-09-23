@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/24
+5416: Makefile.in: New variable $DEVFLAGSOPT for .cmx files (jave)
 5415: New command option: rem disc - remove all disconnected servers
 
 2006/09/23

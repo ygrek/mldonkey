@@ -1921,7 +1921,7 @@ rpm: sourcedist
 	./svg_converter.byte $@
 
 .ml.cmx :
-	$(OCAMLOPT) $(DEVFLAGS) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLOPT) $(DEVFLAGSOPT) $(DEVFLAGS) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
 
 .ml.cmo :
 	$(OCAMLC) $(DEVFLAGS) $(OFLAGS) $(INCLUDES) -c $<
