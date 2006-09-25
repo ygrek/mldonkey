@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/26
+5336: EDK: Fix lowid support (krissn)
 5427: EDK: Increase hash speed when threads are available (pango)
 
 2006/09/25

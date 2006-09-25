@@ -80,7 +80,7 @@ let add_source file ip port serverIP serverPort =
                         (* without server, we can't request a callback *)
                         let s = Hashtbl.find servers_by_key serverIP in
                         if serverPort = s.server_port then
-                            Indirect_address ( serverIP, serverPort, id_of_ip ip, port, ip )
+                            Indirect_address ( serverIP, serverPort, id_of_ip ip, 0, Ip.null )
                         else
                             raise Not_found
                     with _ ->
@@ -2579,7 +2579,7 @@ let _ =
         | Invalid_address _ -> ()
         | Indirect_address (server_ip, server_port, id, port, real_ip) ->
 
-       if low_id server_ip && Ip.reachable server_ip then
+       if Ip.reachable server_ip then
               query_id server_ip server_port id; 
                   
       with e -> 

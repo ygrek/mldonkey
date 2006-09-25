@@ -607,7 +607,9 @@ let dummy_client =
 
 let create_client key =
   let module D = DonkeyProtoClient in
-  let s = DonkeySources.find_source_by_uid key in
+  let s = DonkeySources.find_source_by_uid (match key with
+      Indirect_address (server_ip, server_port, id, port, real_ip) -> Indirect_address (server_ip, server_port, id, 0, Ip.null) 
+      | _ -> key) in
   let rec c = {
       client_client = client_impl;
       client_kind = key;
@@ -659,16 +661,26 @@ let create_client key =
   clients_root := c :: !clients_root;
   c
 
+exception ClientFound of client
+let find_client_by_key key =
+  try
+    H.iter (fun c ->
+        if (match c.client_kind with
+      Indirect_address (server_ip, server_port, id, port, real_ip) -> Indirect_address (server_ip, server_port, id, 0, Ip.null)
+      | _ -> c.client_kind) = (match key with
+      Indirect_address (server_ip, server_port, id, port, real_ip) -> Indirect_address (server_ip, server_port, id, 0, Ip.null) 
+      | _ -> key) then raise (ClientFound c)
+    ) clients_by_kind;
+    raise Not_found
+  with ClientFound c -> c
+
 let new_client key =
   try
-    H.find clients_by_kind { dummy_client with client_kind = key }
+      find_client_by_key key
   with _ ->
       create_client key
 
 let create_client = ()
-
-let find_client_by_key key =
-  H.find clients_by_kind { dummy_client with client_kind = key }
 
 let client_type c =
   client_type (as_client c)
