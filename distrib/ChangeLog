@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/26
+5427: EDK: Increase hash speed when threads are available (pango)
+
 2006/09/25
 5426: CommonSources: Reduce CPU load when refilling queues
       of many non-BT downloads (pango)

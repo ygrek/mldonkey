@@ -209,7 +209,7 @@ exception Wrong_file_size of int64 * int64
 let computing = ref false
 
 (*   Compute (at most) one MD4 chunk if needed. *)
-let check_shared_files () =
+let rec check_shared_files () =
   let module M = CommonHasher in
   if not !computing then
     match !shared_files with
@@ -259,7 +259,11 @@ let check_shared_files () =
                     new_file_to_share s sh.shared_shared.impl_shared_codedname (Some sh.shared_shared);
                   end
                 else
-                  job_creater ()
+                  job_creater ();
+		(* only try back-to-back hashing if hashing is
+                   handled by a separate thread *)
+		if BasicSocket.has_threads () then
+		  check_shared_files ()
             )
           with
 	    Wrong_file_size (real,computed) -> 
