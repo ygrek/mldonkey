@@ -1768,98 +1768,93 @@ let rec find_max_overloaded q managers =
             (*
                iter through files to queue sources
                flist_todo : next files to test
-               flist_done : already tested files
                assigned : number of sources already queued
-               pos : position in file list
-               len : length of file list
                looped : number of times we allow to loop try to fill queue of sources
                         (how hard we try to fill queue)
             *)
-            let rec  iter_files flist_todo flist_done assigned pos len looped =
-              if pos==len || assigned>nsources then
-                begin
-                  (*
-                     assigned>nsources stop!
-                     pos=len we are at the end of file list
-                  *)
-                  (* Cleanup some sources *)
-                  List.iter
-                    (fun m ->
-                      let f = m.manager_file () in
-                      if file_state f = FileDownloading then
-                        begin
-                          let remove_old q t = begin
-                          if Queue.length q > 0 then
-                            let (request_time, s) = Queue.head q in
-                              if request_time + t  < last_time () then
-                              remove_from_queue s (find_request s m);
-                          end in
-                          remove_old m.manager_sources.(do_not_try_queue) 14400;
-                          remove_old m.manager_sources.(old_sources3_queue) 2400;
-                          remove_old m.manager_sources.(old_sources2_queue) 1200;
-                        end
-                    ) !file_sources_managers;
-                  (* more power to the "runaway" (most overloaded) file, pick extra sources *)
-                  let em =
-                    let q = find_throttled_queue good_sources_queue in
-                    if queue_period.(q) > 0 then
-                      let max_overloaded = List.hd (find_max_overloaded q !file_sources_managers) in
-                      let overhead = count_file_ready_sources max_overloaded q  true in
-                      if overhead > 0 then
-                        get_sources max_consecutive max_overloaded good_sources_queue 0
-                      else
-                        0
-                    else
-                      0
-                  in
-                  if assigned + em < nsources && looped>0 then
-                    (*
-                       if assigned < nsources restart to fill
-                       reorder todo files by highest priority first
-                       allow at most looped re-iter of list to not loop endlessly
-                    *)
-                    iter_files (List.rev flist_done) [] (assigned + em) 0 len (looped-1)
-                end
-              else
-                begin
-                  (* throw in new sources at high pace and
-                     do not care about them in get_sources,
-                     this avoids "locking" a file's queue
-                     sources with thousands of new sources
-                     from SE *)
-                  let extr = ref 0 in
-                  List.iter
-                    (fun m ->
-                      let f = m.manager_file () in
-                      let q = m.manager_sources.(new_sources_queue) in
-                      if file_state f = FileDownloading && Queue.length q > 0 then
-                        let (request_time, s) = Queue.head q in
-                        source_connecting s;
-                        if M.direct_source s.source_uid then
-                          begin
-                            incr extr;
-                            Fifo.put next_direct_sources s
-                          end
-                      else
-                        next_indirect_sources := s :: !next_indirect_sources
-                    ) !file_sources_managers;
+            let rec iter_files assigned looped =
 
-                  let fp = List.hd flist_todo in
-                  let file = snd fp and
-                    prio = fst fp in
-                  let tt = min (truncate (sources_per_prio *. float_of_int(prio)))
-                             max_consecutive in
-                  let to_take = max tt 1 in
-                    (*allow at least one source per file :
-                      we will overflow a bit the expected next_direct_sources length
-                      but it's for the good cause : not 'starving' some files
-                    *)
-                    let took = get_sources to_take file good_sources_queue 0 in
-                      iter_files (List.tl flist_todo) (fp::flist_done)
-                            (assigned + took + !extr) (pos+1) len looped
-                end
+	      (* throw in new sources at high pace and do not care
+                 about them in get_sources, this avoids "locking" a
+                 file's queue sources with thousands of new sources
+                 from SE *)
+	      let try_some_new_sources () =
+		let extr = ref 0 in
+		List.iter
+                  (fun m ->
+		     let f = m.manager_file () in
+		     let q = m.manager_sources.(new_sources_queue) in
+		     if file_state f = FileDownloading && Queue.length q > 0 then
+		       let (request_time, s) = Queue.head q in
+		       source_connecting s;
+		       if M.direct_source s.source_uid then begin
+			 incr extr;
+			 Fifo.put next_direct_sources s
+		       end
+		       else
+			 next_indirect_sources := s :: !next_indirect_sources
+                  ) !file_sources_managers;
+		!extr in
+
+	      let cleanup_some_old_sources () =
+                (* Cleanup some sources *)
+                List.iter
+		  (fun m ->
+		     let f = m.manager_file () in
+		     if file_state f = FileDownloading then
+		       let remove_old q t =
+                         if Queue.length q > 0 then
+			   let (request_time, s) = Queue.head q in
+			   if request_time + t  < last_time () then
+			     remove_from_queue s (find_request s m) in
+		       
+		       remove_old m.manager_sources.(do_not_try_queue) 14400;
+		       remove_old m.manager_sources.(old_sources3_queue) 2400;
+		       remove_old m.manager_sources.(old_sources2_queue) 1200
+		  ) !file_sources_managers in
+
+	      let rec aux flist_todo assigned =
+		if assigned >= nsources then 
+		  cleanup_some_old_sources ()
+		else
+		  match flist_todo with
+		  | (prio, file) :: t ->
+                      let tt = min (truncate (sources_per_prio *. (float_of_int prio)))
+			max_consecutive in
+                      let to_take = max tt 1 in
+                      (* allow at least one source per file :
+			 we will overflow a bit the expected next_direct_sources length
+			 but it's for the good cause : not 'starving' some files
+                      *)
+                      let took = get_sources to_take file good_sources_queue 0 in
+                      aux t (assigned + took)
+			
+		  | [] ->
+		      cleanup_some_old_sources ();
+
+                      (* more power to the "runaway" (most overloaded) file, pick extra sources *)
+                      let em =
+			let q = find_throttled_queue good_sources_queue in
+			if queue_period.(q) > 0 then
+			  let max_overloaded = 
+			    List.hd (find_max_overloaded q !file_sources_managers) in
+			  let overhead = 
+			    count_file_ready_sources max_overloaded q  true in
+			  if overhead > 0 then
+			    get_sources max_consecutive max_overloaded good_sources_queue 0
+			  else 0
+			else 0 in
+		      
+                      if looped > 0 then
+			(* allow at most looped re-iter of list to not
+			   loop endlessly *)
+			iter_files (assigned + em) (looped - 1) 
+	      in 
+	      let extr = try_some_new_sources () in
+	      aux !files (assigned + extr)
+
             in
-            iter_files !files [] 0 0 (List.length !files) 3;
+            iter_files 0 3;
 
 
             (* adjust queue throttling *)

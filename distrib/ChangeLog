@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/09/25
+5426: CommonSources: Reduce CPU load when refilling queues
+      of many non-BT downloads (pango)
 5425: FileTP: Support options file_started_cmd and pause_new_downloads
 5423: Print warning for empty admin password only if allowed_ips was altered
 5422: Command "sources": Display only downloading files
