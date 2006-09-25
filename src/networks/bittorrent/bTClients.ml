@@ -131,14 +131,24 @@ let connect_trackers file event f =
   in
 
   let enabled_trackers =
-    let enabled_trackers = List.filter (fun t -> t.tracker_enabled) file.file_trackers in
+    let enabled_trackers = List.filter (fun t -> tracker_is_enabled t) file.file_trackers in
     if enabled_trackers <> [] then enabled_trackers
     else begin
       (* if there is no tracker left, do something ? *)
       if !verbose_msg_servers then
-  lprintf_nl "No trackers left, reenabling all of them...";
-      List.iter (fun t -> t.tracker_enabled <- can_handle_tracker t) file.file_trackers;
-      file.file_trackers
+	lprintf_nl "No trackers left for %s, reenabling all of them..." (file_best_name (as_file file));
+      List.iter (fun t ->
+	match t.tracker_status with
+      (* only re-enable after normal error *)
+	  Disabled _ -> t.tracker_status <- Enabled
+	| _ -> ()) file.file_trackers;
+      let enabled_trackers = List.filter (fun t -> t.tracker_status = Enabled) file.file_trackers in
+      if enabled_trackers = [] && (file_state file) <> FilePaused then
+	begin
+	  file_pause (as_file file) CommonUserDb.admin_user;
+	  lprintf_file_nl file "Paused %s, no usable trackers left" (file_best_name (as_file file))
+	end;
+      file.file_trackers;
     end in
 
   List.iter (fun t ->
@@ -155,13 +165,12 @@ let connect_trackers file event f =
                 t.tracker_last_conn + !!min_tracker_reask_interval < last_time() ))
       then
         begin
-          (* if we already tried to connect but failed, remove tracker *)
+          (* if we already tried to connect but failed, disable tracker, but allow re-enabling *)
           if file.file_tracker_connected && t.tracker_last_clients_num = 0 &&
             t.tracker_last_conn < 1 then begin
               if !verbose_msg_servers then
                 lprintf_nl "Request error from tracker: disabling %s" t.tracker_url;
-	      t.tracker_enabled <- false;
-              (* remove_tracker t.tracker_url file *)
+	      t.tracker_status <- Disabled (intern "MLDonkey: Request error from tracker")
             end
           (* Send request to tracker *)
           else begin
@@ -1352,9 +1361,8 @@ let get_sources_from_tracker file =
         List.iter (fun (key,value) ->
             match (key, value) with
             | String "failure reason", String failure ->
-                (* On failure, remove the faulty tracker from file.file_trackers list *)
-		t.tracker_enabled <- false;
-		(* remove_tracker t.tracker_url file; *)
+                (* On failure, disable the tracker and forbid re-enabling *)
+		t.tracker_status <- Disabled_failure (intern failure);
                 lprintf_file_nl file "Failure from Tracker %s in file: %s Reason: %s\nBT: Tracker %s disabled for failure"
                   t.tracker_url file.file_name (Charset.to_utf8 failure) t.tracker_url
             | String "warning message", String warning ->

@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/09/26
+5407: BT: Improve handling of tracker error messages
+- print additional information in telnet, vd #num already present in HTML
+- show tracker errors in Telnet and HTML popups over tracker info lines
+- pause torrents with no valid trackers left
 5336: EDK: Fix lowid support (krissn)
 5427: EDK: Increase hash speed when threads are available (pango)
 

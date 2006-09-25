@@ -217,9 +217,10 @@ let rec set_trackers file file_trackers =
             tracker_torrent_last_dl_req = 0;
             tracker_id = "";
             tracker_key = "";
-	    tracker_enabled = true
+	    tracker_status = Enabled
           } in
-	  t.tracker_enabled <- can_handle_tracker t;
+	  if not (can_handle_tracker t) then
+	    t.tracker_status <- Disabled_mld (intern "Tracker type not supported");
 	  file.file_trackers <-  t :: file.file_trackers;
 	set_trackers file q
 
@@ -803,6 +804,11 @@ let remove_tracker url file =
     List.iter (fun tracker ->
       lprintf_nl "New tracker list :%s" tracker.tracker_url
     ) file.file_trackers
+
+let tracker_is_enabled t =
+  match t.tracker_status with
+    Enabled -> true
+  | _ -> false
 
 let torrents_directory = "torrents"
 let new_torrents_directory = Filename.concat torrents_directory "incoming"

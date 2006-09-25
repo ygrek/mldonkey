@@ -190,6 +190,12 @@ let brand_to_string_short brand =
 let brand_to_int brand = 
   find_int_of_brand brand brand_list
 
+type tracker_status =
+  Enabled
+| Disabled of string
+| Disabled_mld of string
+| Disabled_failure of string
+
 type client = {
     client_client : client CommonClient.client_impl;
     mutable client_file : file;
@@ -254,7 +260,7 @@ and tracker_info = {
     mutable tracker_torrent_last_dl_req : int;
     mutable tracker_id : string;
     mutable tracker_key : string;
-    mutable tracker_enabled : bool;
+    mutable tracker_status : tracker_status;
   }
 
 and file = {

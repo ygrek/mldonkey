@@ -141,20 +141,23 @@ let op_file_print_html file buf =
  ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-  html_mods_td buf [
-    ("Tracker(s)", "sr br", "Tracker(s)");
-    ("", "sr",
-      (let enabled_tracker_string = ref "" in
-       let disabled_tracker_string = ref "" in
-       List.iter (fun tracker ->
-	 if tracker.tracker_enabled then
-	   enabled_tracker_string := !enabled_tracker_string ^ (shorten tracker.tracker_url !!max_name_len) ^ " "
-	 else
-	   disabled_tracker_string := !disabled_tracker_string ^ (shorten tracker.tracker_url !!max_name_len) ^ " "
-      ) file.file_trackers;
-      (!enabled_tracker_string ^ (if !disabled_tracker_string <> "" then " - disabled: " ^ !disabled_tracker_string else "")))) ];
-
-  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  let tracker_header_printed = ref false in
+  List.iter (fun tracker ->
+    let tracker_text, tracker_error =
+      (match tracker.tracker_status with
+	  Disabled s | Disabled_mld s | Disabled_failure s -> 
+	    Printf.sprintf "disabled: %s" tracker.tracker_url, s
+	| _ -> tracker.tracker_url, "")
+    in
+    html_mods_td buf [
+      (if not !tracker_header_printed then
+        ("Tracker(s) (mouseover for errors)", "sr br", "Tracker(s)")
+       else
+	("", "sr br", ""));
+      (tracker_error, "sr", tracker_text)];
+    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+    tracker_header_printed := true;
+  ) file.file_trackers;
 
   html_mods_td buf [
     ("Torrent Filename", "sr br", "Torrent Fname");
@@ -198,7 +201,7 @@ let op_file_print_html file buf =
     match l with
       | [] -> ()
       | t :: q ->
-	  if not t.tracker_enabled then print_first_tracker q
+	  if not (tracker_is_enabled t) then print_first_tracker q
 	  else begin
 	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 	    html_mods_td buf [
@@ -302,6 +305,38 @@ let op_file_print_html file buf =
       ("", "sr", (Printf.sprintf "%s (%Ld bytes)%s" filename size magic_string)) 
     ];
     incr cntr;
+  ) file.file_files
+
+let op_file_print_plain file buf =
+
+  Printf.bprintf buf "Trackers:\n";
+  List.iter (fun tracker ->
+    match tracker.tracker_status with
+      Disabled s | Disabled_mld s | Disabled_failure s -> 
+	Printf.bprintf buf "%s, disabled: %s\n" tracker.tracker_url s
+      | _ -> Printf.bprintf buf "%s\n" tracker.tracker_url
+  ) file.file_trackers;
+  let s = Charset.safe_convert file.file_encoding file.file_torrent_diskname in
+  if s <> "" then Printf.bprintf buf "Torrent diskname: %s\n" s;
+  let s = Charset.safe_convert file.file_encoding file.file_comment in
+  if s <> "" then Printf.bprintf buf "Comment: %s\n" s;
+  let s = Charset.safe_convert file.file_encoding file.file_created_by in
+  if s <> "" then Printf.bprintf buf "Created by %s\n" s;
+  let s = Date.to_string (Int64.to_float file.file_creation_date) in
+  if s <> "" then Printf.bprintf buf "Creation date: %s\n" s;
+  let s = Charset.safe_convert file.file_encoding file.file_modified_by in
+  if s <> "" then Printf.bprintf buf "Modified by %s\n" s;
+  if file.file_encoding <> "" then Printf.bprintf buf "Encoding: %s\n" file.file_encoding;
+  if file.file_files <> [] then Printf.bprintf buf "Subfiles: %d\n" (List.length file.file_files);
+  let cntr = ref 0 in
+  List.iter (fun (filename, size, magic) ->
+    incr cntr;
+    let magic_string =
+      match magic with 
+	None -> ""
+      | Some m -> Printf.sprintf " / %s" m;
+    in
+    Printf.bprintf buf "File %d: %s (%Ld bytes)%s\n" !cntr filename size magic_string
   ) file.file_files
 
 let op_file_print_sources_html file buf =
@@ -1092,6 +1127,7 @@ let _ =
   file_ops.op_file_debug <- op_file_debug;
   file_ops.op_file_commit <- op_file_commit;
   file_ops.op_file_print_html <- op_file_print_html;
+  file_ops.op_file_print_plain <- op_file_print_plain;
   file_ops.op_file_print_sources_html <- op_file_print_sources_html;
   file_ops.op_file_check <- op_file_check;
   file_ops.op_file_cancel <- op_file_cancel;
