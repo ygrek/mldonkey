@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/09/25
+5422: Command "sources": Display only downloading files
+
 2006/09/24
 5405: BT: Use field "encoding" from .torrent to convert strings to UTF-8
 5419: EDK: Remove titanesel.ws links

@@ -531,7 +531,7 @@ let rec find_max_overloaded q managers =
           Sort.list
             (fun f1 f2 ->
               file_best_name (f1.manager_file ()) < file_best_name (f2.manager_file ())
-            ) !file_sources_managers
+            ) (List.filter (fun m -> file_state (m.manager_file ()) = FileDownloading) !file_sources_managers)
         in
         (* Files *)
         List.iter (fun m ->
