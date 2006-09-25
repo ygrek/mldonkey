@@ -250,6 +250,7 @@ let download_file url referer user =
       current_files := file :: !current_files;
     end;
   
+  CommonInteractive.start_download (as_file file);
   download_file_from_mirror file u referer;
   find_mirrors file u
 
