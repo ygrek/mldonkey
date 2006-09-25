@@ -52,7 +52,8 @@ let verify_user_admin () =
   let warning =
     "SECURITY WARNING: user admin has an empty password, use command: useradd admin password\n"
   in
-  if empty_password admin_user then
+  if empty_password admin_user && !!allowed_ips <>
+    [(Ip.range_of_string (strings_of_option allowed_ips).option_default)] then
     begin
       lprintf_n "%s" warning;
       warning

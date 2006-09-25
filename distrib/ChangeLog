@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/09/25
+5423: Print warning for empty admin password only if allowed_ips was altered
 5422: Command "sources": Display only downloading files
 
 2006/09/24

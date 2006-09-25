@@ -333,9 +333,7 @@ let _ =
 
   Options.set_string_wrappers ip_range_list_option
     (fun list ->
-      List.fold_left (fun s ip ->
-	  Printf.sprintf "%s %s" (Ip.string_of_range ip) s
-      ) "" list
+      String.concat " " (List.map Ip.string_of_range (List.rev list))
   )
   (fun s ->
       let list = String2.tokens s in
