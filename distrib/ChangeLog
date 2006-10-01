@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/01
+5432: Updates and fixes for the Win resource file (schlumpf)
+
 2006/09/26
 5407: BT: Improve handling of tracker error messages
 - print additional information in telnet, vd #num already present in HTML
