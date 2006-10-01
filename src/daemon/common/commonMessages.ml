@@ -693,6 +693,9 @@ onClick=\"mSub('fstatus','bw_stats');mSub('output','sources')\">Sources</TD>
 <TD class=\"bu bbig\" title=\"Settings\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','version');mSub('output','voo+1')\">Settings</TD>
+<TD class=\"bu bbig\" title=\"Users\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onclick=\"mSub('fstatus','version');mSub('output','users')\">Users</TD>
 <TD class=\"bu bbig\" title=\"View/edit shared directories\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','version');mSub('output','shares')\">Shares</TD>
