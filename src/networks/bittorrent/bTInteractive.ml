@@ -52,6 +52,35 @@ let _b x = _b "BTInteractive" x
 
 module VB = VerificationBitmap
 
+let porttest_result = ref PorttestNotStarted
+
+let interpret_azureus_porttest s =
+  let failure_message fmt = 
+    Printf.sprintf ("Port test failure, " ^^ fmt) in
+  try
+    let value = decode s in 
+    match value with
+    | Dictionary alist ->
+	(try
+	   match List.assoc (String "result") alist with
+	   | Int 1L -> "Port test OK!"
+	   | Int 0L ->
+	       (try
+		  match List.assoc (String "reason") alist with
+		  | String reason -> failure_message "%s" reason
+		  | _ -> raise Not_found
+		with Not_found ->
+		  failure_message "%s" "no reason given")
+	   | Int status ->
+	       failure_message "unknown status code (%Ld)" status
+	   | _ -> raise Not_found
+	 with Not_found ->
+	   failure_message "%s" "no status given")
+    | _ ->
+	failure_message "unexpected value type %s" (Bencode.print value)
+  with _ ->
+    failure_message "%s" "broken bencoded value"
+
 exception Already_exists
 exception Torrent_can_not_be_used
 
@@ -1160,7 +1189,25 @@ let _ =
     !!client_port, "client_port TCP";
     !!BTTracker.tracker_port, "tracker_port TCP";
     ]);
-
+  network.op_network_porttest_result <- (fun _ -> !porttest_result);
+  network.op_network_porttest_start <- (fun _ -> 
+      let module H = Http_client in
+      azureus_porttest_random := (Random.int 100000);
+      porttest_result := PorttestInProgress (last_time ());
+      let r = {
+          H.basic_request with
+          H.req_url =
+	    Url.of_string (Printf.sprintf
+	      "http://azureus.aelitis.com/natcheck.php?port=%d&check=azureus_rand_%d"
+		!!client_port !azureus_porttest_random);
+          H.req_proxy = !CommonOptions.http_proxy;
+          H.req_user_agent = get_user_agent ();
+        } in
+      H.wget r (fun file ->
+	let result = interpret_azureus_porttest (File.to_string file) in
+	porttest_result := PorttestResult (last_time (), result)
+      )
+  );
   client_ops.op_client_info <- op_client_info;
   client_ops.op_client_connect <- op_client_connect;
   client_ops.op_client_disconnect <- op_client_disconnect;

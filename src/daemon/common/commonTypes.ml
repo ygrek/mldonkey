@@ -461,7 +461,13 @@ type network_stat_info  = {
   mutable download : Int64.t;
   mutable upload : Int64.t;
 }
-  
+
+type network_porttest =
+  PorttestNotAvailable
+| PorttestNotStarted
+| PorttestInProgress of int
+| PorttestResult of int * string
+
 type network = {
     network_name : string;
     network_num : int;
@@ -510,6 +516,8 @@ type network = {
     mutable op_network_clean_exit : (unit -> bool);
     mutable op_network_reset : (unit -> unit);
     mutable op_network_ports : (unit -> (int * string) list);
+    mutable op_network_porttest_start : (unit -> unit);
+    mutable op_network_porttest_result : (unit -> network_porttest);
   }
 
 and   ui_user = {

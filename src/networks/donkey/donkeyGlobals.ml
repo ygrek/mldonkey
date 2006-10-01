@@ -125,8 +125,6 @@ let tag_client = 200
 let tag_server = 201
 let tag_file   = 202
 
-let page_size = 4096L
-
 let donkey_download_counter = ref Int64.zero
 let donkey_upload_counter = ref Int64.zero
 
@@ -184,7 +182,7 @@ let max_file_groups = 1000
 let master_server = ref (None: DonkeyTypes.server option)
 let udp_sock = ref (None: UdpSocket.t option)
 let listen_sock = ref (None : TcpServerSocket.t option)
-let reversed_sock = ref (None : TcpServerSocket.t option)
+let porttest_sock = ref (None : TcpBufferedSocket.t option)
 let new_shared = ref false
 
 (*************************************************************************)

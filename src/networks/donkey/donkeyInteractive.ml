@@ -60,7 +60,14 @@ open Gettext
 let _s x = _s "DonkeyInteractive" x
 let _b x = _b "DonkeyInteractive" x
 
+let porttest_result = ref PorttestNotStarted
+
 module VB = VerificationBitmap
+
+let log_prefix = "[EDK]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
 
 let result_name r =
   match r.result_names with
@@ -1529,6 +1536,28 @@ let _ =
   network.op_network_reset <- (fun _ -> ());
 
   network.op_network_close_search <- (fun s -> ());
+  network.op_network_porttest_start <- (fun _ ->
+    porttest_result := PorttestInProgress (last_time ());
+    let module H = Http_client in
+    let r = { H.basic_request with
+      H.req_url = Url.of_string
+        (Printf.sprintf "http://porttest.emule-project.net:81/ct_noframe.php?lang=&tcpport=%d&udpport=%d"
+          !!donkey_port (!!donkey_port + 4));
+      H.req_proxy = !CommonOptions.http_proxy;
+      H.req_max_retry = 10;
+      H.req_user_agent = get_user_agent () } in
+    H.wget r (fun file ->
+      Unix2.tryopen_read file (fun cin ->
+	try
+	  while true do
+	    let line = input_line cin in
+	      try
+		if Str.string_match (Str.regexp "^<P>Testing IP") line 0 then
+		  porttest_result := PorttestResult (last_time (), line)
+	      with _ -> ()
+	  done
+	with End_of_file -> ())
+    ));
   network.op_network_forget_search <- forget_search
 
 (* emule<->mldonkey disconnects during chat, and this doesn't seem to auto reconnect

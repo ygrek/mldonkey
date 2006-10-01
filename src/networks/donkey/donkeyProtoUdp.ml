@@ -455,6 +455,7 @@ type t =
 | EmuleReaskAckUdpReq of Md4.t
 | EmuleFileNotFoundUdpReq
 | EmuleQueueFullUdpReq
+| EmulePortTestReq
 
 | UnknownUdpReq of int * string
 
@@ -484,6 +485,7 @@ let parse magic s =
     | 145 -> EmuleReaskAckUdpReq (get_md4 s 1)
 (*    | 146 -> EmuleFileNotFoundUdpReq *)
     | 147 -> EmuleQueueFullUdpReq
+    | 254 -> EmulePortTestReq
 
     | _ -> raise Exit
   with
@@ -524,6 +526,8 @@ let print t =
         Printf.bprintf b "EmuleFileNotFoundUdpReq"
     | EmuleQueueFullUdpReq ->
         Printf.bprintf b "EmuleQueueFullUdpReq"
+    | EmulePortTestReq ->
+        Printf.bprintf b "EmulePortTestReq"
 
     | UnknownUdpReq (magic, s) ->
         Printf.bprintf b "UnknownReq magic %d\n" magic;
@@ -612,6 +616,14 @@ let write buf t =
       | QueryIDReplyUdpReq t ->
           buf_int8 buf 53;
           QueryIDReplyUdp.write buf t
+
+      | EmulePortTestReq ->
+	  buf_int8 buf 2;
+	  buf_int8 buf 0;
+	  buf_int8 buf 0;
+	  buf_int8 buf 0;
+	  buf_int8 buf 0xfe;
+	  buf_int8 buf 0x31
 
       | EmuleQueueFullUdpReq
       | EmuleFileNotFoundUdpReq

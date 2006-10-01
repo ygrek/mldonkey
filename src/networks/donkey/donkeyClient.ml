@@ -2137,7 +2137,8 @@ let read_first_message overnet m sock =
   let module M = DonkeyProtoClient in
     
   if !verbose_msg_clients then begin
-      lprintf_nl "Message from incoming client";
+      lprintf_nl "Message from incoming client %s:%d"
+	(Ip.to_string (peer_ip sock)) (peer_port sock);
       M.print m;
     end;
 
@@ -2280,7 +2281,14 @@ let read_first_message overnet m sock =
   | M.NewUserIDReq _ ->
       lprintf_nl "NewUserIDReq: "; M.print m; 
       None
-  
+
+  | M.EmulePortTestReq t ->
+      porttest_sock := Some sock;
+      set_closer sock (fun _ _ -> porttest_sock := None);
+      set_lifetime sock 30.;
+      write_string sock (client_msg_to_string (emule_proto ()) m);
+      None
+
   | _ -> 
       if !verbose_unknown_messages then
         begin

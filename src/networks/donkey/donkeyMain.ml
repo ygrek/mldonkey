@@ -118,10 +118,6 @@ let disable enabler () =
         | Some sock -> 
             listen_sock := None;
             TcpServerSocket.close sock Closed_by_user);
-      (match !reversed_sock with None -> ()
-        | Some sock -> 
-            reversed_sock := None;
-            TcpServerSocket.close sock Closed_by_user);
       (match !udp_sock with None -> ()
         | Some sock -> 
             udp_sock := None;
@@ -392,6 +388,8 @@ let _ =
     !overnet_port_info, "overnet_port TCP+UDP";
     !kademlia_port_info, "kademlia_port UDP";
     ]);
+  network.op_network_porttest_result <-
+    (fun _ -> !DonkeyInteractive.porttest_result);
   CommonInteractive.register_gui_options_panel "eDonkey" 
     gui_donkey_options_panel;
   CommonInteractive.register_gui_options_panel "Overnet" 

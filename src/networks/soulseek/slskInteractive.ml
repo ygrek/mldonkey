@@ -182,6 +182,7 @@ let _ =
 
 let _ =
   network.op_network_ports <- (fun _ -> []);
+  network.op_network_porttest_result <- (fun _ -> PorttestNotAvailable);
   network.op_network_recover_temp <- (fun s -> ());
   network.op_network_load_complex_options <- (fun _ -> ());
   network.op_network_download <- (fun r ->

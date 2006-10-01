@@ -231,6 +231,13 @@ open TcpBufferedSocket
 open AnyEndian
 open BTTypes
 
+let log_prefix = "[BT]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let azureus_porttest_random = ref 0
+
 type ghandler =
   BTHeader of (gconn -> TcpBufferedSocket.t ->
   (string * string * Sha1.t) -> unit)
@@ -542,6 +549,9 @@ let handlers info gconn =
               buf_used b (slen+29);
               h gconn sock (proto, rbits, file_id);
             end
+          else
+	    if (String.sub b.buf b.pos (min b.len 100)) = "NATCHECK_HANDSHAKE" then
+		write_string sock (Printf.sprintf "azureus_rand_%d" !azureus_porttest_random)
           else if (TcpBufferedSocket.closed sock) then
               let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
               lprintf_nl "bt-handshake: closed sock from %s:%d  b.len:%i slen:%i"

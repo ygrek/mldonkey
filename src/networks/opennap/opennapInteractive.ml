@@ -241,6 +241,7 @@ let _ =
     [
     !!client_port, "client_port TCP";
     ]);
+  network.op_network_porttest_result <- (fun _ -> PorttestNotAvailable);
 
   network.op_network_recover_temp <- (fun s -> ());
 

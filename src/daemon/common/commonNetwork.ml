@@ -109,6 +109,10 @@ let check_network_implementations () =
         lprintf_nl "op_network_reset";
       if c.op_network_ports == cc.op_network_ports then 
         lprintf_nl "op_network_ports";
+      if c.op_network_porttest_start == cc.op_network_porttest_start then 
+        lprintf_nl "op_network_porttest_start";
+      if c.op_network_porttest_result == cc.op_network_porttest_result then 
+        lprintf_nl "op_network_porttest_result";
   ) !networks_ops;
   lprint_newline ()
 
@@ -129,6 +133,8 @@ let network_client_of_option n f = n.op_network_client_of_option f
 let network_clean_exit n = try n.op_network_clean_exit () with _ -> true
 let network_reset n = try n.op_network_reset () with _ -> ()
 let network_ports n = n.op_network_ports ()
+let network_porttest_start n = n.op_network_porttest_start ()
+let network_porttest_result n = n.op_network_porttest_result ()
 
 let networks_iter f =
   List.iter (fun r ->
@@ -281,6 +287,8 @@ let new_network shortname name flags =
       op_network_clean_exit = (fun _ -> true);
       op_network_reset = (fun _ -> ni_ok name "reset");
       op_network_ports = (fun _ -> ni_ok name "ports"; []);
+      op_network_porttest_start = (fun _ -> ni_ok name "porttest_start");
+      op_network_porttest_result = (fun _ -> fni name "porttest_result");
     }
   in
   let rr = (Obj.magic r: network) in

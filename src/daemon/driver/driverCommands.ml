@@ -1121,6 +1121,19 @@ let _ =
         _s "network disabled"
     ) , "<num> :\t\t\t\tdisable a particular network";
 
+    "porttest", Arg_none (fun o ->
+        let buf = o.conn_buf in
+	networks_iter (fun n -> 
+	  match network_porttest_result n with
+	    PorttestNotAvailable -> ()
+	  | _ -> network_porttest_start n);
+        if o.conn_output = HTML then
+          Printf.bprintf buf "Click this \\<a href=\\\"porttest\\\"\\>link\\</a\\> to see results"
+        else
+          Printf.bprintf buf "Test started, you need a HTML browser to display results";
+        ""
+    ) , ":\t\t\t\tstart network porttest";
+
     ]
 
 (*************************************************************************)

@@ -1704,7 +1704,8 @@ let networks_header buf =
       ( "0", "srh br", "Has search", "Search" ) ;
       ( "0", "srh br", "Has chat", "Chat" ) ;
       ( "0", "srh br", "Has rooms", "Rooms" ) ;
-      ( "0", "srh", "Has multinet", "Multinet" ) ]
+      ( "0", "srh", "Has multinet", "Multinet" ) ;
+      ( "0", "srh", "Has porttest", "Porttest" ) ]
 
 let print_network_modules buf o =
   let buf = o.conn_buf in
@@ -1719,6 +1720,10 @@ let print_network_modules buf o =
           if not (List.mem VirtualNetwork n.network_flags) then
             try
               let net_has e = if List.mem e n.network_flags then "yes" else "" in
+              let net_has_porttest () =
+		match network_porttest_result n with
+		  PorttestNotAvailable -> ""
+		| _ -> "yes" in
               Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
                 ("", "sr br", n.network_name);
@@ -1729,7 +1734,8 @@ let print_network_modules buf o =
                 ("", "sr br", net_has NetworkHasSearch);
                 ("", "sr br", net_has NetworkHasChat);
                 ("", "sr br", net_has NetworkHasRooms);
-                ("", "sr"   , net_has NetworkHasMultinet); ];
+                ("", "sr br", net_has NetworkHasMultinet);
+                ("", "sr"   , (net_has_porttest ())); ];
               Printf.bprintf buf "\\</tr\\>";
             with _ -> ()
         );

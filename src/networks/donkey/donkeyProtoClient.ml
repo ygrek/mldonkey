@@ -1068,6 +1068,20 @@ module EmuleFileDesc = struct
   end
 
 
+module EmulePortTestReq = struct
+
+    type t = string
+
+    let print s =
+      lprintf_nl "Emule porttest request %s" (String.escaped s)
+
+    let parse s = s
+
+    let write buf =
+      buf_int8 buf 0x12
+
+  end
+
 type t =
 | ConnectReq of Connect.t
 | ConnectReplyReq of Connect.t
@@ -1111,6 +1125,7 @@ type t =
 | EmuleMultiPacketReq of Md4.t * t list
 | EmuleMultiPacketAnswerReq of Md4.t * t list
 | EmuleCompressedPart of Md4.t * int64 * int64 * string
+| EmulePortTestReq of EmulePortTestReq.t
 
 let rec print t =
   begin
@@ -1178,11 +1193,11 @@ let rec print t =
         EmuleSignatureReq.print t
     | EmulePublicKeyReq t ->
         EmulePublicKeyReq.print t
-
     | EmuleCompressedPart (md4, statpos, newsize, bloc) ->
         lprintf_nl "EmuleCompressedPart for %s %Ld %Ld len %d"
           (Md4.to_string md4) statpos newsize (String.length bloc)
-
+    | EmulePortTestReq t ->
+        EmulePortTestReq.print t
     | UnknownReq (opcode, s) ->
         let len = String.length s in
         lprintf_nl "UnknownReq: magic (%d), opcode (%d) len (%d)" opcode 
@@ -1313,6 +1328,9 @@ let rec parse_emule_packet emule opcode len s =
             []
         in
         EmuleMultiPacketAnswerReq (md4, iter s 17 len)
+
+    | 0xfe (* 254 *) ->
+        EmulePortTestReq s
 
     | code ->
         if !CommonOptions.verbose_unknown_messages then
@@ -1595,6 +1613,10 @@ let write emule buf t =
     | EmulePublicKeyReq t ->
         buf_int8 buf 0x85;
         EmulePublicKeyReq.write buf t
+
+    | EmulePortTestReq t ->
+        buf_int8 buf 0xfe;
+        EmulePortTestReq.write buf;
 
     | UnknownReq (opcode, s) ->
         Buffer.add_string buf s

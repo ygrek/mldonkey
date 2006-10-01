@@ -223,7 +223,7 @@ let add_user_friend s u =
 
 let udp_client_handler t p =
   if !verbose_udp then
-    lprintf "Received UDP message:\n%s\n" (Udp.print t);
+    lprintf_nl "Received UDP message:\n%s" (Udp.print t);
 
   let udp_from_server p =
     match p.UdpSocket.udp_addr with
@@ -305,6 +305,15 @@ let udp_client_handler t p =
       server_must_update s
 
   | Udp.EmuleReaskFilePingUdpReq t -> ()
+
+  | Udp.EmulePortTestReq ->
+      (match !porttest_sock with
+	None -> ()
+      | Some sock ->
+	  let s = Buffer.create 10 in
+	  DonkeyProtoUdp.write s Udp.EmulePortTestReq;
+	  TcpBufferedSocket.write_string sock (Buffer.contents s);
+	  porttest_sock := None)
 
   | _ ->
       if !verbose_unexpected_messages then
