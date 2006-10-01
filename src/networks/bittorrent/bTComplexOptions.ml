@@ -250,7 +250,7 @@ send us more clients.
         CommonSwarming.frontend_to_value swarmer assocs
   with
     e ->
-      lprintf_file_nl file "exception %s in file_to_value"
+      lprintf_file_nl (as_file file) "exception %s in file_to_value"
         (Printexc2.to_string e); raise e
 
 

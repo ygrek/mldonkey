@@ -152,3 +152,4 @@ val set_file_group : CommonTypes.file -> string option -> unit
 val set_file_group_safe : CommonTypes.file -> string -> string option -> bool
 val file_group : CommonTypes.file -> string option
 val file_group_text : CommonTypes.file -> string
+val lprintf_file_nl : CommonTypes.file -> ('a, unit, unit) Autoconf.format -> 'a

@@ -1226,3 +1226,8 @@ let impl_file_info impl =
     T.file_user = impl.impl_file_owner;
     T.file_group = (impl_group_text impl);
   }
+
+let lprintf_file_nl file fmt =
+  lprintf_nl2 ("[" ^ (file_network file).network_shortname ^
+	       "] [file_num " ^ (string_of_int (file_num file)) ^ "]" ^
+	       "[temp " ^ (file_disk_name file) ^ "]") fmt
