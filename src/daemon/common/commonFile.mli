@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Autoconf
+
 type 'a file_impl = {
     mutable impl_file_owner : string;
     mutable impl_file_group : string option;
@@ -152,4 +154,4 @@ val set_file_group : CommonTypes.file -> string option -> unit
 val set_file_group_safe : CommonTypes.file -> string -> string option -> bool
 val file_group : CommonTypes.file -> string option
 val file_group_text : CommonTypes.file -> string
-val lprintf_file_nl : CommonTypes.file -> ('a, unit, unit) Autoconf.format -> 'a
+val lprintf_file_nl : CommonTypes.file -> ('a, unit, unit) format -> 'a
