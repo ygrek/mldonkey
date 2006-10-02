@@ -145,7 +145,8 @@ let _ =
   end;
 
   lprintf_nl "MLDonkey is working in %s" file_basedir;
-  if not (Sys.file_exists file_basedir) then begin
+  if not (Sys.file_exists file_basedir) ||
+	 not (Sys.file_exists (Filename.concat file_basedir "downloads.ini")) then begin
     lprint_newline ();
     lprintf_nl "creating new MLDonkey base directory in %s\n" file_basedir;
     created_new_base_directory := Some file_basedir
