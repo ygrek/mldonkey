@@ -52,5 +52,3 @@ let magic_works = ref false
 let zlib__uncompress_string2 s = Zlib.uncompress_string2 s
 let zlib__compress_string s = Zlib.compress_string s
 let zlib__gzip_string s = Zlib.gzip_string s
-
-@TYPE_FORMAT@

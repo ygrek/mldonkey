@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/03
+5439: Increase required ocaml version to 3.09.3 (schlumpf),
+      remove old TYPE_FORMAT stuff needed for Ocaml < 3.06 (pango)
+
 2006/10/02
 5297: In addition to previous patch 5297 force conversion of allowed_ips to
       IP blocklist when $MLDONKEY_DIR points to an existing directory

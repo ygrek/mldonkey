@@ -279,9 +279,9 @@ if test ! -z "$SUB_VERSION3"; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION3
 fi
 
-REQUIRED_OCAML=3.09.2
+REQUIRED_OCAML=3.09.3
 DOWNLOAD_OCAML_MAJOR=3.09
-DOWNLOAD_OCAML=3.09.2
+DOWNLOAD_OCAML=3.09.3
 
 REQUIRED_LABLGTK=1.2.7
 
@@ -487,7 +487,7 @@ else
     "$REQUIRED_OCAML"*) ;;
     3.09.0*) ;;
     3.09.1*) ;;
-    3.09.3*) ;;
+    3.09.2*) ;;
     3.08.4*) ;;
     3.08.3*) ;;
     *)
@@ -640,7 +640,7 @@ case "$OCAMLVERSION" in
     "$REQUIRED_OCAML"*) ;;
     3.09.0*) ;;
     3.09.1*) ;;
-    3.09.3*) ;;
+    3.09.2*) ;;
     3.08.4*) ;;
     3.08.3*) ;;
     *)
@@ -1330,11 +1330,6 @@ else
   echo "---------------------------------------------------------"
 fi
 
-case "$OCAMLVERSION" in
-  3.06* | 3.07* | 3.08* ) TYPE_FORMAT="";;
-  *) TYPE_FORMAT="type ('a,'b,'c) ml_format = ('a,'b, 'c,'c) format4  type ('a,'b,'c) format = ('a,'b, 'c) ml_format";;
-esac
-
 if test "$OS_FILES" = "mingw"; then
    OCAMLDEP_OPTIONS="-slash"
 fi
@@ -1351,7 +1346,6 @@ AC_SUBST(CPP)
 AC_SUBST(CXX)
 AC_SUBST(FIX_BROKEN_CPP)
 AC_SUBST(CONFIG_INCLUDES)
-AC_SUBST(TYPE_FORMAT)
 AC_SUBST(OCAMLC)
 AC_SUBST(OCAMLLIB)
 AC_SUBST(OCAMLOPT)
