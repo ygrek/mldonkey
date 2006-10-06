@@ -1574,13 +1574,12 @@ let client_can_upload c allowed =
           iter_upload sock c
   )
 
-
-(** Probably useless now
-*)
 let file_resume file =
-  (*useless with no saving of sources
-     resume_clients file;
-  *)
+  List.iter (fun t ->
+    match t.tracker_status with
+      Enabled -> ()
+    | _ -> t.tracker_status <- Enabled
+  ) file.file_trackers;
   (try get_sources_from_tracker file  with _ -> ())
 
 
