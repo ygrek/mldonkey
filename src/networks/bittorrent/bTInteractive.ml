@@ -1007,12 +1007,15 @@ let commands =
     ), _s ":\t\t\t\tprint all .torrent files on this server";
 
     "seeded_torrents", "Network/Bittorrent", Arg_none (fun o ->
+      if CommonUserDb.user2_is_admin o.conn_user.ui_user_name then begin
       List.iter (fun file ->
           if file_state file = FileShared then
               Printf.bprintf o.conn_buf "%s [%s]\n" file.file_name (Int64.to_string file.file_uploaded)
       ) !current_files;
       _s "done"
-
+      end else
+      begin CommonUserDb.print_command_result o o.conn_buf "You are not allowed to use seeded_torrents";
+      "" end
     ), _s ":\t\t\tprint all seeded .torrent files on this server";
 
     "reshare_torrents", "Network/Bittorrent", Arg_none (fun o ->
@@ -1134,7 +1137,13 @@ let op_gui_message s user =
     0 ->
       let text = String.sub s 2 (String.length s - 2) in
       if !verbose then lprintf_nl "received torrent from gui...";
-      ignore (load_torrent_string text user)
+      (try
+        ignore (load_torrent_string text user)
+      with e -> (match e with
+	  Torrent_can_not_be_used -> lprintf_nl "Loading torrent from GUI: this torrent can not be used"
+	| Already_exists -> lprintf_nl "Loading torrent from GUI: this torrent is already in download queue"
+	| _ -> ());
+	raise e)
   | 1 -> (* 34+ *)
       let n = get_int s 2 in
       let a, pos = get_string s 6 in

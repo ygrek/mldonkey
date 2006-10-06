@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/10/06
+5442: BT: Verbose error messages when torrent is sent from GUI,
+      BT-multiuser: Protect command seeded_torrents
 5441: BT: Re-enable all trackers when file is resumed
 5440: HTML: Strip CR from multiline dllink input to fix FileTP filenames
 
