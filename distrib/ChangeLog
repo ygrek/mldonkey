@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/06
+5440: HTML: Strip CR from multiline dllink input to fix FileTP filenames
+
 2006/10/03
 5439: Increase required ocaml version to 3.09.3 (schlumpf),
       remove old TYPE_FORMAT stuff needed for Ocaml < 3.06 (pango)

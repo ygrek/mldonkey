@@ -1331,7 +1331,8 @@ let http_handler o t r =
                 | [ "jvcmd", "multidllink" ; "links", links] ->
                     html_open_page buf t r true;
                     List.iter (fun url ->
-		      if url <> "\013" && url <> "" then
+		      let url = fst (String2.cut_at url '\013') in
+		      if url <> "" then
 		        begin
                           Buffer.add_string buf (html_escaped (dllink_parse (o.conn_output = HTML) url o.conn_user.ui_user_name));
                           Buffer.add_string buf (html_escaped "\\<P\\>")
