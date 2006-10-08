@@ -392,7 +392,7 @@ let op_file_print_sources_html file buf =
         ( "0", "srh ar", "Incoming [T]rue, [F]alse", "I" );
         ( "0", "srh br ar", "Registered bitfield [T]rue, [F]alse", "B" );
 
-        ( "0", "srh ar", "Optimist Time", "O" );
+        ( "0", "srh ar", "Connect Time", "T" );
         ( "0", "srh ar", "Last optimist", "L.Opt" );
         ( "0", "srh br ar", "Num try", "N" );
 
@@ -447,7 +447,7 @@ let op_file_print_sources_html file buf =
             ("", "sr", (btos c.client_incoming));
             ("", "br sr", (btos c.client_registered_bitfield));
 
-            ("", "sr", Printf.sprintf "%d" c.client_optimist_time);
+            ("", "sr", Printf.sprintf "%d" c.client_connect_time);
             ("", "ar sr", string_of_date c.client_last_optimist);
             ("", "br sr", Printf.sprintf "%d" c.client_num_try);
 
@@ -851,6 +851,7 @@ let op_client_info c =
     P.client_downloaded = c.client_downloaded;
     P.client_uploaded = c.client_uploaded;
     P.client_upload = Some (c.client_file.file_name);
+    P.client_connect_time = c.client_connect_time;
 
   }
 

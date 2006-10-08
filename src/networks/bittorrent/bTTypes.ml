@@ -227,7 +227,7 @@ type client = {
     mutable client_downloaded_rate :  Rate.t;
     mutable client_downloaded : int64;
     mutable client_uploaded : int64;
-    mutable client_optimist_time : int;
+    mutable client_connect_time : int;
 
     mutable client_blocks_sent : int list;
     mutable client_good : bool;
