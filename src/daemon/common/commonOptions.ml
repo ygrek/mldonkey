@@ -200,6 +200,11 @@ let _ =
       exit 2
     end;  
 
+  (* Charset conversion self-test *)
+  let filename = "abcdefghijklmnopqrstuvwxyz" in
+  let conv_filename = Charset.to_locale filename in
+  if filename <> conv_filename then Charset.conversion_enabled := false;
+
   Unix2.can_write_to_directory (Filename2.temp_directory ());
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet") then begin

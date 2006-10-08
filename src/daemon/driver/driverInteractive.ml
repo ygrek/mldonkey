@@ -75,6 +75,7 @@ let real_startup_message () =
   let s =
   !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ()) 
   ^ (if not !dns_works then "DNS resolution does not work\n" else "")
+  ^ (if not !Charset.conversion_enabled then "Charset conversion does not work, disabled\n" else "")
   ^ (match !created_new_base_directory with
        None -> ""
      | Some dir -> (Printf.sprintf "MLDonkey created a new home directory in %s\n" dir))
@@ -1894,7 +1895,10 @@ let buildinfo html buf =
 	    " gd(jpg)"
 	| _, false, false ->
 	    " gd(neither jpg nor png ?)") ^
-      (if Autoconf.has_iconv then " iconv" else " no-iconv") ^
+      (match Autoconf.has_iconv, !Charset.conversion_enabled with
+       | true, true -> " iconv(active)"
+       | true, false -> " iconv(inactive)"
+       | false, _ -> " no-iconv") ^
       (match Autoconf.magic, !Autoconf.magic_works with
        | true, true -> " magic(active)"
        | true, false -> " magic(inactive)"

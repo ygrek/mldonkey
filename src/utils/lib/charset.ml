@@ -1810,6 +1810,8 @@ let set_default_charset_list (lang : string) =
 (*                                                                                *)
 (**********************************************************************************)
 
+let conversion_enabled = ref true
+
 let convert ~from_charset ~to_charset s =
   if s <> "" then begin
     let t = charset_to_string to_charset in
@@ -1909,7 +1911,7 @@ let to_utf8 s =
 (**********************************************************************************)
 
 let to_locale s =
-  if s = ""
+  if s = "" || not !conversion_enabled
   then s
   else begin
     let s = to_utf8 s in

@@ -381,6 +381,9 @@ or getting a binary compiled with glibc %s.\n\n")
 	end
       end
   );
+  if not !Charset.conversion_enabled then
+    lprintf_nl (_b "Self-test failed, charset conversion disabled.");
+
   load_config ();
   
   add_infinite_option_timer download_sample_rate CommonFile.sample_timer;

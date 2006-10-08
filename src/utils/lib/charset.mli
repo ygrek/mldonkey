@@ -172,3 +172,4 @@ val add_uchar : Buffer.t -> uchar -> unit
 
 val default_language : string
 val locstr : string
+val conversion_enabled : bool ref

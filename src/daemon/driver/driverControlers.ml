@@ -320,7 +320,7 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
             let module M = CommonMessages in
             Buffer.add_string buf M.full_access;
             (match DriverInteractive.real_startup_message () with
-               Some s -> Buffer.add_string buf s;
+               Some s -> Buffer.add_string buf ("\n" ^ s);
              | None -> ());
           end else
         let module M = CommonMessages in
