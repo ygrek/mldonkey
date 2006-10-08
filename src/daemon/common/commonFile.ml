@@ -78,6 +78,7 @@ section, and thus, before it is shared. *)
 has been changed. The method should not perform the move, just know that
 it will happen soon. *)
     mutable op_file_save_as : ('a -> string -> unit);
+    mutable op_file_shared : ('a -> CommonTypes.shared option);
     mutable op_file_to_option : ('a -> (string * option_value) list);
     mutable op_file_cancel : ('a -> unit);
     mutable op_file_pause : ('a -> unit);
@@ -208,6 +209,10 @@ let file_to_option (file : file) =
 let file_save_as (file : file) name =
   let file = as_file_impl file in
   file.impl_file_ops.op_file_save_as file.impl_file_val name
+
+let file_shared (file : file) =
+  let file = as_file_impl file in
+  file.impl_file_ops.op_file_shared file.impl_file_val
 
 let file_comment (file : file) =
   let file = as_file_impl file in
@@ -997,6 +1002,7 @@ let new_file_ops network =
       op_file_commit = (fun _ _ -> ni_ok network "file_commit");
       op_file_save_as = (fun _ _ -> ni_ok network "file_save_as");
 (*    op_file_print = (fun _ _ -> ni_ok network "file_print"); *)
+      op_file_shared = (fun _ -> None);
       op_file_to_option = (fun _ -> fni network "file_to_option");
       op_file_cancel = (fun _ -> ni_ok network "file_cancel");
       op_file_info = (fun _ -> fni network "file_info");
@@ -1036,6 +1042,8 @@ let check_file_implementations () =
         lprintf_nl "op_file_commit";
       if c.op_file_save_as == cc.op_file_save_as then
         lprintf_nl "op_file_save_as";
+      if c.op_file_shared == cc.op_file_shared then
+        lprintf_nl "op_file_shared";
       if c.op_file_cancel == cc.op_file_cancel then
         lprintf_nl "op_file_cancel";
       if c.op_file_pause == cc.op_file_pause then

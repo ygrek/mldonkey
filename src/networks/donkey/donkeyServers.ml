@@ -34,6 +34,7 @@ open CommonTypes
 open CommonOptions
 open CommonGlobals
 open CommonSources
+open CommonShared
 
 open DonkeyMftp
 open DonkeyImport
@@ -210,6 +211,30 @@ let udp_query_sources () =
 
 
 let disconnect_server s reason =
+  let choose_new_master_server s =
+    match !DonkeyGlobals.master_server with
+      Some ss when s == ss ->
+	DonkeyGlobals.master_server := None;
+        (try
+	  DonkeyGlobals.master_server :=
+	    Some (List.find (fun s -> s.server_master) !servers_list);
+	  lprintf_nl "changed main master server from %s to %s"
+	    (string_of_server ss) (string_of_server s)
+        with Not_found -> ())
+    | _ -> ();
+  in
+(* remove this server from the list of servers a file was published to *)
+  let remove_server_from_shared_files s =
+    List.iter (fun file ->
+      shared_iter (fun sh ->
+        let impl = as_shared_impl sh in
+	  impl.impl_shared_servers <-
+	    List2.removeq (as_server s.server_server) impl.impl_shared_servers)
+    ) s.server_sent_shared;
+    s.server_sent_shared <- []
+  in
+  choose_new_master_server s;
+  remove_server_from_shared_files s;
   match s.server_sock with
       NoConnection -> ()
     | ConnectionWaiting token ->
@@ -225,15 +250,10 @@ let disconnect_server s reason =
         s.server_users <- [];
         set_server_state s (NotConnected (reason, -1));
         s.server_master <- false;
-        (match !DonkeyGlobals.master_server with
-          | Some ss when s == ss ->
-              DonkeyGlobals.master_server := None;
-          | _ -> ());
         s.server_banner <- "";
         s.server_sent_all_queries <- false;
         remove_connecting_server s;
         remove_connected_server s
-
 
 let server_handler s sock event =
   match event with
@@ -282,8 +302,8 @@ let client_to_server s t sock =
 
   | M.MessageReq msg ->
       if !last_message_sender <> server_num s then begin
-          let server_header = Printf.sprintf "\n+-- From server %s [%s:%d] ------"
-              s.server_name (Ip.to_string s.server_ip) s.server_port in
+          let server_header = Printf.sprintf "\n+-- From server %s [%s] ------"
+              s.server_name (string_of_server s) in
           CommonEvent.add_event (Console_message_event (Printf.sprintf "%s\n" server_header));
           if !CommonOptions.verbose_msg_servers then
       lprintf_nl "%s" server_header;
@@ -297,7 +317,7 @@ let client_to_server s t sock =
 
   | M.ServerListReq l ->
       if !!update_server_list_server then begin
-        if !verbose_msg_servers then lprintf_nl "Received serverlist from server";
+        if !verbose_msg_servers then lprintf_nl "Received %d servers from server" (List.length l);
         let module Q = M.ServerList in
         List.iter (fun s ->
             safe_add_server s.Q.ip s.Q.port
@@ -339,8 +359,8 @@ let client_to_server s t sock =
       s.server_nfiles <- Some (Int64.of_int files);
       if (users < !!min_users_on_server && not s.server_preferred) then
         begin
-          lprintf_nl "%s:%d remove server min_users_on_server limit hit!"
-            (Ip.to_string s.server_ip) s.server_port;
+          lprintf_nl "%s remove server min_users_on_server limit hit!"
+            (string_of_server s);
 
           disconnect_server s Closed_for_timeout;
           server_remove (as_server s.server_server);
@@ -618,8 +638,7 @@ position to the min_left_servers position.
         if ls < min_last_conn && s.server_sock = NoConnection
           && not s.server_preferred then begin
           if !verbose then
-            lprintf_nl "old servers: Server too old: %s:%d"
-              (Ip.to_string s.server_ip) s.server_port;
+            lprintf_nl "old servers: Server too old: %s" (string_of_server s);
 
           to_remove := s :: !to_remove
         end
@@ -674,16 +693,14 @@ let walker_timer () =
                   if connection_can_try s.server_connection_control then
                     begin
                       if !verbose then
-                        lprintf_nl "WALKER: try connect %s"
-                          (Ip.to_string s.server_ip);
+                        lprintf_nl "WALKER: try connect %s" (string_of_server s);
                       connect_server s
                     end
                   else
                     begin
                       delayed_list := s :: !delayed_list;
                       if !verbose then
-                        lprintf_nl "WALKER: connect %s delayed"
-                          (Ip.to_string s.server_ip);
+                        lprintf_nl "WALKER: connect %s delayed" (string_of_server s);
                     end
               | _ -> ()
 
@@ -749,13 +766,13 @@ let update_master_servers _ =
         match s.server_sock with
         | Connection _ ->
             if !verbose_location then begin
-        if !tag2 then begin
+	      if !tag2 then begin
                 lprintf_n "master servers (old):";
-    tag1 := false;
-    tag2 := false
-        end;
-        lprintf " %s" (Ip.to_string s.server_ip)
-      end;
+		tag1 := false;
+		tag2 := false
+	      end;
+	      lprintf " %s" (string_of_server s)
+	    end;
             masters := s :: !masters
         | _ -> s.server_master <- false
   ) server_list;
@@ -772,8 +789,7 @@ let update_master_servers _ =
         masters := s :: !masters;
         masters := List.rev (List.sort compare_servers !masters);
 
-        server_send_share s.server_has_zlib sock
-          (DonkeyShare.all_shared ())
+	DonkeyGlobals.master_server := Some s;
     )
   in
 
@@ -786,7 +802,7 @@ let update_master_servers _ =
     if !nconnected_servers > max_allowed_connected_servers then
       begin
         if !verbose_location then
-            lprintf_nl "master servers: disconnect %s" (Ip.to_string s.server_ip);
+            lprintf_nl "master servers: disconnect %s" (string_of_server s);
         nconnected_servers := !nconnected_servers - 3;
         do_if_connected  s.server_sock (fun sock ->
             (* We will disconnect from this server.
@@ -805,23 +821,14 @@ let update_master_servers _ =
             - connection_last_conn s.server_connection_control
           in
           if !verbose_location then
-              lprintf_nl "master servers: Checking ip:%s, users: %Ld, ct:%d"
-          (Ip.to_string s.server_ip)
-	  (match s.server_nusers with None -> 0L | Some v -> v)
-	  connection_time;
-          if not s.server_master
-            && (s.server_preferred
-                 || connection_time > !!become_master_delay
-               )
-            then
+              lprintf_nl "master servers: Checking %s, users: %Ld, ct:%d"
+		(string_of_server s)
+		(match s.server_nusers with None -> 0L | Some v -> v)
+		connection_time;
+          if not s.server_master && s.server_preferred then
               begin
                 if (!nmasters < max_allowed_connected_servers) then
-                  begin
-                    if !verbose_location then
-                        lprintf_nl "master servers: raising  %s"
-                                  (Ip.to_string s.server_ip);
                     make_master s
-                  end
                 else if s.server_sent_all_queries then
                   match !masters with
                       [] -> disconnect_old_server s
@@ -847,7 +854,7 @@ let update_master_servers _ =
                               if !verbose_location then
                                 lprintf_nl
                                   "master servers: raising %s, disconnected %s"
-                                  (Ip.to_string s.server_ip) (Ip.to_string ss.server_ip);
+                                  (string_of_server s) (string_of_server ss);
                               ss.server_master <- false;
                               masters := tail;
                               make_master s

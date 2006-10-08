@@ -750,12 +750,14 @@ let get_server proto s pos =
     server_banner = "";
     server_users = None;
     server_preferred = preferred;
+    server_master = false;
     server_version = ve; 
     server_max_users = ma;
     server_lowid_users = lo;
     server_soft_limit = so;
     server_hard_limit = ha;
     server_ping = pi;
+    server_published_files = 0;
   }, pos
 
 let get_client_type s pos = 

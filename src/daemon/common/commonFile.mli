@@ -45,6 +45,7 @@ and 'a file_ops = {
   mutable op_file_network : CommonTypes.network;
   mutable op_file_commit : 'a -> string -> unit;
   mutable op_file_save_as : 'a -> string -> unit;
+  mutable op_file_shared : 'a -> CommonTypes.shared option;
   mutable op_file_to_option : 'a -> (string * Options.option_value) list;
   mutable op_file_cancel : 'a -> unit;
   mutable op_file_pause : 'a -> unit;
@@ -79,6 +80,7 @@ val update_file_num : 'a file_impl -> unit
 val update_file_state : 'a file_impl -> CommonTypes.file_state -> unit
 val file_to_option : CommonTypes.file -> (string * Options.option_value) list
 val file_save_as : CommonTypes.file -> string -> unit
+val file_shared : CommonTypes.file -> CommonTypes.shared option
 val file_comment : CommonTypes.file -> string
 val file_network : CommonTypes.file -> CommonTypes.network
 val file_info : CommonTypes.file -> GuiTypes.file_info

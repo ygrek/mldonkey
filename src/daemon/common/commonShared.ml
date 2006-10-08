@@ -43,7 +43,8 @@ type 'a shared_impl = {
     mutable impl_shared_size : int64;
     mutable impl_shared_id : Md4.t;
     mutable impl_shared_requests : int;
-    mutable impl_shared_magic : string option
+    mutable impl_shared_magic : string option;
+    mutable impl_shared_servers : CommonTypes.server list;
   }
   
 and 'a shared_ops = {
@@ -214,6 +215,7 @@ let dummy_shared = {
     impl_shared_id = Md4.null;
     impl_shared_requests = 0;
     impl_shared_magic = None;
+    impl_shared_servers = []
   }
   
   

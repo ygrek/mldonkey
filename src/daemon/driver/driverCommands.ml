@@ -764,6 +764,23 @@ let _ =
         ""
     ), "<num> :\t\t\tprint banner of connected server <num>";
 
+    "server_shares", Arg_one (fun num o ->
+	if user2_is_admin o.conn_user.ui_user_name then
+        let s = server_find (int_of_string num) in
+        (match server_state s with
+           Connected _ -> let list = ref [] in
+	    List.iter (fun f -> 
+	      match file_shared f with
+		None -> ()
+	      | Some sh -> list := (as_shared_impl sh) :: !list)
+	      (server_published s);
+	    print_upstats o !list (Some s)
+	  | _ -> ()
+	)
+	else print_command_result o o.conn_buf "You are not allowed to use this command";
+	_s ""
+    ), "<num> :\t\t\tshow list of files published on server <num>";
+
     "c", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         match args with
@@ -2188,109 +2205,17 @@ let _ =
               html_mods_table_one_row buf "upstatsTable" "upstats" [
                 ("", "srh", "You are not allowed to see upload statistics") ]
             else
-              Printf.bprintf buf "You are not allowed to see upload statistics\n"
+              print_command_result o buf "You are not allowed to see upload statistics"
           end
         else
-        begin
-
-        if use_html_mods o then begin
-
-if !!html_mods_use_js_tooltips then Printf.bprintf buf 
-"\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:
--100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
-
-            Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>";
-            html_mods_table_one_row buf "upstatsTable" "upstats" [
-              ("", "srh", Printf.sprintf "Session: %s uploaded | Shared(%d): %s\n"
-                (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes)); ]
-          end
-        else begin
-            Printf.bprintf buf "Upload statistics:\n";
-            Printf.bprintf buf "Session: %s uploaded | Shared(%d): %s\n"
-              (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes)
-          end;
-        let list = ref [] in
-        shared_iter (fun s ->
-            let impl = as_shared_impl s in
-            list := impl :: !list
-        );
-
-        if use_html_mods o then
-          html_mods_table_header buf "upstatsTable" "upstats" [
-            ( "1", "srh", "Total file requests", "Reqs" ) ;
-            ( "1", "srh", "Total bytes sent", "Total" ) ;
-            ( "1", "srh", "Upload Ratio", "UPRatio" ) ;
-            ( "0", "srh", "Preview", "P" ) ;
-            ( "0", "srh", "Filename", "Filename" );
-            ( "0", "srh", "Statistic links", "Stats" ) ]
-        else
-          begin
-            Printf.bprintf buf " Requests |  Bytes   | Uploaded | File\n";
-            Printf.bprintf buf "----------+----------+----------+----------------------------------------------------\n";
-          end;
-
-        let counter = ref 0 in
-
-        let list = Sort.list (fun f1 f2 ->
-              (f1.impl_shared_requests = f2.impl_shared_requests &&
-                f1.impl_shared_uploaded > f2.impl_shared_uploaded) ||
-              (f1.impl_shared_requests > f2.impl_shared_requests )
-          ) !list in
-
-        List.iter (fun impl ->
-            if use_html_mods o then
-              begin
-                incr counter;
-
-                let ed2k = file_print_ed2k_link
-                    (Filename.basename impl.impl_shared_codedname)
-                  impl.impl_shared_size impl.impl_shared_id in
-
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\""
-                  (if (!counter mod 2 == 0) then "dl-1" else "dl-2";);
-
-          (if !!html_mods_use_js_tooltips then
-                        Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
-                        (Http_server.html_real_escaped (Filename.basename impl.impl_shared_codedname))
-			(match impl.impl_shared_magic with
-			   None -> ""
-			 | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
-			!!html_mods_js_tooltips_wait
-			!!html_mods_js_tooltips_timeout
-			!!html_mods_js_tooltips_wait
-			 else Printf.bprintf buf " onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>");
-
-                let uploaded = Int64.to_float impl.impl_shared_uploaded in
-                let size = Int64.to_float impl.impl_shared_size in
-
-                html_mods_td buf [
-                  ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
-                  ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
-                  ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
-                  ("", "sr", Printf.sprintf "\\<a href=\\\"preview_upload?q=%d\\\"\\>P\\</a\\>"
-			impl.impl_shared_num);
-                  ("", "sr", (if impl.impl_shared_id = Md4.null then
-                    (Filename.basename impl.impl_shared_codedname)
-                  else
-                    Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
-                      ed2k (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)));
-                  ("", "sr", (if impl.impl_shared_id = Md4.null then "" else
-                    Printf.sprintf "\\<a href=\\\"http://tothbenedek.hu/ed2kstats/ed2k?hash=%s\\\"\\>%s\\</a\\>
-\\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>%s\\</a\\>"
-                      (Md4.to_string impl.impl_shared_id) "T1"
-                      (Md4.to_string impl.impl_shared_id) "B")) ];
-                Printf.bprintf buf "\\</tr\\>\n";
-              end
-            else
-              Printf.bprintf buf "%9d | %8s | %7s%% | %-50s\n"
-		(impl.impl_shared_requests)
-              (size_of_int64 impl.impl_shared_uploaded)
-              (Printf.sprintf "%3.1f" ((Int64.to_float impl.impl_shared_uploaded *. 100.) /. Int64.to_float impl.impl_shared_size))
-              (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len);
-        ) list;
-
-        if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>"
-        end;
+	  begin
+	    let list = ref [] in
+	    shared_iter (fun s ->
+	      let impl = as_shared_impl s in
+	      list := impl :: !list
+	    );
+	    print_upstats o !list None;
+	  end;
         _s ""
     ), ":\t\t\t\tstatistics on upload";
 

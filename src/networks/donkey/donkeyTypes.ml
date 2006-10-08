@@ -430,7 +430,21 @@ module DonkeySources = CommonSources.Make(struct
         | Invalid_address _ -> failwith "Invalid address"
     end)
 
-type server = (*[]*){
+type file = {
+    file_file : file CommonFile.file_impl;
+    file_md4 : Md4.t;
+    mutable file_swarmer : CommonSwarming.t option;
+    mutable file_nchunks : int;
+    mutable file_nchunk_hashes : int;
+    mutable file_diskname : string;
+    mutable file_computed_md4s : Md4.t array;
+    mutable file_format : format;
+    mutable file_shared : file CommonShared.shared_impl option;
+    mutable file_sources : DonkeySources.file_sources_manager;
+    mutable file_comments : (Ip.t * string * int * string) list;
+  }
+
+and server = (*[]*){
     mutable server_server : server CommonServer.server_impl;
     mutable server_ip : Ip.t;
     mutable server_cid : Ip.t option;
@@ -470,6 +484,7 @@ type server = (*[]*){
     mutable server_soft_limit : int64 option;
     mutable server_hard_limit : int64 option;
     mutable server_max_users : int64 option;
+    mutable server_sent_shared : file list
   }
 
 
@@ -578,20 +593,6 @@ and client_kind =
   int *
   int * (* last connection attempt *)
   int   (* booked client num *)
-
-and file = {
-    file_file : file CommonFile.file_impl;
-    file_md4 : Md4.t;
-    mutable file_swarmer : CommonSwarming.t option;
-    mutable file_nchunks : int;
-    mutable file_nchunk_hashes : int;
-    mutable file_diskname : string;
-    mutable file_computed_md4s : Md4.t array;
-    mutable file_format : format;
-    mutable file_shared : file CommonShared.shared_impl option;
-    mutable file_sources : DonkeySources.file_sources_manager;
-    mutable file_comments : (Ip.t * string * int * string) list;
-  }
 
 and file_to_share = {
     shared_name : string;

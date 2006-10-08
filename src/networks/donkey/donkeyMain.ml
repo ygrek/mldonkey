@@ -69,7 +69,6 @@ let quarter_timer timer =
   clean_join_queue_tables ()
 
 let fivemin_timer timer =
-  DonkeyShare.send_new_shared ();
   clients_root := []
 
 let second_timer timer =
@@ -95,10 +94,7 @@ let min_timer timer =
  (try
       DonkeyServers.query_locations_timer ();
     with _ -> ());
-  (List.iter (fun file -> DonkeyShare.must_share_file file) !new_shared_files;
-  new_shared_files := [])
-(*  DonkeyIndexer.add_to_local_index_timer () *)
-
+  DonkeyShare.send_new_shared ()
 
 let local_login () =
   if !!login = "" then !!global_login else !!login

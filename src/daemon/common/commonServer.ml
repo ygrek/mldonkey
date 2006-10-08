@@ -53,6 +53,7 @@ and 'a server_ops = {
     mutable op_server_connect : ('a -> unit);
     mutable op_server_disconnect : ('a -> unit);
     mutable op_server_users : ('a -> user list);
+    mutable op_server_published : ('a -> file list);
     mutable op_server_query_users : ('a -> unit);
     mutable op_server_find_user : ('a -> string -> unit);
     mutable op_server_cid : ('a -> Ip.t);
@@ -108,12 +109,14 @@ let impl_server_info impl =
     T.server_users = None;
     T.server_banner = "";
     T.server_preferred = false;
+    T.server_master = false;
     T.server_version = "";
     T.server_max_users = 0L;
     T.server_soft_limit = 0L;
     T.server_hard_limit = 0L;
     T.server_lowid_users = 0L;
     T.server_ping = 0;
+    T.server_published_files = 0;
   }
 
 let server_num s =
@@ -183,6 +186,10 @@ let server_users s =
   let s = as_server_impl s in
   s.impl_server_ops.op_server_users s.impl_server_val
 
+let server_published s =
+  let s = as_server_impl s in
+  s.impl_server_ops.op_server_published s.impl_server_val
+
 let server_cid s =
   let s = as_server_impl s in
   s.impl_server_ops.op_server_cid s.impl_server_val
@@ -212,6 +219,7 @@ let new_server_ops network =
       op_server_disconnect = (fun _ -> ni_ok network "server_disconnect");
       op_server_find_user = (fun _ -> fni network "find_user");
       op_server_query_users = (fun _ -> ni_ok network "query_users");
+      op_server_published = (fun _ -> fni network "published");
       op_server_users = (fun _ -> fni network "users");
       op_server_cid = (fun _ -> fni network "cid");
       op_server_low_id = (fun _ -> fni network "low_id");
@@ -367,6 +375,7 @@ let server_print_html_header buf ext =
     ( "0", "srh", "Connect|Disconnect", "C/D" ) ;
     ( "0", "srh", "Remove", "Rem" ) ;
     ( "0", "srh", "Preferred", "P" ) ;
+    ( "0", "srh", "Master servers", "M" ) ;
     ( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ;
     ( "0", "srh", "Network name", "Network" ) ;
     ( "0", "srh", "Connection status", "Status" ) ;
@@ -375,11 +384,12 @@ let server_print_html_header buf ext =
     ( "1", "srh ar", "Number of connected users", "Users" ) ;
     ( "1", "srh ar br", "Max number of users", "MaxUsers" ) ;
     ( "1", "srh ar br", "LowID users", "LowID" ) ;
-    ( "1", "srh ar br", "Number of files indexed on server", "Files" ) ;
+    ( "1", "srh ar", "Number of files indexed on server", "Files" );
+    ( "1", "srh ar br", "Number of published files on server", "Publ" );
     ( "1", "srh ar", "Soft file limit", "Soft" ) ;
     ( "1", "srh ar br", "Hard file limit", "Hard" ) ;
     ( "0", "srh ar br", "Ping (ms)", "Ping" ) ;
-    ( "0", "srh", "Server version", "Version" ) ;
+    ( "0", "srh br", "Server version", "Version" ) ;
     ( "0", "srh", "Server name", "Name" ) ;
     ( "0", "srh", "Server details", "Details" ) ])
 
@@ -496,6 +506,7 @@ let server_print s o =
 
     let cc,cn = Geoip.get_country (Ip.ip_of_addr info.G.server_addr) in
     html_mods_td buf ([
+      ("", "srb", if info.G.server_master then "T" else "F");
       (id_title, "sr", id_text);
       ("", "sr", n.network_name);
       ("", "sr", server_state_string);
@@ -504,7 +515,18 @@ let server_print s o =
       ("", "sr ar", Printf.sprintf "%Ld" info.G.server_nusers);
       ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_max_users);
       ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_lowid_users);
-      ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_nfiles);
+      ("", "sr ar", Printf.sprintf "%Ld" info.G.server_nfiles)]);
+
+    if info.G.server_published_files = 0 then
+      html_mods_td buf ([("", "sr br", "")])
+    else
+      Printf.bprintf buf
+"\\<TD class=\\\"sr br\\\" onMouseOver=\\\"mOvr(this);\\\"
+onMouseOut=\\\"mOut(this);\\\" title=\\\"Show published files\\\"
+onClick=\\\"location.href='submit?q=server_shares+%d'\\\"\\>%d\\</TD\\>"
+	snum info.G.server_published_files;
+
+    html_mods_td buf ([
       ("", "sr ar", Printf.sprintf "%Ld" info.G.server_soft_limit);
       ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_hard_limit);
       ("", "sr ar br", Printf.sprintf "%d" info.G.server_ping);

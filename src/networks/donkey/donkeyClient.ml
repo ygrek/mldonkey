@@ -2473,11 +2473,11 @@ let client_connection_handler overnet t event =
           (if is_connecting_server then
             ( try 
                 let s = Hashtbl.find servers_by_key from_ip in
-                Printf.sprintf " %s (%s)" s.server_name (Ip.to_string s.server_ip)
+                Printf.sprintf " %s (%s)" s.server_name (string_of_server s)
               with _ ->
                 try 
                   let s = Hashtbl.find servers_by_key connecting_server in
-                  Printf.sprintf " %s (%s)" s.server_name (Ip.to_string s.server_ip)
+                  Printf.sprintf " %s (%s)" s.server_name (string_of_server s)
                 with _ -> "Unknown server"
             )
            else ""

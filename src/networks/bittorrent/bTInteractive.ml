@@ -1172,6 +1172,11 @@ let _ =
   file_ops.op_file_cancel <- op_file_cancel;
   file_ops.op_file_info <- op_file_info;
   file_ops.op_file_save_as <- (fun file name -> ());
+  file_ops.op_file_shared <- (fun file ->
+      match file.file_shared with
+        None -> None
+      | Some sh -> Some (as_shared sh)
+  );
 
   network.op_network_gui_message <- op_gui_message;
   network.op_network_connected <- op_network_connected;

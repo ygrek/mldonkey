@@ -39,13 +39,10 @@ open DonkeyGlobals
 
 module VB = VerificationBitmap
 
-let new_shared_files = ref []
-
 let must_share_file file codedname has_old_impl =
   match file.file_shared with
   | Some _ -> ()
   | None ->
-      new_shared := true;
       let full_name = file_disk_name file in
       let magic =
         match Magic.M.magic_fileinfo full_name false with
@@ -65,9 +62,9 @@ let must_share_file file codedname has_old_impl =
           impl_shared_val = file;
           impl_shared_requests = 0;
           impl_shared_magic = magic;
+          impl_shared_servers = []
         } in
       file.file_shared <- Some impl;
-      new_shared_files := file :: !new_shared_files;
       incr CommonGlobals.nshared_files;
       CommonShared.shared_calculate_total_bytes ();
       match has_old_impl with
@@ -162,41 +159,72 @@ let all_shared () =
         None -> ()
       | Some _ ->  shared_files := file :: !shared_files
   ) files_by_md4;
-  if !verbose_share then lprintf_nl "%d files shared" (List.length !shared_files);
+  if !verbose_share then lprintf_nl "scanned shared files, %d files found" (List.length !shared_files);
   !shared_files
 
-(* Check whether new files are shared, and send them to connected servers.
-   Do it only once per 5 minutes to prevent sending to many times all files.
-   Change: Just send *new* shared files to servers, they never forget a
-     clients files until disconnection.
-   Should I only do it for master servers, no ?
-*)
+(* publish shared files to servers, called once per minute *)
 let send_new_shared () =
-  let tag = ref false in
-  if !new_shared then
-    begin
-      new_shared := false;
-      if !new_shared_files <> [] then
-        begin
-          List.iter (fun s ->
-            if s.server_master then
-              begin
-                if !verbose_share || !verbose then
-                  lprintf_nl "send_new_shared: found master server %s:%d"
-                   (Ip.to_string s.server_ip) s.server_port;
-                tag := true;
-                do_if_connected s.server_sock (fun sock ->
-                  server_send_share s.server_has_zlib sock !new_shared_files)
-              end
-          ) (connected_servers ());
-          if !tag && (!verbose_share || !verbose) then
-              lprintf_nl "send_new_shared: Sent %d new shared files to servers"
-                (List.length !new_shared_files);
-          new_shared_files := []
-        end
-      else
-          lprintf_nl "donkey send_new_share: No new shared files to send to servers"
-    end
+(* emule sends 200 files in this period to avoid server blacklist *)
+  let limit_per_minute = 200 in
+
+(* sort list to publish least published files first *)
+  let ( |> ) x f = f x in
+  let all_shared =
+    all_shared ()
+    |> List.map (fun e -> 
+	(match e.file_shared with
+	  Some s -> List.length s.impl_shared_servers
+	 | _ -> 0) , e)
+    |> List.sort (fun (a,_) (b,_) -> compare a b)
+    |> List.map snd
+  in
+
+(* iter through connected servers *)
+  List.iter (fun s ->
+
+(* publish files only on master servers and do not publish more files than hard limit allows *)
+    if s.server_master &&
+      (match s.server_hard_limit with
+	  Some v when (Int64.to_int v) < List.length s.server_sent_shared -> false
+	| _ -> true) then
+
+(* iter through all shared files and check if the file is already published on the current server
+   build a list of files_to_send with yet unpublished files *)
+      begin
+	let files_to_send = ref [] in
+        List.iter (fun f ->
+          match f.file_shared with
+	    Some impl ->
+	      if not (List.mem (CommonServer.as_server s.server_server) impl.impl_shared_servers)
+		&& List.length !files_to_send < limit_per_minute then
+	      files_to_send := f :: !files_to_send
+	    | _ -> () (* this case never happens *)
+	) all_shared;
+
+	if !files_to_send <> [] then
+	  begin
+	    if !verbose_share || !verbose then
+	      lprintf_nl "publishing %d new files to %s (holds %d files)"
+		(List.length !files_to_send) (string_of_server s)
+		(List.length s.server_sent_shared);
+
+(* publish files on server *)
+	    do_if_connected s.server_sock (fun sock ->
+	      server_send_share s.server_has_zlib sock !files_to_send);
+
+(* append new published files to server structure *)
+	    s.server_sent_shared <- !files_to_send @ s.server_sent_shared;
+
+(* iter through published files and append current server *)
+	    List.iter (fun file ->
+	      match file.file_shared with
+		Some impl -> impl.impl_shared_servers <-
+		  impl.impl_shared_servers @ [(CommonServer.as_server s.server_server)]
+	      | _ -> ()) !files_to_send
+
+	end
+      end
+  ) (connected_servers ());
 
 (*
 The problem: sh.shared_fd might be closed during the execution of the
@@ -326,6 +354,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
               impl_shared_val = pre_shared;
               impl_shared_requests = 0;
               impl_shared_magic = magic;
+              impl_shared_servers = [];
             } and
             pre_shared = {
               shared_shared = impl;

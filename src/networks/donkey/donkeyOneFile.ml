@@ -111,8 +111,11 @@ let unshare_file file =
   match file.file_shared with
     None -> ()
   | Some s -> 
-      if !verbose_share then
-        lprintf_nl "unshare_file %s" file.file_diskname;
+      if !verbose_share || !verbose then
+        lprintf_nl "Unsharing file %s" (file_best_name file);
+      List.iter (fun s ->
+        s.server_sent_shared <- List2.removeq file s.server_sent_shared;
+      ) (connected_servers ());
       file.file_shared <- None;
       decr nshared_files;
       CommonShared.shared_calculate_total_bytes ();

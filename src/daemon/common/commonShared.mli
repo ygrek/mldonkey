@@ -9,7 +9,8 @@ type 'a shared_impl = {
   mutable impl_shared_size : int64;
   mutable impl_shared_id : Md4.Md4.t;
   mutable impl_shared_requests : int;
-  mutable impl_shared_magic : string option
+  mutable impl_shared_magic : string option;
+  mutable impl_shared_servers : CommonTypes.server list;
 } 
 and 'a shared_ops = {
   mutable op_shared_info : 'a -> GuiTypes.shared_info;

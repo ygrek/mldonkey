@@ -341,7 +341,7 @@ let server_send_share compressed sock msg =
       if !verbose_share || !verbose then
          lprintf_nl "Sending %d share(s) to server %s:%d%s"
 	   nfiles (Ip.to_string (peer_ip sock)) (peer_port sock)
-	   (if compressed then "(zlib)" else "");
+	   (if compressed then " (zlib)" else "");
       Buffer.reset buf;
       let s_c =
         if compressed then

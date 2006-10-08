@@ -183,7 +183,6 @@ let master_server = ref (None: DonkeyTypes.server option)
 let udp_sock = ref (None: UdpSocket.t option)
 let listen_sock = ref (None : TcpServerSocket.t option)
 let porttest_sock = ref (None : TcpBufferedSocket.t option)
-let new_shared = ref false
 
 (*************************************************************************)
 (*                                                                       *)
@@ -228,7 +227,6 @@ in the shared_files_info *)
 let shared_files_info = (Hashtbl.create 127
     : (string * int64 * float, shared_file_info) Hashtbl.t)
 let shared_files = ref ([] : file_to_share list)
-let new_shared_files = ref []
 
 let udp_servers_replies = (Hashtbl.create 127 : (Md4.t, server) Hashtbl.t)
 
@@ -428,10 +426,7 @@ let new_file file_diskname file_state md4 file_size filename writable user =
                 Verification (Array.of_list (List.map (fun md4 -> Ed2k md4) md4s))
             );
             CommonSwarming.set_verified swarmer (fun nblocks num ->
-                if nblocks = 1 then begin
-                    new_shared_files := file :: !new_shared_files;
-                    file_must_update file
-                  end)
+                if nblocks = 1 then file_must_update file)
       );
 
       update_best_name file;
@@ -518,6 +513,7 @@ let new_server ip port =
         server_lowid_users = None;
         server_soft_limit = None;
         server_hard_limit = None;
+        server_sent_shared = [];
         server_max_users = None;
         server_last_ping = 0.;
         server_ping = 0;
@@ -700,6 +696,8 @@ let string_of_client c =
     | Invalid_address _ -> ""
   )
 
+let string_of_server s =
+  Printf.sprintf "%s:%d" (Ip.to_string s.server_ip) s.server_port
 
 let set_client_name c name md4 =
   if name <> c.client_name || c.client_md4 <> md4 then begin
@@ -811,7 +809,6 @@ end;
   Printf.bprintf buf "  udp_servers_list: %d\n" (List.length !udp_servers_list);
   Printf.bprintf buf "  interesting_clients: %d\n" (List.length !interesting_clients);
   Printf.bprintf buf "  shared_files: %d\n" (List.length !shared_files);
-  Printf.bprintf buf "  new_shared_files: %d\n" (List.length !new_shared_files);
   Printf.bprintf buf "  servers_by_key: %d\n" (Hashtbl.length servers_by_key);
   Printf.bprintf buf "  banned_ips: %d\n" (Hashtbl.length banned_ips);
   Printf.bprintf buf "  old_requests: %d\n" (Hashtbl.length old_requests);

@@ -15,6 +15,20 @@ ChangeLog
 =========
 
 2006/10/08
+5430: EDK: Improve file publishing
+- publish no more than 200 files/minute to avoid server-side blacklisting,
+  eMule uses the same limit,
+  least published files are published first (thx to pango)
+- respect server hard_limit, never publish more files to servers
+- HTML: in server list display number of files published by server, by clicking
+  on this number the list of files is displayed (new command server_shares num)
+- HTML: diplay master server status, only master server are used for publishing
+- HTML: in upstats display number of server the file was published to,
+  also display server name + IP in javascript popup
+- bug fix: properly update DonkeyGlobals.master_server to be used in 
+  DonkeyClient.read_first_message, this is used when replying to non-Overnet
+  clients so they know to which server MLdonkey is connected to,
+- remove development option become_master_delay
 5445: Self-test charset conversion, disable conversion if test fails
 5444: BT: Correctly display client connected time,
       also allow correct upload speed calculation (tradie)

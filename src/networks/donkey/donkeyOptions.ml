@@ -100,8 +100,7 @@ let max_walker_servers = define_expert_option donkey_section ["max_walker_server
     int_option 1
 
 let walker_server_lifetime = define_expert_option donkey_section ["walker_server_lifetime"]
-  "The maximal delay a connection with a server should last when walking
-  through the list (should be greater than become_master_delay)"
+  "The maximal delay a connection with a server should last when walking through the list"
     int_option 300
 
 let log_clients_on_console = define_expert_option donkey_section ["log_clients_on_console"]
@@ -259,10 +258,6 @@ let overnet_section = file_section donkey_ini [ overnet_options_section_name ]
 let overnet_port = define_option overnet_section [overnet_options_section_name; "port"]
   "port for overnet"
     int_option (2000 + Random.int 20000)
-
-let become_master_delay = define_expert_option donkey_section ["become_master_delay"]
-  "(only for development tests)"
-    int_option 120
 
 let options_version = define_expert_option donkey_section ["options_version"]
   "(internal option)"

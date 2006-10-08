@@ -45,6 +45,7 @@ let must_share_file file codedname has_old_impl =
           impl_shared_val = file;
           impl_shared_requests = 0;
           impl_shared_magic = None;
+          impl_shared_servers = [];
         } in
         file.file_shared <- Some impl;
         incr CommonGlobals.nshared_files;

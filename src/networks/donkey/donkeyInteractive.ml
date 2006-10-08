@@ -725,8 +725,8 @@ let commands = [
     "id", Arg_none (fun o ->
         let buf = o.conn_buf in
         List.iter (fun s ->
-            Printf.bprintf buf "For %s:%d (%s) --->   %s\n"
-              (Ip.to_string s.server_ip) s.server_port s.server_name
+            Printf.bprintf buf "For %s (%s) --->   %s\n"
+              (string_of_server s) s.server_name
               (match s.server_cid with
                 None -> "waiting"
               | Some ip ->
@@ -1078,6 +1078,8 @@ let _ =
           P.server_description = s.server_description;
           P.server_banner = s.server_banner;
           P.server_preferred = s.server_preferred;
+          P.server_master = s.server_master;
+          P.server_published_files = (List.length s.server_sent_shared);
           P.server_version = s.server_version;
           P.server_max_users = (match s.server_max_users with None -> 0L | Some v -> v);
           P.server_soft_limit = (match s.server_soft_limit with None -> 0L | Some v -> v);
@@ -1177,6 +1179,9 @@ let _ =
   server_ops.op_server_users <- (fun s ->
       List2.tail_map (fun u -> as_user u.user_user) s.server_users)    ;
 
+  server_ops.op_server_published <- (fun s ->
+      List.map (fun f -> as_file f) s.server_sent_shared);
+
   server_ops.op_server_cid <- (fun s -> ip_of_server_cid s);
 
   server_ops.op_server_low_id <- (fun s -> low_id (ip_of_server_cid s));
@@ -1195,6 +1200,11 @@ let _ =
   file_ops.op_file_save_as <- (fun file name ->
       add_file_filenames (as_file file) name;
       set_file_best_name (as_file file) name "" 0
+  );
+  file_ops.op_file_shared <- (fun file ->
+      match file.file_shared with
+	None -> None
+      | Some sh -> Some (as_shared sh)
   );
   file_ops.op_file_set_format <- (fun file format ->
       file.file_format <- format);
