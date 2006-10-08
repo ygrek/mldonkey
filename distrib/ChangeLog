@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/08
+5443: BT: do not allow connections with ourselves (tradie)
+
 2006/10/06
 5442: BT: Verbose error messages when torrent is sent from GUI,
       BT-multiuser: Protect command seeded_torrents

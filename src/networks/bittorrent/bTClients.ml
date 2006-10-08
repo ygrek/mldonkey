@@ -886,6 +886,7 @@ and client_to_client c sock msg =
 
     | PeerID p ->
       (* Disconnect if that is ourselves. *)
+      c.client_uid <- Sha1.direct_of_string p;
       if not (c.client_uid = !!client_uid) then
         begin
           let brand, release = parse_software p in
@@ -894,7 +895,6 @@ and client_to_client c sock msg =
 (* TODO : enable it
       c.client_release <- (parse_release p c.client_brand);
  *)
-          c.client_uid <- Sha1.direct_of_string p;
 
           if (List.length !current_uploaders < (!!max_bt_uploaders-1)) &&
             (List.mem c (!current_uploaders)) == false then
