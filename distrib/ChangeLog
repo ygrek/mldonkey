@@ -14,6 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/09
+5446: EDK: Small update for EDK publish patch 5430
+- new option max_published_files
+  maximum number of files published to servers per minute, eMule default 200
+- bug fix for patch 5430, publish also to non-preferred servers
+
 2006/10/08
 5430: EDK: Improve file publishing
 - publish no more than 200 files/minute to avoid server-side blacklisting,

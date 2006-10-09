@@ -164,9 +164,6 @@ let all_shared () =
 
 (* publish shared files to servers, called once per minute *)
 let send_new_shared () =
-(* emule sends 200 files in this period to avoid server blacklist *)
-  let limit_per_minute = 200 in
-
 (* sort list to publish least published files first *)
   let ( |> ) x f = f x in
   let all_shared =
@@ -196,7 +193,7 @@ let send_new_shared () =
           match f.file_shared with
 	    Some impl ->
 	      if not (List.mem (CommonServer.as_server s.server_server) impl.impl_shared_servers)
-		&& List.length !files_to_send < limit_per_minute then
+		&& List.length !files_to_send < !!max_published_files then
 	      files_to_send := f :: !files_to_send
 	    | _ -> () (* this case never happens *)
 	) all_shared;

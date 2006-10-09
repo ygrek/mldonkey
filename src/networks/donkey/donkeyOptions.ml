@@ -246,6 +246,10 @@ let min_users_on_server = define_option donkey_section ["min_users_on_server"]
   "min connected users for each server"
     int_option 0
 
+let max_published_files = define_option donkey_section ["max_published_files"]
+  "maximum number of files published to servers per minute, eMule default 200"
+    int_option 200
+
 let login = define_option donkey_section ["login"]
   "login of client on eDonkey network (nothing default to global one)"
     string_option ""

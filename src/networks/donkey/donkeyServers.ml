@@ -825,10 +825,13 @@ let update_master_servers _ =
 		(string_of_server s)
 		(match s.server_nusers with None -> 0L | Some v -> v)
 		connection_time;
-          if not s.server_master && s.server_preferred then
+          if not s.server_master then
               begin
-                if (!nmasters < max_allowed_connected_servers) then
+                if (!nmasters < max_allowed_connected_servers) then begin
+		  if !verbose_location then
+		    lprintf_nl "master servers: raising %s" (string_of_server s);
                     make_master s
+		  end
                 else if s.server_sent_all_queries then
                   match !masters with
                       [] -> disconnect_old_server s
