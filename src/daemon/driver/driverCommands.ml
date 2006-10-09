@@ -1411,7 +1411,7 @@ let _ =
         if use_html_mods o then begin
 
           if !!html_mods_use_js_helptext then
-            Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
+            Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:#FFFFDD;color:black;border-color:black;border-width:20px;font-size:8pt; visibility:visible; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
             
           Printf.bprintf buf "\\<div class=\\\"friends\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
 \\<tr\\>\\<td\\>
@@ -1501,7 +1501,7 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
             let mtabs = ref 1 in
 
             if !!html_mods_use_js_helptext then
-             Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:FFFFDD;color:black;border-color:black;border-width:20;font-size:8pt; visibility:show; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
+             Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:#FFFFDD;color:black;border-color:black;border-width:20px;font-size:8pt; visibility:visible; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
 
             Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
 \\<tr\\>\\<td\\>

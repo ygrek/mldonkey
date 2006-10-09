@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/10/09
+5428: HTML: Fix style sheet errors (rwruck)
 5446: EDK: Small update for EDK publish patch 5430
 - new option max_published_files
   maximum number of files published to servers per minute, eMule default 200
