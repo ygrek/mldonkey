@@ -451,7 +451,16 @@ let connected_peers = ref 0
 let pre_connected_peers = ref 0
 
 let is_overnet_ip ip =
-  Ip.usable ip && Ip.of_string "1.0.0.0" <> ip
+  let is_not_banned ip =
+       match !Ip.banned ip with
+       None -> true
+     | Some reason ->
+         if !verbose_overnet then
+           lprintf_nl "%s blocked: %s"
+             (Ip.to_string ip) reason;
+         false
+  in
+  Ip.usable ip && Ip.of_string "1.0.0.0" <> ip && is_not_banned ip
 
 module LimitedList = struct
 
@@ -756,12 +765,16 @@ let udp_send_direct ip port msg =
   match !udp_sock with
     None -> ()
   | Some sock ->
+(* Why check this? Because it may have been blocked since it was added *)    
+     if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then
       Proto.udp_send sock ip port false msg
 
 let udp_send_ping ip port msg =
   match !udp_sock with
     None -> ()
   | Some sock ->
+(* Why check this? Because it may have been blocked since it was added *)    
+     if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then
       Proto.udp_send sock ip port true msg
 
 let udp_send p msg =
@@ -928,7 +941,8 @@ let add_search_peer s p =
   if p.peer_ip <> Ip.localhost && is_overnet_ip p.peer_ip && 
      p.peer_port <> 0 && p.peer_created <> 0 then begin
     let nbits = common_bits p.peer_md4 s.search_md4 in
-    begin
+(* Don't add ourself *)
+    if not (nbits = 128 && s.search_kind == FillBuckets) then begin
       try
         Fifo.iter (fun pp ->
           if pp.peer_ip = p.peer_ip && 
@@ -1305,7 +1319,8 @@ let update_buckets () =
     for j = 1 to Fifo.length b do
       let p = Fifo.take b in
       (* bad peers have kind = 4 and did not respond within peer_expire *)
-      if not (p.peer_kind = 4 && p.peer_expire <= last_time ()) then
+      (* Why check is_overnet_ip? Because it may have been blocked since it was added *)
+      if not (p.peer_kind = 4 && p.peer_expire <= last_time ()) && is_overnet_ip p.peer_ip then
         Fifo.put b p 
       else
       begin
@@ -1335,7 +1350,9 @@ let update_buckets () =
                 incr connected_peers;
 		decr pre_connected_peers;
             (* bad peers are removed *)    
-            end else if p.peer_kind = 4 && p.peer_expire <= last_time () then begin
+            (* Why check is_overnet_ip? Because it may have been blocked since it was added *)
+            end else if (p.peer_kind = 4 && p.peer_expire <= last_time ()) || 
+                        not (is_overnet_ip p.peer_ip) then begin
               decr pre_connected_peers;
               KnownPeers.remove known_peers p;
               if !verbose_overnet then lprintf_nl "update_bucket2: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
@@ -1418,7 +1435,8 @@ let enable () =
 
 (* copy all boot_peers to unknown_peers *)
       LimitedList.iter (fun (ip, port) ->
-          LimitedList.add unknown_peers (ip, port)
+          if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then
+            LimitedList.add unknown_peers (ip, port)
           ) !!boot_peers;
 
       add_session_timer enabler 1. (fun _ ->
