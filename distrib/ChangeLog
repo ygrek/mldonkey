@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/12
+5451: HTML: clickable new messages indicator (jave)
+
 2006/10/09
 5428: HTML: Fix style sheet errors (rwruck)
 5446: EDK: Small update for EDK publish patch 5430
