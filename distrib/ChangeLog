@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/13
+5458: OV/KAD: tweak and bugfix the search (bogeyman)
+
 2006/10/12
 5454: OV/KAD: Block blocked ips + small Overnet updates (bogeyman)
 5451: HTML: clickable new messages indicator (jave)
