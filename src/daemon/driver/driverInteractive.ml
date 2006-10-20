@@ -2484,8 +2484,10 @@ let print_upstats o list server =
 			  ed2k (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)));
 	  ("", "sr", (if impl.impl_shared_id = Md4.null then "" else
 			Printf.sprintf "\\<a href=\\\"http://tothbenedek.hu/ed2kstats/ed2k?hash=%s\\\"\\>%s\\</a\\>
+\\<a href=\\\"http://ed2k.titanesel.ws/ed2k.php?hash=%s\\\"\\>%s\\</a\\>
 \\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>%s\\</a\\>"
                       (Md4.to_string impl.impl_shared_id) "T1"
+                      (Md4.to_string impl.impl_shared_id) "T2"
                       (Md4.to_string impl.impl_shared_id) "B"));
 	  ("", "sr ar", Printf.sprintf "%d" published ) ];
 	Printf.bprintf buf "\\</tr\\>\n";
