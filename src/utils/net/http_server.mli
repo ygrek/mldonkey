@@ -17,7 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 type auth = No_auth | Read_auth | Write_auth
-type error_reason = Blocked | Not_allowed
+type error_reason = Blocked | Not_allowed | Url_not_found of string
 and header =
     Unknown of string * string
   | Referer of Url.url
@@ -67,7 +67,6 @@ and config = {
   } 
 
 val create : config -> TcpServerSocket.t
-val need_auth : request -> string -> unit
 val html_escaped : string -> string
 val html_real_escaped : string -> string
   
@@ -79,4 +78,4 @@ val verbose : bool ref
   
 val request_range : request -> int64 * (int64 option)
 val parse_range : string -> int64 * int64 option * int64 option
-val error_page : string -> string -> string -> string -> string -> error_reason option -> string * string
+val error_page : string -> string -> string -> string -> string -> error_reason option -> string * string * string

@@ -95,6 +95,7 @@ type auth =
 type error_reason =
 | Blocked
 | Not_allowed
+| Url_not_found of string
 
 type header =
   Unknown of string * string
@@ -234,11 +235,13 @@ let error_page code from_ip from_port my_ip my_port reason =
     | "403" -> "Forbidden", 
 		(match reason with
 		   Some Not_allowed -> Printf.sprintf
-"<p>Connection from %s rejected (see downloads.ini, <a href=\"http://mldonkey.sourceforge.net/Allowed_ips\">allowed_ips</a>)</p>\n"
+"<p>Connection from %s rejected (see downloads.ini, <a href=\"http://mldonkey.sourceforge.net/Allowed_ips\">allowed_ips</a>)</p>"
 				    from_ip
 		 | Some Blocked -> Printf.sprintf "IP %s is blocked, its part of the used IP blocklist " from_ip
-		 | None -> "")
-    | _ -> Printf.sprintf "Unknown %s" code, ""
+		 | _ -> "")
+    | "404" -> "Not found", Printf.sprintf "The requested URL %swas not found on this server."
+			      (match reason with Some Url_not_found url -> url ^ " " | _ -> "")
+    | _ -> Printf.sprintf "Unknown error %s" code, ""
   in
   let reject_message = Printf.sprintf
 "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n<html>
@@ -250,7 +253,8 @@ let error_page code from_ip from_port my_ip my_port reason =
   Printf.sprintf
 "HTTP/1.1 %s %s\nMLDonkey/%s\nConnection: close
 Content-Type: text/html; charset=iso-8859-1\nContent-length: %d\r\n"
-    code error_text Autoconf.current_version (String.length reject_message), reject_message
+    code error_text Autoconf.current_version (String.length reject_message), reject_message,
+  Printf.sprintf "%s %s" code error_text
 
 let parse_head sock s =
   let h = split_head s in
@@ -681,13 +685,6 @@ let give_doc buf request =
       at_write_end buf.fd_task shutdown
 *)
 
-let need_auth r name =
-  r.reply_head <- "401 Unauthorized";
-  r.reply_headers <- [
-    "Connection", "close";
-    "WWW-Authenticate", Printf.sprintf "Basic realm=\"%s\"" name
-  ]
-
 (*
 let simple_give_auth psread pswrite request  =
   try
@@ -860,7 +857,7 @@ let handler config t event =
 	  (if ip_is_blocked from_ip then "IP is blocked" else "see allowed_ips setting");
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple token "http connection" s in
-	let s1,s2 = error_page "403"
+	let s1,s2,_ = error_page "403"
 	    (Ip.to_string from_ip)
 	    (string_of_int from_port)
 	    (Ip.to_string (TcpBufferedSocket.my_ip sock))

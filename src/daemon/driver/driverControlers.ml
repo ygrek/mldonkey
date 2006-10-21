@@ -959,8 +959,14 @@ let http_handler o t r =
   if not (valid_password user r.options.passwd) then begin
       clear_page buf;
       http_file_type := HTM;
-      Buffer.add_string buf (snd(Http_server.error_page "401" "" "" (Ip.to_string (TcpBufferedSocket.my_ip r.sock)) (string_of_int !!http_port) None));
-      need_auth r !!http_realm
+      let _, error_text_long, header = Http_server.error_page "401" "" ""
+	(Ip.to_string (TcpBufferedSocket.my_ip r.sock))
+	(string_of_int !!http_port) None in
+      Buffer.add_string buf error_text_long;
+      r.reply_head <- header;
+      r.reply_headers <- [
+        "Connection", "close";
+        "WWW-Authenticate", Printf.sprintf "Basic realm=\"%s\"" !!http_realm]
     end
   else
     begin
@@ -1509,11 +1515,15 @@ let http_handler o t r =
 	      | Some result ->
 		    Printf.bprintf buf "%s:<br> %s<br>\n" n.network_name result));
 		    Printf.bprintf buf "<br><br><a href=\"porttest\">Reload</a>"
-        | cmd ->
-            html_open_page buf t r true;
-            Printf.bprintf buf "No page named %s" (html_escaped cmd)
+        | _ -> raise Not_found
       with
-      | Not_found -> Printf.bprintf buf "404 Not found"
+      | Not_found ->
+	  let _, error_text_long, header = Http_server.error_page "404" "" ""
+			(Ip.to_string (TcpBufferedSocket.my_ip r.sock))
+			(string_of_int !!http_port)
+			(Some (Url_not_found r.get_url.Url.full_file)) in
+	  r.reply_head <- header;
+	  Buffer.add_string buf error_text_long
       | e ->
           Printf.bprintf buf "\nException %s\n" (Printexc2.to_string e);
           r.reply_stream <- None
@@ -1524,8 +1534,8 @@ let http_handler o t r =
       HTM -> html_close_page buf false; dollar_escape o !!use_html_frames (Buffer.contents buf)
     | MLHTM -> html_close_page buf true; dollar_escape o !!use_html_frames (Buffer.contents buf)
     | TXT
+    | UNK
     | BIN -> Buffer.contents buf
-    | UNK -> "Unknown type for content :" ^ (Buffer.contents buf)
   in
   r.reply_content <- 
     if !http_file_type <> BIN && !!html_use_gzip then 

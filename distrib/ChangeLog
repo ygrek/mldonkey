@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/21
+5469: HTML: Implement 404 error page for unknown URLs
+
 2006/10/20
 5419: EDK: Re-implement titanesel.ws links - service is up again (thx to sk38)
 
