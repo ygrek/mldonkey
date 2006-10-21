@@ -2367,6 +2367,9 @@ let _ =
                   ( "0", "srh", "Network", "Network" ) ;
                   ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
                   ( "0", "srh", "Client name", "Client name" ) ;
+                  ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
+                  ( "0", "srh", "IP address", "IP address" ) ;
+		  ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
                   ( "0", "srh", "Client brand", "CB" ) ;
                   ( "0", "srh", "Client release", "CR" ) ;
                   ] @
@@ -2374,12 +2377,13 @@ let _ =
                   @ [
                   ( "0", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
                   ( "0", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
-                  ( "0", "srh", "IP address", "IP address" ) ]);
+                  ( "0", "srh", "Filename", "Filename" ) ]);
 
                 Intmap.iter (fun cnum c ->
 
                     try
                       let i = client_info c in
+		      let ips,cc,cn = string_of_kind_geo i.client_kind in
                       incr counter;
 
                       Printf.bprintf buf "\\<tr class=\\\"%s\\\"
@@ -2393,6 +2397,12 @@ let _ =
                       client_print_html c o;
 
                       html_mods_td buf ([
+                        ("", "sr", (match i.client_sui_verified with
+                          | None -> "N"
+                          | Some b -> if b then "P" else "F"
+                        )); 
+                        ("", "sr", ips);
+                        ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
                         ("", "sr", i.client_software);
                         ("", "sr", i.client_release);
                         ] @
@@ -2400,7 +2410,9 @@ let _ =
                         @ [
                         ("", "sr ar", size_of_int64 i.client_downloaded);
                         ("", "sr ar", size_of_int64 i.client_uploaded);
-                        ("", "sr", string_of_kind i.client_kind); ]);
+                        ("", "sr", (match i.client_upload with
+                    	      Some f -> shorten f !!max_name_len
+                    	    | None -> "") ) ]);
 
                       Printf.bprintf buf "\\</tr\\>";
                     with _ -> ();
