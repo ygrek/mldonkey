@@ -9515,6 +9515,8 @@ static Signer* s_signer = NULL;
 static byte m_publicKey[MAXPUBKEYSIZE+1];
 static unsigned long m_publicKeyLen = 0;
 
+void cc_lprintf_nl(const char * msg);
+
 void crypto_exit () {
 	if (s_signer) {
 		delete (Signer*) s_signer;
@@ -9539,7 +9541,9 @@ void createKey(char buf[]) {
 		buf[myString.size()] = 0;
 
 	} catch(const CryptoPP::Exception& e) {
-		std::cerr << "createKey: " << e.what() << std::endl;
+		char buf[256]="[CryptoPP] createKey: ";
+		strcat(buf, e.what());
+		cc_lprintf_nl(buf);
 	}
 
 }
@@ -9570,7 +9574,9 @@ unsigned long loadKey(char privateKeyBase64[], char buf[]) {
 		result = m_publicKeyLen;
 
 	} catch(const CryptoPP::Exception& e) {
-		std::cerr << "loadKey: " << e.what() << std::endl;
+		char buf[256]="[CryptoPP] loadKey: ";
+		strcat(buf, e.what());
+		cc_lprintf_nl(buf);
 	}
 
 	return result;
@@ -9585,7 +9591,7 @@ int createSignature(byte *buf, int maxLen, byte *key, int keyLen, uint32_t cInt,
 
 
 	if (s_signer == NULL) {
-		std::cerr << "createSignature: No signer" << std::endl;
+		cc_lprintf_nl("createSignature: No signer");
 		return result;
 	}
 
@@ -9612,7 +9618,9 @@ int createSignature(byte *buf, int maxLen, byte *key, int keyLen, uint32_t cInt,
 		result =  aSink.TotalPutLength();
 
 	} catch(const CryptoPP::Exception& e) {
-		std::cerr << "createSignature: " << e.what() << std::endl;
+		char buf[256]="[CryptoPP] createSignature: ";
+		strcat(buf, e.what());
+		cc_lprintf_nl(buf);
 	}
 
 	return result;
@@ -9640,11 +9648,12 @@ int verifySignature(byte *key, int keyLen, byte *sig, int sigLen, uint32_t cInt,
 			PokeUInt32(bArray+m_publicKeyLen+4,ip);
 			PokeUInt8(bArray+m_publicKeyLen+4+4,ipType);
 		}
-
 		result = pubKey.VerifyMessage(bArray, m_publicKeyLen+4+extra, sig, sigLen);
 
 	} catch(const CryptoPP::Exception& e) {
-		std::cerr << "verifySignature: " << e.what() << std::endl;
+		char buf[256]="[CryptoPP] verifySignature: ";
+		strcat(buf, e.what());
+		cc_lprintf_nl(buf);
 	}
 
 	return result ? 1 : 0;

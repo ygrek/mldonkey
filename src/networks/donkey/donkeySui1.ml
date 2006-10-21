@@ -30,3 +30,8 @@ module SUI : SUI = struct
   external create_signature : string -> int -> int64 -> int -> int64 -> string = "ml_createSignature"
   external verify_signature : string -> int -> string -> int -> int64 -> int -> int64 -> bool = "ml_verifySignature_bytecode" "ml_verifySignature"
 end
+
+let ext_lprintf_nl msg = 
+  if !CommonOptions.verbose_unexpected_messages then Printf2.lprintf_nl ("%s") msg
+
+let _ = Callback.register "ml_lprintf_nl" ext_lprintf_nl

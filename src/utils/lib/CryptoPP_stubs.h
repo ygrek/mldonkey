@@ -20,6 +20,11 @@
 
 #include "../../../config/config.h"
 
+#include <string.h>
+#include <caml/mlvalues.h>
+#include <caml/alloc.h>
+#include <caml/callback.h>
+
 #if defined (HAVE_STDINT_H)
 #include <stdint.h>
 #endif

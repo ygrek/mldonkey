@@ -17,10 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-#include <string.h>
-#include <caml/mlvalues.h>
-#include <caml/alloc.h>
-
 #include "CryptoPP_stubs.h"
 
 
@@ -87,3 +83,11 @@ value
 ml_verifySignature_bytecode(value *argv, int argn) {
 	return ml_verifySignature(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 }
+
+void cc_lprintf_nl(const char * msg)
+{
+  static value * caml_func = NULL;
+  if (caml_func == NULL) caml_func = caml_named_value("ml_lprintf_nl");
+  caml_callback(*caml_func, caml_copy_string(msg));
+}
+
