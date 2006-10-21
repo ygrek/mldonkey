@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/10/21
+5472: Urladd: New optional parameter period (in hours) (thx to Schlumpf)
 5471: HTML: New colums for pending slots list: SUI, GeoIP, Filename
 5470: Options: New type percent_option, values are bound to be >= 0 and <= 100
 5469: HTML: Implement 404 error page for unknown URLs

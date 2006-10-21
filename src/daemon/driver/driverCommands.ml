@@ -334,12 +334,18 @@ let _ =
           _s "You are not allowed to kill MLDonkey"
         ), ":\t\t\t\t\t$bsave and kill the server$n";
 
-    "urladd", Arg_two (fun kind url o ->
-	web_infos_add kind 1 url;
+    "urladd", Arg_multiple (fun args o ->
+       let (kind, url, period) = match args with
+          | [kind; url; period] -> kind, url, int_of_string period
+          | [kind; url] -> kind, url, 1
+          | _  -> failwith "Bad number of arguments"
+        in
+	web_infos_add kind period url;
 	CommonWeb.load_url true kind url;
         "url added to web_infos. downloading now"
-    ), "<kind> <url> :\t\t\tload this file from the web\n"
-       ^"\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)";
+    ), "<kind> <url> [<period>]:\t\t\tload this file from the web\n"
+       ^"\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)\n"
+       ^"\t\t\t\t\tperiod is the period between updates (in hours, 0 = only loaded at startup)";
 
     "urlremove", Arg_one (fun url o ->
     	if web_infos_exists url then
@@ -1821,7 +1827,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
-                   var getdir = prompt('Input: <kind> <URL>','server.met URL')
+                   var getdir = prompt('Input: <kind> <URL> [<period>]','server.met URL')
                    parent.fstatus.location.href='submit?q=urladd+' + encodeURIComponent(getdir);
                    setTimeout('window.location.reload()',1000);
                     }\\\"\\>Add URL\\</a\\>
