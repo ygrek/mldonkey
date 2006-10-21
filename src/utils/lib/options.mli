@@ -90,6 +90,7 @@ val color_option : string option_class
 val font_option : string option_class
 val int_option : int option_class
 val int64_option : int64 option_class
+val percent_option : int option_class
 val bool_option : bool option_class
 val float_option : float option_class
 val path_option : string list option_class
@@ -157,6 +158,8 @@ val value_to_int : option_value -> int
 val int_to_value : int -> option_value
 val value_to_int64 : option_value -> int64
 val int64_to_value : int64 -> option_value
+val value_to_percent : option_value -> int
+val percent_to_value : int -> option_value
 val bool_of_string : string -> bool
 val value_to_bool : option_value -> bool
 val bool_to_value : bool -> option_value

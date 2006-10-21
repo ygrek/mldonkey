@@ -514,6 +514,13 @@ let value_to_int v = Int64.to_int (value_to_int64 v)
 let int_to_value i = IntValue (Int64.of_int i)
 let int64_to_value i = IntValue i
 
+let percent_to_value i = IntValue (Int64.of_int i)
+let value_to_percent v =
+  match Int64.to_int (value_to_int64 v) with
+    v when v < 0 -> 0
+  | v when v > 100 -> 100
+  | v -> v
+
 (* The Pervasives version is too restrictive *)
 let bool_of_string s =
   match String.lowercase s with
@@ -729,6 +736,7 @@ let font_option = define_option_class "Font" value_to_string string_to_value
   
 let int_option = define_option_class "Int" value_to_int int_to_value
 let int64_option = define_option_class "Int64" value_to_int64 int64_to_value
+let percent_option = define_option_class "Int" value_to_percent percent_to_value
 
   
 let bool_option = define_option_class "Bool" value_to_bool bool_to_value
