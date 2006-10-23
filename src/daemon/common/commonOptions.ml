@@ -583,6 +583,14 @@ let max_hard_download_rate = define_option current_section ["max_hard_download_r
   < 4      -> download limited to upload * 3"
     int_option 50
 
+let max_hard_upload_rate_2 = define_option current_section ["max_hard_upload_rate_2"]
+    "Second maximal upload rate for easy toggling (use bw_toggle)"
+    int_option 5
+
+let max_hard_download_rate_2 = define_option current_section ["max_hard_download_rate_2"]
+    "Second maximal download rate for easy toggling (use bw_toggle)"
+    int_option 20
+
 let max_opened_connections = define_option current_section ["max_opened_connections"]
   "Maximal number of opened connections"
     int_option 200

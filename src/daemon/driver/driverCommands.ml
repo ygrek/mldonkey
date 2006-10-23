@@ -1054,6 +1054,25 @@ let _ =
         ""
     ), ":\t\t\t\tprint current bandwidth stats";
 
+    "bw_toggle", Arg_none (fun o ->
+	let buf = o.conn_buf in
+	let ul_bkp = !!max_hard_upload_rate_2 in
+	let dl_bkp = !!max_hard_download_rate_2 in
+	max_hard_upload_rate_2 =:= !!max_hard_upload_rate;
+	max_hard_download_rate_2 =:= !!max_hard_download_rate;
+	max_hard_upload_rate =:= ul_bkp;
+	max_hard_download_rate =:=  dl_bkp;
+	let result =
+	  Printf.sprintf "new upload rate: %d | new downloadrate: %d" ul_bkp dl_bkp
+	in
+	if o.conn_output = HTML then
+	  html_mods_table_one_row buf "serversTable" "servers" [
+	    ("", "srh", result); ]
+	else
+	  Buffer.add_string buf result;
+	""
+    ), ":\t\t\ttoggle between the two rate sets";
+
     "stats", Arg_none (fun o ->
         let buf = o.conn_buf in
         CommonInteractive.network_display_stats buf o;
@@ -1577,12 +1596,12 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option global_login;
 			strings_of_option set_client_ip;
 			strings_of_option force_client_ip;
-			strings_of_option run_as_user;
-			strings_of_option run_as_useruid;
 			strings_of_option max_upload_slots;
 			strings_of_option dynamic_slots;
 			strings_of_option max_hard_upload_rate;
 			strings_of_option max_hard_download_rate;
+			strings_of_option max_hard_upload_rate_2;
+			strings_of_option max_hard_download_rate_2;
 			strings_of_option max_opened_connections;
 			strings_of_option max_indirect_connections;
 			strings_of_option max_connections_per_second;
@@ -1747,8 +1766,10 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                   | 8 ->
                       [
 			strings_of_option term_ansi;
+			strings_of_option run_as_user;
+			strings_of_option run_as_useruid;
 			strings_of_option messages_filter;
-      strings_of_option comments_filter;
+			strings_of_option comments_filter;
 			strings_of_option max_displayed_results;
 			strings_of_option max_name_len;
 			strings_of_option max_filenames;

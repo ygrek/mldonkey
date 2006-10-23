@@ -976,6 +976,9 @@ onClick=\"mSub('fstatus','bw_stats');mSub('output','scan_temp')\">Scan temp</TD>
 <TD class=\"bu bbig\" title=\"Bandwidth statistics (set html_mods_bw_refresh_delay)\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','bw_stats');mSub('output','gdstats')\">Bandwidth stats</TD>
+<TD class=\"bu bbig\" title=\"Bandwidth toggle\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','bw_stats');mSub('output','bw_toggle')\">Bandwidth toggle</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab2\" style=\"display: none\">
