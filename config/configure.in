@@ -789,6 +789,10 @@ if test "$GD" != "no"; then
   AC_CHECK_PROG(GDLIBCONFIG, gdlib-config, gdlib-config)
   if test "$ac_cv_prog_GDLIBCONFIG" = "gdlib-config"; then
     GD_LIBS=`$GDLIBCONFIG --libs`
+    $GDLIBCONFIG --static-libs > /dev/null 2>&1
+    if test "$?" = "0"; then
+      GD_STATIC_LIBS=`$GDLIBCONFIG --static-libs`
+    fi
     GD_LIBS2="$LIBS -lgd $GD_LIBS"
     LIBS=$GD_LIBS2
     GD_CFLAGS=`$GDLIBCONFIG --cflags`
@@ -1405,6 +1409,7 @@ AC_SUBST(GD_JPG)
 AC_SUBST(GD_PNG)
 AC_SUBST(GDGRAPHICS)
 AC_SUBST(GD_LIBS)
+AC_SUBST(GD_STATIC_LIBS)
 AC_SUBST(GD_CFLAGS)
 AC_SUBST(GD_LDFLAGS)
 AC_SUBST(BZIP2)

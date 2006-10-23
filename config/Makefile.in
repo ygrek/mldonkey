@@ -530,6 +530,9 @@ endif
 
 ifeq ("$(GD)", "yes")
   GD_LIBS_flags=-cclib "-lgd $(GD_LIBS)" -ccopt "$(GD_LDFLAGS)"
+  ifneq ("$(GD_STATIC_LIBS)", "")
+    GD_STATIC_LIBS_opt=-cclib "-lgd $(GD_STATIC_LIBS)" -ccopt "$(GD_LDFLAGS)"
+  endif
   DRIVER_SRCS= \
     $(CDK)/gd.ml \
     $(CDK)/gdstubs.c \
