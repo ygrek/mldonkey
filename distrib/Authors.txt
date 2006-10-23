@@ -36,12 +36,9 @@ Knocker
 Schlumpf
 su_blanc
 bogeyman
-
-rlimit code taken from Ocaml-annexlib:
-Shawn Wagner <raevnos@pennmush.org>
-http://raevnos.pennmush.org/code/extlib/
-
-Fasttrack plugin from giFT-fasttrack:
-Markus Kern
+jave
 
 This product includes GeoLite data created by MaxMind, available from http://maxmind.com/
+
+A complete overview about 3rd party libraries used can be found here:
+http://mldonkey.sourceforge.net/3rdParty

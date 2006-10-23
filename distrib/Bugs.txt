@@ -1,7 +1,9 @@
-Before feeling a bug report form on 
-    http://savannah.gnu.org/bugs/?group=mldonkey
+Before sending a bug report form on 
+    http://savannah.nongnu.org/bugs/?group=mldonkey
 please, check that the bug is not already registered (then, add a comment).
 
+To send a feature request please use the Task tracker
+    http://savannah.nongnu.org/task/?group=mldonkey
  --------------------------------------------------------------------------
 If you think your bug is a very important one, and nobody has fixed it in a
 long time, it might be that we don't have enough information to reproduce it

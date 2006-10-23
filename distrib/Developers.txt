@@ -1,5 +1,5 @@
 
- Yes, we are looking for developpers. If you have some programming skills, 
+ Yes, we are looking for developers. If you have some programming skills, 
 you are welcome to help the development of mldonkey. There are different ways
 to help us. You can see a bug, or a missing feature, and fix it, and then
 send us a patch. If you want to spend more time, you can fix a lot of bugs, or

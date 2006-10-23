@@ -63,17 +63,17 @@ Note: At least 70 M of free disk space is required on the partition where mldonk
 is compiled.
 
 ------------------------------------------------------------------------
-1) Installing required tools: Objective-Caml 3.08.3 and LablGTK
+1) Installing required tools: Objective-Caml 3.09.3 and LablGTK
 
- 1.1) Objective-Caml 3.08.4 (from http://pauillac.inria.fr/caml)
+ 1.1) Objective-Caml 3.09.3 (from http://pauillac.inria.fr/caml)
 
-    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.08/ocaml-3.08.4.tar.gz
-    ~/tmp> tar zxf ocaml-3.08.4.tar.gz
-    ~/tmp> cd ocaml-3.08.4
+    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.09/ocaml-3.09.3.tar.gz
+    ~/tmp> tar zxf ocaml-3.09.3.tar.gz
+    ~/tmp> cd ocaml-3.09.3
 
-    ~/tmp/ocaml-3.08.4> ./configure
-    ~/tmp/ocaml-3.08.4> make world.opt
-    ~/tmp/ocaml-3.08.4> make install
+    ~/tmp/ocaml-3.09.3> ./configure
+    ~/tmp/ocaml-3.09.3> make world.opt
+    ~/tmp/ocaml-3.09.3> make install
 
  1.2.1) LablGTK 1.2.7 for GTK1
       (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
@@ -86,22 +86,22 @@ is compiled.
     ~/tmp/lablgtk-1.2.7> make opt
     ~/tmp/lablgtk-1.2.7> make install
 
- 1.2.2) LablGTK-2.4.0 for GTK2
+ 1.2.2) LablGTK-2.6.0 for GTK2
       (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
 
-    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-2.4.0.tar.gz
-    ~/tmp> tar zxf lablgtk-2.4.0.tar.gz
-    ~/tmp> cd lablgtk-2.4.0
-    ~/tmp/lablgtk-2.4.0> ./configure
-    ~/tmp/lablgtk-2.4.0> make world
-    ~/tmp/lablgtk-2.4.0> make install
+    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-2.6.0.tar.gz
+    ~/tmp> tar zxf lablgtk-2.6.0.tar.gz
+    ~/tmp> cd lablgtk-2.6.0
+    ~/tmp/lablgtk-2.6.0> ./configure
+    ~/tmp/lablgtk-2.6.0> make world
+    ~/tmp/lablgtk-2.6.0> make install
 
 2) Compiling mldonkey with GUI:
 
     To build GTK1 newgui: ./configure --enable-gui=newgui1
     To build GTK1 oldgui: ./configure --enable-gui=oldgui
     To build GTK2 GUI:    ./configure --enable-gui[=newgui2]
-    lablgtk-1.2.7 and lablgtk-2.4.0 can both be installed at the same time.
+    lablgtk-1.2.7 and lablgtk-2.6.0 can both be installed at the same time.
 
     ~/tmp/mldonkey> make
 

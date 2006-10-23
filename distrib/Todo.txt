@@ -9,15 +9,6 @@ URGENT WORK:
 (1) Why is the QRT sent so often ?
 (2) Implement PUSH in Gnutella and Fasttrack
 
-(9) When a file is commited, it should not be shared anymore in temp/.
-    Moreover, in temp, it should not be shared under is URN name.
-(10) CANCEL A FILE, AND RESTART THE DOWNLOAD: <<<<<<<<<
-
-
-
-
-
-Before 2.6:
   * Re-implement contributors in CommonSwarming
   * Re-implement already downloaded files.
 
@@ -27,7 +18,6 @@ Before 2.6:
       downloaded chunks for itself or the primary network.
   * Does the PartialChunk strategy work ?
   * Why are chunks verified before completeness ?
-  * After a while, shared files are not shared anymore ! why ???
   * When a connection succeeds and downloads, we should retry the connection
      ASAP.
   * How to remove servers from disabled networks ?
@@ -61,30 +51,14 @@ URGENT:
 
 BUGS:
 
-* "FT not respecting max sources per file settings"
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=3761
-FT plugin AFAIK has no limits regarding the size of the serverlist
-
-* FT plugin is not able to get a list of working peers
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=7776
-
-* "Search results appear in the wrong search"
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=6956
-
 Flush buffers after do_at_exit (wait 5 secondes after exit ?).
-Share only on some networks.
-Add information in the GIU protocol on who uploads what.
 Send relative times in the GUI protocol
-IP blocking in net/ : http://www.peerguardian.net/pgipdb/guarding.p2p
 
 ************************************************************************
 Edonkey:
- * Extension to download small files immediatly (files smaller than 10k for
-   example)
  * Verify that make_xs is always synchronized with sources searches.
  * Add command 'export_temp' so that they can be used from emule/edonkey
  * EmuleMobile ?
- * BUG: commited files are not shared
  * BUG: MLdonkey client generates "Exceeding Block Boundaries" errors which
      loses bandwidth
  * Implement more Emule packets
@@ -93,8 +67,6 @@ Edonkey:
     OP_REASKACK (0x91) (size=2)
     OP_FILENOTFOUND (0x92)
  * Extended search doesnot work after connect because no ping was sent.
- * BUG: Cancel and Redownload doesnot work
- * BUG: Files randomly pause
 
 BitTorrent:
  * Implement file availability as in edonkey.
@@ -113,7 +85,6 @@ FastTrack:
     downloading clients
 
 Gnutella2:
- * Why doesn't TigerTree work on Mac ? 
  * Allow browsing other clients.
  * ADD urn:sha1:<HASH> and urn:tree:tiger/:<HASH> to QRT
  * Search using all URI (ed2k, etc...)
@@ -124,6 +95,7 @@ Gnutella:
  * Send more information in HTTP/1.1 headers (alt-locs, thex)
 
 Soulseek:
+ * Network does currently not work due to missing bindings with common module
  * In case of Message from server LOGIN FAILURE INVALIDPASS
     prevent any new reconnection without changing the password. Done ?
  + Implement more of the protocol
@@ -138,10 +110,12 @@ Soulseek:
  + Display the number of new message per room
 
 Opennap:
+ * Network does currently not work due to missing bindings with common module
  * Register files on server
  * Implement Upload completely
 
 Direct-Connect:
+ * Network does currently not work due to missing bindings with common module
  * Implement Upload completely
  * How do you know your IP in Direct-Connect if you are behind a firewall
  * Send replies to active searches
@@ -154,110 +128,12 @@ Direct-Connect:
 Core:
   * LittleEndian: is buf_int correct with negative values
   * Change ClientKind so that it does not depend on edonkey anymore.
-  * Configurable map to translate characters appearing in the file names.
   * BUG: What happens when the writes are buffered, mtime does not correspond to
      the real value ? We should probably call Unix2.flush_all before saving
      the config.
-  * Download one file from multiple networks: 
-    1) A download must be started on a verified network (donkey, bittorrent
-        or gnutella)
-    2) Complementary downloads can be started from other networks:
-      2a) Start a download as attached to a main download
-      2b) The attached download does not create a main file, but a set of
-             chunks that are potentially downloaded
-      2c) If the download of the attached file is finished, and the file
-             can be verified, then the attchaed download can be permuted 
-             with the main download (the attached download becomes the main
-	     download, and reciprocally).
-  * Associate kinds with networks, and only download useful urls
-  * Make difference between Subscribe and Submit searches clear: Submit
-      searches all networks and stops when all servers have replied. 
-      Subscribe is a long term search, it should query the servers
-      periodically, and display new results (and probably save them).
-      Not implemented yet anyway.
   * CD get and Collections
-  * Change temporary files names to allow recover on all networks.
-  * Socks 5 support
   * The core sends more File_info messages than File_downloaded, which is
      not normal !
   * Send messages to GUI with a classifier (to be able to display messages
      in different consoles, server console, download console, clients console)
 
-***********************************************************************
-GUI:
-  * Suppress all classes in newgui: object-oriented programming makes
-      modifying the GUI even harder, and is not useful at all. We should
-      replace classes by simple records when possible.
-  * Give more information on why a connection failed: we should now at
-      which stage a connection has failed, when it was, and when was the
-      last correct connection.
-  * Interactive downloads (popups for one file with progress bar): for
-      example, it could be used when starting a download under bittorrent
-      (use a network flag to say when it should be used ?) from a
-      WEB navigator so that the user see a popup from the GUI immediatly
-      and see the progress of the download (as does the python bittorrent).
-  * Change the color of tabs when things change
-  * Add information about: 
-     * When a download was started and when a file was last seen _complete_:
-         3d/8d : we have been downloading this file for 8 days, and
-            saw it complete three days ago
-         --/8d : idem, but we have never seen it complete
-
-
-***********************************************************************
-
-   And bug reports
-
-***********************************************************************
-Fasttrack
-=========
-FT not respecting max sources per file settings
-http://savannah.nongnu.org/bugs/?func=detailitem&item_id=3761
-
-
-GUI bugs
-========
-"max hits" doesn't work
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=3675
-
-Source-state error in GUI
-http://savannah.nongnu.org/bugs/?func=detailitem&item_id=2443
-
-Commited file is not removed from GUI
-http://savannah.nongnu.org/bugs/?func=detailitem&item_id=3705
-
-Right click to file option save doesn't show all file names
-http://savannah.nongnu.org/bugs/?func=detailitem&item_id=3179
-
-"old" gtk gui column sizes
-http://savannah.nongnu.org/bugs/?func=detailitem&item_id=6917
-
-
-HTML_mods bugs
-==============
-Cancel and Pause-"Feature" at same time
-http://savannah.nongnu.org/bugs/?func=detailitem&item_id=3227
-
-
-Requests for GUI enhancements
-=============================
-Change the serach-for field into a combo box
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=3445
-
-Remember current tab on exit
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=3476
-
-Better GUI for identifying what files are in good states
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=4316
-
-ed2k-links of all files available (might be best for html_mods)
-https://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=4378
-
-
-Others
-======
-Wrong filename used when downloading ed2k links? (Patch attached)
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=4080
-
-Handling of foreign characters
-http://savannah.nongnu.org/bugs/index.php?func=detailitem&item_id=4154
