@@ -477,9 +477,10 @@ LOCAL_OCAML=$LOCAL_DIR/bin
 
 AC_PATH_PROG(OCAMLC,ocamlc.opt,"",[$LOCAL_DIR/bin:$PATH])
 AC_CHECK_TOOL(OCAMLC,ocamlc,ocamlrun ocamlc)
+AC_CHECK_PROG(CAMLP4, camlp4, camlp4)
 
 BUILD_OCAML=no
-if [ test -z "$OCAMLC" ] || [ test "$REQUIRED_OCAML" = "CVS" ]; then
+if [ test -z "$OCAMLC" ] || [ test -z "$CAMLP4" ] || [ test "$REQUIRED_OCAML" = "CVS" ]; then
    BUILD_OCAML=yes
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
