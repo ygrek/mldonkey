@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/23
+5476: Urladd: Change default period to 0 (load file only when core starts)
+
 2006/10/21
 5473: Log: Redirect CryptoPP messages to MLDonkey logfile (Schlumpf)
 5472: Urladd: New optional parameter period (in hours) (thx to Schlumpf)

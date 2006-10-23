@@ -337,7 +337,7 @@ let _ =
     "urladd", Arg_multiple (fun args o ->
        let (kind, url, period) = match args with
           | [kind; url; period] -> kind, url, int_of_string period
-          | [kind; url] -> kind, url, 1
+          | [kind; url] -> kind, url, 0
           | _  -> failwith "Bad number of arguments"
         in
 	web_infos_add kind period url;
@@ -345,7 +345,7 @@ let _ =
         "url added to web_infos. downloading now"
     ), "<kind> <url> [<period>]:\t\t\tload this file from the web\n"
        ^"\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)\n"
-       ^"\t\t\t\t\tperiod is the period between updates (in hours, 0 = only loaded at startup)";
+       ^"\t\t\t\t\tperiod is the period between updates (in hours, default 0 = only loaded at startup)";
 
     "urlremove", Arg_one (fun url o ->
     	if web_infos_exists url then
