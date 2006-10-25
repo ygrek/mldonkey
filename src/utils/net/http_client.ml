@@ -62,7 +62,7 @@ let lprintf_nl fmt =
   lprintf_nl2 log_prefix fmt
 
 let basic_request = {
-    req_url = Url.of_string "http://www.mldonkey.net/";
+    req_url = Url.of_string "http://www.mldonkey.org/";
     req_referer = None;
     req_save_to_file_time = 0.;
     req_request = GET;

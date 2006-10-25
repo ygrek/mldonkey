@@ -404,7 +404,7 @@ or getting a binary compiled with glibc %s.\n\n")
     save_results =:= old_save_results;
   end;
 
-  lprintf_nl (_b "Check http://www.mldonkey.net/ for updates");
+  lprintf_nl (_b "Check http://www.mldonkey.org for updates");
   networks_iter (fun r -> network_load_complex_options r);
   lprintf_nl (_b "enabling networks: ");
   networks_iter (fun r ->

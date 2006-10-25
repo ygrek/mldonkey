@@ -72,7 +72,7 @@ let shorten maxlen s =
   if len > maxlen then
     (String.sub s 0 (maxlen-3)) ^ "..."
   else if s = "" then
-      "http://www.mldonkey.net/"
+      "http://www.mldonkey.org/"
   else s
 
 let state_pix state =

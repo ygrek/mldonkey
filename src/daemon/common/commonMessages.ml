@@ -1211,7 +1211,7 @@ let web_common_header_old = define_option message_section ["web_common_header_ol
   "
 <table width=\"100%\" border=\"0\">
 <tr>
-<td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://www.mldonkey.net/\" $O><b>MLDonkey Home</b></a></td>
+<td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://www.mldonkey.org/\" $O><b>MLDonkey Home</b></a></td>
 <form action=\"submit\" $O name=\"cmdFormular\" onSubmit=\"return CheckInput();\">
 <td><input type=\"text\" name=\"q\" size=60 value=\"\"></td>
 <td><input type=\"submit\" value=\"Execute\"></td>
@@ -1245,7 +1245,7 @@ let web_common_header_old = define_option message_section ["web_common_header_ol
 <td><a href=\"submit?q=commit\" onMouseOver=\"window.status='Move finished downloads to incoming directory';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Commit</a></td>
 <td><a href=\"submit?q=vr\" onMouseOver=\"window.status='View results to your queries';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Search results</a></td>
 <td><a href=\"submit?q=ovweb\" onMouseOver=\"window.status='Boot Overnet peers from http list';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Load Overnet peers</a></td>
-<td><a class=\"extern\" href=\"http://www.mldonkeyworld.com/\" onMouseOver=\"window.status='MLDonkey World';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>English forum</a></td>
+<td><a class=\"extern\" href=\"http://mldonkey.sf.net/forums/\" onMouseOver=\"window.status='MLDonkey World';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>English forum</a></td>
 <td><a class=\"extern\" href=\"http://www.mldonkey.org/\" onMouseOver=\"window.status='German Forum';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>German forum</a></td>
 <td><a href=\"submit?q=kill\" onMouseOver=\"window.status='Save and quit MLDonkey';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Kill MLDonkey</a></td>
   </tr>

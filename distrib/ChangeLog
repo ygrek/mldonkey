@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/10/25
+5487: Update URLs, change mldonkey.net to mldonkey.org
 5485: HTML: Print sharing strategies in command "shares"
 5461: Release slot, fix missing filenames in upstats
 - Each downloading file can be set to status "Release", this can
