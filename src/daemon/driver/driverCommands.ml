@@ -1471,7 +1471,7 @@ let _ =
 
             Printf.bprintf buf "\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>\\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap title=\\\"Toggle option helptext from javascript popup to html table\\\" class=\\\"fbig fbigb pr fbigpad\\\"\\>
-\\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=set+html_mods_use_js_helptext+%s'; setTimeout('window.location.replace(window.location.href)',1000);return true;}\\\"\\>Toggle js_helptext\\</a\\>
+\\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=set+html_mods_use_js_helptext+%s'; setTimeout('window.location.replace(window.location.href)',1000);return true;}\\\"\\>toggle js_helptext\\</a\\>
 \\</td\\>\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>" (if !!html_mods_use_js_helptext then "false" else "true");
             
             html_mods_table_one_row buf "downloaderTable" "downloaders" [
@@ -1829,7 +1829,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=\\\"fbig fbigb fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap title=\\\"Toggle option helptext from javascript popup to html table\\\" class=\\\"fbig fbigb pr fbigpad\\\"\\>
-\\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=set+html_mods_use_js_helptext+%s'; setTimeout('window.location.replace(window.location.href)',1000);return true;}\\\"\\>Toggle js_helptext\\</a\\>
+\\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=set+html_mods_use_js_helptext+%s'; setTimeout('window.location.replace(window.location.href)',1000);return true;}\\\"\\>toggle js_helptext\\</a\\>
 \\</td\\>\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>" (if !!html_mods_use_js_helptext then "false" else "true");
           html_mods_table_one_row buf "downloaderTable" "downloaders" [
           ("", "srh", "!! press ENTER to send changes to core !!"); ];

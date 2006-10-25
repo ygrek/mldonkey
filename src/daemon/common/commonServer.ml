@@ -450,13 +450,13 @@ let server_print s o =
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\" title=\\\"Unset preferred\\\"
-        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+false+%s'\\\"\\>T\\</TD\\>"
+        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+false+%s'\\\"\\>P\\</TD\\>"
         (Ip.string_of_addr info.G.server_addr)
         end else begin
         Printf.sprintf
         "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\" title=\\\"Set preferred\\\"
-        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+true+%s'\\\"\\>F\\</TD\\>"
+        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+true+%s'\\\"\\>-\\</TD\\>"
         (Ip.string_of_addr info.G.server_addr)
         end
       );
@@ -506,16 +506,16 @@ let server_print s o =
 
     let cc,cn = Geoip.get_country (Ip.ip_of_addr info.G.server_addr) in
     html_mods_td buf ([
-      ("", "srb", if info.G.server_master then "T" else "F");
+      ("", "srb", if info.G.server_master then "M" else "-");
       (id_title, "sr", id_text);
       ("", "sr", n.network_name);
       ("", "sr", server_state_string);
       ("", "sr br", ip_port_string);
       ] @ (if !Geoip.active then [(cn, "sr br", cc)] else []) @ [
-      ("", "sr ar", Printf.sprintf "%Ld" info.G.server_nusers);
-      ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_max_users);
-      ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_lowid_users);
-      ("", "sr ar", Printf.sprintf "%Ld" info.G.server_nfiles)]);
+      ("", "sr ar", if info.G.server_nusers = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_nusers);
+      ("", "sr ar br", if info.G.server_max_users = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_max_users);
+      ("", "sr ar br", if info.G.server_lowid_users = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_lowid_users);
+      ("", "sr ar", if info.G.server_nfiles = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_nfiles)]);
 
     if info.G.server_published_files = 0 then
       html_mods_td buf ([("", "sr br", "")])
@@ -527,9 +527,9 @@ onClick=\\\"location.href='submit?q=server_shares+%d'\\\"\\>%d\\</TD\\>"
 	snum info.G.server_published_files;
 
     html_mods_td buf ([
-      ("", "sr ar", Printf.sprintf "%Ld" info.G.server_soft_limit);
-      ("", "sr ar br", Printf.sprintf "%Ld" info.G.server_hard_limit);
-      ("", "sr ar br", Printf.sprintf "%d" info.G.server_ping);
+      ("", "sr ar", if info.G.server_soft_limit = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_soft_limit);
+      ("", "sr ar br", if info.G.server_hard_limit = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_hard_limit);
+      ("", "sr ar br", if info.G.server_ping = 0 then "" else Printf.sprintf "%d" info.G.server_ping);
       ("", "sr br", info.G.server_version);
       ("", "sr", info.G.server_name);
     ]);

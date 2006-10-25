@@ -1746,14 +1746,14 @@ let _ =
     (fun url filename ->
     if !!enable_donkey && !!update_server_list_server_met then
       begin
-        lprintf_n "server.met loaded from %s" url;
+        lprintf_nl "server.met loaded from %s" url;
   begin
     try
       let s = unpack_server_met filename url in
         let nservers = List.length (Hashtbl2.to_list servers_by_key) in
               let n = load_server_met s in
                 if s <> filename then Sys.remove s;
-            lprintf ", %d servers found, %d new ones inserted"
+            lprintf_nl "%d servers found, %d new ones inserted"
         n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
            with _ -> ()
   end;
