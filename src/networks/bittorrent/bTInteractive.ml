@@ -657,7 +657,7 @@ let try_share_file torrent_diskname =
         match list with
           [] -> raise Not_found
         | sh :: tail ->
-            let s = sharing_strategies sh.shdir_strategy in
+            let s = sharing_strategy sh.shdir_strategy in
             if match torrent.torrent_files with
                 [] -> not s.sharing_directories
               | _ ->  s.sharing_directories then

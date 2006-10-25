@@ -2097,7 +2097,7 @@ let _ =
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
-                   var getdir = prompt('Input: <priority#> <directory> (surround dir with quotes if necessary)','0 /home/mldonkey/share')
+                   var getdir = prompt('Input: <priority#> <directory> [<strategy>] (surround dir with quotes if necessary)','0 /home/mldonkey/share')
                    parent.fstatus.location.href='submit?q=share+' + encodeURIComponent(getdir);
                    setTimeout('window.location.reload()',1000);
                     }\\\"\\>Add Share\\</a\\>
@@ -2116,12 +2116,10 @@ let _ =
                ( "1", "srh ar", "% free", "% free" ) ;
                ( "0", "srh", "Filesystem", "FS" ) ];
 
-            let counter = ref 0 in
-
+            html_mods_cntr_init ();
             List.iter (fun shared_dir ->
 		let dir = shared_dir.shdir_dirname in
-		incr counter;
-		Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>
+		Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>
         \\<td title=\\\"Click to unshare this directory\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
@@ -2136,7 +2134,7 @@ let _ =
         \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
         \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
         \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-		(if !counter mod 2 == 0 then "dl-1" else "dl-2")
+		(html_mods_cntr ())
 		(Url.encode dir)
 		shared_dir.shdir_priority
 		dir
@@ -2155,7 +2153,38 @@ let _ =
             !!shared_directories;
   
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
-	    print_option_help o shared_directories
+	    print_option_help o shared_directories;
+            Printf.bprintf buf "\\<P\\>";
+
+	    html_mods_big_header_start buf "sharesTable" ["Share strategies"];
+            html_mods_table_header buf "sharesTable" "shares" [
+               ( "0", "srh", "Name", "Name" ) ;
+               ( "0", "srh", "Incoming", "Incoming" ) ;
+               ( "0", "srh", "Directories", "Directories" ) ;
+               ( "0", "srh", "Recursive", "Recursive" ) ;
+               ( "0", "srh", "Minsize", "Minsize" ) ;
+               ( "0", "srh", "Maxsize", "Maxsize" ) ;
+               ( "0", "srh", "Extensions", "Extensions" ) ];
+
+            html_mods_cntr_init ();
+
+	    let int64_print v =
+	      if v = Int64.max_int then "unlimited" else Int64ops.int64_to_human_readable v in
+
+            List.iter (fun (s,t) ->
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+                html_mods_td buf [
+		    ("", "sr", s);
+		    ("", "sr", string_of_bool t.sharing_incoming);
+		    ("", "sr", string_of_bool t.sharing_directories);
+		    ("", "sr", string_of_bool t.sharing_recursive);
+		    ("", "sr", (int64_print t.sharing_minsize));
+		    ("", "sr", (int64_print t.sharing_maxsize));
+		    ("", "sr", (String.concat " " t.sharing_extensions));
+		    ];
+                Printf.bprintf buf "\\</tr\\>\n"
+              ) !!sharing_strategies;
+
           end
         else
           begin

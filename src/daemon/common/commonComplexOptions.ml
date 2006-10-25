@@ -712,7 +712,7 @@ let sharing_only_directory = {
     sharing_directories = false;
     sharing_extensions = [];
     sharing_recursive = false;
-    sharing_minsize = Int64.one;
+    sharing_minsize = zero;
     sharing_maxsize = Int64.max_int;
   }  
   
@@ -721,7 +721,7 @@ let sharing_incoming_directories = {
     sharing_directories = true;
     sharing_extensions = [];
     sharing_recursive = false;
-    sharing_minsize = Int64.one;
+    sharing_minsize = zero;
     sharing_maxsize = Int64.max_int;
   }  
   
@@ -730,7 +730,7 @@ let sharing_incoming_files = {
     sharing_directories = false;
     sharing_extensions = [];
     sharing_recursive = false;
-    sharing_minsize = Int64.one;
+    sharing_minsize = zero;
     sharing_maxsize = Int64.max_int;
   }
 
@@ -739,7 +739,7 @@ let sharing_directories = {
       sharing_directories = true;
       sharing_extensions = [];
       sharing_recursive = false;
-      sharing_minsize = Int64.one;
+      sharing_minsize = zero;
       sharing_maxsize = Int64.max_int;
     }
   
@@ -774,7 +774,7 @@ let sharing_strategies = define_option searches_section
       sharing_directories = false;
       sharing_extensions = [];
       sharing_recursive = true;
-      sharing_minsize = Int64.one;
+      sharing_minsize = zero;
       sharing_maxsize = Int64.max_int;
     };
     
@@ -806,7 +806,7 @@ let _ =
       
   )
 
-let sharing_strategies name =
+let sharing_strategy name =
   match name with
   | "incoming_files" -> sharing_incoming_files
   | "incoming_directories" -> sharing_incoming_directories

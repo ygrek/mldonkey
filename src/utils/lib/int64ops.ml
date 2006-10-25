@@ -50,3 +50,12 @@ let round_down64 x y =
 let round_up64 x y =
   ((Int64.pred (x ++ y)) // y) ** y
 
+let int64_to_human_readable size =
+ if Int64.to_float size >= 1024. && Int64.to_float size < 1048576. then
+    (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1024.) ("kb") )
+  else if size >= Int64.of_float 1048576. && Int64.to_float size < 1073741824. then
+    (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1048576.) ("mb") )
+  else if size >= Int64.of_float 1073741824. then
+    (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1073741824.) ("gb") )
+  else
+    (Printf.sprintf "%8s%s" (Int64.to_string size) ("b") )
