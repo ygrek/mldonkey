@@ -1063,7 +1063,8 @@ let _ =
 	max_hard_upload_rate =:= ul_bkp;
 	max_hard_download_rate =:=  dl_bkp;
 	let result =
-	  Printf.sprintf "new upload rate: %d | new downloadrate: %d" ul_bkp dl_bkp
+	  Printf.sprintf "new upload rate: %d | new download rate: %d"
+	    !!max_hard_upload_rate !!max_hard_download_rate
 	in
 	if o.conn_output = HTML then
 	  html_mods_table_one_row buf "serversTable" "servers" [
