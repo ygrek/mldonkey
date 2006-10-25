@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/25
+5484: Fix DNS test, test other domains besides www.mldonkey.net
+
 2006/10/23
 5474: New command bw_toggle (ported from Knockers Mulus client)
 - two new options: max_hard_upload_rate_2 and max_hard_download_rate_2

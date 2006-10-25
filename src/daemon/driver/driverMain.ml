@@ -340,15 +340,18 @@ let _ =
       CommonGlobals.exit_properly 71
     end;
 
-  (
-    let hostname = "www.mldonkey.net" in
-    try
-      ignore(Ip.from_name hostname);
-      DriverInteractive.dns_works := true
-    with e ->
-        lprintf (_b "\nDNS resolution does not work! Looking up %s failed with %s.")
-           hostname (Printexc2.to_string e);
-	lprintf "
+  ( let resolve_name hostname =
+      try
+	ignore (Ip.from_name hostname);
+	true
+      with _ -> false
+    in
+    let hostnames =
+      ["www.mldonkey.org"; "mldonkey.sf.net"; "www.mldonkey.net"; "www.google.com"]
+    in
+    DriverInteractive.dns_works := List.exists resolve_name hostnames;
+
+    if not !DriverInteractive.dns_works then lprintf "
 The core therefore is unable to get eDonkey serverlists and loading
 .torrent files via dllink from websites is also impossible.
 If you are using MLDonkey in a chroot environment you should
