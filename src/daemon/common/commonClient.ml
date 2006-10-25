@@ -33,9 +33,8 @@ type 'a client_impl = {
     mutable impl_client_type : client_type;
     mutable impl_client_state : host_state;
     mutable impl_client_update : int;
-    mutable impl_client_has_slot : bool;
-    mutable impl_client_has_friend_slot : bool;
-    mutable impl_client_upload : shared option;
+    mutable impl_client_slot : slot_kind;
+    mutable impl_client_upload : file option;
     mutable impl_client_num : int;
     mutable impl_client_val : 'a;
     mutable impl_client_ops : 'a client_ops;
@@ -102,8 +101,7 @@ let dummy_client_impl = {
     impl_client_type = 0;
     impl_client_state = NewHost;
     impl_client_update = 1;
-    impl_client_has_slot = false;
-    impl_client_has_friend_slot = false;
+    impl_client_slot = NoSlot;
     impl_client_upload = None;
     impl_client_num = 0;
     impl_client_val = 0;
@@ -322,24 +320,26 @@ let is_initialized c =
 let set_initialized c =
   set_client_type c (client_type c lor client_initialized_tag)
 
-let client_has_a_slot c =
-  (as_client_impl c).impl_client_has_slot
+let client_slot c =
+  (as_client_impl c).impl_client_slot
 
-let client_has_a_friend_slot c =
-  (as_client_impl c).impl_client_has_friend_slot
+let client_has_a_slot c =
+  match (as_client_impl c).impl_client_slot with
+    NoSlot -> false
+  | _ -> true
 
 let client_upload c =
   (as_client_impl c).impl_client_upload
 
 let set_client_upload c sh =
-  (as_client_impl c).impl_client_upload <- sh;
+  (as_client_impl c).impl_client_upload <- Some sh;
   client_must_update c
 
-let set_client_has_a_slot c b =
+let set_client_has_a_slot c slot =
   let impl = as_client_impl c in
-  if not b && impl.impl_client_has_slot then begin
-      impl.impl_client_has_slot <- false;
-      impl.impl_client_has_friend_slot <- false;
+  match slot with
+    NoSlot -> if client_has_a_slot c then begin
+      impl.impl_client_slot <- NoSlot;
       uploaders := Intmap.remove (client_num c) !uploaders;
       client_must_update c;
 (*
@@ -353,17 +353,15 @@ them unaccessable on Windows.
 *)
       Unix32.close_all ()
     end
-  else
-  if b && not impl.impl_client_has_slot then  begin
+  | slot -> if not (client_has_a_slot c) then begin
       uploaders := Intmap.add (client_num c) c !uploaders;
-      impl.impl_client_has_slot <- true;
-      impl.impl_client_has_friend_slot <- is_friend c;
+      impl.impl_client_slot <- slot;
       client_must_update c
     end
 
 let set_client_disconnected c reason =
   let impl = as_client_impl c in
-  set_client_has_a_slot c false;
+  set_client_has_a_slot c NoSlot;
 
   match impl.impl_client_state with
     Connected n -> set_client_state c (NotConnected (reason, n))

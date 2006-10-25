@@ -562,6 +562,7 @@ let op_ft_info ft =
     P.file_comments = [];
     P.file_user = "";
     P.file_group = "";
+    P.file_release = file_release (as_ft ft);
   }
 
 

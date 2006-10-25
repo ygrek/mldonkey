@@ -140,6 +140,7 @@ type file_info = {
     mutable file_comments : (Ip.t * string * int * string) list;
     mutable file_user : string;
     mutable file_group : string;
+    mutable file_release : bool;
   }
   
 type user_info = {
@@ -337,5 +338,6 @@ let file_info_test =
     file_comments = [];
     file_user = "";
     file_group = "";
+    file_release = false;
  } 
   

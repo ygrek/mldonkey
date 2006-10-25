@@ -62,6 +62,7 @@ type 'a file_impl = {
     mutable impl_file_filenames : string list;
     mutable impl_file_magic : string option;
     mutable impl_file_priority: int; (* normal = 0, low < 0, high > 0 *)
+    mutable impl_file_release : bool;
     mutable impl_file_last_seen : int;
     mutable impl_file_probable_name : string option;
   }
@@ -136,6 +137,7 @@ let dummy_file_impl = {
     impl_file_filenames = [];
     impl_file_magic = None;
     impl_file_priority = 0;
+    impl_file_release = false;
     impl_file_last_seen = 0;
     impl_file_comment = "";
     impl_file_probable_name = None;
@@ -260,6 +262,15 @@ let file_resume (file : file) user =
       update_file_state file FileDownloading;
       file.impl_file_ops.op_file_resume file.impl_file_val
   | _ -> ()
+
+let set_file_release file status user =
+  if user2_allow_file_admin file user then
+  let impl = as_file_impl file in
+  impl.impl_file_release <- status
+
+let file_release (file: file) =
+  let impl = as_file_impl file in
+  impl.impl_file_release
 
 let set_file_owner file owner =
   (as_file_impl file).impl_file_owner <- owner
@@ -1233,6 +1244,7 @@ let impl_file_info impl =
     T.file_comments = [];
     T.file_user = impl.impl_file_owner;
     T.file_group = (impl_group_text impl);
+    T.file_release = impl.impl_file_release;
   }
 
 let lprintf_file_nl file fmt =

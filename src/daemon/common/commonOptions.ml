@@ -603,6 +603,10 @@ let max_upload_slots = define_option current_section ["max_upload_slots"]
   "How many slots can be used for upload"
     int_option 5
 
+let max_release_slots = define_option current_section ["max_release_slots"]
+  "How many percent of upload slots can be used for downloading files tagged as release"
+    percent_option 20
+
 let friends_upload_slot = define_option current_section ["friends_upload_slot"]
   "Set aside a single reserved slot to upload to friends"
     bool_option true

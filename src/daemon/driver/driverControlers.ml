@@ -1300,6 +1300,14 @@ let http_handler o t r =
                     let num = int_of_string value in
                     let file = file_find num in
                     file_resume file o.conn_user.ui_user_name
+                | "release" ->
+                    let num = int_of_string value in
+                    let file = file_find num in
+                    set_file_release file true o.conn_user.ui_user_name
+                | "norelease" ->
+                    let num = int_of_string value in
+                    let file = file_find num in
+                    set_file_release file false o.conn_user.ui_user_name
                 | "sortby" ->
                     begin
                       match value with

@@ -225,7 +225,7 @@ let recompute_uploaders () =
   (*Send choke if a current_uploader is not in next_uploaders*)
   List.iter ( fun c -> if ((List.mem c !next_uploaders)==false) then
         begin
-          set_client_has_a_slot (as_client c) false;
+          set_client_has_a_slot (as_client c) NoSlot;
           (*we will let him finish his download and choke him on next_request*)
         end
   ) !current_uploaders;
@@ -233,7 +233,7 @@ let recompute_uploaders () =
   (*don't send Choke if new uploader is already an uploaders *)
   List.iter ( fun c -> if ((List.mem c !current_uploaders)==false) then
         begin
-          set_client_has_a_slot (as_client c) true;
+          set_client_has_a_slot (as_client c) NormalSlot;
           Rate.update_no_change c.client_downloaded_rate;
           Rate.update_no_change c.client_upload_rate;
           c.client_last_optimist <- last_time();
@@ -873,7 +873,7 @@ and client_to_client c sock msg =
             *)
             current_uploaders := c::(!current_uploaders);
             c.client_sent_choke <- false;
-            set_client_has_a_slot (as_client c) true;
+            set_client_has_a_slot (as_client c) NormalSlot;
             Rate.update_no_change c.client_downloaded_rate;
             Rate.update_no_change c.client_upload_rate;
             c.client_last_optimist <- last_time();
@@ -903,7 +903,7 @@ and client_to_client c sock msg =
               don't miss the opportunity if we can *)
               current_uploaders := c::(!current_uploaders);
               c.client_sent_choke <- false;
-              set_client_has_a_slot (as_client c) true;
+              set_client_has_a_slot (as_client c) NormalSlot;
               Rate.update_no_change c.client_downloaded_rate;
               Rate.update_no_change c.client_upload_rate;
               c.client_last_optimist <- last_time();

@@ -79,8 +79,8 @@ module NewUpload = struct
 (*      let len_int = Int32.to_int len in *)
       try
 	if !verbose_upload then
-    lprintf_nl "send_small_block (%s) %Ld %d"
-	    (full_client_identifier c)
+	  lprintf_nl "Sending %s to %s, begin %Ld len %d"
+	    (file_best_name file) (full_client_identifier c)
             (begin_pos) (len_int);
         
         let msg =  
@@ -135,7 +135,7 @@ module NewUpload = struct
 (* last block from chunk *)
               begin
                 if !verbose_upload then
-                    lprintf_nl "END OF CHUNK (%d) %Ld" max_len up.up_end_chunk; 
+                    lprintf_nl "End of chunk (%d) %Ld %s" max_len up.up_end_chunk (file_best_name up.up_file);
                 send_small_block c sock up.up_file up.up_pos max_len;
                 up.up_chunks <- chunks;
                 let per_client = per_client - max_len in

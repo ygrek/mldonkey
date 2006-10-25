@@ -1145,8 +1145,8 @@ let _ =
         P.client_uploaded = c.client_uploaded;
 (*        P.client_source.source_sock_addr =    (); *)
         P.client_upload =
-        (match c.client_upload with
-            Some cu -> Some (file_best_name cu.up_file)
+        (match client_upload (as_client c) with
+            Some f -> Some (CommonFile.file_best_name f)
           | None -> None);
         P.client_sui_verified = c.client_sui_verified;
       }

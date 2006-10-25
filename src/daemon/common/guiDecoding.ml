@@ -650,6 +650,7 @@ let get_file proto s pos =
     file_comments = comments;
     file_user = user;
     file_group = group;
+    file_release = false;
   }, pos
 
 let get_host_state proto s pos =

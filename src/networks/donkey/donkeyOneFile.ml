@@ -100,7 +100,7 @@ done;
                 end
 
 let remove_client_slot c =
-  set_client_has_a_slot (as_client c) false;
+  set_client_has_a_slot (as_client c) NoSlot;
   client_send c (
     let module M = DonkeyProtoClient in
     let module Q = M.CloseSlot in

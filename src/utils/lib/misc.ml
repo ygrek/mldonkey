@@ -49,6 +49,10 @@ let bin2dec num =
   let s = string_of_int num in
     int_of_string ("0b" ^ s)
 
+let percentage_of_ints v percent =
+  int_of_float (
+  (float_of_int v *. float_of_int percent /. 100.0) +. 0.5)
+
 let zip_extract_entry ifile e =
   if e.Zip.is_directory then begin
     try

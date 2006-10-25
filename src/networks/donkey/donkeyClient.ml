@@ -192,9 +192,13 @@ let _ =
           M.AvailableSlotReq Q.t);
         
         if !verbose then
-            lprintf_nl "New uploader %s"
-              (full_client_identifier c);
-        
+            lprintf_nl "New uploader %s%s%s"
+              (full_client_identifier c)
+	      (let slot_text = string_of_slot_kind (client_slot (as_client c)) true in
+		 if slot_text = "" then "" else Printf.sprintf "(%s)" slot_text)
+	      (match client_upload (as_client c) with
+		 None -> ""
+	       | Some f -> Printf.sprintf " for file %s" (CommonFile.file_best_name f))
     )  
   in
   client_ops.op_client_enter_upload_queue <- client_enter_upload_queue
@@ -262,7 +266,7 @@ let disconnect_client c reason =
           c.client_connect_time <- 0;
           (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
           (try CommonUploads.remove_pending_slot (as_client c) with _ -> ());
-          set_client_has_a_slot (as_client c) false;
+          set_client_has_a_slot (as_client c) NoSlot;
 (*          connection_failed c.client_connection_control; *)
           (try TcpBufferedSocket.close sock reason with _ -> ());
 
@@ -1108,7 +1112,7 @@ let client_to_client for_files c t sock =
       
       init_client_after_first_message sock c;
       
-      set_client_has_a_slot (as_client c) false;
+      set_client_has_a_slot (as_client c) NoSlot;
       
       let module CR = M.Connect in
 
@@ -1364,8 +1368,11 @@ other one for unlimited sockets.  *)
         end else *)
       CommonUploads.add_pending_slot (as_client c);
       if !verbose_upload then
-          lprintf_nl "donkeyClient: uploader couldn't get a slot: %s"
-            (full_client_identifier c);
+          lprintf_nl "added to pending slots: %s %s"
+            (full_client_identifier c) 
+	    (match client_upload (as_client c) with
+	       None -> ""
+	     | Some f -> CommonFile.file_best_name f);
 (*      end *)
   
   | M.CloseSlotReq _ ->
@@ -1694,7 +1701,7 @@ is checked for the file.
                 shared_must_update_downloaded (as_shared impl);
                 impl.impl_shared_requests <- impl.impl_shared_requests + 1);
           request_for c file sock;
-          set_client_upload (as_client c) (shared_of_file file);
+          set_client_upload (as_client c) (as_file file);
           client_send c (
             let module Q = M.QueryFileReply in
             let filename = file_best_name file in
@@ -2030,7 +2037,7 @@ end else *)
         new_chunk up t.Q.start_pos2 t.Q.end_pos2;
         new_chunk up t.Q.start_pos3 t.Q.end_pos3;
         c.client_upload <- Some up;
-        set_client_upload (as_client c) (shared_of_file file);
+        set_client_upload (as_client c) (as_file file);
         if not waiting && !CommonUploads.has_upload = 0 then begin
             CommonUploads.ready_for_upload (as_client c);
             up.up_waiting <- true
@@ -2126,7 +2133,7 @@ let init_client sock c =
 (*  c.client_block <- None; *)
 (*  c.client_zones <- []; *)
   c.client_file_queue <- [];
-  set_client_has_a_slot (as_client c) false;
+  set_client_has_a_slot (as_client c) NoSlot;
   c.client_upload <- None;
   c.client_rank <- 0;
   c.client_requests_received <- 0;

@@ -572,7 +572,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
   Printf.bprintf buf "\\</form\\>"
 
 
-  let print_file_html_mods buf guifiles =
+let print_file_html_mods buf guifiles =
 
     if (List.length guifiles) > 0 then begin
 	let tsize = ref Int64.zero in
@@ -657,7 +657,8 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
 
 \\<td title=\\\"Pause\\\"  class=\\\"dlheader np\\\"\\>P\\</td\\>
 \\<td title=\\\"Resume\\\" class=\\\"dlheader np\\\"\\>R\\</td\\>
-\\<td title=\\\"Cancel\\\" class=\\\"dlheader brs\\\"\\>C\\</td\\>"
+\\<td title=\\\"Cancel\\\" class=\\\"dlheader brs\\\"\\>C\\</td\\>
+\\<td title=\\\"Click to switch release status\\\" class=\\\"dlheader brs\\\"\\>R\\</td\\>"
 (if !qnum > 0 then begin
 	Printf.sprintf "title=\\\"Active(%d): %s/%s | Queued(%d): %s/%s\\\""
 	(List.length guifiles - !qnum) (size_of_int64 (!tdl -- !qdl)) (size_of_int64 (!tsize -- !qsize))
@@ -668,7 +669,7 @@ else "")
 (let unread = ref 0 in
 Fifo.iter (fun (t,i,num,n,s) -> if t > !last_message_log then incr unread) chat_message_fifo;
 if !unread > 0 then Printf.sprintf "\\<td class=downloaded title=\\\"%d unread messages\\\"\\>\\<a onClick=\\\"mSub('fstatus','version');mSub('output','message')\\\"\\>(+%d)\\</a\\>\\&nbsp;\\</td\\>" !unread !unread else "");
-(* onClick="mSub('fstatus','version');mSub('output','message')" *)
+
 if !!html_mods_vd_network then Printf.bprintf buf
 "\\<td title=\\\"Sort by network\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=N name=sortby\\>\\</td\\>";
 
@@ -751,6 +752,10 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
                 \\<td class=\\\"dl al brs\\\"\\>\\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
                 file.file_num
                 file.file_num);
+
+	  Printf.sprintf "\\<td onClick=\\\"location.href='files?%s=%d';return true;\\\" class=\\\"dl al brs\\\"\\>\\%s\\</td\\>"
+	    (if file.file_release then "norelease" else "release")
+	    file.file_num (if file.file_release then "R" else "-");
 
           (if !!html_mods_vd_network then
 			Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
@@ -953,6 +958,7 @@ let simple_print_file_list finished buf files format =
           |] else
           [|
             "$nNum";
+	    "Rele";
 	    "Comm";
             "File";
             "    %";
@@ -998,6 +1004,7 @@ let simple_print_file_list finished buf files format =
                     file.file_num
                       (if downloading file then "PAUSE" else "RESUME")
                   else ""));
+	      (Printf.sprintf "%s" (if file.file_release then "R" else "-"));
 	      (Printf.sprintf "%4d" (number_of_comments file));
               (short_name file);
               (Printf.sprintf "%3.1f" (percent file));

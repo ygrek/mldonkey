@@ -839,14 +839,7 @@ let add_pending_slot c =
     end
   else
   if not (Intmap.mem (client_num c) !pending_slots_map) then
-    begin
-(* This is useless since it is the goal of the pending_slots_map
-        else if Fifo.mem pending_slots_fifo (client_num c) then begin
-	lprintf "Avoided inserting a client twice in pending slots\n";
-	
-      end else *)
-      pending_slots_map := Intmap.add (client_num c) c !pending_slots_map;
-    end
+    pending_slots_map := Intmap.add (client_num c) c !pending_slots_map
 
 let remove_pending_slot c =
   if Intmap.mem (client_num c) !pending_slots_map then
@@ -854,11 +847,11 @@ let remove_pending_slot c =
 
 let rec give_a_slot c =
   remove_pending_slot c;
-  if not (client_is_connected c) then begin
-      find_pending_slot ()
-    end
-  else begin
-      set_client_has_a_slot c true;
+  if not (client_is_connected c) then
+    find_pending_slot ()
+  else
+    begin
+      set_client_has_a_slot c NormalSlot;
       client_enter_upload_queue c
     end
 
@@ -873,36 +866,47 @@ and find_pending_slot () =
   with _ -> ()
 
 let add_pending_slot c =
-  let csh = client_upload c in
+  let client_upload c =
+    match client_upload c with
+      None -> raise Not_found
+    | Some file -> file
+  in
+  let csh = file_shared (client_upload c) in
   let cdir = shared_dir csh in
   let cprio = ref (shared_prio csh) in
   let cfriend = ref (if is_friend c && !!friends_upload_slot then 1 else 0) in
   let csmallfiles = ref (match csh with 
     | None -> 0
     | Some sh -> if shared_size sh <= !!small_files_slot_limit then 1 else 0) in
-  (* if cdir <> "" then
-    lprintf "Testing cdir %s\n" cdir; *)
+  let allowed_release_slots =
+    ref (Misc.percentage_of_ints !!max_upload_slots !!max_release_slots) in
+
+(* check current upload slots for already used special slots *)
   Intmap.iter (fun _ c ->
-    let sh = client_upload c in
-    if shared_dir sh = cdir then decr cprio;
-    if client_has_a_friend_slot c then decr cfriend;
-    match sh with
-      | None -> ()
-      | Some sh ->
-	  if shared_size sh <= !!small_files_slot_limit then
-	    decr csmallfiles;
-  ) !CommonClient.uploaders;
-  (* if cdir <> "" then
-     lprintf "Testing cprio %d cfriend %d csmallfiles\n" 
-     !cprio !cfriend !csmallfiles; *)
-  if !cprio > 0 || !cfriend > 0 || !csmallfiles > 0 then begin
-    remove_pending_slot c;
-    if client_is_connected c then begin
-      set_client_has_a_slot c true;
-      client_enter_upload_queue c
-    end
-  end else
-    add_pending_slot c
+    if shared_dir (file_shared (client_upload c)) = cdir then
+      decr cprio;
+    match client_slot c with
+      ReleaseSlot -> decr allowed_release_slots
+    | FriendSlot -> decr cfriend
+    | SmallFileSlot -> decr csmallfiles
+    | _ -> ()) !CommonClient.uploaders;
+
+  let slot_type =
+    if file_release (client_upload c) && !allowed_release_slots > 0 then Some ReleaseSlot else
+    if !cfriend > 0 then Some FriendSlot else
+    if !csmallfiles > 0 then Some SmallFileSlot else
+    if !cprio > 0 then Some (PrioSlot cdir) else
+    None
+  in
+  match slot_type with
+    Some slot ->
+	remove_pending_slot c;
+	if client_is_connected c then
+	  begin
+	    set_client_has_a_slot c slot;
+	    client_enter_upload_queue c
+	  end
+  | None -> add_pending_slot c
 
 let static_refill_upload_slots () =
   let len = Intmap.length !CommonClient.uploaders in

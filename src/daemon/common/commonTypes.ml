@@ -906,3 +906,20 @@ type kind_type = {
   f : string -> string -> unit;
   description : string
 }
+
+type slot_kind =
+  NoSlot
+| FriendSlot
+| ReleaseSlot
+| SmallFileSlot
+| NormalSlot
+| PrioSlot of string
+
+let string_of_slot_kind slot_kind short =
+  match slot_kind with
+    NoSlot -> "NoSlot"
+  | FriendSlot -> "FriendSlot"
+  | ReleaseSlot -> "ReleaseSlot"
+  | SmallFileSlot -> "SmallFileSlot"
+  | NormalSlot -> if short then "" else "NormalSlot"
+  | PrioSlot dir -> Printf.sprintf "Prio %s" dir

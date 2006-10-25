@@ -104,6 +104,11 @@ module FileOption = struct
                 normalize_time (get_value "file_age" value_to_int)
             with _ -> ());
 
+          (try
+              impl.impl_file_release <- 
+                get_value "file_release" value_to_bool
+            with _ -> ());
+
 	  let file_user = try
 	      let u = get_value "file_owner" value_to_string in
 	      if user2_user_exist u then u else begin
@@ -178,6 +183,7 @@ module FileOption = struct
 	("file_filenames", List
 	(List.map string_to_value impl.impl_file_filenames)) ::
         ("file_age", IntValue (Int64.of_int impl.impl_file_age)) ::
+        ("file_release", bool_to_value impl.impl_file_release) ::
         ("file_owner", string_to_value (file_owner file)) ::
         ("file_group", option_to_stringvalue (file_group file)) ::
           (file_to_option file)

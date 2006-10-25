@@ -1597,6 +1597,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option set_client_ip;
 			strings_of_option force_client_ip;
 			strings_of_option max_upload_slots;
+			strings_of_option max_release_slots;
 			strings_of_option dynamic_slots;
 			strings_of_option max_hard_upload_rate;
 			strings_of_option max_hard_download_rate;
@@ -2333,6 +2334,7 @@ let _ =
                   @ [
                   ( "0", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
                   ( "0", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
+                  ( "0", "srh ar", "Slot kind", "Slot" ) ;
                   ( "0", "srh", "Filename", "Filename" ) ]);
 
                 List.iter (fun c ->
@@ -2372,8 +2374,15 @@ let _ =
                             @ [
                             ("", "sr ar", size_of_int64 i.client_downloaded);
                             ("", "sr ar", size_of_int64 i.client_uploaded);
+			    (let text1, text2 =
+				match client_slot c with
+				| FriendSlot -> "Friend", "F"
+				| ReleaseSlot -> "Release", "R"
+				| SmallFileSlot -> "Small file", "S"
+				| PrioSlot dir -> "Prio dir: " ^ dir, "P"
+				| _ -> "", "" in text1, "sr ar", text2);
                             ("", "sr", (match i.client_upload with
-                                  Some cu -> cu
+                                  Some f -> shorten f !!max_name_len
                                 | None -> "") ) ]);
 
                           Printf.bprintf buf "\\</tr\\>"
@@ -2656,6 +2665,19 @@ let _ =
                       file_resume file o.conn_user.ui_user_name
               ) !!files) args; ""
     ), "<num> :\t\t\t\tresume a paused download (use arg 'all' for all files)";
+
+    "release", Arg_one (fun arg o ->
+	let num = int_of_string arg in
+	let file = file_find num in
+	let old_state = file_release file in
+	set_file_release file (not (file_release file)) o.conn_user.ui_user_name;
+	Printf.sprintf "%s, file: %s"
+	  (match old_state, file_release file with
+	      true, false -> "deactivated release state"
+	    | false, true -> "activated release state"
+	    | _ -> "unchanged status, enough rights?")
+	  (shorten (file_best_name file) !!max_name_len)
+    ), "<num> :\t\t\t\tchange release state of a download";
 
     "commit", Arg_none (fun o ->
         List.iter (fun file ->

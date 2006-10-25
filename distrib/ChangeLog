@@ -15,6 +15,14 @@ ChangeLog
 =========
 
 2006/10/25
+5461: Release slot, fix missing filenames in upstats
+- Each downloading file can be set to status "Release", this can
+  be done by clicking the "R" column in HTML, Transfers or by
+  using the new "release <file_num>" command to toggle the state.
+- A new option max_release_slots exists, default 20% of the default
+  5 max_upload_slots. This means 1 upload slot is available per default
+  and granted for files with status "Release" when requested.
+- Show filenames in pending upload slots list
 5484: Fix DNS test, test other domains besides www.mldonkey.net
 
 2006/10/23

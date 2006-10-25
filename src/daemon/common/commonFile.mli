@@ -38,6 +38,7 @@ type 'a file_impl = {
   mutable impl_file_filenames : string list;
   mutable impl_file_magic : string option;
   mutable impl_file_priority : int;
+  mutable impl_file_release : bool;
     mutable impl_file_last_seen : int;
     mutable impl_file_probable_name : string option;
 } 
@@ -86,6 +87,8 @@ val file_network : CommonTypes.file -> CommonTypes.network
 val file_info : CommonTypes.file -> GuiTypes.file_info
 val file_pause : CommonTypes.file -> string -> unit
 val file_resume : CommonTypes.file -> string -> unit
+val set_file_release : CommonTypes.file -> bool -> string -> unit
+val file_release : CommonTypes.file -> bool
 val set_file_state : CommonTypes.file -> CommonTypes.file_state -> unit
 val file_best_name : CommonTypes.file -> string
 val set_file_best_name : CommonTypes.file -> string -> string -> int -> unit
