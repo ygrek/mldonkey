@@ -31,6 +31,7 @@ open CommonComplexOptions
 open CommonServer
 open CommonResult
 open CommonFile
+open CommonShared
 open BasicSocket
 open CommonGlobals
 open Options
@@ -106,6 +107,45 @@ let (ft_ops : ft CommonFile.file_ops) =
 
 let (client_ops : client CommonClient.client_ops) =
   CommonClient.new_client_ops network
+
+let must_share_file file codedname has_old_impl =
+  match file.file_shared with
+  | Some _ -> ()
+  | None ->
+      begin
+        let impl = {
+          impl_shared_update = 1;
+          impl_shared_fullname = file_disk_name file;
+          impl_shared_codedname = codedname;
+          impl_shared_size = file_size file;
+          impl_shared_id = Md4.null;
+          impl_shared_num = 0;
+          impl_shared_uploaded = Int64.zero;
+          impl_shared_ops = shared_ops;
+          impl_shared_val = file;
+          impl_shared_requests = 0;
+          impl_shared_magic = None;
+          impl_shared_servers = [];
+        } in
+        file.file_shared <- Some impl;
+        incr CommonGlobals.nshared_files;
+        CommonShared.shared_calculate_total_bytes ();
+        match has_old_impl with
+          None -> update_shared_num impl
+        | Some old_impl -> replace_shared old_impl impl
+      end
+
+let must_share_file file = must_share_file file (file_best_name (as_file file)) None
+
+let unshare_file file =
+  match file.file_shared with
+    None -> ()
+  | Some s ->
+      begin
+        file.file_shared <- None;
+        decr CommonGlobals.nshared_files;
+        CommonShared.shared_calculate_total_bytes ()
+      end
 
 module DO = CommonOptions
 
@@ -295,7 +335,7 @@ let new_file file_id t torrent_diskname file_temp file_state user =
       current_files := file :: !current_files;
       Hashtbl.add files_by_uid file_id file;
       file_add file_impl file_state;
-(*      lprintf "ADD FILE TO DOWNLOAD LIST\n"; *)
+      must_share_file file;
       file
 
 let new_download file_id t torrent_diskname user =

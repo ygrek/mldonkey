@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/26
+5477: BT: Add downloads to share list after core restart
+
 2006/10/25
 5474: updated bw_toggle
 - fix cosmetic bug, wrong values were displayed

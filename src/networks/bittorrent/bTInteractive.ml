@@ -595,7 +595,6 @@ let load_torrent_string s user =
         torrent_diskname;
   let file = new_download file_id torrent torrent_diskname user in
   BTClients.get_sources_from_tracker file;
-  BTShare.must_share_file file;
   CommonInteractive.start_download (file_find (file_num file));
   file
 
@@ -675,7 +674,6 @@ let try_share_file torrent_diskname =
 
     let file = new_file file_id torrent torrent_diskname
         filename FileShared CommonUserDb.admin_user in
-    BTShare.must_share_file file;
     if !verbose_share then lprintf_file_nl (as_file file) "Sharing file %s" filename;
     BTClients.connect_trackers file "started"
       (parse_tracker_reply file)
@@ -1235,7 +1233,7 @@ let _ =
 
   shared_ops.op_shared_unshare <- (fun file ->
       (if !verbose_share then lprintf_file_nl (as_file file) "unshare file");
-      BTShare.unshare_file file);
+      BTGlobals.unshare_file file);
   shared_ops.op_shared_info <- (fun file ->
    let module T = GuiTypes in
      match file.file_shared with
