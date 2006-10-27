@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/27
+5499: Configure: find camlp4 in local, fix patch 5479 (dunk)
+
 2006/10/26
 5477: BT: Add downloads to share list after core restart
 
