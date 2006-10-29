@@ -14,6 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/29
+5475: Multiuser: Implement user_commit_dir
+- directories with strategy incoming_files are shared recursively now
+- support several directories with incoming_* strategies, use the
+  first one with enough space to commit the finished file
+
 2006/10/27
 5499: Configure: find camlp4 in local, fix patch 5479 (dunk)
 

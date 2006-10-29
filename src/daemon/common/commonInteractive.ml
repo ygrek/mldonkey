@@ -212,25 +212,12 @@ let file_commit file =
        (try
 	  let file_name = file_disk_name file in
 	  let incoming =
-            if Unix2.is_directory file_name then
-              incoming_directories ()
-            else
-              incoming_files ()
+            incoming_dir
+            (Unix2.is_directory file_name)
+            ~needed_space:(file_size file)
+            ~user:(file_owner file)
+            ()
           in
-
-(* check if temp_directory and incoming are on different partitions *)
-	  if (Unix.stat incoming.shdir_dirname).Unix.st_dev <>
-	     (Unix.stat !!temp_directory).Unix.st_dev
-	  then
-	    begin
-	      match Unix32.diskfree incoming.shdir_dirname with
-	        Some v -> if v < (file_size file) then begin
-		    send_dirfull_warning incoming.shdir_dirname true
-		      (Printf.sprintf "can not commit %s" (file_best_name file));
-		    raise Incoming_full
-		  end
-	      | _ -> ()
-	    end;
 
 	  let new_name = file_commited_name incoming.shdir_dirname file in
 	    if Unix2.is_directory file_name then begin
@@ -280,8 +267,11 @@ let file_commit file =
                 with e ->
                     lprintf_nl "Exception %s in file_commit secondaries" (Printexc2.to_string e);
             ) secondary_files
-        with e ->
-              lprintf_nl "Exception in file_commit: %s" (Printexc2.to_string e))
+	with
+	  Incoming_full ->
+	    send_dirfull_warning "" true
+	      (Printf.sprintf "all incoming dirs are full, can not commit %s" (file_best_name file))
+	| e -> lprintf_nl "Exception in file_commit: %s" (Printexc2.to_string e))
     | _ -> assert false
 
 let file_cancel file user =
@@ -337,12 +327,8 @@ let mail_for_completed_file file =
         Printf.sprintf "mldonkey@%s, file received" (Unix.gethostname ())
     in
 
-    let incoming =
-      if Unix2.is_directory (file_disk_name file) then
-        incoming_directories ()
-      else
-        incoming_files ()
-    in
+(* TODO: This information can be wrong *)
+    let incoming = incoming_dir (Unix2.is_directory (file_disk_name file)) () in
 
     let line4 = if !!url_in_mail = "" then "" else
       Printf.sprintf "\r\n<%s/%s/%s>\r\n" !!url_in_mail incoming.shdir_dirname (Url.encode (file_best_name file))

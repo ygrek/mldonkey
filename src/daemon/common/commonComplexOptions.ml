@@ -729,7 +729,7 @@ let sharing_incoming_files = {
     sharing_incoming = true;
     sharing_directories = false;
     sharing_extensions = [];
-    sharing_recursive = false;
+    sharing_recursive = true;
     sharing_minsize = zero;
     sharing_maxsize = Int64.max_int;
   }
@@ -928,7 +928,7 @@ let shared_directories =
 
 let search_incoming_files () =
   try
-    List.find (fun s -> s.shdir_strategy = "incoming_files") 
+    List.find_all (fun s -> s.shdir_strategy = "incoming_files") 
     !!shared_directories
   with Not_found ->
         let dirname = Filename.concat "incoming" "files" in
@@ -940,17 +940,11 @@ let search_incoming_files () =
           }
         in
         shared_directories =:= s :: !!shared_directories;
-        s
-
-let incoming_files () =
-  let dir = search_incoming_files () in
-    Unix2.safe_mkdir dir.shdir_dirname;
-    Unix2.can_write_to_directory dir.shdir_dirname;
-    dir
+        [s]
 
 let search_incoming_directories () =
   try
-    List.find (fun s -> s.shdir_strategy = "incoming_directories") 
+    List.find_all (fun s -> s.shdir_strategy = "incoming_directories") 
     !!shared_directories
   with Not_found ->
       let dirname = Filename.concat "incoming" "directories" in
@@ -962,13 +956,71 @@ let search_incoming_directories () =
         }
       in
       shared_directories =:= s :: !!shared_directories;
-      s
+      [s]
 
-let incoming_directories () =
-  let dir = search_incoming_directories () in
-    Unix2.safe_mkdir dir.shdir_dirname;
-    Unix2.can_write_to_directory dir.shdir_dirname;
-    dir
+exception Incoming_full
+
+let incoming_dir usedir ?user ?needed_space ?network () =
+
+  let directories =
+    if usedir then
+      search_incoming_directories ()
+    else
+      search_incoming_files ()
+  in
+
+  let dirname_user =
+    match user with
+    | None -> ""
+    | Some user -> (user2_user_find user).user_commit_dir
+  in
+
+(*
+  let dirname_network =
+    match network with
+    | None -> ""
+    | Some network -> network
+  in
+*)
+(* todo: make the dir naming order user configurable *)
+  let compute_dir_name dir =
+    let dirname = Filename.concat dir dirname_user in
+(*    let dirname = Filename.concat dirname dirname_network in *)
+    dirname
+  in
+
+  let checkdir =
+    try
+      List.find (fun d ->
+	let dirname = compute_dir_name d.shdir_dirname in
+(* check if temp_directory and incoming are on different partitions *)
+	try
+          if (Unix.stat dirname).Unix.st_dev <> (Unix.stat !!temp_directory).Unix.st_dev then
+            begin
+              match needed_space with
+              | None -> true
+              | Some needed_space ->
+                  match Unix32.diskfree dirname with
+                    Some v -> v >= needed_space
+	          | _ -> true
+            end
+          else true
+	with _ -> true
+        ) directories
+    with Not_found -> raise Incoming_full;
+  in
+
+  let newdir = {
+      shdir_dirname = (compute_dir_name checkdir.shdir_dirname);
+      shdir_priority = checkdir.shdir_priority;
+      shdir_networks = checkdir.shdir_networks;
+      shdir_strategy = checkdir.shdir_strategy;
+    }
+  in
+  Unix2.safe_mkdir newdir.shdir_dirname;
+  Unix2.can_write_to_directory newdir.shdir_dirname;
+  newdir
+
 
 let _ =
 (* Check the definition of the incoming_files and incoming_directories in
@@ -977,8 +1029,8 @@ shared_directories *)
   option_hook shared_directories (fun _ ->
       if not !verification then begin
           verification := true;
-          ignore (incoming_files ());
-          ignore (incoming_directories ());
+          ignore (incoming_dir false ());
+          ignore (incoming_dir true ());
           verification := false
         end
   )

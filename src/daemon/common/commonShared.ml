@@ -237,10 +237,10 @@ let shared_add_directory shared_dir local_dir =
   
 let shared_scan_directory shared_dir local_dir =
   let incoming_files_inode = 
-    ((Unix.stat ((CommonComplexOptions.incoming_files ()).shdir_dirname)).Unix.st_ino)
+    ((Unix.stat ((CommonComplexOptions.incoming_dir false ()).shdir_dirname)).Unix.st_ino)
   in
   let incoming_directories_inode = 
-    ((Unix.stat ((CommonComplexOptions.incoming_directories ()).shdir_dirname)).Unix.st_ino)
+    ((Unix.stat ((CommonComplexOptions.incoming_dir true ()).shdir_dirname)).Unix.st_ino)
   in
   let temp_directory_inode =
     ((Unix.stat !!temp_directory).Unix.st_ino)

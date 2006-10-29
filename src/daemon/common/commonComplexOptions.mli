@@ -40,10 +40,9 @@ val sharing_strategy : string -> CommonTypes.sharing_strategy
 val shared_directories : 
   CommonTypes.shared_directory list Options.option_record
   
-val incoming_files : unit -> CommonTypes.shared_directory
-val incoming_directories : unit -> CommonTypes.shared_directory
-val search_incoming_files : unit -> CommonTypes.shared_directory
-val search_incoming_directories : unit -> CommonTypes.shared_directory
+val incoming_dir : bool -> ?user:string -> ?needed_space:int64 -> ?network:string -> unit -> CommonTypes.shared_directory
+val search_incoming_files : unit -> CommonTypes.shared_directory list
+val search_incoming_directories : unit -> CommonTypes.shared_directory list
   
 val sharing_only_directory : CommonTypes.sharing_strategy
 
