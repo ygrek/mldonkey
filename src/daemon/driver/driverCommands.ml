@@ -2233,6 +2233,7 @@ let _ =
 
     "unshare", Arg_one (fun arg o ->
 
+	if user2_is_admin o.conn_user.ui_user_name then begin
         let found = ref false in
         shared_directories =:= List.filter (fun sd ->
             let diff = sd.shdir_dirname <> arg in
@@ -2251,8 +2252,10 @@ let _ =
             _s "directory removed"
           end else
           _s "directory already unshared"
-
-    ), "<dir> :\t\t\t\tshare directory <dir>";
+	  end
+        else
+	  _s "You are not allowed to unshare directories"
+    ), "<dir> :\t\t\t\tunshare directory <dir>";
 
     "upstats", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -3131,6 +3134,16 @@ let _ =
 	print_command_result o o.conn_buf o.conn_user.ui_user_name;
         _s ""
     ), "\t\t\t\t\tprint logged-in user name";
+
+    "groups", Arg_none (fun o ->
+	print_command_result o o.conn_buf (String.concat " " (user2_user_groups_safe o.conn_user.ui_user_name));
+        _s ""
+    ), "\t\t\t\t\tprint groups of logged-in user";
+
+    "dgroup", Arg_none (fun o ->
+	print_command_result o o.conn_buf (user2_print_user_default_group o.conn_user.ui_user_name);
+        _s ""
+    ), "\t\t\t\t\tprint default group of logged-in user";
 
     "chgrp", Arg_two (fun group filenum o ->
         let num = int_of_string filenum in
