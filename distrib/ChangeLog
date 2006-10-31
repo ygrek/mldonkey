@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/10/31
+5486: UDP bandwidth monitor fix (bogeyman)
 5505: EDK: Support aMule/Hydranode style OS_INFO tag
 
 2006/10/30

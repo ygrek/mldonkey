@@ -23,6 +23,14 @@ open BasicSocket
 open AnyEndian
 open LittleEndian
 
+let log_prefix = "[udpSock]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
+
 type event = 
   WRITE_DONE
 | CAN_REFILL
@@ -131,6 +139,7 @@ and bandwidth_controler = {
     mutable allow_io : bool ref;
     mutable count : int;
     mutable base_time : int;
+    mutable tcp_bc : TcpBufferedSocket.bandwidth_controler;
   }
   
 and handler = t -> event -> unit
@@ -190,10 +199,10 @@ let print_addr addr =
         lprintf_nl "ADDR_UNIX (%s)" s;
   end
 
-let max_delayed_send = 30
+let max_delayed_send = 1
   
 let write t ping s ip port =
-(*  lprintf "UDP write to %s:%d\n" (Ip.to_string ip) port; *)
+(*  lprintf_nl "UDP write to %s:%d" (Ip.to_string ip) port; *)
   if not (closed t) && t.wlist_size < !max_wlist_size then 
     let s, addr = match t.socks_local with
       None -> s, Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
@@ -219,16 +228,19 @@ let write t ping s ip port =
               let _ =
                 try
                   if ping then declare_ping ip;
-                  ignore(Unix.sendto (fd sock) s 0 len [] addr)
+                  ignore(Unix.sendto (fd sock) s 0 len [] addr);
+                  if !verbose_bandwidth > 1 then begin
+                      lprintf_nl "[BW2] direct send udp %d bytes (write)" len;
+                    end;
                 with e ->
-                    lprintf "Exception in sendto %s:%d\n" (Ip.to_string ip) port;
+                    lprintf_nl "Exception in sendto %s:%d" (Ip.to_string ip) port;
                     raise e
                     in
               udp_uploaded_bytes := !udp_uploaded_bytes ++ (Int64.of_int len);
               ()
 (*
-lprintf "UDP sent [%s]" (String.escaped
-(String.sub s pos len)); lprint_newline ();
+lprintf_nl "UDP sent [%s]" (String.escaped
+(String.sub s pos len));
 *)
             with
               Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) -> 
@@ -240,7 +252,7 @@ lprintf "UDP sent [%s]" (String.escaped
                 t.wlist_size <- t.wlist_size + String.length s;
                 must_write sock true;
             | e ->
-                lprintf "Exception %s in sendto\n"
+                lprintf_nl "Exception %s in sendto"
                   (Printexc2.to_string e);
                 print_addr addr;
                 raise e
@@ -265,6 +277,10 @@ lprintf "UDP sent [%s]" (String.escaped
           t.wlist_size <- t.wlist_size + String.length s;
           must_write t.sock true;
         end
+  else
+    if !debug then begin
+        lprintf_nl "UDP DROPPED in write";
+    end
     
 let dummy_sock = Obj.magic 0
 
@@ -278,11 +294,16 @@ let rec iter_write_no_bc t sock =
   begin try
       ignore (local_sendto (fd sock) p);
       udp_uploaded_bytes := !udp_uploaded_bytes ++ (Int64.of_int len);
+      if !verbose_bandwidth > 1 then begin
+          lprintf_nl "[BW2] direct send udp %d bytes (iter_write_no_bc)" len;
+      end
     with
-      Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
+      Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> 
+        lprintf_nl "Exception %s in sendto next" (Printexc2.to_string e);
+        raise e
     | e ->
           if !debug then
-            lprintf "Exception %s in sendto next\n"
+            lprintf_nl "Exception %s in sendto next"
               (Printexc2.to_string e)
   end;
   iter_write_no_bc t sock
@@ -302,23 +323,27 @@ let rec iter_write t sock bc =
     t.wlist_size <- t.wlist_size - String.length p.udp_content;
     if time < bc.base_time then begin
         if !debug then begin
-            lprintf "[UDP DROPPED]"; 
+            lprintf_nl "UDP DROPPED in iter_write"; 
           end;
       iter_write t sock bc
       end else
     let len = String.length p.udp_content in
     begin try
-        
-
         ignore (local_sendto (fd sock) p);
         udp_uploaded_bytes := !udp_uploaded_bytes ++ (Int64.of_int len);
         bc.remaining_bytes <- bc.remaining_bytes - (len +
           !TcpBufferedSocket.ip_packet_size) ;
+        TcpBufferedSocket.register_bytes (Some bc.tcp_bc) len;
+        if !verbose_bandwidth > 1 then begin
+            lprintf_nl "[BW2] bc send udp %d bytes" len;
+          end;
       with
-        Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> raise e
+        Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) as e -> 
+          lprintf_nl "Exception %s in sendto next" (Printexc2.to_string e);
+          raise e
       | e ->
           if !debug then
-            lprintf "Exception %s in sendto next\n"
+            lprintf_nl "Exception %s in sendto next"
               (Printexc2.to_string e)
     end;
     iter_write t sock bc
@@ -418,26 +443,28 @@ let new_bandwidth_controler tcp_bc =
       allow_io = ref false;
       count = 0;
       base_time = 0;
+      tcp_bc = tcp_bc;
     } in
   let udp_user total n =
-(*
-    if !BasicSocket.debug then  begin
-      lprintf "udp_user %d/%d" n total; lprint_newline ();
-      end; *)
+    if !verbose_bandwidth > 0 then
+      lprintf_nl "udp_user %d/%d" n total;
     let n = if total = 0 then 100000 else n in
     udp_bc.base_time <- udp_bc.base_time + 1;
     if udp_bc.count = 0 then begin
         udp_bc.count <- 10;
         TcpBufferedSocket.set_lost_bytes tcp_bc udp_bc.remaining_bytes 
           udp_bc.base_time;
-        udp_bc.remaining_bytes <- 0;
       end;
     udp_bc.count <- udp_bc.count - 1;
     udp_bc.total_bytes <- total;
-    udp_bc.remaining_bytes <- udp_bc.remaining_bytes + n;
+    udp_bc.remaining_bytes <- total / 2;
+(*    udp_bc.remaining_bytes <- udp_bc.remaining_bytes + n; *)
     if total <> 0 && udp_bc.remaining_bytes > total then
       udp_bc.remaining_bytes <- total;
     udp_bc.allow_io := udp_bc.remaining_bytes > 0;
+    if !verbose_bandwidth > 0 then
+      lprintf_nl "udp_bc count:%d total_bytes:%d remaining_bytes:%d" 
+      udp_bc.count udp_bc.total_bytes udp_bc.remaining_bytes;
   in
   TcpBufferedSocket.set_remaining_bytes_user tcp_bc udp_user;
   udp_bc
@@ -510,8 +537,8 @@ let set_socks_proxy t ss =
 
     MlUnix.set_nonblock fd;
   with e -> 
-    lprintf "[SOCKS] proxy error prevent creation of UDP socket: %s" 
-      (Printexc2.to_string e); lprint_newline ();
+    lprintf_nl "[SOCKS] proxy error prevent creation of UDP socket: %s" 
+      (Printexc2.to_string e);
     close t "socks proxy error"; raise e
 *)
 
@@ -524,7 +551,7 @@ let get_latencies verbose =
   ) latencies;
   LittleEndian.buf_int b !counter;
   Hashtbl.iter (fun ip (latency, samples) ->
-      if !verbose then lprintf "   Latency UDP: %s -> %d (%d samples)\n" (Ip.to_string ip) !latency !samples;
+      if !verbose then lprintf_nl "   Latency UDP: %s -> %d (%d samples)" (Ip.to_string ip) !latency !samples;
       LittleEndian.buf_ip b ip;
       LittleEndian.buf_int16 b !latency;
       LittleEndian.buf_int16 b !samples;

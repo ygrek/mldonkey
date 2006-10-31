@@ -79,6 +79,9 @@ val set_max_input_buffer : t -> int -> unit
 val set_max_output_buffer : t -> int -> unit  
 val can_write : t -> bool  
 val can_write_len : t -> int -> bool  
+val register_download : t -> int -> unit
+val register_upload : t -> int -> unit
+val register_bytes : bandwidth_controler option -> int -> unit
   
 val set_monitored : t -> bool -> unit
 val monitored : t -> bool

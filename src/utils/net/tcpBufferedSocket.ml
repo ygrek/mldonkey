@@ -804,12 +804,9 @@ let tcp_handler_write t sock =
     | Some bc ->
         if bc.total_bytes = 0 then
           can_write_handler t sock t.wbuf.len
-        else  begin
-(*                lprintf "DELAYED\n";  *)
-            if bc.remaining_bytes > 0 then begin
-                bc.connections <- t :: bc.connections;
-                bc.nconnections <- t.write_power + bc.nconnections
-              end
+        else begin
+            bc.connections <- t :: bc.connections;
+            bc.nconnections <- t.write_power + bc.nconnections
           end
   end
 
@@ -1749,7 +1746,7 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
                         t.name (sock_num t.sock_out) (remaining_to_write t)
                     end
               ) bc.connections;
-(*          if bc.remaining_bytes > 0 then bc.allow_io := false; *)
+(*            if bc.remaining_bytes > 0 then bc.allow_io := false; *)
             end;
           if !verbose_bandwidth > 2 then begin
 

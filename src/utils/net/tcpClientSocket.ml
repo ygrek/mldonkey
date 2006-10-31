@@ -527,7 +527,7 @@ let set_write_controler t bc =
   set_allow_write t.sock bc.allow_io;
   bandwidth_controler t t.sock
   
-let max_buffer_size = ref 1000000
+let max_buffer_size = ref 10000000
 
 let dump_socket t buf = 
   print_socket buf t.sock;
