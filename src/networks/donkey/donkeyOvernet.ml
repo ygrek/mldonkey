@@ -270,6 +270,13 @@ module XorMd4Map = Map.Make (
     end
   )
 
+module KnownPeers = Weak.Make(struct
+      type t = peer
+      let hash c = Hashtbl.hash (c.peer_ip, c.peer_port)
+      let equal x y = x.peer_port = y.peer_port
+          && x.peer_ip = y.peer_ip
+  end)
+
 type search_for =
 | FileSearch of file
 | KeywordSearch of CommonTypes.search
@@ -294,20 +301,21 @@ type overnet_search = {
     mutable search_kind : search_for;
 
 (* Peer queues of the search *)
-(* Stage 1: This peers may be queried *)
-    search_waiting_peers : peer Fifo.t array;
+(* Stage 1: This peers we know for this search *)
+    search_peers : peer Fifo.t array;
 (* Stage 2: We send a OvernetSearch *)
-    search_asked_peers : peer Fifo.t array;
+    search_asked_peers : KnownPeers.t;
 (* Stage 3: We received from this peer a OvernetSearchReply *)
-    search_ok_peers : peer Fifo.t array;
+    search_ok_peers : KnownPeers.t;
 (* Stage 4: We picked peers from search_ok_peers and send them a 
    OvernetSearch.*Results *)
-    search_result_asked_peers : peer Fifo.t array;
+    search_result_asked_peers : KnownPeers.t;
 
     mutable search_queries : int;
     mutable search_requests : int;
     mutable search_start : int;
-    mutable search_last_query : int;
+    mutable search_lifetime : int;
+    mutable search_last_recv : int;
     mutable search_results : (Md4.t, tag list) Hashtbl.t;
     mutable search_nresults : int; (* number of results messages *)
     mutable search_hits : int;     (* number of diff results *)
@@ -354,11 +362,10 @@ module Make(Proto: sig
 *********************************************************************)
 
 let max_peers_per_bucket = 20
-let max_peers_per_prebucket = 40
-(* how many peers a search may ask for more search peers *)
-let max_search_queries = 50 
-(* how many peers we ask for results *)
-let max_search_requests = 20 
+let max_peers_per_prebucket = 20
+(* number of peers a search start with *)
+(* get_any_peers and get_closest_peers change the order of the peers in the bucket fifo *)
+let init_peers_per_search = ((max_peers_per_bucket*2)/3)
 let max_boot_peers = 200
 
 let is_enabled = ref false
@@ -573,13 +580,6 @@ let buckets = Array.init 129 (fun _ -> Fifo.create ())
 let prebuckets = Array.init 129 (fun _ -> Fifo.create ())
 
 let to_ping = ref []
-module KnownPeers = Weak.Make(struct
-      type t = peer
-      let hash c = Hashtbl.hash (c.peer_ip, c.peer_port)
-      let equal x y = x.peer_port = y.peer_port
-          && x.peer_ip = y.peer_ip
-  end)
-
 let known_peers = KnownPeers.create 1023
 
 (*
@@ -623,17 +623,11 @@ let common_bits m1 m2 =
 let bucket_number md4 =
   common_bits md4 !!overnet_md4
 
-  (*
-(* TODO: this structure MUST disappear. It is not Kademlia ! *)
-let global_peers : (Md4.t, peer) Hashtbl.t array Options.option_record =
-  raise Not_found
-    *)
-
-(*let firewalled_overnet_peers = Hashtbl.create 13*)
-
 let search_hits = ref 0
 let source_hits = ref 0
 
+(* when we created the searches for all files last time*)
+let last_check_current_downloads = ref 0
 
 let udp_sock = ref None
 
@@ -822,7 +816,12 @@ restart. *)
         if bucket < !n_used_buckets && bucket <> 128 &&
            p.peer_md4 <> Md4.null then begin
 
-            if Fifo.length prebuckets.(bucket) = max_peers_per_prebucket then
+(* If this is a good peer add it directly to the bucket. Helps at startup *)
+            if p.peer_kind < 3 && Fifo.length buckets.(bucket) < max_peers_per_bucket then begin
+                Fifo.put buckets.(bucket) p;
+                incr connected_peers;
+            end 
+            else if Fifo.length prebuckets.(bucket) >= max_peers_per_prebucket then
 	    begin
               let pp = Fifo.take prebuckets.(bucket) in
               Fifo.put prebuckets.(bucket)
@@ -870,8 +869,7 @@ let get_closest_peers md4 nb =
         (* kind < 3 so we do not send too much requests and avoid dead contacts not 
            yet removed because of timeouts *)
         (* TODO: Keep order? Then we need a in_use flag? *)
-        if p.peer_kind < 3 && p.peer_expire > last_time () && 
-           p.peer_last_send <> 0 then begin
+        if p.peer_kind < 3 && p.peer_expire > last_time () then begin
             if !verbose_overnet then begin
             lprintf_nl "Adding good search peer %s:%d"
               (Ip.to_string p.peer_ip) p.peer_port;
@@ -956,35 +954,32 @@ let add_search_peer s p =
              pp.peer_port = p.peer_port then
             raise Exit
         in
-        Fifo.iter is_in s.search_waiting_peers.(nbits);
-        Fifo.iter is_in s.search_asked_peers.(nbits);
-        Fifo.iter is_in s.search_ok_peers.(nbits);
-        Fifo.iter is_in s.search_result_asked_peers.(nbits);
-        Fifo.put s.search_waiting_peers.(nbits) p;
+        Fifo.iter is_in s.search_peers.(nbits);
+        Fifo.put s.search_peers.(nbits) p;
       with Exit -> ()
     end
   end
 
 let create_search kind md4 =
   if !verbose_overnet then lprintf_nl "create_search";
-  let starttime = last_time () + (2 * List.length !overnet_searches) in
+  let starttime = last_time () + (3 * List.length !overnet_searches) in
   let s = ref {
       search_md4 = md4;
       search_kind = kind;
       search_queries = 0;
       search_requests = 0;
-      search_waiting_peers = Array.init 129 (fun _ -> Fifo.create ());
-      search_asked_peers = Array.init 129 (fun _ -> Fifo.create ());
-      search_ok_peers = Array.init 129 (fun _ -> Fifo.create ());
-      search_result_asked_peers = Array.init 129 (fun _ -> Fifo.create ());
+      search_peers = Array.init 129 (fun _ -> Fifo.create ());
+      search_asked_peers = KnownPeers.create 129;
+      search_ok_peers = KnownPeers.create 129;
+      search_result_asked_peers = KnownPeers.create 129;
+(* taken from eMule0.47c-Sources/srchybrid/kademlia/kademlia/Defines.h  *)
+      search_lifetime = (match kind with
+                       _ -> 45 );(* SEARCH_LIFETIME *)
       search_start = (match kind with
                        KeywordSearch s -> last_time ()
                      | FillBuckets -> last_time ()
                      | FileSearch s -> starttime);
-      search_last_query = (match kind with
-                       KeywordSearch s -> last_time ()
-                     | FillBuckets -> last_time ()
-                     | FileSearch s -> starttime);
+      search_last_recv = last_time ();
       search_hits = 0;
       search_nresults = 0;
       search_results = Hashtbl.create 64;
@@ -992,12 +987,15 @@ let create_search kind md4 =
   begin try
     List.iter (fun ss ->
       if ss.search_md4 = !s.search_md4 && (search_for_equals ss.search_kind !s.search_kind) then begin
-       ss.search_start <- !s.search_start;
+(*       ss.search_start <- !s.search_start; *)
        s := ss;
        raise Exit;
       end
     ) !overnet_searches;
-    List.iter (add_search_peer !s) (get_closest_peers md4 max_search_queries);
+    begin match kind with
+      FillBuckets -> List.iter (add_search_peer !s) (get_any_peers init_peers_per_search)
+    | _ -> List.iter (add_search_peer !s) (get_closest_peers md4 init_peers_per_search)
+    end;
     if !verbose_overnet then lprintf_nl "create_search done";
     overnet_searches := !s :: !overnet_searches;
   with Exit -> () end;
@@ -1007,6 +1005,54 @@ let create_keyword_search w s =
   let md4 = Md4.string w in
   let search = create_search (KeywordSearch s) md4 in
   search
+
+(* query the best todo peers of a search s or ask it for results *)
+let rec overnet_search_iter s nbits todo =
+        let nresults = match s.search_kind with
+            FillBuckets -> 10
+          | _ -> 2
+        in
+        if nbits >= 0 then
+          let len = Fifo.length s.search_peers.(nbits) in
+          if len > 0 then
+            let process_peer p =
+              if not (KnownPeers.mem s.search_asked_peers p) then begin
+(* Not asked: send a OvernetSearch *)
+                checking_kind p;
+                udp_send p (OvernetSearch (nresults, s.search_md4, Some p.peer_md4));
+                s.search_queries <- s.search_queries + 1;
+                KnownPeers.add s.search_asked_peers p;
+                raise Exit;
+              end
+              else if (KnownPeers.mem s.search_ok_peers p) && 
+                 not (KnownPeers.mem s.search_result_asked_peers p) then begin
+(* Is ok but we did not request a result yet *)
+                let kind = match s.search_kind with
+                    FillBuckets -> Search_for_file
+                  | FileSearch _ -> Search_for_file
+                  | _ -> Search_for_keyword None
+                in
+                checking_kind p;
+                udp_send p ( OvernetGetSearchResults (s.search_md4, kind, 0, 100));
+                s.search_requests <- s.search_requests + 1;
+                KnownPeers.add s.search_result_asked_peers p; 
+                raise Exit;
+              end
+              (* raised an Exit if we send something to the peer *)
+              in
+            try
+              Fifo.iter process_peer s.search_peers.(nbits);
+              overnet_search_iter s (nbits-1) todo;
+            with Exit ->
+              (if todo > 1 then overnet_search_iter s nbits (todo - 1))
+          else
+            overnet_search_iter s (nbits-1) todo
+        else
+        begin
+          if !verbose_overnet then
+            lprintf_nl "overnet_search_iter: call add_search_peer";
+          List.iter (add_search_peer s) (get_closest_peers s.search_md4 init_peers_per_search);
+        end
 
 let ip_of_udp_packet p =
   match p.UdpSocket.udp_addr with
@@ -1034,7 +1080,7 @@ let udp_client_handler t p =
 
   | OvernetConnect p ->
       if is_overnet_ip sender.peer_ip && sender.peer_port <> 0 then
-        let sender = new_peer { p with peer_ip = other_ip } in
+        let sender = new_peer { p with peer_ip = other_ip; peer_kind = 2 } in
         (* let sender = new_peer { p with peer_port = other_port ; peer_ip = other_ip } in *)
         new_peer_message sender;
         udp_send sender (OvernetConnectReply (get_any_peers 20))
@@ -1051,7 +1097,8 @@ let udp_client_handler t p =
         match list with
           [] -> ()
         | [p] ->
-            let sender = new_peer { p with peer_ip = other_ip } in
+            (* last one is always the peer itself *)
+            let sender = new_peer { p with peer_ip = other_ip; peer_kind = 2 } in
             new_peer_message sender
         | p :: tail ->
             let _ = new_peer p in
@@ -1060,7 +1107,7 @@ let udp_client_handler t p =
       iter ps;
 
   | OvernetPublicize p ->
-      let sender = new_peer { p with peer_ip = other_ip } in
+      let sender = new_peer { p with peer_ip = other_ip; peer_kind = 2 } in
       new_peer_message sender;
       if is_overnet_ip sender.peer_ip && sender.peer_port <> 0 then
         udp_send sender (OvernetPublicized (Some (my_peer ())))
@@ -1086,8 +1133,10 @@ let udp_client_handler t p =
       List.iter (fun s ->
           if s.search_md4 = md4 then begin
               List.iter (add_search_peer s) peers;
-                let nbits = common_bits sender.peer_md4 s.search_md4 in
-                Fifo.put s.search_ok_peers.(nbits) sender;
+              KnownPeers.add s.search_ok_peers sender;
+              s.search_last_recv <- last_time ();
+              (* Now ask the next best peer *)
+              overnet_search_iter s 128 1;
             end
       ) !overnet_searches;
 
@@ -1216,16 +1265,24 @@ let udp_client_handler t p =
         let dp = { dummy_peer with peer_port = peer.peer_port ; peer_ip = peer.peer_ip } in
         if KnownPeers.mem known_peers dp
         then begin
-(* remove it from the prebuckets and known_peers only *)
+(* remove it from the buckets, put it into prebuckets and set kind to 3 *)
           try
             for i = 0 to !n_used_buckets do
-              let b = prebuckets.(i) in
+              let b = buckets.(i) in
+              let pb = prebuckets.(i) in
               for j = 1 to Fifo.length b do
                 let p = Fifo.take b in
                 if p.peer_ip = peer.peer_ip && 
                     p.peer_port = peer.peer_port then begin
-                  decr pre_connected_peers;
-                  KnownPeers.remove known_peers dp;
+                  decr connected_peers;
+                  if !pre_connected_peers < max_peers_per_prebucket then begin
+                    incr pre_connected_peers;
+                    Fifo.put pb p;
+                    p.peer_kind <- 3;
+                  end 
+                  else begin if !verbose_overnet then lprintf_nl "peernotfound: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
+                  KnownPeers.remove known_peers p;
+                  end
                 end else Fifo.put b p
               done;
             done;
@@ -1242,78 +1299,20 @@ let udp_client_handler t p =
 
   | _ -> failwith "Message not understood"
 
-let query_next_peers () =
+(* Start unstarted searches, retry stalled searches *)
+let overnet_search_tick () =
   let overnet_query_peer_period = int_of_float !!overnet_query_peer_period in
-  let timeout = last_time () - overnet_query_peer_period in
   List.iter (fun s ->
-      let nresults = match s.search_kind with
-          FillBuckets -> 10
-        | _ -> 2
-      in
-
-      let rec iter nbits todo =
-        if  nbits >= 0 then
-          let len = Fifo.length s.search_waiting_peers.(nbits) in
-          if len > 0 then
-            let p = Fifo.take s.search_waiting_peers.(nbits) in
-
-            if p.peer_last_send < timeout then begin
-              checking_kind p;
-              udp_send p (OvernetSearch (nresults, s.search_md4, Some p.peer_md4));
-              s.search_queries <- s.search_queries + 1;
-              Fifo.put s.search_asked_peers.(nbits) p;
-
-              (if todo > 1 then iter nbits (todo - 1))
-            end else
-              iter nbits todo
-          else
-            iter (nbits-1) todo
-        else
-        if s.search_queries < max_search_queries then
-          List.iter (fun p ->
-              add_search_peer s p
-          ) (get_closest_peers s.search_md4 max_search_queries)
-      in
-      if s.search_last_query < timeout then begin
-        s.search_last_query <- s.search_last_query + overnet_query_peer_period;
-(* Query next search peers *)
-        if s.search_queries < max_search_queries then
-          (if s.search_queries = 0 then
-            iter 128 3
-          else
-            iter 128 2);
-(* Request next results *)
-        if s.search_requests < max_search_requests then begin
-           let nrequests =
-              match s.search_kind with
-                FillBuckets -> 0
-              | FileSearch _ -> 1
-              | KeywordSearch _ -> 5
-           in
-           for i = 1 to nrequests do
-             try
-               for j = 128 downto 5 do
-                 if Fifo.length s.search_ok_peers.(j) > 0 then
-                   let p = Fifo.take s.search_ok_peers.(j) in
-                   if p.peer_last_send < timeout then begin
-                     checking_kind p;
-                     udp_send p (
-                       OvernetGetSearchResults (s.search_md4,
-                         (match s.search_kind with
-                             FillBuckets -> Search_for_file
-                           | FileSearch _ -> Search_for_file
-                           | _ -> Search_for_keyword None
-                         ), 0, 100));
-                     s.search_requests <- s.search_requests + 1;
-                     Fifo.put s.search_result_asked_peers.(j) p; 
-                     raise Exit
-                   end else
-                     Fifo.put s.search_ok_peers.(j) p
-               done
-             with Exit -> ()
-           done
-        end
-      end;
+(* Start a search, if search_start is reached *)
+         if (s.search_lifetime + s.search_start - 20) > last_time () &&
+            s.search_start < last_time () then begin
+         (if s.search_queries = 0 then
+            overnet_search_iter s 128 3
+         else if (s.search_last_recv + 3) < last_time () then
+(* The search has stalled. We do what eMule call a JumpStart *)
+(* FIXME: with implemented firewalling this should be 1 peer not 2*)
+            overnet_search_iter s 128 2);
+      end
   ) !overnet_searches
 
 let recover_file file =
@@ -1455,9 +1454,7 @@ let enable () =
 
       add_session_timer enabler 1. (fun _ ->
           if !!enable_overnet then begin
-(* Searches have a search_last_query controlled by !!overnet_query_peer_period *)
-(* Here also the result request a done *)
-            query_next_peers ();
+            overnet_search_tick ();
 
             let my_peer = my_peer () in
 
@@ -1469,7 +1466,7 @@ let enable () =
                 | p :: tail ->
                   (* do not hammer a peer, we could have send already a search reqeust 
                      since to_ping is rebuild at least every 60 seconds *)
-                  if (last_time () - p.peer_last_send) > 60 then begin
+                  if (last_time () - p.peer_last_send) > 61 then begin
                     checking_kind p;
                     udp_send p (OvernetPublicize my_peer);
                   end;
@@ -1477,12 +1474,20 @@ let enable () =
               end;
             in
             process_to_ping ();
+(* When we start with 50 searches and no peers, we have to update the buckets
+   fast, otherwise we cannot add search peers (rest: sanity check) *)
+           begin
+             if !connected_peers < 20 && !pre_connected_peers <> 0 &&
+               LimitedList.length unknown_peers <> 0 then
+               update_buckets ();
+               compute_to_ping ();
+           end;
 (* Send OvernetConnects and ping more peers *)
 (* TODO: How does eMule it? are 50 ok? *)
             begin
               try
-                 if !connected_peers < 50 then
-                   for i = 1 to 4 do
+                 if !connected_peers < 10 then
+                   for i = 1 to 2 do
                      process_to_ping ();
                    done;
                  (* Do not send too much OvernetConnect, there is no use *)
@@ -1508,12 +1513,14 @@ let enable () =
 
           compute_to_ping ();
 
-          let l = last_time () - 180 in
-(* remove searches that are older than 3 minutes *)
+(* remove searches that are older than their lifetime *)
           overnet_searches := List.filter (fun s ->
-              s.search_requests < max_search_requests &&
-              s.search_start > l
+              (* s.search_lifetime + s.search_start > last_time () *)
+(*DEBUG:show longer *)              360 + s.search_start > last_time ()
           ) !overnet_searches;
+
+          (* FIXE: Dump latencies to logfile *)
+          if !verbose_overnet then ignore (UdpSocket.get_latencies (ref true));
       );
 
 (* every 15min for light operations *)
@@ -1521,12 +1528,18 @@ let enable () =
           if !!enable_overnet then begin
               let _ = create_search FillBuckets !!overnet_md4 in
               check_current_downloads ();
+              last_check_current_downloads := last_time ();
             end
       );
 
       begin
-        let _ = create_search FillBuckets !!overnet_md4 in
         check_current_downloads ();
+(* Delay the first normal searches, so we can fill the buckets first *)
+        List.iter (fun s ->
+          s.search_start <- s.search_start + 30;
+        ) !overnet_searches;
+        ignore (create_search FillBuckets !!overnet_md4);
+        last_check_current_downloads := last_time ();
       end;
       
       add_infinite_timer 1800. (fun _ ->
@@ -1606,21 +1619,21 @@ let _ =
     "dump_searches", Arg_none (fun o ->
          let buf = o.conn_buf in
          List.iter ( fun s ->
-           Printf.bprintf buf "Search %s for %s\nrequests:%d queries:%d search_last_query:%d\n"
+           Printf.bprintf buf "Search %s for %s\nrequests:%d queries:%d seconds alive:%d lifetime:%d\n"
               (match s.search_kind with
                 KeywordSearch _ -> "keyword"
                 | FileSearch _ -> "file"
                 | FillBuckets -> "fillbuckets" )
-              (Md4.to_string s.search_md4) s.search_requests s.search_queries s.search_last_query;
+              (Md4.to_string s.search_md4) s.search_requests s.search_queries (last_time ()-s.search_start) s.search_lifetime;
 	   let pp p = print_peer buf p in
-	   Printf.bprintf buf "search_waiting_peers\n";
-           Array.iter (fun a -> Fifo.iter (fun p -> pp p) a) s.search_waiting_peers;
+           Printf.bprintf buf "search_peers\n";
+           Array.iter (fun a -> Fifo.iter (fun p -> pp p) a) s.search_peers;
 	   Printf.bprintf buf "search_asked_peers\n";
-           Array.iter (fun a -> Fifo.iter (fun p -> pp p) a) s.search_asked_peers;
+           KnownPeers.iter pp s.search_asked_peers;
 	   Printf.bprintf buf "search_ok_peers\n";
-           Array.iter (fun a -> Fifo.iter (fun p -> pp p) a) s.search_ok_peers;
+           KnownPeers.iter pp s.search_ok_peers;
 	   Printf.bprintf buf "search_result_asked_peers\n";
-           Array.iter (fun a -> Fifo.iter (fun p -> pp p) a) s.search_result_asked_peers;
+           KnownPeers.iter pp s.search_result_asked_peers;
 	   Printf.bprintf buf "\n";
 	 ) !overnet_searches;
          ""
@@ -1702,6 +1715,8 @@ let _ =
             Printf.bprintf buf "\\<tr\\>";
             html_mods_td buf [
               ("", "srh", Printf.sprintf "%s statistics" command_prefix_to_net);
+              ("", "srh", Printf.sprintf "Last file search started %d seconds ago\n" 
+                          (last_time () - !last_check_current_downloads));
               ("", "srh", Printf.sprintf "Search hits: %d\n" !search_hits);
               ("", "srh", Printf.sprintf "Source hits: %d\n" !source_hits); ];
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
@@ -1710,6 +1725,8 @@ let _ =
           begin
             Printf.bprintf buf "%s statistics:\n"
 	    (command_prefix_to_net);
+            Printf.bprintf buf "  Last file search started %d seconds ago\n"
+            (last_time () - !last_check_current_downloads);
             Printf.bprintf buf "  Search hits: %d\n" !search_hits;
             Printf.bprintf buf "  Source hits: %d\n" !source_hits;
           end;
@@ -1729,35 +1746,43 @@ let _ =
                 Printf.bprintf buf "\\</tr\\>";
                 Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
                 html_mods_td buf [
-                  ("", "sr", Printf.sprintf "requests:%d queries:%d search_last_query:%d\n" s.search_requests s.search_queries s.search_last_query); ];
+                  ("", "sr", Printf.sprintf "requests:%d queries:%d seconds alive:%d lifetime:%d\n" 
+                     s.search_requests s.search_queries (last_time ()-s.search_start) s.search_lifetime); ];
                 Printf.bprintf buf "\\</tr\\>";
               end
             else
-            Printf.bprintf buf "Search %s for %s\nrequests:%d queries:%d search_last_query:%d\n"
+            Printf.bprintf buf "Search %s for %s\nrequests:%d queries:%d seconds alive:%d lifetime:%d\n"
               (match s.search_kind with
                 KeywordSearch _ -> "keyword"
                 | FileSearch _ -> "file"
                 | FillBuckets -> "fillbuckets" )
-              (Md4.to_string s.search_md4) s.search_requests s.search_queries s.search_last_query;
+              (Md4.to_string s.search_md4) s.search_requests s.search_queries (last_time ()-s.search_start) s.search_lifetime;
               for i = 128 downto 0 do
-                let npeers = Fifo.length s.search_waiting_peers.(i) in
-                let nasked = Fifo.length s.search_asked_peers.(i) in
-                let nok = Fifo.length s.search_ok_peers.(i) in
-                let nres = Fifo.length s.search_result_asked_peers.(i) in
+                let npeers = Fifo.length s.search_peers.(i) in
+                let count = ref 0 in
+                let cp p = if (common_bits p.peer_md4 s.search_md4) = i then count := !count + 1 in
+                KnownPeers.iter cp s.search_asked_peers;
+                let nasked = !count in
+                count := 0;
+                KnownPeers.iter cp s.search_ok_peers;
+                let nok = !count in
+                count := 0;
+                KnownPeers.iter cp s.search_result_asked_peers;
+                let nres = !count in
                 if npeers > 0 || nasked > 0 then
                   if o.conn_output = HTML then
                     begin
                       Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
                       html_mods_td buf [
                         ("", "sr",
-                          Printf.sprintf "nbits[%d] = %d peer(s) not asked, %d peer(s) asked, %d peer(s) ok, %d peer(s) result asked"
+                          Printf.sprintf "nbits[%d] = %d peer(s) total, %d peer(s) asked, %d peer(s) ok, %d peer(s) result asked"
                           i npeers nasked nok nres); ];
                       Printf.bprintf buf "\\</tr\\>";
 
 		    end
 		  else
                   Printf.bprintf buf
-                  "   nbits[%d] = %d peers not asked, %d peers asked, %d peer(s) ok, %d peer(s) result asked\n"
+                  "   nbits[%d] = %d peer(s) total, %d peer(s) asked, %d peer(s) ok, %d peer(s) result asked\n"
                     i npeers nasked nok nres
               done;
               if o.conn_output = HTML then
@@ -1985,8 +2010,8 @@ Define a function to be called when the "mem_stats" command
       Printf.bprintf buf "  unknown_peers: %d\n" (LimitedList.length unknown_peers);
       update_buckets ();
       Printf.bprintf buf "  boot_peers: %d\n" (LimitedList.length !!boot_peers);
-      Printf.bprintf buf "  %d buckets with %d peers and %d prebucket peers\n"
-            !n_used_buckets !connected_peers !pre_connected_peers;
+      Printf.bprintf buf "  %d peers and %d prebucket peers\n"
+            !connected_peers !pre_connected_peers;
 
       Printf.bprintf buf "  Search hits: %d\n" !search_hits;
       Printf.bprintf buf "  Source hits: %d\n" !source_hits;
@@ -2001,31 +2026,19 @@ Define a function to be called when the "mem_stats" command
 
       
       Printf.bprintf buf "  to_ping: %d\n" (List.length !to_ping);
-      let n_search_waiting_peers = ref 0 in
-      let n_search_asked_peers = ref 0 in
-      let n_search_ok_peers = ref 0 in
-      let n_search_result_asked_peers = ref 0 in
+      let n_search_peers = ref 0 in
       let n_search_results = ref 0 in
       let n_overnet_searches = ref 0 in
       List.iter ( fun s ->
               for i = 128 downto 0 do
-               n_search_waiting_peers :=
-                 !n_search_waiting_peers + (Fifo.length s.search_waiting_peers.(i));
-               n_search_asked_peers :=
-                 !n_search_asked_peers + (Fifo.length s.search_asked_peers.(i));
-               n_search_ok_peers :=
-                 !n_search_ok_peers + (Fifo.length s.search_ok_peers.(i));
-               n_search_result_asked_peers :=
-                 !n_search_result_asked_peers + (Fifo.length s.search_result_asked_peers.(i));
+               n_search_peers :=
+                 !n_search_peers + (Fifo.length s.search_peers.(i));
                n_search_results :=
                  !n_search_results + (Hashtbl.length s.search_results);
               done;
              incr n_overnet_searches
       ) !overnet_searches;
-      Printf.bprintf buf "  n_search_waiting_peers: %d\n" !n_search_waiting_peers;
-      Printf.bprintf buf "  n_search_asked_peers: %d\n" !n_search_asked_peers;
-      Printf.bprintf buf "  n_search_ok_peers: %d\n" !n_search_ok_peers;
-      Printf.bprintf buf "  n_search_result_asked_peers: %d\n" !n_search_result_asked_peers;
+      Printf.bprintf buf "  n_search_peers: %d\n" !n_search_peers;
       Printf.bprintf buf "  n_search_results: %d\n" !n_search_results;
       Printf.bprintf buf "  n_overnet_searches: %d\n" !n_overnet_searches;
   );

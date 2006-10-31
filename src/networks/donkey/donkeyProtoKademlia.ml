@@ -45,6 +45,7 @@ module P = struct
 
     let names_of_tag =
       [
+        "\243", Field_UNKNOWN "encryption"; (* 0xF3 *)
         "\248", Field_UNKNOWN "buddyhash"; (* 0xF8 *)
         "\249", Field_UNKNOWN "clientlowid"; (* 0xF9 *)
         "\250", Field_UNKNOWN "serverport"; (* 0xFA *)
