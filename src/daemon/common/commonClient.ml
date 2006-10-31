@@ -471,7 +471,7 @@ let clear_upload_slots () =
 	  client_disconnect c;
           if !verbose then lprintf_nl "disconnected client %d: [%s %s] %s after %d %s of silence."
 	    (client_num c)
-	    i.GuiTypes.client_software
+	    (GuiTypes.client_software i.GuiTypes.client_software i.GuiTypes.client_os)
 	    i.GuiTypes.client_release
 	    i.GuiTypes.client_name
 	    ctime
@@ -496,6 +496,7 @@ let impl_client_info impl =
      T.client_connect_time = BasicSocket.last_time ();
      T.client_kind = Indirect_location ("", Md4.Md4.null, Ip.null, 0);
      T.client_software = "";
+     T.client_os = None;
      T.client_release = "";
      T.client_emulemod = "";
      T.client_downloaded = 0L;

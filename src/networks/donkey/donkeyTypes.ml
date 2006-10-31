@@ -39,6 +39,7 @@ type emule_proto = {
     mutable emule_secident : int;
     mutable emule_noviewshared : int;
     mutable emule_supportpreview : int;
+    mutable emule_osinfosupport : int;
 
     mutable emule_compression : int;
     mutable emule_sourceexchange : int;
@@ -545,6 +546,8 @@ and client = {
     mutable client_uploaded : Int64.t;
     mutable client_brand : brand;
     mutable client_brand_mod : brand_mod;
+    mutable client_osinfo_sent : bool;
+    mutable client_osinfo : string option;
     mutable client_banned : bool;
     mutable client_score : int;
     mutable client_next_queue : int;
@@ -676,6 +679,7 @@ let dummy_emule_proto = {
     emule_secident = 0;
     emule_noviewshared = 0;
     emule_supportpreview = 0;
+    emule_osinfosupport = 0;
 
     emule_compression = 0; (* 1 *)
     emule_sourceexchange = 0; (* 3 *)

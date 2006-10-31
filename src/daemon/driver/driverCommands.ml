@@ -406,7 +406,7 @@ let _ =
                     client_print c o;
                     if use_html_mods o then
                     html_mods_td buf ([
-                     ("", "sr", i.client_software);
+                     (client_software i.client_software i.client_os, "sr", client_software_short i.client_software i.client_os);
                      ("", "sr", i.client_release);
                      ] @
                      (if !!emule_mods_count then [("", "sr", i.client_emulemod)] else []));
@@ -2400,7 +2400,7 @@ let _ =
                             ("", "sr", ips);
                             ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
                             ("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
-                            ("", "sr", i.client_software);
+                            (client_software i.client_software i.client_os, "sr", client_software_short i.client_software i.client_os);
                             ("", "sr", i.client_release);
                             ] @
                             (if !!emule_mods_count then [("", "sr", i.client_emulemod)] else [])
@@ -2472,7 +2472,7 @@ let _ =
                         )); 
                         ("", "sr", ips);
                         ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
-                        ("", "sr", i.client_software);
+                        (client_software i.client_software i.client_os, "sr", client_software_short i.client_software i.client_os);
                         ("", "sr", i.client_release);
                         ] @
                         (if !!emule_mods_count then [("", "sr", i.client_emulemod )] else [])

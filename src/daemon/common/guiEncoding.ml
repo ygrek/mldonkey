@@ -666,7 +666,7 @@ let buf_client proto buf c =
       buf_int buf c.client_chat_port
     end else 
     begin
-      buf_string buf c.client_software;
+      buf_string buf (client_software_short c.client_software c.client_os);
       buf_int64 buf c.client_downloaded;
       buf_int64 buf c.client_uploaded;
       (match c.client_upload with

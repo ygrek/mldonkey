@@ -424,7 +424,8 @@ let default_file_print_sources_html file buf =
           ("", "sr br ar", Printf.sprintf "%d" (client_num c));
           ("", "sr br", cinfo.GuiTypes.client_name);
           ("", "sr br", addr);
-          ("", "sr br", cinfo.GuiTypes.client_software);
+          (GuiTypes.client_software cinfo.GuiTypes.client_software cinfo.GuiTypes.client_os,
+	   "sr br", GuiTypes.client_software_short cinfo.GuiTypes.client_software cinfo.GuiTypes.client_os);
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
           ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_downloaded)); ];
 

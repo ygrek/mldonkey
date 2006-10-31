@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/10/31
+5505: EDK: Support aMule/Hydranode style OS_INFO tag
+
 2006/10/30
 5488: Multiuser: New commands
 - groups -> displays groups of the logged-in user

@@ -566,6 +566,7 @@ let dummy_client =
       client_rating = 0;
       client_brand = Brand_unknown;
       client_brand_mod = Brand_mod_unknown;
+      client_osinfo = None;
       client_checked = false;
       client_connected = false;
       client_downloaded = Int64.zero;
@@ -589,6 +590,7 @@ let dummy_client =
       client_public_key = None;
       client_sui_verified = None;
       client_last_file_req_md4 = None;
+      client_osinfo_sent = false;
       } and
     client_impl = {
       dummy_client_impl with
@@ -619,6 +621,7 @@ let create_client key =
       client_rating = 0;
       client_brand = Brand_unknown;
       client_brand_mod = Brand_mod_unknown;
+      client_osinfo = None;
       client_checked = false;
       client_connected = false;
       client_downloaded = Int64.zero;
@@ -642,6 +645,7 @@ let create_client key =
       client_public_key = None;
       client_sui_verified = None;
       client_last_file_req_md4 = None;
+      client_osinfo_sent = false;
       } and    client_impl = {
       dummy_client_impl with
       impl_client_val = c;

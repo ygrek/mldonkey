@@ -460,6 +460,7 @@ let value_reader gui t =
     | GiftServerAttach _
     | GiftServerStats _ -> assert false
     | Version _
+    | Stats (_, _)
     | Search _ -> ()
         
   with e ->

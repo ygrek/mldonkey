@@ -215,6 +215,7 @@ type client_info = {
     mutable client_chat_port : int;
     mutable client_connect_time : int;
     mutable client_software : string;
+    mutable client_os : string option;
     mutable client_release : string;
     mutable client_emulemod : string;
     mutable client_downloaded : int64;
@@ -251,6 +252,28 @@ type shared_info = {
   }
   
   
+let osinfo_short i =
+  match i with
+    Some s when
+      s = "linux" ||
+      s = "netbsd" ||
+      s = "macos" ||
+      s = "freebsd" ||
+      s = "windows" -> Some (String.sub s 0 1)
+  | _ -> i
+
+let client_software_short software os =
+  software ^
+  match osinfo_short os with
+    Some s -> "/" ^ s
+  | None -> ""
+
+let client_software software os =
+  software ^
+  match os with
+    Some s -> "/" ^ s
+  | None -> ""
+
 let add_file tree dirname r =
   let path = Filename2.path_of_filename dirname in
   

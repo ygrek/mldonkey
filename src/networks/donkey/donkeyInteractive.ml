@@ -1139,6 +1139,7 @@ let _ =
         P.client_rating = c.client_rating;
         P.client_connect_time = c.client_connect_time;
         P.client_software = brand_to_string_short c.client_brand;
+        P.client_os = c.client_osinfo;
         P.client_release = c.client_emule_proto.emule_release;
         P.client_emulemod = brand_mod_to_string_short c.client_brand_mod;
         P.client_downloaded = c.client_downloaded;
@@ -1401,7 +1402,8 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
             ((string_of_connection_state (client_state c)), "sr",
               (short_string_of_connection_state (client_state c)) );
             (String.escaped c.client_name, "sr", client_short_name c.client_name);
-            (brand_to_string c.client_brand, "sr", brand_to_string_short c.client_brand);
+            (client_software (brand_to_string c.client_brand) c.client_osinfo, "sr",
+	     client_software_short (brand_to_string_short c.client_brand) c.client_osinfo);
             ("", "sr", c.client_emule_proto.emule_release);
 
             ] @

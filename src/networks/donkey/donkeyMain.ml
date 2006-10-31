@@ -133,6 +133,7 @@ let reset_tags () =
     m.emule_features <- secident;
 
   let emule_miscoptions1 = D.emule_miscoptions1 m in
+  let emule_compatoptions = D.emule_compatoptions m in
   client_to_client_tags :=
   [
     string_tag (Field_UNKNOWN "name") (local_login ());
@@ -141,6 +142,7 @@ let reset_tags () =
     int_tag (Field_UNKNOWN "emule_udpports") (!!donkey_port+4);
     int_tag (Field_UNKNOWN "emule_version") m.emule_version;
     int64_tag (Field_UNKNOWN "emule_miscoptions1") emule_miscoptions1;
+    int_tag (Field_UNKNOWN "emule_compatoptions") emule_compatoptions;
   ];
 
   let extended = ref 0x04 in (* support of auxport *)

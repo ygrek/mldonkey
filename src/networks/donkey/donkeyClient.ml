@@ -677,6 +677,11 @@ let update_client_from_tags c tags =
             DonkeyProtoClient.update_emule_proto_from_miscoptions1
             c.client_emule_proto i
           )
+      | Field_UNKNOWN "emule_compatoptions" ->
+          for_int_tag tag (fun i ->
+            DonkeyProtoClient.update_emule_proto_from_compatoptions
+            c.client_emule_proto i
+          );
       | Field_UNKNOWN "emule_version" ->
           for_int_tag tag (fun i ->
             c.client_emule_proto.emule_version <- i;
@@ -731,6 +736,12 @@ let update_emule_proto_from_tags c tags =
       | Field_UNKNOWN "mod_version" ->
           let s = to_lowercase (string_of_tag_value tag.tag_value) in 
           parse_mod_version s c;
+
+      | Field_UNKNOWN "os_info" ->
+          let s = to_lowercase (string_of_tag_value tag.tag_value) in 
+	  (match c.client_osinfo with
+	    Some _ -> ()
+	  | _ ->  if s <> "" then c.client_osinfo <- Some s)
       | _ -> 
           if !verbose_msg_clients then
             lprintf_nl "Unknown Emule tag: [%s]" (escaped_string_of_field tag)
@@ -746,6 +757,19 @@ let fight_disguised_mods c =
       c.client_brand <- Brand_emuleplus;
    if c.client_brand = Brand_emuleplus && c.client_brand_mod = Brand_mod_plus then
       c.client_brand_mod <- Brand_mod_unknown
+
+let request_osinfo c =
+  if c.client_emule_proto.emule_osinfosupport = 1 && not c.client_osinfo_sent then
+    begin
+      let emule_osinfo = {
+	emule_info with
+	DonkeyProtoClient.EmuleClientInfo.protversion = 255;
+	DonkeyProtoClient.EmuleClientInfo.tags = [
+	  string_tag (Field_UNKNOWN "os_info") (String2.upp_initial Autoconf.system);
+	]} in
+      client_send c (DonkeyProtoClient.EmuleClientInfoReq emule_osinfo);
+      c.client_osinfo_sent <- true
+    end
 
 let rec query_id ip port id =
   let client_ip = client_ip None in
@@ -1053,14 +1077,14 @@ let get_server_ip_port () =
 let process_mule_info c t =
   update_emule_proto_from_tags c t;
   update_emule_release c;
+  client_must_update c;
   if !!enable_sui
       && (c.client_md4 <> Md4.null) 
       && (c.client_sent_challenge == Int64.zero) 
       && (c.client_emule_proto.emule_secident > 0) 
   then begin
-    if !verbose_msg_clients then begin
+    if !verbose_msg_clients then
       lprintf_nl "%s [process_mule_info] [verify_ident]" (full_client_identifier c);
-    end;
     verify_ident c
   end
 
@@ -1182,14 +1206,10 @@ let client_to_client for_files c t sock =
       if !!emule_mods_count then
         identify_client_brand_mod c t.CI.tags;
       
-      (* TODO : remove this comment 
-          ERR! i think the peer support eep if it send an emule client info
-          PLUS this message is sent _before_ we received an md4 so 
-          client_brand is unknown here.
-      if supports_eep c.client_brand then  begin
-      *)
-          let module E = M.EmuleClientInfo in
-          client_send c (M.EmuleClientInfoReplyReq emule_info)
+      let module E = M.EmuleClientInfo in
+      client_send c (M.EmuleClientInfoReplyReq emule_info);
+      request_osinfo c;
+
   
   | M.EmuleClientInfoReplyReq t -> 
       
@@ -2251,6 +2271,7 @@ let read_first_message overnet m sock =
           client_send c (M.EmuleClientInfoReq emule_info)
         end;
       
+      request_osinfo c;
       client_send c (
         let module M = DonkeyProtoClient in
         let module C = M.Connect in

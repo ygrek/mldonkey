@@ -143,7 +143,7 @@ END
     SYSTEM=hpux
     ;;
   *darwin*|*rhapsody*|*macosx*)
-    SYSTEM=macosx
+    SYSTEM=macos
     AC_CHECK_PROG(SED, sed, sed)
     if test "$ac_cv_prog_SED" = "sed"; then
       FIX_BROKEN_CPP="| sed -n '/^\#pragma/!p'"
@@ -234,7 +234,7 @@ if test -f ./CVS/Entries ; then
       AC_CHECK_PROG(CUT, cut, cut)
       if test "$ac_cv_prog_CUT" = "cut"; then
         SUB_VERSION3="CVS"
-        if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "netbsd"] || ( [ test "$SYSTEM" = "macosx" ] && [ test "$ac_cv_prog_STAT" != "gstat" ] ); then
+        if [ test "$SYSTEM" = "freebsd"] || [ test "$SYSTEM" = "netbsd"] || ( [ test "$SYSTEM" = "macos" ] && [ test "$ac_cv_prog_STAT" != "gstat" ] ); then
           SCM_VERSION=`$STAT -f "%Sm" ./CVS/Entries | $SED -e 's/\(.*\) \(.*\) \(.*\) \(.*\)/\4-\1-\2 \3/'`
         else
         if [ test "$SYSTEM" = "openbsd"]; then

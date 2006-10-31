@@ -196,7 +196,7 @@ let filesystem_compliant name fs namemax =
   let sys_checked_name =
     if Autoconf.windows then 
       windows_compliant name
-    else if Autoconf.system = "macosx" then 
+    else if Autoconf.system = "macos" then 
       macosx_compliant name
     else 
       posix_compliant name in

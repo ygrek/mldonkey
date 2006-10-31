@@ -51,6 +51,7 @@ let mldonkey_emule_proto =
     emule_secident = 3; (* Emule uses v1 if advertising both, v2 if only advertising 2 *)
     emule_noviewshared = 0;
     emule_supportpreview = 0;
+    emule_osinfosupport = 1;
     emule_compression = 1; (* 1 *)
     emule_sourceexchange = 2; (* 2 : +client_md4 3 : +IdHybrid (emule Kademlia?)*)
     emule_multipacket = 0; (* 1 *)
@@ -84,6 +85,12 @@ let update_emule_proto_from_miscoptions1 m o =
   m.emule_noviewshared <- (o lsr 2) land 0x1;
   m.emule_multipacket <- (o lsr 1) land 0x1;
   m.emule_supportpreview <- (o lsr 0) land 0x1
+
+let emule_compatoptions m =
+  (m.emule_osinfosupport lsl 0)
+
+let update_emule_proto_from_compatoptions m o =
+  m.emule_osinfosupport <- (o lsr 0) land 0x1
 
 let extendedrequest e =
   min e.emule_extendedrequest mldonkey_emule_proto.emule_extendedrequest
@@ -133,6 +140,7 @@ module Connect  = struct
         "\060", Field_UNKNOWN "downloadtime";
         "\061", Field_UNKNOWN "incompleteparts";
         "\085", Field_UNKNOWN "mod_version";
+        "\239", Field_UNKNOWN "emule_compatoptions";
         "\249", Field_UNKNOWN "emule_udpports";
         "\250", Field_UNKNOWN "emule_miscoptions1";
         "\251", Field_UNKNOWN "emule_version";
@@ -799,7 +807,7 @@ module EmuleClientInfo = struct
         "\135", "mod_lsd";
         "\136", "mod_lsd_version";
         "\144", "mod_lovelace_version";
-        "\148", "mod_oxy";
+        "\148", "os_info"; (* reused by aMule to transfer client OS type *)
         "\153", "mod_plus";
         "\160", "mod_wombat";
         "\161", "dev_wombat";
