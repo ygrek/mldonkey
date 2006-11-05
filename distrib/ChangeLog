@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/11/05
+5481: Overnet: Small updates
+- do not print opcode 18 (OvernetNoResult) as unknown message
+- parse bcp type bcp://xxxxxxxxxxxxxxxxxxxxxxxxxxx:ip:tcpport:udpport
+- print debug log message when a new source was added
 5513: HTML: Let webinterface work in a HTML frame (ported from Knockers Mulus)
 - third button row does not work yet, patches welcome
 5521: BT: Fix non-working EDK upload when BT is enabled,

@@ -1123,6 +1123,9 @@ let udp_client_handler t p =
   | OvernetPublicized (Some p) ->
       ()
 
+  | OvernetNoResult (md4) ->
+      ()
+
   | OvernetSearch (nresults, md4, from_who) ->
       let peers = get_closest_peers md4 nresults in
       udp_send sender (OvernetSearchReply (md4,peers))
@@ -1189,6 +1192,9 @@ let udp_client_handler t p =
                       if is_overnet_ip ip && port <> 0 then
                         let s = DonkeySources.find_source_by_uid
                             (Direct_address (ip, port))  in
+			if !verbose_overnet then
+			  lprintf_nl "added new source %s:%d for file %s"
+			    (Ip.to_string ip) port (Md4.to_string md4);
                         incr source_hits;
                         DonkeySources.set_request_result s
                            file.file_sources File_new_source;

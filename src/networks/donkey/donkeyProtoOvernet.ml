@@ -189,15 +189,21 @@ module Proto = struct
           match tag.tag_name with
             Field_UNKNOWN "loc" ->
               for_string_tag tag (fun bcp ->
-                  if !verbose_overnet then
-                  lprintf_nl "loc tag : [%s]" bcp;
+                  if !verbose_overnet then lprintf_nl "loc tag : [%s]" bcp;
                   if String2.starts_with bcp "bcp://" then
                     let bcp2 = String.sub bcp 6 (String.length bcp - 6)
                     in
                     match String2.split_simplify bcp2 ':' with
+                    | [_;ip;udpport;tcpport] ->
+                        if !verbose_overnet then
+                          lprintf_nl "Received BCP type 3 %s" bcp;
+                        peer_ip := Ip.of_string ip;
+                        peer_udpport := int_of_string udpport;
+                        peer_tcpport := int_of_string tcpport;
+
                     | [_;ip;port] ->
                         if !verbose_overnet then
-                          lprintf_nl "Received BCP type 2 %s"
+                          lprintf_nl "Received BCP type 2 %s, ignoring"
                             bcp;
 
 (* FIXME: A firewalled peer...
