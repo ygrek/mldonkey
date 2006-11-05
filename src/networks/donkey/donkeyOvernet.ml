@@ -1301,7 +1301,6 @@ let udp_client_handler t p =
 
 (* Start unstarted searches, retry stalled searches *)
 let overnet_search_tick () =
-  let overnet_query_peer_period = int_of_float !!overnet_query_peer_period in
   List.iter (fun s ->
 (* Start a search, if search_start is reached *)
          if (s.search_lifetime + s.search_start - 20) > last_time () &&

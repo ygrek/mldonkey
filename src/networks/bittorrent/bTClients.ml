@@ -214,6 +214,15 @@ let connect_trackers file event f =
             t.tracker_url (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
   ) enabled_trackers
 
+let start_upload c =
+  set_client_upload (as_client c) (as_file c.client_file);
+  set_client_has_a_slot (as_client c) NormalSlot;
+  Rate.update_no_change c.client_downloaded_rate;
+  Rate.update_no_change c.client_upload_rate;
+  c.client_last_optimist <- last_time();
+  client_enter_upload_queue (as_client c);
+  send_client c Unchoke
+
 (** In this function we decide which peers will be
   uploaders. We send a choke message to current uploaders
   that are not in the next uploaders list. We send Unchoke
@@ -231,15 +240,8 @@ let recompute_uploaders () =
   ) !current_uploaders;
 
   (*don't send Choke if new uploader is already an uploaders *)
-  List.iter ( fun c -> if ((List.mem c !current_uploaders)==false) then
-        begin
-          set_client_has_a_slot (as_client c) NormalSlot;
-          Rate.update_no_change c.client_downloaded_rate;
-          Rate.update_no_change c.client_upload_rate;
-          c.client_last_optimist <- last_time();
-          client_enter_upload_queue (as_client c);
-          send_client c Unchoke;
-        end
+  List.iter ( fun c ->
+    if not (List.mem c !current_uploaders) then start_upload c
   ) !next_uploaders;
   current_uploaders := !next_uploaders
 
@@ -873,12 +875,7 @@ and client_to_client c sock msg =
             *)
             current_uploaders := c::(!current_uploaders);
             c.client_sent_choke <- false;
-            set_client_has_a_slot (as_client c) NormalSlot;
-            Rate.update_no_change c.client_downloaded_rate;
-            Rate.update_no_change c.client_upload_rate;
-            c.client_last_optimist <- last_time();
-            client_enter_upload_queue (as_client c);
-            send_client c Unchoke;
+	    start_upload c
           end;
 
         (* Check if the client is still interesting for us... *)
@@ -903,12 +900,7 @@ and client_to_client c sock msg =
               don't miss the opportunity if we can *)
               current_uploaders := c::(!current_uploaders);
               c.client_sent_choke <- false;
-              set_client_has_a_slot (as_client c) NormalSlot;
-              Rate.update_no_change c.client_downloaded_rate;
-              Rate.update_no_change c.client_upload_rate;
-              c.client_last_optimist <- last_time();
-              client_enter_upload_queue (as_client c);
-              send_client c Unchoke;
+	      start_upload c
             end
           else
             begin

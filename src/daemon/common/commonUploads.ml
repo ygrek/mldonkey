@@ -279,15 +279,6 @@ let shareds_counter = ref 1
 let shared_counter = ref (Int64.zero)
 let shared_files = Hashtbl.create 13
 
-let _ =
-  Heap.add_memstat "CommonUploads" (fun level buf ->
-   Printf.bprintf buf "  infos_by_name: %d\n" (Hashtbl.length infos_by_name);
-   Printf.bprintf buf "  shareds_by_uid: %d\n" (Hashtbl.length shareds_by_uid);
-   Printf.bprintf buf "  shareds_by_id: %d\n" (Hashtbl.length shareds_by_id);
-   Printf.bprintf buf "  shared_files: %d\n" (Hashtbl.length shared_files);
-  )
-
-
 let new_shared_dir dirname = {
     shared_dirname = dirname;
     shared_files = [];
@@ -1072,3 +1063,12 @@ let words_of_filename =
     | l -> l
   in
   get_name_keywords
+
+let _ =
+  Heap.add_memstat "CommonUploads" (fun level buf ->
+   Printf.bprintf buf "  infos_by_name: %d\n" (Hashtbl.length infos_by_name);
+   Printf.bprintf buf "  shareds_by_uid: %d\n" (Hashtbl.length shareds_by_uid);
+   Printf.bprintf buf "  shareds_by_id: %d\n" (Hashtbl.length shareds_by_id);
+   Printf.bprintf buf "  shared_files: %d\n" (Hashtbl.length shared_files);
+   Printf.bprintf buf "  pending_slots: %d\n" (Intmap.length !pending_slots_map);
+  )

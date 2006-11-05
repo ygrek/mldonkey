@@ -400,6 +400,7 @@ let _ =
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) clients_by_num;
       Printf.bprintf buf "  clients: %d\n" !counter;
+      Printf.bprintf buf "  uploaders: %d\n" (Intmap.length !uploaders);
   )
 
 let clients_get_all () =

@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/11/05
+5521: BT: Fix non-working EDK upload when BT is enabled,
+      introduced by patch 5461
+
 2006/10/31
 5508: OV/KAD eMule style search and some small fixes (bogeyman)
 5486: UDP bandwidth monitor fix (bogeyman)
