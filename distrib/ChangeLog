@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/11/05
+5513: HTML: Let webinterface work in a HTML frame (ported from Knockers Mulus)
+- third button row does not work yet, patches welcome
 5521: BT: Fix non-working EDK upload when BT is enabled,
       introduced by patch 5461
 

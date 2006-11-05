@@ -412,23 +412,28 @@ function mOut(src) {
  src.className=mOvrClass;
 }
 function mSub(target,cmd) {
- if (target != \"\") {
- 	if (cmd==\"kill\") {
- 		if (confirm(\"Are you sure?\")) {
-     		top[target].location.href=\"submit?q=\" + cmd;
- 	    }
- 	} else {
-        if (cmd.substring(0,6)==\"custom\") {top[target].location.href=\"submit?\" + cmd;}
-        else {top[target].location.href=\"submit?q=\" + cmd;
-     }
+if (target != '') {
+       if (cmd=='kill') {
+               if (confirm('Are you sure?')) {
+                       parent.document.getElementsByName(target).item(0).src='submit?q=' + cmd;
+               }
+       }
+       else {
+               if (cmd.substring(0,6)=='custom') {
+                       parent.document.getElementsByName(target).item(0).src='submit?' + cmd;
+               }
+               else {
+                       parent.document.getElementsByName(target).item(0).src='submit?q=' + cmd;
+               } 
  	}
- } else {
- location.href=\"submit?q=\" + cmd;
- }
+}
+else {
+       parent.document.getElementsByName(target).item(0).src='submit?q=' + cmd;
+}
 }
 function showTab(t){
-	for (i=1; i<=6; i++) document.getElementById(\"tab\" + i).style.display = \"none\";
-	document.getElementById(\"tab\" + t).style.display = \"block\";
+       for (i=1; i<=6; i++) document.getElementById('tab' + i).style.display = 'none';
+       document.getElementById(\"tab\" + t).style.display = 'block';
 }
 var _tabLast=null;
 function _rObj (s,ar) {
