@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/11/06
+5527: mlguistarter: print correct syntax (fixes Debian bug #396754)
+
 2006/11/05
 5481: Overnet: Small updates
 - do not print opcode 18 (OvernetNoResult) as unknown message

@@ -22,6 +22,17 @@ let _b x = _b "GuiStarter" x
 let _s_ x = (_s x) ^ ":"
 
 let main () =
+  let arg_1 =
+    try
+      Sys.argv.(1)
+    with _ -> ""
+  in
+  if not (Sys.file_exists arg_1) then
+    begin
+      if arg_1 <> "" then Printf.printf "File %s not found\n%!" arg_1;
+      Printf.printf "Syntax: mlguistarter FILE\n%!";
+      exit 0
+    end;
   ignore (GMain.Main.init ());
   let window = GWindow.window 
     ~title:(_s "MLdonkey GUI starter")
@@ -57,7 +68,7 @@ let main () =
   ignore (wb_5#connect#clicked ~callback:
   (fun () -> 
       window#destroy ();
-      ignore (Sys.command (Printf.sprintf "%s &" Sys.argv.(1)));
+      ignore (Sys.command (Printf.sprintf "%s &" arg_1));
       ));
   ignore (wb_6#connect#clicked ~callback:
   (fun () -> 
