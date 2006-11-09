@@ -78,7 +78,7 @@ val update_result_num : StoredResult.result -> StoredResult.stored_result
 val find_result : int -> StoredResult.stored_result
 val dummy_result : CommonTypes.result_info
 val result_download :
-  StoredResult.stored_result -> 'a -> 'b -> string -> CommonTypes.file list
+  StoredResult.stored_result -> 'a -> 'b -> CommonTypes.userdb -> CommonTypes.file list
 val results_iter : (int -> StoredResult.stored_result -> unit) -> unit
 val update_result : StoredResult.result -> unit
 val update_result2 :

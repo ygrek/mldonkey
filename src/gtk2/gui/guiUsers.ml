@@ -184,7 +184,7 @@ module UserList(R:
 (*************************************************************************)
 
         method from_item row (u : user_info) =
-          store#set ~row ~column:user_name (U.utf8_of u.user_name);
+          store#set ~row ~column:user_name (U.utf8_of u.GuiTypes.user_name);
           store#set ~row ~column:user_ip_port (Mi.ip_to_string u.user_ip u.user_port);
           store#set ~row ~column:user_md4 (Md4.to_string u.user_md4);
           store#set ~row ~column:user_tags (Mi.tags_to_string u.user_tags)
@@ -262,7 +262,7 @@ module UserList(R:
             let u1 = user_of_key k1 in
             let u2 = user_of_key k2 in
             match c with
-              Col_user_name -> compare (String.lowercase u1.user_name) (String.lowercase u2.user_name)
+              Col_user_name -> compare (String.lowercase u1.GuiTypes.user_name) (String.lowercase u2.GuiTypes.user_name)
             | Col_user_addr -> compare u1.user_ip u2.user_ip
             | Col_user_tags -> compare u1.user_tags u2.user_tags
             | Col_user_md4 -> compare u1.user_md4 u2.user_md4

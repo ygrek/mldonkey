@@ -310,7 +310,7 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
         let user, pass =
           match args with
             [] -> failwith "Usage: auth <user> <password>"
-          | [s1] -> admin_user, s1
+          | [s1] -> admin_user.CommonTypes.user_name, s1
           | user :: pass :: _ -> user, pass
         in
         if valid_password user pass then begin
@@ -581,7 +581,7 @@ let telnet_handler t event =
           "telnet connection"
           s in
         let telnet = {
-            telnet_auth = ref (empty_password admin_user);
+            telnet_auth = ref (has_empty_password admin_user);
             telnet_iac = false;
             telnet_wait = 0;
             telnet_buffer = Buffer.create 100;
@@ -955,7 +955,7 @@ let http_handler o t r =
 	 List.iter (fun (arg, value) -> Printf.bprintf b " %s %s" arg value) r.get_url.Url.args;
 	 if Buffer.contents b <> "" then Printf.sprintf "(%s)" (Buffer.contents b) else "");
 
-  let user = if r.options.login = "" then admin_user else r.options.login in
+  let user = if r.options.login = "" then admin_user.CommonTypes.user_name else r.options.login in
   if not (valid_password user r.options.passwd) then begin
       clear_page buf;
       http_file_type := HTM;
@@ -1006,15 +1006,15 @@ let http_handler o t r =
                     "VDC" ->
                       let num = int_of_string value in
                       let file = file_find num in
-                      file_cancel file o.conn_user.ui_user_name
+                      file_cancel file o.conn_user.ui_user
                   | "VDP" ->
                       let num = int_of_string value in
                       let file = file_find num in
-                      file_pause file o.conn_user.ui_user_name
+                      file_pause file o.conn_user.ui_user
                   | "VDR" ->
                       let num = int_of_string value in
                       let file = file_find num in
-                      file_resume file o.conn_user.ui_user_name
+                      file_resume file o.conn_user.ui_user
                   | _ -> ()
               ) r.get_url.Url.args;
 
@@ -1099,7 +1099,7 @@ let http_handler o t r =
             Buffer.add_string buf (Printf.sprintf "<br><div align=\"center\"><h3>%s %s</h3></div>"
 	      (Printf.sprintf (_b "Welcome to MLDonkey")) Autoconf.current_version);
 	    if !!motd_html <> "" then Buffer.add_string buf !!motd_html;
-	    if user2_is_admin o.conn_user.ui_user_name then
+	    if user2_is_admin o.conn_user.ui_user then
 	    (match DriverInteractive.real_startup_message () with
 	       Some s -> Buffer.add_string buf (Printf.sprintf "<p><pre><b><h3>%s</b></h3></pre>" s);
 	     | None -> ())
@@ -1271,7 +1271,7 @@ let http_handler o t r =
                       try
                         let num = int_of_string value in
                         let r = find_result num in
-                        let files = result_download r [] false o.conn_user.ui_user_name in
+                        let files = result_download r [] false o.conn_user.ui_user in
                         List.iter CommonInteractive.start_download files;
 
                         let module M = CommonMessages in
@@ -1291,23 +1291,23 @@ let http_handler o t r =
                   "cancel" ->
                     let num = int_of_string value in
                     let file = file_find num in
-                    file_cancel file o.conn_user.ui_user_name
+                    file_cancel file o.conn_user.ui_user
                 | "pause" ->
                     let num = int_of_string value in
                     let file = file_find num in
-                    file_pause file o.conn_user.ui_user_name
+                    file_pause file o.conn_user.ui_user
                 | "resume" ->
                     let num = int_of_string value in
                     let file = file_find num in
-                    file_resume file o.conn_user.ui_user_name
+                    file_resume file o.conn_user.ui_user
                 | "release" ->
                     let num = int_of_string value in
                     let file = file_find num in
-                    set_file_release file true o.conn_user.ui_user_name
+                    set_file_release file true o.conn_user.ui_user
                 | "norelease" ->
                     let num = int_of_string value in
                     let file = file_find num in
-                    set_file_release file false o.conn_user.ui_user_name
+                    set_file_release file false o.conn_user.ui_user
                 | "sortby" ->
                     begin
                       match value with
@@ -1327,13 +1327,15 @@ let http_handler o t r =
                       | "N" -> o.conn_sortvd <- ByNet
                       | "Avail" -> o.conn_sortvd <- ByAvail
                       | "Cm" -> o.conn_sortvd <- ByComments
+                      | "User" -> o.conn_sortvd <- ByUser
+                      | "Group" -> o.conn_sortvd <- ByGroup
                       | _ -> ()
                     end
                 | _ -> ()
             ) r.get_url.Url.args;
             let b = Buffer.create 10000 in
 
-            let list = List2.tail_map file_info (user2_filter_files !!files o.conn_user.ui_user_name) in
+            let list = List2.tail_map file_info (user2_filter_files !!files o.conn_user.ui_user) in
             DriverInteractive.display_file_list b o list;
             html_open_page buf t r true;
             Buffer.add_string buf (html_escaped (Buffer.contents b))
@@ -1348,7 +1350,7 @@ let http_handler o t r =
 		      let url = fst (String2.cut_at url '\013') in
 		      if url <> "" then
 		        begin
-                          Buffer.add_string buf (html_escaped (dllink_parse (o.conn_output = HTML) url o.conn_user.ui_user_name));
+                          Buffer.add_string buf (html_escaped (dllink_parse (o.conn_output = HTML) url o.conn_user.ui_user));
                           Buffer.add_string buf (html_escaped "\\<P\\>")
 			end
                     ) (String2.split links '\n')
@@ -1403,7 +1405,7 @@ let http_handler o t r =
 
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf t r true;
-		  if user2_is_admin o.conn_user.ui_user_name then
+		  if user2_is_admin o.conn_user.ui_user then
 		    begin
                       CommonInteractive.set_fully_qualified_options name value;
                       Buffer.add_string buf "Option value changed"

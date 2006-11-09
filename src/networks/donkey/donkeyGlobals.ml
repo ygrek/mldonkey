@@ -400,7 +400,7 @@ let new_file file_diskname file_state md4 file_size filename writable user =
       and file_impl = {
           dummy_file_impl with
           impl_file_owner = user;
-          impl_file_group = CommonUserDb.user2_user_default_group user;
+          impl_file_group = user.user_default_group;
           impl_file_val = file;
           impl_file_ops = file_ops;
           impl_file_age = last_time ();

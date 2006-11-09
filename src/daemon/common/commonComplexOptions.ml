@@ -109,41 +109,52 @@ module FileOption = struct
                 get_value "file_release" value_to_bool
             with _ -> ());
 
-	  let file_user = try
+	  let file_user =
+	    let filename = get_value "file_filename" value_to_string in
+	    try
 	      let u = get_value "file_owner" value_to_string in
-	      if user2_user_exist u then u else begin
-		lprintf_nl "file_owner %s of %s does not exist, changing to %s"
-		  u (get_value "file_filename" value_to_string) admin_user;
+		begin
+		  try
+		    user2_user_find u
+		  with Not_found ->
+		    lprintf_nl "file_owner %s of %s does not exist, changing to %s"
+		      u filename admin_user.user_name;
+		    admin_user
+		end
+	    with Not_found ->
+		lprintf_nl "file_owner of %s is empty, changing to %s"
+		  filename admin_user.user_name;
 		admin_user
-	      end
-	    with _ -> admin_user
 	  in
 	  set_file_owner file file_user;
 
-	  let file_group = try
+	  let file_group =
+	    let filename = get_value "file_filename" value_to_string in
+	    let dgroup = user2_print_user_default_group file_user in
+	    try
 	      match (get_value "file_group" stringvalue_to_option) with
 		None -> None
 	      | Some g ->
-		  if user2_group_exists g then
-		    if user2_user_is_group_member file_user g then
-		      Some g
-		    else begin
-		      lprintf_nl "file_owner %s is not member of file_group %s, changing file_group of %s to user_default_group %s"
-			file_user
-			g
-			(get_value "file_filename" value_to_string)
-			(user2_print_user_default_group file_user);
-		      user2_user_default_group file_user
-		    end
-		  else begin
-		    lprintf_nl "file_group %s of %s does not exist, changing file_group of %s to user_default_group %s"
-		      g
-		      (get_value "file_filename" value_to_string)
-		      file_user
-		      (user2_print_user_default_group file_user);
-		    user2_user_default_group file_user
+		  begin
+		    try
+		      let g = user2_group_find g in
+		      if List.mem g file_user.user_groups then
+		        Some g
+		      else
+			begin
+			  lprintf_nl "file_owner %s is not member of file_group %s, changing file_group of %s to user_default_group %s"
+			    file_user.user_name g.group_name filename dgroup;
+			  file_user.user_default_group
+			end
+		    with Not_found ->
+		      lprintf_nl "file_group %s of %s not found, changing to user_default_group %s of user %s"
+			g filename dgroup file_user.user_name;
+		      file_user.user_default_group
 		  end
-	    with _ -> user2_user_default_group file_user
+	    with Not_found ->
+		lprintf_nl "file_group of %s is empty, changing to user_default_group %s of user %s"
+		  filename dgroup file_user.user_name;
+		file_user.user_default_group
 	  in
 	  set_file_group file file_group;
 
@@ -184,8 +195,8 @@ module FileOption = struct
 	(List.map string_to_value impl.impl_file_filenames)) ::
         ("file_age", IntValue (Int64.of_int impl.impl_file_age)) ::
         ("file_release", bool_to_value impl.impl_file_release) ::
-        ("file_owner", string_to_value (file_owner file)) ::
-        ("file_group", option_to_stringvalue (file_group file)) ::
+        ("file_owner", string_to_value (file_owner file).user_name) ::
+        ("file_group", option_to_stringvalue (match file_group file with Some g -> Some g.group_name | None -> None)) ::
           (file_to_option file)
         )
           
@@ -972,7 +983,7 @@ let incoming_dir usedir ?user ?needed_space ?network () =
   let dirname_user =
     match user with
     | None -> ""
-    | Some user -> (user2_user_find user).user_commit_dir
+    | Some user -> user.user_commit_dir
   in
 
 (*

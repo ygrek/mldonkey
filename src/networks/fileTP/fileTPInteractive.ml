@@ -311,8 +311,8 @@ let commands = [
     "http", "Network/FileTP", Arg_multiple (fun args o ->
         try
         (match args with
-          url :: [referer] -> download_file url referer o.conn_user.ui_user_name
-        | [url] -> download_file url "" o.conn_user.ui_user_name
+          url :: [referer] -> download_file url referer o.conn_user.ui_user
+        | [url] -> download_file url "" o.conn_user.ui_user
         | _ -> raise Not_found);
         let buf = o.conn_buf in
         if o.conn_output = HTML then

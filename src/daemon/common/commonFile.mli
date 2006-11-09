@@ -18,8 +18,8 @@
 *)
 
 type 'a file_impl = {
-    mutable impl_file_owner : string;
-    mutable impl_file_group : string option;
+    mutable impl_file_owner : CommonTypes.userdb;
+    mutable impl_file_group : CommonTypes.groupdb option;
     mutable impl_file_update : int;
     mutable impl_file_state : CommonTypes.file_state;
     
@@ -85,9 +85,9 @@ val file_shared : CommonTypes.file -> CommonTypes.shared option
 val file_comment : CommonTypes.file -> string
 val file_network : CommonTypes.file -> CommonTypes.network
 val file_info : CommonTypes.file -> GuiTypes.file_info
-val file_pause : CommonTypes.file -> string -> unit
-val file_resume : CommonTypes.file -> string -> unit
-val set_file_release : CommonTypes.file -> bool -> string -> unit
+val file_pause : CommonTypes.file -> CommonTypes.userdb -> unit
+val file_resume : CommonTypes.file -> CommonTypes.userdb -> unit
+val set_file_release : CommonTypes.file -> bool -> CommonTypes.userdb -> unit
 val file_release : CommonTypes.file -> bool
 val set_file_state : CommonTypes.file -> CommonTypes.file_state -> unit
 val file_best_name : CommonTypes.file -> string
@@ -146,15 +146,12 @@ val propose_filename : CommonTypes.file -> unit
 val forceable_download : CommonTypes.result_info list ref
 val impl_file_info : 'a file_impl -> GuiTypes.file_info
 
-val user2_filter_files : CommonTypes.file list -> string -> CommonTypes.file list
-val user2_user_dls_count : string -> int
-val user2_group_dls_count : string -> int
-val user2_allow_file_admin : CommonTypes.file -> string -> bool
-val set_file_owner : CommonTypes.file -> string -> unit
-val set_file_owner_safe : CommonTypes.file -> string -> string -> bool
-val file_owner : CommonTypes.file -> string
-val set_file_group : CommonTypes.file -> string option -> unit
-val set_file_group_safe : CommonTypes.file -> string -> string option -> bool
-val file_group : CommonTypes.file -> string option
-val file_group_text : CommonTypes.file -> string
+val user2_filter_files : CommonTypes.file list -> CommonTypes.userdb -> CommonTypes.file list
+val user2_num_user_dls : CommonTypes.userdb -> int
+val user2_num_group_dls : CommonTypes.groupdb -> int
+val user2_allow_file_admin : CommonTypes.file -> CommonTypes.userdb -> bool
+val set_file_owner : CommonTypes.file -> CommonTypes.userdb -> unit
+val file_owner : CommonTypes.file -> CommonTypes.userdb
+val set_file_group : CommonTypes.file -> CommonTypes.groupdb option -> unit
+val file_group : CommonTypes.file -> CommonTypes.groupdb option
 val lprintf_file_nl : CommonTypes.file -> ('a, unit, unit) Pervasives.format -> 'a

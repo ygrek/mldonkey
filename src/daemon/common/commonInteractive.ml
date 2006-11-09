@@ -181,8 +181,8 @@ let script_for_file file incoming new_name =
 	    ("INCOMING",  incoming);
 	    ("NETWORK",   network.network_name);
 	    ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4));
-	    ("FILE_OWNER",(file_owner file));
-	    ("FILE_GROUP",(file_group_text file));
+	    ("FILE_OWNER",(file_owner file).user_name);
+	    ("FILE_GROUP",user2_print_group (file_group file));
 	    ]
 
   with e -> 
@@ -304,7 +304,7 @@ let file_cancel file user =
       lprintf_nl "Exception in file_cancel: %s" (Printexc2.to_string e)
 
 let mail_for_completed_file file =
-  let usermail = user2_user_mail (file_owner file) in
+  let usermail = (file_owner file).user_mail in
   if !!mail <> "" || usermail <> "" then begin
     let module M = Mailer in
     let info = file_info file in
@@ -339,7 +339,7 @@ let mail_for_completed_file file =
     in
 
     let line6 =
-      Printf.sprintf "\r\nUser/Group: %s:%s\r\n" (file_owner file) (file_group_text file)
+      Printf.sprintf "\r\nUser/Group: %s:%s\r\n" (file_owner file).user_name (user2_print_group (file_group file))
     in
       
     let send_mail address admin =
@@ -520,7 +520,7 @@ let download_file o arg =
       | Some s ->
           let result = List.assoc (int_of_string arg) user.ui_last_results in
           let files = CommonResult.result_download
-            result [] false user.ui_user_name in
+            result [] false user.ui_user in
           List.iter start_download files;
           "download started"
     with
@@ -974,7 +974,7 @@ let force_download_quotas () =
       with Not_found ->
 	(owner, { 
 	  downloads_allowed = 
-	    (match (user2_user_find owner).user_max_concurrent_downloads with
+	    (match owner.user_max_concurrent_downloads with
 	    | 0 -> None
 	    | i -> Some i);
 	  file_list = [f] }) :: acc

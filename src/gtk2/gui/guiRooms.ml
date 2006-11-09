@@ -524,7 +524,7 @@ let room_info r =
 let find_user_name user_num =
   try
     let u = Hashtbl.find G.users user_num in
-    u.user_name
+    u.GuiTypes.user_name
   with _ -> raise Not_found
 
 let message_from_server s =

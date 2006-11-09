@@ -42,8 +42,8 @@ let lprintf_n fmt =
 (*************************************************************************)
 
 type 'a file_impl = {
-    mutable impl_file_owner : string;
-    mutable impl_file_group : string option;
+    mutable impl_file_owner : userdb;
+    mutable impl_file_group : groupdb option;
     mutable impl_file_update : int;
     mutable impl_file_state : file_state;
 
@@ -234,16 +234,8 @@ let file_owner file =
 let file_group file =
   (as_file_impl file).impl_file_group
 
-let impl_group_text impl =
-  match impl.impl_file_group with
-    Some group -> group
-  | None -> "None"
-
-let file_group_text file =
-  impl_group_text (as_file_impl file)
-
-let user2_allow_file_admin file gui_user =
-  user2_is_admin gui_user || file_owner file = gui_user
+let user2_allow_file_admin file user =
+  user2_is_admin user || file_owner file = user
 
 let file_pause (file : file) user =
   if user2_allow_file_admin file user then
@@ -278,37 +270,17 @@ let set_file_owner file owner =
 let set_file_group file group =
   (as_file_impl file).impl_file_group <- group
 
-let set_file_owner_safe file user new_owner =
-  if (user2_user_exist new_owner) &&
-     (user2_allow_file_admin file user) then
-    begin
-      set_file_owner file new_owner;
-      true
-    end
-  else
-    false
-
-let set_file_group_safe file gui_user new_group =
-  if (user2_group_exists_option new_group) &&
-     (user2_allow_file_admin file gui_user) then
-    begin
-      set_file_group file new_group;
-      true
-    end
-  else
-    false
-
 let user2_filter_files files gui_user =
   let newlist = List.filter
     (fun file -> user2_can_view_file gui_user (file_owner file) (file_group file)) files in
   newlist
 
-let user2_user_dls_count user =
+let user2_num_user_dls user =
   let n = ref 0 in
   H.iter (fun f -> if file_owner f = user then incr n) files_by_num;
   !n
 
-let user2_group_dls_count group =
+let user2_num_group_dls group =
   let n = ref 0 in
   H.iter (fun f -> if file_group f = Some group then incr n) files_by_num;
   !n
@@ -712,10 +684,10 @@ let file_print file o =
         ("", "sr", Printf.sprintf "%d" (file_priority file)) ];
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-      if user2_allow_file_admin file o.conn_user.ui_user_name then
+      if user2_allow_file_admin file o.conn_user.ui_user then
         let optionlist = ref "" in
-        user2_user_iter (fun user ->
-	  if user.user_name <> (file_owner file) then
+        user2_users_iter (fun user ->
+	  if user <> (file_owner file) then
             optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" user.user_name user.user_name;
         );
 
@@ -735,25 +707,25 @@ parent.fstatus.location.href='submit?q=chown+'+v+'+%d';
    ^ "\\<td\\>"
    ^ "\\<select name=\\\"newOwner\\\" id=\\\"newOwner\\\" "
    ^ "style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>"
-   ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\\</option\\>\n" (file_owner file) (file_owner file)
+   ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\\</option\\>\n" (file_owner file).user_name (file_owner file).user_name
    ^ !optionlist ^ "\\</select\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>"
     ) ];
 
       else
-        html_mods_td buf [("File owner", "sr br", "User"); ("", "sr", (file_owner file))];
+        html_mods_td buf [("File owner", "sr br", "User"); ("", "sr", (file_owner file).user_name)];
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-      if user2_allow_file_admin file o.conn_user.ui_user_name &&
-         user2_user_groups_safe o.conn_user.ui_user_name <> [] then
+      if user2_allow_file_admin file o.conn_user.ui_user &&
+         o.conn_user.ui_user.user_groups <> [] then
         let optionlist =
-          if (file_group_text file) = "None" then
+          if (file_group file) = None then
             ref ""
           else
             ref "\\<option value=\\\"None\\\"\\>None\\</option\\>\n"
         in
-        user2_user_groups_iter o.conn_user.ui_user_name (fun group ->
-	  if group <> (file_group_text file) then
-            optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" group group;
+        user2_user_groups_iter (file_owner file) (fun group ->
+	  if Some group <> (file_group file) then
+            optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" group.group_name group.group_name;
         );
 
         html_mods_td buf [("Change file group by selecting an alternate group", "sr br", "Group");
@@ -772,14 +744,14 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
    ^ "\\<td\\>"
    ^ "\\<select name=\\\"newGroup\\\" id=\\\"newGroup\\\" "
    ^ "style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>"
-   ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\\</option\\>\n" (file_group_text file) (file_group_text file)
+   ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\\</option\\>\n" (user2_print_group (file_group file)) (user2_print_group (file_group file))
    ^ !optionlist ^ "\\</select\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>"
   ) ];
 
       else
         html_mods_td buf [("File group", "sr br", "Group");
         ("", "sr", (match file_group file with
-          Some group -> Printf.sprintf "%s" group
+          Some group -> Printf.sprintf "%s" group.group_name
         | None -> "None"))];
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
@@ -845,9 +817,9 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
         (Int64.to_string info.G.file_size)
         (Int64.to_string info.G.file_downloaded)
         (file_priority file)
-        (file_owner file)
+        (file_owner file).user_name
 	(match file_group file with
-	   Some group -> Printf.sprintf "%s" group
+	   Some group -> Printf.sprintf "%s" group.group_name
 	 | None -> "private");
       Printf.bprintf buf "Chunks: [%-s]\n"
 	(match info.G.file_chunks with
@@ -1243,8 +1215,8 @@ let impl_file_info impl =
     T.file_sub_files = [];
     T.file_magic = impl.impl_file_magic;
     T.file_comments = [];
-    T.file_user = impl.impl_file_owner;
-    T.file_group = (impl_group_text impl);
+    T.file_user = impl.impl_file_owner.user_name;
+    T.file_group = user2_print_group impl.impl_file_group;
     T.file_release = impl.impl_file_release;
   }
 

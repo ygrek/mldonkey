@@ -1,42 +1,45 @@
 Description of multiuser patch
 ==============================
 This file provides some HowTos and internals about the new multiuser
-functionality of MLDonkey. The goal is to provide a p2p-service to be used
-by more than user and where each user has its own environment in provided
-by the daemon.
+functionality of MLDonkey. The goal is to provide a p2p-service to be
+used by more than user and where each user has its own environment
+provided by the daemon.
 
 Some basics and definitions
 ===========================
 User "admin" and all users belonging to a group where group_admin = true can
 see all files in any case and can use all functions of MLDonkey.
 
-file_owner in this text means one user which owns a downloading file,
-file_group means one group the file belongs to, file_owner must be a member of
+file_owner in this text means the user which owns a downloading file,
+file_group means the group the file belongs to, file_owner must be a member of
 this group, both values are saved in files.ini.
 
 New options (displayed options are default values)
 ==================================================
 users.ini
 ---------
-- users is kept unchanged for compatibility
-- users2 is extended with these settings:
+- "users" is kept unchanged for compatibility, all users from "users2"
+  are saved in "users" as well, so password are updated.
+- "users2" is extended with these settings:
 
-     user_groups = []
 A list of groups the user belongs to, this user can view all files
 which belong to one of the groups
+     user_groups = []
 
 The default group of the user, the user must also be a member of this
 group. File_group of new downloads started by the user are automatically
-assigned to this value. This value can be None, this means the file is
-only visible to the file_owner (and admins, of course).
+assigned to this value. This value can be None, this means the file is a
+private one only visible to the file_owner (and admins, of course).
      user_default_group = mldonkey
 
-E-mail address to sent commit notifications to. Globals option "mail"
+E-mail address to sent commit notifications to. Global option "mail"
 can still be used for admins, if both addresses match only one mail is sent.
      user_mail = ""
 
-Not implemented yet, planned feature is to have user specific directories
-below global incoming directories.
+Commit files to <incoming>/<user_commit_dir>
+The current incoming directory is appended with user_commit_dir.
+All incoming dirs are shared recursively now to share these files
+committed into user specific dirs.
      user_commit_dir = ""
 
 Like global option max_concurrent_downloads this implements a user-specific
@@ -50,9 +53,7 @@ Users can change file priorities the control which files are not queued.
 
 - groups, new option
 At least one group named "mldonkey" with group_admin = true must exist
-
-This option is not implemented yet
-     group_mail = ""
+and will be re-created on startup if missing.
 
 Option to control if the group has admin rights. All users belonging to such a
 group have the same rights as user "admin".
@@ -63,37 +64,67 @@ files.ini
 ---------
 - each file has two new options in files.ini
 file_owner: the incoming directory of the owner is used for commit,
-            if the user does not exist "admin" is used
+            if the user does not exist "admin" is used. If this data
+	    field does not exist, the file will belong to user "admin".
 file_group: default value for a new download is user_default_group 
             if file_owner is not member of file_group or the group does not
-            exist, the value user_default_group is used
+            exist, the user_default_group of file_owner is used.
+
+downloads.ini
+-------------
+These two options control the display of user/group column in HTML, vd
+  html_mods_vd_user false
+  html_mods_vd_group false
 
 
 Commands to control multiuser features/data
 ===========================================
-chgrp <group> "<num>"
+chgrp <group> <num>
 change group of download <num> to <group>, group = none for private file
 
-chown <user> "<num>"
+chown <user> <num>
 change owner of download <num> to <user>
 
-groupadd <group> <admin: true | false> [<mail>]
-add new mldonkey group
+dgroup
+print default group of logged-in user
+
+groupadd <group> <admin: true | false>
+add new mldonkey group, only admin users can use this command
+
+groupadmin <group> <admin: true | false>
+change group admin status, only admin users can use this command
+
+groupdel <group>
+remove an unused mldonkey group, only admin users can use this command
+only possible if group has no members
+
+groups
+print groups of logged-in user
 
 passwd <passwd>
 change own password
 
 useradd <user> <passwd>
-add new mldonkey user/change user password
+add new mldonkey user/change user password, only admin users can use this command
 
 usercommit <user> <dir>
 change user specific commit directory
 
 userdel <user>
-remove a mldonkey user
+remove a mldonkey user, only admin users can use this command, user "admin" can not be removed
+deleting a user is only possible if the user does not own any downloads
+
+userdgroup <user> <group|None>
+change user default group
 
 userdls <user> <num>
-change number of allowed concurrent downloads
+change number of allowed concurrent downloads, only admin users can use this command
+
+usergroupadd <user> <group>
+add a group to a mldonkey user, only admin users can use this command
+
+usergroupdel <user> <group>
+remove a group from a mldonkey user
 
 usermail <user> <mail>
 change user mail address
@@ -107,13 +138,12 @@ print logged-in user name
 
 Updating from a non-multiuser MLDonkey
 ======================================
-When updating all files have file_owner "admin" and file_group "mldonkey".
-All existing users have
-user_default_group = "mldonkey" and user_groups = ["mldonkey"].
-This means all users can use all features of MLDonkey and see all files
-in use by MLDonkey core.
+When updating all files will have file_owner "admin" and file_group "mldonkey".
+All existing users will have user_default_group = "mldonkey" and
+user_groups = ["mldonkey"]. This means all users can use all features of
+MLDonkey and see all files in use by MLDonkey core, just like before.
 
-To hide user downloads from each other create a new group with
+To hide user downloads from each other, create a new group with
 group_admin = false and assign all users to this group and remove them
 from all admin groups
 
@@ -125,19 +155,4 @@ Additional features
 
 To-Do
 ======
-- check on start-up of group "mldonkey" exists and if it has admin rights
-- implement groupdel + prevent deletion if group is in use
-- prevent groupdel if group is file_group of current downloads
-- prevent groupdel if group has members
-- implement user_commit_dir (work is done in multigroup_usercommit.patch)
-  Besides supporting the option user_commit_dir the mechanism to choose
-  incoming directory is changed.
-  Incoming directories are saved in a list of directories in option
-  shared_directories. They have a special sharing_strategy named 
-  incoming_directories (for BT multifile downloads only) or incoming_files.
-  Current implementation uses the first directory with this stratagy found in
-  the list.
-  The new implementation (already done) iters the list of marked incoming
-  directories until one is found with enough free space. If no usable directory
-  is found, the file will stay in the list of files to be committed.
-- implement group_mail
+- Suggestions ?

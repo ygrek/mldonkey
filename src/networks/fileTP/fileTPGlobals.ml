@@ -153,7 +153,7 @@ let new_file file_id file_name file_size user =
     } and file_impl =  {
       dummy_file_impl with
       impl_file_owner = user;
-      impl_file_group = CommonUserDb.user2_user_default_group user;
+      impl_file_group = user.user_default_group;
       impl_file_fd = Some t;
       impl_file_size = zero;
       impl_file_downloaded = zero;

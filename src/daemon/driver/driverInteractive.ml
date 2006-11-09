@@ -54,7 +54,7 @@ let verify_user_admin () =
   let warning =
     "SECURITY WARNING: user admin has an empty password, use command: useradd admin password\n"
   in
-  if empty_password admin_user && !!allowed_ips <>
+  if has_empty_password admin_user && !!allowed_ips <>
     [(Ip.range_of_string (strings_of_option allowed_ips).option_default)] then
     begin
       lprintf_n "%s" warning;
@@ -674,8 +674,16 @@ if !!html_mods_vd_network then Printf.bprintf buf
 "\\<td title=\\\"Sort by network\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=N name=sortby\\>\\</td\\>";
 
 Printf.bprintf buf
-"\\<td title=\\\"Sort by filename\\\" class=dlheader\\>\\<input class=headbutton type=submit value=File name=sortby\\>\\</td\\>
-\\<td title=\\\"Sort by size\\\" class=dlheader\\>\\<input class=headbutton type=submit value=Size name=sortby\\>\\</td\\>
+"\\<td title=\\\"Sort by filename\\\" class=dlheader\\>\\<input class=headbutton type=submit value=File name=sortby\\>\\</td\\>";
+
+if !!html_mods_vd_user then Printf.bprintf buf
+"\\<td title=\\\"Sort by user\\\" class=dlheader\\>\\<input class=headbutton type=submit value=User name=sortby\\>\\</td\\>";
+
+if !!html_mods_vd_group then Printf.bprintf buf
+"\\<td title=\\\"Sort by group\\\" class=dlheader\\>\\<input class=headbutton type=submit value=Group name=sortby\\>\\</td\\>";
+
+Printf.bprintf buf
+"\\<td title=\\\"Sort by size\\\" class=dlheader\\>\\<input class=headbutton type=submit value=Size name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by size downloaded\\\" class=dlheader\\>\\<input class=\\\"headbutton ar\\\" type=submit value=DLed name=sortby\\>\\</td\\>
 \\<td title=\\\"Sort by percent\\\" class=dlheader\\>\\<input class=headbutton type=submit value=%% name=sortby\\>\\</td\\>";
 if !!html_mods_vd_comments then Printf.bprintf buf
@@ -712,13 +720,16 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
         [|
           (if !!html_mods_use_js_tooltips then
                         Printf.sprintf "
-                                onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%sFile#: %d<br>Network: %s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
+                                onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%sFile#: %d<br>Network: %s<br>User%s %s%s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
                         (Http_server.html_real_escaped file.file_name)
 			(match file_magic (file_find file.file_num) with
 			   None -> ""
 			 | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
 			file.file_num
                         (net_name file)
+                        (if file.file_group = "none" then "" else ":Group")
+                        file.file_user
+                        (if file.file_group = "none" then "" else Printf.sprintf ":%s" file.file_group)
 
       (if file.file_comments = [] then "" else
 			    begin
@@ -795,6 +806,9 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
             (!!html_vd_barheight)
             (truncate ( (1. -. downloaded /. size) *. 100.)));
           );
+
+          (if !!html_mods_vd_user then ctd file.file_num file.file_user else "");
+          (if !!html_mods_vd_group then ctd file.file_num file.file_group else "");
 
           (ctd file.file_num (size_of_int64 file.file_size));
           (ctd file.file_num (size_of_int64 file.file_downloaded));
@@ -943,7 +957,7 @@ let simple_print_file_list finished buf files format =
     else
       print_table buf
         [|
-        Align_Left; Align_Left; Align_Right; Align_Right;
+        Align_Left; Align_Left; Align_Right; Align_Left; Align_Left; Align_Left;
         Align_Right; Align_Right; Align_Right |]
         (if format.conn_output = HTML then
           [|
@@ -960,6 +974,8 @@ let simple_print_file_list finished buf files format =
             "$nNum";
 	    "Rele";
 	    "Comm";
+	    "User";
+	    "Group";
             "File";
             "    %";
             "    Done";
@@ -1006,6 +1022,8 @@ let simple_print_file_list finished buf files format =
                   else ""));
 	      (Printf.sprintf "%s" (if file.file_release then "R" else "-"));
 	      (Printf.sprintf "%4d" (number_of_comments file));
+              file.file_user;
+              file.file_group;
               (short_name file);
               (Printf.sprintf "%3.1f" (percent file));
               (if !!improved_telnet then (print_human_readable file file.file_downloaded)
@@ -1124,6 +1142,8 @@ let display_active_file_list buf o list =
         | ByNet -> (fun f1 f2 -> net_name f1 <= net_name f2)
         | ByAvail -> (fun f1 f2 -> get_file_availability f1 >= get_file_availability f2)
         | ByComments -> (fun f1 f2 -> (number_of_comments f1) >= (number_of_comments f2))
+        | ByUser -> (fun f1 f2 -> f1.file_user <= f2.file_user)
+        | ByGroup -> (fun f1 f2 -> f1.file_group <= f2.file_group)
         | NotSorted -> raise Not_found
       in
       Sort.list sorter list
@@ -1945,8 +1965,8 @@ let runinfo html buf o =
     (
       "User:\t\t", 
       Printf.sprintf "%s (%s) - uptime: %s" 
-	o.conn_user.ui_user_name
-	(if empty_password o.conn_user.ui_user_name then "Warning: empty Password"
+	o.conn_user.ui_user.user_name
+	(if has_empty_password o.conn_user.ui_user then "Warning: empty Password"
 	else "PW Protected")
 	(Date.time_to_string (last_time () - start_time) "verbose")
     );

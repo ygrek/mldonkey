@@ -499,7 +499,7 @@ let last_message_log = ref 0
 let debug_clients = ref Intset.empty
 
 let default_user = {
-    ui_user_name = CommonUserDb.admin_user;
+    ui_user = CommonUserDb.admin_user;
     ui_user_searches = [];
     ui_last_search = None;
     ui_last_results = [];
@@ -513,7 +513,7 @@ let find_ui_user user =
     match list with
       [] ->
         let u = {
-            ui_user_name = user;
+            ui_user = (CommonUserDb.user2_user_find user);
             ui_user_searches = [];
             ui_last_search = None;
             ui_last_results = [];
@@ -522,7 +522,7 @@ let find_ui_user user =
         ui_users := u :: !ui_users;
         u
     | u :: tail ->
-        if u.ui_user_name = user then u else iter tail
+        if u.ui_user = (CommonUserDb.user2_user_find user) then u else iter tail
   in
   iter !ui_users
 
@@ -899,6 +899,12 @@ module StringIntern = Weak.Make(struct
 let intern_table = StringIntern.create 1000
 let intern s = StringIntern.merge intern_table s
 
+let print_command_result o buf result =
+  if use_html_mods o then
+    html_mods_table_one_row buf "serversTable" "servers" [
+      ("", "srh", result); ]
+  else
+    Printf.bprintf buf "%s" result
 
 let _ =
   Heap.add_memstat "CommonGlobals" (fun level buf ->

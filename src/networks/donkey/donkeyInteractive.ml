@@ -323,7 +323,7 @@ let query_download filename size md4 location old_file absents force user =
 (* jave TODO: if a user currently not downloading this file is requesting the download add this user
    to the list of users currently downloading this file *)
 	      forceable_download := [];
-	      raise (Already_downloading (Printf.sprintf (_b "File is already in download queue of %s") (file_owner (as_file file))))
+	      raise (Already_downloading (Printf.sprintf (_b "File is already in download queue of %s") (file_owner (as_file file)).CommonTypes.user_name))
 	    end
       with Not_found ->
         begin
@@ -788,7 +788,7 @@ let commands = [
     "<port> :\t\t\t\tchange connection port";
 
     "scan_temp", Arg_none (fun o ->
-	if CommonUserDb.user2_is_admin o.conn_user.ui_user_name then begin
+	if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
         let buf = o.conn_buf in
         let list = Unix2.list_directory !!temp_directory in
 
@@ -888,17 +888,17 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
         "" end
 	else begin
-	  CommonUserDb.print_command_result o o.conn_buf "You are not allowed to use scan_temp";
+	  print_command_result o o.conn_buf "You are not allowed to use scan_temp";
 	"" end
 
     ), ":\t\t\t\tprint temp directory content";
 
     "sources", Arg_none (fun o ->
-	if CommonUserDb.user2_is_admin o.conn_user.ui_user_name then begin
+	if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
           DonkeySources.print o.conn_buf o.conn_output;
           "" end
 	else begin
-	  CommonUserDb.print_command_result o o.conn_buf "You are not allowed to list sources";
+	  print_command_result o o.conn_buf "You are not allowed to list sources";
 	  "" end
     ), ":\t\t\t\tshow sources currently known";
 
@@ -931,7 +931,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
 (* TODO RESULT *)
     "dd", Arg_two(fun size md4 o ->
         let file = query_download md4 (Int64.of_string size)
-          (Md4.of_string md4) None None None false o.conn_user.ui_user_name in
+          (Md4.of_string md4) None None None false o.conn_user.ui_user in
         CommonInteractive.start_download file;
         "download started"
     ), "<size> <md4> :\t\t\tdownload from size and md4";

@@ -32,28 +32,6 @@ let lprintf_n fmt =
   lprintf2 log_prefix fmt
 
 (*************************************************************************)
-(*                         TYPES                                         *)
-(*************************************************************************)
-
-type userdb = {
-    user_name : string;
-    user_pass : Md4.t;
-    user_groups : string list;
-    user_default_group : string option;
-    user_mail : string;
-    user_commit_dir : string;
-    user_max_concurrent_downloads : int;
-  }
-
-type groupdb = {
-    group_name : string;
-    group_mail : string;
-    group_admin : bool;
-  }
-
-exception User_has_downloads of int
-
-(*************************************************************************)
 (*                         DEFAULTS                                      *)
 (*************************************************************************)
 
@@ -62,10 +40,34 @@ let users_ini = create_options_file "users.ini"
 let users2_section = file_section users_ini ["Users"] "User accounts on the core (new format)"
 let users_section = file_section users_ini ["Users"] "User accounts on the core (old format)"
 
+let dummy_group = {
+  group_name = "";
+  group_admin = true;
+}
+
+let default_group_name = "mldonkey"
+let system_user_default_group = {
+  dummy_group with
+  group_name = default_group_name
+}
+
 let blank_password = Md4.string ""
 
-let admin_user = "admin"
-let system_user_default_group = "mldonkey"
+let dummy_user = {
+  user_name = "";
+  user_pass = blank_password;
+  user_groups = [system_user_default_group];
+  user_default_group = Some system_user_default_group;
+  user_mail = "";
+  user_commit_dir = "";
+  user_max_concurrent_downloads = 0;
+}
+
+let admin_user_name = "admin"
+let admin_user = {
+  dummy_user with
+  user_name = admin_user_name;
+}
 
 (*************************************************************************)
 (*                         GroupOption                                   *)
@@ -75,17 +77,12 @@ module GroupOption = struct
 
     let value_to_group v =
       match v with
-        Options.Module assocs ->
+      | Options.Module assocs ->
           let get_value name conv = conv (List.assoc name assocs) in
           let gname =
             try
               get_value "group_name" value_to_string
-            with _ -> system_user_default_group
-          in
-          let gmail =
-	    try
-              get_value "group_mail" value_to_string
-            with _ -> ""
+            with _ -> default_group_name
           in
           let gadmin =
 	    try
@@ -93,7 +90,6 @@ module GroupOption = struct
             with _ -> true
           in
 	  { group_name = gname;
-	    group_mail = gmail;
 	    group_admin = gadmin;
           }
 
@@ -102,7 +98,6 @@ module GroupOption = struct
     let group_to_value group =
       Options.Module [
         "group_name", string_to_value group.group_name;
-        "group_mail", string_to_value group.group_mail;
         "group_admin", bool_to_value group.group_admin;
       ]
 
@@ -116,45 +111,45 @@ let grouplist = define_option users2_section ["groups"]
 group_admin           = Are members of this group MLDonkey admins?
                         Only members of this group can change settings and see uploads.
 "
-    (list_option GroupOption.t)
-    [ 
-      { group_name = system_user_default_group;
-        group_mail = "";
-	group_admin = true;
-      };
-    ]
+    (list_option GroupOption.t) [system_user_default_group]
 
 (*************************************************************************)
 (*                         Group database functions                      *)
 (*************************************************************************)
 
-let user2_group_iter f =
-  List.iter f !!grouplist
+let user2_groups_iter f =
+  List.iter f ((List.sort (fun g1 g2 -> compare g1.group_name g2.group_name)) !!grouplist)
 
-let user2_group_add name ?(mail = "") ?(admin = true) () =
+let update_group name new_group =
+  let other_groups = List.filter (fun g -> g.group_name <> name) !!grouplist in
+  grouplist =:=
+      match new_group with
+      | None -> other_groups
+      | Some new_group -> new_group :: other_groups
+
+let user2_group_add name admin =
   let new_group = {
       group_name = name;
-      group_mail = mail;
       group_admin = admin;
   } in
-  grouplist =:= new_group :: List.filter (fun g -> g.group_name <> name) !!grouplist
+  update_group name (Some new_group)
 
-let user2_group_remove name =
-  grouplist =:= List.filter (fun g -> g.group_name <> name) !!grouplist
+let user2_group_remove group =
+  update_group group.group_name None
 
 let user2_group_find group =
   List.find (fun g -> g.group_name = group) !!grouplist
 
 let user2_group_exists group =
-  try
-    ignore (user2_group_find group);
-    true
-  with Not_found -> false
+  List.exists (fun g -> g.group_name = group) !!grouplist
 
-let user2_group_exists_option group =
-  match group with
-    None -> true
-  | Some group -> user2_group_exists group
+let user2_default_group_matches_group dgroup group =
+  match dgroup with
+    None -> false
+  | Some g -> group = g
+
+let user2_group_admin group admin =
+  group.group_admin <- admin
 
 (*************************************************************************)
 (*                         UserOption                                    *)
@@ -194,27 +189,28 @@ module UserOption = struct
           in
           let ugroups =
 	    try
-              let ugl = get_value "user_groups" (value_to_list value_to_string) in
-	        List.filter (fun g -> user2_group_exists g) ugl
-            with _ -> [system_user_default_group]
+	      let ugl = get_value "user_groups" (value_to_list value_to_string) in
+	      List.map user2_group_find ugl
+            with Not_found -> [system_user_default_group]
           in
           let udgroup =
 	    try
               match get_value "user_default_group" stringvalue_to_option with
 		None -> None
 	      | Some udg ->
-		  if user2_group_exists udg then
-		    if List.mem udg ugroups then
-		      Some udg
+		  begin try
+		    let g = user2_group_find udg in
+		    if List.mem g ugroups then
+		      Some g
 		    else begin
 		      lprintf_nl "User %s is not member of group %s, setting user_default_group to None" uname udg;
 		      None
 		    end
-		  else begin
+		  with Not_found ->
 		    lprintf_nl "user_default_group %s of user %s does not exist, setting to None" udg uname;
 		    None
 		  end
-            with _ -> Some system_user_default_group
+            with Not_found -> Some system_user_default_group
           in
 	  { user_name = uname;
 	    user_pass = upass;
@@ -231,8 +227,8 @@ module UserOption = struct
       Options.Module [
         "user_name", string_to_value user.user_name;
         "user_pass", string_to_value (Md4.to_string user.user_pass);
-        "user_groups", list_to_value string_to_value user.user_groups;
-        "user_default_group", option_to_stringvalue user.user_default_group;
+	"user_groups", list_to_value (fun v -> string_to_value v.group_name) user.user_groups;
+        "user_default_group", option_to_stringvalue (match user.user_default_group with Some g -> Some g.group_name | None -> None);
         "user_mail", string_to_value user.user_mail;
         "user_commit_dir", string_to_value user.user_commit_dir;
         "user_max_concurrent_downloads", int_to_value user.user_max_concurrent_downloads;
@@ -250,45 +246,42 @@ login as admin in mldonkey, and use the 'useradd' command.
 user_groups                   = Files belonging to one of these groups can be seen by the user.
 user_default_group            = New downloads by this user will belong to this group.
 user_commit_dir               = Commit files to <incoming>/<user_commit_dir>
+user_mail                     = Address used to sent confirmation mails after comitting a download
 user_max_concurrent_downloads = Maximum number of downloads allowed, 0 = unlimited
 "
-    (list_option UserOption.t)
-    [ { user_name = admin_user;
-        user_pass = blank_password;
-        user_groups = [system_user_default_group];
-        user_default_group = Some system_user_default_group;
-        user_mail = "";
-        user_commit_dir = "";
-        user_max_concurrent_downloads = 0;
-    } ]
+    (list_option UserOption.t) [admin_user]
 
 let users = define_option users_section ["users"]
   "Depreciated option, kept for compatibility reasons - used by MLDonkey < 2.7.5"
     (list_option (tuple2_option (string_option, Md4.option)))
-    [admin_user, blank_password]
+    [admin_user.user_name, blank_password]
 
 (*************************************************************************)
 (*                         User database functions                       *)
 (*************************************************************************)
 
-let user2_user_iter f =
-  List.iter f !!userlist
+let user2_users_iter f =
+  List.iter f ((List.sort (fun u1 u2 -> compare u1.user_name u2.user_name)) !!userlist)
 
-let user2_user_add name pass ?(groups = [system_user_default_group])
-			     ?(default_group = Some system_user_default_group)
+let update_user name new_user =
+  let other_users = List.filter (fun u -> u.user_name <> name) !!userlist in
+  userlist =:=
+      match new_user with
+      | None -> other_users
+      | Some new_user -> new_user :: other_users
+
+let user2_user_add name pass ?(groups = [default_group_name])
+			     ?(default_group = Some default_group_name)
 			     ?(mail = "") ?(commit_dir = "") ?(max_dl = 0) () =
+  (* shouldn't we warn admin about already existing user ? *)
   let groups =
-    let l =
-      (List.filter (fun g -> user2_group_exists g) groups)
-    in
-    if l = [] then
-      [system_user_default_group]
-    else l
+    let l = List.map user2_group_find (List.filter user2_group_exists groups) in
+    if l = [] then [system_user_default_group] else l
   in
   let default_group =
     match default_group with
-    | None -> default_group
-    | Some group -> if not (user2_group_exists group) then None else Some group
+      None -> None
+    | Some group -> if not (user2_group_exists group) then None else Some (user2_group_find group)
   in
   let new_user = {
       user_name = name;
@@ -299,19 +292,16 @@ let user2_user_add name pass ?(groups = [system_user_default_group])
       user_commit_dir = commit_dir;
       user_max_concurrent_downloads = max_dl;
   } in
-  userlist =:= new_user :: List.filter (fun u -> u.user_name <> name) !!userlist
+  update_user name (Some new_user)
 
 let user2_user_remove user =
-  userlist =:= List.filter (fun u -> u.user_name <> user) !!userlist
+  update_user user None
 
 let user2_user_find user =
   List.find (fun u -> u.user_name = user) !!userlist
 
-let user2_user_exist user =
-  try
-    ignore (user2_user_find user);
-    true
-  with Not_found -> false
+let user2_user_exists user =
+  List.exists (fun u -> u.user_name = user) !!userlist
 
 (*************************************************************************)
 (*               User database functions / passwords                     *)
@@ -321,172 +311,94 @@ let user2_user_password user =
   (user2_user_find user).user_pass
 
 let user2_user_set_password user pass_string =
-  let new_user = {
-    (user2_user_find user) with
-    user_pass = Md4.string pass_string
-  } in
-  userlist =:= new_user :: List.filter (fun u -> u.user_name <> user) !!userlist
+  user.user_pass <- Md4.string pass_string
 
 let valid_password user pass =
   try
     user2_user_password user = Md4.string pass
   with Not_found -> false
 
-let empty_password user =
-  valid_password user ""
+let has_empty_password user =
+  valid_password user.user_name ""
 
 (*************************************************************************)
-(*               User database functions / mail                          *)
+(*               User database functions                                 *)
 (*************************************************************************)
-
-let user2_user_mail user =
-  (user2_user_find user).user_mail
-
-let user2_print_user_mail user =
-  try
-    user2_user_mail user
-  with Not_found -> ""
 
 let user2_user_set_mail user mail =
-  let new_user = {
-    (user2_user_find user) with
-    user_mail = mail
-  } in
-  userlist =:= new_user :: List.filter (fun u -> u.user_name <> user) !!userlist
-
-(*************************************************************************)
-(*          User database functions / concurrent downloads               *)
-(*************************************************************************)
-
-let user2_user_dls user =
-  (user2_user_find user).user_max_concurrent_downloads
+  user.user_mail <- mail
 
 let user2_print_user_dls user =
-  try
-    let dls = user2_user_dls user in
-      if dls = 0 then "unlimited"
-      else (Printf.sprintf "%d" dls)
-  with Not_found -> "unknown"
+  let dls = user.user_max_concurrent_downloads in
+  if dls = 0 then "unlimited" else string_of_int dls
 
 let user2_user_set_dls user dls =
-  let new_user = {
-    (user2_user_find user) with
-    user_max_concurrent_downloads = dls
-  } in
-  userlist =:= new_user :: List.filter (fun u -> u.user_name <> user) !!userlist
-
-(*************************************************************************)
-(*                 User database functions / commit dir                  *)
-(*************************************************************************)
+  user.user_max_concurrent_downloads <- dls
 
 let user2_user_commit_dir user =
   (user2_user_find user).user_commit_dir
 
-let user2_print_user_commit_dir user =
-  try
-    user2_user_commit_dir user
-  with Not_found -> ""
-
 let user2_user_set_commit_dir user dir =
-  let new_user = {
-    (user2_user_find user) with
-    user_commit_dir = dir
-  } in
-  userlist =:= new_user :: List.filter (fun u -> u.user_name <> user) !!userlist
+  user.user_commit_dir <- dir
 
 (*************************************************************************)
 (*                         User/Group database functions                 *)
 (*************************************************************************)
 
-let user2_user_groups user =
-  try
-    (user2_user_find user).user_groups
-  with Not_found -> failwith (Printf.sprintf "User %s does not exist" user)
-
-let user2_user_groups_safe user =
-  try
-    (user2_user_find user).user_groups
-  with Not_found -> []
-
-let user2_user_groups_safe_default user =
-  try
-    (user2_user_find user).user_groups
-  with Not_found -> [system_user_default_group]
+let sort_groups_by_name gl =
+  List.sort (fun g1 g2 -> compare g1.group_name g2.group_name) gl
 
 let user2_user_groups_iter user f =
-  List.iter f (user2_user_groups_safe user)
+  List.iter f (sort_groups_by_name user.user_groups)
 
-let user2_print_user_groups user =
-  try
-    let u = user2_user_find user in
-      String.concat "," u.user_groups
-  with Not_found -> ""
+let user2_print_user_groups sep user =
+  String.concat sep (List.map (fun g -> g.group_name) (sort_groups_by_name user.user_groups))
 
-let user2_user_default_group user =
-  try
-    (user2_user_find user).user_default_group
-  with Not_found -> None
+let user2_print_group group =
+  match group with
+    None -> "none"
+  | Some group -> group.group_name
 
 let user2_print_user_default_group user =
-  try
-    let u = user2_user_find user in
-      match u.user_default_group with
-        None -> "none"
-      | Some group -> group
-  with Not_found -> failwith (Printf.sprintf "User %s does not exist" user)
+  user2_print_group user.user_default_group
+
+let user2_user_set_default_group user group =
+  user.user_default_group <- group
 
 let user2_user_add_group user group =
-  if not (user2_group_exists group) then
-    user2_group_add group ();
-  try
-    let u = user2_user_find user in
-      user2_user_add
-        u.user_name
-	u.user_pass
-	?groups:(Some (List.append u.user_groups [group]))
-	?mail:(Some u.user_mail)
-  with Not_found -> failwith (Printf.sprintf "User %s does not exist" user)
+  user.user_groups <- group :: user.user_groups
 
 let user2_user_remove_group user group =
-  try
-    let u = user2_user_find user in
-      user2_user_add
-        u.user_name
-	u.user_pass
-	?groups:(Some (List.filter (fun g -> not (g = group)) u.user_groups))
-	?mail:(Some u.user_mail)
-  with Not_found -> failwith (Printf.sprintf "User %s does not exist" user)
+  user.user_groups <- List.filter ((<>) group) user.user_groups
 
-let user2_user_is_group_member user group =
-  List.mem group (user2_user_groups_safe user)
+let user2_num_group_members group =
+  let counter = ref 0 in
+  user2_users_iter (fun u ->
+    user2_user_groups_iter u (fun g ->
+      if g = group then incr counter));
+  !counter
 
 (*************************************************************************)
 (*                         Access rights                                 *)
 (*************************************************************************)
 
 let user2_is_admin user =
-  user = admin_user ||
+  user.user_name = admin_user.user_name ||
   List.exists (fun groupname ->
     try
-      (user2_group_find groupname).group_admin
+      groupname.group_admin
     with Not_found -> false)
-  (user2_user_groups_safe user)
+  user.user_groups
 
+(* could be expanded later *)
 let user2_can_view_uploads user =
   user2_is_admin user
 
-let user2_can_view_file gui_user file_owner file_group =
-  user2_is_admin gui_user || gui_user = file_owner ||
+let user2_can_view_file user file_owner file_group =
+  user2_is_admin user || user = file_owner ||
   (match file_group with
   | None -> false
-  | Some file_group -> user2_user_is_group_member gui_user file_group)
-
-let print_command_result o buf result =
-  if use_html_mods o then
-    html_mods_table_one_row buf "serversTable" "servers" [
-      ("", "srh", result); ]
-  else
-    Printf.bprintf buf "%s" result
+  | Some file_group -> List.mem file_group user.user_groups)
 
 (*************************************************************************)
 (*                         Hooks                                         *)
@@ -495,23 +407,38 @@ let print_command_result o buf result =
 let _ =
   set_after_load_hook users_ini (fun _ ->
     List.iter (fun (user,pass) ->
-      if not (user2_user_exist user) then begin
+      if not (user2_user_exists user) then begin
 	user2_user_add user pass ();
         lprintf_nl "converted user %s to new format" user
       end) !!users;
 (* clean !!users to avoid saving users more than once *)
     users =:= [];
-    if not (user2_user_exist admin_user) then
+(* Security and default checks 
+   - user "admin" must exist, it has hard-coded admin rights independent of group membership
+   - group "mldonkey" must exist and must have admin status *)
+    if not (user2_user_exists admin_user.user_name) then
       begin
-	user2_user_add admin_user blank_password ();
-	lprintf_nl "SECURITY INFO: user 'admin' has to be present, creating with empty password!..."
-      end
+	user2_user_add admin_user.user_name blank_password ();
+	lprintf_nl "SECURITY INFO: user 'admin' has to be present, creating with empty password..."
+      end;
+    begin
+      try
+	let g = user2_group_find default_group_name in
+	if not g.group_admin then
+	  begin
+	    user2_group_admin g true;
+	    lprintf_nl "SECURITY INFO: group 'mldonkey' must have admin status, updating..."
+	  end
+      with Not_found ->
+	user2_group_add default_group_name true;
+	lprintf_nl "SECURITY INFO: group 'mldonkey' has to be present, creating with admin rights..."
+    end
   );
 
 (* This code provides backward-compatibility for older MLDonkey clients *)
 (* reading new user db and copying the values into old user db !!users *)
   set_before_save_hook users_ini (fun _ ->
-    user2_user_iter (fun user ->
+    user2_users_iter (fun user ->
 	users =:= (user.user_name, (user2_user_password user.user_name)) :: !!users
     )
   );

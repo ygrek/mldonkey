@@ -376,6 +376,8 @@ type sortvd_type =
 | ByNet
 | ByAvail
 | ByComments
+| ByUser
+| ByGroup
 | NotSorted
   
 type room_state = 
@@ -468,7 +470,22 @@ type network_porttest =
 | PorttestInProgress of int
 | PorttestResult of int * string
 
-type network = {
+type groupdb = {
+  group_name : string;
+  mutable group_admin : bool;
+}
+
+and userdb = {
+  user_name : string;
+  mutable user_pass : Md4.t;
+  mutable user_groups : groupdb list;
+  mutable user_default_group : groupdb option;
+  mutable user_mail : string;
+  mutable user_commit_dir : string;
+  mutable user_max_concurrent_downloads : int;
+}
+
+and network = {
     network_name : string;
     network_num : int;
     network_connection_manager : TcpBufferedSocket.connection_manager;
@@ -496,7 +513,7 @@ type network = {
     mutable op_network_share : (
       string -> string -> int64 -> unit);
     mutable op_network_private_message : (string -> string -> unit);
-    mutable op_network_parse_url : (string -> string -> string * bool);
+    mutable op_network_parse_url : (string -> userdb -> string * bool);
     mutable op_network_connect_servers : (unit -> unit);
     
     mutable op_network_search : (search -> Buffer.t -> unit);
@@ -508,9 +525,9 @@ type network = {
     mutable op_network_info : (unit -> network_info);
     
     mutable op_network_connected : (unit -> bool);
-    mutable op_network_gui_message : (string -> string -> unit);
+    mutable op_network_gui_message : (string -> userdb -> unit);
     
-    mutable op_network_download : (result_info -> string -> file);
+    mutable op_network_download : (result_info -> userdb -> file);
     mutable op_network_display_stats : (Buffer.t -> ui_conn -> unit);
     mutable op_network_stat_info_list : unit -> (string * int * (network_stat_info list)) list;
     mutable op_network_clean_exit : (unit -> bool);
@@ -520,8 +537,8 @@ type network = {
     mutable op_network_porttest_result : (unit -> network_porttest);
   }
 
-and   ui_user = {
-    ui_user_name : string;
+and ui_user = {
+    ui_user : userdb;
     mutable ui_user_searches : search list;
     mutable ui_last_search : search option;
     mutable ui_last_results : (int * result) list;

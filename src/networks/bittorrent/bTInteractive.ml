@@ -733,13 +733,16 @@ let scan_new_torrents_directory () =
     if not (Unix2.is_directory file) then
     try
       let user = fst (Unix32.owner file) in
-      load_torrent_file file (if not (CommonUserDb.user2_user_exist user) then CommonUserDb.admin_user else user);
+      load_torrent_file file (try CommonUserDb.user2_user_find user with Not_found -> CommonUserDb.admin_user);
       (try Sys.remove file with _ -> ())
     with 
       Torrent_can_not_be_used ->
 	Unix2.rename file (Filename.concat old_directory file_basename);
 	lprintf_nl "Torrent %s does not have valid tracker URLs, moved to torrents/old ..." file_basename
-    | e -> lprintf_nl "Error %s in scan_new_torrents_directory for %s" (Printexc2.to_string e) file_basename
+    | e ->
+	Unix2.rename file (Filename.concat old_directory file_basename);
+	lprintf_nl "Error %s in scan_new_torrents_directory for %s, moved to torrents/old ..."
+	  (Printexc2.to_string e) file_basename
   ) filenames
 
 let retry_all_ft () =
@@ -1007,14 +1010,14 @@ let commands =
     ), _s ":\t\t\t\tprint all .torrent files on this server";
 
     "seeded_torrents", "Network/Bittorrent", Arg_none (fun o ->
-      if CommonUserDb.user2_is_admin o.conn_user.ui_user_name then begin
+      if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
       List.iter (fun file ->
           if file_state file = FileShared then
               Printf.bprintf o.conn_buf "%s [%s]\n" file.file_name (Int64.to_string file.file_uploaded)
       ) !current_files;
       _s "done"
       end else
-      begin CommonUserDb.print_command_result o o.conn_buf "You are not allowed to use seeded_torrents";
+      begin print_command_result o o.conn_buf "You are not allowed to use seeded_torrents";
       "" end
     ), _s ":\t\t\tprint all seeded .torrent files on this server";
 
@@ -1051,13 +1054,13 @@ let commands =
       let buf = o.conn_buf in
       if Sys.file_exists url then
         begin
-	  load_torrent_file url o.conn_user.ui_user_name;
+	  load_torrent_file url o.conn_user.ui_user;
           Printf.bprintf buf "loaded file %s\n" url
 	end
       else
         begin
           let url = "Location: " ^ url ^ "\nContent-Type: application/x-bittorrent" in
-	  let result = fst (op_network_parse_url url o.conn_user.ui_user_name) in
+	  let result = fst (op_network_parse_url url o.conn_user.ui_user) in
           Printf.bprintf buf "%s\n" result
 	end;
       _s ""

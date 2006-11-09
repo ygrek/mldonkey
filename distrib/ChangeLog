@@ -14,6 +14,39 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/11/09
+5526: Multiuser: Internal restructuring, new commands
+- from ftp://ftp.berlios.de/pub/mldonkey/pango/userdb-cleanups_v2.patch (pango)
+  - create commonUserDb.mli to protect userdb data from other modules
+  - cleanups
+- replace strings in commonFile with multiuser commonTypes.userdb/groupdb
+- implement security checks when core starts
+  - user "admin" must exist
+  - group "mldonkey" must exist and must have admin status
+- update HTML interface, command "users"
+  - create link to remove a group from a user
+  - create link to change group admin status
+  - new column group members
+- Telnet: Show all data in command "users"
+- do not allow removal of users or groups with downloads,
+  groups with members, user "admin" and group "mldonkey"
+- filter files shown with command "downloaders"
+- fixed bug where wrong group list was displayed in HTML, vd #file_num
+- Display user and groups columns
+  new options html_mods_vd_user & html_mods_vd_group to en-/disable display in HTML, vd
+  - Javascript popups show User:Group infos
+  - Telnet support
+- implement new commands
+  - usergroupadd <user> <group> : add a group to a mldonkey user
+  - usergroupdel user> <group> : remove a group from a mldonkey user
+  - userdgroup <user> <group|None> : change user default group
+  - groupdel <group> : remove an unused mldonkey group
+  - groupadmin <group> <true|false> : change group admin status
+- Restrict commands to admin users:
+  - bw_toggle
+  - enable
+  - disable
+
 2006/11/06
 5527: mlguistarter: print correct syntax (fixes Debian bug #396754)
 

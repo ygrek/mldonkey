@@ -395,3 +395,6 @@ let html_mods_cntr () =
 
 let html_mods_cntr_init () =
   html_mods_counter := true
+
+let print_plural_s v =
+  if v > 1 then "s" else ""

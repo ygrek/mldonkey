@@ -742,6 +742,14 @@ let html_mods_vd_comments = define_expert_option current_section ["html_mods_vd_
   "Whether to display the Comments column in vd output"
     bool_option true
 
+let html_mods_vd_user = define_expert_option current_section ["html_mods_vd_user"]
+  "Whether to display the User column in vd output"
+    bool_option false
+
+let html_mods_vd_group = define_expert_option current_section ["html_mods_vd_group"]
+  "Whether to display the Group column in vd output"
+    bool_option false
+
 let html_mods_vd_active_sources = define_expert_option current_section ["html_mods_vd_active_sources"]
   "Whether to display the Active Sources column in vd output"
     bool_option true
