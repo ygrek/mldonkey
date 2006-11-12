@@ -1739,6 +1739,8 @@ let rec find_max_overloaded q managers =
                 | _ -> ()
             ) !file_sources_managers;
 
+	    if !files <> [] then begin
+
             (* 'normalize' to 0 priorities*)
             sum_priority := !sum_priority + (!nfiles * (-(!min_priority)));
             (* update priorities to be > 0 *)
@@ -1856,7 +1858,6 @@ let rec find_max_overloaded q managers =
             in
             iter_files 0 3;
 
-
             (* adjust queue throttling *)
             let all_ready = ref 0 in
             List.iter
@@ -1884,6 +1885,8 @@ let rec find_max_overloaded q managers =
                       end
                   end
               ) [ good_sources_queue; old_sources1_queue; old_sources2_queue; old_sources3_queue ];
+
+	    end;
 
             if !verbose_sources > 0 then begin
                 lprintf_nl "[cSrc] CommonSources.refill_sources AFTER:";
