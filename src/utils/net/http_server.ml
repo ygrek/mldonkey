@@ -240,7 +240,7 @@ let error_page code from_ip from_port my_ip my_port reason =
 		 | Some Blocked -> Printf.sprintf "IP %s is blocked, its part of the used IP blocklist " from_ip
 		 | _ -> "")
     | "404" -> "Not found", Printf.sprintf "The requested URL %swas not found on this server."
-			      (match reason with Some Url_not_found url -> url ^ " " | _ -> "")
+			      (match reason with Some (Url_not_found url) -> url ^ " " | _ -> "")
     | _ -> Printf.sprintf "Unknown error %s" code, ""
   in
   let reject_message = Printf.sprintf

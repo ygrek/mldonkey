@@ -601,7 +601,7 @@ module ConnectToMe = NickAndAddr(struct let msg = "ConnectToMe" end)
 module MultiConnectToMe = NickAndAddr(struct let msg = "MultiConnectToMe" end)
   
 module Msg = struct
-    type t = ()
+    type t = unit
       
     let parse s = ()
       

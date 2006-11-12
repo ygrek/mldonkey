@@ -771,7 +771,7 @@ module AddFile = struct
   end
 
 module Msg = struct
-    type t = ()
+    type t = unit
       
     let parse s = ()
       
