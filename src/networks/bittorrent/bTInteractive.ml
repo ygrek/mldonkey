@@ -81,9 +81,6 @@ let interpret_azureus_porttest s =
   with _ ->
     failure_message "%s" "broken bencoded value"
 
-exception Already_exists
-exception Torrent_can_not_be_used
-
 let op_file_all_sources file =
   let list = ref [] in
   Hashtbl.iter (fun _ c ->
@@ -619,7 +616,7 @@ let load_torrent_string s user =
   if Sys.file_exists torrent_diskname then
     begin
       if !verbose then lprintf_nl "load_torrent_string: %s already exists, ignoring" torrent_diskname;
-      raise Already_exists
+      raise Torrent_already_exists
     end;
   File.from_string torrent_diskname s;
 
@@ -853,7 +850,7 @@ let op_network_parse_url url user =
             load_torrent_file url user;
             "", true
           with
-	    Already_exists -> "A torrent with this name is already in the download queue", false
+	    Torrent_already_exists -> "A torrent with this name is already in the download queue", false
 	  | Torrent_can_not_be_used -> "This torrent does not have valid tracker URLs", false
         with e ->
           lprintf_nl "Exception %s while 2nd loading" (Printexc2.to_string e);
@@ -1177,7 +1174,7 @@ let op_gui_message s user =
         ignore (load_torrent_string text user)
       with e -> (match e with
 	  Torrent_can_not_be_used -> lprintf_nl "Loading torrent from GUI: this torrent can not be used"
-	| Already_exists -> lprintf_nl "Loading torrent from GUI: this torrent is already in download queue"
+	| Torrent_already_exists -> lprintf_nl "Loading torrent from GUI: this torrent is already in download queue"
 	| _ -> ());
 	raise e)
   | 1 -> (* 34+ *)
