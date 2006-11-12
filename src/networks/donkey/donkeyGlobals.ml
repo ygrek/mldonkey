@@ -375,8 +375,8 @@ let new_file file_diskname file_state md4 file_size filename writable user =
       (try
         Unix32.remove t
        with e ->
-    lprintf_nl "Unix32.remove %s exception %s"
-      (file_diskname) (Printexc2.to_string e));
+	 lprintf_nl "Unix32.remove %s exception %s"
+	   (file_diskname) (Printexc2.to_string e));
       Unix32.destroy t;
       failwith (Printf.sprintf "file size %s is too big, exception: %s"
         (size_of_int64 file_size) (Printexc2.to_string e))

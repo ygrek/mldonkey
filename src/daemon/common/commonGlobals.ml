@@ -481,17 +481,18 @@ let chat_message_fifo = (Fifo.create () : (int * string * int * string * string)
 
 let log_chat_message i num n s =
   Fifo.put chat_message_fifo (last_time(),i,num,n,s);
-  try
+  (try
     Unix2.tryopen_write_gen !messages_log [Open_creat; Open_wronly; Open_append] 
       0o600 (fun oc ->
 	Printf.fprintf oc "%s: %s (%s): %s\n" (Date.simple (BasicSocket.date_of_int (last_time ()))) n i s)
   with e ->
     lprintf_nl "[ERROR] Exception %s while trying to log message to %s"
-      (Printexc2.to_string e) !messages_log;
+      (Printexc2.to_string e) !messages_log);
 
   while (Fifo.length chat_message_fifo) > !!html_mods_max_messages do
     ignore(Fifo.take chat_message_fifo)
   done
+
 let last_message_log = ref 0
 
 

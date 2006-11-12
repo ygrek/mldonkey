@@ -84,7 +84,7 @@ let second_timer timer =
       update_link_stats ()
     with e ->
         lprintf_nl (_b "Exception %s") (Printexc2.to_string e));
-	  (try
+  (try
      CommonUploads.refill_upload_slots ()
    with e ->
         lprintf_nl (_b "Exception %s") (Printexc2.to_string e));
@@ -102,7 +102,8 @@ let start_interfaces () =
   | Some dir -> allowed_ips =:= !!allowed_ips
   );
 
-  if !!http_port <> 0 then begin try
+  if !!http_port <> 0 then begin 
+      try
         ignore (DriverControlers.create_http_handler ());
       with e ->
           lprintf_nl (_b "Exception %s while starting HTTP interface")

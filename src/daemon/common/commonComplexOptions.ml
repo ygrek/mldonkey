@@ -1149,19 +1149,15 @@ let backup_tar archive files =
 	    Pervasives.really_input ic s 0 size;
 	    header, s) in
 	Tar.output otar header s
-      with e ->
-	let error = Printexc2.to_string e in
-	if error = "Gzip.Error(\"error during compression\")"
-	  && Autoconf.windows && arg = "fasttrack.ini" then begin
-	    (* for whatever reason this error is raised on Windows,
-               but fasttrack.ini is stored correctly *)
-	    if !verbose then
-        lprintf_nl "Tar: Windows specific pseudo error %s in %s" error arg
-	  end
-	else begin
+      with
+      | (Gzip.Error "error during compression") as e when Autoconf.windows && arg = "fasttrack.ini" ->
+	  (* for whatever reason this error is raised on Windows,
+             but fasttrack.ini is stored correctly *)
+	  if !verbose then
+            lprintf_nl "Tar: Windows specific pseudo error %s in %s" (Printexc2.to_string e) arg
+      | e ->
 	  failed_files := arg :: !failed_files;
-    lprintf_nl "Tar: error %s in %s" error arg
-        end
+	  lprintf_nl "Tar: error %s in %s" (Printexc2.to_string e) arg
     ) files);
     if !failed_files <> [] then
       failwith (Printf.sprintf "Tar: error backing up %s"

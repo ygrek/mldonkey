@@ -69,8 +69,8 @@ let file_complete file =
   (try file_completed (as_file file.file_file)
     with e ->
         lprintf "Exception %s in file completed"
-        (Printexc2.to_string e)
-        ; lprint_newline ());
+        (Printexc2.to_string e);
+        lprint_newline ());
   current_files := List2.removeq file !current_files;
   old_files =:= (file.file_name, file_size file) :: !!old_files;
   List.iter (fun c ->

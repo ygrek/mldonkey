@@ -2653,7 +2653,7 @@ a FIFO from where they are removed after 30 minutes. What about using
         (CommonClient.as_client c.client_client);
       
       with
-  Not_found -> ()
+      | Not_found -> ()
       | e -> 
         if !verbose then
           lprintf_nl "add_location: exception %s" (Printexc2.to_string e)
@@ -2668,9 +2668,9 @@ a FIFO from where they are removed after 30 minutes. What about using
         (CommonClient.as_client c.client_client);
         
       with
-  Not_found -> ()
+      | Not_found -> ()
       | e -> 
         if !verbose then
           lprintf_nl "remove_location for file_md4 %s: exception %s"
-      file_uid (Printexc2.to_string e)
+	    file_uid (Printexc2.to_string e)
   )

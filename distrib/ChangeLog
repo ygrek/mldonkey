@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/11/12
+5543: Improve exception handling, fix some indentions (pango)
 5542: CommonSources: Work-around division-by-zero bug in Ocaml
       on Alpha platform (pango)
 

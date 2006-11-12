@@ -259,14 +259,14 @@ let load filename =
 		      find_in_zip q in
 	    find_in_zip filenames_list
 	  with e ->
-      lprintf_nl "Exception %s while extracting %s from %s"
+	    lprintf_nl "Exception %s while extracting %s from %s"
 	      (Printexc2.to_string e) 
 	      (String.concat "/" filenames_list)
 	      filename;
-      lprintf_nl "One of the mentioned files has to be present in the zip file";
+	    lprintf_nl "One of the mentioned files has to be present in the zip file";
 	    bl_empty)
       with e ->
-  lprintf_nl "Exception %s while opening %s"
+	lprintf_nl "Exception %s while opening %s"
 	  (Printexc2.to_string e)
 	  filename;
 	bl_empty)
@@ -281,12 +281,12 @@ let load filename =
 	      let s = Misc.archive_extract filename filetype in
 	      load_merge bl_empty s true
 	    with e ->
-        lprintf_nl "Exception %s while extracting from %s"
+              lprintf_nl "Exception %s while extracting from %s"
 		(Printexc2.to_string e) filename;
 	      bl_empty)
         | ".tar.bz2" | ".p2p.tar.bz2" | ".dat.tar.bz2"
         | ".tar.gz" | ".p2p.tar.gz" | ".dat.tar.gz" ->
-      lprintf_nl "tar files are not (yet) supported, please untar %s" filename;
+	    lprintf_nl "tar files are not (yet) supported, please untar %s" filename;
 	    bl_empty
         | _ -> load_merge bl_empty filename false
   else
