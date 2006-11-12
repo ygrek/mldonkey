@@ -1097,15 +1097,17 @@ let gui_reader (gui: gui_record) t _ =
               server_set_preferred s preferred
 
   with 
-  | Failure s ->
+    Failure s ->
       gui_send gui (Console (Printf.sprintf "Failure: %s\n" s))
-  | BTInteractive.Torrent_can_not_be_used ->
-      gui_send gui (Console (Printf.sprintf "\nError: This torrent does not have valid tracker URLs\n"))
-  | BTInteractive.Already_exists ->
-      gui_send gui (Console (Printf.sprintf "\nError: This torrent is already in download queue\n"))
-  | e -> 
-      gui_send gui (Console (Printf.sprintf "from_gui: exception %s for message %s\n"
-          (Printexc2.to_string e) (GuiProto.string_of_from_gui t)))
+  | e ->
+      match Printexc2.to_string e with
+	"BTInteractive.Torrent_can_not_be_used" ->
+	  gui_send gui (Console (Printf.sprintf "\nError: This torrent does not have valid tracker URLs\n"))
+      | "BTInteractive.Already_exists" ->
+	  gui_send gui (Console (Printf.sprintf "\nError: This torrent is already in download queue\n"))
+      | e -> 
+	gui_send gui (Console (Printf.sprintf "from_gui: exception %s for message %s\n"
+          e (GuiProto.string_of_from_gui t)))
 
 let gui_events () = 
   {
