@@ -301,19 +301,20 @@ let client_to_server s t sock =
         end
 
   | M.MessageReq msg ->
+      if msg <> "" then begin
       if !last_message_sender <> server_num s then begin
           let server_header = Printf.sprintf "\n+-- From server %s [%s] ------"
               s.server_name (string_of_server s) in
           CommonEvent.add_event (Console_message_event (Printf.sprintf "%s\n" server_header));
           if !CommonOptions.verbose_msg_servers then
-      lprintf_nl "%s" server_header;
+	    lprintf_nl "%s" server_header;
           last_message_sender := server_num s
         end;
       s.server_banner <- s.server_banner ^ Printf.sprintf "%s\n" msg;
       let msg = Printf.sprintf "| %s" msg in
       CommonEvent.add_event (Console_message_event (Printf.sprintf "%s\n" msg));
-      if !CommonOptions.verbose_msg_servers then
-        lprintf_nl "%s" msg
+      if !CommonOptions.verbose_msg_servers then lprintf_nl "%s" msg
+      end
 
   | M.ServerListReq l ->
       if !!update_server_list_server then begin

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/11/12
+5545: EDK: Do not show empty server message lines in GUI
 5509: Common: Merge file_print functions,
       BT: print BT-specific source infos in Telnet (thx to jave)
 5544: Clean up code to avoid otags warnings (pango)
