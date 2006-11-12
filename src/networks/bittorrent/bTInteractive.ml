@@ -154,8 +154,10 @@ let op_file_commit file new_name =
 
     end 
 
-let op_file_print_html file buf =
+let op_file_print file o =
 
+  let buf = o.conn_buf in
+  if use_html_mods o then begin
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
     ("Filename", "sr br", "Filename");
@@ -335,8 +337,7 @@ let op_file_print_html file buf =
     ];
     incr cntr;
   ) file.file_files
-
-let op_file_print_plain file buf =
+  end else begin
 
   Printf.bprintf buf "Trackers:\n";
   List.iter (fun tracker ->
@@ -367,8 +368,37 @@ let op_file_print_plain file buf =
     in
     Printf.bprintf buf "File %d: %s (%Ld bytes)%s\n" !cntr filename size magic_string
   ) file.file_files
+  end
 
-let op_file_print_sources_html file buf =
+let op_file_print_sources file o =
+  let buf = o.conn_buf in
+
+(* redefine functions for telnet output *)
+  let html_mods_td buf l =
+    if use_html_mods o then
+      html_mods_td buf l
+    else
+      (* List *)
+      List.iter (fun (t,c,d)  ->
+	  (* Title Class Value *)
+	  Printf.bprintf buf "%s "
+	  d;
+      ) l
+  in
+  let html_mods_table_header buf n c l =
+    if use_html_mods o then
+      html_mods_table_header buf n c l
+    else
+      if List.length l > 0 then begin
+	Printf.bprintf buf "\n";
+	List.iter (fun (w,x,y,z)  ->
+	  (* Sort Class Title Value *)
+	  Printf.bprintf buf "%s "
+	  z;
+	) l;
+	Printf.bprintf buf "\n"
+    end
+  in
 
   if Hashtbl.length file.file_clients > 0 then begin
 
@@ -419,6 +449,7 @@ let op_file_print_sources_html file buf =
       html_mods_table_header buf "sourcesTable" "sources al" header_list;
 
       Hashtbl.iter (fun _ c ->
+	  if use_html_mods o then
           Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr());
 
           let btos b = if b then "T" else "F" in
@@ -466,11 +497,13 @@ let op_file_print_sources_html file buf =
           ] in
 
           html_mods_td buf td_list;
-          Printf.bprintf buf "\\</tr\\>";
+          if use_html_mods o then Printf.bprintf buf "\\</tr\\>"
+	  else Printf.bprintf buf "\n";
 
       ) file.file_clients;
 
-      Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
+      if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>"
+      else Printf.bprintf buf "\n";
 
     end
 
@@ -1167,9 +1200,8 @@ let _ =
   file_ops.op_file_active_sources <- op_file_active_sources;
   file_ops.op_file_debug <- op_file_debug;
   file_ops.op_file_commit <- op_file_commit;
-  file_ops.op_file_print_html <- op_file_print_html;
-  file_ops.op_file_print_plain <- op_file_print_plain;
-  file_ops.op_file_print_sources_html <- op_file_print_sources_html;
+  file_ops.op_file_print <- op_file_print;
+  file_ops.op_file_print_sources <- op_file_print_sources;
   file_ops.op_file_check <- op_file_check;
   file_ops.op_file_cancel <- op_file_cancel;
   file_ops.op_file_info <- op_file_info;

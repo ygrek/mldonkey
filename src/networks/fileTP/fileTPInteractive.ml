@@ -417,8 +417,7 @@ let _ =
     ) file.file_clients
   );
   file_ops.op_file_resume <- (fun file -> ());
-  file_ops.op_file_print_html <- (fun file buf -> ());
-  file_ops.op_file_print_plain <- (fun file buf -> ());
+  file_ops.op_file_print <- (fun file buf -> ());
   network.op_network_close_search <- (fun s -> ());
   network.op_network_forget_search <- (fun s -> ());
   network.op_network_connect_servers <- (fun s -> ());

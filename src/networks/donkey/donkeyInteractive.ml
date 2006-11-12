@@ -1231,15 +1231,16 @@ let _ =
       ) file.file_sources;
       !list
   );
-  file_ops.op_file_print_plain <- (fun file buf ->
-    let cntr = ref 0 in
-    List.iter (fun (ip, n, r, c) ->
-      incr cntr;
-      Printf.bprintf buf
-	"Comment %d: Rating(%d): %s (%s/%s)\n" !cntr r (Charset.to_utf8 c) n (Ip.to_string ip)) file.file_comments
-  );
-  file_ops.op_file_print_html <- (fun file buf ->
+  file_ops.op_file_print <- (fun file o ->
 
+     let buf = o.conn_buf in
+     if not (use_html_mods o) then begin
+	let cntr = ref 0 in
+	List.iter (fun (ip, n, r, c) ->
+	  incr cntr;
+	  Printf.bprintf buf
+	    "Comment %d: Rating(%d): %s (%s/%s)\n" !cntr r (Charset.to_utf8 c) n (Ip.to_string ip)) file.file_comments
+     end else begin
      let tr () =
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ())
      in
@@ -1305,11 +1306,12 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
    ^ "\\<td\\>"
    ^ "\\<input name=\\\"newName\\\" type=text size=" ^ input_size ^ " value=\\\"" ^ (file_best_name file) ^ "\\\"\\>\\</input\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>"
     ) ];
-
-
+  end
   );
-  file_ops.op_file_print_sources_html <- (fun file buf ->
+  file_ops.op_file_print_sources <- (fun file o ->
 
+    if not (use_html_mods o) then raise Not_found;
+    let buf = o.conn_buf in
     let sources_list = ref [] in
     DonkeySources.iter_relevant_sources (fun s ->
       let s_uid = s.DonkeySources.source_uid in

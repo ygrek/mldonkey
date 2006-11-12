@@ -59,9 +59,8 @@ and 'a file_ops = {
   mutable op_file_active_sources : 'a -> CommonTypes.client list;
   mutable op_file_comment : 'a -> string;
   mutable op_file_set_priority : 'a -> int -> unit;
-    mutable op_file_print_plain: 'a -> Buffer.t -> unit;
-    mutable op_file_print_html: 'a -> Buffer.t -> unit;
-    mutable op_file_print_sources_html : 'a -> Buffer.t -> unit;
+    mutable op_file_print: 'a -> CommonTypes.ui_conn -> unit;
+    mutable op_file_print_sources : 'a -> CommonTypes.ui_conn -> unit;
     mutable op_file_files : ('a -> 'a file_impl -> CommonTypes.file list);    
     mutable op_file_debug : 'a -> string;
     mutable op_file_proposed_filenames : 'a -> string list;
@@ -100,7 +99,7 @@ val file_recover : CommonTypes.file -> unit
 val file_preview : CommonTypes.file -> unit
 val file_all_sources : CommonTypes.file -> CommonTypes.client list
 val file_active_sources : CommonTypes.file -> CommonTypes.client list
-val file_print_sources_html : CommonTypes.file -> Buffer.t -> unit
+val file_print_sources : CommonTypes.file -> CommonTypes.ui_conn -> unit
 val files_ops : (int file_ops * int file_ops) list ref
 val new_file_ops : CommonTypes.network -> 'a file_ops
 val check_file_implementations : unit -> unit

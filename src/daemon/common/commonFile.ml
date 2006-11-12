@@ -92,9 +92,8 @@ it will happen soon. *)
     mutable op_file_active_sources : ('a -> client list);
     mutable op_file_comment : ('a -> string);
     mutable op_file_set_priority : ('a -> int -> unit);
-    mutable op_file_print_plain : ('a -> Buffer.t -> unit);
-    mutable op_file_print_html : ('a -> Buffer.t -> unit);
-    mutable op_file_print_sources_html : ('a -> Buffer.t -> unit);
+    mutable op_file_print : ('a -> CommonTypes.ui_conn -> unit);
+    mutable op_file_print_sources : ('a -> CommonTypes.ui_conn -> unit);
     mutable op_file_files : ('a -> 'a file_impl -> file list);    
 (* added in 2.5.27 to remove use of network names in global modules *)
     mutable op_file_debug : ('a -> string);
@@ -366,7 +365,9 @@ let file_active_sources file =
   try impl.impl_file_ops.op_file_active_sources impl.impl_file_val with _ -> []
 
 (* Default for networks that don't implement it *)
-let default_file_print_sources_html file buf =
+let default_file_print_sources file o =
+  let buf = o.conn_buf in
+  if use_html_mods o then begin
   let cfile = as_file file in
   let allsources = ref (file_all_sources cfile) in
   if List.length !allsources > 0 then begin
@@ -408,20 +409,26 @@ let default_file_print_sources_html file buf =
     Printf.bprintf buf "\\</table\\>\\</div\\>\\<br\\>";
 
   end
+  end
+  else
+    let cfile = as_file file in
+    let srcs = ref (file_all_sources cfile) in
+      Printf.bprintf buf "%d sources:\n" (List.length !srcs);
+    let print_source c =
+      Printf.bprintf buf "  [%4d] " (client_num c);
+      client_bprint c buf;
+    in
+    List.iter print_source !srcs;
+    ()
 
-
-let file_print_sources_html (file : file) buf =
+let file_print_sources (file : file) conn =
   let file = as_file_impl file in
-  try file.impl_file_ops.op_file_print_sources_html file.impl_file_val buf with _ ->
-    default_file_print_sources_html file buf
+  try file.impl_file_ops.op_file_print_sources file.impl_file_val conn with _ ->
+    default_file_print_sources file conn
 
-let file_print_html file buf =
+let file_print file o =
   let impl = as_file_impl file in
-  impl.impl_file_ops.op_file_print_html impl.impl_file_val buf
-
-let file_print_plain file buf =
-  let impl = as_file_impl file in
-  impl.impl_file_ops.op_file_print_plain impl.impl_file_val buf
+  impl.impl_file_ops.op_file_print impl.impl_file_val o
 
 let file_find num =
   H.find files_by_num (as_file {
@@ -799,7 +806,7 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
             ("", "sr", magic) ]
        | _ -> ());
 
-      file_print_html file buf;
+      file_print file o;
       
       Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>"; 
       Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\<br\\>";
@@ -830,24 +837,11 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
         | Some filename ->
             Printf.bprintf buf "Probable name: %s\n" filename);
       List.iter (fun name -> Printf.bprintf buf "    (%s)\n" name) info.G.file_names;
-      file_print_plain file buf
+      file_print file o
     end;
 
   (try
-            
-      if !!print_all_sources then begin
-          if use_html_mods o then
-            file_print_sources_html file buf
-          else begin
-            Printf.bprintf buf "%d sources:\n" (List.length srcs);
-          let print_source c =
-                  Printf.bprintf buf "  [%4d] " (client_num c);
-                  client_bprint c buf;
-          in
-          List.iter print_source srcs;
-        end;
-        end
-    
+      if !!print_all_sources then file_print_sources file o
     with _ -> ())
 
 let file_print_ed2k_link filename filesize md4hash =
@@ -1001,9 +995,8 @@ let new_file_ops network =
       op_file_active_sources = (fun _ -> fni network "file_active_sources");
       op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
       op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
-      op_file_print_plain = (fun _ _ -> ni_ok network "file_print_plain");
-      op_file_print_html = (fun _ _ -> ni_ok network "file_print_html");
-      op_file_print_sources_html = (fun _ _ -> fni network "file_print_sources_html");
+      op_file_print = (fun _ _ -> ni_ok network "file_print_html");
+      op_file_print_sources = (fun _ _ -> fni network "file_print_sources");
       op_file_debug = (fun _ -> "");
       op_file_proposed_filenames = (fun impl -> []);
     }
@@ -1046,12 +1039,10 @@ let check_file_implementations () =
         lprintf_nl "op_file_all_sources";
       if c.op_file_active_sources == cc.op_file_active_sources then
         lprintf_nl "op_file_active_sources";
-      if c.op_file_print_plain == cc.op_file_print_plain then
-        lprintf_nl "op_file_print_plain";
-      if c.op_file_print_html == cc.op_file_print_html then
-        lprintf_nl "op_file_print_html";
-      if c.op_file_print_sources_html == cc.op_file_print_sources_html then
-        lprintf_nl "op_file_print_sources_html";
+      if c.op_file_print == cc.op_file_print then
+        lprintf_nl "op_file_print";
+      if c.op_file_print_sources == cc.op_file_print_sources then
+        lprintf_nl "op_file_print_sources";
   ) !files_ops;
   lprint_newline ()
 
