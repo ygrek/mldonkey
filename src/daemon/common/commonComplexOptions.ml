@@ -571,7 +571,7 @@ let special_queries = define_option searches_section
     "-movies", "avi -minsize 650000000 -1cd";
     "-mp3s", "mp3 -minsize 3000000 -maxsize 10000000";
     "-albums", "album -minsize 30000000 -maxsize 150000000";
-    "-nosex", "-without xxx";
+    "-nosex", "-not xxx";
   ]
   
 let customized_queries =

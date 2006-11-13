@@ -117,8 +117,12 @@ let search_of_args args =
     | "-network" :: name :: args ->
         net := (network_find_by_name name).network_num;
         iter args q
-    | "-without" :: name :: args ->
+    | "-not" :: name :: args ->
         iter args ((QAndNot (QHasWord name, QHasWord name)) :: q)
+    | "-and" :: name :: args ->
+        iter args ((QAnd (QHasWord name, QHasWord name)) :: q)
+    | "-or" :: name :: args ->
+        iter args ((QOr (QHasWord name, QHasWord name)) :: q)
     | s :: args ->
         if s.[0] = '-' then
           let args = 
@@ -134,16 +138,19 @@ let search_of_args args =
           iter args ((QHasWord(s)) :: q)
   in
   let q = iter args [] in
-  (match q with 
+  (match (List.rev q) with 
       [] -> failwith "Void query"
-    | [QAndNot _] -> failwith "Bad without query"
     | q1 :: tail ->
         List.fold_left (fun q1 q2 ->
             match q2 with
-              QAndNot (QHasWord x,_) ->
+              QAndNot (QHasWord x, _) ->
                 QAndNot (q1, QHasWord x)
+            | QAnd (QHasWord x, _) ->
+                QAnd (q1, QHasWord x)
+            | QOr (QHasWord x, _) ->
+                QOr (q1, QHasWord x)
             | _ ->
-                QAnd (q1,q2)
+                QAnd (q1,q2) 
         ) q1 tail), !net
   
 

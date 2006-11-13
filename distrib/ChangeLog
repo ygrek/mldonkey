@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/11/13
+5548: New search parameters: "-and", "-or", "-not", removed "-without"
+      (Schlumpf)
 5546: Some sharing updates
 - solved bug 10957, updating the prio of an already shared dir is now possible
 - fix bug where missing shared dirs with strategy incoming_* where not recreated
