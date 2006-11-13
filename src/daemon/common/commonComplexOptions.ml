@@ -849,16 +849,18 @@ module SharedDirectoryOption = struct
             in
             let shdir_priority = get_value_safe "priority" value_to_int 0
             in
+(*
             let shdir_networks = get_value_safe "networks"
                 (value_to_list value_to_string) [] 
             in
+*)
             let shdir_strategy = get_value_safe "strategy"
                 value_to_string "only_directory"
             in
             {
               shdir_dirname = shdir_dirname; 
               shdir_strategy = shdir_strategy; 
-              shdir_networks = shdir_networks; 
+              shdir_networks = []; (* shdir_networks; *)
               shdir_priority = shdir_priority; 
             }
           end
@@ -884,8 +886,10 @@ module SharedDirectoryOption = struct
     let shared_directory_to_value s =
       let list = [
           "dirname", filename_to_value s.shdir_dirname;
+(*
           "networks", 
           list_to_value string_to_value s.shdir_networks;
+*)
           "strategy", 
           string_to_value  s.shdir_strategy;
           "priority", int_to_value s.shdir_priority;
@@ -898,8 +902,21 @@ module SharedDirectoryOption = struct
         shared_directory_to_value
 
   end
-    
-  
+
+let default_incoming_files = {
+  shdir_dirname = Filename.concat "incoming" "files";
+  shdir_priority = 0;
+  shdir_networks = [];
+  shdir_strategy = "incoming_files";
+  }
+
+let default_incoming_directories = {
+  shdir_dirname = Filename.concat "incoming" "directories";
+  shdir_priority = 0;
+  shdir_networks = [];
+  shdir_strategy = "incoming_directories";
+  }
+
 let shared_directories = 
   define_option CommonOptions.path_section ["shared_directories" ] 
   "                Incoming and shared directories.
@@ -911,8 +928,8 @@ let shared_directories =
    Finished BT multifile downloads are committed to the first directory
    with strategy incoming_directories. Other downloads are committed
    to the first directory with the strategy incoming_files.
-   If more than one directory has one of the incoming_* strategies
-   it will be ignored on commit, but they are shared nonetheless.
+   MLdonkey searches all shared_directories with incoming_* strategies
+   on commit and uses the first one with enough free diskspace.
    Other strategies can be found in searches.ini, section customized_sharing."
     (list_option SharedDirectoryOption.t) 
   [
@@ -922,52 +939,28 @@ let shared_directories =
       shdir_networks = [];
       shdir_strategy = "all_files";
     };
-    {
-      shdir_dirname = "incoming/files";
-      shdir_priority = 0;
-      shdir_networks = [];
-      shdir_strategy = "incoming_files";
-    };
-    {
-      shdir_dirname = "incoming/directories";
-      shdir_priority = 0;
-      shdir_networks = [];
-      shdir_strategy = "incoming_directories";
-    }
+    default_incoming_files;
+    default_incoming_directories;
   ]
 
 
 let search_incoming_files () =
-  try
-    List.find_all (fun s -> s.shdir_strategy = "incoming_files") 
-    !!shared_directories
-  with Not_found ->
-        let dirname = Filename.concat "incoming" "files" in
-        let s = {
-        shdir_dirname = dirname;
-        shdir_priority = 0;
-        shdir_networks = [];
-        shdir_strategy = "incoming_files";
-          }
-        in
-        shared_directories =:= s :: !!shared_directories;
-        [s]
+  let list =
+    List.filter (fun s -> s.shdir_strategy = "incoming_files") !!shared_directories
+  in
+  match list with
+  | [] -> shared_directories =:= default_incoming_files :: !!shared_directories;
+        [default_incoming_files]
+  | l -> l
 
 let search_incoming_directories () =
-  try
-    List.find_all (fun s -> s.shdir_strategy = "incoming_directories") 
-    !!shared_directories
-  with Not_found ->
-      let dirname = Filename.concat "incoming" "directories" in
-      let s = {
-          shdir_dirname = dirname;
-          shdir_priority = 0;
-          shdir_networks = [];
-          shdir_strategy = "incoming_directories";
-        }
-      in
-      shared_directories =:= s :: !!shared_directories;
-      [s]
+  let list =
+    List.filter (fun s -> s.shdir_strategy = "incoming_directories") !!shared_directories
+  in
+  match list with
+  | [] -> shared_directories =:= default_incoming_directories :: !!shared_directories;
+        [default_incoming_directories]
+  | l -> l
 
 exception Incoming_full
 
@@ -995,7 +988,7 @@ let incoming_dir usedir ?user ?needed_space ?network () =
 *)
 (* todo: make the dir naming order user configurable *)
   let compute_dir_name dir =
-    let dirname = Filename.concat dir dirname_user in
+    let dirname = Filename2.normalize (Filename.concat dir dirname_user) in
 (*    let dirname = Filename.concat dirname dirname_network in *)
     dirname
   in

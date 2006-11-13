@@ -15,6 +15,12 @@ ChangeLog
 =========
 
 2006/11/13
+5546: Some sharing updates
+- solved bug 10957, updating the prio of an already shared dir is now possible
+- fix bug where missing shared dirs with strategy incoming_* where not recreated
+- remove "network = []" from downloads.ini, currently not supported
+- created workaround to fix bug on MinGW: no files were shared. Introduced by
+  patch 5475, but source of problem is Ocaml bug 4159
 5547: HTML: Fix unicode display in vd & upstats javascript popups
 
 2006/11/12

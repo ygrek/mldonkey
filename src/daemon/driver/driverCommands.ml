@@ -2230,17 +2230,22 @@ let _ =
           } in
 
         if Unix2.is_directory arg then
-          if not (List.mem shdir !!shared_directories) then begin
+	  begin
+	    try
+	      let d = List.find (fun d -> d.shdir_dirname = arg) !!shared_directories in
+	      let old_prio = d.shdir_priority in
+	      d.shdir_priority <- prio;
+	      Printf.sprintf "prio of %s changed from %d to %d"
+		d.shdir_dirname old_prio d.shdir_priority
+	    with Not_found ->
               shared_directories =:= shdir :: !!shared_directories;
               shared_add_directory shdir;
-              "directory added"
-            end (* else
-            if not (List.mem (arg, prio) !!shared_directories) then begin
-              shared_directories =:= (arg, prio) :: List.remove_assoc arg !!shared_directories;
-              shared_add_directory (arg, prio);
-              "prio changed"
-            end *) else
-            "directory already shared"
+              Printf.sprintf "directory %s added%s"
+		shdir.shdir_dirname
+		(if shdir.shdir_priority <> 0 then
+		    Printf.sprintf " with prio %d" shdir.shdir_priority
+		 else "")
+	  end
         else
           "no such directory"
     ), "<priority> <dir> [<strategy>] :\tshare directory <dir> with <priority> [and sharing strategy <strategy>]";

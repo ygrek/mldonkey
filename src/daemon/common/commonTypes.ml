@@ -350,7 +350,7 @@ type sharing_strategy = {
 
 type shared_directory = {
     shdir_dirname : string;
-    shdir_priority : int;
+    mutable shdir_priority : int;
     shdir_strategy : string;
     shdir_networks : string list;
   }
