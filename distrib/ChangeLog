@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/11/13
+5547: HTML: Fix unicode display in vd & upstats javascript popups
+
 2006/11/12
 5545: EDK: Do not show empty server message lines in GUI
 5509: Common: Merge file_print functions,

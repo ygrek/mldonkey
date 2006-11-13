@@ -721,7 +721,7 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
           (if !!html_mods_use_js_tooltips then
                         Printf.sprintf "
                                 onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%sFile#: %d<br>Network: %s<br>User%s %s%s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
-                        (Http_server.html_real_escaped file.file_name)
+                        (Http_server.html_real_escaped (Charset.to_utf8 file.file_name))
 			(match file_magic (file_find file.file_num) with
 			   None -> ""
 			 | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
@@ -2474,7 +2474,7 @@ let print_upstats o list server =
 	Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"" (html_mods_cntr ());
 	(if !!html_mods_use_js_tooltips then
 	   Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
-	    (Http_server.html_real_escaped (Filename.basename impl.impl_shared_codedname))
+	    (Http_server.html_real_escaped (Filename.basename (Charset.to_utf8 impl.impl_shared_codedname)))
 	    (match impl.impl_shared_magic with
 	       None -> ""
 	     | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
