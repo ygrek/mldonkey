@@ -57,7 +57,8 @@ let add_web_kind kind descr f =
   let kind_record = { f = f; description = descr } in
   file_kinds := (kind, kind_record) :: !file_kinds
 
-let mldonkey_wget url f =
+  
+let mldonkey_wget_url url f =
   let module H = Http_client in
   let r = {
       H.basic_request with
@@ -129,6 +130,19 @@ let mldonkey_wget url f =
         (Printexc2.to_string e) url
     end
 
+let mldonkey_wget_shell url f =
+  let command_urlencoded = Str.string_after url 8 in
+  let command = Url.decode command_urlencoded in
+  let filename = Filename.temp_file "wget_" ".tmp" in
+    Sys.command (Printf.sprintf "%s > %s" command filename);
+    (f filename : unit)
+      
+let mldonkey_wget url f =
+  if Str.string_match (Str.regexp "shell://") url 0 then
+    mldonkey_wget_shell url f
+  else
+    mldonkey_wget_url url f
+      
 let load_url can_fail kind url =
   let f =
     try
