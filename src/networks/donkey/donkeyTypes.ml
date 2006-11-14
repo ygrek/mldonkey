@@ -478,6 +478,19 @@ and server = (*[]*){
     mutable server_waiting_queries : file list;
     mutable server_sent_all_queries : bool;
     mutable server_has_zlib : bool;
+    mutable server_has_newtags : bool;
+    mutable server_has_unicode : bool;
+    mutable server_has_related_search : bool;
+    mutable server_has_tag_integer : bool;
+    mutable server_has_largefiles : bool;
+    mutable server_has_udp_obfuscation : bool;
+    mutable server_has_tcp_obfuscation : bool;
+    mutable server_obfuscation_port_tcp : int option;
+    mutable server_obfuscation_port_udp : int option;
+    mutable server_udp_key : int option;
+    mutable server_udp_keyip : Ip.t option;
+    mutable server_dynip : string;
+    mutable server_auxportslist : string;
 
     mutable server_flags : int;
     mutable server_version : string;

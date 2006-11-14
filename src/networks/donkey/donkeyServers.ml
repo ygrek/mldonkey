@@ -279,6 +279,13 @@ let client_to_server s t sock =
   match t with
       M.SetIDReq t ->
         s.server_has_zlib <- t.M.SetID.zlib;
+        s.server_has_newtags <- t.M.SetID.newtags;
+        s.server_has_unicode <- t.M.SetID.unicode;
+        s.server_has_related_search <- t.M.SetID.related_search;
+        s.server_has_tag_integer <- t.M.SetID.tag_integer;
+        s.server_has_largefiles <- t.M.SetID.largefiles;
+        s.server_has_udp_obfuscation <- t.M.SetID.udp_obfuscation;
+        s.server_has_tcp_obfuscation <- t.M.SetID.tcp_obfuscation;
         if low_id t.M.SetID.ip && !!force_high_id then
           disconnect_server s (Closed_for_error "Low ID")
         else begin

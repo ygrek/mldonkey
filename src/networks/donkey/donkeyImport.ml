@@ -54,14 +54,28 @@ module Server = struct
     
     
     let names_of_tag =
+(* eMule sourcefile opcodes.h //server.met *)
       [
-        "\001", Field_UNKNOWN "name";
-        "\015", Field_UNKNOWN "port";
-        "\016", Field_UNKNOWN "ip";
-        "\012", Field_UNKNOWN "ping";
-        "\014", Field_UNKNOWN "prof";
-        "\013", Field_UNKNOWN "history";
-        "\011", Field_UNKNOWN "description";
+        "\001", Field_UNKNOWN "name";                (* 0x01 string *)
+        "\011", Field_UNKNOWN "description";         (* 0x0B string *)
+        "\012", Field_UNKNOWN "ping";                (* 0x0C uint32 *)
+        "\013", Field_UNKNOWN "history";             (* 0x0D ST_FAIL *)
+        "\014", Field_UNKNOWN "prof";                (* 0x0E ST_PREFERENCE *)
+        "\015", Field_UNKNOWN "port";                (* 0x0F uint32 *)
+        "\016", Field_UNKNOWN "ip";                  (* 0x10 uint32 *)
+        "\133", Field_UNKNOWN "dynip";               (* 0x85 string *)
+        "\135", Field_UNKNOWN "maxusers";            (* 0x87 uint32 *)
+        "\136", Field_UNKNOWN "softfiles";           (* 0x88 uint32 *)
+        "\137", Field_UNKNOWN "hardfiles";           (* 0x89 uint32 *)
+        "\144", Field_UNKNOWN "lastping";            (* 0x90 uint32 *)
+        "\145", Field_UNKNOWN "version";             (* 0x91 string|uint32 *)
+        "\146", Field_UNKNOWN "udpflags";            (* 0x92 uint32 *)
+        "\147", Field_UNKNOWN "auxportslist";        (* 0x93 string *)
+        "\148", Field_UNKNOWN "lowidusers";          (* 0x94 uint32 *)
+        "\149", Field_UNKNOWN "udpkey";              (* 0x95 uint32 *)
+        "\150", Field_UNKNOWN "udpkeyip";            (* 0x96 uint32 *)
+        "\151", Field_UNKNOWN "tcpportobfuscation";  (* 0x97 uint16 *)
+        "\152", Field_UNKNOWN "udpportobfuscation";  (* 0x98 uint16 *)
       ]
     
     

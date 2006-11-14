@@ -117,6 +117,7 @@ let impl_server_info impl =
     T.server_lowid_users = 0L;
     T.server_ping = 0;
     T.server_published_files = 0;
+    T.server_features = None;
   }
 
 let server_num s =
@@ -370,6 +371,10 @@ let server_banner s o =
       info.G.server_banner
 
 let server_print_html_header buf ext =
+     if !!html_mods_use_js_tooltips then Printf.bprintf buf
+"\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:#FFFFDD;color:black;border-color:black;border-width:20px;font-size:8pt; visibility:visible; left:25px; top:
+-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
+
     html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) ([
     ( "1", "srh", "Server number", "#" ) ;
     ( "0", "srh", "Connect|Disconnect", "C/D" ) ;
@@ -407,12 +412,32 @@ let server_print s o =
     let buf = o.conn_buf in
   
   if use_html_mods o then begin
-  let snum = (server_num s) in
+    let snum = (server_num s) in
+    let ip_port_string = 
+      Printf.sprintf "%s:%s%s" 
+      (Ip.string_of_addr info.G.server_addr)
+       (string_of_int info.G.server_port)
+       (if info.G.server_realport <> 0 
+          then "(" ^ (string_of_int info.G.server_realport) ^ ")" 
+            else ""
+        )
+    in
 
-    Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>
-    \\<td class=\\\"srb\\\" %s \\>%d\\</td\\>
-      %s %s %s"
-    (html_mods_cntr ())
+    Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\""
+    (html_mods_cntr ());
+
+    (if !!html_mods_use_js_tooltips then
+       Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s %s<br>%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
+        info.G.server_name ip_port_string 
+	(match info.G.server_features with
+	| None -> ""
+	| Some f -> "server features: " ^ f)
+       !!html_mods_js_tooltips_wait
+       !!html_mods_js_tooltips_timeout
+       !!html_mods_js_tooltips_wait);
+
+    Printf.bprintf buf 
+" \\<td class=\\\"srb\\\" %s \\>%d\\</td\\> %s %s %s"
     (match impl.impl_server_state with
         Connected _ -> 
             Printf.sprintf "title=\\\"Server Banner\\\"
@@ -492,16 +517,6 @@ let server_print s o =
       match impl.impl_server_state with
         NotConnected _ when server_blocked s -> "IP blocked"
       | _ -> string_of_connection_state impl.impl_server_state
-    in
-
-    let ip_port_string = 
-      Printf.sprintf "%s:%s%s" 
-      (Ip.string_of_addr info.G.server_addr)
-       (string_of_int info.G.server_port)
-       (if info.G.server_realport <> 0 
-          then "(" ^ (string_of_int info.G.server_realport) ^ ")" 
-            else ""
-        )
     in
 
     let cc,cn = Geoip.get_country (Ip.ip_of_addr info.G.server_addr) in

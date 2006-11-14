@@ -509,14 +509,27 @@ let new_server ip port =
         server_id_requests = Fifo.create ();
         server_flags = 0;
         server_has_zlib = false;
+        server_has_newtags = false;
+        server_has_unicode = false;
+        server_has_related_search = false;
+        server_has_tag_integer = false;
+        server_has_largefiles = false;
+        server_has_udp_obfuscation = false;
+        server_has_tcp_obfuscation = false;
         server_version = "";
         server_lowid_users = None;
         server_soft_limit = None;
         server_hard_limit = None;
+        server_obfuscation_port_tcp = None;
+        server_obfuscation_port_udp = None;
+        server_udp_key = None;
+        server_udp_keyip = None;
         server_sent_shared = [];
         server_max_users = None;
         server_last_ping = 0.;
         server_ping = 0;
+        server_dynip = "";
+        server_auxportslist = "";
 
       }
       and server_impl =

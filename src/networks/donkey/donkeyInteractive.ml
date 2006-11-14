@@ -21,6 +21,8 @@ open Int64ops
 open Printf2
 open Md4
 open Options
+open LittleEndian
+open AnyEndian
 
 open BasicSocket
 open TcpBufferedSocket
@@ -111,12 +113,40 @@ let load_server_met filename =
           let server = check_add_server r.S.ip r.S.port in
           List.iter (fun tag ->
               match tag with
-                { tag_name = Field_UNKNOWN "name"; tag_value = String s } ->
+              |  { tag_name = Field_UNKNOWN "name"; tag_value = String s } ->
                   server.server_name <- s;
               |  { tag_name = Field_UNKNOWN "description" ; tag_value = String s } ->
                   server.server_description <- s
+              |  { tag_name = Field_UNKNOWN "ping" ; tag_value = Uint64 s } ->
+                  server.server_ping <- (Int64.to_int s)
+              |  { tag_name = Field_UNKNOWN "dynip" ; tag_value = String s } ->
+                  server.server_dynip <- s
+              |  { tag_name = Field_UNKNOWN "maxusers" ; tag_value = Uint64 s } ->
+                  (match server.server_max_users with
+		  | None -> server.server_max_users <- Some s | _ -> ())
+              |  { tag_name = Field_UNKNOWN "softfiles" ; tag_value = Uint64 s } ->
+                  (match server.server_soft_limit with
+		  | None -> server.server_soft_limit <- Some s | _ -> ())
+              |  { tag_name = Field_UNKNOWN "hardfiles" ; tag_value = Uint64 s } ->
+                  (match server.server_hard_limit with
+		  | None -> server.server_hard_limit <- Some s | _ -> ())
+              |  { tag_name = Field_UNKNOWN "auxportslist" ; tag_value = String s } ->
+                  server.server_auxportslist <- s
+              |  { tag_name = Field_UNKNOWN "lowidusers" ; tag_value = Uint64 s } ->
+                  (match server.server_lowid_users with
+		  | None -> server.server_lowid_users <- Some s | _ -> ())
+              |  { tag_name = Field_UNKNOWN "udpkey" ; tag_value = Uint64 s } ->
+                  (match server.server_udp_key with
+		  | None -> server.server_udp_key <- Some (Int64.to_int s) | _ -> ())
+              |  { tag_name = Field_UNKNOWN "tcpportobfuscation" ; tag_value = Uint64 s } ->
+                  (match server.server_obfuscation_port_tcp with
+		  | None -> server.server_obfuscation_port_tcp <- Some (Int64.to_int s) | _ -> ())
+              |  { tag_name = Field_UNKNOWN "udpportobfuscation" ; tag_value = Uint64 s } ->
+                  (match server.server_obfuscation_port_udp with
+		  | None -> server.server_obfuscation_port_udp <- Some (Int64.to_int s) | _ -> ())
               | _ -> ()
-          ) r.S.tags
+          ) r.S.tags;
+	  server_must_update server
         with _ -> ()
     ) ss;
     List.length ss
@@ -1086,7 +1116,20 @@ let _ =
           P.server_hard_limit = (match s.server_hard_limit with None -> 0L | Some v -> v);
           P.server_lowid_users = (match s.server_lowid_users with None -> 0L | Some v -> v);
           P.server_ping = s.server_ping;
-
+          P.server_features = let temp_buf = Buffer.create 100 in
+            if s.server_has_zlib then Printf.bprintf temp_buf "zlib ";
+            if s.server_has_newtags then Printf.bprintf temp_buf "newtags ";
+            if s.server_has_unicode then Printf.bprintf temp_buf "unicode ";
+            if s.server_has_related_search then Printf.bprintf temp_buf "related_search ";
+            if s.server_has_tag_integer then Printf.bprintf temp_buf "tag_integer ";
+            if s.server_has_largefiles then Printf.bprintf temp_buf "largefiles ";
+            (match s.server_obfuscation_port_tcp with
+             | Some p -> Printf.bprintf temp_buf "tcp_obfuscation(%d) " p | _ -> ());
+            (match s.server_obfuscation_port_udp with
+             | Some p -> Printf.bprintf temp_buf "udp_obfuscation(%d) " p | _ -> ());
+            if s.server_auxportslist <> "" then Printf.bprintf temp_buf "auxportslist %s " s.server_auxportslist;
+            if s.server_dynip <> "" then Printf.bprintf temp_buf "dynip %s " s.server_dynip;
+            if Buffer.contents temp_buf <> "" then Some (Buffer.contents temp_buf) else None;
         }
       else raise Not_found
   )

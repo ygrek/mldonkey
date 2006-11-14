@@ -178,6 +178,7 @@ type server_info = {
     mutable server_lowid_users : int64;
     mutable server_ping : int;
     mutable server_published_files : int;
+    mutable server_features : string option;
 
   } 
 

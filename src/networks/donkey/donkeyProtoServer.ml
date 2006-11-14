@@ -154,22 +154,30 @@ ascii [ 9(3)(4)(0) M a i n(0)(0)(2)(0)(5)(0) M u s i c(0)(0)(3)(0)(3)(0) A r t(0
 module SetID = struct
     type t = {
       ip : Ip.t;
+      port : int option;
       zlib : bool;
-      port : int option
+      newtags : bool;
+      unicode : bool;
+      related_search : bool;
+      tag_integer : bool;
+      largefiles : bool;
+      udp_obfuscation : bool;
+      tcp_obfuscation : bool;
     }
 
     let parse len s =
-      let ip = get_ip s 1 in
-       let zlib = (0x01 land get_int s 5) = 0x01 in
-       let port =
-         if len <= 9 then
-           None
-         else
-           Some (get_int s 9) in
+      let flags = get_int s 5 in
        {
-         ip = ip;
-         zlib = zlib;
-         port = port;
+         ip = get_ip s 1;
+         port = if len <= 9 then None else Some (get_int s 9);
+         zlib = 0x01 land flags = 0x01;
+         newtags = 0x08 land flags = 0x08;
+         unicode = 0x10 land flags = 0x10;
+         related_search = 0x40 land flags = 0x40;
+         tag_integer = 0x80 land flags = 0x80;
+         largefiles =  0x100 land flags = 0x100;
+         udp_obfuscation = 0x200 land flags = 0x200;
+         tcp_obfuscation = 0x400 land flags = 0x400;
        }
 
     let print t =

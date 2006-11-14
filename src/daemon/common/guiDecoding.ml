@@ -759,6 +759,7 @@ let get_server proto s pos =
     server_hard_limit = ha;
     server_ping = pi;
     server_published_files = 0;
+    server_features = None;
   }, pos
 
 let get_client_type s pos = 
