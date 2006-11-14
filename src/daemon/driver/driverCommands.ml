@@ -2073,6 +2073,9 @@ let _ =
             Printf.bprintf buf "st_uid %d\n" s.Unix.st_uid;
             Printf.bprintf buf "st_gid %d\n" s.Unix.st_gid;
             Printf.bprintf buf "st_size %d\n" s.Unix.st_size;
+            Printf.bprintf buf "st_atime %s\n" (Date.to_full_string s.Unix.st_atime);
+            Printf.bprintf buf "st_mtime %s\n" (Date.to_full_string s.Unix.st_mtime);
+            Printf.bprintf buf "st_ctime %s\n" (Date.to_full_string s.Unix.st_ctime);
 	    let user,group = Unix32.owner arg in
             Printf.bprintf buf "username %s\n" user;
             Printf.bprintf buf "groupname %s\n" group;
