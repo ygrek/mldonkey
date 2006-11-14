@@ -446,6 +446,23 @@ or getting a binary compiled with glibc %s.\n\n")
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
   add_infinite_timer !!buffer_writes_delay (fun _ -> Unix32.flush ());
 
+  history_timeflag := (Unix.time()); 
+  update_download_history (); 
+  update_upload_history ();
+  history_h_timeflag := (Unix.time()); 
+  update_h_download_history (); 
+  update_h_upload_history ();
+		
+  add_infinite_timer (float_of_int history_step) (fun timer -> 
+    history_timeflag := (Unix.time()); 
+    update_download_history (); 
+    update_upload_history ());
+
+  add_infinite_timer (float_of_int history_h_step) (fun timer -> 
+    history_h_timeflag := (Unix.time()); 
+    update_h_download_history (); 
+    update_h_upload_history ());
+		
   if Autoconf.system = "mingw" then
     add_infinite_timer 1. (fun timer ->
         MlUnix.set_console_title (DriverInteractive.console_topic ()));

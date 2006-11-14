@@ -618,8 +618,12 @@ let update_link_stats () =
   put time sample short_delay_bandwidth_samples;
   trimto 5 short_delay_bandwidth_samples
 
+let history_step = 5
 let history_size = 720
+let history_h_step = history_size * history_step
 let history_h_size = 720
+let history_timeflag = ref 0.
+let history_h_timeflag = ref 0.
 
 let upload_history = Fifo.create ()
 let download_history = Fifo.create ()
@@ -638,7 +642,7 @@ let download_usage () =
 let update_download_history () =
   Fifo.put download_history (download_usage ());
   let len = ref (Fifo.length download_history) in
-  while !len > history_size do
+  while !len > history_size+1 do
     ignore (Fifo.take download_history);
     decr len
   done
@@ -646,7 +650,7 @@ let update_download_history () =
 let update_upload_history () =
   Fifo.put upload_history (upload_usage ());
   let len = ref (Fifo.length upload_history) in
-  while !len > history_size do
+  while !len > history_size+1 do
     ignore (Fifo.take upload_history);
     decr len
   done
@@ -654,7 +658,7 @@ let update_upload_history () =
 let update_h_download_history () =
   Fifo.put download_h_history ((List.fold_left (+) 0 (Fifo.to_list download_history)) / ((Fifo.length download_history)));
   let len = ref (Fifo.length download_h_history) in
-  while !len > history_h_size do
+  while !len > history_h_size+1 do
     ignore (Fifo.take download_h_history);
     decr len
   done
@@ -662,7 +666,7 @@ let update_h_download_history () =
 let update_h_upload_history () =
   Fifo.put upload_h_history ((List.fold_left (+) 0 (Fifo.to_list upload_history)) / ((Fifo.length upload_history)));
   let len = ref (Fifo.length upload_h_history) in
-  while !len > history_h_size do
+  while !len > history_h_size+1 do
     ignore (Fifo.take upload_h_history);
     decr len
   done

@@ -1678,6 +1678,9 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option html_mods_vd_gfx_mean;
 			strings_of_option html_mods_vd_gfx_transparent;
 			strings_of_option html_mods_vd_gfx_h;
+			strings_of_option html_mods_vd_gfx_h_dynamic;
+			strings_of_option html_mods_vd_gfx_h_grid_time;
+			strings_of_option html_mods_vd_gfx_subgrid;
 			strings_of_option html_mods_vd_gfx_x_size;
 			strings_of_option html_mods_vd_gfx_y_size;
 			strings_of_option html_mods_vd_gfx_tag;

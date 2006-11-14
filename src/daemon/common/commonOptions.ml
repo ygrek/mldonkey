@@ -799,12 +799,24 @@ let html_mods_vd_gfx_h = define_expert_option current_section ["html_mods_vd_gfx
     bool_option true
 
 let html_mods_vd_gfx_x_size = define_expert_option current_section ["html_mods_vd_gfx_x_size"]
-  "Graph x size in vd output ( 320 < x < 3600 )"
-    int_option 630
+  "Graph x size in vd output ( 365 < x < 3665 )"
+    int_option 795
 
 let html_mods_vd_gfx_y_size = define_expert_option current_section ["html_mods_vd_gfx_y_size"]
   "Graph y size in vd output ( 200 < y < 1200 )"
     int_option 200
+
+let html_mods_vd_gfx_h_dynamic = define_expert_option current_section ["html_mods_vd_gfx_h_dymamic"]
+  "Dynamic grid width, start with 1 h/grid, maximum html_mods_vd_gfx_h_grid_time h/grid"
+    bool_option true
+		
+let html_mods_vd_gfx_h_grid_time = define_expert_option current_section ["html_mods_vd_gfx_h_grid_time"]
+  "Max hours on time scale per grid (0 = no limit)"
+    int_option 0
+
+let html_mods_vd_gfx_subgrid = define_expert_option current_section ["html_mods_vd_gfx_subgrid"]
+  "Number of shown subgrids on graph (0 = no subgrids)"
+    int_option 0
 
 let html_mods_vd_gfx_tag = define_expert_option current_section ["html_mods_vd_gfx_tag"]
   "Draw tag graph"
