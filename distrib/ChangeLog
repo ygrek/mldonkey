@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/11/14
+5551: web_infos: Fix mtime detection, old files were not updated
 5550: debug_fileinfo: Print [a|c|m]time values
 5530: GD: Improve graph output (skeeve, Schlumpf)
 - html_mods_vd_gfx_h_grid_variable

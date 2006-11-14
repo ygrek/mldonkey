@@ -100,27 +100,21 @@ let mldonkey_wget url f =
     match !date with
       None -> H.wget r f
     | Some date ->
-	let html_time =
-	  begin try
-	    let t = Date.time_of_string date in
-	      r.H.req_save_to_file_time <- t;
-	      Unix.gmtime t
-	  with e ->
-	    let t = Unix.time () in
-	      r.H.req_save_to_file_time <- t;
-	      Unix.gmtime t
-	  end
-	in
 	let file = Filename.concat "web_infos" (Filename.basename r.H.req_url.Url.short_file) in
+	r.H.req_save_to_file_time <- (begin try
+	    Date.time_of_string date
+	  with e ->
+	    Unix.time ()
+	  end);
 	if not (Sys.file_exists file) then
 	  H.wget r f
 	else
 	  begin
 	    let file_date = Unix.LargeFile.stat file in
-	    let file_time = Unix.gmtime file_date.Unix.LargeFile.st_mtime in
-	      if html_time <= file_time then
+	      if r.H.req_save_to_file_time <= file_date.Unix.LargeFile.st_mtime then
 	        begin
-	        lprintf_nl (_b "using local version of %s, HTML header (%s)") file date;
+	        lprintf_nl (_b "using local version of %s (%s), HTML header (%s)")
+		  file (Date.to_full_string file_date.Unix.LargeFile.st_mtime) date;
 	        (f file : unit)
 	        end
 	      else
