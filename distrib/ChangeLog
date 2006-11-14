@@ -16,6 +16,12 @@ ChangeLog
 
 2006/11/14
 5530: GD: Improve graph output (skeeve, Schlumpf)
+- html_mods_vd_gfx_h_grid_variable
+  "Stretch hourly until at program start", default true
+- html_mods_vd_gfx_h_grid_time
+  "Max hours on time scale per grid (0 = no limit)", default 0
+- html_mods_vd_gfx_subgrid
+  "Number of shown subgrids on graph (0 = no subgrids)", default 0
 
 2006/11/13
 5548: New search parameters: "-and", "-or", "-not", removed "-without"
