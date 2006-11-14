@@ -695,8 +695,9 @@ let update_client_from_tags c tags =
       | Field_UNKNOWN "mod_version" ->
           let s = to_lowercase (string_of_tag_value tag.tag_value) in 
           parse_mod_version s c
-      | _ -> ()
-
+      | _ -> 
+          if !verbose_msg_clienttags then
+            lprintf_nl "Unknown Emule tag: [%s] (update_client_from_tags)" (escaped_string_of_field tag)
   ) tags
     
 let update_emule_proto_from_tags c tags =
@@ -743,8 +744,8 @@ let update_emule_proto_from_tags c tags =
 	    Some _ -> ()
 	  | _ ->  if s <> "" then c.client_osinfo <- Some s)
       | _ -> 
-          if !verbose_msg_clients then
-            lprintf_nl "Unknown Emule tag: [%s]" (escaped_string_of_field tag)
+          if !verbose_msg_clienttags then
+            lprintf_nl "Unknown Emule tag: [%s] (update_emule_proto_from_tags)" (escaped_string_of_field tag)
   ) tags
 
 let fight_disguised_mods c =

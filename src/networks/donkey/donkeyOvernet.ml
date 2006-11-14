@@ -1249,18 +1249,18 @@ let udp_client_handler t p =
  (* send the answer *)   
    | OvernetGetMyIP other_port ->   
        if !verbose_overnet && debug_client other_ip then   
-         lprintf_nl "GET MY IP (port=%d)\n" other_port;   
+         lprintf_nl "GET MY IP (port=%d)" other_port;   
  (* FIXME : should be able to flush the UDP buffer*)   
        udp_send sender (OvernetGetMyIPResult other_ip);   
        udp_send sender OvernetGetMyIPDone   
     
    | OvernetGetMyIPResult(ip) ->   
        if !verbose_overnet && debug_client other_ip then   
-         lprintf_nl "GET MY IP RESULT (%s)\n" (Ip.to_string ip)   
+         lprintf_nl "GET MY IP RESULT (%s)" (Ip.to_string ip)   
     
    | OvernetGetMyIPDone ->   
        if !verbose_overnet && debug_client other_ip then   
-         lprintf_nl "GET MY IP DONE\n"   
+         lprintf_nl "GET MY IP DONE"   
   
   | OvernetPeerNotFound peer ->
       begin
@@ -1268,6 +1268,7 @@ let udp_client_handler t p =
           lprintf_nl "Peer NOT FOUND %s (%s:%d) kind: %d (msg 33)"
             (Md4.to_string peer.peer_md4) (Ip.to_string peer.peer_ip)
         peer.peer_port peer.peer_kind;
+(* We ignore OvernetPeerNotFound, the original client sends this message very often (even if the peer is alive)
         let dp = { dummy_peer with peer_port = peer.peer_port ; peer_ip = peer.peer_ip } in
         if KnownPeers.mem known_peers dp
         then begin
@@ -1294,6 +1295,7 @@ let udp_client_handler t p =
             done;
           with Exit -> ();
         end;
+*)
       end
 
    | OvernetUnknown21 peer ->
@@ -1526,6 +1528,17 @@ let enable () =
 
           (* FIXE: Dump latencies to logfile *)
           if !verbose_overnet then ignore (UdpSocket.get_latencies (ref true));
+
+          if !verbose_overnet then begin
+            lprintf_nl "%d peers (prebucket: %d peers)" !connected_peers !pre_connected_peers;
+            for i = 0 to !n_used_buckets do
+              if (Fifo.length buckets.(i)) <> 0 || (Fifo.length prebuckets.(i)) <> 0 then
+              lprintf_nl "bucket[%d] : %d peers (prebucket %d)"
+                i (Fifo.length buckets.(i)) (Fifo.length prebuckets.(i));
+            done;
+            lprintf_nl "unknown_peers: %d" (LimitedList.length unknown_peers);
+            lprintf_nl "boot_peers: %d" (LimitedList.length !!boot_peers);
+          end;
       );
 
 (* every 15min for light operations *)
