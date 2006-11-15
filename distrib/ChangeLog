@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/11/15
+5556: web_infos: new option rss_preprocessor used for fixing broken RSS feeds,
+      safer process spawning for command "!" (pango)
 5560: EDK: Parse some more server.met fields, log unknown server tags
 
 2006/11/14
