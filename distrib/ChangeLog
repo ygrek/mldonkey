@@ -24,11 +24,6 @@ ChangeLog
 
 2006/11/14
 5424: web_infos/rss: shell:// type url
-- can be used to parse broken RSS feeds
-- testcase:
-  echo "curl $1|xmllint -" > /tmp/rsscommand
-  chmod +x /tmp/rsscommand
-  urladd rss "shell:///tmp/rsscommand http://thepiratebay.org/rss.php?cat=D601"
 5549: EDK: Parse all data from server.met, new HTML javascript popup
 5553: EDK/OV/KAD: small updates (bogeyman)
 - EDK: log unknown client tags with verbosity mct
