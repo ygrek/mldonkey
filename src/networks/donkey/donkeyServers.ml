@@ -346,7 +346,7 @@ let client_to_server s t sock =
                 s.server_name <- name
             | { tag_name = Field_UNKNOWN "description"; tag_value = String desc } ->
                 s.server_description <- desc
-            | _ -> ()
+            | _ -> lprintf_nl "parsing donkeyServers.ServerInfo, unknown field %s" (string_of_tag tag)
       ) s.server_tags;
 
       (* nice and ugly, but it doesn't require any new fields *)

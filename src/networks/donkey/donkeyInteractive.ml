@@ -117,10 +117,19 @@ let load_server_met filename =
                   server.server_name <- s;
               |  { tag_name = Field_UNKNOWN "description" ; tag_value = String s } ->
                   server.server_description <- s
+              |  { tag_name = Field_UNKNOWN "version" ; tag_value = Uint64 s } ->
+                  server.server_version <- Printf.sprintf "%d.%d"
+					    ((Int64.to_int s) lsr 16) ((Int64.to_int s) land 0xFFFF)
               |  { tag_name = Field_UNKNOWN "ping" ; tag_value = Uint64 s } ->
                   server.server_ping <- (Int64.to_int s)
               |  { tag_name = Field_UNKNOWN "dynip" ; tag_value = String s } ->
                   server.server_dynip <- s
+              |  { tag_name = Field_UNKNOWN "users" ; tag_value = Uint64 s } ->
+                  (match server.server_nusers with
+		  | None -> server.server_nusers <- Some s | _ -> ())
+              |  { tag_name = Field_UNKNOWN "files" ; tag_value = Uint64 s } ->
+                  (match server.server_nfiles with
+		  | None -> server.server_nfiles <- Some s | _ -> ())
               |  { tag_name = Field_UNKNOWN "maxusers" ; tag_value = Uint64 s } ->
                   (match server.server_max_users with
 		  | None -> server.server_max_users <- Some s | _ -> ())
@@ -132,19 +141,19 @@ let load_server_met filename =
 		  | None -> server.server_hard_limit <- Some s | _ -> ())
               |  { tag_name = Field_UNKNOWN "auxportslist" ; tag_value = String s } ->
                   server.server_auxportslist <- s
-              |  { tag_name = Field_UNKNOWN "lowidusers" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_UNKNOWN "lowusers" ; tag_value = Uint64 s } ->
                   (match server.server_lowid_users with
 		  | None -> server.server_lowid_users <- Some s | _ -> ())
-              |  { tag_name = Field_UNKNOWN "udpkey" ; tag_value = Uint64 s } ->
-                  (match server.server_udp_key with
-		  | None -> server.server_udp_key <- Some (Int64.to_int s) | _ -> ())
               |  { tag_name = Field_UNKNOWN "tcpportobfuscation" ; tag_value = Uint64 s } ->
                   (match server.server_obfuscation_port_tcp with
 		  | None -> server.server_obfuscation_port_tcp <- Some (Int64.to_int s) | _ -> ())
               |  { tag_name = Field_UNKNOWN "udpportobfuscation" ; tag_value = Uint64 s } ->
                   (match server.server_obfuscation_port_udp with
 		  | None -> server.server_obfuscation_port_udp <- Some (Int64.to_int s) | _ -> ())
-              | _ -> ()
+              |  { tag_name = Field_UNKNOWN "country" ; tag_value = String s } -> ()
+              |  { tag_name = Field_UNKNOWN "udpflags" ; tag_value = Uint64  s } -> ()
+              |  { tag_name = Field_UNKNOWN "refs" ; tag_value = Uint64  s } -> ()
+              | _ -> lprintf_nl "parsing server.met, unknown field %s" (string_of_tag tag)
           ) r.S.tags;
 	  server_must_update server
         with _ -> ()
@@ -1804,7 +1813,6 @@ let _ =
         n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
            with _ -> ()
   end;
-        lprint_newline ()
       end
     else
       if not !!enable_donkey then

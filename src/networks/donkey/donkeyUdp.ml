@@ -296,7 +296,11 @@ let udp_client_handler t p =
                 s.server_name <- name
             | { tag_name = Field_UNKNOWN "description"; tag_value = String desc } ->
                 s.server_description <- desc
-            | _ -> ()
+	    | { tag_name = Field_UNKNOWN "auxportslist" ; tag_value = String aux } ->
+		s.server_auxportslist <- aux
+	    |  { tag_name = Field_UNKNOWN "dynip" ; tag_value = String dynip } ->
+		s.server_dynip <- dynip
+            | _ -> lprintf_nl "parsing Udp.ServerDescReplyUdp, unknown field %s" (string_of_tag tag)
       ) t.M.tags;
 
       if s.server_tags = [] then
