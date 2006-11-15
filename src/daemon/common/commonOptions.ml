@@ -1023,6 +1023,10 @@ let rss_feeds = define_expert_option current_section ["rss_feeds"]
   "URLs of RSS feeds"
     (list_option Url.option) []
 
+let rss_preprocessor = define_expert_option current_section ["rss_preprocessor"]
+  "If MLDonkey can not read broken RSS feeds, use this program to preprocess them"
+    string_option "xmllint"
+
 let ip_blocking_descriptions = define_expert_option current_section ["ip_blocking_descriptions"]
   "Keep IP blocking ranges descriptions in memory"
     bool_option false

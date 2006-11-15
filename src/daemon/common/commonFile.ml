@@ -552,9 +552,10 @@ let set_file_last_seen file age =
   impl.impl_file_last_seen <- age
     
 let file_preview (file : file) =
-  let cmd = Printf.sprintf "%s \"%s\" \"%s\"" !!previewer
-	      (file_disk_name file) (file_best_name file) in
-  ignore (Sys.command cmd)
+  ignore(
+    Unix.create_process !!previewer 
+      [| Filename2.basename !!previewer; file_disk_name file; file_best_name file |]
+      Unix.stdin Unix.stdout Unix.stderr)
 
 (*************************************************************************)
 (*                                                                       *)

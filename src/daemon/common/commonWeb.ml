@@ -192,13 +192,47 @@ type rss_feed = {
 
 let rss_feeds = Hashtbl.create 10
 
-
 let _ =
   add_web_kind "rss" "Syndication feeds to get periodically updated data" 
     (fun url filename ->
       lprintf_nl (_b "parsing feed %s (rss)") url;
-      let c = Rss.channel_of_file filename in
-      (try Sys.remove filename with _ -> ());
+      let c =
+	(try
+	  let rss_c = Rss.channel_of_file filename in
+	  (try Sys.remove filename with _ -> ());
+	  rss_c
+	with Xml.Error _ ->
+	  lprintf_nl (_b "found buggy feed, preprocessing with %s and trying again") !!rss_preprocessor;
+	  (try
+	    let pipe_out, pipe_in = Unix.pipe () in
+	    let pid = Unix.create_process !!rss_preprocessor [| !!rss_preprocessor; filename |] 
+		Unix.stdin pipe_in pipe_in in
+	    Unix.close pipe_in;
+	    let output = Buffer.create 1024 in
+	    let buffersize = 1024 in
+	    let buffer = String.create buffersize in
+	    (try
+	      while true do
+		let nread = Unix.read pipe_out buffer 0 buffersize in
+		if nread = 0 then raise End_of_file;
+		Buffer.add_substring output buffer 0 nread
+	      done
+	     with 
+	     | End_of_file -> ()
+	     | Unix.Unix_error (code, f, arg) ->
+		 lprintf_nl "%s failed: %s" !!rss_preprocessor (Unix.error_message code));
+	    (try Unix.close pipe_out with _ -> ());
+	    (try Sys.remove filename with _ -> ());
+	    let _pid, _ = Unix.waitpid [] pid in
+	    let result = Buffer.contents output in
+	    if result = "" then begin
+	      lprintf_nl (_b "%s produced empty content for feed %s, program missing?") !!rss_preprocessor url;
+	      raise Not_found
+	    end;
+	    Rss.channel_of_string result
+	  with Unix.Unix_error (code, f, arg) ->
+	    lprintf_nl (_b "%s failed: %s") !!rss_preprocessor (Unix.error_message code); raise Not_found))
+      in
       let feed =
         try Hashtbl.find rss_feeds url with
           Not_found ->

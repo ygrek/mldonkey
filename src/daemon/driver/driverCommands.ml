@@ -1104,16 +1104,43 @@ let _ =
     "!", Arg_multiple (fun arg o ->
         if !!allow_any_command then
           match arg with
-            c :: tail ->
-              let args = String2.unsplit tail ' ' in
+            c :: args ->
               let cmd = try List.assoc c !!allowed_commands with Not_found -> c in
-              let tmp = Filename.temp_file "com" ".out" in
-              let ret = Sys.command (Printf.sprintf "%s %s > %s"
-                    cmd args tmp) in
-              let output = File.to_string tmp in
-              Sys.remove tmp;
-              Printf.sprintf (_b "%s\n---------------- Exited with code %d") output ret
-          | _ -> _s "no command given"
+	      (try
+		 let pipe_out, pipe_in = Unix.pipe () in
+		 let pid = Unix.create_process cmd 
+		   (Array.of_list (Filename2.basename c :: args))
+		   Unix.stdin pipe_in pipe_in in
+		 Unix.close pipe_in;
+		 (* can't close pipe_out in the already forked+executed process... *)
+		 let output = Buffer.create 1024 in
+		 let buffersize = 1024 in
+		 let buffer = String.create buffersize in
+		 (try
+		    while true do
+		      let nread = Unix.read pipe_out buffer 0 buffersize in
+		      if nread = 0 then raise End_of_file;
+		      Buffer.add_substring output buffer 0 nread
+		    done
+		  with 
+		  | End_of_file -> ()
+		  | Unix.Unix_error (code, f, arg) ->
+		      lprintf_nl "%s failed%s: %s" f (if arg = "" then "" else " on " ^ arg) (Unix.error_message code));
+		 (try Unix.close pipe_out with _ -> ());
+		 let _pid, status = Unix.waitpid [] pid in
+		 Printf.sprintf (_b "%s\n---------------- %s") 
+		   (Buffer.contents output) 
+		   (match status with
+		    | Unix.WEXITED exitcode ->
+			Printf.sprintf "Exited with code %d" exitcode
+		    | Unix.WSIGNALED signal ->
+			Printf.sprintf "Was killed by signal %d" signal
+		    | Unix.WSTOPPED signal -> (* does it matter for us ? *)
+			Printf.sprintf "Was stopped by signal %d" signal)
+		   
+	       with Unix.Unix_error (code, f, arg) ->
+		 Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else " on " ^ arg) (Unix.error_message code))
+          | [] -> _s "no command given"
         else
         match arg with
           [arg] ->

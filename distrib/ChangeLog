@@ -17,6 +17,9 @@ ChangeLog
 2006/11/15
 5556: web_infos: new option rss_preprocessor used for fixing broken RSS feeds,
       safer process spawning for command "!" (pango)
+- broken feeds like http://thepiratebay.org/rss.php?cat=D601 can now be parsed
+  directly using (for example) xmllint, if a feed can not be read be MLDonkey
+  its piped through rss_preprocessor and read again
 5560: EDK: Parse some more server.met fields, log unknown server tags
 
 2006/11/14
