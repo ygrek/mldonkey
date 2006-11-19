@@ -213,13 +213,18 @@ let udp_query_sources () =
 let disconnect_server s reason =
   let choose_new_master_server s =
     match !DonkeyGlobals.master_server with
-      Some ss when s == ss ->
+    | Some ss when s == ss ->
 	DonkeyGlobals.master_server := None;
         (try
 	  DonkeyGlobals.master_server :=
 	    Some (List.find (fun s -> s.server_master) !servers_list);
-	  lprintf_nl "changed main master server from %s to %s"
-	    (string_of_server ss) (string_of_server s)
+	  if !verbose_location then begin
+            match !DonkeyGlobals.master_server with
+            | Some ns -> 
+	            lprintf_nl "changed main master server from %s (%s) to %s (%s)"
+	              ss.server_name (string_of_server ss) ns.server_name (string_of_server ns)
+            | _ -> ()
+          end
         with Not_found -> ())
     | _ -> ();
   in

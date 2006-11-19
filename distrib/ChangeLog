@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/11/20
+5563: EDK: Fix broken log message when master server changes (Schlumpf)
+
 2006/11/15
 5556: web_infos: new option rss_preprocessor used for fixing broken RSS feeds,
       safer process spawning for command "!" (pango)
