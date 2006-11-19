@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/11/20
+5564: HTML: Remove non-working option use_html_frames (Schlumpf)
 5563: EDK: Fix broken log message when master server changes (Schlumpf)
 
 2006/11/15

@@ -1676,7 +1676,6 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option html_mods_load_message_file;
 			strings_of_option html_mods_max_messages;
 			strings_of_option html_mods_bw_refresh_delay;
-			strings_of_option use_html_frames;
 			strings_of_option html_frame_border;
 			strings_of_option html_checkbox_vd_file_list;
 			strings_of_option html_checkbox_search_file_list;
@@ -3526,7 +3525,6 @@ let _ =
             html_mods =:= true;
             html_mods_style =:= 0;
             commands_frame_height =:= CommonMessages.styles.(!!html_mods_style).frame_height;
-            use_html_frames =:= true;
             CommonMessages.colour_changer() ;
           end;
 
@@ -3544,7 +3542,6 @@ let _ =
           end
         else begin
             html_mods =:= true;
-            use_html_frames =:= true;
             html_mods_theme =:= "";
             let num = int_of_string (List.hd args) in
 
@@ -3635,8 +3632,7 @@ let _ =
             ""
           end
         else begin
-(* html_mods =:= true;
-            use_html_frames =:= true; *)
+(* html_mods =:= true; *)
             html_mods_theme =:= List.hd args;
             "\\<script type=\\\"text/javascript\\\"\\>top.window.location.reload();\\</script\\>"
           end

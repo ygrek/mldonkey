@@ -775,14 +775,6 @@ let read_theme_page page =
     really_input file s 0 size;
     s)
 
-let add_simple_commands buf =
-  let this_page = "commands.html" in
-  Buffer.add_string buf (
-    if !!html_mods_theme != "" && theme_page_exists this_page then
-      read_theme_page this_page else
-    if !!html_mods then !!CommonMessages.web_common_header_mods0
-    else !!CommonMessages.web_common_header_old)
-
 let http_add_gen_header r =
   add_reply_header r "Server" "MLdonkey";
   add_reply_header r "Connection" "close"
@@ -883,9 +875,7 @@ let html_open_page buf t r open_body =
                         else !!CommonMessages.html_header_old);
 
   Buffer.add_string buf "</head>\n";
-  if open_body then Buffer.add_string buf "<body>\n";
-  if not !!use_html_frames then add_simple_commands buf;
-  ()
+  if open_body then Buffer.add_string buf "<body>\n"
 
 let html_close_page buf close_body =
   if close_body then Buffer.add_string buf "</body>\n";
@@ -1054,7 +1044,6 @@ let http_handler o t r =
               if !!html_mods then !!CommonMessages.multidllink_mods0
               else !!CommonMessages.multidllink_old)
         | "" | "index.html" ->
-            if !!use_html_frames then begin
                 html_open_page buf t r false;
                 let this_page = "frames.html" in
                 if !!html_mods_theme != "" && theme_page_exists this_page then
@@ -1085,9 +1074,7 @@ let http_handler o t r =
 </frameset>
 <frame name=\"output\" src=\"oneframe.html\">
 </frameset>
-" !!commands_frame_height;
-              end else
-              html_open_page buf t r true
+" !!commands_frame_height
         | "complex_search.html" ->
             html_open_page buf t r true;
             CommonSearch.complex_search buf
@@ -1541,8 +1528,8 @@ let http_handler o t r =
 
   let s =
     match !http_file_type with
-      HTM -> html_close_page buf false; dollar_escape o !!use_html_frames (Buffer.contents buf)
-    | MLHTM -> html_close_page buf true; dollar_escape o !!use_html_frames (Buffer.contents buf)
+      HTM -> html_close_page buf false; dollar_escape o true (Buffer.contents buf)
+    | MLHTM -> html_close_page buf true; dollar_escape o true (Buffer.contents buf)
     | TXT
     | UNK
     | BIN -> Buffer.contents buf

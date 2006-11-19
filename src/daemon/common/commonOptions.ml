@@ -1458,10 +1458,6 @@ let http_realm = define_expert_option current_section ["http_realm"]
   "The realm shown when connecting with a WEB browser"
     string_option "MLdonkey"
 
-let use_html_frames = define_expert_option current_section ["use_html_frames"]
-  "This option controls whether the WEB interface should use frames or not"
-    bool_option true
-
 let html_frame_border = define_expert_option current_section ["html_frame_border"]
   "This option controls whether the WEB interface should show frame borders or not"
     bool_option true
