@@ -20,6 +20,14 @@
 open Printf2
 open Autoconf
 
+let log_prefix = "[Gettext]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
+
 type expected_types =
   Type_int
 | Type_char
@@ -291,7 +299,7 @@ let verify index translated =
       !verified.(index) <- true;
       true
     end else begin
-      lprintf "Bad format for %s\n" translated;
+      lprintf_nl "Bad format for %s\n" translated;
       save_strings_file := true;
       !translation.(index) <- no_translation;
       false
@@ -359,7 +367,7 @@ let save_strings () =
             
             save_strings_file := false)
         with e ->
-            lprintf "Gettext.save_strings: Error %s\n\n"
+            lprintf_nl "save_strings: Error %s"
               (Printexc2.to_string e)
 open Genlex2
 
@@ -404,7 +412,7 @@ in the default and in the translation. *)
         parse_file stream
       with e -> 
           strings_file_error := true;
-        lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
+        lprintf_nl "set_strings_file: Exception %s in %s at pos %d"
           (Printexc2.to_string e) filename (Stream.count s))
     with e -> 
         save_strings_file := true);
@@ -420,7 +428,7 @@ let _ =
     let strings = Hashtbl.create 111 in
     
 let translate1 s0 s1 =
-  lprintf "translate0 %s\n" s0;
+  lprintf_nl "translate0 %s" s0;
   Hashtbl.add strings s0 s1
 in
 
@@ -444,18 +452,18 @@ in
       parse_file stream 
     with e -> 
         strings_file_error := true;
-        lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
+        lprintf_nl "set_strings_file: Exception %s in %s at pos %d"
            (Printexc2.to_string e) f1 (Stream.count s))
   with e -> 
     save_strings_file := true;
-    lprintf "Gettext.set_strings_file: no message file found. Creating one\n");
+    lprintf_nl "set_strings_file: no message file found. Creating one");
 
 let translate2 s0 s1 =
   try
-    lprintf "translate2 %s\n" s0;
+    lprintf_nl "translate2 %s" s0;
     let s0 = Hashtbl.find strings s0 in
     translate "Former Translation" s0 s1
-  with _ -> lprintf "No translation for %s\n" s0
+  with _ -> lprintf_nl "No translation for %s" s0
 in
     
 let rec parse_file = (parser
@@ -477,11 +485,11 @@ in
           parse_file stream 
         with e -> 
             strings_file_error := true; 
-            lprintf "Gettext.set_strings_file: Exception %s in %s at pos %d\n"
+            lprintf_nl "set_strings_file: Exception %s in %s at pos %d"
                (Printexc2.to_string e) f2 (Stream.count s))
      with e -> 
        save_strings_file := true;
-       lprintf "Gettext.set_strings_file: no message file found. Creating one\n"
+       lprintf_nl "set_strings_file: no message file found. Creating one"
     
     
   with _ -> ()

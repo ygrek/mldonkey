@@ -419,7 +419,7 @@ or getting a binary compiled with glibc %s.\n\n")
   lprintf_nl (_b "---- enabling interfaces ----");
   List.iter (fun (p,s) -> if p <> 0 then lprintf_nl "using port %d (%s)" p s)
     (network_ports (network_find_by_name "Global Shares"));
-  lprintf (_b "%sdisabled networks: ") (log_time ());
+  lprintf (_b "%s[dMain] disabled networks: ") (log_time ());
   let found = ref false in
     networks_iter_all (fun r ->
         if not (network_is_enabled r) then

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/11/20
+5570: Some log messages in gettext module (Schlumpf)
 5569: HTML: Fix display bug in server list after js popups
       introduced by patch #5549 (Schlumpf)
 5564: HTML: Remove non-working option use_html_frames (Schlumpf)
