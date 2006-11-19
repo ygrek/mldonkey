@@ -441,8 +441,6 @@ let server_print s o =
     (match impl.impl_server_state with
         Connected _ -> 
             Printf.sprintf "title=\\\"Server Banner\\\"
-            onMouseOver=\\\"mOvr(this);\\\"
-            onMouseOut=\\\"mOut(this);\\\"
             onClick=\\\"location.href='submit?q=server_banner+%d'\\\"" 
             snum
         | _ -> "")
@@ -456,32 +454,28 @@ let server_print s o =
       if server_blocked s && not_connected 
         then "\\<td class=\\\"srb\\\"\\>blk\\</td\\>" 
         else Printf.sprintf
-        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-        onMouseOut=\\\"mOut(this);\\\" title=\\\"Connect|Disconnect\\\"
-        onClick=\\\"parent.fstatus.location.href='submit?q=%s+%d'\\\"\\>%s\\</TD\\>"
+        "\\<td class=\\\"srb\\\" title=\\\"Connect|Disconnect\\\"
+        onClick=\\\"parent.fstatus.location.href='submit?q=%s+%d'\\\"\\>%s\\</td\\>"
               (if not_connected then "c" else "x")
         snum
               (if not_connected then "Conn" else "Disc")
       )
       (
         Printf.sprintf
-        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-        onMouseOut=\\\"mOut(this);\\\" title=\\\"Remove server\\\"
-        onClick=\\\"parent.fstatus.location.href='submit?q=rem+%d'\\\"\\>Rem\\</TD\\>"
+        "\\<td class=\\\"srb\\\" title=\\\"Remove server\\\"
+        onClick=\\\"parent.fstatus.location.href='submit?q=rem+%d'\\\"\\>Rem\\</td\\>"
       snum
       )
       (
         if info.G.server_preferred then begin
         Printf.sprintf
-        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-        onMouseOut=\\\"mOut(this);\\\" title=\\\"Unset preferred\\\"
-        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+false+%s'\\\"\\>P\\</TD\\>"
+        "\\<td class=\\\"srb\\\" title=\\\"Unset preferred\\\"
+        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+false+%s'\\\"\\>P\\</td\\>"
         (Ip.string_of_addr info.G.server_addr)
         end else begin
         Printf.sprintf
-        "\\<TD class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-        onMouseOut=\\\"mOut(this);\\\" title=\\\"Set preferred\\\"
-        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+true+%s'\\\"\\>-\\</TD\\>"
+        "\\<td class=\\\"srb\\\" title=\\\"Set preferred\\\"
+        onClick=\\\"parent.fstatus.location.href='submit?q=preferred+true+%s'\\\"\\>-\\</td\\>"
         (Ip.string_of_addr info.G.server_addr)
         end
       );
@@ -536,8 +530,7 @@ let server_print s o =
       html_mods_td buf ([("", "sr br", "")])
     else
       Printf.bprintf buf
-"\\<TD class=\\\"sr br\\\" onMouseOver=\\\"mOvr(this);\\\"
-onMouseOut=\\\"mOut(this);\\\" title=\\\"Show published files\\\"
+"\\<TD class=\\\"sr br\\\" title=\\\"Show published files\\\"
 onClick=\\\"location.href='submit?q=server_shares+%d'\\\"\\>%d\\</TD\\>"
 	snum info.G.server_published_files;
 
