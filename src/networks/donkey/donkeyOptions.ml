@@ -57,9 +57,15 @@ let max_allowed_connected_servers () =
   BasicSocket.mini 5 !!max_connected_servers
 
 let server_black_list = define_option donkey_section ["server_black_list"]
-  "A list of server IP to remove from server list.
+  "A list of server IP to remove from server list. Can contain single IPs, CIDR ranges, or begin-end ranges.
   Servers on this list can't be added, and will eventually be removed"
-    (list_option Ip.option) []
+    CommonOptions.ip_range_list_option []
+
+let server_black_list_set = ref Ip_set.BL_Empty
+
+let () =
+  option_hook server_black_list (fun _ ->
+    server_black_list_set := Ip_set.of_list !!server_black_list)
 
 let force_high_id = define_option donkey_section ["force_high_id"]
   "immediately close connection to servers that don't grant a High ID"

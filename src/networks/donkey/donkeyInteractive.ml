@@ -815,11 +815,11 @@ let commands = [
 
     "bs", Arg_multiple (fun args o ->
         List.iter (fun arg ->
-            let ip = Ip.of_string arg in
-            server_black_list =:=  ip :: !!server_black_list;
+            let range = Ip.range_of_string arg in
+            server_black_list =:=  range :: !!server_black_list;
         ) args;
         "done"
-    ), "<ip1> <ip2> ... :\t\t\tadd these IPs to the servers black list";
+    ), "<range1> <range2> ... :\t\t\tadd these IPs to the servers black list (can be single IPs, CIDR ranges or begin-end ranges)";
 
     "port", Arg_one (fun arg o ->
         donkey_port =:= int_of_string arg;
