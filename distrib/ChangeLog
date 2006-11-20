@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/11/20
+5574: allowed_ips: Fix list usage when 0.0.0.0/0 is part of the list (pango)
 5570: Some log messages in gettext module (Schlumpf)
 5569: HTML: Fix display bug in server list after js popups
       introduced by patch #5549 (Schlumpf)

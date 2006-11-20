@@ -296,6 +296,7 @@ let load filename =
     end
 
 let of_list l =
+  bl_optimize (
   List.fold_left (fun acc r ->
     let range =
       match r with
@@ -314,7 +315,7 @@ let of_list l =
 	  blocking_end = Ip.broadcast_address ip mask }
     in 
     add_range acc range
-  ) BL_Empty l
+  ) BL_Empty l)
 
 let print_list buf bl =
   let rec print_list_aux bl =
