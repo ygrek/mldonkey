@@ -1079,7 +1079,7 @@ let process_mule_info c t =
   update_emule_proto_from_tags c t;
   update_emule_release c;
   client_must_update c;
-  if !!enable_sui
+  if sec_ident_enabled ()
       && (c.client_md4 <> Md4.null) 
       && (c.client_sent_challenge == Int64.zero) 
       && (c.client_emule_proto.emule_secident > 0) 
@@ -1755,7 +1755,7 @@ is checked for the file.
       end
 
   | M.EmuleSignatureReq t ->
-      if !!enable_sui then 
+      if sec_ident_enabled () then 
       begin
       let module Q = M.EmuleSignatureReq in
 
@@ -1810,7 +1810,7 @@ is checked for the file.
       end
 
   | M.EmulePublicKeyReq t ->
-      if !!enable_sui then 
+      if sec_ident_enabled () then 
       begin
       let module Q = M.EmulePublicKeyReq in
         (match c.client_public_key with 
@@ -1835,12 +1835,11 @@ is checked for the file.
         );
       end
        else
-      if !verbose_msg_clients then begin
-        lprintf_nl "%s [EPubKeyReq] [DISABLED]" (full_client_identifier c) ;
-      end
+      if !verbose_msg_clients then
+        lprintf_nl "%s [EPubKeyReq] [DISABLED]" (full_client_identifier c);
 
   | M.EmuleSecIdentStateReq t ->
-      if !!enable_sui then 
+      if sec_ident_enabled () then 
       begin
       let module Q = M.EmuleSecIdentStateReq in
 
@@ -1863,9 +1862,8 @@ is checked for the file.
           then send_signature c;
 
       end else
-      if !verbose_msg_clients then begin
-        lprintf_nl "%s [ESecIdentStateReq] [DISABLED]" (full_client_identifier c) ;
-      end
+      if !verbose_msg_clients then
+        lprintf_nl "%s [ESecIdentStateReq] [DISABLED]" (full_client_identifier c);
 
   | M.EmuleRequestSourcesReplyReq t ->
 (*      lprintf "Emule sent sources\n";  *)

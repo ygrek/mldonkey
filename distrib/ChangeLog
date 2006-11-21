@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/11/21
+5577: EDK: Send correct SUI tags
+- sometimes MLDonkey sent SUI=true tag when CryptoPP was not linked
+
 2006/11/20
 5568: EDK: Support CIDR and IP ranges in server_black_list (pango)
 5574: allowed_ips: Fix list usage when 0.0.0.0/0 is part of the list (pango)

@@ -128,7 +128,7 @@ let reset_tags () =
   let module D = DonkeyProtoClient in
   let m = D.mldonkey_emule_proto in
 
-  let secident = if !!enable_sui then 3 else 0 in
+  let secident = if sec_ident_enabled () then 3 else 0 in
     m.emule_secident <- secident;
     m.emule_features <- secident;
 
@@ -296,9 +296,7 @@ be useful when users want to share files that they had already previously
       
       Options.option_hook global_login reset_tags;
       Options.option_hook login reset_tags;
-      Options.option_hook enable_sui ( fun _ ->
-	if not (Autoconf.donkey_sui_works ()) && !!enable_sui then enable_sui =:= false;
-	reset_tags ());
+      Options.option_hook enable_sui reset_tags;
 				
 (**** START TIMERS ****)
       add_session_option_timer enabler check_client_connections_delay 

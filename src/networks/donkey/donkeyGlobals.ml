@@ -138,6 +138,8 @@ let emule_info =
     E.tags = [];
   }
 
+let sec_ident_enabled () = !!enable_sui && (Autoconf.donkey_sui_works ())
+
 let overnet_connectreply_tags = ref ([] :  tag list)
 let overnet_connect_tags = ref ([] :  tag list)
 
