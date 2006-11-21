@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2006/11/21
+5578: Remove unused files
+- src/utils/net/tcpClientSocket.ml
+- src/utils/net/tcpClientSocket.mli
+- src/utils/net/tcpSocket.mli
 5577: EDK: Send correct SUI tags
 - sometimes MLDonkey sent SUI=true tag when CryptoPP was not linked
 
