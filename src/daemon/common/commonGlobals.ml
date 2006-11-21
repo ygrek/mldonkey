@@ -117,7 +117,7 @@ let shorten str limit =
     with e -> slen
   in
   let diff_len_utf8_ascii = slen - len in
-  let max_len = maxi limit 10 in
+  let max_len = max limit 10 in
   if len > max_len then
     let prefix = String.sub name 0 (max_len - 7 + diff_len_utf8_ascii) in
     let suffix = String.sub name (len - 4 + diff_len_utf8_ascii) 4 in
@@ -177,7 +177,7 @@ let connection_failed cc =
   cc.control_state <- cc.control_state + 1
 
 let connection_next_try cc =
-  cc.control_last_try + mini (cc.control_min_reask * cc.control_state)
+  cc.control_last_try + min (cc.control_min_reask * cc.control_state)
   cc.control_min_reask
 
 let connection_can_try cc =
@@ -238,7 +238,7 @@ let _ =
 	float_of_int (if !!max_hard_upload_rate = 0 then 
 	   10000 * 1024
          else 
-	   maxi (!!max_hard_upload_rate * 1024) 1024) *. 0.90;
+	   max (!!max_hard_upload_rate * 1024) 1024) *. 0.90;
   );
   option_hook max_hard_download_rate (fun _ ->
       check_ul_dl_ratio ();
@@ -672,13 +672,13 @@ let update_h_upload_history () =
   done
 
 let detected_link_capacity link =
-  List.fold_left maxi 0 (Fifo.to_list link)
+  List.fold_left max 0 (Fifo.to_list link)
 
 let detected_uplink_capacity () =
-  List.fold_left maxi 0 (Fifo.to_list upload_history)
+  List.fold_left max 0 (Fifo.to_list upload_history)
 
 let detected_downlink_capacity () =
-  List.fold_left maxi 0 (Fifo.to_list download_history)
+  List.fold_left max 0 (Fifo.to_list download_history)
 
 
 let new_tag name v =

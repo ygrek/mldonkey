@@ -75,9 +75,7 @@ val nb_sockets : unit -> int
   
 val stats : Buffer.t -> t -> unit
   
-val mini : int -> int -> int
 val minf : float -> float -> float
-val maxi : int -> int -> int
 val maxf : float -> float -> float
   
 val set_allow_write : t -> bool ref -> unit

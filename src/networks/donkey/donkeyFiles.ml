@@ -130,7 +130,7 @@ module NewUpload = struct
               end else
             let max_len = up.up_end_chunk -- up.up_pos in
             let max_len = Int64.to_int max_len in
-            let msg_block_size_int = mini msg_block_size_int per_client in
+            let msg_block_size_int = min msg_block_size_int per_client in
             if max_len <= msg_block_size_int then
 (* last block from chunk *)
               begin
@@ -165,7 +165,7 @@ module NewUpload = struct
       do_if_connected  c.client_source.DonkeySources.source_sock (fun sock ->
 (*    lprintf "upload_to_client %d connected\n"  (maxi max_msg_size size); *)
           
-          let size = mini max_msg_size size in
+          let size = min max_msg_size size in
           send_client_block c sock size;
            (match c.client_upload with
               None -> ()

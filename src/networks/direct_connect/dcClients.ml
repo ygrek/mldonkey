@@ -273,7 +273,7 @@ let client_reader c t sock =
       let rec refill sock =
         lprintf "FILL SOCKET"; lprint_newline ();
         let len = remaining_to_write sock in
-        let can = maxi (8192 - len) 0 in
+        let can = max (8192 - len) 0 in
         if can > 0 then
           match c.client_download with
             DcUploadList list ->
@@ -281,7 +281,7 @@ let client_reader c t sock =
               let slen = String.length list in
               let pos = Int64.to_int c.client_pos in
               if pos < slen then begin
-                  let send_len = mini (slen - pos) can in
+                  let send_len = min (slen - pos) can in
                   lprintf "Sending %d" send_len; lprint_newline ();
                   TcpBufferedSocket.write sock list pos send_len;
                   lprintf "sent"; lprint_newline ();

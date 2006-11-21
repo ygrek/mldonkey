@@ -2009,7 +2009,7 @@ end else *)
       let module Q = M.QueryBloc in
       let file = find_file  t.Q.md4 in
       let prio = (file_priority file) in
-      let client_upload_lifetime = ref ((maxi 0 !!upload_lifetime) * 60) in
+      let client_upload_lifetime = ref ((max 0 !!upload_lifetime) * 60) in
       begin
         
         if !!dynamic_upload_lifetime

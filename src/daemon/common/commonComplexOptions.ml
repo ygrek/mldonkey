@@ -1241,7 +1241,7 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
   let reserved_fds = 40 in (* ini files, dynamic libs, etc. *)
 
   let total_files = (* maximum number of files in use at the same time *)
-    (maxi (List.length !!files) !!max_concurrent_downloads) + !!max_upload_slots + reserved_fds
+    (max (List.length !!files) !!max_concurrent_downloads) + !!max_upload_slots + reserved_fds
   in
 
   let wanted_socks = !!max_opened_connections + total_files in
@@ -1258,7 +1258,7 @@ let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
   else
     begin
       let new_max_opened_connections =
-        maxi (max_all_sockets - total_files) (max_all_sockets / 2)
+        max (max_all_sockets - total_files) (max_all_sockets / 2)
       in
       lprintf_nl "max_opened_connections is set too high (%d), reducing to %d"
         !!max_opened_connections new_max_opened_connections;

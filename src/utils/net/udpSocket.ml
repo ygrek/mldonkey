@@ -448,7 +448,7 @@ let new_bandwidth_controler tcp_bc =
   let udp_user total n =
     if !verbose_bandwidth > 0 then
       lprintf_nl "udp_user %d/%d" n total;
-    let n = if total = 0 then 100000 else n in
+(*    let n = if total = 0 then 100000 else n in *)
     udp_bc.base_time <- udp_bc.base_time + 1;
     if udp_bc.count = 0 then begin
         udp_bc.count <- 10;

@@ -170,7 +170,7 @@ let read_header header_handler sock nread =
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
-  let new_pos = maxi 0 (new_pos - 1) in
+  let new_pos = max 0 (new_pos - 1) in
   (*
   lprintf "received [%s]" (String.escaped
       (String.sub b.buf new_pos nread));
@@ -380,7 +380,7 @@ let wget r f =
       if nread > 0 then begin
           let left = 
             if maxlen >= 0 then
-              mini (maxlen - !file_size) nread
+              min (maxlen - !file_size) nread
             else nread
           in
           Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
@@ -452,7 +452,7 @@ let wget_string r f progress =
         if nread > 0 then begin
             let left = 
               if maxlen >= 0 then
-                mini (maxlen - !file_size) nread
+                min (maxlen - !file_size) nread
               else nread
           in
           Buffer.add_string file_buf (String.sub buf.buf buf.pos left);

@@ -992,7 +992,7 @@ let _ =
         let num = int_of_string num in
 
         if num > 0 then (* we want to disable upload for a short time *)
-          let num = mini !CommonUploads.upload_credit num in
+          let num = min !CommonUploads.upload_credit num in
           CommonUploads.has_upload := !CommonUploads.has_upload + num;
           CommonUploads.upload_credit := !CommonUploads.upload_credit - num;
           Printf.sprintf
@@ -1003,7 +1003,7 @@ let _ =
         if num < 0 && !CommonUploads.has_upload > 0 then
 (* we want to restart upload probably *)
           let num = - num in
-          let num = mini num !CommonUploads.has_upload in
+          let num = min num !CommonUploads.has_upload in
           CommonUploads.has_upload := !CommonUploads.has_upload - num;
           CommonUploads.upload_credit := !CommonUploads.upload_credit + num;
           Printf.sprintf

@@ -272,7 +272,7 @@ let send_get_range_request c file ranges =
         | _ -> assert false
       in
       let msg = M.QueryBlocReq msg in
-      set_read_power sock (!!upload_power + maxi 0 (file_priority file));
+      set_read_power sock (!!upload_power + max 0 (file_priority file));
 (*      lprintf "QUEUE DOWNLOAD REQUEST\n"; *)
 (*      CommonUploads.queue_download_request (fun _ ->  *)
           client_send c msg 

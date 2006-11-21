@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/11/21
+5579: Remove BasicSocket.[mini|maxi], replace them with Pervasives functions
+- small fix for DonkeyOptions.max_allowed_connected_servers
 5578: Remove unused files
 - src/utils/net/tcpClientSocket.ml
 - src/utils/net/tcpClientSocket.mli

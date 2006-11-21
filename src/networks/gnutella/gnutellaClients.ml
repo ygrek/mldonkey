@@ -997,7 +997,7 @@ let get_handler get_request cc gconn sock (first_line, headers) =
             if get_request then
               let pos = uc.uc_chunk_pos in
               let to_write = uc.uc_chunk_end -- pos in
-              let rlen = mini (max_refill sock) (Int64.to_int to_write) in
+              let rlen = min (max_refill sock) (Int64.to_int to_write) in
               if !verbose_msg_clients then
                 lprintf "[GUP] to_write: %d/%Ld/%d\n" rlen to_write
                   (remaining_to_write sock);

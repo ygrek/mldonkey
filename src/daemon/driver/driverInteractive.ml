@@ -2130,8 +2130,8 @@ let diskinfo html buf =
   let len_dir = ref 9 in
   let len_strategy = ref 29 in (* "shared (incoming_directories)" *)
   List.iter ( fun (dir, strategy) ->
-    len_dir := maxi !len_dir (String.length dir);
-    len_strategy := maxi !len_strategy (String.length strategy)
+    len_dir := max !len_dir (String.length dir);
+    len_strategy := max !len_strategy (String.length strategy)
   ) !list;
   let fill_dir = String.make (!len_dir - 9) ' ' in
   let fill_dir_line = String.make (!len_dir - 9) '-' in
@@ -2180,8 +2180,8 @@ let diskinfo html buf =
 	  end
 	else
 	  Printf.bprintf buf "%-*s|%-*s|%8s|%8s|%5s|%-s\n"
-	    (maxi !len_dir (!len_dir - String.length dir)) dir
-	    (maxi !len_strategy (!len_strategy - String.length strategy)) strategy
+	    (max !len_dir (!len_dir - String.length dir)) dir
+	    (max !len_strategy (!len_strategy - String.length strategy)) strategy
 	    diskused diskfree percentfree filesystem
     	) !list;
   if html then

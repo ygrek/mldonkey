@@ -204,13 +204,7 @@ let string_of_reason c =
 let minf (x: float) (y: float) =
   if x > y then y else x
 
-let mini (x: int) (y: int) =
-  if x > y then y else x
-
 let maxf (x: float) (y: float) =
-  if x < y then y else x
-
-let maxi (x: int) (y: int) =
   if x < y then y else x
 
 (*************************************************************************)

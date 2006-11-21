@@ -319,7 +319,7 @@ let accept_connection_bandwidth t =
   forecast_download t 0
 
 let best_packet_size nbytes =
-  let nbytes = maxi nbytes !minimal_packet_size in
+  let nbytes = max nbytes !minimal_packet_size in
   let nip_packets = 1 + nbytes / !mtu_packet_size in
   let headers = nip_packets * !ip_packet_size in
   let nframes = 1 + (nbytes + headers) / packet_frame_size in
@@ -411,7 +411,7 @@ let buf_add t b s pos1 len =
         lprintf "[TCP_BS]: BUFFER OVERFLOW %d+%d> %d " b.len len b.max_buf_size ;
 
         lprintf "MESSAGE: [";
-        for i = pos1 to pos1 + (mini len 20) - 1 do
+        for i = pos1 to pos1 + (min len 20) - 1 do
           lprintf "(%d)" (int_of_char s.[i]);
         done;
         if len > 20 then lprintf "...";
@@ -422,7 +422,7 @@ let buf_add t b s pos1 len =
   socket !!! *)
       end
     else
-    let new_len = mini (maxi (2 * max_len) (b.len + len)) b.max_buf_size  in
+    let new_len = min (max (2 * max_len) (b.len + len)) b.max_buf_size  in
 (*    if t.monitored then
       (lprintf "Allocate new for %d\n" len; ); *)
     let new_buf = String.create new_len in
@@ -631,8 +631,8 @@ let can_read_handler t sock max_len =
             buf_len - b.len
           )
         else
-        let new_len = mini
-            (maxi
+        let new_len = min
+            (max
               (2 * buf_len) (b.len + min_read_size)) b.max_buf_size
         in
         let new_buf = String.create new_len in
@@ -645,7 +645,7 @@ let can_read_handler t sock max_len =
     in
     b.buf, b.pos+b.len, can_write_in_buffer
   in
-  let can_read = mini max_len buffer_len in
+  let can_read = min max_len buffer_len in
   if can_read > 0 then
     let old_len = b.len in
     let nread = try
@@ -684,8 +684,8 @@ let can_read_handler t sock max_len =
       end else
       b.len <- b.len + nread;
 (*    lprintf " %d\n" nread; *)
-    b.min_buf_size <- mini b.max_buf_size (
-      maxi (nread + nread / 2) min_read_size);
+    b.min_buf_size <- min b.max_buf_size (
+      max (nread + nread / 2) min_read_size);
 
     (*
     if nread = can_read then begin
@@ -1677,9 +1677,9 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
 
               List.iter (fun t ->
                   if bc.remaining_bytes > 0 then
-                    let nconnections = maxi bc.nconnections 1 in
-                    let can_read = maxi 1 (bc.remaining_bytes / nconnections) in
-                    let can_read = maxi !ip_packet_size (can_read * t.read_power) in
+                    let nconnections = max bc.nconnections 1 in
+                    let can_read = max 1 (bc.remaining_bytes / nconnections) in
+                    let can_read = max !ip_packet_size (can_read * t.read_power) in
                     (try
 (*                    lprintf "allow to read %d\n" can_read; *)
                         can_read_handler t t.sock_in can_read
@@ -1728,14 +1728,14 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
                 end;
               List.iter (fun t ->
                   if bc.remaining_bytes > 0 then
-                    let nconnections = maxi bc.nconnections 1 in
-                    let can_write = maxi 1 (bc.remaining_bytes / nconnections) in
+                    let nconnections = max bc.nconnections 1 in
+                    let can_write = max 1 (bc.remaining_bytes / nconnections) in
                     let can_write = best_packet_size (can_write * t.write_power)
                     in
                     let old_nwrite = t.nwrite in
                     (try
 (*                    lprintf "WRITE\n";  *)
-                        can_write_handler t t.sock_out (mini can_write t.wbuf.len)
+                        can_write_handler t t.sock_out (min can_write t.wbuf.len)
                       with _ -> ());
                     bc.remaining_bytes <- bc.remaining_bytes -
                     t.nwrite + old_nwrite;

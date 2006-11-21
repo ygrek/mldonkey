@@ -1792,7 +1792,7 @@ let _ =
         (!!minor_heap_size * 1024) };
   );
   option_hook client_buffer_size (fun _ ->
-      TcpBufferedSocket.max_buffer_size := maxi 10000000 !!client_buffer_size
+      TcpBufferedSocket.max_buffer_size := max 10000000 !!client_buffer_size
   );
   if Autoconf.has_gd then
     option_hook html_mods_vd_gfx_png (fun _ ->

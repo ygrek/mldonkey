@@ -223,7 +223,7 @@ let rec check_xinu s pos len depth =
         let check1 = check_xinu s (pos + 5 + len1) len (depth+1) in
         let check2 = check_xinu s (pos + 5 + len2) len (depth+1) in
 
-        maxi check0 (maxi check1 check2)
+        max check0 (max check1 check2)
       else depth
   | _ -> -10
 

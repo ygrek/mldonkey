@@ -934,7 +934,7 @@ let dynamic_refill_upload_slots () =
     estimated_capacity
   else 
     (* max_hard_upload_rate lowered manually,... *)
-    mini estimated_capacity (!!max_hard_upload_rate * 1024) in
+    min estimated_capacity (!!max_hard_upload_rate * 1024) in
   if !verbose_upload then
     lprintf_nl "usage: %d(%d) capacity: %d"
       (short_delay_upload_usage ())

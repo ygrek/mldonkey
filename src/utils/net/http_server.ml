@@ -785,7 +785,7 @@ let request_handler config sock nread =
   let b = TcpBufferedSocket.buf sock in
   let end_pos = b.pos + b.len in
   let new_pos = end_pos - nread in
-  let new_pos = maxi 0 (new_pos - 1) in
+  let new_pos = max 0 (new_pos - 1) in
 (*  lprintf "received [%s]\n" (String.escaped
       (String.sub b.buf new_pos nread)); - log commented out *)
   let rec iter i =

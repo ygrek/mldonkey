@@ -700,7 +700,7 @@ let gui_reader (gui: gui_record) t _ =
               add_timer 60. (fun _ ->
                   gui_send gui (Search_waiting (search_num, 0))
               );
-              gui.gui_id_counter <- maxi gui.gui_id_counter search_num;
+              gui.gui_id_counter <- max gui.gui_id_counter search_num;
               
               let user = gui.gui_conn.conn_user in
               let query = 

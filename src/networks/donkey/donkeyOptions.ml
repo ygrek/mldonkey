@@ -45,6 +45,10 @@ let max_connected_servers = define_option donkey_section ["max_connected_servers
   "The number of servers you want to stay connected to"
     int_option 3
 
+let max_allowed_connected_servers () =
+  min (int_of_string ((strings_of_option max_connected_servers).option_default))
+      !!max_connected_servers
+
 let reliable_sources = define_option donkey_section ["reliable_sources"]
   "Should mldonkey try to detect sources responsible for corruption and ban them, currently disabled"
     bool_option true
@@ -52,9 +56,6 @@ let reliable_sources = define_option donkey_section ["reliable_sources"]
 let ban_identity_thieves = define_option donkey_section ["ban_identity_thieves"]
   "Should mldonkey try to detect sources masquerading as others and ban them"
     bool_option true
-
-let max_allowed_connected_servers () =
-  BasicSocket.mini 5 !!max_connected_servers
 
 let server_black_list = define_option donkey_section ["server_black_list"]
   "A list of server IP to remove from server list. Can contain single IPs, CIDR ranges, or begin-end ranges.

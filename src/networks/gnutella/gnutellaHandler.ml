@@ -180,7 +180,7 @@ QAnd (QHasMinVal (CommonUploads.filesize_field, n),q)
             let module M = QueryReply in
             let module C = CommonUploads in
             let replies = ref [] in
-            for i = 0 to mini (Array.length files - 1) 9 do
+            for i = 0 to min (Array.length files - 1) 9 do
               let sh, info = files.(i) in
               let infos = ref [] in
               List.iter (fun uid ->

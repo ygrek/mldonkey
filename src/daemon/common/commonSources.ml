@@ -1760,7 +1760,7 @@ let rec find_max_overloaded q managers =
 
             (* calc sources queue size
                at least 3 sources per file*)
-            let nsources = maxi (!nfiles*3)
+            let nsources = max (!nfiles*3)
               (functions.function_max_connections_per_second () * 10) in
 
             (* calc how much sources a file can get according to its priority*)

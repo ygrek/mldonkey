@@ -861,7 +861,7 @@ let update_master_servers _ =
                            or is a preferred one *)
                         if (s.server_preferred && not ss.server_preferred)
                           || (!!keep_best_server
-                               && mini ((Int64.to_int ss_nusers) + 1000)
+                               && min ((Int64.to_int ss_nusers) + 1000)
                                        ((Int64.to_int ss_nusers) * 5)
                                   < (Int64.to_int s_nusers)
                              )

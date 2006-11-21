@@ -193,7 +193,7 @@ let value_to_server assocs =
     with _ -> ());
   (try
       connection_set_last_conn l.server_connection_control
-        (normalize_time (mini (get_value "server_age" value_to_int) 
+        (normalize_time (min (get_value "server_age" value_to_int) 
           (BasicSocket.last_time ())));
     with _ -> ());
   as_server l.server_server
