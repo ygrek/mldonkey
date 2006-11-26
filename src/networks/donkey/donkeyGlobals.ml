@@ -203,6 +203,8 @@ let clients_by_kind = H.create 127
 let clients_root = ref []
 let servers_by_key = Hashtbl.create 127
 let servers_list = ref ([] : server list)
+let walker_list = ref ([] : server list)
+let delayed_list = ref ([] : server list)
 
 (* let remaining_time_for_clients = ref (60 * 15) *)
 
@@ -560,6 +562,8 @@ let remove_server ip port =
   try
     Hashtbl.remove servers_by_key key;
     servers_list := List2.removeq s !servers_list ;
+    walker_list := List2.removeq s !walker_list;
+    delayed_list := List2.removeq s !delayed_list;
     (match s.server_sock with
         NoConnection -> ()
       | ConnectionWaiting token -> cancel_token token
@@ -893,11 +897,6 @@ let last_connected_server () =
       match !servers_list with
         [] -> raise Not_found
       | s :: _ -> s
-
-let all_servers () =
-  Hashtbl.fold (fun key s l ->
-      s :: l
-  ) servers_by_key []
 
 let string_of_file_state s =
   match  s with

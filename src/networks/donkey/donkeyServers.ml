@@ -670,8 +670,6 @@ position to the min_left_servers position.
 
 (* Keep connecting to servers in the background. Don't stay connected to
   them , and don't send your shared files list *)
-let walker_list = ref []
-let delayed_list = ref []
 let next_walker_start = ref 0
 
 (* one call every 5 seconds, so 12/minute, 720/hour *)
