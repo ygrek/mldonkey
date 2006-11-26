@@ -814,14 +814,41 @@ let _ =
         ""
     ), "[<num>] :\t\t\t\tconnect to more servers (or to server <num>)";
 
-    "x", Arg_one (fun num o ->
-        let num = int_of_string num in
-        let s = server_find num in
-        (match server_state s with
-            NotConnected _ -> ()
-          | _ ->   server_disconnect s);
+    "x", Arg_multiple (fun args o ->
+        let counter = ref 0 in
+        let is_connected state =
+          match state with
+          | Connecting
+          | Connected _
+          | Connected_initiating -> true
+          | _ -> false
+        in
+        let print_result v =
+            print_command_result o o.conn_buf
+             (Printf.sprintf (_b "Disconnected %d server%s") !counter (Printf2.print_plural_s !counter))
+        in
+        match args with
+        | ["all"] ->
+            Intmap.iter ( fun _ s ->
+              if is_connected (server_state s) then begin
+                server_disconnect s;
+                incr counter
+              end
+            ) !!servers;
+            print_result !counter;
         ""
-    ), "<num> :\t\t\t\tdisconnect from server";
+        | _ ->
+            List.iter (fun num ->
+                let num = int_of_string num in
+                let s = server_find num in
+                if is_connected (server_state s) then begin
+                  server_disconnect s;
+                  incr counter
+                end
+            ) args;
+            print_result !counter;
+        ""
+    ), "<server numbers|all> :\t\t\t\tdisconnect from server(s)";
 
   ]
 
