@@ -226,6 +226,7 @@ let _ =
   network.op_network_connected <- (fun _ -> false);
   network.op_network_is_enabled <- (fun _ -> raise IgnoreNetwork);
   network.op_network_update_options <- (fun _ -> raise IgnoreNetwork);
+  (* op_network_info defined twice ?? *)
   network.op_network_info <- (fun _ -> raise Not_found);
   network.op_network_info <- (fun n ->
       {
@@ -237,7 +238,7 @@ let _ =
         network_enabled = true;
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
-        network_connected = 0;
+        network_connected_servers = 0;
       });
   network.op_network_ports <- (fun _ ->
     [

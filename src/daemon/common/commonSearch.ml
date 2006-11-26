@@ -160,12 +160,12 @@ type englob_op = IN_NOOP | IN_AND | IN_OR
 let can_search = ref false
   
 let custom_query buf query =
-  can_search := false;
-  Hashtbl.iter (fun name net ->
-      try if net.op_network_is_enabled () && List.mem NetworkHasSearch net.network_flags then
-            can_search := true;
-      with _ -> ()
-  ) CommonNetwork.networks_by_name;
+  can_search :=
+    networks_iter_all_until_true (fun net ->
+      try 
+	network_is_enabled net && List.mem NetworkHasSearch net.network_flags
+      with _ -> false
+    );
   if !can_search then begin
   try
     let q = List.assoc query (CommonComplexOptions.customized_queries()) in
@@ -525,13 +525,15 @@ let custom_query buf query =
     <select name=network>
     <option value=\"\"> --- </option>            
 ";    
-    Hashtbl.iter (fun name net ->
-        try if net.op_network_is_enabled () && List.mem NetworkHasSearch net.network_flags then
-            Printf.bprintf buf "
-            <option value=\"%s\"> %s </option>            
-            " name name
+    networks_iter_all (fun net ->
+        let name = net.network_name in
+        try 
+	  if network_is_enabled net && 
+	    List.mem NetworkHasSearch net.network_flags then
+              Printf.bprintf buf 
+		"<option value=\"%s\"> %s </option>" name name
         with _ -> ()
-    ) CommonNetwork.networks_by_name;
+    );
     Printf.bprintf buf "
       </select></td></table>" ;
     
@@ -557,12 +559,11 @@ let custom_query buf query =
   "
  *)
 let complex_search buf =
-  can_search := false;
-  Hashtbl.iter (fun name net ->
-      try if net.op_network_is_enabled () && List.mem NetworkHasSearch net.network_flags then
-            can_search := true;
-      with _ -> ()
-  ) CommonNetwork.networks_by_name;
+  can_search := 
+    networks_iter_all_until_true (fun net ->
+      try network_is_enabled net && List.mem NetworkHasSearch net.network_flags
+      with _ -> false
+    );
   Buffer.add_string buf "<div class=\"results\">
 <table id=\"memstatsTable\" name=\"searchTable\" class=\"search\" cellspacing=0 cellpadding=0>
 <tr><td class=\"srh\" >";
@@ -746,13 +747,15 @@ Min bitrate
       <select name=network>
     <option value=\"\"> --- </option>            
 ";    
-  Hashtbl.iter (fun name net ->
-      try if net.op_network_is_enabled () && List.mem NetworkHasSearch net.network_flags then
-          Printf.bprintf buf "
-            <option value=\"%s\"> %s </option>            
-            " name name
+  networks_iter_all (fun net ->
+      let name = net.network_name in
+      try 
+	if network_is_enabled net && 
+	  List.mem NetworkHasSearch net.network_flags then
+            Printf.bprintf buf 
+	      "<option value=\"%s\"> %s </option>" name name
       with _ -> ()
-  ) CommonNetwork.networks_by_name;
+  );
   Printf.bprintf buf "
       </select></td></tr></table></form></td>";
   end;

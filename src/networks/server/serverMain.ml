@@ -340,7 +340,7 @@ let _ =
         network_config_filename = (match network.network_config_file with
             None -> "" | Some opfile -> options_file_name opfile);
         network_netname = network.network_name;
-        network_enabled = network.op_network_is_enabled ();
+        network_enabled = network_is_enabled network;
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
       })

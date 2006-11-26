@@ -470,22 +470,17 @@ let contact_remove c =
   with e ->
       lprintf_nl "Exception in contact_remove: %s" (Printexc2.to_string e)
 
-let exit_counter = ref 0
-let exit_timer = ref false
-
-let rec clean_exit n =
-  let can_exit = networks_for_all (fun n -> network_clean_exit n) in
-  if can_exit || (!exit_counter > !!shutdown_timeout) then 
-    exit_properly n
+let clean_exit n =
+  let can_exit = networks_for_all network_clean_exit in
+  if can_exit then exit_properly n
   else 
-    if not !exit_timer then begin
-      exit_timer := true;
+    let rec retry_later retry_counter =
       add_timer 1. (fun _ ->
-        incr exit_counter;
-        exit_timer := false;
-        clean_exit n;
-      );
-    end
+        let can_exit = networks_for_all network_clean_exit in
+        if can_exit || retry_counter > !!shutdown_timeout then
+	  exit_properly n
+	else retry_later (retry_counter + 1)) in
+    retry_later 0
 
 let time_of_sec sec =
   let hours = sec / 60 / 60 in
@@ -538,8 +533,7 @@ let start_search user query buf =
         networks_iter (fun r ->
             if query.GuiTypes.search_network = 0 ||
               r.network_num = query.GuiTypes.search_network
-            then
-              r.op_network_search s buf);
+            then network_search r s buf);
   end;
   s
 
@@ -551,7 +545,7 @@ let network_display_stats buf o =
   networks_iter_all (fun r ->
     try
       if List.mem NetworkHasStats r.network_flags then
-        r.op_network_display_stats buf o
+        network_display_stats r buf o
     with _ -> ())
 
 let print_connected_servers o =

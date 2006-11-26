@@ -177,10 +177,10 @@ let _ =
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netflags = network.network_flags;
         network_netname = network.network_name;
-        network_enabled = network.op_network_is_enabled ();
+        network_enabled = network_is_enabled network;
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
-        network_connected = List.length !connected_servers;
+        network_connected_servers = List.length !connected_servers;
       });
   CommonInteractive.register_gui_options_panel "Gnutella" 
   gui_gnutella_options_panel

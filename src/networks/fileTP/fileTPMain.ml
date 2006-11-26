@@ -94,7 +94,7 @@ let _ =
         network_enabled = network.op_network_is_enabled ();
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
-        network_connected = 0;
+        network_connected_servers = 0;
       });
   CommonInteractive.register_gui_options_panel "FileTP"
   gui_fileTP_options_panel

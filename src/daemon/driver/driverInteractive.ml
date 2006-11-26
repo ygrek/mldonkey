@@ -1757,7 +1757,7 @@ let print_network_modules buf o =
               Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
                 ("", "sr br", n.network_name);
-                ("", "sr br", if n.op_network_is_enabled () then "Enabled" else "Disabled");
+                ("", "sr br", if network_is_enabled n then "Enabled" else "Disabled");
                 ("", "sr br", net_has NetworkHasUpload);
                 ("", "sr br", net_has NetworkHasServers);
                 ("", "sr br", net_has NetworkHasSupernodes);
@@ -1780,13 +1780,11 @@ let print_network_modules buf o =
   else
     begin
       Printf.bprintf buf "Networks:";
-      Hashtbl.iter
-        (fun name n ->
+      networks_iter_all (fun n ->
           try
-            Printf.bprintf buf "\n   %2d %-30s %s" n.network_num name
-                (if n.op_network_is_enabled () then "Enabled" else "Disabled")
-          with _ -> ()
-        ) networks_by_name
+            Printf.bprintf buf "\n   %2d %-30s %s" n.network_num n.network_name
+                (if network_is_enabled n then "Enabled" else "Disabled")
+          with _ -> ())
     end
 
 let print_gdstats buf o =
@@ -1865,7 +1863,7 @@ let buildinfo html buf =
   tack list
     (
       "Networks:\t", 
-      !networks_string 
+      !networks_string
     );
   tack list 
     (

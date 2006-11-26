@@ -160,10 +160,10 @@ let _ =
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netflags = network.network_flags;
         network_netname = network.network_name;
-        network_enabled = network.op_network_is_enabled ();
+        network_enabled = network_is_enabled network;
         network_uploaded = !bt_upload_counter;
         network_downloaded = !bt_download_counter;
-        network_connected = 0;
+        network_connected_servers = 0;
       });
   CommonInteractive.register_gui_options_panel "BitTorrent"
   gui_bittorrent_options_panel

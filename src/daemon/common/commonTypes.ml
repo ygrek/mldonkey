@@ -447,10 +447,10 @@ type network_info = {
     network_netnum : int;
     network_config_filename : string;
     network_netflags : network_flag list;
-    mutable network_enabled : bool;
-    mutable network_uploaded : int64;
-    mutable network_downloaded : int64;
-    mutable network_connected : int; (* number of connected servers *)
+    network_enabled : bool;
+    network_uploaded : int64;
+    network_downloaded : int64;
+    network_connected_servers : int;
   }
 
 type extend_search =

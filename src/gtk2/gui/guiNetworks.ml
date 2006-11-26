@@ -132,10 +132,10 @@ let update_network n =
         nn.net_downloaded <- n.network_downloaded;
         update_label_dled n.network_netnum n.network_downloaded
       end;
-    if nn.net_connected <> n.network_connected
+    if nn.net_connected <> n.network_connected_servers
       then begin
-        nn.net_connected <- n.network_connected;
-        update_label_serv_connected n.network_netnum n.network_connected
+        nn.net_connected <- n.network_connected_servers;
+        update_label_serv_connected n.network_netnum n.network_connected_servers
       end
   with _ ->
     if n.network_netname <> "Global Shares"
@@ -149,7 +149,7 @@ let update_network n =
            net_displayed = true;
            net_uploaded = n.network_uploaded;
            net_downloaded = n.network_downloaded;
-           net_connected = n.network_connected;
+           net_connected = n.network_connected_servers;
           }
         in
         Hashtbl.add G.networks n.network_netnum nn

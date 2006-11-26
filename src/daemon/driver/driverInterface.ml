@@ -440,7 +440,7 @@ let gui_initialize gui =
       networks_iter_all (fun n ->
           List.iter (fun s ->
               addevent gui.gui_events.gui_servers (server_num s) true
-          ) (n.op_network_connected_servers ())
+          ) (network_connected_servers n)
       );
       
       server_iter (fun s ->
@@ -656,7 +656,7 @@ let gui_reader (gui: gui_record) t _ =
           | P.EnableNetwork (num, bool) ->
 	      if user2_is_admin gui.gui_conn.conn_user.ui_user then
               let n = network_find_by_num num in
-              if n.op_network_is_enabled () <> bool then
+              if network_is_enabled n <> bool then
                 (try
                     if bool then network_enable n else network_disable n;
                   with e ->
@@ -725,9 +725,7 @@ let gui_reader (gui: gui_record) t _ =
               networks_iter (fun r -> 
                   if search.search_network = 0 ||
                     r.network_num = search.search_network
-                  then
-                    
-                    r.op_network_search search buf);
+                  then network_search r search buf);
           
           | P.Download_query (filenames, num, force) ->
               let r = find_result num in
@@ -1040,14 +1038,14 @@ let gui_reader (gui: gui_record) t _ =
   
           | NetworkMessage (num, s) ->
               let n = network_find_by_num num in
-              n.op_network_gui_message s gui.gui_conn.conn_user.ui_user
+              network_gui_message n s gui.gui_conn.conn_user.ui_user
                 
           | AddServer_query (num, ip, port) ->
               let n = network_find_by_num num in
 (* [CONTRIBUTE:] change the GUI protocol to transfer an address (ip/name)
   instead of just an ip. *)
               
-              let s = n.op_network_add_server (Ip.addr_of_ip ip) port in
+              let s = network_add_server n (Ip.addr_of_ip ip) port in
               server_connect s
           | RefreshUploadStats ->
               if user2_can_view_uploads gui.gui_conn.conn_user.ui_user then
@@ -1060,7 +1058,7 @@ let gui_reader (gui: gui_record) t _ =
 
           | P.GetStats num ->
               let n = network_find_by_num num in
-              let l = n.op_network_stat_info_list () in
+              let l = network_stat_info_list n in
               gui_send gui (P.Stats (num, l))
 
           | P.GiftAttach (profile, version, client) ->

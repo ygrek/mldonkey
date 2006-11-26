@@ -102,12 +102,12 @@ let _ =
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
         network_netflags = network.network_flags;
-        network_enabled = network.op_network_is_enabled ();
+        network_enabled = network_is_enabled network;
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
         network_connected = List.length !connected_servers;
       });
-  network.op_network_share <- (fun a b c ->
-      ignore (CommonUploads.add_shared a b c));
+  network.op_network_share <- (fun fullname codedname size ->
+      ignore (CommonUploads.add_shared fullname codedname size));
   CommonInteractive.register_gui_options_panel 
   "DC" gui_dc_options_panel;

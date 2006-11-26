@@ -56,7 +56,8 @@ plugin.
 **************************************************************)
 
 let network = CommonNetwork.new_network "ED2K" "Donkey"
-         [
+  ~comment:(if Autoconf.donkey_sui_works () then "SUI" else "noSUI")
+  [
     NetworkHasServers;
     NetworkHasSearch;
     NetworkHasUpload;

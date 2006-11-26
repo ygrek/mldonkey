@@ -694,7 +694,7 @@ let buf_network proto buf n =
   buf_int64 buf n.network_uploaded;
   buf_int64 buf n.network_downloaded;
   if proto > 17 then begin
-      buf_int buf n.network_connected;
+      buf_int buf n.network_connected_servers;
       buf_list buf (fun buf e ->
           buf_int16 buf (match e with
               NetworkHasServers -> 0

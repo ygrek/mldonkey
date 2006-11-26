@@ -925,7 +925,7 @@ let get_network proto s pos =
     network_config_filename = config_file;
     network_uploaded = uploaded;
     network_downloaded = downloaded;
-    network_connected = connected;
+    network_connected_servers = connected;
   }, pos
 
 

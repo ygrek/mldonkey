@@ -96,7 +96,7 @@ let _ =
             [] -> "" | opfile :: _ -> options_file_name opfile);
         network_netname = network.network_name;
         network_netflags = network.network_flags;
-        network_enabled = network.op_network_is_enabled ();
+        network_enabled = network_is_enabled network;
         network_uploaded = Int64.zero;
         network_downloaded = Int64.zero;
         network_connected = List.length !connected_servers;

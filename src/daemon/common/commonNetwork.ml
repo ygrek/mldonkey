@@ -25,8 +25,7 @@ open CommonTypes
     
 
 let ni n m = 
-  let s = Printf.sprintf "Network.%s not implemented by %s" 
-      m n in
+  let s = Printf.sprintf "Network.%s not implemented by %s" m n in
   lprintf_nl "%s" s; 
   s
   
@@ -126,10 +125,14 @@ let network_update_options n = n.op_network_update_options ()
 let network_disable n = n.op_network_disable () 
 let network_share n s = n.op_network_share s
 let network_recover_temp n = n.op_network_recover_temp ()
+let network_search n s buf = n.op_network_search s buf
+let network_download n r user = n.op_network_download r user
 let network_add_server n s = n.op_network_add_server s
 let network_server_of_option n s = n.op_network_server_of_option s
 let network_file_of_option n f = n.op_network_file_of_option f 
 let network_client_of_option n f = n.op_network_client_of_option f
+(* is returning true (successful) when an exception is caught the
+   right thing to do ? *)
 let network_clean_exit n = try n.op_network_clean_exit () with _ -> true
 let network_reset n = try n.op_network_reset () with _ -> ()
 let network_ports n = n.op_network_ports ()
@@ -138,68 +141,70 @@ let network_porttest_result n = n.op_network_porttest_result ()
 
 let networks_iter f =
   List.iter (fun r ->
-      try
-        if network_is_enabled r then f r
-      with
-      | IgnoreNetwork -> ()
-      | e ->
-          lprintf_nl "Exception %s in Network.iter for %s"
-            (Printexc2.to_string e) r.network_name;
+    try
+      if network_is_enabled r then f r
+    with
+    | IgnoreNetwork -> ()
+    | e ->
+	lprintf_nl "Exception %s in Network.iter for %s"
+	  (Printexc2.to_string e) r.network_name;
   ) !networks
-  
+    
 let networks_iter_until_true f =
   List.exists (fun r ->
-      try
-        network_is_enabled r && f r
-      with 
-        IgnoreNetwork -> false
-      | e ->
-          lprintf_nl "Exception %s in Network.iter for %s"
-            (Printexc2.to_string e) r.network_name;
-          false
+    try
+      if network_is_enabled r then f r else false
+    with 
+    | IgnoreNetwork -> false
+    | e ->
+	lprintf_nl "Exception %s in Network.iter for %s"
+	  (Printexc2.to_string e) r.network_name;
+	false
   ) !networks
-  
+    
 let networks_iter_all f =
   List.iter (fun r ->
-      try f r  
-      with
-      | IgnoreNetwork -> ()
-      | e ->
-          lprintf_nl "Exception %s in Network.iter for %s"
-            (Printexc2.to_string e) r.network_name;
+    try 
+      f r  
+    with
+    | IgnoreNetwork -> ()
+    | e ->
+	lprintf_nl "Exception %s in Network.iter for %s"
+	  (Printexc2.to_string e) r.network_name;
   ) !networks
-  
+    
 let networks_iter_all_until_true f =
   List.exists (fun r ->
-      try f r  
-      with
-        IgnoreNetwork -> false
-      | e ->
-          lprintf_nl "Exception %s in Network.iter for %s"
-            (Printexc2.to_string e) r.network_name;
-          false
+    try 
+      f r  
+    with
+    | IgnoreNetwork -> false
+    | e ->
+	lprintf_nl "Exception %s in Network.iter for %s"
+	  (Printexc2.to_string e) r.network_name;
+	false
   ) !networks
 
 let networks_for_all f =
   List.for_all (fun r ->
-      try
-        if network_is_enabled r then f r else true
-      with
-      | IgnoreNetwork -> true
-      | e ->
-          lprintf_nl "Exception %s in Network.for_all for %s"
-            (Printexc2.to_string e) r.network_name; true
+    try
+      if network_is_enabled r then f r else true
+    with
+    | IgnoreNetwork -> true
+    | e ->
+	lprintf_nl "Exception %s in Network.for_all for %s"
+	  (Printexc2.to_string e) r.network_name; true
   ) !networks
 
 let network_find_by_name name =
   Hashtbl.find networks_by_name name
-  
+    
 let network_find_by_num num =
   Hashtbl.find networks_by_num num
 
-  (*
+(*
 (* we could replace that by a [32..127] array mapping to functions. it would 
-only take 100*4 bytes ... *)
+  only take 100*4 bytes ... *)
   
 let network_escape_chars = ref []
   
@@ -213,8 +218,8 @@ let network_commands = ref ([] : (string * string * CommonTypes.arg_kind * strin
 
 let commands_by_kind = Hashtbl.create 11
 
-let _ =
-     Heap.add_memstat "CommonNetwork" (fun level buf ->
+let () =
+  Heap.add_memstat "CommonNetwork" (fun level buf ->
       Printf.bprintf buf "  networks_by_name: %d\n" (Hashtbl.length networks_by_name);
       Printf.bprintf buf "  networks_by_num: %d\n" (Hashtbl.length networks_by_num);
       Printf.bprintf buf "  commands_by_kind: %d\n" (Hashtbl.length commands_by_kind);
@@ -244,9 +249,12 @@ let network_parse_url n url =
   let url = try Url.decode url with _ -> url in
   n.op_network_parse_url url
     
+let network_display_stats n buf o = n.op_network_display_stats buf o
 let network_info n = n.op_network_info ()
+let network_stat_info_list n = n.op_network_stat_info_list ()
+let network_gui_message n s u = n.op_network_gui_message s u
 
-let new_network shortname name flags = 
+let new_network shortname name ?comment flags = 
   let manager = TcpBufferedSocket.create_connection_manager name in
   let r =
     {
@@ -291,25 +299,22 @@ let new_network shortname name flags =
       op_network_porttest_result = (fun _ -> fni name "porttest_result");
     }
   in
-  let rr = (Obj.magic r: network) in
-  networks_ops := (rr, { rr with network_name = rr.network_name })
-  :: !networks_ops;
+  (* attempt: what is this cast for ? *)
+  let rr = (*(Obj.magic*) r (*: network)*) in
+  (* create a copy of the initial plugin record so that
+     check_network_implementations can detect which methods are overriden
+  *)
+  networks_ops := 
+    (rr, { rr with network_name = rr.network_name }) :: !networks_ops;
   networks := r :: !networks;
   Hashtbl.add networks_by_name r.network_name r;
   Hashtbl.add networks_by_num r.network_num r;
-  let s =
-    if r.network_name = "Donkey" then
-      if Autoconf.donkey_sui_works () then
-        "Donkey (SUI)"
-      else
-        "Donkey (noSUI)"
-    else
-      r.network_name
-  in
-  if !networks_string = "" then
-    networks_string := s
-  else
-    networks_string := Printf.sprintf "%s  %s" !networks_string s;
-(*  lprintf_nl "Network %s registered" r.network_name; *)
+  let display_name =
+    match comment with
+    | None -> r.network_name
+    | Some c -> Printf.sprintf "%s (%s)" r.network_name c in
+  networks_string := 
+    if !networks_string = "" then display_name 
+    else Printf.sprintf "%s %s" !networks_string display_name;
+  (*  lprintf_nl "Network %s registered" r.network_name; *)
   r
-  
