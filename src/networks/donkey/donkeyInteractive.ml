@@ -145,11 +145,9 @@ let load_server_met filename =
                   (match server.server_lowid_users with
 		  | None -> server.server_lowid_users <- Some s | _ -> ())
               |  { tag_name = Field_UNKNOWN "tcpportobfuscation" ; tag_value = Uint64 s } ->
-                  (match server.server_obfuscation_port_tcp with
-		  | None -> server.server_obfuscation_port_tcp <- Some (Int64.to_int s) | _ -> ())
+                  server.server_obfuscation_tcp <- Some (Int64.to_int s)
               |  { tag_name = Field_UNKNOWN "udpportobfuscation" ; tag_value = Uint64 s } ->
-                  (match server.server_obfuscation_port_udp with
-		  | None -> server.server_obfuscation_port_udp <- Some (Int64.to_int s) | _ -> ())
+                  server.server_obfuscation_udp <- Some (Int64.to_int s)
               |  { tag_name = Field_UNKNOWN "country" ; tag_value = String s } -> ()
               |  { tag_name = Field_UNKNOWN "udpflags" ; tag_value = Uint64  s } -> ()
               |  { tag_name = Field_UNKNOWN "refs" ; tag_value = Uint64  s } -> ()
@@ -758,7 +756,7 @@ let commands = [
           Printf.sprintf "%s does not exist, ignoring..." filename
     end
   else
-    Printf.sprintf "ED2K_update_server_list_met is disabled, ignoring..."
+    Printf.sprintf "ED2K-update_server_list_server_met is disabled, ignoring..."
     ), "<filename|URL> :\t\tadd the servers from a server.met file or URL";
 
     "id", Arg_none (fun o ->
@@ -1132,10 +1130,13 @@ let _ =
             if s.server_has_related_search then Printf.bprintf temp_buf "related_search ";
             if s.server_has_tag_integer then Printf.bprintf temp_buf "tag_integer ";
             if s.server_has_largefiles then Printf.bprintf temp_buf "largefiles ";
-            (match s.server_obfuscation_port_tcp with
-             | Some p -> Printf.bprintf temp_buf "tcp_obfuscation(%d) " p | _ -> ());
-            (match s.server_obfuscation_port_udp with
-             | Some p -> Printf.bprintf temp_buf "udp_obfuscation(%d) " p | _ -> ());
+            if s.server_has_get_sources then Printf.bprintf temp_buf "getsources ";
+            if s.server_has_get_sources2 then Printf.bprintf temp_buf "getsources2 ";
+            if s.server_has_get_files then Printf.bprintf temp_buf "getfiles ";
+            (match s.server_obfuscation_tcp with
+             | Some p when p <> 0 -> Printf.bprintf temp_buf "tcp_obfuscation(%d) " p | _ -> ());
+            (match s.server_obfuscation_udp with
+             | Some p when p <> 0 -> Printf.bprintf temp_buf "udp_obfuscation(%d) " p | _ -> ());
             if s.server_auxportslist <> "" then Printf.bprintf temp_buf "auxportslist %s " s.server_auxportslist;
             if s.server_dynip <> "" then Printf.bprintf temp_buf "dynip %s " s.server_dynip;
             if Buffer.contents temp_buf <> "" then Some (Buffer.contents temp_buf) else None;
@@ -1818,7 +1819,7 @@ let _ =
       if not !!enable_donkey then
         lprintf_nl "eDonkey module is disabled, ignoring..."
       else
-        lprintf_nl "ED2K_update_server_list_met is disabled, ignoring..."
+        lprintf_nl "ED2K-update_server_list_server_met is disabled, ignoring..."
   );
   CommonWeb.add_web_kind "comments.met" "List of edonkey files comments" 
     (fun _ filename ->

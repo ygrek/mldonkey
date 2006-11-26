@@ -452,7 +452,6 @@ and server = (*[]*){
     mutable server_port : int;
     mutable server_realport : int option; (* in case we connect through auxport; this is the true one *)
     mutable server_sock : tcp_connection;
-    mutable server_nqueries : int;
     mutable server_search_queries : CommonTypes.search Fifo.t;
     mutable server_users_queries : bool Fifo.t;
     mutable server_connection_control : connection_control;
@@ -467,10 +466,14 @@ and server = (*[]*){
     mutable server_next_udp : int;
     mutable server_master : bool;
     mutable server_preferred : bool;
-    mutable server_last_message : int; (* used only by mldonkey server *)
-
-    mutable server_last_ping : float;
+    mutable server_last_ping : float; (* time last PingServerUdpReq was sent *)
+    mutable server_next_ping : float; (* time next PingServerUdpReq will be sent *)
+    mutable server_descping_counter : int;
     mutable server_ping : int;
+    mutable server_udp_ping_challenge : int64 option;
+    mutable server_udp_desc_challenge : int64 option;
+(* reset after answer received, increased after UDP ping sent, server deleted after 10 attempts *)
+    mutable server_failed_count : int; 
 
     mutable server_id_requests : file option Fifo.t;
 
@@ -483,14 +486,13 @@ and server = (*[]*){
     mutable server_has_related_search : bool;
     mutable server_has_tag_integer : bool;
     mutable server_has_largefiles : bool;
-    mutable server_has_udp_obfuscation : bool;
-    mutable server_has_tcp_obfuscation : bool;
-    mutable server_obfuscation_port_tcp : int option;
-    mutable server_obfuscation_port_udp : int option;
-    mutable server_udp_key : int option;
-    mutable server_udp_keyip : Ip.t option;
+    mutable server_obfuscation_tcp : int option;
+    mutable server_obfuscation_udp : int option;
     mutable server_dynip : string;
     mutable server_auxportslist : string;
+    mutable server_has_get_sources : bool;
+    mutable server_has_get_files : bool;
+    mutable server_has_get_sources2 : bool;
 
     mutable server_flags : int;
     mutable server_version : string;

@@ -165,7 +165,7 @@ let udp_query_sources () =
                        > last_time () &&
                        s.server_next_udp <= last_time () then
                          begin
-                           if server_accept_multiple_getsources s then
+                           if s.server_has_get_sources then
                              new_servers := s :: !new_servers
                            else
                              old_servers := s :: !old_servers;
@@ -208,7 +208,6 @@ let udp_query_sources () =
 
   with e ->
     lprintf_nl "udp_query_sources: %s" (Printexc2.to_string e)
-
 
 let disconnect_server s reason =
   let choose_new_master_server s =
@@ -253,7 +252,10 @@ let disconnect_server s reason =
         s.server_sock <- NoConnection;
         s.server_score <- s.server_score - 1;
         s.server_users <- [];
-        set_server_state s (NotConnected (reason, -1));
+        if server_state s = Connecting && String2.subcontains s.server_banner "This server is full" then
+          set_server_state s ServerFull
+        else
+          set_server_state s (NotConnected (reason, -1));
         s.server_master <- false;
         s.server_banner <- "";
         s.server_sent_all_queries <- false;
@@ -268,16 +270,44 @@ let server_handler s sock event =
         close sock Closed_for_timeout
     | _ -> ()
 
+let server_udp_ping_statreq s =
+  s.server_last_ping <- Unix.gettimeofday ();
+  s.server_failed_count <- s.server_failed_count + 1;
+  s.server_descping_counter <- s.server_descping_counter + 1;
+  if !verbose_msg_servers then
+    lprintf_nl "send UDP server ping to %s, try %d"
+      (string_of_server s) s.server_failed_count;
+  let module M = DonkeyProtoUdp in
+  let module E = M.ServerDescUdp in
+  let c = Int64.of_int (Random.int 65535) in
+  let challenge = 1437204480L ++ c in (* 0x55AA0000 *)
+  s.server_udp_ping_challenge <- Some challenge;
+(* next ping in 4,5h (16200s) - random value between 1s and 1h to avoid ping storms
+   eMule Changelog: August, 30. 2005
+   Unk: When a very large popular server come online,
+   it experienced ping storms every 4 hours.. Fixed (Lug) *)
+  s.server_next_ping <- s.server_last_ping +. 16200. -. (Random.float 3600.);
+  udp_server_send_ping s (M.PingServerUdpReq challenge);
+  if s.server_descping_counter < 2 then
+    begin
+      if !verbose_msg_servers then
+        lprintf_nl "send UDP server description request to %s" (string_of_server s);
+      let rand16 = Int64.of_int (Random.int 65535) in
+      let challenge = (left64 rand16 16) ++ M.ServerDescUdp.invalid_len in
+      s.server_udp_desc_challenge <- Some challenge;
+      udp_server_send s (M.ServerDescUdpReq challenge);
+    end
+  else
+    s.server_descping_counter <- 0
 
 let last_message_sender = ref (-1)
 
 let client_to_server s t sock =
   let module M = DonkeyProtoServer in
-
-  s.server_last_message <- last_time ();
+  s.server_failed_count <- 0;
 
   if !verbose_msg_servers then begin
-    lprintf_nl "Message from server:";
+    lprintf_nl "Message from server %s:" (string_of_server s);
     DonkeyProtoServer.print t; lprint_newline ()
   end;
 
@@ -289,8 +319,12 @@ let client_to_server s t sock =
         s.server_has_related_search <- t.M.SetID.related_search;
         s.server_has_tag_integer <- t.M.SetID.tag_integer;
         s.server_has_largefiles <- t.M.SetID.largefiles;
-        s.server_has_udp_obfuscation <- t.M.SetID.udp_obfuscation;
-        s.server_has_tcp_obfuscation <- t.M.SetID.tcp_obfuscation;
+        (match s.server_obfuscation_tcp with
+          | None -> if t.M.SetID.tcp_obfuscation then s.server_obfuscation_tcp <- Some 0
+          | Some p -> if not t.M.SetID.tcp_obfuscation then s.server_obfuscation_tcp <- None);
+        (match s.server_obfuscation_udp with
+          | None -> if t.M.SetID.udp_obfuscation then s.server_obfuscation_udp <- Some 0
+          | Some p -> if not t.M.SetID.udp_obfuscation then s.server_obfuscation_udp <- None);
         if low_id t.M.SetID.ip && !!force_high_id then
           disconnect_server s (Closed_for_error "Low ID")
         else begin
@@ -298,26 +332,40 @@ let client_to_server s t sock =
           s.server_realport <- t.M.SetID.port;
           (* disconnect after (connected_server_timeout) seconds of silence *)
           set_rtimeout sock !!connected_server_timeout;
-          set_server_state s Connected_initiating;
           remove_connecting_server s;
           s.server_score <- s.server_score + 5;
           connection_ok (s.server_connection_control);
 
+          if !!update_server_list_server then
           server_send sock (
-            let module A = M.AckID in
-            M.AckIDReq A.t
+            let module Q = M.QueryServerList in
+            M.QueryServerListReq Q.t
           );
 
           if not (low_id t.M.SetID.ip) && !!use_server_ip then
             last_high_id := t.M.SetID.ip;
+
+          (* nice and ugly, but it doesn't require any new fields *)
+          set_server_state s (Connected
+          ( match s.server_cid with
+              Some t -> if low_id t then (-1) else (-2) 
+              | _ -> (-1)
+          ));
+
+          if s.server_next_ping = 0. then server_udp_ping_statreq s;
+
+          (* fill list with queries for the server *)
+          fill_query_queue s;
+          s.server_sent_all_queries <- false;
+          s.server_queries_credit <- 0
         end
 
   | M.MessageReq msg ->
       if msg <> "" then begin
       if !last_message_sender <> server_num s then begin
-          let server_header = Printf.sprintf "\n+-- From server %s [%s] ------"
+          let server_header = Printf.sprintf "+-- From server %s [%s] ------"
               s.server_name (string_of_server s) in
-          CommonEvent.add_event (Console_message_event (Printf.sprintf "%s\n" server_header));
+          CommonEvent.add_event (Console_message_event (Printf.sprintf "\n%s\n" server_header));
           if !CommonOptions.verbose_msg_servers then
 	    lprintf_nl "%s" server_header;
           last_message_sender := server_num s
@@ -325,7 +373,11 @@ let client_to_server s t sock =
       s.server_banner <- s.server_banner ^ Printf.sprintf "%s\n" msg;
       let msg = Printf.sprintf "| %s" msg in
       CommonEvent.add_event (Console_message_event (Printf.sprintf "%s\n" msg));
-      if !CommonOptions.verbose_msg_servers then lprintf_nl "%s" msg
+      if !CommonOptions.verbose_msg_servers then
+        begin
+          lprintf "%s: %s" (string_of_server s) msg;
+          lprint_newline ()
+        end
       end
 
   | M.ServerListReq l ->
@@ -352,20 +404,7 @@ let client_to_server s t sock =
             | { tag_name = Field_UNKNOWN "description"; tag_value = String desc } ->
                 s.server_description <- desc
             | _ -> lprintf_nl "parsing donkeyServers.ServerInfo, unknown field %s" (string_of_tag tag)
-      ) s.server_tags;
-
-      (* nice and ugly, but it doesn't require any new fields *)
-      set_server_state s (Connected
-          ( match s.server_cid with
-              Some t -> if low_id t then (-1) else (-2) 
-              | _ -> (-1)
-          )
-        );
-
-      (* fill list with queries for the server *)
-      fill_query_queue s;
-      s.server_sent_all_queries <- false;
-      s.server_queries_credit <-  0
+      ) s.server_tags
 
   | M.InfoReq (users, files) ->
       s.server_nusers <- Some (Int64.of_int users);
@@ -374,8 +413,6 @@ let client_to_server s t sock =
         begin
           lprintf_nl "%s remove server min_users_on_server limit hit!"
             (string_of_server s);
-
-          disconnect_server s Closed_for_timeout;
           server_remove (as_server s.server_server);
         end;
       server_must_update s
@@ -715,42 +752,28 @@ let walker_timer () =
                     end
               | _ -> ()
 
-(* Keep connecting to servers in the background. Don't stay connected to
-  them , and don't send your shared files list *)
-let udp_walker_list = ref []
-let next_udp_walker_start = ref 0
-
-(* one call every second, so 3600/hour, must wait one hour before
-restarting
-Each client issues 1 packet/4hour, so 100000 clients means 25000/hour,
-7 packets/second = 7 * 40 bytes = 280 B/s ...
-*)
-
-
-let udp_walker_timer () =
-  match !udp_walker_list with
-    [] ->
-      if last_time () > !next_udp_walker_start then begin
-          next_udp_walker_start := last_time () + 4*3600;
-          Hashtbl.iter (fun _ s ->
-              udp_walker_list := s :: !udp_walker_list
-          ) servers_by_key;
+let udp_walker_timer () = (* called every 5s *)
+  if !!enable_servers then
+  let now = Unix.gettimeofday () in
+  try
+    Hashtbl.iter (fun _ s ->
+      if not (server_blocked (as_server s.server_server)) then
+        begin
+          if s.server_failed_count > 9 then
+            begin
+              lprintf_nl "remove dead server %s after %d not answered UDP pings"
+                (string_of_server s) s.server_failed_count;
+              server_remove (as_server s.server_server);
+              raise Exit
+            end;
+          if s.server_next_ping < now then
+            begin
+              server_udp_ping_statreq s;
+              raise Exit
+            end
         end
-  | s :: tail ->
-      udp_walker_list := tail;
-      let c = Int64.of_int (Random.int 65535) in
-      let challenge = 1437204480L ++ c in (* 0x55AA0000 *)
-      s.server_last_ping <- Unix.gettimeofday ();
-      udp_server_send_ping s (DonkeyProtoUdp.PingServerUdpReq challenge);
-
-      let module M = DonkeyProtoUdp in
-      let module E = M.ServerDescUdp in
-      udp_server_send s (M.ServerDescUdpReq {
-        E.ip = Ip.null;
-      })
-
-(*      UdpSocket.write (get_udp_sock ())
-                  true udp_ping s.server_ip (s.server_port + 4) *)
+    ) servers_by_key
+  with Exit -> ()
 
 (* sort the servers by preferred first
    then users count with decreasing order

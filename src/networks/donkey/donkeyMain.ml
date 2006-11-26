@@ -78,13 +78,13 @@ let second_timer timer =
         if !verbose_sources > 2 then 
           lprintf_nl "Exception %s while checking sources" 
             (Printexc2.to_string e)
-  );
-  DonkeyServers.udp_walker_timer ()
+  )
 
 let five_second_timer timer =
   DonkeyServers.check_server_connections ();
   DonkeyServers.walker_timer ();
   DonkeyOneFile.check_files_downloaded ();
+  DonkeyServers.udp_walker_timer ();
   DonkeyShare.check_shared_files ()
 
 let min_timer timer =
@@ -133,6 +133,7 @@ let reset_tags () =
     m.emule_features <- secident;
 
   let emule_miscoptions1 = D.emule_miscoptions1 m in
+  let emule_miscoptions2 = D.emule_miscoptions2 m in
   let emule_compatoptions = D.emule_compatoptions m in
   client_to_client_tags :=
   [
@@ -142,18 +143,37 @@ let reset_tags () =
     int_tag (Field_UNKNOWN "emule_udpports") (!!donkey_port+4);
     int_tag (Field_UNKNOWN "emule_version") m.emule_version;
     int64_tag (Field_UNKNOWN "emule_miscoptions1") emule_miscoptions1;
+    int64_tag (Field_UNKNOWN "emule_miscoptions2") emule_miscoptions2;
     int_tag (Field_UNKNOWN "emule_compatoptions") emule_compatoptions;
   ];
 
-  let extended = ref 0x04 in (* support of auxport *)
-    extended := !extended lor 0x01; (* support of compression *)
+(* server capabilities *)
+  let extended = ref 0x0 in
+  extended := !extended lor 0x01; (* support of compression *)
+(*extended := !extended lor 0x02;    IP in login, deprecated *)
+  extended := !extended lor 0x04; (* support of auxport *)
+  extended := !extended lor 0x08; (* newtags *)
+(*extended := !extended lor 0x10; (* unicode *) *)
+(*extended := !extended lor 0x100; (* files > 4GB *) *)
+(*extended := !extended lor 0x200; (* support crypt *) *)
+(*extended := !extended lor 0x400; (* request crypt *) *)
+(*extended := !extended lor 0x800; (* require crypt *) *)
 
   client_to_server_tags :=
   [
     string_tag (Field_UNKNOWN "name") (local_login ());
     int_tag (Field_UNKNOWN "version") protocol_version;
-    int_tag (Field_UNKNOWN "port") !!donkey_port;
     int_tag (Field_UNKNOWN "extended") !extended;
+    int_tag (Field_UNKNOWN "emule_version") m.emule_version;
+  ];
+
+  client_to_server_reply_tags :=
+  [
+    string_tag (Field_UNKNOWN "name") (local_login ());
+    int_tag (Field_UNKNOWN "version") protocol_version;
+    int_tag (Field_UNKNOWN "emule_udpports") (!!donkey_port+4);
+    int64_tag (Field_UNKNOWN "emule_miscoptions1") emule_miscoptions1;
+    int64_tag (Field_UNKNOWN "emule_miscoptions2") emule_miscoptions2;
     int_tag (Field_UNKNOWN "emule_version") m.emule_version;
   ];
 

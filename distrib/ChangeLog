@@ -15,6 +15,23 @@ ChangeLog
 =========
 
 2006/11/26
+5581: EDK: Improve server logins, send fewer data, minor improvements
+- Copied eMule behaviour:
+  - send fewer data to server during login, support server capability "newtags",
+    same opcodes as in eMule are used
+  - UDP ping servers once per 4,5h - (random of 1s-1h)
+  - UDP server statistic request during every second UDP ping
+    (~9h, not once per hour like before)
+  - request serverlist from server only when ED2K_update_server_list_server true
+  - ping one server per 5s
+  - remove servers after 10 unsuccessful UDP pings
+  - save challenge values sent with UDP server statistic and description request
+    and dismiss answers containing wrong challenge
+- New functions, restructurings:
+  - new server status "Server full"
+  - support new tag emule_miscoptions2 (empty atm.)
+  - remove server descriptions from servers.ini
+  - clean donkeyTypes.server definitions
 5588: Cleanup commonNetwork (pango)
 5582: EDK: Improve CryptoPP logging (Schlumpf)
 5584: EDK: Remove removed servers from walker server lists

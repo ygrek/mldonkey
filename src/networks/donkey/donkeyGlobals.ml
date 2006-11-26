@@ -131,6 +131,7 @@ let donkey_upload_counter = ref Int64.zero
 
 let client_to_client_tags = ref ([] : tag list)
 let client_to_server_tags = ref ([] : tag list)
+let client_to_server_reply_tags = ref ([] : tag list)
 let emule_info =
   let module E = DonkeyProtoClient.EmuleClientInfo in
   {
@@ -496,7 +497,6 @@ let new_server ip port =
         server_port = port;
         server_realport = None;
         server_sock = NoConnection;
-        server_nqueries = 0;
         server_search_queries = Fifo.create ();
         server_users_queries = Fifo.create ();
         server_connection_control = new_connection_control ();
@@ -510,7 +510,6 @@ let new_server ip port =
         server_users = [];
         server_master = false;
         server_preferred = false;
-        server_last_message = 0;
         server_queries_credit = 0;
         server_waiting_queries = [];
         server_sent_all_queries = false;
@@ -522,20 +521,24 @@ let new_server ip port =
         server_has_related_search = false;
         server_has_tag_integer = false;
         server_has_largefiles = false;
-        server_has_udp_obfuscation = false;
-        server_has_tcp_obfuscation = false;
         server_version = "";
         server_lowid_users = None;
         server_soft_limit = None;
         server_hard_limit = None;
-        server_obfuscation_port_tcp = None;
-        server_obfuscation_port_udp = None;
-        server_udp_key = None;
-        server_udp_keyip = None;
+        server_obfuscation_tcp = None;
+        server_obfuscation_udp = None;
         server_sent_shared = [];
         server_max_users = None;
         server_last_ping = 0.;
+        server_next_ping = 0.;
+        server_descping_counter = 0;
         server_ping = 0;
+        server_failed_count = 0;
+        server_udp_ping_challenge = None;
+        server_udp_desc_challenge = None;
+        server_has_get_sources = false;
+        server_has_get_files = false;
+        server_has_get_sources2 = false;
         server_dynip = "";
         server_auxportslist = "";
 
@@ -1011,15 +1014,6 @@ let _ =
 	  end
       end
   )
-
-let server_accept_multiple_getsources s =
-  (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_getsources) <> 0
-
-let server_send_multiple_replies s =
-  (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.multiple_replies) <> 0
-
-let server_send_getsources2 s =
-  (s.server_flags land DonkeyProtoUdp.PingServerReplyUdp.getsources2) <> 0
 
 let full_client_identifier c =
     Printf.sprintf "%s (%s%s) '%s'"

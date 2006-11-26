@@ -448,6 +448,7 @@ let server_print s o =
       (
      let not_connected =
         match impl.impl_server_state with
+        | ServerFull
         | NotConnected _ -> true
         | _ -> false 
       in 

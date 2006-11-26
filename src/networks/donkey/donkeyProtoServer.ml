@@ -63,11 +63,10 @@ module Connect = struct
 
     let names_of_tag =
       [
-       "\001", Field_UNKNOWN "name";
-       "\017", Field_UNKNOWN "version";
-       "\015", Field_UNKNOWN "port";
-       "\032", Field_UNKNOWN "extended";
-       "\251", Field_UNKNOWN "emule_version";
+       "\001", Field_UNKNOWN "name";          (* CT_NAME          0x01 *)
+       "\017", Field_UNKNOWN "version";       (* CT_VERSION       0x11 *)
+       "\032", Field_UNKNOWN "extended";      (* CT_SERVER_FLAGS  0x20 *)
+       "\251", Field_UNKNOWN "emule_version"; (* CT_EMULE_VERSION 0xfb *)
       ]
 
     let parse len s =
@@ -181,17 +180,21 @@ module SetID = struct
        }
 
     let print t =
-      lprintf "SET_ID: %s id: %s %s"
+      lprintf "SET_ID: %s id: %s %s\n"
         (if t.zlib then "Zlib" else "")
 	(Ip.to_string t.ip)
         (match t.port with
         None -> Printf.sprintf ""
         | Some port ->
-           Printf.sprintf "Real Port: %d" port)
+           Printf.sprintf "Real Port: %d" port);
+      lprintf "SET_ID: newtags %b unicode %b related_search %b tag_integer %b largefiles %b udp_obfuscation %b tcp_obfuscation %b"
+	t.newtags t.unicode t.related_search t.tag_integer t.largefiles t.udp_obfuscation t.tcp_obfuscation
 
     let bprint oc t =
       Printf.bprintf oc "SET_ID: %s\n"  (if t.zlib then "Zlib" else "");
-      Printf.bprintf oc "id: %s\n" (Ip.to_string t.ip)
+      Printf.bprintf oc "SET_ID id: %s\n" (Ip.to_string t.ip);
+      Printf.bprintf oc "SET_ID: newtags %b unicode %b related_search %b tag_integer %b largefiles %b udp_obfuscation %b tcp_obfuscation %b\n"
+	t.newtags t.unicode t.related_search t.tag_integer t.largefiles t.udp_obfuscation t.tcp_obfuscation
 
     let write buf t =
       if t.zlib then buf_int buf 1;
@@ -201,16 +204,16 @@ module SetID = struct
 
 let unit = ()
 
-module AckID = struct
+module QueryServerList = struct
     type t = unit
 
     let parse len s = ()
 
     let print t =
-      lprintf_nl "ACK_ID:"
+      lprintf_nl "QUERY_SERVER_LIST:"
 
     let bprint oc t =
-      Printf.bprintf oc "ACK_ID\n"
+      Printf.bprintf oc "QUERY_SERVER_LIST\n"
 
     let write (buf: Buffer.t) (t: t) = unit
 
@@ -1039,7 +1042,7 @@ module Req = struct
 type t =
 | ConnectReq of Connect.t
 | SetIDReq of SetID.t
-| AckIDReq of AckID.t
+| QueryServerListReq of QueryServerList.t
 | BadProtocolVersionReq
 | MessageReq of Message.t
 | ShareReq of Share.t
@@ -1106,7 +1109,7 @@ let rec parse magic s =
           match opcode with
           | 1 -> ConnectReq (Connect.parse len s)
           | 5 -> BadProtocolVersionReq
-          | 20 -> AckIDReq (AckID.parse len s)
+          | 20 -> QueryServerListReq (QueryServerList.parse len s) (* OP_GETSERVERLIST 0x14 *)
           | 21 -> ShareReq (Share.parse len s)
           | 22 -> QueryReq (Query.parse len s)
           | 25 -> QueryLocationReq (QueryLocation.parse len s)
@@ -1164,7 +1167,7 @@ let print t =
     match t with
       ConnectReq t -> Connect.print t
     | SetIDReq t -> SetID.print t
-    | AckIDReq t -> AckID.print t
+    | QueryServerListReq t -> QueryServerList.print t
     | MessageReq t -> Message.print t
     | BadProtocolVersionReq -> lprintf_nl "BAD PROTOCOL VERSION"
     | ShareReq t -> Share.print t
@@ -1227,7 +1230,7 @@ let bprint oc t =
     match t with
       ConnectReq t -> Connect.bprint oc t
     | SetIDReq t -> SetID.bprint oc t
-    | AckIDReq t -> AckID.bprint oc t
+    | QueryServerListReq t -> QueryServerList.bprint oc t
     | MessageReq t -> Message.bprint oc t
     | BadProtocolVersionReq -> Printf.bprintf oc "BAD PROTOCOL VERSION\n"
     | ShareReq t -> Share.bprint oc t
@@ -1294,9 +1297,9 @@ let write buf t =
   | SetIDReq t ->
       buf_int8 buf 64;
       SetID.write buf t
-  | AckIDReq t ->
+  | QueryServerListReq t ->
       buf_int8 buf 20;
-      AckID.write buf t
+      QueryServerList.write buf t
   | MessageReq t ->
       buf_int8 buf 56;
       Message.write buf t

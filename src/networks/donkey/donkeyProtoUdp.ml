@@ -130,10 +130,6 @@ module PingServerUdp = struct (* client -> serveur pour identification ? *)
 
 module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
 
-    let multiple_getsources = 1
-    let multiple_replies = 2
-    let getsources2 = 32
-
     type t = {
         challenge  : int64;
         users      : int64;
@@ -141,10 +137,17 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
         soft_limit : int64 option;
         hard_limit : int64 option;
         max_users  : int64 option;
-        flags      : int option;
         lowid_users : int64 option;
+        get_sources : bool;
+        get_files : bool;
+        newtags : bool;
+        unicode : bool;
+        get_sources2 : bool;
+        largefiles : bool;
+        udp_obfuscation : bool;
+        tcp_obfuscation : bool;
       }
-(*           <E3><97><users><files><softLimit><hardLimit><maxUsers><flags> *)
+
     let parse len s =
       let challenge = get_uint64_32 s 1 in
       let users = get_uint64_32 s 5 in
@@ -152,7 +155,7 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
       let max_users  = if len >= 17 then Some (get_uint64_32 s 13) else None in
       let soft_limit = if len >= 21 then Some (get_uint64_32 s 17) else None in
       let hard_limit = if len >= 25 then Some (get_uint64_32 s 21) else None in
-      let flags      = if len >= 29 then Some (get_int s 25) else None in
+      let flags      = if len >= 29 then get_int s 25 else 0 in
       let lowid_users = if len >= 33 then Some (get_uint64_32 s 29) else None in
 
       {
@@ -162,8 +165,15 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
         soft_limit = soft_limit;
         hard_limit = hard_limit;
         max_users = max_users;
-        flags = flags;
         lowid_users = lowid_users;
+        get_sources = 0x01 land flags = 0x01;
+        get_files = 0x02 land flags = 0x02;
+        newtags = 0x08 land flags = 0x08;
+        unicode = 0x10 land flags = 0x10;
+        get_sources2 = 0x20 land flags = 0x20;
+        largefiles = 0x100 land flags = 0x100;
+        udp_obfuscation = 0x200 land flags = 0x200;
+        tcp_obfuscation = 0x200 land flags = 0x200;
       }
 
     let bprint oc t =
@@ -172,46 +182,35 @@ module PingServerReplyUdp = struct (* reponse du serveur a 150 *)
       (match t.soft_limit with Some x -> Printf.bprintf oc "   Soft limit: %Ld\n" x | None -> ());
       (match t.hard_limit with Some x -> Printf.bprintf oc "   Hard limit: %Ld\n" x | None -> ());
       (match t.max_users with Some x -> Printf.bprintf oc "   Max nusers: %Ld\n" x | None -> ());
-      (match t.flags with Some x -> Printf.bprintf oc "   Flags: %x\n" x | None -> ());
-      Printf.bprintf oc "\n"
+      (match t.lowid_users with Some x -> Printf.bprintf oc "   LowId nusers: %Ld\n" x | None -> ());
+      Printf.bprintf oc "   get_sources %b, get_files %b, newtags %b, unicode %b, get_sources2 %b, largefiles %b, udp_obfuscation %b, tcp_obfuscation %b"
+        t.get_sources t.get_files t.newtags t.unicode t.get_sources2 t.largefiles t.udp_obfuscation t.tcp_obfuscation
 
     let write buf t =
       buf_int64_32 buf t.challenge;
       buf_int64_32 buf t.users;
       buf_int64_32 buf t.files;
-      (match t.soft_limit, t.hard_limit, t.max_users, t.flags with
-          None, None, None, None -> ()
+      (match t.soft_limit, t.hard_limit, t.max_users with
+          None, None, None -> ()
         | _ ->
             buf_int64_32 buf (
               match t.soft_limit with Some x -> x | None -> 0L);
             buf_int64_32 buf (
               match t.hard_limit with Some x -> x | None -> 0L);
             buf_int64_32 buf (
-              match t.max_users with Some x -> x | None -> 0L);
-            match t.flags with Some x -> buf_int buf x | None -> ()
+              match t.max_users with Some x -> x | None -> 0L)
       )
   end
 
 module ServerDescUdp = struct
-  type t = {
-    ip : Ip.t;
-  }
+  type t = int64
 
   let invalid_len = Int64.of_int 0xF0FF
 
-  let parse len s =
-    try
-      let ip = get_ip s 1 in
-  {
-    ip = ip
-  }
-    with _ ->
-      {
-    ip = Ip.null
-      }
+  let parse len s = Int64.of_string s
 
   let bprint b t =
-    Printf.bprintf b "ServerDescUdpReq %s\n" (Ip.to_string t.ip)
+    Printf.bprintf b "ServerDescUdpReq\n"
 
 (*
 // eserver 16.45+ supports a new OP_SERVER_DESC_RES answer, if the OP_SERVER_DESC_REQ contains a uint32
@@ -221,9 +220,7 @@ module ServerDescUdp = struct
 *)
 
   let write buf t =
-    let rand16 = Int64.of_int (Random.int 65535) in
-    let challenge = (left64 rand16 16) ++ invalid_len in
-    buf_int64_32 buf challenge
+    buf_int64_32 buf t
 
 end
 
@@ -232,8 +229,8 @@ module ServerDescReplyUdp = struct
     name : string;
     desc : string;
     tags : tag list;
+    challenge : int64;
   }
-
 
   let names_of_tag = [
     "\001", Field_UNKNOWN "servername";
@@ -254,28 +251,40 @@ module ServerDescReplyUdp = struct
     "\148", Field_UNKNOWN "lowidusers";
   ]
 
-  let parse1 len s = 
+  let parse1 len s challenge =
     let name, pos = get_string s 1 in
     let desc, pos = get_string s pos in
      {
        tags = [];
        name = name;
        desc = desc;
+       challenge = challenge;
      }
 
-  let parse2 len s =
+  let parse2 len s challenge =
     let stags,pos = get_tags s 5 names_of_tag in
+    let name = ref "" in
+    let desc = ref "" in
+    List.iter (fun tag ->
+      match tag with
+      | { tag_name = Field_UNKNOWN "servername"; tag_value = String v } ->
+            name := v
+      | { tag_name = Field_UNKNOWN "description"; tag_value = String v } ->
+            desc := v
+      | _ -> ()
+    ) stags;
     { 
       tags = stags;
-      name = "";
-      desc = "";
+      name = !name;
+      desc = !desc;
+      challenge = challenge;
     }
 
   let parse len s =
     let challenge = get_uint64_32 s 1 in
     let test = right64 (left64 challenge 48) 48 in
     let f = if test = ServerDescUdp.invalid_len then parse2 else parse1 in
-    f len s
+    f len s challenge
 
   let bprint b t =
     Printf.bprintf b  "ServerDescReplyUdpReq\n";

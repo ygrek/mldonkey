@@ -250,7 +250,7 @@ let good_client_rank = define_expert_option donkey_section ["good_client_rank"]
     int_option 500
 
 let min_users_on_server = define_option donkey_section ["min_users_on_server"]
-  "min connected users for each server"
+  "disconnect if server users is smaller"
     int_option 0
 
 let max_published_files = define_option donkey_section ["max_published_files"]

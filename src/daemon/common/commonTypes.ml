@@ -325,10 +325,10 @@ type host_state =
 | Connected of int    (* >= 0 Queued *)
 | Connected_downloading of int
 (* | ConnectionWaiting of int  *)
-  
 | NewHost
 | RemovedHost
 | BlackListedHost
+| ServerFull
 
 type compressor = 
   Deflate of Zlib.stream * Zlib.stream
@@ -827,6 +827,7 @@ let is_connected state =
   | Connecting
   | NewHost
   | BlackListedHost
+  | ServerFull
   | RemovedHost -> false
 
 let string_of_connection_state s = 
@@ -850,6 +851,7 @@ let string_of_connection_state s =
   | RemovedHost -> "Removed"
   | BlackListedHost -> "Black"
   | NewHost -> "New"
+  | ServerFull -> "Server full"
       
 let short_string_of_connection_state s = 
   match s with
@@ -867,6 +869,7 @@ let short_string_of_connection_state s =
   | RemovedHost -> "Rem"
   | BlackListedHost -> "BL"
   | NewHost -> "New"
+  | ServerFull -> "Full"
     
 exception IgnoreNetwork
   

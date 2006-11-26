@@ -183,9 +183,6 @@ let value_to_server assocs =
   let l = DonkeyGlobals.new_server ip port in
   
   (try
-      l.server_description <- get_value "server_desc" value_to_string 
-    with _ -> ());
-  (try
       l.server_name <- get_value "server_name" value_to_string
     with _ -> ());
   (try
@@ -206,11 +203,6 @@ let server_to_value c =
         connection_last_conn c.server_connection_control);
   ]
   in
-  
-  let fields = 
-    if c.server_description <> "" then 
-      ("server_desc", string_to_value c.server_description) :: fields
-    else fields in
   
   let fields = 
     if c.server_name <> "" then 

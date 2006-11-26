@@ -47,7 +47,7 @@ open DonkeyStats
 module Udp = DonkeyProtoUdp
 
 let udp_server_send_query_location s l =
-  if server_send_getsources2 s then
+  if s.server_has_get_sources2 then
     udp_server_send s (Udp.QueryLocationUdpReq2 l)
   else
     udp_server_send s (Udp.QueryLocationUdpReq (List.map (fun (md4,_) -> md4) l))
@@ -239,6 +239,7 @@ let udp_client_handler t p =
             connection_set_last_conn s.server_connection_control (
               last_time () - 121);
             s.server_score <- s.server_score + 3;
+            s.server_failed_count <- 0;
             s
       | _ -> raise Not_found
   in
@@ -259,19 +260,35 @@ let udp_client_handler t p =
         ) t
 
   | Udp.PingServerReplyUdpReq t ->
-      let module M = Udp.PingServerReplyUdp in
       let s = udp_from_server p in
+      let module M = Udp.PingServerReplyUdp in
+      let check_challenge, challenge_v =
+        match s.server_udp_ping_challenge with
+        | Some challenge when challenge = t.M.challenge -> true, challenge
+        | Some challenge -> false, challenge
+        | _ -> false, 0L
+      in
+      if check_challenge then begin
       UdpSocket.declare_pong s.server_ip;
       let now = Unix.gettimeofday() in
       s.server_ping <- int_of_float ((now -. s.server_last_ping) *. 1000.);
-      s.server_last_message <- last_time ();
+      s.server_udp_ping_challenge <- None;
+      s.server_has_get_sources <- t.M.get_sources;
+      s.server_has_get_files <- t.M.get_files;
+      s.server_has_newtags <- t.M.newtags;
+      s.server_has_unicode <- t.M.unicode;
+      s.server_has_get_sources2 <- t.M.get_sources2;
+      s.server_has_largefiles <- t.M.largefiles;
+      (match s.server_obfuscation_udp with
+        | None -> if t.M.udp_obfuscation then s.server_obfuscation_udp <- Some 0
+        | Some p -> if not t.M.udp_obfuscation then s.server_obfuscation_udp <- None);
+      (match s.server_obfuscation_tcp with
+        | None -> if t.M.tcp_obfuscation then s.server_obfuscation_tcp <- Some 0
+        | Some p -> if not t.M.tcp_obfuscation then s.server_obfuscation_tcp <- None);
       if t.M.files > 0L then s.server_nfiles <- Some t.M.files;
       if t.M.users > 0L then s.server_nusers <- Some t.M.users;
       (match t.M.max_users with
            Some x when x > 0L -> s.server_max_users <- Some x
-         | _ -> ());
-      (match t.M.flags with
-           Some x -> s.server_flags <- x
          | _ -> ());
       (match t.M.lowid_users with
            Some x when x > 0L -> s.server_lowid_users <- Some x
@@ -283,30 +300,48 @@ let udp_client_handler t p =
            Some x when x > 0L -> s.server_hard_limit <- Some x
          | _ -> ());
       server_must_update s
+      end else
+        begin
+          lprintf_nl "received PingServerReply from %s with invalid challenge: %Ld <> %Ld"
+            (string_of_server s) challenge_v t.M.challenge;
+          s.server_udp_ping_challenge <- None;
+        end
 
   | Udp.ServerDescReplyUdpReq t ->
       let module M = Udp.ServerDescReplyUdp in
       let s = udp_from_server p in
+      let check_challenge, challenge_v =
+        match s.server_udp_desc_challenge with
+        | Some challenge when challenge = t.M.challenge -> true, challenge
+        | Some challenge -> false, challenge
+        | _ -> false, 0L
+      in
+      if check_challenge then begin
+      s.server_name <- t.M.name;
+      s.server_description <- t.M.desc;
+      s.server_udp_desc_challenge <- None;
       List.iter (fun tag ->
           match tag with
               { tag_name = Field_UNKNOWN "version"; tag_value = Uint64 i } ->
                 let i = Int64.to_int i in
                 s.server_version <- Printf.sprintf "%d.%d" (i lsr 16) (i land 0xFFFF);
-            | { tag_name = Field_UNKNOWN "servername"; tag_value = String name } ->
-                s.server_name <- name
-            | { tag_name = Field_UNKNOWN "description"; tag_value = String desc } ->
-                s.server_description <- desc
 	    | { tag_name = Field_UNKNOWN "auxportslist" ; tag_value = String aux } ->
 		s.server_auxportslist <- aux
 	    |  { tag_name = Field_UNKNOWN "dynip" ; tag_value = String dynip } ->
 		s.server_dynip <- dynip
-            | _ -> lprintf_nl "parsing Udp.ServerDescReplyUdp, unknown field %s" (string_of_tag tag)
+            | _ -> ()
       ) t.M.tags;
 
       if s.server_tags = [] then
          s.server_tags <- t.M.tags;
 
       server_must_update s
+      end else
+        begin
+          lprintf_nl "received ServerDescReply from %s with invalid challenge: %Ld <> %Ld"
+            (string_of_server s) challenge_v t.M.challenge;
+          s.server_udp_desc_challenge <- None;
+        end
 
   | Udp.EmuleReaskFilePingUdpReq t -> ()
 

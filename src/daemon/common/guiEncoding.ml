@@ -211,6 +211,7 @@ let buf_host_state proto buf t =
   if proto < 12 then
     buf_int8 buf (    
       match t with
+      | ServerFull
       | NotConnected _ -> 0
       | Connecting -> 1
       | Connected_initiating -> 2
@@ -222,6 +223,7 @@ let buf_host_state proto buf t =
       | BlackListedHost -> if proto < 10 then 0 else 8)
   else    
   match t with
+  | ServerFull
   | NotConnected (_, -1) -> buf_int8 buf 0
   | Connecting -> buf_int8 buf  1
   | Connected_initiating -> buf_int8 buf 2

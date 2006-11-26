@@ -677,11 +677,16 @@ let update_client_from_tags c tags =
             DonkeyProtoClient.update_emule_proto_from_miscoptions1
             c.client_emule_proto i
           )
+      | Field_UNKNOWN "emule_miscoptions2" ->
+          for_int64_tag tag (fun i ->
+            DonkeyProtoClient.update_emule_proto_from_miscoptions2
+            c.client_emule_proto i
+          )
       | Field_UNKNOWN "emule_compatoptions" ->
           for_int_tag tag (fun i ->
             DonkeyProtoClient.update_emule_proto_from_compatoptions
             c.client_emule_proto i
-          );
+          )
       | Field_UNKNOWN "emule_version" ->
           for_int_tag tag (fun i ->
             c.client_emule_proto.emule_version <- i;
@@ -2159,12 +2164,12 @@ let init_client sock c =
   c.client_requests_sent <- 0;
   c.client_slot <- SlotNotAsked
         
-let read_first_message overnet m sock =
+let read_first_message overnet server m sock =
   let module M = DonkeyProtoClient in
     
-  if !verbose_msg_clients then begin
-      lprintf_nl "Message from incoming client %s:%d"
-	(Ip.to_string (peer_ip sock)) (peer_port sock);
+  if (not server && !verbose_msg_clients) || (server && !verbose_msg_servers) then begin
+      lprintf_nl "Message from incoming %s %s:%d"
+	(if server then "server" else "client") (Ip.to_string (peer_ip sock)) (peer_port sock);
       M.print m;
     end;
 
@@ -2262,7 +2267,8 @@ let read_first_message overnet m sock =
               end
       end;
 
-      if supports_eep c.client_brand then
+(* Lugdunum servers are not interested in our EmuleClientInfo *)
+      if supports_eep c.client_brand && not server then
         begin
           (* lprintf "Emule Extended Protocol query\n"; *)
           let module M = DonkeyProtoClient in
@@ -2290,7 +2296,8 @@ let read_first_message overnet m sock =
               C.md4 = !!client_md4;
               C.ip = client_ip (Some sock);
               C.port = !!donkey_port;
-              C.tags = !client_to_client_tags;
+              (* Lugdunum servers need fewer infos than clients *)
+              C.tags = if server then !client_to_server_reply_tags else !client_to_client_tags;
               C.server_info = Some (get_server_ip_port ());
               C.left_bytes = left_bytes; 
               C.hash_len = 16;
@@ -2500,10 +2507,12 @@ let client_connection_handler overnet t event =
           (if is_connecting_server then
             ( try 
                 let s = Hashtbl.find servers_by_key from_ip in
+                set_server_state s Connected_initiating;
                 Printf.sprintf " %s (%s)" s.server_name (string_of_server s)
               with _ ->
                 try 
                   let s = Hashtbl.find servers_by_key connecting_server in
+                  set_server_state s Connected_initiating;
                   Printf.sprintf " %s (%s)" s.server_name (string_of_server s)
                 with _ -> "Unknown server"
             )
@@ -2535,7 +2544,7 @@ let client_connection_handler overnet t event =
               );
               (try
                   set_reader sock 
-                    (DonkeyProtoCom.client_handler2 c (read_first_message overnet)
+                    (DonkeyProtoCom.client_handler2 c (read_first_message overnet is_connecting_server)
                     (client_to_client []));
                 
                 with e -> lprintf_nl "Exception %s in init_connection"
