@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/11/26
+5582: EDK: Improve CryptoPP logging (Schlumpf)
 5584: EDK: Remove removed servers from walker server lists
 5585: EDK: New parameter "all" for command "x" to disconnect all conn. servers
 5586: BT: Recognize Bitrocket clients

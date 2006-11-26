@@ -84,10 +84,10 @@ ml_verifySignature_bytecode(value *argv, int argn) {
 	return ml_verifySignature(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
 }
 
-void cc_lprintf_nl(const char * msg)
+void cc_lprintf_nl(const char * msg, int verb)
 {
   static value * caml_func = NULL;
   if (caml_func == NULL) caml_func = caml_named_value("ml_lprintf_nl");
-  caml_callback(*caml_func, caml_copy_string(msg));
+  caml_callback2(*caml_func, caml_copy_string(msg), Val_int(verb));
 }
 

@@ -9515,7 +9515,7 @@ static Signer* s_signer = NULL;
 static byte m_publicKey[MAXPUBKEYSIZE+1];
 static unsigned long m_publicKeyLen = 0;
 
-void cc_lprintf_nl(const char * msg);
+void cc_lprintf_nl(const char * msg, bool verb);
 
 void crypto_exit () {
 	if (s_signer) {
@@ -9543,7 +9543,7 @@ void createKey(char buf[]) {
 	} catch(const CryptoPP::Exception& e) {
 		char buf[256]="[CryptoPP] createKey: ";
 		strcat(buf, e.what());
-		cc_lprintf_nl(buf);
+		cc_lprintf_nl(buf, false);
 	}
 
 }
@@ -9576,7 +9576,7 @@ unsigned long loadKey(char privateKeyBase64[], char buf[]) {
 	} catch(const CryptoPP::Exception& e) {
 		char buf[256]="[CryptoPP] loadKey: ";
 		strcat(buf, e.what());
-		cc_lprintf_nl(buf);
+		cc_lprintf_nl(buf, false);
 	}
 
 	return result;
@@ -9591,7 +9591,7 @@ int createSignature(byte *buf, int maxLen, byte *key, int keyLen, uint32_t cInt,
 
 
 	if (s_signer == NULL) {
-		cc_lprintf_nl("createSignature: No signer");
+		cc_lprintf_nl("createSignature: No signer", false);
 		return result;
 	}
 
@@ -9620,7 +9620,7 @@ int createSignature(byte *buf, int maxLen, byte *key, int keyLen, uint32_t cInt,
 	} catch(const CryptoPP::Exception& e) {
 		char buf[256]="[CryptoPP] createSignature: ";
 		strcat(buf, e.what());
-		cc_lprintf_nl(buf);
+		cc_lprintf_nl(buf, false);
 	}
 
 	return result;
@@ -9653,7 +9653,7 @@ int verifySignature(byte *key, int keyLen, byte *sig, int sigLen, uint32_t cInt,
 	} catch(const CryptoPP::Exception& e) {
 		char buf[256]="[CryptoPP] verifySignature: ";
 		strcat(buf, e.what());
-		cc_lprintf_nl(buf);
+		cc_lprintf_nl(buf, true);
 	}
 
 	return result ? 1 : 0;
