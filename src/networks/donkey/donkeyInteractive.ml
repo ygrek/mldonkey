@@ -748,7 +748,7 @@ let commands = [
         end
       else
         if Sys.file_exists filename then begin
-                let n = load_server_met filename in
+                let n = load_server_met (unpack_server_met filename "") in
                   Printf.sprintf "%d servers found, %d new ones inserted"
         n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
           end

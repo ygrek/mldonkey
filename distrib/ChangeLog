@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/11/26
+5590: EDK: .gz & .bz2 support for command "servers"
 5581: EDK: Improve server logins, send fewer data, minor improvements
 - Copied eMule behaviour:
   - send fewer data to server during login, support server capability "newtags",
