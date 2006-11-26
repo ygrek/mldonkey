@@ -60,6 +60,7 @@ type brand =
 | Brand_bittornado
 | Brand_bittorrentx
 | Brand_btplus
+| Brand_bitrocket
 | Brand_btslave
 | Brand_btugaxp
 | Brand_burst
@@ -127,6 +128,7 @@ let brand_list = [
    ( Brand_bittornado       , "BitTornado"             , "trn" ) ;
    ( Brand_bittorrentx      , "BitTorrent X"           , "btx" ) ;
    ( Brand_btplus           , "BitTorrent Plus!"       , "plu" ) ;
+   ( Brand_bitrocket        , "BitRocket"              , "roc" ) ;
    ( Brand_btslave          , "BTSlave"                , "sla" ) ;
    ( Brand_btugaxp          , "BTugaXP"                , "uga" ) ;
    ( Brand_burst            , "Burst !"                , "brs" ) ;

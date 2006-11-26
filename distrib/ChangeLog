@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/11/26
+5586: BT: Recognize Bitrocket clients
+
 2006/11/21
 5579: Remove BasicSocket.[mini|maxi], replace them with Pervasives functions
 - small fix for DonkeyOptions.max_allowed_connected_servers

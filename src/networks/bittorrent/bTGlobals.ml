@@ -437,6 +437,7 @@ let decode_az_style s =
       | "AZ" -> Brand_azureus
       | "BB" -> Brand_bitbuddy
       | "BC" -> Brand_bitcomet
+      | "BR" -> Brand_bitrocket
       | "BS" -> Brand_btslave
       | "BX" -> Brand_bittorrentx
       | "CT" -> Brand_ctorrent
