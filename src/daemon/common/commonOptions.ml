@@ -806,6 +806,11 @@ let html_mods_vd_gfx_y_size = define_expert_option current_section ["html_mods_v
   "Graph y size in vd output ( 200 < y < 1200 )"
     int_option 200
 
+let html_mods_vd_gfx_h_intervall = define_expert_option current_section ["html_mods_vd_gfx_h_intervall"]
+  "compute values for hourly graph every 1,2,3,4,5,10,15,20,30,60 min
+	Changes to this option require a core restart."
+     int_option 60
+
 let html_mods_vd_gfx_h_dynamic = define_expert_option current_section ["html_mods_vd_gfx_h_dymamic"]
   "Dynamic grid width, start with 1 h/grid, maximum html_mods_vd_gfx_h_grid_time h/grid"
     bool_option true
@@ -1794,12 +1799,18 @@ let _ =
   option_hook client_buffer_size (fun _ ->
       TcpBufferedSocket.max_buffer_size := max 10000000 !!client_buffer_size
   );
-  if Autoconf.has_gd then
+  if Autoconf.has_gd then begin
     option_hook html_mods_vd_gfx_png (fun _ ->
       if not Autoconf.has_gd_png && !!html_mods_vd_gfx_png then html_mods_vd_gfx_png =:= false;
       if not Autoconf.has_gd_jpg && not !!html_mods_vd_gfx_png then html_mods_vd_gfx_png =:= true
+	);
+	option_hook html_mods_vd_gfx_h_intervall (fun _ -> 
+	let values = [1; 2; 3; 4; 5; 10; 15; 20; 30; 60] in 
+	let v = List.find ((<=) (min !!html_mods_vd_gfx_h_intervall 60)) values in 
+	if v <> !!html_mods_vd_gfx_h_intervall then html_mods_vd_gfx_h_intervall =:= v 
     )
-
+	end
+	
 let verbose_msg_clients = ref false
 let verbose_msg_raw = ref false
 let verbose_msg_clienttags = ref false

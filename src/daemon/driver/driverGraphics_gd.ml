@@ -68,7 +68,7 @@ let rec maxlist lst = match lst with
 (* set some vars *) 
 
 let history_time = history_size * history_step
-let history_h_time = history_h_size * history_h_step
+let history_h_time() = history_h_size * !history_h_step
 
 (* define margins *)
 let left_margin = 20
@@ -90,43 +90,42 @@ let round_up x =
   let v = min x 120 in
   let values = [0; 1; 2; 3; 4; 5; 10; 15; 30; 60; 120] in
   List.find ((<=) v) values
-	
-let round_h_up x =
-  let v = min x 840 in
-  let values = [1; 2; 3; 4; 5; 10; 15; 30; 60; 120; 180; 240; 300; 360; 480; 720; 1440; 2880; 4320; 5760; 7200; 8640; 10080; 11520; 12960; 14400; 15840; 17280; 18720; 20160; 30240; 40320; 50400; 60480; 70560; 80640; 90720] in
-  List.find ((<=) v) values
-	
+
 let round_h_down x = 
   let values = [90720; 80640; 70560; 60480; 50400; 40320; 30240; 20160; 18720; 17280; 15840; 14400; 12960; 11520; 10080; 8640; 7200; 5760; 4320; 2880; 1440; 720; 480; 360; 300; 240; 180; 120; 60; 30; 15; 10; 5; 4; 3; 2; 1; 0] in
   max 1 (List.find ((>=) x) values)
+	
+let round_h_up x =
+  let v = min x 90720 in
+  let values = [1; 2; 3; 4; 5; 10; 15; 30; 60; 120; 180; 240; 300; 360; 480; 720; 1440; 2880; 4320; 5760; 7200; 8640; 10080; 11520; 12960; 14400; 15840; 17280; 18720; 20160; 30240; 40320; 50400; 60480; 70560; 80640; 90720] in
+  List.find ((<=) v) values
 	
 (* calculate x-values *)
 let x_time_per_grid() = 60 * round_up (history_time / (60 * ((win_x () - left_margin - right_margin) / 60)))
 let x_divisions () = history_time / (x_time_per_grid ())
 let x_fdivisions () = float_of_int (x_divisions ())
 
-let x_h_time_per_grid g = max history_h_step (
+let x_h_time_per_grid g = max !history_h_step (
   if !!html_mods_vd_gfx_h_dynamic then 
     begin
       if !!html_mods_vd_gfx_h_grid_time >= 1 then
-	min (round_h_down (!!html_mods_vd_gfx_h_grid_time * 60)) 
-	(min
-	  ((round_h_up ((((Fifo.length g) + x_divisions () - 2) / (x_divisions())) * history_h_step/60 )) * 60)
-	  ((round_h_down ( history_h_time / (60 * x_divisions()) )) * 60))
+        min (round_h_down (!!html_mods_vd_gfx_h_grid_time * 60)) 
+	          (min ((round_h_up ((((Fifo.length g) + x_divisions () - 2) / (x_divisions())) * !history_h_step/60 )) * 60)
+	               ((round_h_down ( history_h_time() / (60 * x_divisions()) )) * 60))
       else
-	min ((round_h_up ((((Fifo.length g) + x_divisions () - 2) / (x_divisions ())) * history_h_step / 60)) * 60)
-	    ((round_h_down (history_h_time / (60 * x_divisions ()) )) * 60)
+	      min ((round_h_up ((((Fifo.length g) + x_divisions () - 2) / (x_divisions ())) * !history_h_step / 60)) * 60)
+            ((round_h_down (history_h_time() / (60 * x_divisions ()) )) * 60)
     end
   else
     if !!html_mods_vd_gfx_h_grid_time >= 1 then
       round_h_down (!!html_mods_vd_gfx_h_grid_time * 60)
   else
-      round_h_down (history_h_time / (60 * x_divisions ())))
+	  round_h_down (history_h_time() / (60 * x_divisions ())))
 
 let vmax link = (detected_link_capacity link)
 
 let x_h_time g = (x_divisions() * x_h_time_per_grid g)
-let x_h_values g = ((x_h_time g) / history_h_step)
+let x_h_values g = ((x_h_time g) / !history_h_step)
 
 (* calculate y-values *)
 let y_divisions () = ((win_y() - top_margin - bottom_margin)) / 50 * 2
@@ -265,7 +264,7 @@ let draw_h_legend mypic g legend_text gcolor my_time basetime show_days =
   in
   let day_string n =
     let time = Unix.localtime (basetime -. float_of_int(n * my_time / x_divisions ())) in
-    Printf.sprintf "%02d.%02d." time.Unix.tm_mon time.Unix.tm_mday
+    Printf.sprintf "%02d.%02d." time.Unix.tm_mday time.Unix.tm_mon
   in
   if show_days then
     begin

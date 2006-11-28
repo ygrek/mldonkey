@@ -452,13 +452,15 @@ or getting a binary compiled with glibc %s.\n\n")
   history_h_timeflag := (Unix.time()); 
   update_h_download_history (); 
   update_h_upload_history ();
-		
+  history_size_for_h_graph := history_size * !!html_mods_vd_gfx_h_intervall / 60;
+  history_h_step := 60 * !!html_mods_vd_gfx_h_intervall;
+	
   add_infinite_timer (float_of_int history_step) (fun timer -> 
     history_timeflag := (Unix.time()); 
     update_download_history (); 
     update_upload_history ());
 
-  add_infinite_timer (float_of_int history_h_step) (fun timer -> 
+  add_infinite_timer (float_of_int !history_h_step) (fun timer -> 
     history_h_timeflag := (Unix.time()); 
     update_h_download_history (); 
     update_h_upload_history ());

@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/11/29
+5597: GD: New option html_mods_vd_gfx_h_intervall
+      (compute values for hourly graph every x minutes) (skeeve)
+
 2006/11/28
 5591: EDK: Fix small file search result parsing
 

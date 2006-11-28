@@ -620,8 +620,9 @@ let update_link_stats () =
 
 let history_step = 5
 let history_size = 720
-let history_h_step = history_size * history_step
-let history_h_size = 720
+let history_size_for_h_graph = ref 0 (* history_size * !!html_mods_vd_gfx_h_intervall / 60 *)
+let history_h_step = ref 0 (* 60 * !!html_mods_vd_gfx_h_intervall <= history_size * history_step *)
+let history_h_size = 1440
 let history_timeflag = ref 0.
 let history_h_timeflag = ref 0.
 
@@ -656,7 +657,12 @@ let update_upload_history () =
   done
 
 let update_h_download_history () =
-  Fifo.put download_h_history ((List.fold_left (+) 0 (Fifo.to_list download_history)) / ((Fifo.length download_history)));
+  if (!history_h_step = history_size * history_step) or ( (Fifo.length download_history) <= (!history_size_for_h_graph+1)) then 
+    Fifo.put download_h_history ((List.fold_left (+) 0 (Fifo.to_list download_history)) / ((Fifo.length download_history))) 
+  else 
+    Fifo.put download_h_history ((List.fold_left (+) 0 
+		  (snd (List2.cut ((Fifo.length download_history) - !history_size_for_h_graph - 1) (Fifo.to_list download_history)))) 
+      / (!history_size_for_h_graph + 1) );
   let len = ref (Fifo.length download_h_history) in
   while !len > history_h_size+1 do
     ignore (Fifo.take download_h_history);
@@ -664,7 +670,13 @@ let update_h_download_history () =
   done
 
 let update_h_upload_history () =
-  Fifo.put upload_h_history ((List.fold_left (+) 0 (Fifo.to_list upload_history)) / ((Fifo.length upload_history)));
+	(* Fifo.put upload_h_history ((Fifo.length upload_history) / 720); *)
+  if (!history_h_step = history_size * history_step) or ((Fifo.length upload_history) <= (!history_size_for_h_graph+1)) then 
+    Fifo.put upload_h_history ((List.fold_left (+) 0 (Fifo.to_list upload_history)) / ((Fifo.length upload_history))) 
+  else 
+    Fifo.put upload_h_history ((List.fold_left (+) 0 
+			(snd (List2.cut ((Fifo.length upload_history) - !history_size_for_h_graph - 1) (Fifo.to_list upload_history)))) 
+      / (!history_size_for_h_graph+1) );
   let len = ref (Fifo.length upload_h_history) in
   while !len > history_h_size+1 do
     ignore (Fifo.take upload_h_history);
