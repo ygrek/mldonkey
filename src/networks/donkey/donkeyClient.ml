@@ -664,10 +664,17 @@ let parse_mod_version s c =
    iter 0 (Array.length mod_array)
 
 let update_client_from_tags c tags =
+  let module M = DonkeyProtoClient in
   List.iter (fun tag ->
       match tag.tag_name with
-      | Field_UNKNOWN "name" -> ()
-      | Field_UNKNOWN "version" -> ()
+      | Field_UNKNOWN "name"
+      | Field_UNKNOWN "port"
+      | Field_UNKNOWN "version"
+      | Field_UNKNOWN "buddy_ip"
+      | Field_UNKNOWN "buddy_udp"
+      | Field_UNKNOWN "mod_plus"
+      | Field_UNKNOWN "l2hac"
+      | Field_UNKNOWN "udpport" -> ()
       | Field_UNKNOWN "emule_udpports" -> 
           for_two_int16_tag tag (fun ed2k_port kad_port ->
 (* Kademlia: we should use this client to bootstrap Kademlia *)
@@ -677,17 +684,25 @@ let update_client_from_tags c tags =
           )
       | Field_UNKNOWN "emule_miscoptions1" ->
           for_int64_tag tag (fun i ->
-            DonkeyProtoClient.update_emule_proto_from_miscoptions1
-            c.client_emule_proto i
+            M.update_emule_proto_from_miscoptions1
+            c.client_emule_proto i;
+            if !verbose_msg_clients || c.client_debug then
+              lprintf_nl "miscoptions1 from client %s\n%s"
+                (full_client_identifier c)
+                (M.print_emule_proto_miscoptions1 c.client_emule_proto)
           )
       | Field_UNKNOWN "emule_miscoptions2" ->
           for_int64_tag tag (fun i ->
-            DonkeyProtoClient.update_emule_proto_from_miscoptions2
-            c.client_emule_proto i
+            M.update_emule_proto_from_miscoptions2
+            c.client_emule_proto i;
+            if !verbose_msg_clients || c.client_debug then
+              lprintf_nl "miscoptions2 from client %s\n%s"
+                (full_client_identifier c)
+                (M.print_emule_proto_miscoptions2 c.client_emule_proto)
           )
       | Field_UNKNOWN "emule_compatoptions" ->
           for_int_tag tag (fun i ->
-            DonkeyProtoClient.update_emule_proto_from_compatoptions
+            M.update_emule_proto_from_compatoptions
             c.client_emule_proto i
           )
       | Field_UNKNOWN "emule_version" ->
@@ -704,8 +719,7 @@ let update_client_from_tags c tags =
           let s = to_lowercase (string_of_tag_value tag.tag_value) in 
           parse_mod_version s c
       | _ -> 
-          if !verbose_msg_clienttags then
-            lprintf_nl "Unknown Emule tag: [%s] (update_client_from_tags)" (escaped_string_of_field tag)
+            lprintf_nl "update_client_from_tags, unknown tag: [%s] (%s)" (string_of_tag tag) (full_client_identifier c)
   ) tags
     
 let update_emule_proto_from_tags c tags =
@@ -725,7 +739,6 @@ let update_emule_proto_from_tags c tags =
           for_int_tag tag (fun i ->
             c.client_emule_proto.emule_udpver <- i
           )
-      | Field_UNKNOWN "udpport" -> ()
       | Field_UNKNOWN "sourceexchange" ->
           for_int_tag tag (fun i ->
             c.client_emule_proto.emule_sourceexchange <- i
@@ -743,17 +756,18 @@ let update_emule_proto_from_tags c tags =
             c.client_emule_proto.emule_secident <- i land 0x3
           )
       | Field_UNKNOWN "mod_version" ->
-          let s = to_lowercase (string_of_tag_value tag.tag_value) in 
-          parse_mod_version s c;
+          parse_mod_version (to_lowercase (string_of_tag_value tag.tag_value)) c;
 
       | Field_UNKNOWN "os_info" ->
           let s = to_lowercase (string_of_tag_value tag.tag_value) in 
 	  (match c.client_osinfo with
 	    Some _ -> ()
 	  | _ ->  if s <> "" then c.client_osinfo <- Some s)
+      | Field_UNKNOWN "udpport"
+      | Field_UNKNOWN "mod_plus"
+      | Field_UNKNOWN "l2hac" -> ()
       | _ -> 
-          if !verbose_msg_clienttags then
-            lprintf_nl "Unknown Emule tag: [%s] (update_emule_proto_from_tags)" (escaped_string_of_field tag)
+            lprintf_nl "update_emule_proto_from_tags, unknown tag: [%s] (%s)" (string_of_tag tag) (full_client_identifier c)
   ) tags
 
 let fight_disguised_mods c =

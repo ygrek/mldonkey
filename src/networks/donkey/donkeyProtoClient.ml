@@ -39,40 +39,83 @@ let get_emule_version () =
     (int_of_string(Autoconf.minor_version) lsl 10) lor
     (int_of_string(Autoconf.sub_version) lsl 7)
 
-(* TODO : update this
-I downgraded some of those to get better results :
-We don't use emule udp extension, client_md4 in sourceexchange or complete sources in
-file request *)
 let mldonkey_emule_proto = 
   {
-    emule_comments = 1;
     emule_version = get_emule_version (); 
     emule_release = "";
-    emule_secident = 3; (* Emule uses v1 if advertising both, v2 if only advertising 2 *)
-    emule_noviewshared = 0;
-    emule_supportpreview = 0;
     emule_osinfosupport = 1;
-    emule_compression = 1; (* 1 *)
+    emule_features = 3;
+
+(* emule_miscoptions1 *)
+    emule_aich = 0;
+    emule_unicode = 0;
+    emule_udpver = 0;
+    emule_compression = 1;
+    emule_secident = 3; (* Emule uses v1 if advertising both, v2 if only advertising 2 *)
     emule_sourceexchange = 2; (* 2 : +client_md4 3 : +IdHybrid (emule Kademlia?)*)
-    emule_multipacket = 0; (* 1 *)
     emule_extendedrequest = 1; (* 1: +file_status 2: +ncomplete_sources*)
-    emule_features = 3; (* 3 *)
-    emule_udpver = 0; (* 4 *)
+    emule_comments = 1;
+    emule_peercache = 0;
+    emule_noviewshared = 0;
+    emule_multipacket = 0;
+    emule_supportpreview = 0;
+
+(* emule_miscoptions2 *)
+    emule_require_crypt = 0;
+    emule_request_crypt = 0;
+    emule_support_crypt = 0;
+    emule_extmultipacket = 0;
+    emule_largefiles = 0;
+    emule_kad_version = 0;
   }
 
 let emule_miscoptions1 m =
   let o =
+    (m.emule_aich lsl 29) lor
+    (m.emule_unicode lsl 28) lor
     (m.emule_udpver lsl 24) lor
     (m.emule_compression lsl 20) lor
     (m.emule_secident lsl 16) lor
     (m.emule_sourceexchange lsl 12) lor
     (m.emule_extendedrequest lsl 8) lor
     (m.emule_comments lsl 4) lor
+    (m.emule_peercache lsl 3) lor
     (m.emule_noviewshared lsl 2) lor
     (m.emule_multipacket lsl 1) lor
     (m.emule_supportpreview lsl 0)
   in
   Int64.of_int o
+
+let update_emule_proto_from_miscoptions1 m o =
+  let o = Int64.to_int o in
+  m.emule_aich            <- (o lsr 29) land 0x7;
+  m.emule_unicode         <- (o lsr 28) land 0xf;
+  m.emule_udpver          <- (o lsr 24) land 0xf;
+  m.emule_compression     <- (o lsr 20) land 0xf;
+  m.emule_secident        <- (o lsr 16) land 0xf;
+  m.emule_sourceexchange  <- (o lsr 12) land 0xf;
+  m.emule_extendedrequest <- (o lsr  8) land 0xf;
+  m.emule_comments        <- (o lsr  4) land 0xf;
+  m.emule_peercache       <- (o lsr  3) land 0x1;
+  m.emule_noviewshared    <- (o lsr  2) land 0x1;
+  m.emule_multipacket     <- (o lsr  1) land 0x1;
+  m.emule_supportpreview  <- (o lsr  0) land 0x1
+
+let print_emule_proto_miscoptions1 m =
+  let buf = Buffer.create 50 in
+  if m.emule_aich <> 0 then Printf.bprintf buf " aich %d\n" m.emule_aich;
+  if m.emule_unicode <> 0 then Printf.bprintf buf " unicode %d\n" m.emule_unicode;
+  if m.emule_udpver <> 0 then Printf.bprintf buf " udpver %d\n" m.emule_udpver;
+  if m.emule_compression <> 0 then Printf.bprintf buf " compression %d\n" m.emule_compression;
+  if m.emule_secident <> 0 then Printf.bprintf buf " secident %d\n" m.emule_secident;
+  if m.emule_sourceexchange <> 0 then Printf.bprintf buf " sourceexchange %d\n" m.emule_sourceexchange;
+  if m.emule_extendedrequest <> 0 then Printf.bprintf buf " extendedrequest %d\n" m.emule_extendedrequest;
+  if m.emule_comments <> 0 then Printf.bprintf buf " comments %d\n" m.emule_comments;
+  if m.emule_peercache <> 0 then Printf.bprintf buf " peercache %d\n" m.emule_peercache;
+  if m.emule_noviewshared <> 0 then Printf.bprintf buf " noviewshared %d\n" m.emule_noviewshared;
+  if m.emule_multipacket <> 0 then Printf.bprintf buf " multipacket %d\n" m.emule_multipacket;
+  if m.emule_supportpreview <> 0 then Printf.bprintf buf " supportpreview %d\n" m.emule_supportpreview;
+  Buffer.contents buf
 
 let emule_miscoptions2 m =
 (*
@@ -83,23 +126,24 @@ let emule_miscoptions2 m =
 *)
   Int64.zero
 
-let update_emule_proto_from_miscoptions1 m o =
+let update_emule_proto_from_miscoptions2 m o =
   let o = Int64.to_int o in
-  m.emule_udpver <- (o lsr 24) land 0xf;
-  m.emule_compression <- (o lsr 20) land 0xf;
-  m.emule_secident <- (o lsr 16) land 0xf;
-  m.emule_sourceexchange <- (o lsr 12) land 0xf;
-  m.emule_extendedrequest <- (o lsr 8) land 0xf;
-  m.emule_comments <- (o lsr 4) land 0xf;
-  m.emule_noviewshared <- (o lsr 2) land 0x1;
-  m.emule_multipacket <- (o lsr 1) land 0x1;
-  m.emule_supportpreview <- (o lsr 0) land 0x1
+  m.emule_require_crypt  <- (o lsr 9) land 0x1;
+  m.emule_request_crypt  <- (o lsr 8) land 0x1;
+  m.emule_support_crypt  <- (o lsr 7) land 0x1;
+  m.emule_extmultipacket <- (o lsr 5) land 0x1;
+  m.emule_largefiles     <- (o lsr 4) land 0x1;
+  m.emule_kad_version    <- (o lsr 0) land 0xf
 
-let update_emule_proto_from_miscoptions2 m o = ()
-(*
-  let o = Int64.to_int o in
-  m.emule_largefiles <- (o lsr 4) land 0x1
-*)
+let print_emule_proto_miscoptions2 m =
+  let buf = Buffer.create 50 in
+  if m.emule_require_crypt <> 0 then Printf.bprintf buf " require_crypt %d\n" m.emule_require_crypt;
+  if m.emule_request_crypt <> 0 then Printf.bprintf buf " request_crypt %d\n" m.emule_request_crypt;
+  if m.emule_support_crypt <> 0 then Printf.bprintf buf " support_crypt %d\n" m.emule_support_crypt;
+  if m.emule_extmultipacket <> 0 then Printf.bprintf buf " extmultipacket %d\n" m.emule_extmultipacket;
+  if m.emule_largefiles <> 0 then Printf.bprintf buf " largefiles %d\n" m.emule_largefiles;
+  if m.emule_kad_version <> 0 then Printf.bprintf buf " kad_version %d\n" m.emule_kad_version;
+  Buffer.contents buf
 
 let emule_compatoptions m =
   (m.emule_osinfosupport lsl 0)

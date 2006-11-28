@@ -33,20 +33,32 @@ let lprintf_n fmt =
   lprintf2 log_prefix fmt
 
 type emule_proto = {
-    mutable emule_comments : int;
     mutable emule_version : int;
     mutable emule_release : string;
-    mutable emule_secident : int;
-    mutable emule_noviewshared : int;
-    mutable emule_supportpreview : int;
     mutable emule_osinfosupport : int;
-
-    mutable emule_compression : int;
-    mutable emule_sourceexchange : int;
-    mutable emule_multipacket : int;
-    mutable emule_extendedrequest : int;
     mutable emule_features : int;
+
+(* emule_miscoptions1 *)
+    mutable emule_aich : int;
+    mutable emule_unicode : int;
     mutable emule_udpver : int;
+    mutable emule_compression : int;
+    mutable emule_secident : int;
+    mutable emule_sourceexchange : int;
+    mutable emule_extendedrequest : int;
+    mutable emule_comments : int;
+    mutable emule_peercache : int;
+    mutable emule_noviewshared : int;
+    mutable emule_multipacket : int;
+    mutable emule_supportpreview : int;
+
+(* emule_miscoptions2 *)
+    mutable emule_require_crypt : int;
+    mutable emule_request_crypt : int;
+    mutable emule_support_crypt : int;
+    mutable emule_extmultipacket : int;
+    mutable emule_largefiles : int;
+    mutable emule_kad_version : int;
   }
 
 type emule_tag_name =
@@ -688,20 +700,32 @@ let server_state server =
   CommonServer.server_state (as_server server.server_server)
 
 let dummy_emule_proto = {
-    emule_comments = 0;
     emule_version = 0;
     emule_release = "";
-    emule_secident = 0;
-    emule_noviewshared = 0;
-    emule_supportpreview = 0;
     emule_osinfosupport = 0;
+    emule_features = 0;
 
+(* emule_miscoptions1 *)
+    emule_aich = 0;
+    emule_unicode = 0;
+    emule_udpver = 0;
     emule_compression = 0; (* 1 *)
+    emule_secident = 0;
     emule_sourceexchange = 0; (* 3 *)
-    emule_multipacket = 0; (* 1 *)
     emule_extendedrequest = 0; (* 2 *)
-    emule_features = 0; (* 3 *)
-    emule_udpver = 0; (* 4 *)
+    emule_comments = 0;
+    emule_peercache = 0;
+    emule_noviewshared = 0;
+    emule_multipacket = 0;
+    emule_supportpreview = 0;
+
+(* emule_miscoptions2 *)
+    emule_require_crypt = 0;
+    emule_request_crypt = 0;
+    emule_support_crypt = 0;
+    emule_extmultipacket = 0;
+    emule_largefiles = 0;
+    emule_kad_version = 0;
   }
 
 let emule_proto () =

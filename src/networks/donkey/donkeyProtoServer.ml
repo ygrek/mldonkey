@@ -28,31 +28,6 @@ open CommonGlobals
 open DonkeyTypes
 open DonkeyMftp
 
-(*
-let field_of_tagname s =
-  match s with
-  | "size" -> Field_Size
-  | "filename" -> Field_Filename
-  | "Artist" -> Field_Artist
-  | "Album" -> Field_Album
-  | "Title" -> Field_Title
-  | "format" -> Field_Format
-  | "type" -> Field_Type
-  | s -> Field_UNKNOWN s
-
-let tagname_of_field field =
-  match field with
-    Field_Size -> "size"
-  | Field_Filename -> "filename"
-  | Field_Artist -> "Artist"
-  | Field_Album -> "Album"
-  | Field_Title -> "Title"
-  | Field_Format -> "format"
-  | Field_Type -> "type"
-  | Field_Uid -> "uid"
-  | Field_unknown s -> s
-*)
-
 module Connect = struct
     type t = {
         md4 : Md4.t;

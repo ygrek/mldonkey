@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/11/29
+5595: EDK: Fully parse emule_miscoptions1/2
 5594: EDK: If update_server_list_client true, add yet unknown server
       of lowid clients
 
