@@ -1904,7 +1904,6 @@ let buildinfo html buf =
   tack list 
     (
       "Features:\t",
-      ("multiuser") ^
       (if BasicSocket.has_threads () then " threads" else " no-threads") ^
       (let s = Zlib.zlib_version_num () in 
          Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else "")) ^
