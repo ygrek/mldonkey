@@ -183,6 +183,7 @@ let client_to_general_state state file_num =
     | Connecting  -> CConnecting
     | NewHost -> CNewHost
     | Connected_initiating -> CConnected_initiating
+    | ServerFull -> CNotConnected (BasicSocket.Closed_connect_failed,0)
     | NotConnected (p,n) -> CNotConnected (p,n)
     | RemovedHost -> CRemovedHost
     | BlackListedHost -> CBlackListedHost

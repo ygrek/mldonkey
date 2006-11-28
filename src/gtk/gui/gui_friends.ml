@@ -41,6 +41,7 @@ let string_color_of_state state =
   | Connected (-2) -> gettext M.connected, Some !!O.color_connected 
   | Connecting  -> gettext M.connecting, Some !!O.color_connecting
   | NewHost -> "NEW HOST", None
+  | ServerFull -> "server full", None
   | Connected_initiating -> gettext M.initiating, Some !!O.color_not_connected
   | Connected 0 -> gettext M.queued, Some !!O.color_connected
   | Connected n -> Printf.sprintf "Ranked %d" n, Some !!O.color_connected

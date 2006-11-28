@@ -470,6 +470,7 @@ let string_of_state state num =
   | Connected_initiating -> !M.dT_tx_initiating
   | Connected 0 -> !M.dT_tx_queued
   | Connected n -> U.simple_utf8_of (Printf.sprintf !M.dT_tx_ranked n)
+  | ServerFull -> ""
   | NotConnected (_,n) ->
       if n = -1 then
         ""
@@ -494,6 +495,7 @@ let is_connected state =
   | Connecting
   | RemovedHost
   | BlackListedHost
+  | ServerFull
   | NewHost -> false
 
 (*************************************************************************)
@@ -518,6 +520,7 @@ let uploader_state_to_string state has_upload =
         | Connected_initiating -> !M.dT_tx_initiating
         | Connected 0 -> !M.dT_tx_queued
         | Connected n -> U.simple_utf8_of (Printf.sprintf !M.dT_tx_ranked n)
+        | ServerFull -> ""
         | NotConnected (_,n) ->
             if n = -1
               then ""
@@ -613,6 +616,7 @@ let server_state_of_server net_num state ~(size : GuiArt.icon_size) =
           | Connecting  -> M.icon_state_server_init
           | NotConnected _ -> M.icon_state_server_notcon
           | NewHost
+          | ServerFull
           | Connected_downloading _
           | RemovedHost
           | BlackListedHost -> M.icon_state_server_unknown

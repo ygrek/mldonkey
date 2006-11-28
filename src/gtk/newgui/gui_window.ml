@@ -40,6 +40,7 @@ let is_connected state =
   | Connected_downloading _
   | Connected _ -> true
   | NotConnected _
+  | ServerFull
   | Connecting
   | RemovedHost
   | BlackListedHost

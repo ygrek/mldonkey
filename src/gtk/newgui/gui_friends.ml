@@ -47,6 +47,7 @@ let string_color_of_state state =
   | Connected_initiating -> M.fT_tx_initiating, Some !!O.color_not_connected
   | Connected 0 -> M.fT_tx_queued, Some !!O.color_connected
   | Connected n -> Printf.sprintf Gui_messages.fT_tx_ranked n, Some !!O.color_connected
+  | ServerFull -> "", None
   | NotConnected (_,n) -> 
       if n = -1 then
         "", None
@@ -82,6 +83,7 @@ let state_pix state =
       | NewHost -> O.gdk_pix M.o_xpm_connect_n
       | Connected_initiating -> O.gdk_pix M.o_xpm_connect_m
       | Connected n -> O.gdk_pix M.o_xpm_connect_y
+      | ServerFull -> O.gdk_pix M.o_xpm_connect_n
       | NotConnected (_,n) -> O.gdk_pix M.o_xpm_connect_n
       | RemovedHost -> O.gdk_pix M.o_xpm_removedhost
       | BlackListedHost -> O.gdk_pix M.o_xpm_blacklistedhost

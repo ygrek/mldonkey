@@ -55,6 +55,7 @@ let is_connected state =
   | Connected _ -> true
   | NotConnected _
   | Connecting
+  | ServerFull
   | RemovedHost
   | BlackListedHost
   | NewHost -> false

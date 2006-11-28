@@ -121,6 +121,7 @@ let state_pixmap state =
       | Connected_initiating -> O.gdk_pix M.o_xpm_server_ci
       | Connected 0 -> O.gdk_pix M.o_xpm_server_c_low
       | Connected n -> O.gdk_pix M.o_xpm_server_c_low
+      | ServerFull -> O.gdk_pix M.o_xpm_server_nc
       | NotConnected (_,n) -> O.gdk_pix M.o_xpm_server_nc
       | RemovedHost -> O.gdk_pix M.o_xpm_removedhost
       | BlackListedHost -> O.gdk_pix M.o_xpm_blacklistedhost
