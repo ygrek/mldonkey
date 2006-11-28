@@ -89,7 +89,7 @@ let chmod f o =
   with e -> 
     lprintf_nl "warning: chmod failed on %s: %s" f (Printexc2.to_string e)
 
-let rec safe_mkdir dir =  
+let rec safe_mkdir ?(mode = 0o775) dir =  
   if Sys.file_exists dir then begin
     if not (is_directory dir) then 
       failwith (Printf.sprintf "%s already exists but is not a directory" dir)
@@ -112,7 +112,7 @@ let rec safe_mkdir dir =
       let predir = Filename.dirname dir in
       if predir <> dir then safe_mkdir predir;
       try
-        Unix.mkdir dir 0o775
+        Unix.mkdir dir mode
       with
 	Unix.Unix_error (EEXIST, _, _) -> ()
       | e -> lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir; exit 73
@@ -136,7 +136,13 @@ let rec really_read fd s pos len =
 
 let copy oldname newname =
   tryopen_read_bin oldname (fun ic ->
+    let stats = Unix.fstat (Unix.descr_of_in_channel ic) in
     tryopen_write_bin newname (fun oc ->
+      let descr = Unix.descr_of_out_channel oc in
+      (try Unix.fchown descr stats.Unix.st_uid stats.Unix.st_gid 
+       with e -> lprintf_nl "copy: failed to preserve owner");
+      (try Unix.fchmod descr stats.Unix.st_perm 
+       with e -> lprintf_nl "copy: failed to preserve mode");
       let buffer_len = 8192 in
       let buffer = String.create buffer_len in
       let rec copy_file () =

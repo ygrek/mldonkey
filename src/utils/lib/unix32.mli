@@ -26,7 +26,8 @@ val external_exit : unit -> unit
 val uname : unit -> string
 val os_supported : unit -> bool
 
-val create_dir_mask : string ref
+val create_file_mode : int ref
+val create_dir_mode : int ref
 val close : t -> unit
 (* val force_fd : t -> Unix.file_descr *)
   

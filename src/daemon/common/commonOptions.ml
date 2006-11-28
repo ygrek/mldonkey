@@ -1267,8 +1267,12 @@ let temp_directory = define_option current_section ["temp_directory"]
   "The directory where temporary files should be put"
     string_option "temp"
 
-let create_dir_mask = define_option current_section ["create_dir_mask"]
-  "New directories in incoming_directories are created with these rights"
+let create_file_mode = define_option current_section ["create_file_mode"]
+  "New download files are created with these rights (in octal)"
+    string_option "664"
+
+let create_dir_mode = define_option current_section ["create_dir_mode"]
+  "New directories in incoming_directories are created with these rights (in octal)"
     string_option "755"
 
 let create_file_sparse = define_option current_section ["create_file_sparse"]
@@ -1497,9 +1501,12 @@ let _ =
       TcpBufferedSocket.copy_read_buffer := !!copy_read_buffer
   )
 
-let _ =
-  option_hook create_dir_mask (fun _ ->
-      Unix32.create_dir_mask := !!create_dir_mask
+let () =
+  option_hook create_file_mode (fun _ ->
+      Unix32.create_file_mode := Misc.int_of_octal_string !!create_file_mode
+  );
+  option_hook create_dir_mode (fun _ ->
+      Unix32.create_dir_mode := Misc.int_of_octal_string !!create_dir_mode
   )
 
 let create_mlsubmit = define_expert_option current_section ["create_mlsubmit"]

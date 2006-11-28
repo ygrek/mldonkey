@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2006/11/29
+5589: New option create_file_mode,
+      rename create_dir_mask to create_dir_mode (pango)
 5595: EDK: Fully parse emule_miscoptions1/2
 5594: EDK: If update_server_list_client true, add yet unknown server
       of lowid clients

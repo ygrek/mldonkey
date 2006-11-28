@@ -222,7 +222,7 @@ let file_commit file =
 	  let new_name = file_commited_name incoming.shdir_dirname file in
 	    if Unix2.is_directory file_name then begin
 	      Unix2.safe_mkdir new_name;
-	      Unix2.chmod new_name (Misc.int_of_octal_string !!create_dir_mask)
+	      Unix2.chmod new_name !Unix32.create_dir_mode;
 	    end;
 
 (*          the next line really moves the file *)

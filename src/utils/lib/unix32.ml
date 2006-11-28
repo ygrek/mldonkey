@@ -31,15 +31,14 @@ let chunk_min_size = ref 65000L
   
 let max_buffered = ref (Int64.of_int (1024 * 1024))
   
-let create_dir_mask = ref "755"
+let create_file_mode = ref 0o664
+let create_dir_mode = ref 0o755
 let verbose = ref false
 let max_cache_size = ref 50
   
 let mini (x: int) (y: int) =
   if x > y then y else x
     
-let rights = 0o664
-  
 let ro_flag =  [Unix.O_RDONLY]
 let rw_flag =  [Unix.O_RDWR]
 let rw_creat_flag =  [Unix.O_CREAT; Unix.O_RDWR]
@@ -121,7 +120,8 @@ module FDCache = struct
 		try
 		  if t.writable then
                     Unix.openfile t.filename 
-		      (if creat then rw_creat_flag else rw_flag) rights
+		      (if creat then rw_creat_flag else rw_flag) 
+		      !create_file_mode
 		  else
 		    Unix.openfile t.filename ro_flag 0o400
 		with e ->
@@ -254,9 +254,9 @@ module FDCache = struct
       check_destroyed t;
       close t;
       (let d = (Filename.dirname (Filename.concat f file)) in
-        Unix2.safe_mkdir d;
-        Unix2.chmod d (Misc.int_of_octal_string !create_dir_mask);
-	Unix2.can_write_to_directory d);
+       Unix2.safe_mkdir d;
+       Unix2.chmod d !create_dir_mode;
+       Unix2.can_write_to_directory d);
       (try
         Unix2.rename t.filename (Filename.concat f file);
       with
