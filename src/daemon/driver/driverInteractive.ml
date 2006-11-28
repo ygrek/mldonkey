@@ -1181,8 +1181,10 @@ let get_tag_value tag =
   match tag.tag_value with
  | Uint64 i -> String.escaped (Int64.to_string i)
  | Fint64 i -> String.escaped (Int64.to_string i)
+ | Uint16 i | Uint8 i -> String.escaped (string_of_int i)
  | String s -> String.escaped s
- | _ -> ""
+ | Addr i -> Ip.to_string i
+ | Pair (x,y) -> Printf.sprintf "%Ld, %Ld" x y
 
 let old_print_search buf o results =
   let user = o.conn_user in

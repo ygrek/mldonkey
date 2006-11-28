@@ -555,8 +555,10 @@ let result_of_file md4 tags =
       match tag with
         { tag_name = Field_Filename; tag_value = String s } ->
           r.result_names <- s :: r.result_names
-      | { tag_name = Field_Size; tag_value = Uint64 v } ->
+      | { tag_name = Field_Size; tag_value = (Uint64 v| Fint64 v) } ->
           r.result_size <- v;
+      | { tag_name = Field_Size; tag_value = (Uint16 v| Uint8 v) } ->
+          r.result_size <- Int64.of_int v;
       | { tag_name = Field_Format; tag_value = String s } ->
           r.result_tags <- tag :: r.result_tags;
           r.result_format <- s
