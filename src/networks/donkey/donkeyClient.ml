@@ -68,40 +68,43 @@ let active_lifetime = 1200.
 (*************************************************************************)
 (*              adding a source to the source-management                 *)
 (*************************************************************************)
-let add_source file ip port serverIP serverPort =
-    (* man, we are receiving sources from some clients even when we release *)
-    if (file_state file) = FileDownloading then
-        try
-            let uid = 
-                if low_id ip then
-                  (* indirect address *)
-                  begin
-                    try
-                        (* without server, we can't request a callback *)
-                        let s = Hashtbl.find servers_by_key serverIP in
-                        if serverPort = s.server_port then
-                            Indirect_address ( serverIP, serverPort, id_of_ip ip, 0, Ip.null )
-                        else
-                            raise Not_found
-                    with _ ->
-                        raise Not_found
-                  end
+let add_source file ip tcp_port serverIP serverPort =
+  (* man, we are receiving sources from some clients even when we release *)
+  if (file_state file) = FileDownloading then
+    try
+      let uid = 
+    	if low_id ip then
+          begin
+            try
+              (* without server, we can't request a callback *)
+              let s = Hashtbl.find servers_by_key serverIP in
+                if serverPort = s.server_port then
+                  Indirect_address (serverIP, serverPort, id_of_ip ip, 0, Ip.null)
                 else
-                  (* direct adsdess *)
-                  if Ip.usable ip then
-                    if not ( is_black_address ip port ) then
-                        if not ( Hashtbl.mem banned_ips ip) then
-                            Direct_address ( ip, port )
-                        else
-                            raise Not_found
-                    else
-                        raise Not_found
-                  else
-                    raise Not_found
-            in
-            let s = DonkeySources.find_source_by_uid uid in
-            DonkeySources.set_request_result s file.file_sources File_new_source;
-        with Not_found -> ()
+                  raise Not_found
+            with Not_found ->
+              if !!update_server_list_client then
+                begin
+                  ignore (check_add_server serverIP serverPort);
+                  Indirect_address (serverIP, serverPort, id_of_ip ip, 0, Ip.null)
+                end
+              else raise Not_found
+          end
+        else
+          if Ip.usable ip then
+            if not ( is_black_address ip tcp_port ) then
+              if not ( Hashtbl.mem banned_ips ip) then
+                Direct_address ( ip, tcp_port )
+              else
+                raise Not_found
+            else
+              raise Not_found
+          else
+            raise Not_found
+      in
+      let s = DonkeySources.find_source_by_uid uid in
+      DonkeySources.set_request_result s file.file_sources File_new_source;
+    with Not_found -> ()
 
 let is_banned c sock = 
   c.client_banned <- Hashtbl.mem banned_ips (fst (peer_addr sock))
