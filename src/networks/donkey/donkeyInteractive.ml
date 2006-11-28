@@ -275,7 +275,8 @@ let really_query_download filename size md4 location old_file absents user =
         match file.file_swarmer with
           None -> assert false
         | Some swarmer ->
-            let absents = Sort.list (fun (p1,_) (p2,_) -> p1 <= p2) absents in
+            let absents = 
+	      List.sort (fun (p1, _) (p2, _) -> compare p1 p2) absents in
             CommonSwarming.set_absent swarmer absents
   end;
 

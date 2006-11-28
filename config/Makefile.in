@@ -148,7 +148,7 @@ CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(LIB)/syslog.ml $(CDK)/printf2.ml \
   $(CDK)/filepath.ml $(CDK)/string2.ml \
   $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
   $(CDK)/unix2.ml $(CDK)/file.ml \
-  $(CDK)/heap_c.c $(CDK)/array2.ml $(CDK)/sort2.ml
+  $(CDK)/heap_c.c $(CDK)/array2.ml
   
 ifneq ("$(PTHREAD_CFLAGS)" , "")
   CFLAGS += $(PTHREAD_CFLAGS)

@@ -528,9 +528,11 @@ let rec find_max_overloaded q managers =
         let naact = ref 0 in
         let naneed = ref 0 in
         let my_file_sources_managers =
-          Sort.list
+          List.sort
             (fun f1 f2 ->
-              file_best_name (f1.manager_file ()) < file_best_name (f2.manager_file ())
+	       let best_name1 = file_best_name (f1.manager_file ()) in
+	       let best_name2 = file_best_name (f2.manager_file ()) in
+               String.compare best_name1 best_name2
             ) (List.filter (fun m -> file_state (m.manager_file ()) = FileDownloading) !file_sources_managers)
         in
         (* Files *)

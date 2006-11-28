@@ -306,8 +306,8 @@ let server_sort () =
             (try impl.impl_server_ops.op_server_sort impl.impl_server_val
             with _ -> 0);
   ) servers_by_num;
-  Sort.list (fun s1 s2 ->
-      (as_server_impl s1).impl_server_sort >= (as_server_impl s2).impl_server_sort
+  List.sort (fun s1 s2 ->
+    compare (as_server_impl s2).impl_server_sort (as_server_impl s1).impl_server_sort
   ) !list
 
 let server_iter f =

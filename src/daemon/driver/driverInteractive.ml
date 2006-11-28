@@ -1115,7 +1115,8 @@ let display_active_file_list buf o list =
 
   if o.conn_output <> HTML && !!improved_telnet then
   begin
-    let list = Sort.list (fun f1 f2 -> percent f1 >= percent f2) list in
+    let list = 
+      List.sort (fun f1 f2 -> compare (percent f2) (percent f1)) list in
     simple_print_file_list false buf list o
   end
   else
@@ -1124,29 +1125,37 @@ let display_active_file_list buf o list =
       let sorter =
         match o.conn_sortvd with
 
-        | BySize -> (fun f1 f2 -> f1.file_size >= f2.file_size)
+        | BySize -> (fun f1 f2 -> compare f2.file_size f1.file_size)
         | ByRate -> (fun f1 f2 ->
-                if stalled f1 then false else
-                if stalled f2 then true else
-                  f1.file_download_rate >= f2.file_download_rate
-            )
-        | ByName -> (fun f1 f2 -> String.lowercase f1.file_name <= String.lowercase f2.file_name)
-        | ByDone -> (fun f1 f2 -> f1.file_downloaded >= f2.file_downloaded)
-	| ByPriority -> (fun f1 f2 -> f1.file_priority >= f2.file_priority)
-		| BySources -> (fun f1 f2 -> (number_of_sources f1) >= (number_of_sources f2))
-		| ByASources -> (fun f1 f2 -> (number_of_active_sources f1) >= (number_of_active_sources f2))
-        | ByPercent -> (fun f1 f2 -> percent f1 >= percent f2)
-        | ByETA -> (fun f1 f2 -> calc_file_eta f1 <= calc_file_eta f2)
-        | ByAge -> (fun f1 f2 -> f1.file_age >= f2.file_age)
-        | ByLast -> (fun f1 f2 -> f1.file_last_seen >= f2.file_last_seen)
-        | ByNet -> (fun f1 f2 -> net_name f1 <= net_name f2)
-        | ByAvail -> (fun f1 f2 -> get_file_availability f1 >= get_file_availability f2)
-        | ByComments -> (fun f1 f2 -> (number_of_comments f1) >= (number_of_comments f2))
-        | ByUser -> (fun f1 f2 -> f1.file_user <= f2.file_user)
-        | ByGroup -> (fun f1 f2 -> f1.file_group <= f2.file_group)
+                if stalled f1 then 1 else
+                if stalled f2 then -1 else
+                  compare f2.file_download_rate f1.file_download_rate)
+        | ByName -> (fun f1 f2 -> String.compare 
+		       (String.lowercase f1.file_name) 
+		       (String.lowercase f2.file_name))
+        | ByDone -> (fun f1 f2 -> 
+		       compare f2.file_downloaded f1.file_downloaded)
+	| ByPriority -> (fun f1 f2 -> 
+			   compare f2.file_priority f1.file_priority)
+	| BySources -> (fun f1 f2 -> compare 
+			  (number_of_sources f2) (number_of_sources f1))
+	| ByASources -> (fun f1 f2 -> 
+			   compare (number_of_active_sources f2) 
+			           (number_of_active_sources f1))
+        | ByPercent -> (fun f1 f2 -> compare (percent f2) (percent f1))
+        | ByETA -> (fun f1 f2 -> compare (calc_file_eta f1) (calc_file_eta f2))
+        | ByAge -> (fun f1 f2 -> compare f2.file_age f1.file_age)
+        | ByLast -> (fun f1 f2 -> compare f2.file_last_seen f1.file_last_seen)
+        | ByNet -> (fun f1 f2 -> compare (net_name f1) (net_name f2))
+        | ByAvail -> (fun f1 f2 -> compare 
+			(get_file_availability f2) (get_file_availability f1))
+        | ByComments -> (fun f1 f2 -> compare 
+			   (number_of_comments f2) (number_of_comments f1))
+        | ByUser -> (fun f1 f2 -> compare f1.file_user f2.file_user)
+        | ByGroup -> (fun f1 f2 -> compare f1.file_group f2.file_group)
         | NotSorted -> raise Not_found
       in
-      Sort.list sorter list
+      List.sort sorter list
     with _ -> list
   in
   simple_print_file_list false buf list o
@@ -1704,8 +1713,8 @@ let print_search buf s o =
   Intmap.iter (fun r_num (avail,rs) ->
       let r = IndexedResults.get_result rs in
       results := (rs, r, !avail) :: !results) s.search_results;
-  let results = Sort.list (fun (_, r1,_) (_, r2,_) ->
-        r1.result_size > r2.result_size
+  let results = List.sort (fun (_, r1,_) (_, r2,_) ->
+        compare r2.result_size r1.result_size
     ) !results in
 
   Printf.bprintf buf "Result of search %d\n" s.search_num;
@@ -2456,10 +2465,10 @@ let print_upstats o list server =
     end;
 
   html_mods_cntr_init ();
-  let list = Sort.list (fun f1 f2 ->
-      (f1.impl_shared_requests = f2.impl_shared_requests &&
-       f1.impl_shared_uploaded > f2.impl_shared_uploaded) ||
-      (f1.impl_shared_requests > f2.impl_shared_requests )
+  let list = List.sort (fun f1 f2 ->
+    let c = compare f2.impl_shared_requests f1.impl_shared_requests in
+    if c <> 0 then c else
+    compare f2.impl_shared_uploaded f1.impl_shared_uploaded
     ) list in
 
   List.iter (fun impl ->

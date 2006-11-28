@@ -431,7 +431,7 @@ let rec ping_other_servers n list msg =
             else
               dead_servers := s :: !dead_servers
         ) DonkeyGlobals.servers_by_key;
-        let alive_servers = Sort.list (fun s1 s2 ->
+        let alive_servers = List.sort (fun s1 s2 ->
             s1.DonkeyTypes.server_last_message >= 
             s2.DonkeyTypes.server_last_message
           ) !alive_servers in

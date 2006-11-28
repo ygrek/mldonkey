@@ -1362,7 +1362,7 @@ let _ =
                 (if s.search_waiting = 0 then _s "done" else
                     string_of_int s.search_waiting)
                 s.search_nresults
-            ) (Sort.list (fun f1 f2 -> f1.search_num < f2.search_num)
+            ) (List.sort (fun f1 f2 -> compare f1.search_num f2.search_num)
             user.ui_user_searches)
           end;
         ""

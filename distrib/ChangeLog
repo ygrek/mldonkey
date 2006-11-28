@@ -15,12 +15,13 @@ ChangeLog
 =========
 
 2006/11/29
+5598: Remove use of deprecated sort module, remove unused sort2.ml* (pango)
 5589: New option create_file_mode,
       rename create_dir_mask to create_dir_mode (pango)
 5595: EDK: Fully parse emule_miscoptions1/2
 5594: EDK: If update_server_list_client true, add yet unknown server
       of lowid clients
-
+-------------------------------------------------------------------------------
 2006/11/29 version 2.8.2 = tag release-2-8-2
 5597: GD: New option html_mods_vd_gfx_h_intervall
       (compute values for hourly graph every x minutes) (skeeve)
