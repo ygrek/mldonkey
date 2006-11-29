@@ -1565,7 +1565,7 @@ let calendar = define_expert_option current_section ["calendar"]
 
 let compaction_overhead = define_expert_option current_section ["compaction_overhead"]
   "The percentage of free memory before a compaction is triggered"
-    percent_option 25
+    int_option 25
 
 let space_overhead = define_expert_option current_section ["space_overhead"]
   "The major GC speed is computed from this parameter. This is the memory
