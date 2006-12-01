@@ -1499,9 +1499,9 @@ let print_search_html buf results o search_num =
               user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
               files := [|
 
+                (Printf.sprintf "[%5d]\\<input name=d type=checkbox value=%d\\>" !counter r.result_num);
                 (Int64.to_string r.result_size);
                 (string_of_int avail);
-                (Printf.sprintf "[%5d]\\<input name=d type=checkbox value=%d\\>" !counter r.result_num);
 
                 (
                   let names = r.result_names in
