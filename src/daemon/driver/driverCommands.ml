@@ -3422,7 +3422,19 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
 		if user2_allow_file_admin file o.conn_user.ui_user then
 		  begin
 		    set_file_owner file u;
-		    print_command_result o o.conn_buf (Printf.sprintf (_b "Changed owner of download %d to %s") num user)
+                    match file_group file with
+                    | None ->
+                        print_command_result o o.conn_buf (Printf.sprintf (_b "Changed owner of download %d to %s") num user)
+                    | Some g ->
+                        if List.mem g u.user_groups then
+                          print_command_result o o.conn_buf (Printf.sprintf (_b "Changed owner of download %d to %s") num user)
+                        else
+                          begin
+                            set_file_group file u.user_default_group;
+                            print_command_result o o.conn_buf (Printf.sprintf
+                              (_b "owner %s is not member of file_group %s, changing file_group to user_default_group %s")
+                              user g.group_name (user2_print_user_default_group u))
+                          end
 		  end
 		else		  
 		  print_command_result o o.conn_buf (Printf.sprintf (_b "You are not allowed to change owner of download %d to %s") num user)
