@@ -669,8 +669,8 @@ let buf_client proto buf c =
     end else 
     begin
       buf_string buf (client_software_short c.client_software c.client_os);
-      buf_int64 buf c.client_downloaded;
-      buf_int64 buf c.client_uploaded;
+      buf_int64 buf c.client_session_downloaded;
+      buf_int64 buf c.client_session_uploaded;
       (match c.client_upload with
           Some s -> buf_string buf s
         | None -> buf_string buf "");

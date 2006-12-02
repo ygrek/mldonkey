@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/12/02
+5606: Introduce display of session transfer values
+- new columns for session up-/download
+- send session values to GUIs
+
 2006/12/01
 5605: HTML: Fix search list display when html_checkbox_search_file_list = true
 

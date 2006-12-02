@@ -467,16 +467,15 @@ let clear_upload_slots () =
     try
       let i = client_info c in
       let ctime = ((BasicSocket.last_time ()) - i.GuiTypes.client_connect_time) / 60 in
-      if i.GuiTypes.client_uploaded = Int64.zero && ctime > 1 then
+      if i.GuiTypes.client_session_uploaded = Int64.zero && ctime > 1 then
         begin
 	  client_disconnect c;
-          if !verbose then lprintf_nl "disconnected client %d: [%s %s] %s after %d %s of silence."
+          if !verbose then lprintf_nl "disconnected client %d: [%s %s] %s after %d minute%s of silence."
 	    (client_num c)
 	    (GuiTypes.client_software i.GuiTypes.client_software i.GuiTypes.client_os)
 	    i.GuiTypes.client_release
 	    i.GuiTypes.client_name
-	    ctime
-	    (if ctime = 1 then "minute" else "minutes")
+	    ctime (Printf2.print_plural_s ctime)
 	end
     with _ -> ()
   ) !uploaders
@@ -500,8 +499,10 @@ let impl_client_info impl =
      T.client_os = None;
      T.client_release = "";
      T.client_emulemod = "";
-     T.client_downloaded = 0L;
-     T.client_uploaded = 0L;
+     T.client_total_downloaded = 0L;
+     T.client_total_uploaded = 0L;
+     T.client_session_downloaded = 0L;
+     T.client_session_uploaded = 0L;
      T.client_upload = None;
      T.client_sui_verified = None;
   }

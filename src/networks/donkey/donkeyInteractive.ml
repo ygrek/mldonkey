@@ -1196,9 +1196,10 @@ let _ =
         P.client_os = c.client_osinfo;
         P.client_release = c.client_emule_proto.emule_release;
         P.client_emulemod = brand_mod_to_string_short c.client_brand_mod;
-        P.client_downloaded = c.client_downloaded;
-        P.client_uploaded = c.client_uploaded;
-(*        P.client_source.source_sock_addr =    (); *)
+        P.client_total_downloaded = c.client_total_downloaded;
+        P.client_total_uploaded = c.client_total_uploaded;
+        P.client_session_downloaded = c.client_session_downloaded;
+        P.client_session_uploaded = c.client_session_uploaded;
         P.client_upload =
         (match client_upload (as_client c) with
             Some f -> Some (CommonFile.file_best_name f)
@@ -1397,8 +1398,10 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
           ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
           ( "0", "srh br", "IP address", "IP address" ) ;
           ] @ (if !Geoip.active then [( "0", "srh br", "Country Code/Name", "CC" )] else []) @ [
-          ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
-          ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ;
+          ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+          ( "1", "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
+          ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
+          ( "1", "srh ar br", "Session DL bytes from this client for all files", "sDL" ) ;
           ( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ;
           ( "1", "srh ar br", "Source score", "Scr" ) ;
           ( "1", "srh ar br", "Last ok", "LO" ) ;
@@ -1477,8 +1480,10 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
                 ));
             ("", "sr br", ip_string);
             ] @ (if !Geoip.active then [(cn, "sr br", cc)] else []) @ [
-            ("", "sr ar", (size_of_int64 c.client_uploaded));
-            ("", "sr ar br", (size_of_int64 c.client_downloaded));
+            ("", "sr ar", (size_of_int64 c.client_total_uploaded));
+            ("", "sr ar br", (size_of_int64 c.client_total_downloaded));
+            ("", "sr ar", (size_of_int64 c.client_session_uploaded));
+            ("", "sr ar br", (size_of_int64 c.client_session_downloaded));
             ("", "sr ar", Printf.sprintf "%d" c.client_rank);
             ("", "sr ar br", Printf.sprintf "%d" c.client_source.DonkeySources.source_score);
             ("", "sr ar br", (string_of_date (c.client_source.DonkeySources.source_age)));
@@ -1699,10 +1704,10 @@ let _ =
                   Direct_address (ip,port) -> (Ip.to_string ip)
                   |  _ -> (string_of_client_addr c));
                     Printf.bprintf buf "\n%14sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
-                    (Int64.to_string c.client_downloaded)
-                    (Int64.to_string c.client_uploaded)
-                    (if c.client_downloaded > c.client_uploaded then "-" else "+")
-                    (if c.client_uploaded > Int64.zero then (Int64.to_float (Int64.div c.client_downloaded c.client_uploaded)) else (1.))
+                    (Int64.to_string c.client_total_downloaded)
+                    (Int64.to_string c.client_total_uploaded)
+                    (if c.client_total_downloaded > c.client_total_uploaded then "-" else "+")
+                    (if c.client_total_uploaded > Int64.zero then (Int64.to_float (Int64.div c.client_total_downloaded c.client_total_uploaded)) else (1.))
                     (brand_to_string c.client_brand);
                     (Printf.bprintf buf "%14sFile  : %s\n" "" info.GuiTypes.file_name);
                   end;
@@ -1755,8 +1760,10 @@ let _ =
                       )); 
                       ("", "sr", ip_string);
                       ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
-                      ("", "sr ar", (size_of_int64 c.client_uploaded));
-                      ("", "sr ar", (size_of_int64 c.client_downloaded));
+                      ("", "sr ar", (size_of_int64 c.client_total_uploaded));
+                      ("", "sr ar", (size_of_int64 c.client_total_downloaded));
+                      ("", "sr ar", (size_of_int64 c.client_session_uploaded));
+                      ("", "sr ar", (size_of_int64 c.client_session_downloaded));
                       ("", "sr", info.GuiTypes.file_name) ]);
 
                     Printf.bprintf buf "\\</tr\\>";

@@ -1389,8 +1389,8 @@ class box_downloads wl_status () =
                                                      else (c.client_software ^ 
                                                            " - " ^
                                                            c.client_emulemod))];
-                        child.data.gfile_size <- c.client_uploaded;
-                        child.data.gfile_downloaded <- c.client_downloaded;
+                        child.data.gfile_size <- c.client_total_uploaded;
+                        child.data.gfile_downloaded <- c.client_total_downloaded;
                         child.data.gfile_state  <- client_to_general_state c.client_state (List.hd f.data.gfile_num);
                         child.data.gfile_chunks <- f.data.gfile_chunks;
                         child.data.gfile_name <- 
@@ -1412,8 +1412,8 @@ class box_downloads wl_status () =
                                          " - " ^
                                          c.client_emulemod];
                   f.data.gfile_state <- client_to_general_state c.client_state file_num;
-                  f.data.gfile_size <- c.client_uploaded;
-                  f.data.gfile_downloaded <- c.client_downloaded;
+                  f.data.gfile_size <- c.client_total_uploaded;
+                  f.data.gfile_downloaded <- c.client_total_downloaded;
                   if f.data.gfile_type <> c.client_type then
                     begin
                       f.data.gfile_type <- c.client_type;                 

@@ -103,7 +103,8 @@ let segment_received c num s pos =
             let new_downloaded =
               CommonSwarming.downloaded swarmer in
 
-	    c.client_downloaded <- c.client_downloaded ++ (new_downloaded -- old_downloaded);
+	    c.client_session_downloaded <- c.client_session_downloaded ++ (new_downloaded -- old_downloaded);
+	    c.client_total_downloaded <- c.client_total_downloaded ++ (new_downloaded -- old_downloaded);
             client_must_update (as_client c);
 
             if new_downloaded = file_size file then

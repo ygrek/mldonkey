@@ -85,7 +85,8 @@ let count_download c v =
     !!gstats_mod_array.(i).brand_download <- !!gstats_mod_array.(i).brand_download ++ v;
   end;
 
-  c.client_downloaded <- c.client_downloaded ++ v;
+  c.client_total_downloaded <- c.client_total_downloaded ++ v;
+  c.client_session_downloaded <- c.client_session_downloaded ++ v;
   donkey_download_counter := !donkey_download_counter ++ v;
   global_count_download network v
 
@@ -100,7 +101,8 @@ let count_upload c v =
     !!gstats_mod_array.(i).brand_upload <- !!gstats_mod_array.(i).brand_upload ++ v;
   end;
 
-  c.client_uploaded <- c.client_uploaded ++ v;
+  c.client_total_uploaded <- c.client_total_uploaded ++ v;
+  c.client_session_uploaded <- c.client_session_uploaded ++ v;
   donkey_upload_counter := !donkey_upload_counter ++ v;
   global_count_upload network v
 

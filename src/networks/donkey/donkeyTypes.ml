@@ -569,8 +569,10 @@ and client = {
     mutable client_checked : bool;
     mutable client_connected : bool;
 (* statistics *)
-    mutable client_downloaded : Int64.t;
-    mutable client_uploaded : Int64.t;
+    mutable client_session_downloaded : Int64.t;
+    mutable client_session_uploaded : Int64.t;
+    mutable client_total_downloaded : Int64.t;
+    mutable client_total_uploaded : Int64.t;
     mutable client_brand : brand;
     mutable client_brand_mod : brand_mod;
     mutable client_osinfo_sent : bool;

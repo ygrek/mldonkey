@@ -390,7 +390,12 @@ let _ =
                 ( "0", "srh", "Client brand", "CB" ) ;
                 ( "0", "srh", "Client release", "CR" ) ;
                 ] @
-                (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else []));
+                (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+                @ [
+                ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+                ( "1", "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
+                ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
+                ( "1", "srh ar", "Session DL bytes from this client for all files", "sDL" )]);
 
             let counter = ref 0 in
             let all_clients_list = clients_get_all () in
@@ -409,7 +414,12 @@ let _ =
                      (client_software i.client_software i.client_os, "sr", client_software_short i.client_software i.client_os);
                      ("", "sr", i.client_release);
                      ] @
-                     (if !!emule_mods_count then [("", "sr", i.client_emulemod)] else []));
+                     (if !!emule_mods_count then [("", "sr", i.client_emulemod)] else [])
+                     @ [
+                     ("", "sr ar", (size_of_int64 i.client_total_uploaded));
+                     ("", "sr ar br", (size_of_int64 i.client_total_downloaded));
+                     ("", "sr ar", (size_of_int64 i.client_session_uploaded));
+                     ("", "sr ar", (size_of_int64 i.client_session_downloaded))]);
                 if use_html_mods o then Printf.bprintf buf "\\</tr\\>"
                 else Printf.bprintf buf "\n";
                 incr counter;
@@ -2416,8 +2426,10 @@ let _ =
                   ] @
                   (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
                   @ [
-                  ( "0", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
-                  ( "0", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
+                  ( "0", "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
+                  ( "0", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+                  ( "0", "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
+                  ( "0", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
                   ( "0", "srh ar", "Slot kind", "Slot" ) ;
                   ( "0", "srh", "Filename", "Filename" ) ]);
 
@@ -2433,7 +2445,7 @@ let _ =
                         onMouseOut=\\\"mOut(this);\\\"
                         onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
                             ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) (client_num c)
-                          ( float_of_int (Int64.to_int i.client_uploaded / 1024) /.
+                          ( float_of_int (Int64.to_int i.client_session_uploaded / 1024) /.
                               float_of_int (max 1 ((last_time ()) - i.client_connect_time)) )
                           (client_num c);
 
@@ -2456,8 +2468,10 @@ let _ =
                             ] @
                             (if !!emule_mods_count then [("", "sr", i.client_emulemod)] else [])
                             @ [
-                            ("", "sr ar", size_of_int64 i.client_downloaded);
-                            ("", "sr ar", size_of_int64 i.client_uploaded);
+                            ("", "sr ar", size_of_int64 i.client_total_downloaded);
+                            ("", "sr ar", size_of_int64 i.client_total_uploaded);
+                            ("", "sr ar", size_of_int64 i.client_session_downloaded);
+                            ("", "sr ar", size_of_int64 i.client_session_uploaded);
 			    (let text1, text2 =
 				match client_slot c with
 				| FriendSlot -> "Friend", "F"
@@ -2495,8 +2509,10 @@ let _ =
                   ] @
                   (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
                   @ [
-                  ( "0", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
-                  ( "0", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
+                  ( "0", "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
+                  ( "0", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+                  ( "0", "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
+                  ( "0", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
                   ( "0", "srh", "Filename", "Filename" ) ]);
 
                 Intmap.iter (fun cnum c ->
@@ -2528,8 +2544,10 @@ let _ =
                         ] @
                         (if !!emule_mods_count then [("", "sr", i.client_emulemod )] else [])
                         @ [
-                        ("", "sr ar", size_of_int64 i.client_downloaded);
-                        ("", "sr ar", size_of_int64 i.client_uploaded);
+                        ("", "sr ar", size_of_int64 i.client_total_downloaded);
+                        ("", "sr ar", size_of_int64 i.client_total_uploaded);
+                        ("", "sr ar", size_of_int64 i.client_session_downloaded);
+                        ("", "sr ar", size_of_int64 i.client_session_uploaded);
                         ("", "sr", (match i.client_upload with
                     	      Some f -> shorten f !!max_name_len
                     	    | None -> "") ) ]);
@@ -2548,7 +2566,7 @@ let _ =
                 try
                   let i = client_info c in
                   client_print c o;
-                  Printf.bprintf buf "client: %s downloaded: %s uploaded: %s\n" i.client_software (Int64.to_string i.client_downloaded) (Int64.to_string i.client_uploaded);
+                  Printf.bprintf buf "client: %s downloaded: %s uploaded: %s\n" i.client_software (Int64.to_string i.client_total_downloaded) (Int64.to_string i.client_total_uploaded);
                   match i.client_upload with
                     Some cu ->
                       Printf.bprintf buf "      filename: %s\n" cu
@@ -2680,8 +2698,10 @@ let _ =
               ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
               ( "0", "srh", "IP address", "IP address" ) ;
               ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [ 
-              ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
-              ( "1", "srh ar", "Total DL bytes from this client for all files", "DL" ) ;
+              ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL");
+              ( "1", "srh ar", "Total DL bytes from this client for all files", "tDL");
+              ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL");
+              ( "1", "srh ar", "Session DL bytes from this client for all files", "sDL");
               ( "0", "srh", "Filename", "Filename" ) ]);
 
         let counter = ref 0 in

@@ -32,7 +32,8 @@ type client = {
     mutable client_referer : string;
     mutable client_downloads : download list;
     mutable client_in_queues : file list;
-    mutable client_downloaded : int64;
+    mutable client_total_downloaded : int64;
+    mutable client_session_downloaded : int64;
     mutable client_connection_control : connection_control;
     mutable client_sock : tcp_connection;
     mutable client_requests : download list;

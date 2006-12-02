@@ -399,8 +399,8 @@ let default_file_print_sources file o =
           ("", "sr br", addr);
           (GuiTypes.client_software cinfo.GuiTypes.client_software cinfo.GuiTypes.client_os,
 	   "sr br", GuiTypes.client_software_short cinfo.GuiTypes.client_software cinfo.GuiTypes.client_os);
-          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
-          ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_downloaded)); ];
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_uploaded));
+          ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_total_downloaded)); ];
 
         Printf.bprintf buf "\\</tr\\>";
 

@@ -272,6 +272,8 @@ let disconnect_client c reason =
         try
 (*          List.iter (fun r -> CommonSwarming.free_range r) c.client_ranges; *)
           set_client_disconnected c reason;
+          c.client_session_downloaded <- 0L;
+          c.client_session_uploaded <- 0L;
           (try if c.client_good then count_seen c with _ -> ());
           (* this is not useful already done in the match
           (try close sock reason with _ -> ());   *)

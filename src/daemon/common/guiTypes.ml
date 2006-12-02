@@ -219,8 +219,10 @@ type client_info = {
     mutable client_os : string option;
     mutable client_release : string;
     mutable client_emulemod : string;
-    mutable client_downloaded : int64;
-    mutable client_uploaded : int64;
+    mutable client_total_downloaded : int64;
+    mutable client_total_uploaded : int64;
+    mutable client_session_downloaded : int64;
+    mutable client_session_uploaded : int64;
     mutable client_upload : string option;
     mutable client_sui_verified : bool option;
 (*  mutable client_sock_addr : string;  *)

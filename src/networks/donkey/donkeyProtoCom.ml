@@ -339,8 +339,8 @@ let server_send_share compressed sock msg =
       str_int s 0 nfiles;
       let s = String.sub s 0 prev_len in
       if !verbose_share || !verbose then
-         lprintf_nl "Sending %d share(s) to server %s:%d%s"
-	   nfiles (Ip.to_string (peer_ip sock)) (peer_port sock)
+         lprintf_nl "Sending %d share%s to server %s:%d%s"
+	   nfiles (Printf2.print_plural_s nfiles) (Ip.to_string (peer_ip sock)) (peer_port sock)
 	   (if compressed then " (zlib)" else "");
       Buffer.reset buf;
       let s_c =

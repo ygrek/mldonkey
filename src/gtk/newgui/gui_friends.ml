@@ -435,8 +435,10 @@ class box_friends box_files friend_tab =
         client_os = None;
         client_release = c.gclient_release;
         client_emulemod = c.gclient_emulemod;
-        client_downloaded = c.gclient_downloaded;
-        client_uploaded = c.gclient_uploaded;
+        client_total_downloaded = c.gclient_downloaded;
+        client_total_uploaded = c.gclient_uploaded;
+        client_session_downloaded = 0L;
+        client_session_uploaded = 0L;
         client_upload = c.gclient_upload;
 	client_sui_verified = None;
 (*        client_sock_addr = c.gclient_sock_addr;*)
@@ -457,8 +459,8 @@ class box_friends box_files friend_tab =
         gclient_software = c.client_software;
         gclient_release = c.client_release;
         gclient_emulemod = c.client_emulemod;
-        gclient_downloaded = c.client_downloaded;
-        gclient_uploaded = c.client_uploaded;
+        gclient_downloaded = c.client_total_downloaded;
+        gclient_uploaded = c.client_total_uploaded;
         gclient_upload = c.client_upload;
         gclient_sock_addr = string_of_kind c.client_kind;
         gclient_net_pixmap =
@@ -494,8 +496,8 @@ class box_friends box_files friend_tab =
           f.gclient_software <- f_new.client_software;
           f.gclient_release <- f_new.client_release;
           f.gclient_emulemod <- f_new.client_emulemod;
-          f.gclient_downloaded <- f_new.client_downloaded;
-          f.gclient_uploaded <- f_new.client_uploaded;
+          f.gclient_downloaded <- f_new.client_total_downloaded;
+          f.gclient_uploaded <- f_new.client_total_uploaded;
           f.gclient_upload <- f_new.client_upload;
           f.gclient_sock_addr <- string_of_kind f_new.client_kind;
           if box_friends_is_visible then self#update_row f row
@@ -643,8 +645,10 @@ class box_list friend_tab =
         client_os = None;
         client_release = c.gclient_release;
         client_emulemod = c.gclient_emulemod;
-        client_downloaded = c.gclient_downloaded;
-        client_uploaded = c.gclient_uploaded;
+        client_total_downloaded = c.gclient_downloaded;
+        client_total_uploaded = c.gclient_uploaded;
+        client_session_downloaded = 0L;
+        client_session_uploaded = 0L;
         client_upload = c.gclient_upload;
 	client_sui_verified = None;
 (*        client_sock_addr = string_of_kind c.gclient_kind; *)
@@ -665,8 +669,8 @@ class box_list friend_tab =
         gclient_software = c.client_software;
         gclient_release = c.client_release;
         gclient_emulemod = c.client_emulemod;
-        gclient_downloaded = c.client_downloaded;
-        gclient_uploaded = c.client_uploaded;
+        gclient_downloaded = c.client_total_downloaded;
+        gclient_uploaded = c.client_total_uploaded;
         gclient_upload = c.client_upload;
         gclient_sock_addr = string_of_kind c.client_kind;
         gclient_net_pixmap = 
@@ -711,9 +715,9 @@ class box_list friend_tab =
                     c.gclient_kind <- c_new.client_kind;
                     c.gclient_tags <- c_new.client_tags;
                     c.gclient_software <- c_new.client_software;
-                    c.gclient_downloaded <- c_new.client_downloaded;
+                    c.gclient_downloaded <- c_new.client_total_downloaded;
                     c.gclient_emulemod <- c_new.client_emulemod;
-                    c.gclient_uploaded <- c_new.client_uploaded;
+                    c.gclient_uploaded <- c_new.client_total_uploaded;
                     c.gclient_upload <- c_new.client_upload;
                     c.gclient_sock_addr <- string_of_kind c_new.client_kind;
             (if icons_are_used && (c.gclient_type <> c_new.client_type) 

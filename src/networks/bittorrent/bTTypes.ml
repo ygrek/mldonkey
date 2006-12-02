@@ -227,8 +227,10 @@ type client = {
     mutable client_allowed_to_write : int64;
     mutable client_upload_rate : Rate.t;
     mutable client_downloaded_rate :  Rate.t;
-    mutable client_downloaded : int64;
-    mutable client_uploaded : int64;
+    mutable client_total_downloaded : int64;
+    mutable client_total_uploaded : int64;
+    mutable client_session_downloaded : int64;
+    mutable client_session_uploaded : int64;
     mutable client_connect_time : int;
 
     mutable client_blocks_sent : int list;

@@ -123,7 +123,8 @@ let _ =
         P.client_num = (client_num (as_client c));
         P.client_connect_time = BasicSocket.last_time ();
         P.client_software = c.client_software;
-        P.client_downloaded = c.client_downloaded;
+        P.client_total_downloaded = c.client_total_downloaded;
+        P.client_session_downloaded = c.client_session_downloaded;
       }
   );
     client_ops.op_client_bprint <- (fun c buf ->
@@ -141,8 +142,8 @@ let _ =
         client_print cc o;
         Printf.bprintf buf "client: %s downloaded: %s uploaded: %s"
           cinfo.GuiTypes.client_software
-          (Int64.to_string cinfo.GuiTypes.client_downloaded)
-        (Int64.to_string cinfo.GuiTypes.client_uploaded);
+          (Int64.to_string cinfo.GuiTypes.client_total_downloaded)
+        (Int64.to_string cinfo.GuiTypes.client_total_uploaded);
         Printf.bprintf buf "\nfilename: %s\n\n" info.GuiTypes.file_name;
     );
     client_ops.op_client_dprint_html <- (fun c o file str ->
@@ -183,8 +184,10 @@ let _ =
           ("", "sr", "N");
           ("", "sr", Printf.sprintf "%s:%d" (Ip.to_string client_ip) client_port);
           ] @ (if !Geoip.active then [(cname, "sr", ccode)] else []) @ [
-          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_uploaded));
-          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_downloaded));
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_uploaded));
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_downloaded));
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_session_uploaded));
+          ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_session_downloaded));
           ("", "sr", info.GuiTypes.file_name); ]);
         true
     )

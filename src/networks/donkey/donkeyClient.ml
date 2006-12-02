@@ -248,18 +248,22 @@ let disconnect_client c reason =
       c.client_source.DonkeySources.source_sock <- NoConnection
   | Connection sock ->
       (try
-    let log_print cc =
-            lprintf_nl "Client[%d] %s disconnected, connected %s%s%s"
-        (client_num cc)
-        (full_client_identifier cc)
-        (Date.time_to_string (last_time () - cc.client_connect_time) "verbose")
-        (if cc.client_uploaded > 0L then
-    Printf.sprintf ", send %s" (size_of_int64 cc.client_uploaded) else "")
-        (if cc.client_downloaded > 0L then
-    Printf.sprintf ", rec %s" (size_of_int64 cc.client_downloaded) else "")
+    let log_print cc = lprintf_nl "Client[%d] %s disconnected, connected %s%s%s"
+      (client_num c) (full_client_identifier c)
+      (Date.time_to_string (last_time () - c.client_connect_time) "verbose")
+      (if c.client_total_uploaded > 0L then
+        Printf.sprintf ", send %s (%s)%s"
+          (size_of_int64 c.client_session_uploaded)
+          (size_of_int64 c.client_total_uploaded)
+          (match client_upload (as_client c) with | None -> ""
+           | Some f -> " of " ^ (CommonFile.file_best_name f)) else "")
+      (if c.client_total_downloaded > 0L then
+        Printf.sprintf ", rec %s (%s)"
+          (size_of_int64 c.client_session_downloaded)
+          (size_of_int64 c.client_total_downloaded) else "")
     in
     if c.client_debug ||
-      (!verbose && (c.client_uploaded > 0L || c.client_downloaded > 0L)) then
+      (!verbose && (c.client_session_uploaded > 0L || c.client_session_downloaded > 0L)) then
       log_print c;
 
           c.client_comp <- None;
@@ -2035,13 +2039,13 @@ end else *)
       begin
         
         if !!dynamic_upload_lifetime
-            && c.client_uploaded > c.client_downloaded
-            && c.client_uploaded > Int64.of_int !!dynamic_upload_threshold ** zone_size
+            && c.client_session_uploaded > c.client_session_downloaded
+            && c.client_session_uploaded > Int64.of_int !!dynamic_upload_threshold ** zone_size
         then
           client_upload_lifetime :=
           Int64.to_int 
             (Int64.of_int !client_upload_lifetime 
-              ** c.client_downloaded // c.client_uploaded);
+              ** c.client_session_downloaded // c.client_session_uploaded);
         if last_time() > c.client_connect_time + 
             !client_upload_lifetime + 5 * prio then
           begin
