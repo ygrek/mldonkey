@@ -3389,8 +3389,13 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
           let file = file_find num in
 	  if String.lowercase group = "none" then
 	    begin
-	      set_file_group file None;
-	      print_command_result o o.conn_buf (Printf.sprintf (_b "Changed group of download %d to %s") num group)
+              if user2_allow_file_admin file o.conn_user.ui_user then
+                begin
+                  set_file_group file None;
+                  print_command_result o o.conn_buf (Printf.sprintf (_b "Changed group of download %d to %s") num group)
+                end
+              else
+                print_command_result o o.conn_buf (Printf.sprintf (_b "You are not allowed to change group of download %d to %s") num group)
 	    end
 	  else
 	    begin
