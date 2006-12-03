@@ -687,7 +687,7 @@ let add_shared full_name codedname size =
           impl_shared_ops = shared_ops;
           impl_shared_val = sh;
           impl_shared_requests = 0;
-          impl_shared_magic = None;
+          impl_shared_file = None;
           impl_shared_servers = [];
         }
       and sh = {

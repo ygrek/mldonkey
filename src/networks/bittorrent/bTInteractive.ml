@@ -1271,6 +1271,9 @@ let _ =
 
   CommonNetwork.register_commands commands;
 
+  shared_ops.op_shared_state <- (fun file o ->
+      "no BT data"
+  );
   shared_ops.op_shared_unshare <- (fun file ->
       (if !verbose_share then lprintf_file_nl (as_file file) "unshare file");
       BTGlobals.unshare_file file);

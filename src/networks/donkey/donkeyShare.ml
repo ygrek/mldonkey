@@ -44,12 +44,7 @@ let must_share_file file codedname has_old_impl =
   | Some _ -> ()
   | None ->
       let full_name = file_disk_name file in
-      let magic =
-        match Magic.M.magic_fileinfo full_name false with
-          None -> None
-        | Some magic -> Some (intern magic)
-      in
-
+      check_magic (as_file file);
       let impl = {
           impl_shared_update = 1;
           impl_shared_fullname = full_name;
@@ -61,7 +56,7 @@ let must_share_file file codedname has_old_impl =
           impl_shared_ops = shared_ops;
           impl_shared_val = file;
           impl_shared_requests = 0;
-          impl_shared_magic = magic;
+          impl_shared_file = Some (as_file file);
           impl_shared_servers = []
         } in
       file.file_shared <- Some impl;
@@ -333,12 +328,6 @@ lprintf "Searching %s" fullname; lprint_newline ();
     let found = ref false in
     List.iter (fun sh -> if sh.shared_name = fullname then found := true) !shared_files;
     if not !found then begin
-        let magic =
-          match Magic.M.magic_fileinfo fullname false with
-            None -> None
-          | Some magic -> Some (intern magic)
-        in
-
           let rec impl = {
               impl_shared_update = 1;
               impl_shared_fullname = fullname;
@@ -350,7 +339,7 @@ lprintf "Searching %s" fullname; lprint_newline ();
               impl_shared_id = Md4.null;
               impl_shared_val = pre_shared;
               impl_shared_requests = 0;
-              impl_shared_magic = magic;
+              impl_shared_file = None;
               impl_shared_servers = [];
             } and
             pre_shared = {

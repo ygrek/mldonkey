@@ -1782,6 +1782,29 @@ let _ =
   )
 
 let _ =
+  shared_ops.op_shared_state <- (fun f o ->
+    match CommonFile.file_state f with
+    | FileShared ->
+      (match file_shared f with
+      | None -> "no file_shared info"
+      | Some f ->
+            let pre_share1_dir =
+              String2.replace (Filename2.dirname (as_shared_impl f).impl_shared_fullname) '\\' "/" in
+            let pre_share2_dir =
+              try       
+                String2.after pre_share1_dir
+                (String2.search_from
+                (Filename2.dirname (as_shared_impl f).impl_shared_fullname) 0 (Sys.getcwd ()) +
+                String.length (Sys.getcwd ()))
+              with Not_found -> pre_share1_dir
+            in
+            let dir =
+              if String2.check_prefix pre_share2_dir "/" then String2.after pre_share2_dir 1 else pre_share2_dir in
+            if o.conn_output = HTML then
+              Printf.sprintf "\\<a href=\\\"submit?q=debug_dir+%s\\\"\\>%s\\</a\\>" (Http_server.html_real_escaped dir) (Http_server.html_real_escaped dir)
+            else Printf.sprintf "Shared in %s" dir)
+    | state -> string_of_state state
+  );
   shared_ops.op_shared_unshare <- (fun file ->
       unshare_file file;
 (* Should we or not ??? *)

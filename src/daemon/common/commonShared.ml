@@ -43,13 +43,14 @@ type 'a shared_impl = {
     mutable impl_shared_size : int64;
     mutable impl_shared_id : Md4.t;
     mutable impl_shared_requests : int;
-    mutable impl_shared_magic : string option;
+    mutable impl_shared_file : CommonTypes.file option;
     mutable impl_shared_servers : CommonTypes.server list;
   }
   
 and 'a shared_ops = {
     mutable op_shared_info : ('a -> GuiTypes.shared_info);
     mutable op_shared_unshare : ('a -> unit);
+    mutable op_shared_state : (CommonTypes.file -> CommonTypes.ui_conn -> string);
   }
   
 let as_shared  (shared : 'a shared_impl) =
@@ -180,6 +181,14 @@ let shared_unshare s =
   shared_remove impl;
   try impl.impl_shared_ops.op_shared_unshare impl.impl_shared_val with _ -> ()
 
+let shared_state s o =
+  let impl = as_shared_impl s in
+  try
+    match impl.impl_shared_file with
+    | None -> ""
+    | Some f -> impl.impl_shared_ops.op_shared_state f o
+  with _ -> ""
+
 let shared_dir = function
   | None	-> ""
   | Some sh	-> 
@@ -198,6 +207,7 @@ let shared_prio impl =
 let new_shared_ops network = {
     op_shared_unshare = (fun _ -> ni_ok network "shared_unshare");
     op_shared_info = (fun _ -> fni network "shared_info");
+    op_shared_state = (fun _ _ -> fni network "shared_state");
   }
 
 let dummy_shared = {
@@ -209,12 +219,13 @@ let dummy_shared = {
     impl_shared_ops = {
       op_shared_unshare = (fun _ -> raise Not_found);
       op_shared_info = (fun _ -> raise Not_found);
+      op_shared_state = (fun _ _ -> raise Not_found);
     };
     impl_shared_uploaded = zero;
     impl_shared_size = zero;
     impl_shared_id = Md4.null;
     impl_shared_requests = 0;
-    impl_shared_magic = None;
+    impl_shared_file = None;
     impl_shared_servers = []
   }
   
@@ -354,7 +365,10 @@ let impl_shared_info impl =
     T.shared_requests = impl.impl_shared_requests; 
     T.shared_uids = [];
     T.shared_sub_files = [];
-    T.shared_magic = impl.impl_shared_magic;
+    T.shared_magic =
+      match impl.impl_shared_file with
+      | None -> None
+      | Some f -> CommonFile.file_magic f;
   }
   
 let shared_info s =

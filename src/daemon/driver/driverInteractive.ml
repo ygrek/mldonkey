@@ -2457,7 +2457,9 @@ let print_upstats o list server =
       ( "0", "srh", "Preview", "P" ) ;
       ( "0", "srh", "Filename", "Filename" );
       ( "0", "srh", "Statistic links", "Stats" );
-      ( "0", "srh", "Published on servers", "Publ" ) ]
+      ( "0", "srh", "Published on servers", "Publ" );
+      ( "0", "srh", "Share status", "Status" )
+    ]
   else
     begin
       Printf.bprintf buf " Requests |  Bytes   | Uploaded | File\n";
@@ -2483,8 +2485,9 @@ let print_upstats o list server =
 	(if !!html_mods_use_js_tooltips then
 	   Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
 	    (Http_server.html_real_escaped (Filename.basename (Charset.to_utf8 impl.impl_shared_codedname)))
-	    (match impl.impl_shared_magic with
-	       None -> ""
+	    (match impl.impl_shared_file with
+	       None -> "no file info"
+	     | Some file -> match file_magic file with | None -> "no magic"
 	     | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
 	    (if impl.impl_shared_servers = [] then "" else
 	       Printf.sprintf "<br>Published on %d %s<br>%s"
@@ -2506,7 +2509,6 @@ let print_upstats o list server =
 
 	let uploaded = Int64.to_float impl.impl_shared_uploaded in
 	let size = Int64.to_float impl.impl_shared_size in
-
 	html_mods_td buf [
 	  ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
 	  ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
@@ -2524,7 +2526,9 @@ let print_upstats o list server =
                       (Md4.to_string impl.impl_shared_id) "T1"
                       (Md4.to_string impl.impl_shared_id) "T2"
                       (Md4.to_string impl.impl_shared_id) "B"));
-	  ("", "sr ar", Printf.sprintf "%d" published ) ];
+	  ("", "sr ar", Printf.sprintf "%d" published);
+	  ("", "sr", shared_state (as_shared impl) o);
+        ];
 	Printf.bprintf buf "\\</tr\\>\n";
       end
     else

@@ -9,12 +9,13 @@ type 'a shared_impl = {
   mutable impl_shared_size : int64;
   mutable impl_shared_id : Md4.Md4.t;
   mutable impl_shared_requests : int;
-  mutable impl_shared_magic : string option;
+  mutable impl_shared_file : CommonTypes.file option;
   mutable impl_shared_servers : CommonTypes.server list;
 } 
 and 'a shared_ops = {
   mutable op_shared_info : 'a -> GuiTypes.shared_info;
   mutable op_shared_unshare : 'a -> unit;
+  mutable op_shared_state : CommonTypes.file -> CommonTypes.ui_conn -> string;
 } 
 
 val dirnames_prio : (string * int) list ref
@@ -50,5 +51,4 @@ val shared_add_directory : CommonTypes.shared_directory -> unit
 val shared_check_files : unit -> unit
 val impl_shared_info : 'a shared_impl -> GuiTypes.shared_info
 val shared_info : CommonTypes.shared -> GuiTypes.shared_info
-
-  
+val shared_state : CommonTypes.shared -> CommonTypes.ui_conn -> string

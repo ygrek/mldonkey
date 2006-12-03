@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2006/12/03
+5602: HTML: Display share status in upstats
 5609: New field type Field_KNOWN, EDK: recognize more HELLO/EmuleInfo tags
 5610: CommonSources: Cleanups and reformatting the code (pango)
 
