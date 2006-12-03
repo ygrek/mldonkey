@@ -179,7 +179,9 @@ let get_tag (names_of_tag : (string * field) list) s pos =
         List.assoc name names_of_tag
       with Not_found ->
 (*          lprintf "Unknown tag \"%s\"\n" (String.escaped name); *)
-          field_of_string name);
+          match field_of_string name with
+          | Field_KNOWN s -> Field_UNKNOWN s
+          | field -> field);
     tag_value = v
   }, pos
   
@@ -223,3 +225,74 @@ let file_common_tags = [
     "Album", Field_Album;
     "Title", Field_Title;
   ]
+
+let client_common_tags =
+      [
+        "\001", "name";
+        "\015", "port";
+        "\017", "version";
+        "\031", "udpport";
+        "\032", "compression";
+        "\033", "udpport";
+        "\034", "udpver";
+        "\035", "sourceexchange";
+        "\036", "comments";
+        "\037", "extendedrequest";
+        "\038", "compatibleclient";
+        "\039", "features";
+        "\059", "extrainfo";
+        "\060", "downloadtime";
+        "\061", "incompleteparts";
+        "\062", "l2hac";
+        "\063", "realparts";
+        "\065", "mod_unknown41";
+        "\066", "mod_unknown42";
+        "\067", "mod_unknown43";
+        "\078", "neo_features";
+        "\084", "mod_featureset";
+        "\085", "mod_version";
+        "\086", "mod_protocol";
+        "\090", "mod_bowlfish";
+        "\092", "mod_secure_community";
+        "\093", "mod_unknown0x5d";
+        "\096", "mod_unknown0x60";
+        "\102", "mod_fusion";
+        "\103", "mod_fusion_version";
+
+(* http://forums.shareaza.com/showthread.php?threadid=37323&perpage=15&pagenumber=2 *)
+        "\105", "edonkeyclc serverip?";
+        "\106", "edonkeyclc serverport?";
+
+        "\118", "mod_unknown0x76";
+        "\119", "mod_tarod";
+        "\120", "mod_tarod_version";
+        "\121", "mod_morph";
+        "\128", "mod_morph_version";
+        "\130", "mod_mortillo";
+        "\131", "mod_mortillo_version";
+        "\132", "chanblard_version";
+        "\133", "signature";
+        "\134", "cache";
+        "\135", "mod_lsd";
+        "\136", "mod_lsd_version";
+        "\144", "mod_lovelace_version";
+        "\148", "os_info"; (* reused by aMule to transfer client OS type *)
+        "\153", "mod_plus";
+        "\160", "mod_wombat";
+        "\161", "dev_wombat";
+        "\170", "koizo"; (* http://sourceforge.net/projects/koizo *)
+        "\205", "mod_unknown0xcd";
+        "\224", "isp_bypass";
+        "\225", "nat_tunneling";
+        "\239", "emule_compatoptions";
+        "\240", "nat_security";
+        "\249", "emule_udpports";
+        "\250", "emule_miscoptions1";
+        "\251", "emule_version";
+        "\252", "buddy_ip";
+        "\253", "buddy_udp";
+        "\254", "emule_miscoptions2";
+        "pr",   "edonkeyclc horde";
+        "wombia", "wombat a";
+        "wombib", "wombat b";
+      ]

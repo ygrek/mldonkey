@@ -1055,7 +1055,7 @@ let string_of_tag_name name =
     | Field_Mediacodec -> "codec"
     | Field_Lastseencomplete -> "lastseencompl"
     | Field_Filerating -> "rating"
-    | Field_UNKNOWN s -> U.simple_utf8_of s
+    | Field_KNOWN s -> U.simple_utf8_of s
   
 let tags_to_string tags =
   let s = ref "" in

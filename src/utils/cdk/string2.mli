@@ -103,3 +103,4 @@ val iteri: (int -> char -> unit) -> string -> unit
 val exists: (char -> bool) -> string -> bool
 val existsi: (int -> char -> bool) -> string -> bool
 val for_all: (char -> bool) -> string -> bool
+val hex_string_of_string : string -> string

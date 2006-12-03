@@ -113,7 +113,7 @@ let search_of_args args =
     | "-album"  :: format :: args ->
         iter args ((QHasField(Field_Album, format)) :: q)
     | "-field"  :: field :: format :: args ->
-        iter args ((QHasField(Field_UNKNOWN field, format)) :: q)
+        iter args ((QHasField(Field_KNOWN field, format)) :: q)
     | "-network" :: name :: args ->
         net := (network_find_by_name name).network_num;
         iter args q
@@ -892,7 +892,7 @@ let rec mftp_query_of_query_entry qe =
         try
           let bitrate =  Int64.of_string s
           in
-          QHasMinVal(Field_UNKNOWN "bitrate", bitrate)
+          QHasMinVal(Field_KNOWN "bitrate", bitrate)
         with _ -> QNone
       end
 

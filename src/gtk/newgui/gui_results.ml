@@ -289,7 +289,7 @@ let codec_of_tags tags =
   let value = ref "" in
   List.iter (fun t ->
     match t.tag_name with
-        Field_UNKNOWN "codec" -> value := string_of_tag_value t.tag_value
+        Field_KNOWN "codec" -> value := string_of_tag_value t.tag_value
       | _ -> ()
   ) tags;
   !value
@@ -298,7 +298,7 @@ let bitrate_of_tags tags =
   let value = ref 0 in
   List.iter (fun t ->
     match t.tag_name with
-        Field_UNKNOWN "bitrate" -> value := int_of_tag_value t.tag_value
+        Field_KNOWN "bitrate" -> value := int_of_tag_value t.tag_value
       | _ -> ()
   ) tags;
   !value

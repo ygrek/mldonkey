@@ -78,7 +78,7 @@ let  _ =
         | QHasMinVal (field, value) ->
             begin
               match field with
-                Field_UNKNOWN "bitrate" ->  
+                Field_KNOWN "bitrate" ->  
                   { t with S.bitrate = Some (Int64.to_int value, OP.AtLeast) };
               | Field_Size -> t
               | _ -> t
@@ -86,7 +86,7 @@ let  _ =
         | QHasMaxVal (field, value) ->
             begin
               match field with
-                Field_UNKNOWN "bitrate" -> 
+                Field_KNOWN "bitrate" -> 
                   { t with S.bitrate = Some (Int64.to_int value, OP.AtBest) };
               | Field_Size -> t
               | _ -> t

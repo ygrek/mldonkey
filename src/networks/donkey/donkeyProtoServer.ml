@@ -38,10 +38,10 @@ module Connect = struct
 
     let names_of_tag =
       [
-       "\001", Field_UNKNOWN "name";          (* CT_NAME          0x01 *)
-       "\017", Field_UNKNOWN "version";       (* CT_VERSION       0x11 *)
-       "\032", Field_UNKNOWN "extended";      (* CT_SERVER_FLAGS  0x20 *)
-       "\251", Field_UNKNOWN "emule_version"; (* CT_EMULE_VERSION 0xfb *)
+       "\001", Field_KNOWN "name";          (* CT_NAME          0x01 *)
+       "\017", Field_KNOWN "version";       (* CT_VERSION       0x11 *)
+       "\032", Field_KNOWN "extended";      (* CT_SERVER_FLAGS  0x20 *)
+       "\251", Field_KNOWN "emule_version"; (* CT_EMULE_VERSION 0xfb *)
       ]
 
     let parse len s =
@@ -363,8 +363,8 @@ module ServerInfo = struct
 
     let names_of_tag =
       [
-        "\001", Field_UNKNOWN "name";
-        "\011", Field_UNKNOWN "description";
+        "\001", Field_KNOWN "name";
+        "\011", Field_KNOWN "description";
       ]
 
     let parse len s =
@@ -735,9 +735,9 @@ module QueryUsersReply = struct (* request 67 *)
 
     let names_of_tag =
       [
-        "\001", Field_UNKNOWN "name";
-        "\017", Field_UNKNOWN "version";
-        "\015", Field_UNKNOWN "port";
+        "\001", Field_KNOWN "name";
+        "\017", Field_KNOWN "version";
+        "\015", Field_KNOWN "port";
       ]
 
     let rec parse_clients s pos nclients left =

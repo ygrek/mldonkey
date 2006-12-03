@@ -233,22 +233,22 @@ module ServerDescReplyUdp = struct
   }
 
   let names_of_tag = [
-    "\001", Field_UNKNOWN "servername";
-    "\011", Field_UNKNOWN "description";
-    "\012", Field_UNKNOWN "ping";
-    "\013", Field_UNKNOWN "fail";
-    "\014", Field_UNKNOWN "preference";
-    "\015", Field_UNKNOWN "port";
-    "\016", Field_UNKNOWN "ip";
-    "\133", Field_UNKNOWN "dynip";
-    "\135", Field_UNKNOWN "maxusers";
-    "\136", Field_UNKNOWN "softfiles";
-    "\137", Field_UNKNOWN "hardfiles";
-    "\144", Field_UNKNOWN "lastping";
-    "\145", Field_UNKNOWN "version";
-    "\146", Field_UNKNOWN "udpflags";
-    "\147", Field_UNKNOWN "auxportslist";
-    "\148", Field_UNKNOWN "lowidusers";
+    "\001", Field_KNOWN "servername";
+    "\011", Field_KNOWN "description";
+    "\012", Field_KNOWN "ping";
+    "\013", Field_KNOWN "fail";
+    "\014", Field_KNOWN "preference";
+    "\015", Field_KNOWN "port";
+    "\016", Field_KNOWN "ip";
+    "\133", Field_KNOWN "dynip";
+    "\135", Field_KNOWN "maxusers";
+    "\136", Field_KNOWN "softfiles";
+    "\137", Field_KNOWN "hardfiles";
+    "\144", Field_KNOWN "lastping";
+    "\145", Field_KNOWN "version";
+    "\146", Field_KNOWN "udpflags";
+    "\147", Field_KNOWN "auxportslist";
+    "\148", Field_KNOWN "lowidusers";
   ]
 
   let parse1 len s challenge =
@@ -267,9 +267,9 @@ module ServerDescReplyUdp = struct
     let desc = ref "" in
     List.iter (fun tag ->
       match tag with
-      | { tag_name = Field_UNKNOWN "servername"; tag_value = String v } ->
+      | { tag_name = Field_KNOWN "servername"; tag_value = String v } ->
             name := v
-      | { tag_name = Field_UNKNOWN "description"; tag_value = String v } ->
+      | { tag_name = Field_KNOWN "description"; tag_value = String v } ->
             desc := v
       | _ -> ()
     ) stags;

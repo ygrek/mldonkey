@@ -98,23 +98,23 @@ let cut_messages parse b =
 let update_emule_proto_from_tags e tags = 
   List.iter (fun tag -> 
       match tag.tag_name with
-      | Field_UNKNOWN "compression" ->
+      | Field_KNOWN "compression" ->
           for_int_tag tag (fun i -> 
               e.emule_compression <- i)
-      | Field_UNKNOWN "udpver" ->
+      | Field_KNOWN "udpver" ->
           for_int_tag tag (fun i -> 
               e.emule_udpver <- i)          
-      | Field_UNKNOWN "udpport" -> ()
-      | Field_UNKNOWN "sourceexchange" ->
+      | Field_KNOWN "udpport" -> ()
+      | Field_KNOWN "sourceexchange" ->
           for_int_tag tag (fun i -> 
               e.emule_sourceexchange <- i)          
-      | Field_UNKNOWN "comments" ->
+      | Field_KNOWN "comments" ->
           for_int_tag tag (fun i -> 
               e.emule_comments <- i)          
-      | Field_UNKNOWN "extendedrequest" ->
+      | Field_KNOWN "extendedrequest" ->
           for_int_tag tag (fun i -> 
               e.emule_extendedrequest <- i)          
-      | Field_UNKNOWN "features" ->
+      | Field_KNOWN "features" ->
           for_int_tag tag (fun i -> 
               e.emule_secident <- i land 0x3)          
       | s -> 
@@ -138,7 +138,7 @@ let client_parse c opcode s =
             
             begin
               try
-                let options = find_tag (Field_UNKNOWN "emule_miscoptions1") tags in
+                let options = find_tag (Field_KNOWN "emule_miscoptions1") tags in
                 match options with
                   Uint64 v | Fint64 v ->
                     update_emule_proto_from_miscoptions1 emule v

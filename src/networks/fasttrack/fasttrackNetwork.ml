@@ -34,30 +34,30 @@ open CommonHosts
 (* any = 0 *)
 let name_of_tag =
   [
-    Field_UNKNOWN "any", 0;
-    Field_UNKNOWN "year", 1;
+    Field_KNOWN "any", 0;
+    Field_KNOWN "year", 1;
     Field_Filename, 2;
     Field_Uid, 3;
     Field_Title, 4;
-    Field_UNKNOWN "time", 5;
+    Field_KNOWN "time", 5;
     Field_Artist, 6;
     Field_Album, 8;
-    Field_UNKNOWN "language", 0x0A;
-    Field_UNKNOWN "keywords", 0x0C;
-    Field_UNKNOWN "resolution", 0x0D;
-    Field_UNKNOWN "genre", 0x0E;
-    Field_UNKNOWN "OS", 0x10;
-    Field_UNKNOWN "bitdepth", 0x11;
+    Field_KNOWN "language", 0x0A;
+    Field_KNOWN "keywords", 0x0C;
+    Field_KNOWN "resolution", 0x0D;
+    Field_KNOWN "genre", 0x0E;
+    Field_KNOWN "OS", 0x10;
+    Field_KNOWN "bitdepth", 0x11;
     Field_Type, 0x12;
-    Field_UNKNOWN "quality", 0x15;
-    Field_UNKNOWN "version", 0x18;
-    Field_UNKNOWN "comment", 0x1A;
+    Field_KNOWN "quality", 0x15;
+    Field_KNOWN "version", 0x18;
+    Field_KNOWN "comment", 0x1A;
     Field_Codec, 0x1C; (* "divx" *)
-    Field_UNKNOWN "rating", 0x1D;
+    Field_KNOWN "rating", 0x1D;
     Field_Size, 0x21;
     Field_Type, 0x22; (* "movie", "video clip",... *)
-    Field_UNKNOWN "49", 49;
-    Field_UNKNOWN "53", 53;
+    Field_KNOWN "49", 49;
+    Field_KNOWN "53", 53;
   ]
 
 type cipher

@@ -113,44 +113,44 @@ let load_server_met filename =
           let server = check_add_server r.S.ip r.S.port in
           List.iter (fun tag ->
               match tag with
-              |  { tag_name = Field_UNKNOWN "name"; tag_value = String s } ->
+              |  { tag_name = Field_KNOWN "name"; tag_value = String s } ->
                   server.server_name <- s;
-              |  { tag_name = Field_UNKNOWN "description" ; tag_value = String s } ->
+              |  { tag_name = Field_KNOWN "description" ; tag_value = String s } ->
                   server.server_description <- s
-              |  { tag_name = Field_UNKNOWN "version" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "version" ; tag_value = Uint64 s } ->
                   server.server_version <- Printf.sprintf "%d.%d"
 					    ((Int64.to_int s) lsr 16) ((Int64.to_int s) land 0xFFFF)
-              |  { tag_name = Field_UNKNOWN "ping" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "ping" ; tag_value = Uint64 s } ->
                   server.server_ping <- (Int64.to_int s)
-              |  { tag_name = Field_UNKNOWN "dynip" ; tag_value = String s } ->
+              |  { tag_name = Field_KNOWN "dynip" ; tag_value = String s } ->
                   server.server_dynip <- s
-              |  { tag_name = Field_UNKNOWN "users" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "users" ; tag_value = Uint64 s } ->
                   (match server.server_nusers with
 		  | None -> server.server_nusers <- Some s | _ -> ())
-              |  { tag_name = Field_UNKNOWN "files" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "files" ; tag_value = Uint64 s } ->
                   (match server.server_nfiles with
 		  | None -> server.server_nfiles <- Some s | _ -> ())
-              |  { tag_name = Field_UNKNOWN "maxusers" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "maxusers" ; tag_value = Uint64 s } ->
                   (match server.server_max_users with
 		  | None -> server.server_max_users <- Some s | _ -> ())
-              |  { tag_name = Field_UNKNOWN "softfiles" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "softfiles" ; tag_value = Uint64 s } ->
                   (match server.server_soft_limit with
 		  | None -> server.server_soft_limit <- Some s | _ -> ())
-              |  { tag_name = Field_UNKNOWN "hardfiles" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "hardfiles" ; tag_value = Uint64 s } ->
                   (match server.server_hard_limit with
 		  | None -> server.server_hard_limit <- Some s | _ -> ())
-              |  { tag_name = Field_UNKNOWN "auxportslist" ; tag_value = String s } ->
+              |  { tag_name = Field_KNOWN "auxportslist" ; tag_value = String s } ->
                   server.server_auxportslist <- s
-              |  { tag_name = Field_UNKNOWN "lowusers" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "lowusers" ; tag_value = Uint64 s } ->
                   (match server.server_lowid_users with
 		  | None -> server.server_lowid_users <- Some s | _ -> ())
-              |  { tag_name = Field_UNKNOWN "tcpportobfuscation" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "tcpportobfuscation" ; tag_value = Uint64 s } ->
                   server.server_obfuscation_tcp <- Some (Int64.to_int s)
-              |  { tag_name = Field_UNKNOWN "udpportobfuscation" ; tag_value = Uint64 s } ->
+              |  { tag_name = Field_KNOWN "udpportobfuscation" ; tag_value = Uint64 s } ->
                   server.server_obfuscation_udp <- Some (Int64.to_int s)
-              |  { tag_name = Field_UNKNOWN "country" ; tag_value = String s } -> ()
-              |  { tag_name = Field_UNKNOWN "udpflags" ; tag_value = Uint64  s } -> ()
-              |  { tag_name = Field_UNKNOWN "refs" ; tag_value = Uint64  s } -> ()
+              |  { tag_name = Field_KNOWN "country" ; tag_value = String s } -> ()
+              |  { tag_name = Field_KNOWN "udpflags" ; tag_value = Uint64  s } -> ()
+              |  { tag_name = Field_KNOWN "refs" ; tag_value = Uint64  s } -> ()
               | _ -> lprintf_nl "parsing server.met, unknown field %s" (string_of_tag tag)
           ) r.S.tags;
 	  server_must_update server
@@ -448,16 +448,16 @@ let import_config dirname =
 
   List.iter (fun tag ->
       match tag with
-      | { tag_name = Field_UNKNOWN "name"; tag_value = String s } ->
+      | { tag_name = Field_KNOWN "name"; tag_value = String s } ->
           login =:=  s
-      | { tag_name = Field_UNKNOWN "port"; tag_value = Uint64 v } ->
+      | { tag_name = Field_KNOWN "port"; tag_value = Uint64 v } ->
           donkey_port =:=  Int64.to_int v
       | _ -> ()
   ) ct;
 
   List.iter (fun tag ->
       match tag with
-      | { tag_name = Field_UNKNOWN "temp"; tag_value = String s } ->
+      | { tag_name = Field_KNOWN "temp"; tag_value = String s } ->
           if Sys.file_exists s then (* be careful on that *)
             temp_dir := s
           else (lprintf_nl "Bad temp directory, using default";

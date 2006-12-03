@@ -1268,7 +1268,7 @@ let old_print_search buf o results =
                       let nl = ref false in
                       List.iter (fun t ->
                           match t.tag_name with
-                          | Field_UNKNOWN "FTH" | Field_UNKNOWN "urn" -> ()
+                          | Field_KNOWN "FTH" | Field_KNOWN "urn" -> ()
                           | _ ->
                               Buffer.add_string buf ((if !nl then "<br>" else begin nl := true;"" end) ^
                                 escaped_string_of_field t ^ ": " ^ get_tag_value t);
@@ -1284,7 +1284,7 @@ let old_print_search buf o results =
                       let nl = ref false in
                       List.iter (fun t ->
                           match t.tag_name with
-                          | Field_UNKNOWN "FTH" | Field_UNKNOWN "urn" -> ()
+                          | Field_KNOWN "FTH" | Field_KNOWN "urn" -> ()
                           | _ ->
                               Buffer.add_string buf ((if !nl then "\n" else begin nl := true;"" end) ^
                                   "|| (" ^
@@ -1340,8 +1340,8 @@ let old_print_search buf o results =
 	      let cformat = ref "" in
               List.iter (fun t ->
                   (match t.tag_name with
-                    | Field_UNKNOWN "urn"
-                    | Field_UNKNOWN "FTH"  -> hash := get_tag_value t
+                    | Field_KNOWN "urn"
+                    | Field_KNOWN "FTH"  -> hash := get_tag_value t
                     | Field_Availability -> cavail := get_tag_value t
                     | Field_Completesources -> csource := get_tag_value t
                     | Field_Length -> clength := get_tag_value t
@@ -1392,9 +1392,9 @@ let old_print_search buf o results =
                         | Field_Format
                         | Field_Bitrate
 (* TODO : "urn" shouldn't be some kind of Field_Uid of Gnutella ? *)
-                        | Field_UNKNOWN "urn"
+                        | Field_KNOWN "urn"
 (* TODO : "FTH" shouldn't be some kind of Field_Uid of Fasttrack ? *)
-                        | Field_UNKNOWN "FTH"  -> ()
+                        | Field_KNOWN "FTH"  -> ()
                         | _ ->
                             Buffer.add_string buf ("\\<span title=\\\"" ^
                                 get_tag_value t ^ "\\\"\\>(" ^

@@ -108,30 +108,30 @@ let bprint_chars b s =
 
 let tag_of_tag tag s =
   match tag with
-  | Field_UNKNOWN "any"
+  | Field_KNOWN "any"
   | Field_Filename
   | Field_Uid
   | Field_Title
-  | Field_UNKNOWN "time"
+  | Field_KNOWN "time"
   | Field_Artist
   | Field_Album
-  | Field_UNKNOWN "language"
-  | Field_UNKNOWN "keywords"
-  | Field_UNKNOWN "genre"
-  | Field_UNKNOWN "OS"
+  | Field_KNOWN "language"
+  | Field_KNOWN "keywords"
+  | Field_KNOWN "genre"
+  | Field_KNOWN "OS"
   | Field_Type
-  | Field_UNKNOWN "version"
-  | Field_UNKNOWN "comment"
+  | Field_KNOWN "version"
+  | Field_KNOWN "comment"
   | Field_Codec ->
       string_tag tag s
-  | Field_UNKNOWN "bitdepth"
-  | Field_UNKNOWN "year"
-  | Field_UNKNOWN "rating"
-  | Field_UNKNOWN "quality"
+  | Field_KNOWN "bitdepth"
+  | Field_KNOWN "year"
+  | Field_KNOWN "rating"
+  | Field_KNOWN "quality"
   | Field_Size ->
       let s, _ = get_dynint s 0 in
       int64_tag tag s
-  | Field_UNKNOWN "resolution" ->
+  | Field_KNOWN "resolution" ->
       let n1, pos = get_dynint s 0 in
       let n2, pos = get_dynint s pos in
       { tag_name =  tag; tag_value = Pair (n1, n2) }
@@ -145,7 +145,8 @@ let tag_of_tag tag s =
   | Field_Lastseencomplete
   | Field_Mediacodec
   | Field_Medialength
-  | Field_UNKNOWN _ ->
+  | Field_UNKNOWN _
+  | Field_KNOWN _ ->
       string_tag tag s
 
 
@@ -433,7 +434,7 @@ dec: [(63)]
 
           let tags =
             if words <> "" then
-              (Substring, string_tag (Field_UNKNOWN "any") words) :: tags
+              (Substring, string_tag (Field_KNOWN "any") words) :: tags
             else tags in
           buf_int8 b (List.length tags);
 
@@ -458,7 +459,7 @@ dec: [(63)]
               buf_int8 b (
                 try List.assoc tag name_of_tag with
                   _ -> match tag with
-                      Field_UNKNOWN n -> int_of_string n
+                      Field_KNOWN n -> int_of_string n
                     | _ -> assert false);
               buf_string b s;
           ) tags;
@@ -869,7 +870,7 @@ dec: [(63)]
           let tag = try
               List2.assoc_inv tag name_of_tag
             with _ ->
-                Field_UNKNOWN (string_of_int tag)
+                Field_KNOWN (string_of_int tag)
           in
           iter_tags (pos + tag_len) (n-1)
           ((new_tag tag tagdata) :: tags)
@@ -916,7 +917,7 @@ dec: [(63)]
                 List2.assoc_inv tag name_of_tag
               with Not_found ->
                   lprintf "WARNING Unknown tag %d\n" tag;
-                  Field_UNKNOWN (string_of_int tag)
+                  Field_KNOWN (string_of_int tag)
             in
             let v, pos = get_string m (pos+2) in
             let tag = tag_of_tag tag v in
@@ -1939,6 +1940,7 @@ let translate_query q =
           | Field_Artist
           | Field_Title
           | Field_Codec
+          | Field_KNOWN _
           | Field_UNKNOWN _
           | Field_Filename ->
               tags := (Substring, string_tag field w) :: !tags
@@ -1957,14 +1959,14 @@ let translate_query q =
         begin
           match field with
           | Field_Size
-          | Field_UNKNOWN _
+          | Field_KNOWN _
             -> tags := (AtLeast, int64_tag field value) :: !tags
           | _ -> ()
         end
     | QHasMaxVal (field, value) ->
         begin
           match field with
-          | Field_UNKNOWN _
+          | Field_KNOWN _
           | Field_Size ->
               tags := (AtMost, int64_tag field value) :: !tags
           | _ -> ()

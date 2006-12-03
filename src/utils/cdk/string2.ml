@@ -322,3 +322,9 @@ let for_all p s =
     i >= l || p s.[i] && aux (i+1) in
   aux 0
 
+let hex_string_of_string s =
+  let buf = Buffer.create 100 in
+  String.iter (fun c ->
+    Printf.bprintf buf "%02x " (int_of_char c)
+  ) s;
+  Buffer.contents buf

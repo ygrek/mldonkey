@@ -52,3 +52,4 @@ module type Request =
     val write : Buffer.t -> t -> unit
   end
 val file_common_tags : (string * CommonTypes.field) list
+val client_common_tags : (string * string) list

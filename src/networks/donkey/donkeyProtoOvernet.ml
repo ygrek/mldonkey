@@ -40,7 +40,9 @@ module Proto = struct
     let lprintf_n fmt =
       lprintf2 log_prefix fmt
 
-   let names_of_tag = file_common_tags
+   let names_of_tag = [
+      "loc", Field_KNOWN "loc";
+      ] @ file_common_tags
 
     let buf_peer buf p =
       buf_md4 buf p.peer_md4;
@@ -187,7 +189,7 @@ module Proto = struct
       let peer_tcpport = ref 0 in
       List.iter (fun tag ->
           match tag.tag_name with
-            Field_UNKNOWN "loc" ->
+            Field_KNOWN "loc" ->
               for_string_tag tag (fun bcp ->
                   if !verbose_overnet then lprintf_nl "loc tag : [%s]" bcp;
                   if String2.starts_with bcp "bcp://" then
@@ -295,7 +297,7 @@ module Proto = struct
             let r_tags, pos = get_tags s 32 names_of_tag in
             let sources = ref false in
             List.iter (fun tag ->
-                if tag.tag_name = Field_UNKNOWN "loc" then sources := true;
+                if tag.tag_name = Field_KNOWN "loc" then sources := true;
             ) r_tags;
             if !sources then
               let peer = get_peer_from_result ip port r_md4 r_tags in
@@ -311,7 +313,7 @@ module Proto = struct
             let r_tags, pos = get_tags s 32 names_of_tag in
             let sources = ref false in
             List.iter (fun tag ->
-                if tag.tag_name = Field_UNKNOWN "loc" then sources := true;
+                if tag.tag_name = Field_KNOWN "loc" then sources := true;
             ) r_tags;
             if !sources then
               let peer = get_peer_from_result ip port r_md4 r_tags in

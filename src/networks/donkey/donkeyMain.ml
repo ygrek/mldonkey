@@ -137,14 +137,14 @@ let reset_tags () =
   let emule_compatoptions = D.emule_compatoptions m in
   client_to_client_tags :=
   [
-    string_tag (Field_UNKNOWN "name") (local_login ());
-    int_tag (Field_UNKNOWN "port") !!donkey_port;
-    int_tag (Field_UNKNOWN "version") protocol_version;
-    int_tag (Field_UNKNOWN "emule_udpports") (!!donkey_port+4);
-    int_tag (Field_UNKNOWN "emule_version") m.emule_version;
-    int64_tag (Field_UNKNOWN "emule_miscoptions1") emule_miscoptions1;
-    int64_tag (Field_UNKNOWN "emule_miscoptions2") emule_miscoptions2;
-    int_tag (Field_UNKNOWN "emule_compatoptions") emule_compatoptions;
+    string_tag (Field_KNOWN "name") (local_login ());
+    int_tag (Field_KNOWN "port") !!donkey_port;
+    int_tag (Field_KNOWN "version") protocol_version;
+    int_tag (Field_KNOWN "emule_udpports") (!!donkey_port+4);
+    int_tag (Field_KNOWN "emule_version") m.emule_version;
+    int64_tag (Field_KNOWN "emule_miscoptions1") emule_miscoptions1;
+    int64_tag (Field_KNOWN "emule_miscoptions2") emule_miscoptions2;
+    int_tag (Field_KNOWN "emule_compatoptions") emule_compatoptions;
   ];
 
 (* server capabilities *)
@@ -161,42 +161,42 @@ let reset_tags () =
 
   client_to_server_tags :=
   [
-    string_tag (Field_UNKNOWN "name") (local_login ());
-    int_tag (Field_UNKNOWN "version") protocol_version;
-    int_tag (Field_UNKNOWN "extended") !extended;
-    int_tag (Field_UNKNOWN "emule_version") m.emule_version;
+    string_tag (Field_KNOWN "name") (local_login ());
+    int_tag (Field_KNOWN "version") protocol_version;
+    int_tag (Field_KNOWN "extended") !extended;
+    int_tag (Field_KNOWN "emule_version") m.emule_version;
   ];
 
   client_to_server_reply_tags :=
   [
-    string_tag (Field_UNKNOWN "name") (local_login ());
-    int_tag (Field_UNKNOWN "version") protocol_version;
-    int_tag (Field_UNKNOWN "emule_udpports") (!!donkey_port+4);
-    int64_tag (Field_UNKNOWN "emule_miscoptions1") emule_miscoptions1;
-    int64_tag (Field_UNKNOWN "emule_miscoptions2") emule_miscoptions2;
-    int_tag (Field_UNKNOWN "emule_version") m.emule_version;
+    string_tag (Field_KNOWN "name") (local_login ());
+    int_tag (Field_KNOWN "version") protocol_version;
+    int_tag (Field_KNOWN "emule_udpports") (!!donkey_port+4);
+    int64_tag (Field_KNOWN "emule_miscoptions1") emule_miscoptions1;
+    int64_tag (Field_KNOWN "emule_miscoptions2") emule_miscoptions2;
+    int_tag (Field_KNOWN "emule_version") m.emule_version;
   ];
 
   emule_info.DonkeyProtoClient.EmuleClientInfo.tags <- [
-    int_tag (Field_UNKNOWN "compression") m.emule_compression;
-    int_tag (Field_UNKNOWN "udpver") m.emule_udpver;
-    int_tag (Field_UNKNOWN "udpport") (!!donkey_port+4);
-    int_tag (Field_UNKNOWN "sourceexchange") m.emule_sourceexchange;
-    int_tag (Field_UNKNOWN "comments") m.emule_comments;
-    int_tag (Field_UNKNOWN "compatibleclient") !DonkeyProtoClient.compatibleclient; 
-    int_tag (Field_UNKNOWN "extendedrequest") m.emule_extendedrequest;
-    int_tag (Field_UNKNOWN "features") m.emule_features;
+    int_tag (Field_KNOWN "compression") m.emule_compression;
+    int_tag (Field_KNOWN "udpver") m.emule_udpver;
+    int_tag (Field_KNOWN "udpport") (!!donkey_port+4);
+    int_tag (Field_KNOWN "sourceexchange") m.emule_sourceexchange;
+    int_tag (Field_KNOWN "comments") m.emule_comments;
+    int_tag (Field_KNOWN "compatibleclient") !DonkeyProtoClient.compatibleclient; 
+    int_tag (Field_KNOWN "extendedrequest") m.emule_extendedrequest;
+    int_tag (Field_KNOWN "features") m.emule_features;
     
   ];
   overnet_connect_tags :=
   [
-    string_tag (Field_UNKNOWN "name") (local_login ());
-    int_tag (Field_UNKNOWN "version") !!DonkeyProtoOvernet.overnet_protocol_connect_version; 
+    string_tag (Field_KNOWN "name") (local_login ());
+    int_tag (Field_KNOWN "version") !!DonkeyProtoOvernet.overnet_protocol_connect_version; 
   ];
   overnet_connectreply_tags :=
   [
-    string_tag (Field_UNKNOWN "name") (local_login ());
-    int_tag (Field_UNKNOWN "version") !!DonkeyProtoOvernet.overnet_protocol_connectreply_version; 
+    string_tag (Field_KNOWN "name") (local_login ());
+    int_tag (Field_KNOWN "version") !!DonkeyProtoOvernet.overnet_protocol_connectreply_version; 
   ]
   
 let enable () =

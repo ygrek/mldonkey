@@ -399,9 +399,9 @@ let client_to_server s t sock =
       List.iter (
         fun tag ->
           match tag with
-              { tag_name = Field_UNKNOWN "name"; tag_value = String name } ->
+              { tag_name = Field_KNOWN "name"; tag_value = String name } ->
                 s.server_name <- name
-            | { tag_name = Field_UNKNOWN "description"; tag_value = String desc } ->
+            | { tag_name = Field_KNOWN "description"; tag_value = String desc } ->
                 s.server_description <- desc
             | _ -> lprintf_nl "parsing donkeyServers.ServerInfo, unknown field %s" (string_of_tag tag)
       ) s.server_tags
@@ -504,7 +504,7 @@ and remove clients whose server is deconnected. *)
           user_add user_impl;
           List.iter (fun tag ->
               match tag with
-                { tag_name = Field_UNKNOWN "name"; tag_value = String s } ->
+                { tag_name = Field_KNOWN "name"; tag_value = String s } ->
                   user.user_name <- s
               | _ -> ()
           ) user.user_tags;

@@ -45,15 +45,15 @@ module P = struct
 
     let names_of_tag =
       [
-        "\243", Field_UNKNOWN "encryption"; (* 0xF3 *)
-        "\248", Field_UNKNOWN "buddyhash"; (* 0xF8 *)
-        "\249", Field_UNKNOWN "clientlowid"; (* 0xF9 *)
-        "\250", Field_UNKNOWN "serverport"; (* 0xFA *)
-        "\251", Field_UNKNOWN "serverip";   (* 0xFB *)
-        "\252", Field_UNKNOWN "sourceuport"; (* 0xFC *)
-        "\253", Field_UNKNOWN "sourceport"; (* 0xFD *)
-        "\254", Field_UNKNOWN "sourceip"; (* 0xFE *)
-        "\255", Field_UNKNOWN "sourcetype";  (* 0xFF *)
+        "\243", Field_KNOWN "encryption"; (* 0xF3 *)
+        "\248", Field_KNOWN "buddyhash"; (* 0xF8 *)
+        "\249", Field_KNOWN "clientlowid"; (* 0xF9 *)
+        "\250", Field_KNOWN "serverport"; (* 0xFA *)
+        "\251", Field_KNOWN "serverip";   (* 0xFB *)
+        "\252", Field_KNOWN "sourceuport"; (* 0xFC *)
+        "\253", Field_KNOWN "sourceport"; (* 0xFD *)
+        "\254", Field_KNOWN "sourceip"; (* 0xFE *)
+        "\255", Field_KNOWN "sourcetype";  (* 0xFF *)
       ] @ file_common_tags
 
 (* This fucking Emule implementation uses 4 32-bits integers instead of
@@ -248,17 +248,17 @@ module P = struct
           let peer_kind = ref 0 in
           List.iter (fun tag ->
               match tag.tag_name with
-                Field_UNKNOWN "sourceport" ->
+                Field_KNOWN "sourceport" ->
                   for_int_tag tag (fun port ->
                       peer_tcpport := port)
-              | Field_UNKNOWN "sourceuport" ->
+              | Field_KNOWN "sourceuport" ->
                   for_int_tag tag (fun port ->
                       peer_udpport := port)
-              | Field_UNKNOWN "sourceip" ->
+              | Field_KNOWN "sourceip" ->
                   for_int64_tag tag (fun ip ->
                       peer_ip := Ip.of_int64 ip
                   )
-              | Field_UNKNOWN "sourcetype" ->
+              | Field_KNOWN "sourcetype" ->
                   for_int_tag tag (fun kind ->
                       peer_kind := 3)
               | _ ->
@@ -333,7 +333,7 @@ module P = struct
               (_, first_tags) :: _ ->
                 let sources = ref false in
                 List.iter (fun tag ->
-                    if tag.tag_name = Field_UNKNOWN "sourceport" then sources := true;
+                    if tag.tag_name = Field_KNOWN "sourceport" then sources := true;
                 ) first_tags;
                 if !sources then
                   let peers = get_peers_from_results Ip.null 0 answers in
@@ -359,7 +359,7 @@ module P = struct
               (_, first_tags) :: _ ->
                 let sources = ref false in
                 List.iter (fun tag ->
-                    if tag.tag_name = Field_UNKNOWN "sourceport" then sources := true;
+                    if tag.tag_name = Field_KNOWN "sourceport" then sources := true;
                 ) first_tags;
                 if !sources then
                   let peers = get_peers_from_results ip port answers in

@@ -322,12 +322,12 @@ let udp_client_handler t p =
       s.server_udp_desc_challenge <- None;
       List.iter (fun tag ->
           match tag with
-              { tag_name = Field_UNKNOWN "version"; tag_value = Uint64 i } ->
+              { tag_name = Field_KNOWN "version"; tag_value = Uint64 i } ->
                 let i = Int64.to_int i in
                 s.server_version <- Printf.sprintf "%d.%d" (i lsr 16) (i land 0xFFFF);
-	    | { tag_name = Field_UNKNOWN "auxportslist" ; tag_value = String aux } ->
+	    | { tag_name = Field_KNOWN "auxportslist" ; tag_value = String aux } ->
 		s.server_auxportslist <- aux
-	    |  { tag_name = Field_UNKNOWN "dynip" ; tag_value = String dynip } ->
+	    |  { tag_name = Field_KNOWN "dynip" ; tag_value = String dynip } ->
 		s.server_dynip <- dynip
             | _ -> ()
       ) t.M.tags;

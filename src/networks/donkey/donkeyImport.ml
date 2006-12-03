@@ -56,26 +56,26 @@ module Server = struct
     let names_of_tag =
 (* eMule sourcefile opcodes.h //server.met *)
       [
-        "\001", Field_UNKNOWN "name";                (* 0x01 string *)
-        "\011", Field_UNKNOWN "description";         (* 0x0B string *)
-        "\012", Field_UNKNOWN "ping";                (* 0x0C uint32 *)
-        "\013", Field_UNKNOWN "history";             (* 0x0D ST_FAIL *)
-        "\014", Field_UNKNOWN "prof";                (* 0x0E ST_PREFERENCE *)
-        "\015", Field_UNKNOWN "port";                (* 0x0F uint32 *)
-        "\016", Field_UNKNOWN "ip";                  (* 0x10 uint32 *)
-        "\133", Field_UNKNOWN "dynip";               (* 0x85 string *)
-        "\135", Field_UNKNOWN "maxusers";            (* 0x87 uint32 *)
-        "\136", Field_UNKNOWN "softfiles";           (* 0x88 uint32 *)
-        "\137", Field_UNKNOWN "hardfiles";           (* 0x89 uint32 *)
-        "\144", Field_UNKNOWN "lastping";            (* 0x90 uint32 *)
-        "\145", Field_UNKNOWN "version";             (* 0x91 string|uint32 *)
-        "\146", Field_UNKNOWN "udpflags";            (* 0x92 uint32 *)
-        "\147", Field_UNKNOWN "auxportslist";        (* 0x93 string *)
-        "\148", Field_UNKNOWN "lowidusers";          (* 0x94 uint32 *)
-        "\149", Field_UNKNOWN "udpkey";              (* 0x95 uint32 *)
-        "\150", Field_UNKNOWN "udpkeyip";            (* 0x96 uint32 *)
-        "\151", Field_UNKNOWN "tcpportobfuscation";  (* 0x97 uint16 *)
-        "\152", Field_UNKNOWN "udpportobfuscation";  (* 0x98 uint16 *)
+        "\001", Field_KNOWN "name";                (* 0x01 string *)
+        "\011", Field_KNOWN "description";         (* 0x0B string *)
+        "\012", Field_KNOWN "ping";                (* 0x0C uint32 *)
+        "\013", Field_KNOWN "history";             (* 0x0D ST_FAIL *)
+        "\014", Field_KNOWN "prof";                (* 0x0E ST_PREFERENCE *)
+        "\015", Field_KNOWN "port";                (* 0x0F uint32 *)
+        "\016", Field_KNOWN "ip";                  (* 0x10 uint32 *)
+        "\133", Field_KNOWN "dynip";               (* 0x85 string *)
+        "\135", Field_KNOWN "maxusers";            (* 0x87 uint32 *)
+        "\136", Field_KNOWN "softfiles";           (* 0x88 uint32 *)
+        "\137", Field_KNOWN "hardfiles";           (* 0x89 uint32 *)
+        "\144", Field_KNOWN "lastping";            (* 0x90 uint32 *)
+        "\145", Field_KNOWN "version";             (* 0x91 string|uint32 *)
+        "\146", Field_KNOWN "udpflags";            (* 0x92 uint32 *)
+        "\147", Field_KNOWN "auxportslist";        (* 0x93 string *)
+        "\148", Field_KNOWN "lowidusers";          (* 0x94 uint32 *)
+        "\149", Field_KNOWN "udpkey";              (* 0x95 uint32 *)
+        "\150", Field_KNOWN "udpkeyip";            (* 0x96 uint32 *)
+        "\151", Field_KNOWN "tcpportobfuscation";  (* 0x97 uint16 *)
+        "\152", Field_KNOWN "udpportobfuscation";  (* 0x98 uint16 *)
       ]
     
     
@@ -204,12 +204,12 @@ module Part = struct
     
     let names_of_tag =
       [
-        "\008", Field_UNKNOWN "downloaded";
-        "\018", Field_UNKNOWN "diskname";
-        "\019", Field_UNKNOWN "priority";
-        "\020", Field_UNKNOWN "status";
-        "\t", Field_UNKNOWN "start_pos";
-        "\n", Field_UNKNOWN "absent";
+        "\008", Field_KNOWN "downloaded";
+        "\018", Field_KNOWN "diskname";
+        "\019", Field_KNOWN "priority";
+        "\020", Field_KNOWN "status";
+        "\t", Field_KNOWN "start_pos";
+        "\n", Field_KNOWN "absent";
       ] @ file_common_tags
     
     
@@ -231,8 +231,8 @@ module Part = struct
       List.iter (fun tag ->
           let s = tag.tag_name in
           match s, tag.tag_value with
-            Field_UNKNOWN "start_pos", Uint64 p -> start_pos := p;
-          | Field_UNKNOWN "absent", Uint64 p -> 
+            Field_KNOWN "start_pos", Uint64 p -> start_pos := p;
+          | Field_KNOWN "absent", Uint64 p -> 
                 absents := (!start_pos, p) :: !absents;
             | _ -> ()
       ) tags;
@@ -285,9 +285,9 @@ module Pref = struct
     
     let names_of_client_tag =
       [
-        "\001", Field_UNKNOWN  "name";
-        "\017", Field_UNKNOWN "version";
-        "\015", Field_UNKNOWN "port";
+        "\001", Field_KNOWN  "name";
+        "\017", Field_KNOWN "version";
+        "\015", Field_KNOWN "port";
       ]
       
     let names_of_option_tag = []

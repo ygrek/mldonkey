@@ -190,23 +190,10 @@ module Connect  = struct
         left_bytes : string;
       }
 
+    let names_of_tag = client_common_tags
+
     let names_of_tag =
-      [
-        "\001", Field_UNKNOWN "name";
-        "\015", Field_UNKNOWN "port";
-        "\017", Field_UNKNOWN "version";
-        "\031", Field_UNKNOWN "udpport";
-        "\060", Field_UNKNOWN "downloadtime";
-        "\061", Field_UNKNOWN "incompleteparts";
-        "\085", Field_UNKNOWN "mod_version";
-        "\239", Field_UNKNOWN "emule_compatoptions";
-        "\249", Field_UNKNOWN "emule_udpports";
-        "\250", Field_UNKNOWN "emule_miscoptions1";
-        "\251", Field_UNKNOWN "emule_version";
-        "\252", Field_UNKNOWN "buddy_ip";
-        "\253", Field_UNKNOWN "buddy_udp";
-        "\254", Field_UNKNOWN "emule_miscoptions2";
-      ]
+      List.map (fun (v, name) -> (v, Field_KNOWN name)) names_of_tag
 
     let parse reply len s =
       let hash_len, pos = if not reply then get_uint8 s 1, 2 else -1, 1 in
@@ -831,49 +818,10 @@ module EmuleClientInfo = struct
         mutable tags : tag list;
       }
 
-    let names_of_tag =
-      [
-        "\032", "compression";
-        "\033", "udpport";
-        "\034", "udpver";
-        "\035", "sourceexchange";
-        "\036", "comments";
-        "\037", "extendedrequest";
-        "\038", "compatibleclient";
-        "\039", "features";
-        "\060", "downloadtime";
-        "\061", "incompleteparts";
-        "\062", "l2hac";
-        "\065", "mod_unknown41";
-        "\066", "mod_unknown42";
-        "\067", "mod_unknown43";
-        "\084", "mod_featureset";
-        "\086", "mod_protocol";
-        "\085", "mod_version";
-        "\090", "mod_bowlfish";
-        "\092", "mod_secure_community";
-        "\102", "mod_fusion";
-        "\103", "mod_fusion_version";
-        "\119", "mod_tarod";
-        "\120", "mod_tarod_version";
-        "\121", "mod_morph";
-        "\128", "mod_morph_version";
-        "\130", "mod_mortillo";
-        "\131", "mod_mortillo_version";
-        "\132", "chanblard_version";
-        "\133", "signature";
-        "\134", "cache";
-        "\135", "mod_lsd";
-        "\136", "mod_lsd_version";
-        "\144", "mod_lovelace_version";
-        "\148", "os_info"; (* reused by aMule to transfer client OS type *)
-        "\153", "mod_plus";
-        "\160", "mod_wombat";
-        "\161", "dev_wombat";
-      ]
+    let names_of_tag = client_common_tags
 
     let names_of_tag =
-      List.map (fun (v, name) -> (v, Field_UNKNOWN name)) names_of_tag
+      List.map (fun (v, name) -> (v, Field_KNOWN name)) names_of_tag
 
     let parse len s =
       let version = get_uint8 s 1 in

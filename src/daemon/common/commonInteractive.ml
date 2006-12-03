@@ -714,7 +714,7 @@ let send_custom_query user buf query args =
       | Q_MP3_BITRATE _ ->
           let bitrate = get_arg "bitrate" in
           if bitrate = "" then raise Not_found;
-          QHasMinVal(Field_UNKNOWN "bitrate", Int64.of_string bitrate)
+          QHasMinVal(Field_KNOWN "bitrate", Int64.of_string bitrate)
 
     in
     try
@@ -874,14 +874,14 @@ let keywords_of_query query =
     | QHasMinVal (field, value) ->
         begin
           match field with
-            Field_UNKNOWN "bitrate"
+            Field_KNOWN "bitrate"
           | Field_Size
           | _ -> ()
         end
     | QHasMaxVal (field, value) ->
         begin
           match field with
-            Field_UNKNOWN "bitrate"
+            Field_KNOWN "bitrate"
           | Field_Size
           | _ -> ()
         end

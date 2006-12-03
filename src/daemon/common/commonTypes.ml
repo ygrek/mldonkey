@@ -265,6 +265,7 @@ type field =
 | Field_Lastseencomplete
 | Field_Mediacodec
 | Field_Medialength
+| Field_KNOWN of string
 | Field_UNKNOWN of string
   
 type tag = {

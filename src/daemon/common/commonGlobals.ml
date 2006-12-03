@@ -405,6 +405,7 @@ let string_of_field t =
   | Field_Lastseencomplete -> "lastcompl"
   | Field_Medialength -> "mlen"
   | Field_Mediacodec -> "mediacodec"
+  | Field_KNOWN s -> s
   | Field_UNKNOWN s -> s
 
 let field_of_string t =
@@ -426,16 +427,21 @@ let field_of_string t =
   | "lastcompl" -> Field_Lastseencomplete 
   | "mlen" -> Field_Medialength
   | "mediacodec" -> Field_Mediacodec
-  | _ -> Field_UNKNOWN t
+  | _ -> Field_KNOWN t
 
 let escaped_string_of_field tag =
   match tag.tag_name with
+  | Field_KNOWN s -> String.escaped s
   | Field_UNKNOWN s -> String.escaped s
   | t -> string_of_field t
 
 
 let string_of_tag tag =
   Printf.sprintf "  \"%s\" = %s" (escaped_string_of_field tag)
+  (string_of_tag_value tag.tag_value)
+
+let hexstring_of_tag tag =
+  Printf.sprintf "  \"%s\" = %s" (String2.hex_string_of_string (escaped_string_of_field tag))
   (string_of_tag_value tag.tag_value)
 
 let rec print_tags tags =
