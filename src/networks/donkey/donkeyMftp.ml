@@ -263,6 +263,7 @@ let client_common_tags =
         "\105", "edonkeyclc serverip?";
         "\106", "edonkeyclc serverport?";
 
+        "\117", "mod_unknown0x75"; (* http://emule-project.net @ NewMule *)
         "\118", "mod_unknown0x76";
         "\119", "mod_tarod";
         "\120", "mod_tarod_version";

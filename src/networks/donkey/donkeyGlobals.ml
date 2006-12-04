@@ -1022,6 +1022,6 @@ let _ =
 let full_client_identifier c =
     Printf.sprintf "%s (%s%s) '%s'"
       (Ip.to_string c.client_ip)
-      (brand_to_string_short c.client_brand)
+      (GuiTypes.client_software_short (brand_to_string_short c.client_brand) c.client_osinfo)
       (if c.client_emule_proto.emule_release = "" then "" else " " ^ c.client_emule_proto.emule_release)
       (String.escaped c.client_name)
