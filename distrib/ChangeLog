@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2006/12/06
+5615: EDK: Parse more fields from server.met files
+
 2006/12/04
 5612: EDK: OP_HELLO tag 0x75, print os_info in logfile
 

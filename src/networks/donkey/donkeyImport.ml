@@ -65,17 +65,23 @@ module Server = struct
         "\016", Field_KNOWN "ip";                  (* 0x10 uint32 *)
         "\133", Field_KNOWN "dynip";               (* 0x85 string *)
         "\135", Field_KNOWN "maxusers";            (* 0x87 uint32 *)
+        "maxusers", Field_KNOWN "maxusers";
         "\136", Field_KNOWN "softfiles";           (* 0x88 uint32 *)
         "\137", Field_KNOWN "hardfiles";           (* 0x89 uint32 *)
         "\144", Field_KNOWN "lastping";            (* 0x90 uint32 *)
         "\145", Field_KNOWN "version";             (* 0x91 string|uint32 *)
         "\146", Field_KNOWN "udpflags";            (* 0x92 uint32 *)
         "\147", Field_KNOWN "auxportslist";        (* 0x93 string *)
-        "\148", Field_KNOWN "lowidusers";          (* 0x94 uint32 *)
+        "\148", Field_KNOWN "lowusers";            (* 0x94 uint32 *)
+        "lowusers", Field_KNOWN "lowusers";
         "\149", Field_KNOWN "udpkey";              (* 0x95 uint32 *)
         "\150", Field_KNOWN "udpkeyip";            (* 0x96 uint32 *)
         "\151", Field_KNOWN "tcpportobfuscation";  (* 0x97 uint16 *)
         "\152", Field_KNOWN "udpportobfuscation";  (* 0x98 uint16 *)
+        "files", Field_KNOWN "files";
+        "users", Field_KNOWN "users";
+        "country", Field_KNOWN "country";
+        "refs", Field_KNOWN "refs";
       ]
     
     
