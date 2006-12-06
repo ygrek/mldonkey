@@ -798,7 +798,7 @@ let commands = [
             ) !current_files
         ) args;
         ""
-    ) , "<f1> < f2> ... :\t\ttry to recover these files at byte level";
+    ) , "<f1> <f2> ... :\t\ttry to recover these files at byte level";
 
     "preferred", Arg_two (fun arg1 arg2 o ->
         let preferred = bool_of_string arg1 in
@@ -810,7 +810,7 @@ let commands = [
             end
         ) servers_by_key;
         "ok"
-    ), "<true/false> <ip> :\t\tset the server with this IP as preferred";
+    ), "<true|false> <ip> :\t\tset the server with this IP as preferred";
 
     "bs", Arg_multiple (fun args o ->
         List.iter (fun arg ->
@@ -818,7 +818,7 @@ let commands = [
             server_black_list =:=  range :: !!server_black_list;
         ) args;
         "done"
-    ), "<range1> <range2> ... :\t\t\tadd these IPs to the servers black list (can be single IPs, CIDR ranges or begin-end ranges)";
+    ), "<range1> <range2> ... :\t\tadd these IPs to the servers black list (can be single IPs, CIDR ranges or begin-end ranges)";
 
     "port", Arg_one (fun arg o ->
         donkey_port =:= int_of_string arg;

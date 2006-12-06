@@ -343,7 +343,7 @@ let _ =
 	web_infos_add kind period url;
 	CommonWeb.load_url true kind url;
         "url added to web_infos. downloading now"
-    ), "<kind> <url> [<period>]:\t\tload this file from the web\n"
+    ), "<kind> <url> [<period>] :\tload this file from the web\n"
        ^"\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)\n"
        ^"\t\t\t\t\tperiod is the period between updates (in hours, default 0 = only loaded at startup)";
 
@@ -433,7 +433,7 @@ let _ =
               client_print c o;
           ) args;
         ""
-    ), "<num> :\t\t\t\tview client (use arg 'all' for all clients)";
+    ), "<num|all> :\t\t\t\tview client (use arg 'all' for all clients)";
 
     "version", Arg_none (fun o ->
 	print_command_result o o.conn_buf (CommonGlobals.version ());
@@ -858,7 +858,7 @@ let _ =
             ) args;
             print_result !counter;
         ""
-    ), "<server numbers|all> :\t\t\t\tdisconnect from server(s)";
+    ), "<server numbers|all> :\t\tdisconnect from server(s)";
 
   ]
 
@@ -906,7 +906,7 @@ let _ =
             ) args;
             Printf.sprintf (_b "%d friends removed") (List.length args)
           end
-    ), "<client numbers> :\tremove friend (use arg 'all' for all friends)";
+    ), "<client numbers|all> :\tremove friend (use arg 'all' for all friends)";
 
     "friends", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -2677,7 +2677,7 @@ let _ =
                     end
               ) !!files) args;
         files_to_cancel o
-    ), "<num> :\t\t\t\tcancel download (use arg 'all' for all files)";
+    ), "<num|all> :\t\t\tcancel download (use arg 'all' for all files)";
 
     "downloaders", Arg_none (fun o ->
         let buf = o.conn_buf in
@@ -2746,7 +2746,7 @@ let _ =
                   if (as_file_impl file).impl_file_num = num then
                       file_pause file o.conn_user.ui_user
               ) !!files) args; ""
-    ), "<num> :\t\t\t\tpause a download (use arg 'all' for all files)";
+    ), "<num|all> :\t\t\tpause a download (use arg 'all' for all files)";
 
     "resume", Arg_multiple (fun args o ->
         if args = ["all"] && user2_is_admin o.conn_user.ui_user then
@@ -2760,7 +2760,7 @@ let _ =
                   if (as_file_impl file).impl_file_num = num then
                       file_resume file o.conn_user.ui_user
               ) !!files) args; ""
-    ), "<num> :\t\t\t\tresume a paused download (use arg 'all' for all files)";
+    ), "<num|all> :\t\t\tresume a paused download (use arg 'all' for all files)";
 
     "release", Arg_one (fun arg o ->
 	let num = int_of_string arg in
@@ -3101,7 +3101,7 @@ let _ =
         else
 	  print_command_result o buf "You are not allowed to add a group";
 	_s ""
-    ), "<group> <admin: true | false>: add new mldonkey group";
+    ), "<group> <admin: true|false> :\tadd new mldonkey group";
 
     "groupdel", Arg_one (fun group o ->
         let buf = o.conn_buf in
@@ -3366,22 +3366,22 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
           end
 	end else print_command_result o buf "You are not allowed to list users";
           _s ""
-    ), "\t\t\t\t\tprint users";
+    ), ":\t\t\t\t\tprint users";
 
     "whoami", Arg_none (fun o ->
 	print_command_result o o.conn_buf o.conn_user.ui_user.user_name;
         _s ""
-    ), "\t\t\t\t\tprint logged-in user name";
+    ), ":\t\t\t\tprint logged-in user name";
 
     "groups", Arg_none (fun o ->
 	print_command_result o o.conn_buf (user2_print_user_groups " " o.conn_user.ui_user);
         _s ""
-    ), "\t\t\t\t\tprint groups of logged-in user";
+    ), ":\t\t\t\tprint groups of logged-in user";
 
     "dgroup", Arg_none (fun o ->
 	print_command_result o o.conn_buf (user2_print_user_default_group o.conn_user.ui_user);
         _s ""
-    ), "\t\t\t\t\tprint default group of logged-in user";
+    ), ":\t\t\t\tprint default group of logged-in user";
 
     "chgrp", Arg_two (fun group filenum o ->
         let num = int_of_string filenum in
