@@ -1267,6 +1267,10 @@ let temp_directory = define_option current_section ["temp_directory"]
   "The directory where temporary files should be put"
     string_option "temp"
 
+let share_scan_interval = define_option current_section ["share_scan_interval"]
+  "How often (in minutes) should MLDonkey scan all shared directories for new/removed files"
+    int_option 1
+
 let create_file_mode = define_option current_section ["create_file_mode"]
   "New download files are created with these rights (in octal)"
     string_option "664"
@@ -1714,6 +1718,9 @@ let _ =
   );
   option_hook min_reask_delay (fun _ ->
     if !!min_reask_delay < 600 then min_reask_delay =:= 600
+  );
+  option_hook share_scan_interval (fun _ ->
+    if !!share_scan_interval < 1 then share_scan_interval =:= 1
   );
   option_hook global_login (fun _ ->
       let len = String.length !!global_login in

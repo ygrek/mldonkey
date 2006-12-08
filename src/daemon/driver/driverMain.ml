@@ -54,7 +54,6 @@ let do_daily () =
 
 let minute_timer () =
   DriverInteractive.hdd_check ();
-  CommonShared.shared_check_files ();
   CommonUploads.upload_credit_timer ();
   CommonInteractive.force_download_quotas ();
   CommonResult.dummy_result.result_time <- last_time ();
@@ -445,6 +444,10 @@ or getting a binary compiled with glibc %s.\n\n")
   add_infinite_timer 3600. hourly_timer;
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
   add_infinite_timer !!buffer_writes_delay (fun _ -> Unix32.flush ());
+
+  add_infinite_timer ((float_of_int !!share_scan_interval) *. 60.)
+    (fun _ -> CommonShared.shared_check_files ());
+  CommonShared.shared_check_files ();
 
   history_timeflag := (Unix.time()); 
   update_download_history (); 

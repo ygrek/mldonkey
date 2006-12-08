@@ -1777,6 +1777,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
                       [
 			strings_of_option previewer;
 			strings_of_option temp_directory;
+			strings_of_option share_scan_interval;
 			strings_of_option hdd_temp_minfree;
 			strings_of_option hdd_temp_stop_core;
 			strings_of_option hdd_coredir_minfree;
