@@ -264,7 +264,7 @@ let draw_h_legend mypic g legend_text gcolor my_time basetime show_days =
   in
   let day_string n =
     let time = Unix.localtime (basetime -. float_of_int(n * my_time / x_divisions ())) in
-    Printf.sprintf "%02d.%02d." time.Unix.tm_mday time.Unix.tm_mon
+    Printf.sprintf "%02d.%02d." time.Unix.tm_mday (time.Unix.tm_mon + 1)
   in
   if show_days then
     begin
