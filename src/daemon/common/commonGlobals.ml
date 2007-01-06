@@ -398,6 +398,7 @@ let string_of_field t =
   | Field_Completesources -> "completesources"
   | Field_Filename -> "filename"
   | Field_Size -> "size"
+  | Field_Size_Hi -> "size_hi"
   | Field_Uid -> "uid"
   | Field_Bitrate -> "bitrate"
   | Field_Codec -> "codec"
@@ -420,6 +421,7 @@ let field_of_string t =
   | "completesources" -> Field_Completesources
   | "filename" -> Field_Filename
   | "size" -> Field_Size
+  | "size_hi" -> Field_Size_Hi
   | "uid" -> Field_Uid
   | "bitrate" -> Field_Bitrate
   | "codec" -> Field_Codec

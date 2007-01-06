@@ -145,6 +145,7 @@ let tag_of_tag tag s =
   | Field_Lastseencomplete
   | Field_Mediacodec
   | Field_Medialength
+  | Field_Size_Hi
   | Field_UNKNOWN _
   | Field_KNOWN _ ->
       string_tag tag s
@@ -1953,6 +1954,7 @@ let translate_query q =
     | Field_Lastseencomplete
     | Field_Mediacodec
     | Field_Medialength
+          | Field_Size_Hi
           | Field_Size -> ()
         end
     | QHasMinVal (field, value) ->

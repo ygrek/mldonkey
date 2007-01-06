@@ -808,7 +808,13 @@ module QueryLocation  = struct
       Printf.bprintf oc "QUERY LOCATION OF %s [%Ld]\n" (Md4.to_string t.md4) t.size
 
     let write buf t =
-      buf_md4 buf t.md4; buf_int64_32 buf t.size 
+      buf_md4 buf t.md4;
+      if t.size > old_max_emule_file_size then
+        begin
+	  buf_int64_32 buf 0L; buf_int64 buf t.size 
+        end
+      else
+        buf_int64_32 buf t.size 
   end
 
 module QueryLocationReply  = struct

@@ -234,7 +234,8 @@ let tag_file file =
       if !verbose_share then lprintf_nl "tag_file: Sharing %s" name;
       name
     ))::
-  (int64_tag Field_Size file.file_file.impl_file_size) ::
+  (int64_tag Field_Size_Hi (Int64.shift_right_logical file.file_file.impl_file_size 32)) ::
+  (int64_tag Field_Size (Int64.logand file.file_file.impl_file_size 0xffffffffL)) ::
   (
     (match file.file_format with
         FormatNotComputed next_time when

@@ -83,12 +83,14 @@ module NewUpload = struct
 	    (file_best_name file) (full_client_identifier c)
             (begin_pos) (len_int);
         
+        if file_is_largefile file && c.client_emule_proto.emule_largefiles <> 1 then raise Donkey_large_file;
         let msg =  
           (
             let module M = DonkeyProtoClient in
             let module B = M.Bloc in
             M.BlocReq {  
               B.md4 = file.file_md4;
+              B.usesixtyfour = (begin_pos ++ (Int64.of_int len_int)) > old_max_emule_file_size;
               B.start_pos = begin_pos;
               B.end_pos = begin_pos ++ (Int64.of_int len_int);
               B.bloc_str = "";
@@ -114,7 +116,9 @@ module NewUpload = struct
         write_string sock upload_buffer;
         check_end_upload c sock
       with
-  End_of_file -> lprintf_nl "Can not send file %s to %s, file removed?"
+      | End_of_file -> lprintf_nl "Can not send file %s to %s, file removed?"
+			 (file_best_name file) (full_client_identifier c)
+      | Donkey_large_file -> lprintf_nl "File %s is too large for %s."
 			 (file_best_name file) (full_client_identifier c)
       | e -> if !verbose then lprintf_nl
 	       "Exception %s in send_small_block" (Printexc2.to_string e)

@@ -1576,8 +1576,7 @@ is checked for the file.
 (*      if file.file_exists then verify_chunks file *)
       end
   
-  
-  | M.EmuleCompressedPart (md4, statpos, newsize, bloc) ->
+  | M.EmuleCompressedPart t ->
       
       set_lifetime sock active_lifetime;      
       if !!reliable_sources && 
@@ -1588,12 +1587,13 @@ is checked for the file.
           raise Not_found
         end;
       
+      let module Q = M.EmuleCompressedPart in
       let comp = match c.client_comp with
           None ->
             let comp = {
-                comp_md4 = md4;
-                comp_pos = statpos;
-                comp_total = Int64.to_int newsize;
+                comp_md4 = t.Q.md4;
+                comp_pos = t.Q.statpos;
+                comp_total = Int64.to_int t.Q.newsize;
                 comp_len = 0;
                 comp_blocs = [];
               } in
@@ -1601,8 +1601,8 @@ is checked for the file.
             comp
         | Some comp -> comp
       in
-      comp.comp_blocs <- bloc :: comp.comp_blocs;
-      comp.comp_len <- comp.comp_len + String.length bloc;
+      comp.comp_blocs <- t.Q.bloc :: comp.comp_blocs;
+      comp.comp_len <- comp.comp_len + String.length t.Q.bloc;
 
 (*            lprintf "Comp bloc: %d/%d\n" comp.comp_len comp.comp_total; *)
       if comp.comp_len = comp.comp_total then begin

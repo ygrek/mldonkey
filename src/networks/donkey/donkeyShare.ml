@@ -184,12 +184,17 @@ let send_new_shared () =
    build a list of files_to_send with yet unpublished files *)
       begin
 	let files_to_send = ref [] in
+        let can_publish f = not (file_is_largefile f && not s.server_has_largefiles) in
         List.iter (fun f ->
           match f.file_shared with
 	    Some impl ->
 	      if not (List.mem (CommonServer.as_server s.server_server) impl.impl_shared_servers)
-		&& List.length !files_to_send < !!max_published_files then
+		&& List.length !files_to_send < !!max_published_files && can_publish f then
 	      files_to_send := f :: !files_to_send
+	      else
+		if not (can_publish f) then
+		  lprintf_nl "Can not publish largefile %s because server %s does not support largefiles"
+		    (file_best_name f) (string_of_server s)
 	    | _ -> () (* this case never happens *)
 	) all_shared;
 

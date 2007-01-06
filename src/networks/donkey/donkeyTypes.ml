@@ -32,6 +32,8 @@ let lprintf_nl fmt =
 let lprintf_n fmt =
   lprintf2 log_prefix fmt
 
+exception Donkey_large_file
+
 type emule_proto = {
     mutable emule_version : int;
     mutable emule_release : string;
@@ -732,3 +734,9 @@ let dummy_emule_proto = {
 
 let emule_proto () =
   { dummy_emule_proto with emule_version = 0 }
+
+let old_max_emule_file_size = 4290048000L
+(* #define OLD_MAX_EMULE_FILE_SIZE 4290048000ui64  // (4294967295/PARTSIZE)*PARTSIZE = ~4GB *)
+
+let max_emule_file_size = 0x4000000000L
+(* #define MAX_EMULE_FILE_SIZE             0x4000000000ui64 // = 2^38 = 256GB *)

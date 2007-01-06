@@ -65,7 +65,7 @@ let mldonkey_emule_proto =
     emule_request_crypt = 0;
     emule_support_crypt = 0;
     emule_extmultipacket = 0;
-    emule_largefiles = 0;
+    emule_largefiles = 1;
     emule_kad_version = 0;
   }
 
@@ -118,13 +118,10 @@ let print_emule_proto_miscoptions1 m =
   Buffer.contents buf
 
 let emule_miscoptions2 m =
-(*
   let o =
     (m.emule_largefiles lsl 4)
   in
   Int64.of_int o
-*)
-  Int64.zero
 
 let update_emule_proto_from_miscoptions2 m o =
   let o = Int64.to_int o in
@@ -493,6 +490,7 @@ module QueryFileReply  = struct
 module Bloc  = struct
     type t = {
         md4 : Md4.t;
+        usesixtyfour : bool;
         start_pos : int64;
         end_pos: int64;
         bloc_str: string;
@@ -500,14 +498,15 @@ module Bloc  = struct
         bloc_len : int;
       }
 
-    let parse len s =
+    let parse usesixtyfour len s =
       {
         md4 = get_md4 s 1;
-        start_pos = get_uint64_32 s 17;
-        end_pos = get_uint64_32 s 21;
+        usesixtyfour = usesixtyfour;
+        start_pos = if usesixtyfour then get_int64 s 17 else get_uint64_32 s 17;
+        end_pos   = if usesixtyfour then get_int64 s 25 else get_uint64_32 s 21;
         bloc_str = s;
-        bloc_begin = 25;
-        bloc_len = len - 25;
+        bloc_begin = if usesixtyfour then 33 else 25;
+        bloc_len = if usesixtyfour then len - 33 else len - 25;
       }
 
     let print t =
@@ -518,14 +517,15 @@ module Bloc  = struct
 
     let write buf t =
       buf_md4 buf t.md4;
-      buf_int64_32 buf t.start_pos;
-      buf_int64_32 buf t.end_pos;
+      if t.usesixtyfour then buf_int64 buf t.start_pos else buf_int64_32 buf t.start_pos;
+      if t.usesixtyfour then buf_int64 buf t.end_pos else buf_int64_32 buf t.end_pos;
       Buffer.add_substring buf t.bloc_str t.bloc_begin t.bloc_len
   end
 
 module QueryBloc  = struct
     type t = {
         md4 : Md4.t;
+        usesixtyfour : bool;
         start_pos1 : int64; (* 180 ko *)
         end_pos1: int64;
         start_pos2 : int64;
@@ -534,15 +534,16 @@ module QueryBloc  = struct
         end_pos3: int64;
       }
 
-    let parse len s =
+    let parse usesixtyfour len s =
       {
         md4 = get_md4 s 1;
-        start_pos1 = get_uint64_32 s 17;
-        end_pos1 = get_uint64_32 s 29;
-        start_pos2 = get_uint64_32 s 21;
-        end_pos2 = get_uint64_32 s 33;
-        start_pos3 = get_uint64_32 s 25;
-        end_pos3 = get_uint64_32 s 37;
+        usesixtyfour = usesixtyfour;
+        start_pos1 = if usesixtyfour then get_int64 s 17 else get_uint64_32 s 17;
+        end_pos1   = if usesixtyfour then get_int64 s 41 else get_uint64_32 s 29;
+        start_pos2 = if usesixtyfour then get_int64 s 25 else get_uint64_32 s 21;
+        end_pos2   = if usesixtyfour then get_int64 s 49 else get_uint64_32 s 33;
+        start_pos3 = if usesixtyfour then get_int64 s 33 else get_uint64_32 s 25;
+        end_pos3   = if usesixtyfour then get_int64 s 57 else get_uint64_32 s 37;
       }
 
     let print t =
@@ -554,12 +555,12 @@ module QueryBloc  = struct
 
     let write buf t =
       buf_md4 buf t.md4;
-      buf_int64_32 buf t.start_pos1;
-      buf_int64_32 buf t.start_pos2;
-      buf_int64_32 buf t.start_pos3;
-      buf_int64_32 buf t.end_pos1;
-      buf_int64_32 buf t.end_pos2;
-      buf_int64_32 buf t.end_pos3
+      if t.usesixtyfour then buf_int64 buf t.start_pos1 else buf_int64_32 buf t.start_pos1;
+      if t.usesixtyfour then buf_int64 buf t.start_pos2 else buf_int64_32 buf t.start_pos2;
+      if t.usesixtyfour then buf_int64 buf t.start_pos3 else buf_int64_32 buf t.start_pos3;
+      if t.usesixtyfour then buf_int64 buf t.end_pos1 else buf_int64_32 buf t.end_pos1;
+      if t.usesixtyfour then buf_int64 buf t.end_pos2 else buf_int64_32 buf t.end_pos2;
+      if t.usesixtyfour then buf_int64 buf t.end_pos3 else buf_int64_32 buf t.end_pos3
   end
 
 let unit = ()
@@ -1082,6 +1083,35 @@ module EmuleFileDesc = struct
       buf_string buf t.comment
   end
 
+module EmuleCompressedPart = struct
+
+    type t = {
+        md4 : Md4.t;
+        usesixtyfour : bool;
+        statpos : int64;
+        newsize : int64;
+        bloc : string;
+      }
+
+    let parse usesixtyfour len s =
+      {
+        md4 = get_md4 s 1;
+        usesixtyfour = usesixtyfour;
+        statpos = if usesixtyfour then get_int64 s 17 else get_uint64_32 s 17;
+        newsize = if usesixtyfour then get_uint64_32 s 25 else get_uint64_32 s 21;
+    	bloc = if usesixtyfour then String.sub s 29 (len-29) else String.sub s 25 (len-25)
+      }
+
+    let print t =
+      lprintf_nl "EmuleCompressedPart for %s %Ld %Ld len %d"
+	(Md4.to_string t.md4) t.statpos t.newsize (String.length t.bloc)
+
+    let write buf t =
+      buf_md4 buf t.md4;
+      if t.usesixtyfour then buf_int64 buf t.statpos else buf_int64_32 buf t.statpos;
+      buf_int64_32 buf t.newsize;
+      Buffer.add_string buf t.bloc
+  end
 
 module EmulePortTestReq = struct
 
@@ -1139,7 +1169,7 @@ type t =
 | EmuleSecIdentStateReq  of EmuleSecIdentStateReq.t
 | EmuleMultiPacketReq of Md4.t * t list
 | EmuleMultiPacketAnswerReq of Md4.t * t list
-| EmuleCompressedPart of Md4.t * int64 * int64 * string
+| EmuleCompressedPart of EmuleCompressedPart.t
 | EmulePortTestReq of EmulePortTestReq.t
 
 let rec print t =
@@ -1208,9 +1238,8 @@ let rec print t =
         EmuleSignatureReq.print t
     | EmulePublicKeyReq t ->
         EmulePublicKeyReq.print t
-    | EmuleCompressedPart (md4, statpos, newsize, bloc) ->
-        lprintf_nl "EmuleCompressedPart for %s %Ld %Ld len %d"
-          (Md4.to_string md4) statpos newsize (String.length bloc)
+    | EmuleCompressedPart t ->
+        EmuleCompressedPart.print t
     | EmulePortTestReq t ->
         EmulePortTestReq.print t
     | UnknownReq (opcode, s) ->
@@ -1257,11 +1286,7 @@ let rec parse_emule_packet emule opcode len s =
 
     | 0x40 (* 64 *) ->
 (* OP_COMPRESSEDPART *)
-        let md4 = get_md4 s 1 in
-        let statpos = get_uint64_32 s 17 in
-        let newsize = get_uint64_32 s 21 in
-        let bloc = String.sub s 25 (len-25) in
-        EmuleCompressedPart (md4, statpos, newsize, bloc)
+        EmuleCompressedPart (EmuleCompressedPart.parse false len s)
 
     | 0x85 (* 133 *) ->
         EmulePublicKeyReq(EmulePublicKeyReq.parse len s)
@@ -1344,6 +1369,10 @@ let rec parse_emule_packet emule opcode len s =
         in
         EmuleMultiPacketAnswerReq (md4, iter s 17 len)
 
+    | 0xa1 (* 161 *) -> (* OP_COMPRESSEDPART_I64 *)
+        EmuleCompressedPart (EmuleCompressedPart.parse true len s)
+    | 0xa2 -> BlocReq (Bloc.parse true len s) (* OP_SENDINGPART_I64 *)
+    | 0xa3 -> QueryBlocReq (QueryBloc.parse true len s) (*OP_REQUESTPARTS_I64 *)
     | 0xfe (* 254 *) ->
         EmulePortTestReq s
 
@@ -1369,8 +1398,8 @@ and parse emule_version magic s =
         begin
           match opcode with
           | 1 -> ConnectReq (Connect.parse false len s)
-          | 70 -> BlocReq (Bloc.parse len s)
-          | 71 -> QueryBlocReq (QueryBloc.parse len s)
+          | 70 -> BlocReq (Bloc.parse false len s)
+          | 71 -> QueryBlocReq (QueryBloc.parse false len s)
           | 72 -> NoSuchFileReq (NoSuchFile.parse len s)
           | 73 -> EndOfDownloadReq (EndOfDownload.parse len s)
           | 74 -> ViewFilesReq (ViewFiles.parse len s)
@@ -1462,6 +1491,8 @@ let write emule buf t =
     | EmuleQueueRankingReq _
     | EmuleCompressedPart _
       -> 0xC5
+    | QueryBlocReq t when t.QueryBloc.usesixtyfour -> 0xC5
+    | BlocReq t when t.Bloc.usesixtyfour -> 0xC5
     | _
       ->  227
   in
@@ -1483,10 +1514,10 @@ let write emule buf t =
         buf_int8 buf 77;
         OtherLocations.write buf t
     | QueryBlocReq t ->
-        buf_int8 buf 71;
+        buf_int8 buf (if t.QueryBloc.usesixtyfour then 0xa3 else 71);
         QueryBloc.write buf t
     | BlocReq t ->
-        buf_int8 buf 70;
+        buf_int8 buf (if t.Bloc.usesixtyfour then 0xa2 else 70);
         Bloc.write buf t
     | JoinQueueReq t ->
         buf_int8 buf 84;
@@ -1570,13 +1601,9 @@ let write emule buf t =
     | EmuleFileDescReq t ->
         buf_int8 buf 0x61;
         EmuleFileDesc.write buf t
-    | EmuleCompressedPart (md4, statpos, newsize, bloc) ->
-        buf_int8 buf 0x40;
-        buf_md4 buf md4;
-        buf_int64_32 buf statpos;
-        buf_int64_32 buf newsize;
-        Buffer.add_string buf bloc
-
+    | EmuleCompressedPart t ->
+        buf_int8 buf (if t.EmuleCompressedPart.usesixtyfour then 0xa1 else 0x40);
+        EmuleCompressedPart.write buf t
     | EmuleMultiPacketReq (md4, list) ->
         buf_int8 buf 0x92;
         buf_md4 buf md4;

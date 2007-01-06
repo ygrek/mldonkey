@@ -559,6 +559,8 @@ let result_of_file md4 tags =
           r.result_size <- v;
       | { tag_name = Field_Size; tag_value = (Uint16 v| Uint8 v) } ->
           r.result_size <- Int64.of_int v;
+      | { tag_name = Field_Size_Hi; tag_value = Uint8 v } ->
+          r.result_size <- Int64.logor r.result_size (Int64.shift_left (Int64.of_int v) 32);
       | { tag_name = Field_Format; tag_value = String s } ->
           r.result_tags <- tag :: r.result_tags;
           r.result_format <- s

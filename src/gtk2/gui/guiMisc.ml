@@ -1050,6 +1050,7 @@ let string_of_tag_name name =
     | Field_Completesources -> "completesources"
     | Field_Filename -> "filename"
     | Field_Size -> "size"
+    | Field_Size_Hi -> "size_hi"
     | Field_Uid -> "uid"
     | Field_Medialength -> "length"
     | Field_Mediacodec -> "codec"

@@ -139,11 +139,22 @@ let client_parse c opcode s =
             begin
               try
                 let options = find_tag (Field_KNOWN "emule_miscoptions1") tags in
+                (
                 match options with
-                  Uint64 v | Fint64 v ->
+                | Uint64 v | Fint64 v ->
                     update_emule_proto_from_miscoptions1 emule v
                 | _ -> 
                     lprintf "CANNOT INTERPRETE EMULE OPTIONS\n"
+                );
+
+                let options2 = find_tag (Field_KNOWN "emule_miscoptions2") tags in
+                (
+                match options2 with
+                | Uint64 v | Fint64 v ->
+                    update_emule_proto_from_miscoptions2 emule v
+                | _ -> 
+                    lprintf "CANNOT INTERPRETE EMULE OPTIONS2\n"
+                );
               
               with _ -> ()
             end;
@@ -151,14 +162,14 @@ let client_parse c opcode s =
         | P.UnknownReq (227,_) -> 
             emule.emule_extendedrequest <-  -1
         
-        | P.EmuleCompressedPart (md4, statpos, newsize, bloc) ->
+        | P.EmuleCompressedPart t ->
             
             let comp = match c.client_comp with
                 None ->
                   let comp = {
-                      comp_md4 = md4;
-                      comp_pos = statpos;
-                      comp_total = Int64.to_int newsize;
+                      comp_md4 = t.EmuleCompressedPart.md4;
+                      comp_pos = t.EmuleCompressedPart.statpos;
+                      comp_total = Int64.to_int t.EmuleCompressedPart.newsize;
                       comp_len = 0;
                       comp_blocs = [];
                     } in
@@ -166,8 +177,8 @@ let client_parse c opcode s =
                   comp
               | Some comp -> comp
             in
-            comp.comp_blocs <- bloc :: comp.comp_blocs;
-            comp.comp_len <- comp.comp_len + String.length bloc;
+            comp.comp_blocs <- t.EmuleCompressedPart.bloc :: comp.comp_blocs;
+            comp.comp_len <- comp.comp_len + String.length t.EmuleCompressedPart.bloc;
 
 (*            lprintf "Comp bloc: %d/%d\n" comp.comp_len comp.comp_total; *)
             if comp.comp_len = comp.comp_total then begin

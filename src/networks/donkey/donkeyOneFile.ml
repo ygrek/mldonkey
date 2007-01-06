@@ -228,6 +228,16 @@ let clean_current_download c =
       c.client_download <- None
 
 let send_get_range_request c file ranges = 
+  let rec check_large (rangelist : (int64 * int64 * range) list) =
+    match rangelist with
+    | [] -> false
+    | (x,y,_ : (int64 * int64 * range))::tail_range ->
+	    (x > old_max_emule_file_size) || (y > old_max_emule_file_size) || (check_large tail_range)
+  in
+  let is_large_request = check_large ranges in
+  if file_is_largefile file && c.client_emule_proto.emule_largefiles <> 1 then
+    lprintf_nl "File %s is too large for %s." (file_best_name file) (full_client_identifier c)
+  else
   match c.client_source.DonkeySources.source_sock with
   | Connection sock ->
       
@@ -239,6 +249,7 @@ let send_get_range_request c file ranges =
           [x1,y1,_] ->
             {
               Q.md4 = file.file_md4;
+              Q.usesixtyfour = is_large_request;
               Q.start_pos1 = x1;
               Q.end_pos1 = y1;
               Q.start_pos2 = zero;
@@ -250,6 +261,7 @@ let send_get_range_request c file ranges =
         | [x1,y1,_; x2,y2,_] ->
             {
               Q.md4 = file.file_md4;
+              Q.usesixtyfour = is_large_request;
               Q.start_pos1 = x1;
               Q.end_pos1 = y1;
               Q.start_pos2 = x2;
@@ -261,6 +273,7 @@ let send_get_range_request c file ranges =
         | [x1,y1,_; x2,y2,_; x3,y3,_ ] ->
             {
               Q.md4 = file.file_md4;
+              Q.usesixtyfour = is_large_request;
               Q.start_pos1 = x1;
               Q.end_pos1 = y1;
               Q.start_pos2 = x2;
@@ -472,8 +485,9 @@ let search_found filter search md4 tags =
       match tag with
         { tag_name = Field_Filename; tag_value = String s } -> file_name := s
       | { tag_name = Field_Size; tag_value = Uint64 v } -> file_size := v
-      | { tag_name = Field_Availability;
-    tag_value = (Uint64 v| Fint64 v) } ->
+      | { tag_name = Field_Size_Hi; tag_value = Uint8 v } ->
+      	  file_size := Int64.logor !file_size (Int64.shift_left (Int64.of_int v) 32)
+      | { tag_name = Field_Availability; tag_value = (Uint64 v| Fint64 v) } ->
           availability := Int64.to_int v;  new_tags := tag :: !new_tags
       | _ -> new_tags := tag :: !new_tags
   ) tags;

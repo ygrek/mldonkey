@@ -213,6 +213,7 @@ let file_common_tags = [
     "\005", Field_Lastseencomplete;
     "\021", Field_Availability;
     "\048", Field_Completesources;
+    "\058", Field_Size_Hi;
     "\208", Field_Artist;
     "\209", Field_Album;
     "\210", Field_Title;

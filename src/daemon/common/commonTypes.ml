@@ -260,6 +260,7 @@ type field =
 | Field_Completesources (* "completesources" *)
 | Field_Filename (* "filename" *)
 | Field_Size
+| Field_Size_Hi
 | Field_Uid
 | Field_Filerating
 | Field_Lastseencomplete

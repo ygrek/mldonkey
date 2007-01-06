@@ -430,6 +430,8 @@ let import_temp temp_dir =
                     filename_met := Some s;
                 | { tag_name = Field_Size; tag_value = Uint64 v } ->
                     size := v
+                | { tag_name = Field_Size_Hi; tag_value = Uint64 v } ->
+                    size := Int64.logor !size (Int64.shift_left v 32)
                 | _ -> ()
             ) f.P.tags;
             ignore (really_query_download
@@ -560,8 +562,9 @@ let parse_donkey_url url user =
   | "ed2k://" :: "file" :: name :: size :: md4 :: "/" :: "sources" :: sources :: _
   | "file" :: name :: size :: md4 :: "/" :: "sources" :: sources :: _ ->
 (*  ed2k://|file|Wikipedia_3.3_noimages.iso|2666311680|747735CD46B61DA92973E9A8840A9C99|/|sources,62.143.4.124:4662|/  *)
-      if Int64.of_string size >= 4294967295L then
-	(Printf.sprintf (_b "Files > 4GB are not allowed")), false
+      if Int64.of_string size >= max_emule_file_size then
+	(Printf.sprintf (_b "Files > %s are not allowed")
+	  (Int64ops.int64_to_human_readable max_emule_file_size)), false
       else
         begin
 	  let md4 = if String.length md4 > 32 then
@@ -600,8 +603,9 @@ let parse_donkey_url url user =
     	end
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
-      if Int64.of_string size >= 4294967295L then
-	(Printf.sprintf (_b "Files > 4GB are not allowed")), false
+      if Int64.of_string size >= max_emule_file_size then
+	(Printf.sprintf (_b "Files > %s are not allowed")
+	  (Int64ops.int64_to_human_readable max_emule_file_size)), false
       else
         let md4 = if String.length md4 > 32 then
           String.sub md4 0 32 else md4 in

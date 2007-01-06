@@ -15,7 +15,7 @@ ChangeLog
 =========
 
 2007/01/06
-5599: EDK: Support for file's sizes >4GB (TripleM, pango)
+5599: EDK: Support for files >4GB (TripleM, pango)
 5660: Swarming: Enable wrongly disabled select block memoization (pango)
 5659: GD: Fix wrong months display (skeeve)
 

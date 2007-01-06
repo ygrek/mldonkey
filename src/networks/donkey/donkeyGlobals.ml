@@ -104,6 +104,7 @@ let as_client c = as_client c.client_client
 let as_file file = as_file file.file_file
 let file_priority file = file.file_file.impl_file_priority
 let file_size file = file.file_file.impl_file_size
+let file_is_largefile f = file_size f > old_max_emule_file_size
 let file_downloaded file = file_downloaded (as_file file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file_fd (as_file file)
