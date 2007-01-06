@@ -2080,7 +2080,7 @@ let select_blocks up =
 	(* memoize some results *)
 	let memoization_calls = ref 0 in
 	let memoization_hits = ref 0 in
-	let debug_memoization = true in
+	let debug_memoization = false in
 	let memoize h f p =
 	  incr memoization_calls;
 	  try
