@@ -335,20 +335,20 @@ static void * hasher_thread(void * arg)
       long bsize;
       switch(job_method) {
       case METHOD_MD4:
-        md4_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+        md4_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, p_job_result);
       break;
 
       case METHOD_MD5:
-        md5_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+        md5_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, p_job_result);
       break;
 
       case METHOD_SHA1:
-        sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, job_result);
+        sha1_unsafe64_fd_direct(job_fd, job_begin_pos, job_len, p_job_result);
       break;
 
       case METHOD_TIGER:
         bsize = tiger_block_size(job_len);
-        tiger_tree_fd(job_fd, job_len, 0, bsize, job_result);
+        tiger_tree_fd(job_fd, job_len, 0, bsize, p_job_result);
       break;
 
       default:

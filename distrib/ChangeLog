@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/01/08
+5627: commonHasher: fix wrong arg types from several functions (Schlumpf)
 5626: MinGW: fix missing declarations and wrong pointer
       initialization in stubs_c.c (Schlumpf)
 
