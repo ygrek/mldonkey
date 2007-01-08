@@ -76,6 +76,9 @@ decide whether to connect immediatly or not. *)
     mutable op_client_dprint_html : ('a -> CommonTypes.ui_conn ->
     CommonTypes.file -> string -> bool);
 
+(* used to print network specific client infos *)
+    mutable op_client_print_info : ('a -> CommonTypes.ui_conn -> unit);
+
     mutable op_client_debug : ('a -> bool -> unit);
 
     mutable op_client_can_upload : ('a -> int -> unit);
@@ -159,6 +162,10 @@ let client_dprint_html (client: client) o file str =
   let client = as_client_impl client in
   client.impl_client_ops.op_client_dprint_html client.impl_client_val o file str
 
+let client_print_info (client: client) o =
+  let c = as_client_impl client in
+  c.impl_client_ops.op_client_print_info c.impl_client_val o
+
 let client_connect client=
   let client = as_client_impl client in
   client.impl_client_ops.op_client_connect client.impl_client_val
@@ -188,7 +195,7 @@ let ni n m =
   s
 
 let fni n m =   failwith (ni n m)
-  let ni_ok n m = ignore (ni n m)
+let ni_ok n m = ignore (ni n m)
 
 let clients_ops = ref []
 
@@ -207,6 +214,7 @@ let new_client_ops network =
       op_client_bprint = (fun _ _ -> ni_ok network "client_bprint");
       op_client_dprint = (fun _ _ _ -> ni_ok network "client_dprint");
       op_client_dprint_html = (fun _ _ _ _ -> fni network "client_dprint_html");
+      op_client_print_info = (fun _ _ -> fni network "client_print_info");
       op_client_can_upload = (fun _ _ -> ni_ok network "client_can_upload");
       op_client_enter_upload_queue = (fun _ -> ni_ok network "client_enter_upload_queue");
     } in
@@ -490,7 +498,6 @@ let impl_client_info impl =
      T.client_tags = [];
      T.client_name = "";
      T.client_network = 0;
-     T.client_files = None;
      T.client_rating = 0;
      T.client_chat_port = 0;
      T.client_connect_time = BasicSocket.last_time ();
@@ -505,4 +512,5 @@ let impl_client_info impl =
      T.client_session_uploaded = 0L;
      T.client_upload = None;
      T.client_sui_verified = None;
+     T.client_file_queue = [];
   }

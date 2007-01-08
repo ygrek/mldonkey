@@ -41,6 +41,7 @@ type emule_proto = {
     mutable emule_features : int;
 
 (* emule_miscoptions1 *)
+    mutable received_miscoptions1 : bool;
     mutable emule_aich : int;
     mutable emule_unicode : int;
     mutable emule_udpver : int;
@@ -55,6 +56,7 @@ type emule_proto = {
     mutable emule_supportpreview : int;
 
 (* emule_miscoptions2 *)
+    mutable received_miscoptions2 : bool;
     mutable emule_require_crypt : int;
     mutable emule_request_crypt : int;
     mutable emule_support_crypt : int;
@@ -82,15 +84,6 @@ type request_record = {
   mutable last_request : int;
   mutable nwarnings : int;
 }
-
-type client_score =
-  Client_not_connected
-| Client_has_file
-| Client_has_priority_file
-| Client_has_chunk
-| Client_has_priority_chunk
-| Client_has_upload
-| Client_has_priority_upload
 
 type reliability =
   Reliability_neutral
@@ -580,13 +573,10 @@ and client = {
     mutable client_osinfo_sent : bool;
     mutable client_osinfo : string option;
     mutable client_banned : bool;
-    mutable client_score : int;
-    mutable client_next_queue : int;
     mutable client_rank : int;
     mutable client_connect_time : int;
     mutable client_requests_received : int;
     mutable client_requests_sent: int;
-    mutable client_indirect_address : (Ip.t * Ip.t * int) option;
     mutable client_slot : slot_status;
     mutable client_debug : bool;
     mutable client_pending_messages: string list;
@@ -710,6 +700,7 @@ let dummy_emule_proto = {
     emule_features = 0;
 
 (* emule_miscoptions1 *)
+    received_miscoptions1 = false;
     emule_aich = 0;
     emule_unicode = 0;
     emule_udpver = 0;
@@ -724,6 +715,7 @@ let dummy_emule_proto = {
     emule_supportpreview = 0;
 
 (* emule_miscoptions2 *)
+    received_miscoptions2 = false;
     emule_require_crypt = 0;
     emule_request_crypt = 0;
     emule_support_crypt = 0;

@@ -47,6 +47,7 @@ let mldonkey_emule_proto =
     emule_features = 3;
 
 (* emule_miscoptions1 *)
+    received_miscoptions1 = false;
     emule_aich = 0;
     emule_unicode = 0;
     emule_udpver = 0;
@@ -61,6 +62,7 @@ let mldonkey_emule_proto =
     emule_supportpreview = 0;
 
 (* emule_miscoptions2 *)
+    received_miscoptions2 = false;
     emule_require_crypt = 0;
     emule_request_crypt = 0;
     emule_support_crypt = 0;
@@ -416,7 +418,6 @@ module QueryChunksReply = struct (* Request 80 *)
 
     let print t =
       lprintf_nl "CHUNKS for %s" (Md4.to_string t.md4);
-      lprint_string "   ";
       lprintf_nl "%s\n" (Bitv.to_string t.chunks)
 
     let write buf t =
@@ -451,7 +452,7 @@ module QueryChunkMd4Reply = struct (* Request 80 *)
       }
 
     let print t =
-      lprintf_nl "CHUNKS for %s" (Md4.to_string t.md4);
+      lprintf_nl "CHUNKSMd4 for %s" (Md4.to_string t.md4);
       lprint_string "   ";
       Array.iter (fun b ->
           lprintf "  %s" (Md4.to_string b))

@@ -601,13 +601,10 @@ let dummy_client =
       client_total_downloaded = Int64.zero;
       client_total_uploaded = Int64.zero;
       client_banned = false;
-      client_score = 0;
-      client_next_queue = 0;
       client_rank = 0;
       client_connect_time = 0;
       client_requests_sent = 0;
       client_requests_received = 0;
-      client_indirect_address = None;
       client_slot = SlotNotAsked;
       client_debug = false;
       client_pending_messages = [];
@@ -658,13 +655,10 @@ let create_client key =
       client_session_downloaded = Int64.zero;
       client_session_uploaded = Int64.zero;
       client_banned = false;
-      client_score = 0;
-      client_next_queue = 0;
       client_rank = 0;
       client_connect_time = 0;
       client_requests_received = 0;
       client_requests_sent = 0;
-      client_indirect_address = None;
       client_slot = SlotNotAsked;
       client_debug = Intset.mem s.DonkeySources.source_num !debug_clients;
       client_pending_messages = [];
@@ -719,17 +713,6 @@ let set_client_type c t=
 
 let friend_add c =
   friend_add (as_client c)
-
-let string_of_client c =
-  Printf.sprintf "client[%d] %s(%s) %s" (client_num c)
-  c.client_name (brand_to_string c.client_brand)
-  (match c.client_kind with
-      Indirect_address (server_ip, server_port, ip, port, real_ip) ->
-        Printf.sprintf  " I[%s:%d]" (Ip.to_string real_ip) port;
-    | Direct_address (ip,port) ->
-        Printf.sprintf  " D[%s:%d]" (Ip.to_string ip) port;
-    | Invalid_address _ -> ""
-  )
 
 let string_of_server s =
   Printf.sprintf "%s:%d" (Ip.to_string s.server_ip) s.server_port
@@ -1022,7 +1005,13 @@ let _ =
 
 let full_client_identifier c =
     Printf.sprintf "%s (%s%s) '%s'"
-      (Ip.to_string c.client_ip)
+      (match c.client_kind with
+          Indirect_address (server_ip, server_port, ip, port, real_ip) ->
+            Printf.sprintf "%s:%d(lowID, server:%s:%d]"
+              (Ip.to_string real_ip) port (Ip.to_string server_ip) server_port;
+        | Direct_address (ip,port) ->
+            Printf.sprintf "%s:%d" (Ip.to_string ip) port;
+        | Invalid_address _ -> " invalid IP")
       (GuiTypes.client_software_short (brand_to_string_short c.client_brand) c.client_osinfo)
       (if c.client_emule_proto.emule_release = "" then "" else " " ^ c.client_emule_proto.emule_release)
       (String.escaped c.client_name)

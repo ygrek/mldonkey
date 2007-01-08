@@ -95,7 +95,7 @@ module Make(M:
       request_file : file_sources_manager;
       mutable request_queue : int;
       mutable request_time : int;
-      mutable  request_score : int;
+      mutable request_score : int;
     }
 
     and file_sources_manager = {

@@ -1209,6 +1209,7 @@ let _ =
             Some f -> Some (CommonFile.file_best_name f)
           | None -> None);
         P.client_sui_verified = c.client_sui_verified;
+        P.client_file_queue = List.map (fun (file,_,_) -> as_file file) c.client_file_queue
       }
   );
   client_ops.op_client_debug <- (fun c debug ->
@@ -1688,6 +1689,68 @@ let _ =
       Printf.bprintf buf "\t\t%s (last_ok <%s>)\n"
         c.client_name
         (string_of_date (c.client_source.DonkeySources.source_age))
+  );
+  client_ops.op_client_print_info <- (fun c o ->
+      let buf = o.conn_buf in
+      let ip_string,cc,cn = get_ips_cc_cn c in
+
+      Printf.bprintf buf "Client %d: %s\n"
+        (client_num c)
+        (full_client_identifier c);
+      (
+      match c.client_osinfo with
+      | Some i -> Printf.bprintf buf "  osinfo: %s\n" i
+      | None -> ()
+      );
+      Printf.bprintf buf "  state: %s, rank: %d\n"
+        (string_of_connection_state (client_state c)) c.client_rank;
+      if !Geoip.active then Printf.bprintf buf "  country: %s: %s\n" cc cn;
+      Printf.bprintf buf "  MD4: %s\n" (Md4.to_string c.client_md4);
+      Printf.bprintf buf "  downloaded\n";
+      Printf.bprintf buf "   - session %s\n" (size_of_int64 c.client_session_downloaded);
+      Printf.bprintf buf "   - total   %s\n" (size_of_int64 c.client_total_downloaded);
+      (
+      match c.client_download with
+      | Some (f,_) -> Printf.bprintf buf "  downloading file %s\n" (file_best_name f)
+      | None -> Printf.bprintf buf "  not downloading\n"
+      );
+      Printf.bprintf buf "  uploaded\n";
+      Printf.bprintf buf "   - session %s\n" (size_of_int64 c.client_session_uploaded);
+      Printf.bprintf buf "   - total   %s\n" (size_of_int64 c.client_total_uploaded);
+      (
+      match c.client_upload with
+      | Some u -> Printf.bprintf buf "  uploading file %s\n" (file_best_name u.up_file)
+      | _ -> Printf.bprintf buf "  not uploading\n"
+      );
+      Printf.bprintf buf "  SUI %s\n" (
+        match c.client_sui_verified with
+        | None -> "not supported"
+        | Some b -> if b then "passed" else "failed"
+        );
+      Printf.bprintf buf "  kind: %s\n" (
+        match c.client_kind with
+        | Direct_address (ip,port) ->
+                    Printf.sprintf "highID %s:%d" (Ip.to_string ip) port
+        | Indirect_address (server_ip, server_port, id, port, real_ip) ->
+	            Printf.sprintf "lowID %s:%d, server %s:%d"
+                      (Ip.to_string real_ip) port (Ip.to_string server_ip) server_port
+        | Invalid_address (name,md4) -> Printf.sprintf "invalid"
+        );
+      if c.client_emule_proto.received_miscoptions1 then
+        Printf.bprintf buf "\nmiscoptions1:\n%s" (DonkeyProtoClient.print_emule_proto_miscoptions1 c.client_emule_proto)
+      else
+        Printf.bprintf buf "no miscoptions1 received\n";
+      if c.client_emule_proto.received_miscoptions2 then
+        Printf.bprintf buf "miscoptions2:\n%s" (DonkeyProtoClient.print_emule_proto_miscoptions2 c.client_emule_proto)
+      else
+        Printf.bprintf buf "no miscoptions2 received\n";
+      List.iter (fun (file,_,_) -> Printf.bprintf buf "\nQueue: %s" (file_best_name file)) c.client_file_queue;
+      List.iter (fun r ->
+        Printf.bprintf buf "\nSource file: %s, score %d, request time %d"
+          (CommonFile.file_best_name (r.DonkeySources.request_file.DonkeySources.manager_file ()))
+          r.DonkeySources.request_score
+          r.DonkeySources.request_time;
+       ) c.client_source.DonkeySources.source_files;
   );
   client_ops.op_client_dprint <- (fun c o file ->
       let info = file_info file in

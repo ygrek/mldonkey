@@ -679,6 +679,7 @@ let update_client_from_tags c tags =
                 c.client_ip kad_port
           )
       | Field_KNOWN "emule_miscoptions1" ->
+          c.client_emule_proto.received_miscoptions1 <- true;
           for_int64_tag tag (fun i ->
             M.update_emule_proto_from_miscoptions1
             c.client_emule_proto i;
@@ -688,6 +689,7 @@ let update_client_from_tags c tags =
                 (M.print_emule_proto_miscoptions1 c.client_emule_proto)
           )
       | Field_KNOWN "emule_miscoptions2" ->
+          c.client_emule_proto.received_miscoptions2 <- true;
           for_int64_tag tag (fun i ->
             M.update_emule_proto_from_miscoptions2
             c.client_emule_proto i;
@@ -1144,7 +1146,7 @@ let client_to_client for_files c t sock =
   let module M = DonkeyProtoClient in
   
   if !verbose_msg_clients || c.client_debug then begin
-      lprintf_nl "Message from %s" (string_of_client c);
+      lprintf_nl "Message from %s" (full_client_identifier c);
       M.print t;
     end;
   

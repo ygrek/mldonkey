@@ -378,9 +378,8 @@ let _ =
     ), ":\t\t\t\trecover lost files from temp directory";
 
     "vc", Arg_multiple (fun args o ->
+        let buf = o.conn_buf in
         if args = ["all"] then begin
-            let buf = o.conn_buf in
-
             if use_html_mods o then html_mods_table_header buf "vcTable" "vc" ([
                 ( "1", "srh ac", "Client number", "Num" ) ;
                 ( "0", "srh", "Network", "Network" ) ;
@@ -392,6 +391,7 @@ let _ =
                 ] @
                 (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
                 @ [
+                ( "0", "srh", "Client file queue", "Q" ) ;
                 ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
                 ( "1", "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
                 ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
@@ -416,6 +416,7 @@ let _ =
                      ] @
                      (if !!emule_mods_count then [("", "sr", i.client_emulemod)] else [])
                      @ [
+                     ("", "sr", Printf.sprintf "%d" (List.length i.client_file_queue));
                      ("", "sr ar", (size_of_int64 i.client_total_uploaded));
                      ("", "sr ar br", (size_of_int64 i.client_total_downloaded));
                      ("", "sr ar", (size_of_int64 i.client_session_uploaded));
@@ -430,7 +431,7 @@ let _ =
           List.iter (fun num ->
               let num = int_of_string num in
               let c = client_find num in
-              client_print c o;
+              try client_print_info c o with e -> print_command_result o o.conn_buf (Printexc2.to_string e);
           ) args;
         ""
     ), "<num|all> :\t\t\t\tview client (use arg 'all' for all clients)";

@@ -79,14 +79,7 @@ let direct_client_sock_send emule_version sock m =
 let client_send c m =
   let emule_version = c.client_emule_proto in
   if !verbose_msg_clients || c.client_debug then begin
-      lprintf_nl "Sent to client[%d] %s(%s) %s" (client_num c)
-        c.client_name (brand_to_string c.client_brand)
-      (match c.client_kind with
-          Indirect_address (server_ip, server_port, ip, port, real_ip) ->
-	    Printf.sprintf "[%s:%d]" (Ip.to_string (ip_of_id ip)) port
-        | Direct_address (ip,port) -> Printf.sprintf "[%s:%d]" (Ip.to_string ip) port
-        | Invalid_address _ -> ""
-      );
+      lprintf_nl "Sent to client %s" (full_client_identifier c);
       DonkeyProtoClient.print m;
       lprint_newline ();
     end;

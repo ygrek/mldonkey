@@ -810,7 +810,6 @@ let get_client proto s pos =
       client_name = name;
       client_rating = rating;
       client_chat_port = chat_port;
-      client_files = None;
       client_connect_time = 0;
       client_software = "";
       client_os = None;
@@ -822,7 +821,7 @@ let get_client proto s pos =
       client_session_uploaded = zero;
       client_upload = None;
       client_sui_verified = None;
-(*      client_sock_addr = ""; *)
+      client_file_queue = [];
     }, pos+8
   else
   let num = get_int s pos in
@@ -871,7 +870,6 @@ let get_client proto s pos =
     client_name = name;
     client_rating = rating;
     client_chat_port = 0;
-    client_files = None;
     client_connect_time = connect_time;
     client_software = software;
     client_os = None;
@@ -883,7 +881,7 @@ let get_client proto s pos =
     client_session_uploaded = 0L;
     client_upload = upload;
     client_sui_verified = verified;
-(*    client_sock_addr = sock_addr; *)
+    client_file_queue = [];
   }, pos
 
 let default_flags = [

@@ -24,12 +24,14 @@ and 'a client_ops = {
     'a -> CommonTypes.ui_conn -> CommonTypes.file -> unit;
     mutable op_client_dprint_html :
     'a -> CommonTypes.ui_conn -> CommonTypes.file -> string -> bool;
+    mutable op_client_print_info : 'a -> CommonTypes.ui_conn -> unit;
     mutable op_client_debug : 'a -> bool -> unit;
     mutable op_client_can_upload : 'a -> int -> unit;
     mutable op_client_enter_upload_queue : 'a -> unit;
   } 
 val client_print_html : CommonTypes.client -> CommonTypes.ui_conn -> unit
 val client_print : CommonTypes.client -> CommonTypes.ui_conn -> unit
+val client_print_info : CommonTypes.client -> CommonTypes.ui_conn -> unit
 val client_must_update : CommonTypes.client -> unit
 val client_info : CommonTypes.client -> GuiTypes.client_info
 val client_say : CommonTypes.client -> string -> unit

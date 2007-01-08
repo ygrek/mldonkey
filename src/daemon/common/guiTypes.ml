@@ -211,7 +211,6 @@ type client_info = {
     mutable client_type : client_type;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
-    mutable client_files:  file_tree option;
     mutable client_rating : int;
     mutable client_chat_port : int;
     mutable client_connect_time : int;
@@ -225,7 +224,7 @@ type client_info = {
     mutable client_session_uploaded : int64;
     mutable client_upload : string option;
     mutable client_sui_verified : bool option;
-(*  mutable client_sock_addr : string;  *)
+    mutable client_file_queue : CommonTypes.file list;
   }
 
 type client_stats = {
