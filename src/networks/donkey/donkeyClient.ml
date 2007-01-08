@@ -248,24 +248,7 @@ let disconnect_client c reason =
       c.client_source.DonkeySources.source_sock <- NoConnection
   | Connection sock ->
       (try
-    let log_print cc = lprintf_nl "Client[%d] %s disconnected, connected %s%s%s"
-      (client_num c) (full_client_identifier c)
-      (Date.time_to_string (last_time () - c.client_connect_time) "verbose")
-      (if c.client_total_uploaded > 0L then
-        Printf.sprintf ", send %s (%s)%s"
-          (size_of_int64 c.client_session_uploaded)
-          (size_of_int64 c.client_total_uploaded)
-          (match client_upload (as_client c) with | None -> ""
-           | Some f -> " of " ^ (CommonFile.file_best_name f)) else "")
-      (if c.client_total_downloaded > 0L then
-        Printf.sprintf ", rec %s (%s)"
-          (size_of_int64 c.client_session_downloaded)
-          (size_of_int64 c.client_total_downloaded) else "")
-    in
-    if c.client_debug ||
-      (!verbose && (c.client_session_uploaded > 0L || c.client_session_downloaded > 0L)) then
-      log_print c;
-
+          DonkeyOneFile.remove_client_slot c;
           c.client_comp <- None;
           (try if c.client_checked then count_seen c with _ -> ());
           (try if !!log_clients_on_console && c.client_name <> "" then 
@@ -273,14 +256,11 @@ let disconnect_client c reason =
           c.client_connect_time <- 0;
           (try Hashtbl.remove connected_clients c.client_md4 with _ -> ());
           (try CommonUploads.remove_pending_slot (as_client c) with _ -> ());
-          set_client_has_a_slot (as_client c) NoSlot;
-(*          connection_failed c.client_connection_control; *)
           (try TcpBufferedSocket.close sock reason with _ -> ());
 
 (* Remove the Connected and NoLimit tags *)
           set_client_type c (client_type c
               land (lnot (client_initialized_tag lor client_nolimit_tag)));
-(*          c.client_chunks <- [||];*)
           c.client_source.DonkeySources.source_sock <- NoConnection;
           save_join_queue c;
           c.client_slot <- SlotNotAsked;
@@ -293,23 +273,10 @@ let disconnect_client c reason =
           )
           files;    
           c.client_file_queue <- [];  
-          if c.client_upload != None then CommonUploads.refill_upload_slots ();
+          c.client_session_downloaded <- 0L;
         
         with e -> lprintf_nl "Exception %s in disconnect_client"
               (Printexc2.to_string e));
-(*      lprintf "Client %d to source:" (client_num c);
-      List.iter (fun r ->
-                lprint_char (
-                  match r.request_result with
-                  | File_chunk ->      'C'
-                  | File_upload ->     'U'
-                  | File_not_found ->  '-'
-                  | File_found ->      '+'
-                  | File_possible ->   '?'
-                  | File_expected ->   '!'
-                  | File_new_source -> 'n'
-                )) c.client_files;      
-      lprintf "\n"; *)
       set_client_disconnected c reason;
       DonkeySources.source_disconnected c.client_source
   
@@ -1419,7 +1386,7 @@ other one for unlimited sockets.  *)
 	     | Some f -> CommonFile.file_best_name f);
 (*      end *)
   
-  | M.CloseSlotReq _ ->
+  | M.OutOfPartsReq _ ->
       set_client_state c (Connected 0);
       begin
         match c.client_download with
@@ -1430,6 +1397,7 @@ other one for unlimited sockets.  *)
             CommonSwarming.clear_uploader_ranges up
       end;
 (*      DonkeyOneFile.clean_current_download c; *)
+      c.client_session_downloaded <- 0L;
       c.client_slot <- SlotNotAsked;
 (* OK, the slot is closed, but what should we do now ????? *)
       begin
@@ -1437,7 +1405,7 @@ other one for unlimited sockets.  *)
           [] -> ()
         | _ -> 
             if !verbose_download then
-                lprintf_nl "CloseSlotReq"; 
+                lprintf_nl "OutOfPartsReq"; 
             DonkeyOneFile.request_slot c;
             set_rtimeout sock !!queued_timeout;
       end
@@ -2026,13 +1994,20 @@ end else *)
   | M.QueryBlocReq t when !CommonUploads.has_upload = 0 &&
     client_has_a_slot (as_client c) ->
       
-      if !verbose_upload then
-          lprintf_nl "donkeyClient: uploader %s ask for block" (full_client_identifier c);
-      
       let module Q = M.QueryBloc in
-      let file = find_file  t.Q.md4 in
+      let file = find_file t.Q.md4 in
+
+      if !verbose_upload then lprintf_nl "donkeyClient: uploader %s asks for %s"
+            (full_client_identifier c) (file_best_name file);
+
       let prio = (file_priority file) in
       let client_upload_lifetime = ref ((max 0 !!upload_lifetime) * 60) in
+      let client_received_enough c =
+        if !!upload_full_chunks then
+          c.client_session_uploaded > (block_size ++ 20L ** 1024L)
+        else
+          last_time() > c.client_connect_time + !client_upload_lifetime + 5 * prio
+      in
       begin
         
         if !!dynamic_upload_lifetime
@@ -2043,19 +2018,21 @@ end else *)
           Int64.to_int 
             (Int64.of_int !client_upload_lifetime 
               ** c.client_session_downloaded // c.client_session_uploaded);
-        if last_time() > c.client_connect_time + 
-            !client_upload_lifetime + 5 * prio then
-          begin
-
-(* And what happens if we were downloading from this client also ? *)
-            
-            disconnect_client c (Closed_for_error "Upload lifetime expired");
+        if client_received_enough c then
+          if Intmap.length !CommonUploads.pending_slots_map = 0 then
+            begin
+              if !verbose_upload then lprintf_nl
+                "donkeyClient: not closing upload slot of %s (%s), pending slots empty, sending next block..."
+                  (full_client_identifier c) (file_best_name file)
+            end
+          else begin
+            DonkeyOneFile.remove_client_slot c;
             raise Not_found
           end;
-        
+
         set_lifetime sock active_lifetime;
         set_rtimeout sock !!upload_timeout;
-        
+
         let up, waiting = match c.client_upload with
             Some ({ up_file = f } as up) when f == file ->  up, up.up_waiting
           | Some old_up ->

@@ -587,7 +587,7 @@ module NoArg = functor(M: sig val m : string end) -> (struct
 
 module AvailableSlot = NoArg(struct let m = "AvailableSlot" end)
 module ReleaseSlot = NoArg(struct let m = "ReleaseSlot" end)
-module CloseSlot = NoArg(struct let m = "CloseSlot" end)
+module OutOfParts = NoArg(struct let m = "OutOfParts" end)
 module ViewFiles = NoArg(struct let m = "VIEW FILES" end)
 module ViewDirs = NoArg(struct let m = "VIEW DIRS" end)
 
@@ -1138,7 +1138,7 @@ type t =
 | JoinQueueReq of JoinQueue.t (* sent before queryBloc *)
 | AvailableSlotReq of AvailableSlot.t
 | ReleaseSlotReq of ReleaseSlot.t
-| CloseSlotReq of CloseSlot.t
+| OutOfPartsReq of OutOfParts.t
 | QueryChunksReq of QueryChunks.t
 | QueryChunksReplyReq of QueryChunksReply.t
 | QueryChunkMd4Req of QueryChunkMd4.t
@@ -1185,7 +1185,7 @@ let rec print t =
     | JoinQueueReq t -> JoinQueue.print t
     | AvailableSlotReq t -> AvailableSlot.print t
     | ReleaseSlotReq t -> ReleaseSlot.print t
-    | CloseSlotReq t -> CloseSlot.print t
+    | OutOfPartsReq t -> OutOfParts.print t
     | QueryChunksReq t -> QueryChunks.print t
     | QueryChunksReplyReq t -> QueryChunksReply.print t
     | QueryChunkMd4Req t -> QueryChunkMd4.print t
@@ -1418,8 +1418,8 @@ and parse emule_version magic s =
           | 85 -> AvailableSlotReq (AvailableSlot.parse len s)
 (* ReleaseSlot: the upload is finished *)
           | 86 -> ReleaseSlotReq (ReleaseSlot.parse len s)
-(* CloseSlot: the upload slot is not available *)
-          | 87 -> CloseSlotReq (CloseSlot.parse len s)
+(* OutOfParts: the upload slot is not available *)
+          | 87 -> OutOfPartsReq (OutOfParts.parse len s)
           | 88 -> QueryFileReq (QueryFile.parse emule_version len s)
           | 89 -> QueryFileReplyReq (QueryFileReply.parse len s)
           | 92 -> QueueRankReq (QueueRank.parse len s)
@@ -1541,9 +1541,9 @@ let write emule buf t =
     | ReleaseSlotReq t ->
         buf_int8 buf 86;
         ReleaseSlot.write buf t
-    | CloseSlotReq t ->
+    | OutOfPartsReq t ->
         buf_int8 buf 87;
-        CloseSlot.write buf t
+        OutOfParts.write buf t
     | ViewFilesReq t ->
         buf_int8 buf 74;
         ViewFiles.write buf t

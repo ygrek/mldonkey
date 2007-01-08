@@ -15,6 +15,15 @@ ChangeLog
 =========
 
 2007/01/08
+5596: EDK: New option upload_full_chunks (thx to TripleM)
+- If the new option upload_full_chunks is set to true, each client is
+  allowed to receive one chunk, this setting overrides upload_lifetime.
+  Well, not exactly one chunk. eMule has this code in opcode.h:
+    #define SESSIONMAXTRANS (PARTSIZE+20*1024) //
+    "Try to send complete chunks" always sends this amount of data
+  MLdonkey now does the same, if upload_full_chunks is true and client A got
+  9728000+20*1024 bytes during the current session its upload slot will be
+  revoked unless pending slots are empty.
 5619: EDK: Print network specific infos in command "vc <num>",
       remove unneeded fields from client structures
 5627: commonHasher: fix wrong arg types from several functions (Schlumpf)

@@ -100,11 +100,28 @@ done;
                 end
 
 let remove_client_slot c =
+  if c.client_debug || (
+     !verbose &&
+     (c.client_session_uploaded > 0L || c.client_session_downloaded > 0L)) then
+    lprintf_nl "Client[%d] %s disconnected, connected %s%s%s"
+      (client_num c) (full_client_identifier c)
+      (Date.time_to_string (last_time () - c.client_connect_time) "verbose")
+      (if c.client_total_uploaded > 0L then
+        Printf.sprintf ", send %s (%s)%s"
+          (size_of_int64 c.client_session_uploaded)
+          (size_of_int64 c.client_total_uploaded)
+          (match client_upload (as_client c) with | None -> ""
+           | Some f -> " of " ^ (CommonFile.file_best_name f)) else "")
+      (if c.client_total_downloaded > 0L then
+        Printf.sprintf ", rec %s (%s)"
+          (size_of_int64 c.client_session_downloaded)
+          (size_of_int64 c.client_total_downloaded) else "");
   set_client_has_a_slot (as_client c) NoSlot;
   client_send c (
     let module M = DonkeyProtoClient in
-    let module Q = M.CloseSlot in
-    M.CloseSlotReq Q.t);
+    let module Q = M.OutOfParts in
+    M.OutOfPartsReq Q.t);
+  c.client_session_uploaded <- 0L;
   c.client_upload <- None
 
 let unshare_file file =
