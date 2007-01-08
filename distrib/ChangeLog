@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2007/01/08
+5664: EDK: Avoid uploading data more than due
+      to eMules rotating block requests (pango)
 5596: EDK: New option upload_full_chunks (thx to TripleM)
 - If the new option upload_full_chunks is set to true, each client is
   allowed to receive one chunk, this setting overrides upload_lifetime.

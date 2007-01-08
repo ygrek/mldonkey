@@ -608,6 +608,8 @@ and upload_info = {
     mutable up_pos : int64;
     mutable up_end_chunk : int64;
     mutable up_chunks : (int64 * int64) list;
+    (* zones sent but not yet received by other peer, oldest first *)
+    mutable up_flying_chunks : (int64 * int64) list; 
     mutable up_waiting : bool;
   }
 
