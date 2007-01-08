@@ -127,7 +127,6 @@ let canon_client gui c =
       if is_in_locations then
         gui#tab_downloads#h_update_location c;
       
-      if c.client_files <> None then  cc.client_files <- c.client_files;
       cc.client_state <- c.client_state;
 
       if c.client_state = RemovedHost then begin
@@ -420,13 +419,11 @@ let value_reader gui t =
             try
               let c = Hashtbl.find G.locations num in
               try
-                let tree = match c.client_files with
-                    None -> { file_tree_list = []; file_tree_name = "" }
-                  | Some tree -> { tree with file_tree_list = tree.file_tree_list }
-                in
-
+                let tree = { file_tree_list = []; file_tree_name = "" } in
                 add_file tree dirname file;
+(*
                 ignore (canon_client gui { c with client_files = Some tree })
+*)
                 
               with _ ->
 (*                  lprintf "File already there"; lprint_newline (); *)
@@ -519,6 +516,7 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
 
     | Search s -> ()
     | Version _ -> ()
+    | Stats (_, _) -> ()
 
   with e ->
       lprintf "Exception %s in reader\n" (Printexc2.to_string e)

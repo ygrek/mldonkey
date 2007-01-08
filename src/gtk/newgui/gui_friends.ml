@@ -89,9 +89,7 @@ let state_pix state =
       | BlackListedHost -> O.gdk_pix M.o_xpm_blacklistedhost
 
 let client_pix c =
-  match c.client_files with
-    Some l -> O.gdk_pix M.o_xpm_files_listed
-  | _ -> state_pix c.client_state
+  state_pix c.client_state
 
 
 let type_pix t =
@@ -427,7 +425,6 @@ class box_friends box_files friend_tab =
         client_type = c.gclient_type;
         client_tags = c.gclient_tags;
         client_name = c.gclient_name;
-        client_files = c.gclient_files;
         client_rating = c.gclient_rating;
         client_chat_port = 0;
         client_connect_time = c.gclient_connect_time;
@@ -441,6 +438,7 @@ class box_friends box_files friend_tab =
         client_session_uploaded = 0L;
         client_upload = c.gclient_upload;
 	client_sui_verified = None;
+        client_file_queue = [];
 (*        client_sock_addr = c.gclient_sock_addr;*)
       }
     
@@ -453,7 +451,7 @@ class box_friends box_files friend_tab =
         gclient_type = c.client_type;
         gclient_tags = c.client_tags;
         gclient_name = c.client_name;
-        gclient_files = c.client_files;
+        gclient_files = None;
         gclient_rating = c.client_rating;
         gclient_connect_time = (BasicSocket.last_time () - c.client_connect_time);
         gclient_software = c.client_software;
@@ -637,7 +635,6 @@ class box_list friend_tab =
         client_type = c.gclient_type;
         client_tags = c.gclient_tags;
         client_name = c.gclient_name;
-        client_files = c.gclient_files;
         client_rating = c.gclient_rating;
         client_chat_port = 0;
         client_connect_time = c.gclient_connect_time;
@@ -651,6 +648,7 @@ class box_list friend_tab =
         client_session_uploaded = 0L;
         client_upload = c.gclient_upload;
 	client_sui_verified = None;
+        client_file_queue = [];
 (*        client_sock_addr = string_of_kind c.gclient_kind; *)
       }
 
@@ -663,7 +661,7 @@ class box_list friend_tab =
         gclient_type = c.client_type;
         gclient_tags = c.client_tags;
         gclient_name = c.client_name;
-        gclient_files = c.client_files;
+        gclient_files = None;
         gclient_rating = c.client_rating;
         gclient_connect_time =  (BasicSocket.last_time () - c.client_connect_time);
         gclient_software = c.client_software;

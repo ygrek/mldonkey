@@ -61,10 +61,7 @@ let string_color_of_state state =
   | BlackListedHost -> gettext M.black_listed, Some !!O.color_not_connected
       
 let string_color_of_client friend_tab c =
-  match c.client_files with
-    Some _ when friend_tab -> 
-      gettext M.o_col_files_listed, Some !!O.color_downloading 
-  | _ -> string_color_of_state c.client_state
+  string_color_of_state c.client_state
 
 let shorten maxlen s =
   let len = String.length s in
@@ -256,14 +253,7 @@ class box_friends box_files friend_tab =
           Gui_com.send (GuiProto.FindFriend s)
     
     method on_select c =
-      match c.client_files with
-        None -> 
-(*          lprintf "No file for friend %d" c.client_num; lprint_newline (); *)
           Gui_com.send (GuiProto.GetClient_files c.client_num)
-      |	Some tree -> 
-(*          lprintf "%d files for friend %d" (List.length l) c.client_num; 
-          lprint_newline (); *)
-          box_files#update_tree (Some tree)
     
     method on_deselect f =
       box_files#update_tree None
@@ -284,8 +274,6 @@ class box_friends box_files friend_tab =
     method h_update_friend f_new =
       try
         let (row, f) = self#find_client f_new.client_num in
-        if f_new.client_files <> None then 
-          f.client_files <- f_new.client_files;
         f.client_state <- f_new.client_state;
         f.client_type <- f_new.client_type;
         f.client_rating <- f_new.client_rating;
@@ -426,8 +414,6 @@ class box_list (client_info_box : GPack.box) friend_tab =
             self#remove_item row c
           end else
         let _ = () in          
-        if c_new.client_files <> None then
-          c.client_files <- c_new.client_files;
         c.client_state <- c_new.client_state;
         c.client_rating <- c_new.client_rating;
         c.client_name <- c_new.client_name;
