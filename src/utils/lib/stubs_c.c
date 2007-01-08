@@ -954,7 +954,7 @@ static int statfs (const unsigned char *path, struct statfs *buf)
     FARPROC f;
     int retval = 0;
     WCHAR tmp [MAX_PATH], resolved_path [MAX_PATH];
-    WCHAR * wpath=utf8_to_utf16(path);
+    WCHAR * wpath = (WCHAR *)utf8_to_utf16(path);
     realpath(wpath, resolved_path);
     free(wpath);
     if (!resolved_path)

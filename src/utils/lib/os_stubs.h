@@ -34,6 +34,7 @@ typedef HANDLE OS_FD;
 typedef SOCKET OS_SOCKET;
 typedef unsigned int uint;
 extern void win32_maperr(unsigned long errcode);
+unsigned char * utf8_to_utf16(const char * str);
 
 /*******************************************************************
 
