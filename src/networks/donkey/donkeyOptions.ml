@@ -178,6 +178,12 @@ let upload_full_chunks = define_expert_option donkey_section ["upload_full_chunk
   "If true, each client is allowed to receive one chunk, this setting overrides upload_lifetime"
     bool_option false
 
+let upload_complete_chunks = define_expert_option donkey_section ["upload_complete_chunks"]
+  "If true, each client is allowed to complete only one chunk, independent, if it is empty or
+   partial. this setting overrides upload_full_chunks and dynamic_upload_lifetime,
+   but is, as a failsafe, limited by upload_lifetime (should be set reasonable high)"
+    bool_option false
+
 let dynamic_upload_lifetime = define_expert_option donkey_section ["dynamic_upload_lifetime"]
   "Each client upload lifetime depends on download-upload ratio"
     bool_option false

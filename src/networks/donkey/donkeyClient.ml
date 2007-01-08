@@ -415,7 +415,13 @@ let client_wants_file c md4 =
         
   
 let new_chunk up begin_pos end_pos =
-  if begin_pos <> end_pos then
+  let req_size = end_pos -- begin_pos in
+  let req_location = (begin_pos ++ end_pos) // (2L ** block_size) in
+  if !verbose_upload then
+    lprintf_nl "new block: (%Ld,%Ld) size %Ld chunk #%Ld" begin_pos end_pos req_size req_location;
+  if (req_size < Int64.zero) || (req_size > zone_size) || ((up.up_current <> req_location) && (req_size <> Int64.zero)) then
+    up.up_finish <- true;
+  if ((not up.up_finish) || (not !!upload_complete_chunks)) && (req_size > Int64.zero) && (req_size <= zone_size) then
     let chunk = (begin_pos, end_pos) in
     (* the zone requested is already "in the pipe" *)
     if not (List.mem chunk up.up_flying_chunks) then
@@ -2004,15 +2010,8 @@ end else *)
 
       let prio = (file_priority file) in
       let client_upload_lifetime = ref ((max 0 !!upload_lifetime) * 60) in
-      let client_received_enough c =
-        if !!upload_full_chunks then
-          c.client_session_uploaded > (block_size ++ 20L ** 1024L)
-        else
-          last_time() > c.client_connect_time + !client_upload_lifetime + 5 * prio
-      in
-      begin
         
-        if !!dynamic_upload_lifetime
+      if !!dynamic_upload_lifetime && not !!upload_complete_chunks
             && c.client_session_uploaded > c.client_session_downloaded
             && c.client_session_uploaded > Int64.of_int !!dynamic_upload_threshold ** zone_size
         then
@@ -2020,6 +2019,15 @@ end else *)
           Int64.to_int 
             (Int64.of_int !client_upload_lifetime 
               ** c.client_session_downloaded // c.client_session_uploaded);
+
+      let client_received_enough c =
+        if !!upload_full_chunks && not !!upload_complete_chunks then
+          c.client_session_uploaded > (block_size ++ 20L ** 1024L)
+        else
+          last_time() > c.client_connect_time + !client_upload_lifetime + 5 * prio
+      in
+
+      begin
         if client_received_enough c then
           if Intmap.length !CommonUploads.pending_slots_map = 0 then
             begin
@@ -2051,6 +2059,8 @@ end else *)
                 up_end_chunk = Int64.zero;
                 up_chunks = [];
 		up_flying_chunks = [];
+                up_current = Int64.zero;
+                up_finish = true;
                 up_waiting = old_up.up_waiting;
               }, old_up.up_waiting
           | _ ->
@@ -2060,18 +2070,30 @@ end else *)
                 up_end_chunk = Int64.zero;
                 up_chunks = [];
 		up_flying_chunks = [];
+                up_current = ((t.Q.start_pos1 ++ t.Q.end_pos1) // (2L ** block_size));
+                up_finish = false;
                 up_waiting = false;
               }, false
         in
         new_chunk up t.Q.start_pos1 t.Q.end_pos1;
         new_chunk up t.Q.start_pos2 t.Q.end_pos2;
         new_chunk up t.Q.start_pos3 t.Q.end_pos3;
+        (match up.up_chunks with
+          [] ->
+(* it should never happen here, that a client with up.up_finish = false
+   has an empty block queue *)
+            if up.up_finish && !!upload_complete_chunks then
+              begin
+                DonkeyOneFile.remove_client_slot c;
+                raise Not_found
+              end;
+          | chunks ->
         c.client_upload <- Some up;
         set_client_upload (as_client c) (as_file file);
         if not waiting && !CommonUploads.has_upload = 0 then begin
             CommonUploads.ready_for_upload (as_client c);
             up.up_waiting <- true
-          end
+          end)
       end;
       if !verbose_upload then lprintf_nl "QueryBloc treated"
       

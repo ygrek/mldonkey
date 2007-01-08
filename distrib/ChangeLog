@@ -15,6 +15,11 @@ ChangeLog
 =========
 
 2007/01/08
+5666: New option upload_complete_chunks (TripleM)
+- default false, if true, each client is allowed to complete only one chunk,
+  independent, if it is empty or partial. this setting overrides
+  upload_full_chunks and dynamic_upload_lifetime, but is, as a failsafe,
+  limited by upload_lifetime (should be set reasonable high)
 5664: EDK: Avoid uploading data more than due
       to eMules rotating block requests (pango)
 5596: EDK: New option upload_full_chunks (thx to TripleM)

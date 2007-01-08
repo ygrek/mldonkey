@@ -149,6 +149,8 @@ module NewUpload = struct
                     if !verbose_upload then
                         lprintf_nl "NO MORE CHUNKS";
 		    up.up_waiting <- false;
+                    if up.up_finish && !!upload_complete_chunks then
+                      DonkeyOneFile.remove_client_slot c;
                 | (begin_pos, end_pos) :: _ ->
                     up.up_pos <- begin_pos;
                     up.up_end_chunk <- end_pos;
