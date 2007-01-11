@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/01/11
+5675: Updated Mozilla protocol handler to version 1.10
+
 2007/01/08
 5666: New option upload_complete_chunks (TripleM)
 - default false, if true, each client is allowed to complete only one chunk,

@@ -1,4 +1,4 @@
-Firefox MLdonkey/eMule Protocol Handler 1.8
+Firefox MLdonkey/eMule Protocol Handler 1.10
 Copyright (C) 2003 - 2006 Simon Peter <dn.tlp@gmx.net>
 
 Description:
@@ -88,9 +88,16 @@ menu. Select the plugin there and click on Uninstall.
 
 News:
 -----
+Changes for version 1.10:
+- Fixed another problem with the port GUI configuration option (thanks
+  to Toni Cunat).
+
+Changes for version 1.9:
+- Fixed port GUI configuration option (thanks to Dennis Plöger).
+
 Changes for version 1.8:
 - Support for GUI configuration through Firefox' extensions menu
-  (thanks to David Ciecierski <dawid.ciecierski@googlemail.com>).
+  (thanks to David Ciecierski).
 
   ATTENTION upgraders: If you manually set configuration options
   through the about:config dialog for a previous version of this
@@ -119,7 +126,7 @@ Changes for version 1.5:
 
 Changes for version 1.4:
 - Added compatibility for the new component system of Firefox 0.9
-  (thanks to Len Walter <len@unsw.edu.au>).
+  (thanks to Len Walter).
 - Username is now empty by default.
 
 Changes for version 1.3:
@@ -161,9 +168,10 @@ the Initial Developer. All Rights Reserved.
 
 Contributor(s):
 Sven Koch
-Len Walter <len@unsw.edu.au>
-Dan Fritz <templar_of_ni@yahoo.se>
-David Ciecierski <dawid.ciecierski@gmail.com>
+Len Walter
+Dan Fritz
+David Ciecierski
+Dennis Plöger
 
 Alternatively, the contents of this file may be used under the terms of
 either the GNU General Public License Version 2 or later (the "GPL"), or
