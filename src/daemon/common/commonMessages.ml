@@ -661,6 +661,8 @@ let html_header_mods0 = define_option message_section ["html_header_mods0"]
 <title>MLdonkey: Web Interface</title>
 <meta name=\"generator\" content=\"MLDonkey\" />
 <meta name=\"robots\" content=\"noindex,nofollow\" />
+<meta http-equiv=\"Expires\" content=\"-1\" />
+<meta http-equiv=\"Pragma\" content=\"no-cache\" />
 <link rel=\"shortcut icon\" href=\"favicon.ico\" type=\"image/x-icon\" />
 <link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\" />
 <script type=\"text/javascript\" src=\"i.js\">

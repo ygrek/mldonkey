@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/01/11
+5669: HTML: Add HTML headers to prohibit browser-side caching (Schlumpf)
 5671: Configure: Fix question whether to compile lablgtk, same as patch 5401
 5675: Updated Mozilla protocol handler to version 1.10
 
