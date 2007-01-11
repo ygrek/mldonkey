@@ -15,6 +15,14 @@ ChangeLog
 =========
 
 2007/01/11
+5665: EDK: Support compressed upload, implement file read cache (TripleM)
+new options:
+- ED2K_upload_compression to enable compressed upload, default true
+- ED2K_upload_compression_threshold, default 2000 bytes
+  Size difference in bytes between one zone (180 kBytes) and its compressed
+  counterpart, which has to occure, to send compressed parts instead of plain.
+- ED2K_upload_compression_level, Zlib compression level, default 9
+- ED2K_upload_compression_table_size, default 20
 5669: HTML: Add HTML headers to prohibit browser-side caching (Schlumpf)
 5671: Configure: Fix question whether to compile lablgtk, same as patch 5401
 5675: Updated Mozilla protocol handler to version 1.10
