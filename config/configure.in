@@ -1257,7 +1257,7 @@ else
      else
        echo "Do you want this script to try to download and install $LABLGTK_NAME"
        echo "LOCALLY in mldonkey directory ?"
-       if test "$BATCH" = "no"; then read i; else i=yes; fi
+       if test "$BATCH" = "no"; then read i <&1; else i=yes; fi
        case "$i" in
         y* | Y*)
 
