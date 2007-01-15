@@ -57,6 +57,7 @@ let shared_offset = define_option directconnect_section
 
   
 let dc_port = define_option directconnect_section ["client_port"]
+  ~restart: true
   "The port to bind the client to"
     int_option 4444
   
@@ -88,6 +89,7 @@ let client_keyinfo = define_option directconnect_section
     string_option "Pk=mldc"
 
 let options_version = define_option directconnect_section ["options_version"]
+    ~internal: true
     "(internal option)"
     int_option 0
 

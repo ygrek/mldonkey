@@ -46,6 +46,7 @@ let main_server_port = define_option soulseek_section ["main_server_port"]
 *)
   
 let slsk_port = define_option soulseek_section ["client_port"]
+  ~restart: true
   "The port to bind the client to"
     int_option 2234
   
@@ -74,6 +75,7 @@ let next_token =
     "the last token used for a query is saved here" int_option 1
 
 let options_version = define_option soulseek_section ["options_version"]
+    ~internal: true
     "(internal option)"
     int_option 0
 

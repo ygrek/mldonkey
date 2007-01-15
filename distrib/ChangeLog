@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/01/15
+5677: Options: New concept of option types, fix non-admin Sancho http preview
+
 2007/01/11
 5665: EDK: Support compressed upload, implement file read cache (TripleM)
 new options:

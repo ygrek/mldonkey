@@ -1351,6 +1351,9 @@ let dummy_option =
     M.option_help = "";
     M.option_type = "";
     M.option_advanced = false;
+    M.option_restart = false;
+    M.option_public = false;
+    M.option_internal = false;
   }
 
 let to_gui (proto : int array)  opcode s =
@@ -1569,6 +1572,9 @@ let to_gui (proto : int array)  opcode s =
               M.option_value = value;
               M.option_default = default;
               M.option_advanced = advanced;
+              M.option_restart = false;
+              M.option_public = false;
+              M.option_internal = false;
             }
           else
           let optype = 
@@ -1630,6 +1636,9 @@ let to_gui (proto : int array)  opcode s =
               M.option_value = value;
               M.option_default = default;
               M.option_advanced = advanced;
+              M.option_restart = false;
+              M.option_public = false;
+              M.option_internal = false;
             }
           else
           let optype = 

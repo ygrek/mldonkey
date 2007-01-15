@@ -37,6 +37,7 @@ let _ =
       if !!max_ultrapeers > 10 then max_ultrapeers =:= 10)
   
 let client_port = define_option gnutella_section ["client_port"]
+    ~restart: true
     "The port to bind the client to"
     int_option GnutellaNetwork.port
   
@@ -155,6 +156,7 @@ let incoming_data_log = define_option gnutella_section
     string_option ""
 
 let options_version = define_option gnutella_section ["options_version"]
+    ~internal: true
     "(internal option)"
     int_option 0
   

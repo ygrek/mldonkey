@@ -470,15 +470,13 @@ let gui_initialize gui =
           gui.gui_events.gui_new_events <- ev :: gui.gui_events.gui_new_events
       ) console_messages;                
       
-      if user2_is_admin gui.gui_conn.conn_user.ui_user then
       gui_send gui (
-        P.Options_info (simple_options "" downloads_ini));
+        P.Options_info (simple_options "" downloads_ini (user2_is_admin gui.gui_conn.conn_user.ui_user)));
 
-      if user2_is_admin gui.gui_conn.conn_user.ui_user then
       networks_iter_all (fun r ->
           List.iter (fun opfile ->
               let prefix = r.network_shortname ^ "-" in
-              let args = simple_options prefix opfile in
+              let args = simple_options prefix opfile (user2_is_admin gui.gui_conn.conn_user.ui_user) in
               gui_send gui (P.Options_info args)) r.network_config_file);
 
 (* Options panels defined in downloads.ini *)

@@ -273,14 +273,15 @@ let _ =
     end
   end
 
-let define_option a b ?desc c d e =
+let define_option a b ?desc ?restart ?public ?internal c d e =
   match desc with
-    None -> define_option a b (_s c) d e
-  | Some desc -> define_option a b ~desc: (_s desc) (_s c) d e
-let define_expert_option a b ?desc c d e =
+    None -> define_option a b (_s c) d e ?restart ?public ?internal
+  | Some desc -> define_option a b ~desc: (_s desc) (_s c) d e ?restart ?public ?internal
+
+let define_expert_option a b ?desc ?restart ?public ?internal c d e =
   match desc with
-    None -> define_expert_option a b (_s c) d e
-  | Some desc -> define_expert_option a b ~desc: (_s desc) (_s c) d e
+    None -> define_expert_option a b (_s c) d e ?restart ?public ?internal
+  | Some desc -> define_expert_option a b ~desc: (_s desc) (_s c) d e ?restart ?public ?internal
 
 let string_list_option = define_option_class "String"
     (fun v ->
@@ -478,34 +479,42 @@ let _ =
 
 let gui_port = define_option current_section ["gui_port"]
   ~desc: "The port to connect the GUI"
+  ~restart: true
   "port for Graphical Interfaces"
     int_option 4001
 
 let gift_port = define_option current_section ["gift_port"]
   ~desc: "The port to connect for GiFT GUIs."
+  ~restart: true
   "port for GiFT Graphical Interfaces interaction. It was 1213, but the default is
   now 0 for disabled, because it does not check for a password." 
     int_option 0
 
 let http_port = define_option current_section ["http_port"]
   ~desc: "The port to connect via HTTP"
+  ~public: true
+  ~restart: true
   "The port used to connect to your client with a WEB browser"
     int_option 4080
 
 let telnet_port = define_option current_section ["telnet_port"]
   ~desc: "The port to connect via telnet"
+  ~restart: true
   "port for user interaction"
     int_option 4000
 
 let http_bind_addr = define_expert_option current_section ["http_bind_addr"]
+  ~restart: true
   "The IP address used to bind the http server"
     Ip.option (Ip.any)
 
 let gui_bind_addr = define_expert_option current_section ["gui_bind_addr"]
+  ~restart: true
   "The IP address used to bind the gui server"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
 let telnet_bind_addr = define_expert_option current_section ["telnet_bind_addr"]
+  ~restart: true
   "The IP address used to bind the telnet server"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
@@ -807,6 +816,7 @@ let html_mods_vd_gfx_y_size = define_expert_option current_section ["html_mods_v
     int_option 200
 
 let html_mods_vd_gfx_h_intervall = define_expert_option current_section ["html_mods_vd_gfx_h_intervall"]
+  ~restart: true
   "compute values for hourly graph every 1,2,3,4,5,10,15,20,30,60 min
 	Changes to this option require a core restart."
      int_option 60
@@ -1225,12 +1235,14 @@ let file_started_cmd = define_option current_section ["file_started_cmd"]
 let current_section = startup_section
 
 let run_as_user = define_option current_section ["run_as_user"]
+  ~restart: true
   "The login of the user you want mldonkey to run as, after the ports
   have been bound (can be use not to run with root priviledges when
   a port < 1024 is needed)"
     string_option ""
 
 let run_as_useruid = define_option current_section ["run_as_useruid"]
+  ~restart: true
   "The UID of the user (0=disabled) you want mldonkey to run as, after the ports
   have been bound (can be use not to run with root priviledges when
   a port < 1024 is needed)"
@@ -1249,6 +1261,7 @@ let recover_temp_on_startup = define_option current_section ["recover_temp_on_st
     bool_option true
 
 let config_files_security_space = define_expert_option current_section ["config_files_security_space"]
+  ~restart: true
   "How many megabytes should MLdonkey keep for saving configuration files."
     int_option 10
 
@@ -1268,6 +1281,7 @@ let temp_directory = define_option current_section ["temp_directory"]
     string_option "temp"
 
 let share_scan_interval = define_option current_section ["share_scan_interval"]
+  ~restart: true
   "How often (in minutes) should MLDonkey scan all shared directories for new/removed files"
     int_option 1
 
@@ -1382,6 +1396,7 @@ let buffer_writes = define_option current_section ["buffer_writes"]
     bool_option false
 
 let buffer_writes_delay = define_expert_option current_section ["buffer_writes_delay"]
+  ~restart: true
   "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
     float_option 30.
 
@@ -1492,6 +1507,7 @@ let vd_reload_delay = define_expert_option current_section ["vd_reload_delay"]
     int_option 120
 
 let client_bind_addr = define_option current_section ["client_bind_addr"]
+  ~restart: true
   "The IP address used to bind the p2p clients"
     Ip.option (Ip.of_inet_addr Unix.inet_addr_any)
 
@@ -1542,6 +1558,7 @@ let client_buffer_size = define_expert_option current_section ["client_buffer_si
     int_option 500000
 
 let save_options_delay = define_expert_option current_section ["save_options_delay"]
+  ~restart: true
   "The delay between two saves of the 'downloads.ini' file (default is 15 minutes).
   Changes to this option require a core restart."
     float_option 900.0
@@ -1551,6 +1568,7 @@ let server_connection_timeout = define_expert_option current_section ["server_co
     float_option 30.
 
 let download_sample_rate = define_expert_option current_section ["download_sample_rate"]
+  ~restart: true
   "The delay between one glance at a file and another"
     float_option 1.
 
@@ -1584,6 +1602,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
     int_option 1000
 
 let options_version = define_expert_option current_section ["options_version"]
+  ~internal: true
   "(internal option)"
     int_option 14
 

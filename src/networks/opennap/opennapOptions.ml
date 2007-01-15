@@ -27,6 +27,7 @@ let opennap_ini = create_options_file "opennap.ini"
 let opennap_section = file_section opennap_ini ["Opennap"] "Opennap options"
   
 let client_port = define_option opennap_section ["client_port"]
+    ~restart: true
     "The port to bind the client to"
     int_option 6699
   
@@ -63,6 +64,7 @@ let max_shared_files = define_option opennap_section ["max_shared_files"]
     int_option 400
   
 let options_version = define_expert_option opennap_section ["options_version"]
+    ~internal: true
     "(internal option)"
     int_option 0
 

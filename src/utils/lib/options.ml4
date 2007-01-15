@@ -61,6 +61,9 @@ and 'a option_record =
     mutable option_hooks : (unit -> unit) list;
     option_section : options_section;
     option_advanced : bool;    
+    option_restart : bool;
+    option_public : bool;
+    option_internal : bool;
     }
 and options_file =
   { mutable file_name : string;
@@ -137,6 +140,7 @@ let prune_file file = file.file_pruned <- true
 
 let define_simple_option
     normalp (section : options_section) (option_name : string list) desc
+  restart public internal
   (option_help : string) (option_class : 'a option_class)
   (default_value : 'a) (advanced : bool) =
   let desc = match desc with None -> "" | Some s -> s in
@@ -145,6 +149,9 @@ let define_simple_option
       option_class = option_class; option_value = default_value;
       option_default = default_value; 
       option_hooks = []; option_section = section;
+      option_restart = (match restart with None -> false | Some v -> v);
+      option_public = (match public with None -> false | Some v -> v);
+      option_internal = (match internal with None -> false | Some v -> v);
       option_advanced = advanced; option_desc = desc; }
   in
   section.section_options <- 
@@ -168,16 +175,16 @@ let define_simple_option
 let define_header_option
   opfile option_name option_help option_class default_value =
   define_simple_option false (List.hd opfile.file_sections)
-  option_name None option_help option_class
+  option_name None None None None option_help option_class
     default_value false
 
-let define_option opfile option_name ?desc option_help option_class default_value =
-  define_simple_option true opfile option_name desc option_help option_class
+let define_option opfile option_name ?desc ?restart ?public ?internal option_help option_class default_value =
+  define_simple_option true opfile option_name desc restart public internal option_help option_class
     default_value false
 
 let define_expert_option
-  opfile option_name ?desc option_help option_class default_value =
-  define_simple_option true opfile option_name desc option_help option_class
+  opfile option_name ?desc ?restart ?public ?internal option_help option_class default_value =
+  define_simple_option true opfile option_name desc restart public internal option_help option_class
     default_value true
 
   
@@ -379,12 +386,16 @@ let tabulate s = String2.replace s '\n' "\n\t"
 let rec save_module indent oc list =
   let subm = ref [] in
   List.iter
-    (fun (name, help, value) ->
+    (fun (name, help, restart, internal, value) ->
        match name with
          [] -> assert false
        | [name] ->
            if !with_help && help <> "" then
              Printf.fprintf oc "\n\t(* %s *)\n" (tabulate help);
+           if restart then
+             Printf.fprintf oc "\t(* changing this option requires restart of MLDonkey core *)\n";
+           if internal then
+             Printf.fprintf oc "\t(* Do not change this option, internal use only! *)\n";
            Printf.fprintf oc "%s %s = " indent (safe_string name);
            save_value indent oc value;
            Printf.fprintf oc "\n"
@@ -393,7 +404,7 @@ let rec save_module indent oc list =
              try List.assoc m !subm with
                e -> let p = ref [] in subm := (m, p) :: !subm; p
            in
-           p := (tail, help, value) :: !p)
+           p := (tail, help, restart, internal, value) :: !p)
     list;
   List.iter
     (fun (m, p) ->
@@ -804,6 +815,7 @@ let sum_option l =
 
 let option_to_value o =
   o.option_name, o.option_help,
+  o.option_restart, o.option_internal,
   (try o.option_class.to_value o.option_value with
      e ->
        lprintf "Error while saving option \"%s\": %s\n"
@@ -1045,29 +1057,6 @@ let get_help o =
   let help = o.option_help in if help = "" then "No Help Available" else help
 let advanced o = o.option_advanced
 
-(*
-let simple_options opfile =
-  let list = ref [] in
-  List.iter (fun s ->
-      List.iter
-        (fun o ->
-          match o.option_name with
-            [] | _ :: _ :: _ -> ()
-          | [name] ->
-              match o.option_class.to_value o.option_value with
-                Module _ | SmallList _ | List _ | DelayedValue _ ->
-                  begin match o.option_class.string_wrappers with
-                      None -> ()
-                    | Some (to_string, from_string) ->
-                        list := (name, to_string o.option_value) :: !list
-                  end
-              | v -> list := (name, safe_value_to_string v) :: !list)
-      s.section_options)
-  opfile.file_sections;
-  !list
-*)
-  
-  
 let get_option opfile name =
 (*  lprintf "get_option [%s]\n" name;*)
   let rec iter name list sections =
@@ -1140,6 +1129,9 @@ module M = struct
         option_advanced : bool;
         option_default : string;
         option_type : string;
+        option_restart : bool;
+        option_public : bool;
+        option_internal : bool;
       }
   
   end
@@ -1173,13 +1165,17 @@ let strings_of_option prefix o =
         M.option_advanced = o.option_advanced;
         M.option_help = o.option_help;
         M.option_type = o.option_class.class_name;
+        M.option_restart = o.option_restart;
+        M.option_public = o.option_public;
+        M.option_internal = o.option_internal;
       }
   
-let simple_options prefix opfile =
+let simple_options prefix opfile admin =
   let list = ref [] in
   List.iter (fun s ->
       List.iter
         (fun o ->
+          if admin || o.option_public then
           try list := strings_of_option prefix o :: !list  with _ -> ())
       s.section_options)
   opfile.file_sections;
@@ -1195,7 +1191,7 @@ let simple_args prefix opfile =
             set_simple_option opfile oi.M.option_name s),
        Printf.sprintf "<string> : \t%s (current: %s)"
          oi.M.option_help oi.M.option_value)
-    (simple_options prefix opfile)
+    (simple_options prefix opfile true)
 
 let prefixed_args prefix file =
   List.map
@@ -1224,6 +1220,9 @@ type option_info = M.option_info = {
     option_advanced : bool;
     option_default : string;
     option_type : string;
+    option_restart : bool;
+    option_public : bool;
+    option_internal : bool;
   }
   
 let iter_section f s =

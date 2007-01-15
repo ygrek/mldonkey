@@ -26,6 +26,7 @@ let bittorrent_ini = create_options_file "bittorrent.ini"
 let bittorrent_section = file_section bittorrent_ini ["Bittorrent"] "Bittorrent options"
 
 let client_port = define_option bittorrent_section ["client_port"]
+  ~restart: true
   "The port to bind the client to"
     int_option 6882
 
@@ -99,6 +100,7 @@ let numwant = define_option bittorrent_section ["numwant"]
     int_option (-1)
 
 let import_new_torrents_interval = define_option bittorrent_section ["import_new_torrents_interval"]
+  ~restart: true
   "Interval in seconds 'torrents/incoming' is scanned for new torrent files to be downloaded,
   0 to deactivate, changes require restart"
     float_option 60.
@@ -130,6 +132,7 @@ let user_agent = define_option bittorrent_section ["user_agent"]
     string_option "default"
 
 let options_version = define_option bittorrent_section ["options_version"]
+  ~internal: true
   "(internal option)"
     int_option 0
 

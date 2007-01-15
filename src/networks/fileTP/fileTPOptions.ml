@@ -55,6 +55,7 @@ let range_arg = define_option fileTP_section ["range_arg"]
     string_option "range"
 
 let options_version = define_option fileTP_section ["options_version"]
+    ~internal: true
     "(internal option)"
     int_option 0
 

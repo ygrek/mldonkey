@@ -43,6 +43,9 @@ type option_info = {
     option_advanced : bool;
     option_default : string;
     option_type : string;
+    option_restart : bool; (* changing this option requires a restart *)
+    option_public : bool; (* send this option to GUIs even for non-admin users *)
+    option_internal : bool; (* this option should not be changed by users *)
   }
 
 exception SideEffectOption
@@ -77,9 +80,11 @@ val file_section : options_file -> string list -> string -> options_section
 (*4 Creating options *)  
 val define_option : options_section ->
   string list ->  ?desc: string ->
+  ?restart: bool -> ?public: bool -> ?internal: bool ->
   string -> 'a option_class -> 'a -> 'a option_record
 val define_expert_option : options_section ->
   string list ->    ?desc: string ->
+  ?restart: bool -> ?public: bool -> ?internal: bool ->
   string -> 'a option_class -> 'a -> 'a option_record
 val define_header_option : options_file ->
   string list ->  string -> 'a option_class -> 'a -> 'a option_record
@@ -183,7 +188,7 @@ val filename_to_value : string -> option_value
 val value_to_filename : option_value -> string
 
 val set_simple_option : options_file -> string -> string -> unit
-val simple_options : string -> options_file -> option_info list
+val simple_options : string -> options_file -> bool -> option_info list
 val get_simple_option : options_file -> string -> string
 val set_option_hook : options_file -> string -> (unit -> unit) -> unit
 

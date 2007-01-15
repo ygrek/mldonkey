@@ -100,20 +100,21 @@ let list_options_html o list =
     html_mods_table_header buf "upstatsTable" "upstats" [
       ( "0", "srh", "Option name", "Name (Help=mouseOver)" ) ;
       ( "0", "srh", "Option value", "Value (press ENTER to save)" ) ;
-      ( "0", "srh", "Option default", "Default" ) ]
+      ( "0", "srh", "Option default", "Default" );
+      ( "0", "srh", "Option type", "Type" );
+    ]
   else
     html_mods_table_header buf "voTable" "vo" [
       ( "0", "srh", "Option name", "Name" ) ;
       ( "0", "srh", "Option value", "Value (press ENTER to save)" ) ;
       ( "0", "srh", "Option default", "Default" ) ;
+      ( "0", "srh", "Option type", "Type" );
       ( "0", "srh", "Option description", "Help" ) ];
 
-  let counter = ref 0 in
+  html_mods_cntr_init ();
 
   List.iter (fun o ->
-      incr counter;
-      if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\""
-      else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"";
+      Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"" (html_mods_cntr ());
     
         if !!html_mods_use_js_helptext then
           Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
@@ -121,27 +122,20 @@ let list_options_html o list =
         else
           Printf.bprintf buf "\\>";
 
-      if String.contains o.option_value '\n' then begin
+      if String.contains o.option_value '\n' then
         Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>
-                  \\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>
-                  \\<form action=\\\"submit\\\" target=\\\"$S\\\" onsubmit=\\\"javascript: {setTimeout('window.location.replace(window.location.href)',500);}\\\"\\>
-                  \\<input type=hidden name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>\\</td\\>
-                  \\<td\\>\\<textarea name=value rows=5 cols=20 wrap=virtual\\>%s\\</textarea\\>
-                  \\<input type=submit value=Modify\\>\\</td\\>\\</form\\>
-                  \\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-                  (String2.upp_initial o.option_name) o.option_name o.option_name o.option_value o.option_default;
-                  
-          if not !!html_mods_use_js_helptext then
-            Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (Str.global_replace (Str.regexp "\n") "\\<br\\>" o.option_help);
-            
-        Printf.bprintf buf "\\</tr\\>"
-        end
-      
-      else begin
+\\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>
+\\<form action=\\\"submit\\\" target=\\\"$S\\\" onsubmit=\\\"javascript: {setTimeout('window.location.replace(window.location.href)',500);}\\\"\\>
+\\<input type=hidden name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>\\</td\\>
+\\<td\\>\\<textarea name=value rows=5 cols=20 wrap=virtual\\>%s\\</textarea\\>
+\\<input type=submit value=Modify\\>"
+                  (String2.upp_initial o.option_name) o.option_name o.option_name o.option_value
+      else
+        begin
         Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>
-                  \\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>\\</td\\>
-                  \\<td class=\\\"sr\\\"\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\" onsubmit=\\\"javascript: {setTimeout('window.location.replace(window.location.href)',500);}\\\"\\>
-                  \\<input type=hidden name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"
+\\<a href=\\\"http://mldonkey.sourceforge.net/%s\\\"\\>%s\\</a\\>\\</td\\>
+\\<td class=\\\"sr\\\"\\>\\<form action=\\\"submit\\\" target=\\\"$S\\\" onsubmit=\\\"javascript: {setTimeout('window.location.replace(window.location.href)',500);}\\\"\\>
+\\<input type=hidden name=setoption value=q\\>\\<input type=hidden name=option value=%s\\>"
                   (String2.upp_initial o.option_name) o.option_name o.option_name;
 
           if o.option_value = "true" || o.option_value = "false" then
@@ -153,14 +147,15 @@ let list_options_html o list =
             Printf.bprintf buf "\\<input style=\\\"font-family: verdana; font-size: 10px;\\\"
                                 type=text name=value size=20 value=\\\"%s\\\"\\>"
                                 o.option_value;
-
-          Printf.bprintf buf "\\</td\\>\\</form\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (shorten o.option_default 40);
-          
-          if not !!html_mods_use_js_helptext then
-            Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (Str.global_replace (Str.regexp "\n") "\\<br\\>" o.option_help);
-          
-          Printf.bprintf buf "\\</tr\\>"
         end;
+        Printf.bprintf buf "\\</td\\>\\</form\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (shorten o.option_default 40);
+        Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
+          ((if o.option_restart then Printf.sprintf "restart " else "") ^
+           (if o.option_internal then Printf.sprintf "internal " else "") ^
+           (if o.option_public then Printf.sprintf "public " else ""));
+        if not !!html_mods_use_js_helptext then
+          Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (Str.global_replace (Str.regexp "\n") "\\<br\\>" o.option_help);
+        Printf.bprintf buf "\\</tr\\>"
 
   )list;
   Printf.bprintf  buf "\\</table\\>\\</div\\>"
@@ -1662,8 +1657,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
             list_options_html o (
               match args with
                 [] | _ :: _ :: _ ->
-                  let v=   CommonInteractive.all_simple_options () in
-                  v
+                  CommonInteractive.all_simple_options ()
 
               | [arg] ->
                   try
@@ -1920,9 +1914,8 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
           ("", "srh", "!! press ENTER to send changes to core !!"); ];
           end
                      
-        else begin
-            list_options o (CommonInteractive.parse_simple_options args)
-          end;
+        else
+            list_options o (CommonInteractive.parse_simple_options args);
         ""
     ), ":\t\t\t\t\tprint all options";
 

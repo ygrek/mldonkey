@@ -752,12 +752,11 @@ let sort_options l =
 
 let opfile_args r opfile =
   let prefix = r.network_shortname ^ "-" in
-  let args = simple_options prefix opfile in
-  args
+  simple_options prefix opfile true
 
 let all_simple_options () =
   let options = ref (sort_options
-      (simple_options "" downloads_ini)
+      (simple_options "" downloads_ini true)
     )
   in
   networks_iter_all (fun r ->
@@ -807,7 +806,7 @@ let all_active_network_opfile_network_names () =
 let apply_on_fully_qualified_options name f =
   if !verbose then lprintf_nl "Change option %s" name;
   let rec iter prefix opfile =
-    let args = simple_options prefix opfile in
+    let args = simple_options prefix opfile true in
     List.iter (fun o ->
 (*        lprintf "Compare [%s] [%s]\n" o.option_name name; *)
         if o.option_name = name then

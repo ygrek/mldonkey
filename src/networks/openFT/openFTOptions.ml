@@ -27,10 +27,12 @@ let max_ultrapeers = define_option openft_ini ["max_ultrapeers"]
   int_option 5
 
 let port = define_option openft_ini ["client_port"]
+    ~restart: true
     "The port to bind the client to"
     int_option 1215
 
 let http_port = define_option openft_ini ["http_port"]
+    ~restart: true
     "The port to bind the client to for downloads"
     int_option 1216
     
@@ -43,6 +45,7 @@ let max_known_peers = define_option openft_ini ["max_known_peers"]
   int_option 20
 
 let options_version = define_option openft_ini ["options_version"]
+    ~internal: true
     "(internal option)"
     int_option 0
     

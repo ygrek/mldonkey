@@ -30,6 +30,7 @@ let max_xs_packets = define_expert_option donkey_section ["max_xs_packets"]
     int_option 30
 
 let donkey_port = define_option donkey_section ["port"]
+  ~restart: true
   "The port used for connection by other donkey clients."
     int_option (2000 + Random.int 20000)
 
@@ -221,6 +222,7 @@ let _ =
   )
 
 let upload_compression_table_size = define_expert_option donkey_section ["upload_compression_table_size"]
+  ~restart: true
   "Size of the cache table in entries (ca. 2 * 180 kbytes). zones have to be
   compressed at once, but only parts of it are sent at a time (10 kbytes).
   to reduce diskaccess and repeated compression to a minimum, size should be
@@ -251,6 +253,7 @@ let max_server_age = define_expert_option donkey_section ["max_server_age"]
     int_option 2
 
 let remove_old_servers_delay = define_expert_option donkey_section ["remove_old_servers_delay"]
+  ~restart: true
   "How often should remove old donkey servers (see max_server_age) be called
   (in seconds, 0 to disable)"
     float_option 900.
@@ -318,10 +321,12 @@ let overnet_section = file_section donkey_ini [ overnet_options_section_name ]
     "Overnet options"
 
 let overnet_port = define_option overnet_section [overnet_options_section_name; "port"]
+  ~restart: true
   "port for overnet"
     int_option (2000 + Random.int 20000)
 
 let options_version = define_expert_option donkey_section ["options_version"]
+  ~internal: true
   "(internal option)"
     int_option 3
 

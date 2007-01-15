@@ -96,6 +96,7 @@ let tracked_files = Hashtbl.create 13
 let ntracked_files = ref 0
 
 let tracker_port = define_option bittorrent_section ["tracker_port"]
+  ~restart: true
   "The port to bind the tracker to"
     int_option 6881
 
