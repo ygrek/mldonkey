@@ -113,9 +113,11 @@ let remove_client_slot c =
           (match client_upload (as_client c) with | None -> ""
            | Some f -> " of " ^ (CommonFile.file_best_name f)) else "")
       (if c.client_total_downloaded > 0L then
-        Printf.sprintf ", rec %s (%s)"
+         Printf.sprintf ", rec %s (%s)%s"
           (size_of_int64 c.client_session_downloaded)
-          (size_of_int64 c.client_total_downloaded) else "");
+          (size_of_int64 c.client_total_downloaded)
+          (match c.client_download with | None -> ""
+           | Some (f,_) -> " of " ^ (file_best_name f)) else "");
   set_client_has_a_slot (as_client c) NoSlot;
   client_send c (
     let module M = DonkeyProtoClient in
@@ -235,15 +237,6 @@ let add_client_chunks c file client_chunks =
 
 (* let next_file _ = failwith "next_file not implemented" *)
       
-(* clean_client_zones: clean all structures related to downloads when
-   a client disconnects *)
-let clean_current_download c = 
-  match c.client_download with
-    None -> ()
-  | Some (file, up) ->
-      CommonSwarming.unregister_uploader up;
-      c.client_download <- None
-
 let send_get_range_request c file ranges = 
   let rec check_large (rangelist : (int64 * int64 * range) list) =
     match rangelist with
@@ -407,9 +400,7 @@ let rec get_from_client c =
   or start querying blocks if already in the queue *)
 let request_slot c = 
     if c.client_slot = SlotNotAsked then begin
-      if !verbose_download then begin
-          lprintf_nl "start_download";
-        end;
+      if !verbose_download then lprintf_nl "start_download";
       do_if_connected c.client_source.DonkeySources.source_sock (fun sock ->
           sort_file_queue c;
           match c.client_file_queue with

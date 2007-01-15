@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/01/15
+5689: EDK: Log downloading file name when client disconnects
 5684: GUI: Fix build of mlprogress (Alt linux)
 5677: Options: New concept of option types, fix non-admin Sancho http preview
 

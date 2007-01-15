@@ -203,10 +203,10 @@ module NewUpload = struct
               DonkeyOneFile.remove_client_slot c;
               lprintf_nl "File %s is too large for %s." (file_best_name up.up_file) (full_client_identifier c);
             end else
-            if up.up_file.file_shared = None then begin
+            if up.up_file.file_shared = None then
 (* Is there a message to warn that a file is not shared anymore ? *)
-              DonkeyOneFile.remove_client_slot c;
-              end else
+              DonkeyOneFile.remove_client_slot c
+              else
             let compress = !!upload_compression && (c.client_emule_proto.emule_compression <> 0) in
             let cfile,ccomp = match cached_load up.up_file begin_offset end_offset compress with
               Some (cached_file,cached_comp) -> cached_file,cached_comp

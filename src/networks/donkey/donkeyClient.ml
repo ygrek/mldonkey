@@ -264,14 +264,21 @@ let disconnect_client c reason =
           c.client_source.DonkeySources.source_sock <- NoConnection;
           save_join_queue c;
           c.client_slot <- SlotNotAsked;
-          let files = c.client_file_queue in
           
-          (try DonkeyOneFile.clean_current_download c with _ -> ());
+(* clean_client_zones: clean all structures related to downloads when
+   a client disconnects *)
+	  (try
+            match c.client_download with
+            | None -> ()
+            | Some (file, up) ->
+                CommonSwarming.unregister_uploader up;
+                c.client_download <- None
+            with _ -> ());
 
           List.iter (fun (file, chunks, up) -> 
               try CommonSwarming.unregister_uploader up with _ -> ()
-          )
-          files;    
+          ) c.client_file_queue;
+
           c.client_file_queue <- [];  
           c.client_session_downloaded <- 0L;
         
@@ -1404,7 +1411,6 @@ other one for unlimited sockets.  *)
                 lprintf_nl "Slot closed during download";
             CommonSwarming.clear_uploader_ranges up
       end;
-(*      DonkeyOneFile.clean_current_download c; *)
       c.client_session_downloaded <- 0L;
       c.client_slot <- SlotNotAsked;
 (* OK, the slot is closed, but what should we do now ????? *)

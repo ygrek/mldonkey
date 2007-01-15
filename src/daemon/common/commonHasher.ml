@@ -20,6 +20,14 @@
 open Printf2
 open CommonOptions
 
+let log_prefix = "[cHa]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
+let lprintf_n fmt =
+  lprintf2 log_prefix fmt
+
 type hash_method = MD4 | MD5 | SHA1 | TIGER
 
 type 'a job = {
@@ -46,14 +54,14 @@ let _ =
         | None -> raise Not_found
         | Some (job, fd) ->
             if job_done job then begin
-                if !verbose_md4 then lprintf_nl "[cHa] Finished %s job %s %Ld %Ld"
+                if !verbose_md4 then lprintf_nl "Finished %s job %s %Ld %Ld"
 		  (match job.job_method with
 		    MD5 -> "MD5" | TIGER -> "TIGER" | SHA1 -> "SHA1" | MD4 -> "MD4")
 		  job.job_name job.job_begin job.job_len;
                 current_job := None;
                 Unix.close fd;
                 (try job.job_handler job with e ->
-                      lprintf_nl "[cHa] exception %s in job_handler"
+                      lprintf_nl "exception %s in job_handler"
                         (Printexc2.to_string e);
                       );
                 raise Not_found
@@ -72,7 +80,7 @@ let _ =
             current_job := Some (job, fd);
             job_start job fd;
           with e ->
-              lprintf_nl "[cHa] Exception %s in starting job"
+              lprintf_nl "Exception %s in starting job"
                 (Printexc2.to_string e);
   )
 

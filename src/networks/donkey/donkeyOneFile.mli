@@ -20,7 +20,6 @@
 open CommonSwarming
 open Md4
 
-val clean_current_download : DonkeyTypes.client -> unit
 val get_from_client : DonkeyTypes.client -> unit
 val request_slot : DonkeyTypes.client -> unit
 val check_files_downloaded : unit -> unit
