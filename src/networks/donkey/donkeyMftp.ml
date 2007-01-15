@@ -257,6 +257,7 @@ let client_common_tags =
         "\092", "mod_secure_community";
         "\093", "mod_unknown0x5d";
         "\096", "mod_unknown0x60";
+        "\100", "mod_unknown0x64";
         "\102", "mod_fusion";
         "\103", "mod_fusion_version";
 
@@ -264,6 +265,7 @@ let client_common_tags =
         "\105", "edonkeyclc serverip?";
         "\106", "edonkeyclc serverport?";
 
+        "\108", "mod_unknown0x6c";
         "\117", "mod_unknown0x75"; (* http://emule-project.net @ NewMule *)
         "\118", "mod_unknown0x76";
         "\119", "mod_tarod";
