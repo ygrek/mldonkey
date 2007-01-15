@@ -1245,7 +1245,7 @@ MLPROGRESS_SRCS = \
   $(PROGRESS_SRCS) $(MAIN_SRCS)
 
 TARGETS += mlgui$(EXE) mlguistarter$(EXE)
-ifeq ("$(GUI)", "newgui")
+ifeq ("$(GUI)", "newgui1")
   TARGETS += mlprogress$(EXE)
 endif
 
