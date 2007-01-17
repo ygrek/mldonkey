@@ -305,6 +305,23 @@ let load_config () =
       "-pid", Arg.String (fun s -> pid := s;
       ),
        _s ": directory for pid file";
+      "-useradd", Arg.Rest (fun s ->
+        (match String2.split s ' ' with
+        | user :: pass :: _ ->
+            if user2_user_exists user then
+              begin
+                user2_user_set_password (user2_user_find user) pass;
+                Printf.printf "%sPassword of user %s changed\n%!" (log_time ()) user
+              end
+            else
+              begin
+                user2_user_add user (Md4.Md4.string pass) ();
+                Printf.printf "%sUser %s added\n%!" (log_time ()) user
+              end;
+            Options.save_with_help_private users_ini;
+            Printf.printf "%sSaved changes to users.ini\n%!" (log_time ())
+        | _ -> raise (Arg.Bad "invalid syntax"));
+          exit 0), _s "\"<user> <pass>\" : create user/change password";
     ] @
       !more_args
       @
