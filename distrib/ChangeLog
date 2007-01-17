@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/01/17
+5678: New options for command force_web_infos: kind/URL (thx to Schlumpf)
+
 2007/01/15
 5691: EDK: Recognize compatibleclient 60: IMPmule (imp-project.net)
 5689: EDK: Log downloading file name when client disconnects

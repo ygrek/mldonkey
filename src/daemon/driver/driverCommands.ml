@@ -352,10 +352,23 @@ let _ =
             "URL does not exists in web_infos"
     ), "<url> :\t\t\tremove URL from web_infos";
 
-    "force_web_infos", Arg_none (fun o ->
-	CommonWeb.load_web_infos false true;
-        "downloading all web_infos URLs"
-    ), ":\t\t\tforce downloading all web_infos URLs";
+    "force_web_infos", Arg_multiple (fun args o ->
+        (match args with
+        | [] -> CommonWeb.load_web_infos false true;
+                "requesting all web_infos files"
+        | args -> let list = ref [] in
+                  List.iter (fun arg ->
+                    List.iter (fun (kind, _, url) ->
+                      if kind = arg || url = arg then begin
+                        CommonWeb.load_url false kind url;
+                        list := arg :: !list
+                      end
+                  ) !!web_infos) args;
+                  if !list = [] then
+                    Printf.sprintf "found no web_infos entries for %s" (String.concat " " args)
+                  else
+                    Printf.sprintf "requesting web_infos %s" (String.concat " " !list))
+    ), "[<list of kind|URL>] :\tre-download web_infos, leave empty to re-download all";
 
     "recover_temp", Arg_none (fun o ->
         networks_iter (fun r ->
@@ -1926,6 +1939,8 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\<tr\\>\\<td\\>
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
+\\<td nowrap title=\\\"force downloading all web_infos files\\\" class=\\\"fbig\\\"\\>
+\\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=force_web_infos';}\\\"\\>Re-download all\\</a\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
                    var getdir = prompt('Input: <kind> <URL> [<period>]','server.met URL')
                    parent.fstatus.location.href='submit?q=urladd+' + encodeURIComponent(getdir);
@@ -1943,16 +1958,14 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 
     	      html_mods_table_header buf "web_infoTable" "vo" [
 	        ( "0", "srh ac", "Click to remove URL", "Remove" ) ;
+	        ( "0", "srh", "Download now", "DL" ) ;
 	        ( "0", "srh", "Option type", "Type" ) ;
 	        ( "0", "srh", "Option delay", "Delay" ) ;
 	        ( "0", "srh", "Option value", "Value" ) ] ;
 
-              let counter = ref 0 in
-
+              html_mods_cntr_init ();
               List.iter (fun (kind, period, url) ->
-                incr counter;
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
-                (if !counter mod 2 == 0 then "dl-1" else "dl-2");
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 		Printf.bprintf buf "
         \\<td title=\\\"Click to remove URL\\\"
         onMouseOver=\\\"mOvr(this);\\\"
@@ -1961,6 +1974,13 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 	parent.fstatus.location.href=\\\"submit?q=urlremove+\\\\\\\"%s\\\\\\\"\\\"
         setTimeout(\\\"window.location.reload()\\\",1000);}'
         class=\\\"srb\\\"\\>Remove\\</td\\>" (Url.encode url);
+		Printf.bprintf buf "
+        \\<td title=\\\"Download now\\\"
+        onMouseOver=\\\"mOvr(this);\\\"
+        onMouseOut=\\\"mOut(this);\\\"
+        onClick=\\\'javascript:{
+	parent.fstatus.location.href=\\\"submit?q=force_web_infos+\\\\\\\"%s\\\\\\\"\\\";}'
+        class=\\\"srb\\\"\\>DL\\</td\\>" (Url.encode url);
           Printf.bprintf buf "
               \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
 	      \\<td class=\\\"sr\\\"\\>%d\\</td\\>"  url kind period;
@@ -1975,11 +1995,9 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 	      ( "0", "srh", "Web kind", "Kind" );
 	      ( "0", "srh", "Description", "Type" ) ];
 
-            let counter = ref 0 in
+            html_mods_cntr_init ();
             List.iter (fun (kind, data) ->
-                incr counter;
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
-                (if !counter mod 2 == 0 then "dl-1" else "dl-2");
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 		Printf.bprintf buf "
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>
 	      \\<td class=\\\"sr\\\"\\>%s\\</td\\>" kind data.description

@@ -150,7 +150,7 @@ let load_url can_fail kind url =
     with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
   in
   try
-    lprintf_nl (_b "saving %s (%s)") kind url;
+    lprintf_nl (_b "request %s (%s)") kind url;
     mldonkey_wget url f
   with e ->
     if can_fail then
