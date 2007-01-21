@@ -1494,8 +1494,9 @@ let _ =
           with _ ->
               Options.set_simple_option downloads_ini name value;
               Printf.sprintf "option %s value changed" name
-        with e ->
-            Printf.sprintf "Error %s" (Printexc2.to_string e)
+        with
+        | Not_found -> Printf.sprintf "Option %s does not exist" name
+        | e -> Printf.sprintf "Error %s" (Printexc2.to_string e)
 	  end
 	else
 	  _s "You are not allowed to change options"
