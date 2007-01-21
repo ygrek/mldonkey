@@ -1505,7 +1505,8 @@ let http_handler o t r =
 	        | PorttestInProgress time ->
 		    Some (Printf.sprintf "porttest started %s ago" (age time))
 	        | PorttestResult (time, s) ->
-		    Some (Printf.sprintf "porttest finished %s ago, %s" (age time) s)
+		    Some (Printf.sprintf "porttest finished %s ago, %s" (age time)
+		           (Str.global_replace (Str.regexp "result_") "http://porttest.emule-project.net:81/result_" s))
 	      in
 	      (match result with
 		None -> ()
