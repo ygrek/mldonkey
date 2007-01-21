@@ -1589,6 +1589,9 @@ let _ =
 
     "voo", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
+        let changed_list = List.sort (fun d1 d2 -> compare d1 d2) (List.filter (fun o -> 
+            o.option_value <> o.option_default && not (String2.starts_with o.option_name "enable_")
+            ) (CommonInteractive.all_simple_options ())) in
         if use_html_mods o then begin
 
             Printf.bprintf buf "\\<script type=\\\"text/javascript\\\"\\>
@@ -1632,7 +1635,8 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
                 ("Files", "File related options") ; 
                 ("Mail", "eMail information options") ; 
                 ("Net", "activate/deaktivate Networks, some TCP/IP & IP blocking options") ; 
-                ("Misc", "miscellaneous") ];
+                ("Misc", "miscellaneous") ;
+                ("changed", "Show changed options") ];
 
             Printf.bprintf buf "
 \\<td nowrap title=\\\"Show all options\\\" class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
@@ -1670,8 +1674,11 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 
             list_options_html o (
               match args with
-                [] | _ :: _ :: _ ->
+              |  [] | _ :: _ :: _ ->
                   CommonInteractive.all_simple_options ()
+                  
+              | ["changed"] ->
+                  changed_list
 
               | [arg] ->
                   try
@@ -1875,6 +1882,8 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option backup_options_generations;
 			strings_of_option small_files_slot_limit;
                       ]
+                  | 9 ->
+                      changed_list
 
                   | _ ->
                       let v = CommonInteractive.some_simple_options (tab - !mtabs) in
@@ -1928,10 +1937,14 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
           ("", "srh", "!! press ENTER to send changes to core !!"); ];
           end
                      
-        else
-            list_options o (CommonInteractive.parse_simple_options args);
+        else begin
+          match args with
+            | [] | _ :: _ :: _ -> list_options o (CommonInteractive.all_simple_options ())
+            | ["9"] | ["changed"] -> list_options o changed_list
+            | [_] -> list_options o (CommonInteractive.parse_simple_options args);
+          end;
         ""
-    ), ":\t\t\t\t\tprint all options";
+    ), "[<option>|changed]:\t\t\tprint options (use * as wildcard), 'changed' prints all changed options, leave empty to print all options";
 
     "vwi", Arg_none (fun o ->
         let buf = o.conn_buf in
