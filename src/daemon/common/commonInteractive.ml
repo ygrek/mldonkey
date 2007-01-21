@@ -331,7 +331,12 @@ let mail_for_completed_file file =
     let incoming = incoming_dir (Unix2.is_directory (file_disk_name file)) () in
 
     let line4 = if !!url_in_mail = "" then "" else
-      Printf.sprintf "\r\n<%s/%s/%s>\r\n" !!url_in_mail incoming.shdir_dirname (Url.encode (file_best_name file))
+      Printf.sprintf "\r\n<%s/%s%s/%s>\r\n"
+        !!url_in_mail
+        incoming.shdir_dirname
+        (if (file_owner file).user_commit_dir = "" then ""
+         else Printf.sprintf "/%s" (file_owner file).user_commit_dir)
+        (Url.encode (file_best_name file))
     in
 
     let line5 = if !!auto_commit then "" else
