@@ -405,7 +405,11 @@ let _ =
     !kademlia_port_info, "kademlia_port UDP";
     ]);
   network.op_network_porttest_result <-
-    (fun _ -> !DonkeyInteractive.porttest_result);
+    (fun _ -> match !DonkeyInteractive.porttest_result with
+        | PorttestResult (time, s) ->
+            PorttestResult (time, (Str.global_replace
+            (Str.regexp "result_") "http://porttest.emule-project.net:81/result_" s))
+        | _ -> !DonkeyInteractive.porttest_result);
   CommonInteractive.register_gui_options_panel "eDonkey" 
     gui_donkey_options_panel;
   CommonInteractive.register_gui_options_panel "Overnet" 

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/01/21
+5698: EDK: fix display of porttest result images (Schlumpf)
 5699: Multiuser: Fix wrong file path (user_commit_dir) in notification mail
 5695: Command "set": better error text if option does not exist
 5694: Fix small typo in buildinfo
