@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/01/21
+5694: Fix small typo in buildinfo
+
 2007/01/17
 5673: New core start parameter: -useradd "user pass", needed for Debian package
 5678: New options for command force_web_infos: kind/URL (thx to Schlumpf)

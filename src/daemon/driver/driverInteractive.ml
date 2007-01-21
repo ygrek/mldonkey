@@ -1886,7 +1886,7 @@ let buildinfo html buf =
     );
   tack list 
     (
-      "Build on:\t", 
+      "Built on:\t", 
       Autoconf.build_system ^ " (" ^ Unix2.endianness () ^ ")" ^
       (if Autoconf.glibc_version = "" then "" 
       else
