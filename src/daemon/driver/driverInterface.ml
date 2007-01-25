@@ -1089,8 +1089,18 @@ let gui_reader (gui: gui_record) t _ =
               let s = server_find num in
               server_rename s name
           | P.ServerSetPreferred (num, preferred) ->
-              let s = server_find num in
-              server_set_preferred s preferred
+	      if user2_is_admin gui.gui_conn.conn_user.ui_user then
+                server_set_preferred (server_find num) preferred
+	      else
+	        begin
+                  let o = gui.gui_conn in
+                  let buf = o.conn_buf in
+                  Buffer.reset buf; 
+                  Buffer.add_string buf "\nYou are not allowed to change preferred status\n";
+                  gui_send gui (P.Console (
+                      DriverControlers.dollar_escape o false
+                        (Buffer.contents buf)))
+		end
 
   with 
     Failure s ->

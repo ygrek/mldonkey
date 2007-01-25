@@ -805,6 +805,7 @@ let commands = [
     ) , "<f1> <f2> ... :\t\ttry to recover these files at byte level";
 
     "preferred", Arg_two (fun arg1 arg2 o ->
+        if CommonUserDb.user2_is_admin o.conn_user.ui_user then
         let preferred = bool_of_string arg1 in
         let ip = Ip.of_string arg2 in
         Hashtbl.iter (fun ip_s s ->
@@ -814,19 +815,28 @@ let commands = [
             end
         ) servers_by_key;
         "ok"
+        else
+          _s "You are not allowed to change preferred status"
     ), "<true|false> <ip> :\t\tset the server with this IP as preferred";
 
     "bs", Arg_multiple (fun args o ->
+        if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
         List.iter (fun arg ->
             let range = Ip.range_of_string arg in
             server_black_list =:=  range :: !!server_black_list;
         ) args;
         "done"
+        end else
+          _s "You are not allowed to blacklist servers"
     ), "<range1> <range2> ... :\t\tadd these IPs to the servers black list (can be single IPs, CIDR ranges or begin-end ranges)";
 
     "port", Arg_one (fun arg o ->
+        if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
         donkey_port =:= int_of_string arg;
-        "new port will change at next restart"),
+        "new port will change at next restart"
+        end else
+          _s "You are not allowed to change connection port"
+    ),
     "<port> :\t\t\t\tchange connection port";
 
     "scan_temp", Arg_none (fun o ->
@@ -996,11 +1006,14 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
     ), ":\t\t\t\treset client_md4/client_private_key to random values";
 
     "bp", Arg_multiple (fun args o ->
+        if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
         List.iter (fun arg ->
             let port = int_of_string arg in
             port_black_list =:=  port :: !!port_black_list;
         ) args;
         "done"
+        end else
+          _s "You are not allowed to blacklist ports"
     ), "<port1> <port2> ... :\t\tadd these ports to the port black list";
   ]
 
