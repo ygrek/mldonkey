@@ -78,7 +78,12 @@ let execute_command arg_list output cmd args =
         [] ->
           Gettext.buftext buf no_such_command cmd
       | (command, _, arg_kind, help) :: tail ->
-          if command = cmd then
+          if command = cmd then begin
+            if !verbose_user_commands && not (user2_is_admin output.conn_user.ui_user) then
+              lprintf_nl "user %s issued command %s%s"
+                output.conn_user.ui_user.user_name
+                cmd
+                (if args = [] then "" else ", args " ^ String.concat " " args);
             Buffer.add_string buf (
               match arg_kind, args with
                 Arg_none f, [] -> f output
@@ -88,6 +93,7 @@ let execute_command arg_list output cmd args =
               | Arg_three f, [a1;a2;a3] -> f a1 a2 a3 output
               | _ -> bad_number_of_args command help
             )
+            end
           else
             iter tail
     in

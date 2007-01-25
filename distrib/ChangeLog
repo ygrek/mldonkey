@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/01/25
+5712: Multiuser: New verbosity "com" to log commands by non-admin users
 5711: Multiuser: Block commands preferred, bs, bp, port for non-admin users
 5642: Swarmer: swarming_block_selection_algorithm = 3 (TripleM)
 - this new algorithm select always the rarest choice, if average availability

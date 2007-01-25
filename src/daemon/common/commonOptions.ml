@@ -561,6 +561,7 @@ let verbosity = define_expert_option current_section ["verbosity"]
   swarming : debug swarming
   hc : http_client messages
   hs : http_server messages
+  com : commands by non-admin users
   act : debug activity
   bw : debug bandwidth
   unexp : debug unexpected messages"
@@ -1863,6 +1864,7 @@ let verbose_udp = ref false
 let verbose_supernode = ref false
 let verbose_swarming = ref false
 let verbose_activity = ref false
+let verbose_user_commands = ref false
 let verbose_unexpected_messages = ref false
 
 let set_all v =
@@ -1891,6 +1893,7 @@ let set_all v =
   Http_client.verbose := v;
   Http_server.verbose := v;
   verbose_activity := v;
+  verbose_user_commands := v;
   verbose_unexpected_messages := v
 
 let _ =
@@ -1926,6 +1929,7 @@ let _ =
           | "act" -> verbose_activity := true
           | "bw" -> incr BasicSocket.verbose_bandwidth
           | "unexp" -> verbose_unexpected_messages := true
+          | "com" -> verbose_user_commands := true
 
           | "all" ->
 
