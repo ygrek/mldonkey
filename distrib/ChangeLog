@@ -15,6 +15,11 @@ ChangeLog
 =========
 
 2007/01/25
+5642: Swarmer: swarming_block_selection_algorithm = 3 (TripleM)
+- this new algorithm select always the rarest choice, if average availability
+  is below 5, or one choice_availability is below average availability
+- added a hashtable to store blockmaps of uploaders for a given swarmer
+- long term memory usage has to be observed
 5710: Swarmer: Fix chunk propagation (pango)
 
 2007/01/21

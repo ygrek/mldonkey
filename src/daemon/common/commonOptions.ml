@@ -1187,7 +1187,7 @@ let sources_per_chunk = define_expert_option current_section ["sources_per_chunk
     int_option 3
 
 let swarming_block_selection_algorithm = define_expert_option current_section ["swarming_block_selection_algorithm"]
-  "What algorithm to use to select blocks (currently 1 or 2)"
+  "What algorithm to use to select blocks (currently 1, 2 or 3)"
     int_option 1
 
 let block_switching = define_expert_option current_section ["block_switching"]
@@ -1777,7 +1777,7 @@ let _ =
   );
   option_hook swarming_block_selection_algorithm (fun _ ->
     match !!swarming_block_selection_algorithm with
-    | 1 | 2 -> ()
+    | 1 | 2 | 3 -> ()
     | _ -> swarming_block_selection_algorithm =:= 1;
   );
   option_hook max_upload_slots (fun _ ->
