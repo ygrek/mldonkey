@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/01/25
+5710: Swarmer: Fix chunk propagation (pango)
+
 2007/01/21
 5693: "voo changed" prints changed options only, useful for support (Schlumpf)
 5698: EDK: fix display of porttest result images (Schlumpf)

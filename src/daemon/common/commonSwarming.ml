@@ -2935,28 +2935,20 @@ type chunk_occurrences = {
   mutable occurrence_missing : chunk_occurrence list;
 }
 
-let propagate_chunk t1 pos1 size destinations copy_data =
+let propagate_chunk t1 pos1 size destinations =
   List.iter (fun (t2, j2, pos2) ->
     if t1.t_num <> t2.t_num || pos1 <> pos2 then begin
       if !verbose then lprintf_nl "Should propagate chunk from %s %Ld to %s %Ld [%Ld]"
         (file_best_name t1.t_file) pos1
         (file_best_name t2.t_file) pos2 size;
-      (* small catch here: if we don't really copy the data *and*
-	 chunk content is not the expected value, the chunk will be
-	 verified each time *)
-      if copy_data then
-	Unix32.copy_chunk (file_fd t1.t_file)  (file_fd t2.t_file)
-	  pos1 pos2 (Int64.to_int size);
+      Unix32.copy_chunk (file_fd t1.t_file)  (file_fd t2.t_file)
+	pos1 pos2 (Int64.to_int size);
       set_frontend_state_complete t2 j2
     end
   ) destinations
 
 let dummy_chunk_occurrences () = 
   { occurrence_present = []; occurrence_missing = [] }
-
-(* Compute the digest of zeroed chunks to avoid copying them *)
-let known_chunks_sizes : (int64, unit) Hashtbl.t = Hashtbl.create 5
-let zeroed_chunks_hashes : (uid_type, unit) Hashtbl.t = Hashtbl.create 5
 
 let duplicate_chunks () =
   let chunks = Hashtbl.create 100 in
@@ -2971,25 +2963,6 @@ let duplicate_chunks () =
 		chunk_uid = uids.(j);
 		chunk_size = min (s.s_size -- pos) t.t_chunk_size;
               } in
-	      (try
-		ignore (Hashtbl.find known_chunks_sizes c.chunk_size)
-	      with Not_found ->
-		(* new chunk size, compute hashes for zeroed chunk of
-		   that size.
-		   No chunk size is bigger than 16MB I hope *)
-		if c.chunk_size < Int64.of_int (16 * 1024 * 1024) then begin
-		  let chunk_size = Int64.to_int c.chunk_size in
-		  let zeroed_buffer = String.make chunk_size '\000' in
-
-		  Hashtbl.add zeroed_chunks_hashes
-		    (Ed2k (Md4.Md4.string zeroed_buffer)) ();
-		  Hashtbl.add zeroed_chunks_hashes
-		    (Sha1 (Md4.Sha1.string zeroed_buffer)) ();
-		  Hashtbl.add zeroed_chunks_hashes
-		    (TigerTree (Md4.TigerTree.string zeroed_buffer)) ()
-		end;
-		Hashtbl.add known_chunks_sizes c.chunk_size ();
-	      );
 	      let occurrences = 
 		try
 		  Hashtbl.find chunks c
@@ -3012,18 +2985,13 @@ let duplicate_chunks () =
     ) s.s_networks
   ) swarmers_by_name;
   Hashtbl.iter (fun c occurrences ->
+    (* we need a verified chunk to copy over the others *)
     match occurrences.occurrence_present, occurrences.occurrence_missing with
     | _ , []
     | [], _ -> ()
     | (t, _, pos) :: _, missing ->
-	let is_zeroed_chunk =
-	  try
-	    ignore(Hashtbl.find zeroed_chunks_hashes c.chunk_uid);
-	    false
-	  with Not_found -> true in
-        propagate_chunk t pos c.chunk_size missing (not is_zeroed_chunk)
+        propagate_chunk t pos c.chunk_size missing
   ) chunks
-
 
 let set_verifier t f =
   t.t_verifier <- f;
