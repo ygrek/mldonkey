@@ -288,6 +288,12 @@ let remove_connected_server c =
 
 let connected_servers () = !connected_server_list
 
+let logged_in_servers () =
+List.filter (fun s -> 
+  match server_state s with
+  | Connected _ -> true
+  | _ -> false) !connected_server_list
+
 let get_udp_sock () =
   match !udp_sock with
     None -> failwith "No UDP socket"

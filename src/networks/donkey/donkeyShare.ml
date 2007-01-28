@@ -221,7 +221,7 @@ let send_new_shared () =
 
 	end
       end
-  ) (connected_servers ());
+  ) (logged_in_servers ());
 
 (*
 The problem: sh.shared_fd might be closed during the execution of the

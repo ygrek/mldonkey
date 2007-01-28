@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/01/28
+5716: EDK: Do not send share list to servers with state Connecting
 5713: HTML: show messages link in vd clickable (Schlumpf)
 
 2007/01/25
