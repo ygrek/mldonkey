@@ -668,7 +668,7 @@ else "")
 (List.length guifiles) (size_of_int64 !tdl) (size_of_int64 !tsize) (!trate /. 1024.)
 (let unread = ref 0 in
 Fifo.iter (fun (t,i,num,n,s) -> if t > !last_message_log then incr unread) chat_message_fifo;
-if !unread > 0 then Printf.sprintf "\\<td class=downloaded title=\\\"%d unread messages\\\"\\>\\<a onClick=\\\"mSub('fstatus','version');mSub('output','message')\\\"\\>(+%d)\\</a\\>\\&nbsp;\\</td\\>" !unread !unread else "");
+if !unread > 0 then Printf.sprintf "\\<td onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" class=downloaded title=\\\"%d unread messages\\\"\\>\\<a onClick=\\\"mSub('fstatus','version');mSub('output','message')\\\"\\>(+%d)\\</a\\>\\&nbsp;\\</td\\>" !unread !unread else "");
 
 if !!html_mods_vd_network then Printf.bprintf buf
 "\\<td title=\\\"Sort by network\\\" class=dlheader\\>\\<input style=\\\"padding-left: 0px; padding-right: 0px;\\\" class=headbutton type=submit value=N name=sortby\\>\\</td\\>";

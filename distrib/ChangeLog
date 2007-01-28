@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/01/28
+5713: HTML: show messages link in vd clickable (Schlumpf)
+
 2007/01/25
 5712: Multiuser: New verbosity "com" to log commands by non-admin users
 5711: Multiuser: Block commands preferred, bs, bp, port for non-admin users
