@@ -1493,25 +1493,6 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.download_html_js_mods0
               else !!CommonMessages.download_html_js_old)
-        | "porttest" ->
-	    html_open_page buf t r true;
-	    let age time =
-	      Date.time_to_string (BasicSocket.last_time () - time) "verbose" in
-	    networks_iter (fun n -> 
-	      let result =
-		match network_porttest_result n with
-		  PorttestNotAvailable -> None
-	        | PorttestNotStarted -> Some "porttest not started"
-	        | PorttestInProgress time ->
-		    Some (Printf.sprintf "porttest started %s ago" (age time))
-	        | PorttestResult (time, s) ->
-		    Some (Printf.sprintf "porttest finished %s ago, %s" (age time) s)
-	      in
-	      (match result with
-		None -> ()
-	      | Some result ->
-		    Printf.bprintf buf "%s:<br> %s<br>\n" n.network_name result));
-		    Printf.bprintf buf "<br><br><a href=\"porttest\">Reload</a>"
         | _ -> raise Not_found
       with
       | Not_found ->

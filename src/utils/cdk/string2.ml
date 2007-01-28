@@ -328,3 +328,13 @@ let hex_string_of_string s =
     Printf.bprintf buf "%02x " (int_of_char c)
   ) s;
   Buffer.contents buf
+
+let ( |> ) x f = f x
+
+let dehtmlize =
+  let br_regexp = Str.regexp_case_fold "<br>" in
+  let tag_regexp = Str.regexp "<[^>]*>" in
+  fun s ->
+    s
+    |> Str.global_replace br_regexp "\n"
+    |> Str.global_replace tag_regexp ""

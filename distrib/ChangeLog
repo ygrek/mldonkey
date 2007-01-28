@@ -15,6 +15,11 @@ ChangeLog
 =========
 
 2007/01/28
+5715: Improve porttest (Schlumpf)
+- use 'porttest' command to start the network porttest the first time,
+  after this to see the results
+- new command 'force_porttest' to force an new porttest
+- improve html porttest output and make it also available in telnet
 5716: EDK: Do not send share list to servers with state Connecting
 5713: HTML: show messages link in vd clickable (Schlumpf)
 

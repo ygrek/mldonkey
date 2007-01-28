@@ -1254,19 +1254,66 @@ let _ =
 	  print_command_result o buf "You are not allowed to disable networks";
         _s ""
     ) , "<num> :\t\t\t\tdisable a particular network";
+    
+    "force_porttest", Arg_none (fun o ->
+        let buf = o.conn_buf in
+    networks_iter (fun n ->
+      match network_porttest_result n with
+        | PorttestNotAvailable -> ()
+        | _ -> network_porttest_start n;
+    );
+    if use_html_mods o then
+      print_command_result o buf "porttest started, use command
+        \\<u\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=porttest'\\\"\\>porttest\\</a\\>\\</u\\> to see results"
+    else
+      print_command_result o buf "porttest started, use command 'porttest' to see results";
+           ""
+    ) , ":\t\t\tforce start network porttest";        
 
     "porttest", Arg_none (fun o ->
         let buf = o.conn_buf in
+        let age time = Date.time_to_string (BasicSocket.last_time () - time) "verbose" in
+        let list = ref [] in
+        let put_list e = list := e :: !list in
 	networks_iter (fun n -> 
-	  match network_porttest_result n with
-	    PorttestNotAvailable -> ()
-	  | _ -> network_porttest_start n);
-        if o.conn_output = HTML then
-          Printf.bprintf buf "Click this \\<a href=\\\"porttest\\\"\\>link\\</a\\> to see results"
-        else
-          Printf.bprintf buf "Test started, you need a HTML browser to display results";
+        match network_porttest_result n with
+         | PorttestNotAvailable ->
+             put_list (n.network_name , "Porttest not available")
+         | PorttestNotStarted ->
+             put_list (n.network_name , "Porttest started");
+             network_porttest_start n
+         | PorttestInProgress time ->
+             put_list (n.network_name , Printf.sprintf "Porttest in progress, started %s ago" (age time))
+         | PorttestResult (time, s) ->
+             put_list (n.network_name , Printf.sprintf "Porttest finished %s ago \n%s" (age time) s)
+    );
+    if use_html_mods o then begin
+      Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
+                          \\<tr\\>\\<td\\>\\<table cellspacing=0 cellpadding=0  width=100%%\\>
+                          \\<tr\\>\\<td class=downloaded width=100%%\\>\\</td\\>
+                            \\<td nowrap class=\\\"fbig\\\"\\>
+                            \\<a onclick=\\\"javascript:window.location.href='submit?q=force_porttest'\\\"\\>Restart porttest\\</a\\>\\</td\\>
+                            \\<td nowrap class=\\\"fbig pr\\\"\\>
+                            \\<a onclick=\\\"javascript:window.location.reload()\\\"\\>Refresh results\\</a\\>\\</td\\>
+                          \\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>";
+      html_mods_table_header buf "sharesTable" "shares" [
+        ( "0", "srh", "Network", "Network" ) ;
+        ( "0", "srh", "Result", "Result" ) ]
+    end;
+    html_mods_cntr_init ();
+    List.iter (fun (net, result) -> 
+      if use_html_mods o then
+        Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+          (html_mods_cntr ()) net (Str.global_replace (Str.regexp "\n") "\\<br\\>" result)
+      else
+        Printf.bprintf buf "----- %s: -----\n%s\n\n" net result;
+    ) !list;
+    if use_html_mods o then
+      Printf.bprintf buf "\\</table\\>\\</div\\>\\</td\\>\\</tr\\>\\</table\\>"
+    else
+      Printf.bprintf buf "\n\nuse command 'porttest' again to refresh the results \nuse command 'force_porttest' to force a new porttest";
         ""
-    ) , ":\t\t\t\tstart network porttest";
+    ) , ":\t\t\t\tprint network porttest results";
 
     ]
 

@@ -104,3 +104,7 @@ val exists: (char -> bool) -> string -> bool
 val existsi: (int -> char -> bool) -> string -> bool
 val for_all: (char -> bool) -> string -> bool
 val hex_string_of_string : string -> string
+
+(* [dehtmlize s] replace all <br> with \n and remove all remaining html tags from string [s] *)
+val dehtmlize: string -> string
+
