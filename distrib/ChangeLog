@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/01/30
+5717: Optimize function print_command_result
+
 2007/01/28
 5715: Improve porttest (Schlumpf)
 - use 'porttest' command to start the network porttest the first time,

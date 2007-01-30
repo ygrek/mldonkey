@@ -924,12 +924,12 @@ module StringIntern = Weak.Make(struct
 let intern_table = StringIntern.create 1000
 let intern s = StringIntern.merge intern_table s
 
-let print_command_result o buf result =
+let print_command_result o result =
   if use_html_mods o then
-    html_mods_table_one_row buf "serversTable" "servers" [
+    html_mods_table_one_row o.conn_buf "serversTable" "servers" [
       ("", "srh", result); ]
   else
-    Printf.bprintf buf "%s" result
+    Printf.bprintf o.conn_buf "%s" result
 
 let _ =
   Heap.add_memstat "CommonGlobals" (fun level buf ->

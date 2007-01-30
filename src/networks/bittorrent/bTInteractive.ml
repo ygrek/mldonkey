@@ -1055,7 +1055,7 @@ let commands =
       ) !current_files;
       _s "done"
       end else
-      begin print_command_result o o.conn_buf "You are not allowed to use seeded_torrents";
+      begin print_command_result o "You are not allowed to use seeded_torrents";
       "" end
     ), _s ":\t\t\tprint all seeded .torrent files on this server";
 

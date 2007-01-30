@@ -445,18 +445,18 @@ let _ =
           List.iter (fun num ->
               let num = int_of_string num in
               let c = client_find num in
-              try client_print_info c o with e -> print_command_result o o.conn_buf (Printexc2.to_string e);
+              try client_print_info c o with e -> print_command_result o (Printexc2.to_string e);
           ) args;
         ""
     ), "<num|all> :\t\t\t\tview client (use arg 'all' for all clients)";
 
     "version", Arg_none (fun o ->
-	print_command_result o o.conn_buf (CommonGlobals.version ());
+	print_command_result o (CommonGlobals.version ());
         ""
     ), ":\t\t\t\tprint mldonkey version";
 
     "uptime", Arg_none (fun o ->
-	print_command_result o o.conn_buf (log_time () ^ "- up " ^
+	print_command_result o (log_time () ^ "- up " ^
 	  Date.time_to_string (last_time () - start_time) "verbose");
         ""
     ), ":\t\t\t\tcore uptime";
@@ -808,7 +808,7 @@ let _ =
 	    print_upstats o !list (Some s)
 	  | _ -> ()
 	)
-	else print_command_result o o.conn_buf "You are not allowed to use this command";
+	else print_command_result o "You are not allowed to use this command";
 	_s ""
     ), "<num> :\t\t\tshow list of files published on server <num>";
 
@@ -849,7 +849,7 @@ let _ =
           | _ -> false
         in
         let print_result v =
-            print_command_result o o.conn_buf
+            print_command_result o
              (Printf.sprintf (_b "Disconnected %d server%s") !counter (Printf2.print_plural_s !counter))
         in
         match args with
@@ -1107,7 +1107,6 @@ let _ =
     ), ":\t\t\t\tprint current bandwidth stats";
 
     "bw_toggle", Arg_none (fun o ->
-	let buf = o.conn_buf in
 	if user2_is_admin o.conn_user.ui_user then begin
 	let ul_bkp = !!max_hard_upload_rate_2 in
 	let dl_bkp = !!max_hard_download_rate_2 in
@@ -1115,12 +1114,12 @@ let _ =
 	max_hard_download_rate_2 =:= !!max_hard_download_rate;
 	max_hard_upload_rate =:= ul_bkp;
 	max_hard_download_rate =:=  dl_bkp;
-	print_command_result o buf (Printf.sprintf
+	print_command_result o (Printf.sprintf
 	  "new upload rate: %d | new download rate: %d"
 	    !!max_hard_upload_rate !!max_hard_download_rate)
 	end
 	else
-	  print_command_result o buf "You are not allowed to toggle bandwidth";
+	  print_command_result o "You are not allowed to toggle bandwidth";
 	""
     ), ":\t\t\t\ttoggle between the two rate sets";
 
@@ -1230,43 +1229,40 @@ let _ =
     ) , ":\t\t\t\tprint all networks";
 
     "enable", Arg_one (fun num o ->
-        let buf = o.conn_buf in
 	if user2_is_admin o.conn_user.ui_user then
 	  begin
 	    let n = network_find_by_num (int_of_string num) in
 	    network_enable n;
-	    print_command_result o buf "network enabled"
+	    print_command_result o "network enabled"
 	  end
 	else
-	  print_command_result o buf "You are not allowed to enable networks";
+	  print_command_result o "You are not allowed to enable networks";
         _s ""
     ) , "<num> :\t\t\t\tenable a particular network";
 
     "disable", Arg_one (fun num o ->
-        let buf = o.conn_buf in
 	if user2_is_admin o.conn_user.ui_user then
 	  begin
 	    let n = network_find_by_num (int_of_string num) in
 	    network_disable n;
-	    print_command_result o buf "network disabled"
+	    print_command_result o "network disabled"
 	  end
 	else
-	  print_command_result o buf "You are not allowed to disable networks";
+	  print_command_result o "You are not allowed to disable networks";
         _s ""
     ) , "<num> :\t\t\t\tdisable a particular network";
     
     "force_porttest", Arg_none (fun o ->
-        let buf = o.conn_buf in
     networks_iter (fun n ->
       match network_porttest_result n with
         | PorttestNotAvailable -> ()
         | _ -> network_porttest_start n;
     );
     if use_html_mods o then
-      print_command_result o buf "porttest started, use command
+      print_command_result o "porttest started, use command
         \\<u\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=porttest'\\\"\\>porttest\\</a\\>\\</u\\> to see results"
     else
-      print_command_result o buf "porttest started, use command 'porttest' to see results";
+      print_command_result o "porttest started, use command 'porttest' to see results";
            ""
     ) , ":\t\t\tforce start network porttest";        
 
@@ -2428,9 +2424,8 @@ let _ =
     ), "<dir> :\t\t\t\tunshare directory <dir>";
 
     "upstats", Arg_none (fun o ->
-        let buf = o.conn_buf in
         if not (user2_can_view_uploads o.conn_user.ui_user) then
-	  print_command_result o buf "You are not allowed to see upload statistics"
+	  print_command_result o "You are not allowed to see upload statistics"
         else
 	  begin
 	    let list = ref [] in
@@ -2446,7 +2441,7 @@ let _ =
     "links", Arg_none (fun o ->
         let buf = o.conn_buf in
         if not (user2_can_view_uploads o.conn_user.ui_user) then
-	  print_command_result o o.conn_buf "You are not allowed to see shared files list"
+	  print_command_result o "You are not allowed to see shared files list"
         else begin
 
         let list = ref [] in
@@ -2476,7 +2471,7 @@ let _ =
         let buf = o.conn_buf in
 
         if not (user2_can_view_uploads o.conn_user.ui_user) then
-	  print_command_result o buf "You are not allowed to see uploaders list"
+	  print_command_result o "You are not allowed to see uploaders list"
         else begin
 
         let nuploaders = Intmap.length !uploaders in
@@ -2973,50 +2968,47 @@ let _ =
   register_commands "Driver/Users" [
 
     "useradd", Arg_two (fun user pass o ->
-        let buf = o.conn_buf in
 	if user2_is_admin o.conn_user.ui_user
 	  || o.conn_user.ui_user.user_name = user then
 	    if user2_user_exists user then
 	      begin
 		user2_user_set_password (user2_user_find user) pass;
-		print_command_result o buf (Printf.sprintf "Password of user %s changed" user)
+		print_command_result o (Printf.sprintf "Password of user %s changed" user)
 	      end
 	    else
 	      begin
 		user2_user_add user (Md4.string pass) ();
-		print_command_result o buf (Printf.sprintf "User %s added" user)
+		print_command_result o (Printf.sprintf "User %s added" user)
 	      end
           else
-	    print_command_result o buf "You are not allowed to add users";
+	    print_command_result o "You are not allowed to add users";
 	_s ""
     ), "<user> <passwd> :\t\tadd new mldonkey user/change user password";
 
     "userdel", Arg_one (fun user o ->
-        let buf = o.conn_buf in
         if user <> o.conn_user.ui_user.user_name then
           if user2_is_admin o.conn_user.ui_user then
 	    if user = admin_user.user_name then
-	      print_command_result o buf "User 'admin' can not be removed"
+	      print_command_result o "User 'admin' can not be removed"
 	    else
 	      try
 		let u = user2_user_find user in
 	        let n = user2_num_user_dls u in
-		if n <> 0 then print_command_result o buf
+		if n <> 0 then print_command_result o
 		  (Printf.sprintf "User %s has %d downloads, can not delete" user n)
 		else
 		  user2_user_remove user;
-		  print_command_result o buf (Printf.sprintf "User %s removed" user)
+		  print_command_result o (Printf.sprintf "User %s removed" user)
               with
-	        Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	        Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
           else
-            print_command_result o buf "You are not allowed to remove users"
+            print_command_result o "You are not allowed to remove users"
         else
-          print_command_result o buf "You can not remove yourself";
+          print_command_result o "You can not remove yourself";
 	_s ""
     ), "<user> :\t\t\tremove a mldonkey user";
 
     "usergroupadd", Arg_two (fun user group o ->
-        let buf = o.conn_buf in
 	if user2_is_admin o.conn_user.ui_user then
 	  begin
 	    try
@@ -3025,18 +3017,17 @@ let _ =
 		  try
 		    let g = user2_group_find group in
 		    user2_user_add_group u g;
-		    print_command_result o buf (Printf.sprintf "Added group %s to user %s" g.group_name u.user_name)
-		  with Not_found -> print_command_result o buf (Printf.sprintf "Group %s does not exist" group)
+		    print_command_result o (Printf.sprintf "Added group %s to user %s" g.group_name u.user_name)
+		  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
 		end
-	    with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
 	  end
 	else
-	  print_command_result o buf "You are not allowed to add groups to a user";
+	  print_command_result o "You are not allowed to add groups to a user";
 	_s ""
     ), "<user> <group> :\t\tadd a group to a mldonkey user";
 
     "usergroupdel", Arg_two (fun user group o ->
-        let buf = o.conn_buf in
 	if user2_is_admin o.conn_user.ui_user
 	  || o.conn_user.ui_user.user_name = user then
 	  begin
@@ -3046,10 +3037,10 @@ let _ =
 		  try
 		    let g = user2_group_find group in
 		    if not (List.mem g u.user_groups) then
-		      print_command_result o buf (Printf.sprintf "User %s is not member of group %s" user group)
+		      print_command_result o (Printf.sprintf "User %s is not member of group %s" user group)
 		    else
 		      if Some g = u.user_default_group then
-			print_command_result o buf (Printf.sprintf "Group %s is default group of user %s, can not remove. Use command userdgroup to change default_group." group user)
+			print_command_result o (Printf.sprintf "Group %s is default group of user %s, can not remove. Use command userdgroup to change default_group." group user)
 		      else
 			begin
 			  let counter = ref 0 in
@@ -3061,23 +3052,22 @@ let _ =
 			      end
 			  ) !!files;
 			  user2_user_remove_group (user2_user_find user) (user2_group_find group);
-			  print_command_result o buf (Printf.sprintf "Removed group %s from user %s%s"
+			  print_command_result o (Printf.sprintf "Removed group %s from user %s%s"
 			    group user
 			    (if !counter = 0 then "" else Printf.sprintf ", changed file_group of %d file%s to default_group %s"
 			       !counter (Printf2.print_plural_s !counter) (user2_print_group u.user_default_group)))
 			end
-		  with Not_found -> print_command_result o buf (Printf.sprintf "Group %s does not exist" group)
+		  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
 		end
-	    with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
 	  end
 
 	else
-	  print_command_result o buf "You are not allowed to remove groups from a user";
+	  print_command_result o "You are not allowed to remove groups from a user";
 	_s ""
     ), "<user> <group> :\t\tremove a group from a mldonkey user";
 
     "userdgroup", Arg_two (fun user group o ->
-        let buf = o.conn_buf in
 	if user2_is_admin o.conn_user.ui_user
 	  || o.conn_user.ui_user.user_name = user then
 	  begin
@@ -3095,76 +3085,71 @@ let _ =
 		    if update_dgroup () then
 		      begin
 			user2_user_set_default_group u g;
-			print_command_result o buf (Printf.sprintf "Changed default group of user %s to group %s" u.user_name (user2_print_user_default_group u))
+			print_command_result o (Printf.sprintf "Changed default group of user %s to group %s" u.user_name (user2_print_user_default_group u))
 		      end
-		    else print_command_result o buf (Printf.sprintf "User %s is not member of group %s" u.user_name group)
-		  with Not_found -> print_command_result o buf (Printf.sprintf "Group %s does not exist" group)
+		    else print_command_result o (Printf.sprintf "User %s is not member of group %s" u.user_name group)
+		  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
 		end
-	    with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
 	  end
 	else
-	  print_command_result o buf "You are not allowed to change default group";
+	  print_command_result o "You are not allowed to change default group";
 	_s ""
     ), "<user> <group|None> :\tchange user default group";
 
     "passwd", Arg_one (fun passwd o ->
-        let buf = o.conn_buf in
 	begin
 	  try
 	    let u = user2_user_find o.conn_user.ui_user.user_name in
 	    user2_user_set_password u passwd;
-	    print_command_result o buf (Printf.sprintf "Password of user %s changed" u.user_name)
-	  with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" o.conn_user.ui_user.user_name)
+	    print_command_result o (Printf.sprintf "Password of user %s changed" u.user_name)
+	  with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" o.conn_user.ui_user.user_name)
 	end;
 	_s ""
     ), "<passwd> :\t\t\tchange own password";
 
     "usermail", Arg_two (fun user mail o ->
-        let buf = o.conn_buf in
         if user2_is_admin o.conn_user.ui_user
 	  || o.conn_user.ui_user.user_name = user then
 	  begin
 	    try
 	      let u = user2_user_find user in
 	      user2_user_set_mail u mail;
-	      print_command_result o buf (Printf.sprintf "User %s has new mail %s" user mail)
-	    with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	      print_command_result o (Printf.sprintf "User %s has new mail %s" user mail)
+	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
 	  end
-        else print_command_result o buf "You are not allowed to change mail addresses";
+        else print_command_result o "You are not allowed to change mail addresses";
 	_s ""
     ), "<user> <mail> :\t\tchange user mail address";
 
     "userdls", Arg_two (fun user dls o ->
-        let buf = o.conn_buf in
         if user2_is_admin o.conn_user.ui_user then
 	  begin
 	    try
 	      let u = user2_user_find user in
 	      user2_user_set_dls u (int_of_string dls);
-	      print_command_result o buf (Printf.sprintf "User %s has now %s downloads allowed" user (user2_print_user_dls (user2_user_find user)))
-	    with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	      print_command_result o (Printf.sprintf "User %s has now %s downloads allowed" user (user2_print_user_dls (user2_user_find user)))
+	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
 	  end
-        else print_command_result o buf "You are not allowed to change this value";
+        else print_command_result o "You are not allowed to change this value";
 	_s ""
     ), "<user> <num> :\t\t\tchange number of allowed concurrent downloads";
 
     "usercommit", Arg_two (fun user dir o ->
-        let buf = o.conn_buf in
         if user2_is_admin o.conn_user.ui_user
 	  || o.conn_user.ui_user.user_name = user then
 	  begin
 	    try
 	      let u = user2_user_find user in
 	      user2_user_set_commit_dir u dir;
-	      print_command_result o buf (Printf.sprintf "User %s has new commit dir %s" u.user_name u.user_commit_dir)
-	    with Not_found -> print_command_result o buf (Printf.sprintf "User %s does not exist" user)
+	      print_command_result o (Printf.sprintf "User %s has new commit dir %s" u.user_name u.user_commit_dir)
+	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
 	  end
-        else print_command_result o buf "You are not allowed to change this value";
+        else print_command_result o "You are not allowed to change this value";
 	_s ""
     ), "<user> <dir> :\t\tchange user specific commit directory";
 
     "groupadd", Arg_two (fun group admin o ->
-        let buf = o.conn_buf in
 	let g_admin =
 	  try
 	    bool_of_string admin
@@ -3172,19 +3157,18 @@ let _ =
 	in
 	if user2_is_admin o.conn_user.ui_user then
 	  if user2_group_exists group then
-	    print_command_result o buf (Printf.sprintf "Group %s already exists" group)
+	    print_command_result o (Printf.sprintf "Group %s already exists" group)
 	  else
 	    begin
 	      user2_group_add group g_admin;
-	      print_command_result o buf (Printf.sprintf "Group %s added" group)
+	      print_command_result o (Printf.sprintf "Group %s added" group)
 	    end
         else
-	  print_command_result o buf "You are not allowed to add a group";
+	  print_command_result o "You are not allowed to add a group";
 	_s ""
     ), "<group> <admin: true|false> :\tadd new mldonkey group";
 
     "groupdel", Arg_one (fun group o ->
-        let buf = o.conn_buf in
 	if user2_is_admin o.conn_user.ui_user then
 	  begin
 	    try
@@ -3192,46 +3176,45 @@ let _ =
 	      let g_dls = user2_num_group_dls g in
 	      let g_mem = user2_num_group_members g in
 	      if g_dls <> 0 then
-		print_command_result o buf
+		print_command_result o
 		  (Printf.sprintf "Can not remove group %s, it has %d download%s"
 		    group g_dls (Printf2.print_plural_s g_dls))
 	      else
 		if g_mem <> 0 then
-		  print_command_result o buf
+		  print_command_result o
 		    (Printf.sprintf "Can not remove group %s, it has %d member%s"
 		      group g_mem (Printf2.print_plural_s g_mem))
 		else
 		  if g.group_name = system_user_default_group.group_name then
-		    print_command_result o buf (Printf.sprintf "Can not remove system group %s" group)
+		    print_command_result o (Printf.sprintf "Can not remove system group %s" group)
 		  else
 		    begin
 		      user2_group_remove g;
-		      print_command_result o buf (Printf.sprintf "Removed group %s" group)
+		      print_command_result o (Printf.sprintf "Removed group %s" group)
 		    end
-	    with Not_found -> print_command_result o buf (Printf.sprintf "Group %s does not exist" group)
+	    with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
 	  end
         else
-          print_command_result o buf "You are not allowed to remove users";
+          print_command_result o "You are not allowed to remove users";
 	  _s ""
     ), "<group> :\t\t\tremove an unused mldonkey group";
 
     "groupadmin", Arg_two (fun group admin o ->
-        let buf = o.conn_buf in
 	if user2_is_admin o.conn_user.ui_user then
 	  begin
 	    try
 	      let g = user2_group_find group in
 	      if g.group_name = system_user_default_group.group_name then
-		print_command_result o buf (Printf.sprintf "Can not change state of system group %s" group)
+		print_command_result o (Printf.sprintf "Can not change state of system group %s" group)
 	      else
 		begin
 	          user2_group_admin g (bool_of_string admin);
-	          print_command_result o buf (Printf.sprintf "Changed admin status of group %s to %b" g.group_name g.group_admin)
+	          print_command_result o (Printf.sprintf "Changed admin status of group %s to %b" g.group_name g.group_admin)
 		end
-	    with Not_found -> print_command_result o buf (Printf.sprintf "Group %s does not exist" group)
+	    with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
 	  end
         else
-          print_command_result o buf "You are not allowed to change group admin status";
+          print_command_result o "You are not allowed to change group admin status";
 	_s ""
     ), "<group> <true|false> :\tchange group admin status";
 
@@ -3444,22 +3427,22 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
 	    "Downloads";
 	  |] (List.rev !list);
           end
-	end else print_command_result o buf "You are not allowed to list users";
+	end else print_command_result o "You are not allowed to list users";
           _s ""
     ), ":\t\t\t\t\tprint users";
 
     "whoami", Arg_none (fun o ->
-	print_command_result o o.conn_buf o.conn_user.ui_user.user_name;
+	print_command_result o o.conn_user.ui_user.user_name;
         _s ""
     ), ":\t\t\t\tprint logged-in user name";
 
     "groups", Arg_none (fun o ->
-	print_command_result o o.conn_buf (user2_print_user_groups " " o.conn_user.ui_user);
+	print_command_result o (user2_print_user_groups " " o.conn_user.ui_user);
         _s ""
     ), ":\t\t\t\tprint groups of logged-in user";
 
     "dgroup", Arg_none (fun o ->
-	print_command_result o o.conn_buf (user2_print_user_default_group o.conn_user.ui_user);
+	print_command_result o (user2_print_user_default_group o.conn_user.ui_user);
         _s ""
     ), ":\t\t\t\tprint default group of logged-in user";
 
@@ -3472,10 +3455,10 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
               if user2_allow_file_admin file o.conn_user.ui_user then
                 begin
                   set_file_group file None;
-                  print_command_result o o.conn_buf (Printf.sprintf (_b "Changed group of download %d to %s") num group)
+                  print_command_result o (Printf.sprintf (_b "Changed group of download %d to %s") num group)
                 end
               else
-                print_command_result o o.conn_buf (Printf.sprintf (_b "You are not allowed to change group of download %d to %s") num group)
+                print_command_result o (Printf.sprintf (_b "You are not allowed to change group of download %d to %s") num group)
 	    end
 	  else
 	    begin
@@ -3485,13 +3468,13 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
 		   List.mem g (file_owner file).user_groups then
 		  begin
 		    set_file_group file (Some g);
-		    print_command_result o o.conn_buf (Printf.sprintf (_b "Changed group of download %d to %s") num group)
+		    print_command_result o (Printf.sprintf (_b "Changed group of download %d to %s") num group)
 		  end
 		else		  
-		  print_command_result o o.conn_buf (Printf.sprintf (_b "You are not allowed to change group of download %d to %s") num group)
-	      with Not_found -> print_command_result o o.conn_buf (Printf.sprintf (_b "Group %s not found") group)
+		  print_command_result o (Printf.sprintf (_b "You are not allowed to change group of download %d to %s") num group)
+	      with Not_found -> print_command_result o (Printf.sprintf (_b "Group %s not found") group)
 	    end
-        with Not_found -> print_command_result o o.conn_buf (Printf.sprintf (_b "File %d not found") num)
+        with Not_found -> print_command_result o (Printf.sprintf (_b "File %d not found") num)
 	end;
 	_s ""
     ), "<group> <num> :\t\t\tchange group of download <num> to <group>, use group = none for private file";
@@ -3509,23 +3492,23 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
 		    set_file_owner file u;
                     match file_group file with
                     | None ->
-                        print_command_result o o.conn_buf (Printf.sprintf (_b "Changed owner of download %d to %s") num user)
+                        print_command_result o (Printf.sprintf (_b "Changed owner of download %d to %s") num user)
                     | Some g ->
                         if List.mem g u.user_groups then
-                          print_command_result o o.conn_buf (Printf.sprintf (_b "Changed owner of download %d to %s") num user)
+                          print_command_result o (Printf.sprintf (_b "Changed owner of download %d to %s") num user)
                         else
                           begin
                             set_file_group file u.user_default_group;
-                            print_command_result o o.conn_buf (Printf.sprintf
+                            print_command_result o (Printf.sprintf
                               (_b "owner %s is not member of file_group %s, changing file_group to user_default_group %s")
                               user g.group_name (user2_print_user_default_group u))
                           end
 		  end
 		else		  
-		  print_command_result o o.conn_buf (Printf.sprintf (_b "You are not allowed to change owner of download %d to %s") num user)
-	      with Not_found -> print_command_result o o.conn_buf (Printf.sprintf (_b "User %s not found") user)
+		  print_command_result o (Printf.sprintf (_b "You are not allowed to change owner of download %d to %s") num user)
+	      with Not_found -> print_command_result o (Printf.sprintf (_b "User %s not found") user)
 	    end
-          with Not_found -> print_command_result o o.conn_buf (Printf.sprintf (_b "File %d not found") num)
+          with Not_found -> print_command_result o (Printf.sprintf (_b "File %d not found") num)
 	end;
 	_s ""
     ), "<user> <num> :\t\t\tchange owner of download <num> to <user>";

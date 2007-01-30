@@ -940,7 +940,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
         "" end
 	else begin
-	  print_command_result o o.conn_buf "You are not allowed to use scan_temp";
+	  print_command_result o "You are not allowed to use scan_temp";
 	"" end
 
     ), ":\t\t\t\tprint temp directory content";
@@ -950,7 +950,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
           DonkeySources.print o.conn_buf o.conn_output;
           "" end
 	else begin
-	  print_command_result o o.conn_buf "You are not allowed to list sources";
+	  print_command_result o "You are not allowed to list sources";
 	  "" end
     ), ":\t\t\t\tshow sources currently known";
 
