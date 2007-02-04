@@ -2881,10 +2881,10 @@ let _ =
                   Printf.bprintf buf "\\<div class=\\\"sourcesTable al\\\"\\>\\<table cellspacing=0 cellpadding=0\\>
 				\\<tr\\>\\<td\\>
 				\\<table cellspacing=0 cellpadding=0 width=100%%\\>\\<tr\\>
-				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"files\\\"\\>Display all files\\</a\\>\\</td\\>
-				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>\\</td\\>
-				\\<td nowrap class=\\\"fbig\\\"\\>\\<a href=\\\"preview_download?q=%d\\\"\\>Preview\\</a\\>\\</td\\>
-				\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a href=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\</td\\>
+				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='files'\\\"\\>Display all files\\</a\\>\\</td\\>
+				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:parent.fstatus.location.href='submit?q=verify_chunks+%d'\\\"\\>Verify chunks\\</a\\>\\</td\\>
+				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:parent.fstatus.location.href='preview_download?q=%d'\\\"\\>Preview\\</a\\>\\</td\\>
+				\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\</td\\>
 				\\<td class=downloaded width=100%%\\>\\</td\\>
 				\\</tr\\>\\</table\\>
 				\\</td\\>\\</tr\\>

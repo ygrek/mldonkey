@@ -171,18 +171,21 @@ let op_file_print file o =
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   let tracker_header_printed = ref false in
   List.iter (fun tracker ->
-    let tracker_text, tracker_error =
-      (match tracker.tracker_status with
-	  Disabled s | Disabled_mld s | Disabled_failure s -> 
-	    Printf.sprintf "disabled: %s" tracker.tracker_url, s
-	| _ -> tracker.tracker_url, "")
+    let tracker_text =
+      match tracker.tracker_status with
+        | Disabled s | Disabled_mld s | Disabled_failure s -> 
+            Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s\\</font\\>" tracker.tracker_url s
+        | _ ->
+            Printf.sprintf "enabled: %s" tracker.tracker_url
+
     in
     html_mods_td buf [
       (if not !tracker_header_printed then
-        ("Tracker(s) (mouseover for errors)", "sr br", "Tracker(s)")
+        ("Tracker(s)", "sr br", "Tracker(s)")
        else
-	("", "sr br", ""));
-      (tracker_error, "sr", tracker_text)];
+        ("", "sr br", "")
+      );
+      (tracker.tracker_url, "sr", tracker_text)];
     Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
     tracker_header_printed := true;
   ) file.file_trackers;
