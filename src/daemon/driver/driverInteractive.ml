@@ -391,13 +391,10 @@ let print_table_text buf alignments titles lines =
 
 let print_table_html_mods buf lines =
 
-  let counter = ref 0 in
+  html_mods_cntr_init ();
 
   List.iter (fun line ->
-      if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=dl-1"
-      else Printf.bprintf buf "\\<tr class=dl-2";
-      incr counter;
-
+      Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"" (html_mods_cntr ());
       Array.iter (fun data ->
           Printf.bprintf buf "%s" data;
       ) line;
@@ -1200,6 +1197,7 @@ let old_print_search buf o results =
   let counter = ref 0 in
   if use_html_mods o then
   begin
+    html_mods_cntr_init ();
     if !!html_mods_use_js_tooltips then Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:#FFFFDD;color:black;border-color:black;border-width:20px;font-size:8pt; visibility:visible; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>\n";
     html_mods_table_header_colspan buf "resultsTable" "results" [
       ( "1", "0", "srh", "Network", "Network" ) ;
@@ -1220,10 +1218,7 @@ let old_print_search buf o results =
               if !counter >= !!max_displayed_results then raise Exit;
 
               if use_html_mods o then
-                begin
-                  if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-                  else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
-                end;
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
               user.ui_last_results <- (!counter, rs) :: user.ui_last_results;
               let network_name = 
@@ -1950,12 +1945,11 @@ let buildinfo html buf =
        ( "0", "srh", "", "" ) ]
     else
       Printf.bprintf buf "\n\t--Buildinfo--\n";
-    let counter = ref 0 in
+    html_mods_cntr_init ();
     List.iter (fun (desc, text) ->
-      incr counter;
       if html then 
-	Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-          (if !counter mod 2 = 0 then "dl-1" else "dl-2") desc text
+	Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+          (html_mods_cntr ()) desc text
       else
 	Printf.bprintf buf "%s %s\n" desc text;
     ) list;
@@ -2069,12 +2063,11 @@ let runinfo html buf o =
        ( "0", "srh", "", "" ) ]
     else
       Printf.bprintf buf "\n\t--Runinfo--\n";
-    let counter = ref 0 in
+    html_mods_cntr_init ();
     List.iter (fun (desc, text) ->
-      incr counter;
       if html then 
-	Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-          (if !counter mod 2 = 0 then "dl-1" else "dl-2") desc text
+	Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+          (html_mods_cntr ()) desc text
       else
 	Printf.bprintf buf "%s %s\n" desc text;
     ) list;
@@ -2145,7 +2138,7 @@ let diskinfo html buf =
   let fill_dir_line = String.make (!len_dir - 9) '-' in
   let fill_strategy = String.make (!len_strategy - 4) ' ' in
   let fill_strategy_line = String.make (!len_strategy - 4) '-' in
-  let counter = ref 0 in
+  html_mods_cntr_init ();
   if html then
       html_mods_table_header buf "sharesTable" "shares" [
        ( "0", "srh", "Directory", "Directory" ) ;
@@ -2163,7 +2156,6 @@ let diskinfo html buf =
         fill_dir_line fill_strategy_line;
     end;
   List.iter (fun (dir, strategy) ->
-	incr counter;
 	let diskused =
     	  match Unix32.diskused dir with
 	  | None -> Printf.sprintf "---"
@@ -2181,11 +2173,10 @@ let diskinfo html buf =
 	in
 	let filesystem = Unix32.filesystem dir in
 	if html then
-	  begin
-	    Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-	    (if !counter mod 2 = 0 then "dl-1" else "dl-2")
-	    dir strategy diskused diskfree percentfree filesystem
-	  end
+	    Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+	      \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+	      \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+	    (html_mods_cntr ()) dir strategy diskused diskfree percentfree filesystem
 	else
 	  Printf.bprintf buf "%-*s|%-*s|%8s|%8s|%5s|%-s\n"
 	    (max !len_dir (!len_dir - String.length dir)) dir

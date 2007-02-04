@@ -209,11 +209,9 @@ let list_calendar o list =
         ( "0", "srh", "Weekdays", "Weekdays" ) ;
         ( "0", "srh", "Hours", "Hours" ) ;
         ( "0", "srh", "Command", "Command" ) ] ;
-      let counter = ref 0 in
+      html_mods_cntr_init ();
       List.iter (fun (wdays, hours, command) ->
-          incr counter;
-          if (!counter mod 2 == 0) then Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>"
-          else Printf.bprintf buf "\\<tr class=\\\"dl-2\\\"\\>";
+          Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
           let wdays_string = ref "" in
 	  let hours_string = ref "" in
 	  List.iter (fun day ->
@@ -411,17 +409,17 @@ let _ =
                 ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
                 ( "1", "srh ar", "Session DL bytes from this client for all files", "sDL" )]);
 
-            let counter = ref 0 in
+            html_mods_cntr_init ();
             let all_clients_list = clients_get_all () in
             List.iter (fun num ->
                 let c = client_find num in
                 let i = client_info c in
-                if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"%s\\\"
+                if use_html_mods o then Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"
                   title=\\\"Add as friend\\\"
                   onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"
                   onMouseOver=\\\"mOvr(this);\\\"
                   onMouseOut=\\\"mOut(this);\\\"\\>"
-                    (if (!counter mod 2 == 0) then "dl-1" else "dl-2") num;
+                    (html_mods_cntr ()) num;
                     client_print c o;
                     if use_html_mods o then
                     html_mods_td buf ([
@@ -437,7 +435,6 @@ let _ =
                      ("", "sr ar", (size_of_int64 i.client_session_downloaded))]);
                 if use_html_mods o then Printf.bprintf buf "\\</tr\\>"
                 else Printf.bprintf buf "\n";
-                incr counter;
             ) all_clients_list;
             if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
           end
@@ -522,7 +519,7 @@ let _ =
 
     "message_log", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
-        let counter = ref 0 in
+        html_mods_cntr_init ();
 
         (match args with
             [arg] ->
@@ -556,8 +553,8 @@ let _ =
 
             Fifo.iter (fun (t,i,num,n,s) ->
                 if use_html_mods o then begin
-                    Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
-                      (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
+                    Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
+                      (html_mods_cntr ());
                     html_mods_td buf [
                       ("", "sr", Date.simple (BasicSocket.date_of_int t));
                       ("", "sr",  i);
@@ -569,7 +566,6 @@ let _ =
                 else
                   Printf.bprintf buf "\n%s [client #%d] %s(%s): %s\n"
                     (Date.simple (BasicSocket.date_of_int t)) num n i s;
-                incr counter;
             ) chat_message_fifo;
             if use_html_mods o then Printf.bprintf buf
                 "\\</table\\>\\</div\\>\\</div\\>";
@@ -955,19 +951,18 @@ let _ =
               ( "0", "srh", "Name", "Name" ) ;
               ( "0", "srh", "State", "State" ) ] ;
           end;
-        let counter = ref 0 in
+        html_mods_cntr_init ();
         List.iter (fun c ->
             let i = client_info c in
             let n = network_find_by_num i.client_network in
             if use_html_mods o then
               begin
 
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"
                 onMouseOver=\\\"mOvr(this);\\\"
                 onMouseOut=\\\"mOut(this);\\\"\\>"
-                  (if (!counter mod 2 == 0) then "dl-1" else "dl-2");
+                  (html_mods_cntr ());
 
-                incr counter;
                 Printf.bprintf buf "
 			\\<td title=\\\"Client number\\\"
 			onClick=\\\"location.href='submit?q=files+%d'\\\"
@@ -2477,7 +2472,7 @@ let _ =
         let nuploaders = Intmap.length !uploaders in
         if use_html_mods o then
           begin
-            let counter = ref 0 in
+            html_mods_cntr_init ();
             Printf.bprintf buf "\\<div class=\\\"uploaders\\\"\\>";
             html_mods_table_one_row buf "uploadersTable" "uploaders" [
               ("", "srh", Printf.sprintf "Total upload slots: %d (%d) | Pending slots: %d\n" nuploaders
@@ -2512,14 +2507,13 @@ let _ =
                     try
                       let i = client_info c in
                       if is_connected i.client_state then begin
-                          incr counter;
 
-                          Printf.bprintf buf "\\<tr class=\\\"%s\\\"
+                          Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"
                         title=\\\"[%d] Add as friend (avg: %.1f KB/s)\\\"
                         onMouseOver=\\\"mOvr(this);\\\"
                         onMouseOut=\\\"mOut(this);\\\"
                         onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
-                            ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) (client_num c)
+                            (html_mods_cntr ()) (client_num c)
                           ( float_of_int (Int64.to_int i.client_session_uploaded / 1024) /.
                               float_of_int (max 1 ((last_time ()) - i.client_connect_time)) )
                           (client_num c);
@@ -2595,12 +2589,11 @@ let _ =
                     try
                       let i = client_info c in
 		      let ips,cc,cn = string_of_kind_geo i.client_kind in
-                      incr counter;
 
-                      Printf.bprintf buf "\\<tr class=\\\"%s\\\"
+                      Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"
 					title=\\\"Add as Friend\\\" onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\"
 					onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
-                        ( if (!counter mod 2 == 0) then "dl-1" else "dl-2";) cnum;
+                        (html_mods_cntr ()) cnum;
 
                       html_mods_td buf [
                         ("", "sr", Printf.sprintf "%d" (client_num c)); ];
@@ -3247,12 +3240,11 @@ let _ =
               ( "0", "srh ar", "Download quota", "Max DLs" ) ;
               ( "0", "srh ar", "Download count", "DLs" ) ];
 
-            let counter = ref 0 in
+            html_mods_cntr_init ();
             user2_users_iter (fun user ->
-                incr counter;
 		let u_dls = user2_num_user_dls user in
-                Printf.bprintf buf "\\<tr class=\\\"%s\\\"\\>"
-                (if !counter mod 2 == 0 then "dl-1" else "dl-2");
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
+                (html_mods_cntr ());
 		if user <> admin_user && (u_dls = 0) then Printf.bprintf buf
 "\\<td title=\\\"Click to remove user\\\"
 onMouseOver=\\\"mOvr(this);\\\"
