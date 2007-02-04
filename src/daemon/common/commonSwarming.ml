@@ -136,10 +136,6 @@ type t = {
     mutable t_chunk_of_block : int array;
   }
 
-and uploader_map = {
-    mutable um_map : Bitv.t;
-    }
-
 and swarmer = {
     s_num : int;
     s_filename : string;
@@ -153,7 +149,6 @@ and swarmer = {
     mutable s_verified_bitmap : VerificationBitmap.t;
     mutable s_disk_allocated : Bitv.t;
     mutable s_availability : int array;
-    mutable s_availability_map : (client,uploader_map) Hashtbl.t;
     mutable s_nuploading : int array;
 (*    mutable s_last_seen : int array; *)
 
@@ -578,7 +573,6 @@ let dummy_swarmer = {
     s_blocks = [||];
     s_block_pos = [||];
     s_availability = [||];
-    s_availability_map = Hashtbl.create 0;
     s_nuploading = [||];
   }
 
@@ -619,7 +613,6 @@ let create_swarmer file_name file_size =
       s_blocks = Array.create nblocks EmptyBlock ;
       s_block_pos = Array.create nblocks zero;
       s_availability = Array.create nblocks 0;
-      s_availability_map = Hashtbl.create 0;
       s_nuploading = Array.create nblocks 0;
 (*      s_last_seen = Array.create nblocks 0; *)
     }
@@ -748,7 +741,6 @@ let split_blocks s chunk_size =
   s.s_verified_bitmap <- VB.create nblocks VB.State_missing;
   s.s_block_pos <- Array.create nblocks zero;
   s.s_availability <- Array.create nblocks 0; (* not preserved ? *)
-  s.s_availability_map <- Hashtbl.create 1023;
   s.s_nuploading <- Array.create nblocks 0; (* not preserved ? *)
 (*  s.s_last_seen <- Array.create nblocks 0; *)
 
@@ -1719,26 +1711,15 @@ let set_uploader_intervals up intervals =
   let complete_blocks = ref [] in
   let partial_blocks = ref [] in
 
-  let uploaders_map = 
-    try
-      Hashtbl.find s.s_availability_map up.up_client
-    with Not_found ->
-      let map = {um_map = Bitv.create (Array.length s.s_blocks) false
-      } in
-      Hashtbl.add s.s_availability_map up.up_client map;
-      map
-  in
-  let map = uploaders_map.um_map in
-  (* we dont initialize the map with false for an exiting uploader,
-     cause the number of blocks should increase over time, not decrease.
-     should we? *)
+  let incr_availability s i =
+    s.s_availability.(i) <- s.s_availability.(i) + 1 in
 
   (match intervals with
    | AvailableIntervals intervals ->
        iter_intervals s (fun i block_begin block_end interval_begin interval_end ->
 (*              lprintf "iter_intervals %d %Ld-%Ld %Ld-%Ld\n"
                 i block_begin block_end interval_begin interval_end; *)
-         Bitv.set map i true;
+         incr_availability s i;
 
          match s.s_blocks.(i) with
 	 | CompleteBlock | VerifiedBlock -> ()
@@ -1753,7 +1734,7 @@ let set_uploader_intervals up intervals =
    | AvailableBitv bitmap ->
        Bitv.iteri_true (fun i ->
          List.iter (fun j ->
-           Bitv.set map j true;
+           incr_availability s j;
            complete_blocks := j :: !complete_blocks
          ) t.t_blocks_of_chunk.(i)
        ) bitmap
@@ -1764,14 +1745,6 @@ let set_uploader_intervals up intervals =
     let i = t.t_chunk_of_block.(i) in
     t.t_last_seen.(i) <- BasicSocket.last_time ()
   ) !complete_blocks;
-
-  let availability = Array.create (Array.length s.s_blocks) 0 in
-  Hashtbl.iter (fun _ j ->
-    Bitv.iteri_true (fun i ->
-      availability.(i) <- availability.(i) + 1
-    ) j.um_map
-  ) s.s_availability_map;
-  s.s_availability <- availability;
 
   let complete_blocks = Array.of_list !complete_blocks in
   let partial_blocks = Array.of_list !partial_blocks in
@@ -1862,8 +1835,18 @@ let clear_uploader_blocks up =
 
 let clear_uploader_intervals up =
   if up.up_declared then
+    let decr_availability s i =
+      if s.s_availability.(i) > 0 then
+	s.s_availability.(i) <- s.s_availability.(i) - 1 
+      else 
+	lprintf_nl "clear_uploader_intervals: some s_availability was about to become negative\n" in
+(*          lprintf "clean_uploader_chunks:\n"; *)
+    let t = up.up_t in
+    let s = t.t_s in
+    Array.iter (decr_availability s) up.up_complete_blocks;
     up.up_complete_blocks <- [||];
     up.up_ncomplete <- 0;
+    Array.iter (fun (b,_,_) -> decr_availability s b) up.up_partial_blocks;
     up.up_partial_blocks <- [||];
     up.up_npartial <- 0;
     clear_uploader_blocks up;
@@ -2143,11 +2126,8 @@ let select_blocks up =
 	let data_per_source = 9728000L // (Int64.of_int !!sources_per_chunk) in
 	
 	let need_to_complete_some_blocks_quickly = 
-	  match !!swarming_block_selection_algorithm with
-	  | 1 -> true
-	  | 2 -> verification_available && t.t_nverified_chunks < 2
-	  | 3 -> false
-	  | _ -> assert false in
+	  verification_available && t.t_nverified_chunks < 2
+        in
 
 	let create_choice n b =
 	  let block_begin = compute_block_begin s b in
@@ -2219,66 +2199,7 @@ let select_blocks up =
 	    (choice_availability c) 
 	    (choice_preallocated c) in
 
-	(** > 0 == c1 is best, < 0 = c2 is best, 0 == they're equivalent *)
-	let compare_choices1 c1 c2 =
-
-	  (* avoid overly unbalanced situations *)
-	  let cmp =
-	    if choice_remaining_per_uploader c1 < data_per_source ||
-	      choice_remaining_per_uploader c2 < data_per_source then
-		compare (choice_remaining_per_uploader c1)
-		  (choice_remaining_per_uploader c2) else 0 in
-	  if cmp <> 0 then cmp else
-
-	  (* Do what Master asked for *)
-	  let cmp = compare (choice_user_priority c1)
-	    (choice_user_priority c2) in
-	  if cmp <> 0 then cmp else
-
-	  (* Pick really rare gems: if average availability of all
-	     blocks is higher than 5 connected sources, pick in
-	     priority blocks present in at most 3 connected sources;
-	     is that too restrictive ? *)
-	  let cmp = 
-	    if not need_to_complete_some_blocks_quickly && 
-	      mean_availability > 5 &&
-	      (choice_availability c1 <= 3 || choice_availability c2 <= 3) then
-		compare (choice_availability c2) (choice_availability c1)
-	    else 0 in
-	  if cmp <> 0 then cmp else
-
-	  (* try to quickly complete (and validate) chunks; 
-	     if there's only one frontend, each chunk has only one
-	     block, and looking at siblings make no sense *)
-	  let cmp = 
-	    if verification_available && several_frontends then 
-	      compare (choice_other_remaining c2)
-		(choice_other_remaining c1)
-	    else 0 in
-	  if cmp <> 0 then cmp else
-
-	  (* try to quickly complete blocks *)
-	  let cmp = 
-	    match choice_unselected_remaining c1,
-	    choice_unselected_remaining c2 with
-	    | 0L, 0L -> 0
-	    | 0L, _ -> -1
-	    | _, 0L -> 1
-	    | ur1, ur2 -> compare ur2 ur1 in
-	  if cmp <> 0 then cmp else
-
-	  (* pick blocks that won't require allocating more disk space *)
-	  let cmp =
-	    match choice_preallocated c1, choice_preallocated c2 with
-	    | true, false -> 1
-	    | false, true -> -1
-	    | _ -> 0 in
-	  if cmp <> 0 then cmp else
-
-	    (* Can't tell *)
-	    0 in
-
-	let compare_choices2 c1 c2 =
+	let compare_choices c1 c2 =
 	  (* "RULES" *)
 	  (* Avoid stepping on each other's feet *)
 	  let cmp =
@@ -2348,81 +2269,6 @@ let select_blocks up =
 	    (* Can't tell *)
 	    0 in
 
-	let compare_choices3 c1 c2 =
-	  (* "RULES" *)
-	  (* Avoid stepping on each other's feet *)
-	  let cmp =
-	    match choice_unselected_remaining c1,
-	    choice_unselected_remaining c2 with
-	    | 0L, 0L -> 0
-	    | _, 0L -> 1
-	    | 0L, _ -> -1
-	    | _, _ -> 0 in
-	  if cmp <> 0 then cmp else
-
-    (* avoid overly unbalanced situations *)
-    let cmp =
-      match choice_saturated c1, choice_saturated c2 with
-      | false, false -> 0
-      | false, true -> 1
-      | true, false -> -1
-      | true, true -> 0 in
-    if cmp <> 0 then cmp else
-
-    (* "WISHES" *)
-	  (* Do what Master asked for *)
-    let cmp = compare (choice_user_priority c1)
-	      (choice_user_priority c2) in
-	  if cmp <> 0 then cmp else
-
-    (* "OPTIMIZATIONS" *)
-    (* Allways pick rarer choice, if at least one availability
-       is below mean_availability*)
-    let cmp =
-      if not need_to_complete_some_blocks_quickly &&
-      (mean_availability < 5 ||
-      choice_availability c1 <= mean_availability || 
-      choice_availability c2 <= mean_availability) then
-        compare (choice_availability c2)
-        (choice_availability c1)
-      else 0 in
-    if cmp <> 0 then cmp else
-  
-	  (* try to quickly complete (and validate) chunks; 
-	     if there's only one frontend, each chunk has only one
-	     block, and looking at siblings make no sense *)
-	  let cmp = 
-	    if verification_available && several_frontends then 
-        compare (choice_other_remaining c2)
-        (choice_other_remaining c1)
-	    else 0 in
-	  if cmp <> 0 then cmp else
-
-	  (* try to quickly complete blocks *)
-	  let cmp = 
-	    compare (choice_unselected_remaining c2)
-	      (choice_unselected_remaining c1) in
-	  if cmp <> 0 then cmp else
-
-	  (* pick blocks that won't require allocating more disk space *)
-	  let cmp =
-	    match choice_preallocated c1, choice_preallocated c2 with
-	    | true, false -> 1
-	    | false, true -> -1
-	    | _ -> 0 in
-	  if cmp <> 0 then cmp else
-
-	  (* "DEFAULT" *)
-	    (* Can't tell *)
-	    0 in
-
-	let compare_choices =
-	  match !!swarming_block_selection_algorithm with
-	  | 1 -> compare_choices1
-	  | 2 -> compare_choices2
-	  | 3 -> compare_choices3
-	  | _ -> assert false in
-
 	(* compare a new chunk against a list of best choices numbers (and a
 	   specimen of best choice) *)
 	let keep_best_chunks chunk_blocks_indexes best_choices specimen =
@@ -2469,9 +2315,7 @@ let select_blocks up =
 	   currently they're taken care of by linear_select_block
 	   fallback below *)
 
-	if debug_all then begin
-	  print_choice specimen
-	end;
+	if debug_all then print_choice specimen;
 
 	try
 	  let blocks = 
@@ -2777,7 +2621,6 @@ let find_range up range_size =
 	iter dummy_ranges_cluster b.up_block.block_ranges b more_blocks in
       if not (is_dummy_cluster best_cluster) &&
 	best_cluster.cluster_nuploading > 0 &&
-	!!block_switching &&
 	(file_downloaded t.t_file < file_size t.t_file ** 98L // 100L) then begin
 	(* it seems they're only sucky choices left on that block, is
 	   there really nothing else better elsewhere ? *)

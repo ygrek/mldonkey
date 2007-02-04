@@ -14,6 +14,15 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/02/04
+5720: Swarmer: block choice algorithm 2 from patch 5141 is new default
+- remove swarming_block_selection_algorithm = 1
+  because it finishes chunks too slowly
+- remove swarming_block_selection_algorithm = 3 from TripleM
+  because it uses too much CPU power.
+- remove option swarming_block_selection_algorithm, hard-coded default is now 2
+- remove option block_switching, hard-coded default is now true
+
 2007/01/30
 5717: Optimize function print_command_result
 

@@ -1187,15 +1187,6 @@ let sources_per_chunk = define_expert_option current_section ["sources_per_chunk
   "How many sources to use to download each chunk"
     int_option 3
 
-let swarming_block_selection_algorithm = define_expert_option current_section ["swarming_block_selection_algorithm"]
-  "What algorithm to use to select blocks (currently 1, 2 or 3)"
-    int_option 1
-
-let block_switching = define_expert_option current_section ["block_switching"]
-  "Allows swarmer to switch a source to another block if current block is already
-  totally selected by other sources"
-    bool_option true
-
 let max_recover_gap = define_option current_section ["max_recover_zeroes_gap"]
   "The maximal length of zero bytes between non-zero bytes in a file that
   should be interpreted as downloaded during a recovery"
@@ -1775,11 +1766,6 @@ let _ =
           lprintf_to_file := false;
           close_log ()
         end
-  );
-  option_hook swarming_block_selection_algorithm (fun _ ->
-    match !!swarming_block_selection_algorithm with
-    | 1 | 2 | 3 -> ()
-    | _ -> swarming_block_selection_algorithm =:= 1;
   );
   option_hook max_upload_slots (fun _ ->
       if !!max_upload_slots < 3 then
