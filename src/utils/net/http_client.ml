@@ -334,6 +334,14 @@ let rec get_page r content_handler f ferr =
           raise Not_found
         end
           
+    | 400 when r.req_request = HEAD ->
+        lprintf_nl "Error 400 received for HEAD %s, re-try GET" (Url.to_string_no_args r.req_url);
+        let r2 = {
+          r with
+          req_request = GET;
+        } in
+        get_page r2 content_handler f ferr
+
     | 404 ->
         lprintf_nl "404: Not found for: %s" (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
