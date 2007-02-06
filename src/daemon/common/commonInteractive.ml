@@ -200,8 +200,6 @@ file has already been moved to the incoming/ directory under its new
 name.
 *)
 
-exception Incoming_full
-
 let file_commit file =
   let impl = as_file_impl file in
   if impl.impl_file_state = FileDownloaded then

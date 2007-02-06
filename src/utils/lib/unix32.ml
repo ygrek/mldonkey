@@ -206,9 +206,9 @@ module FDCache = struct
     let owner t =
       try
       check_destroyed t;
-      let s = Unix.fstat (local_force_fd t) in
-      let user = Unix.getpwuid s.Unix.st_uid in
-      let group = Unix.getgrgid s.Unix.st_gid in
+      let s = Unix.LargeFile.fstat (local_force_fd t) in
+      let user = Unix.getpwuid s.Unix.LargeFile.st_uid in
+      let group = Unix.getgrgid s.Unix.LargeFile.st_gid in
       user.Unix.pw_name, group.Unix.gr_name
       with e ->
       if !verbose then lprintf_nl "Exception in FDCache.owner %s: %s"

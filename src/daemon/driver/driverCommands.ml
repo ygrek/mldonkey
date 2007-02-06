@@ -2176,9 +2176,9 @@ let _ =
 	   | Some p -> Printf.sprintf "%d%%" p in
          Printf.bprintf buf "percentused %s\n" (print_percento (Unix32.percentused arg));
          Printf.bprintf buf "percentfree %s\n" (print_percento (Unix32.percentfree arg));
-	 let stat = Unix.stat arg in
-         Printf.bprintf buf "\nstat_device %d\n" stat.Unix.st_dev;
-         Printf.bprintf buf "stat_inode %d\n" stat.Unix.st_ino;
+	 let stat = Unix.LargeFile.stat arg in
+         Printf.bprintf buf "\nstat_device %d\n" stat.Unix.LargeFile.st_dev;
+         Printf.bprintf buf "stat_inode %d\n" stat.Unix.LargeFile.st_ino;
 
          _s ""
      ), "debug command (example: disk .)";
@@ -2203,15 +2203,16 @@ let _ =
      "debug_fileinfo", Arg_one (fun arg o ->
          let buf = o.conn_buf in
 	 (try
-	    let s = Unix.stat arg in
-            Printf.bprintf buf "st_dev %d\n" s.Unix.st_dev;
-            Printf.bprintf buf "st_ino %d\n" s.Unix.st_ino;
-            Printf.bprintf buf "st_uid %d\n" s.Unix.st_uid;
-            Printf.bprintf buf "st_gid %d\n" s.Unix.st_gid;
-            Printf.bprintf buf "st_size %d\n" s.Unix.st_size;
-            Printf.bprintf buf "st_atime %s\n" (Date.to_full_string s.Unix.st_atime);
-            Printf.bprintf buf "st_mtime %s\n" (Date.to_full_string s.Unix.st_mtime);
-            Printf.bprintf buf "st_ctime %s\n" (Date.to_full_string s.Unix.st_ctime);
+            let module U = Unix.LargeFile in
+	    let s = U.stat arg in
+            Printf.bprintf buf "st_dev %d\n" s.U.st_dev;
+            Printf.bprintf buf "st_ino %d\n" s.U.st_ino;
+            Printf.bprintf buf "st_uid %d\n" s.U.st_uid;
+            Printf.bprintf buf "st_gid %d\n" s.U.st_gid;
+            Printf.bprintf buf "st_size %Ld\n" s.U.st_size;
+            Printf.bprintf buf "st_atime %s\n" (Date.to_full_string s.U.st_atime);
+            Printf.bprintf buf "st_mtime %s\n" (Date.to_full_string s.U.st_mtime);
+            Printf.bprintf buf "st_ctime %s\n" (Date.to_full_string s.U.st_ctime);
 	    let user,group = Unix32.owner arg in
             Printf.bprintf buf "username %s\n" user;
             Printf.bprintf buf "groupname %s\n" group;

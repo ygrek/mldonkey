@@ -124,10 +124,11 @@ type t = {
 }  
 
 let open_connection loginfo =
+  let module U = Unix.LargeFile in
   match loginfo.logpath with
       "" -> raise (Syslog_error "unable to find the syslog socket or pipe, is syslogd running?")
     | logpath -> 
-	(match (Unix.stat logpath).Unix.st_kind with
+	(match (U.stat logpath).U.st_kind with
 	     Unix.S_SOCK -> 
 	       let logaddr = Unix.ADDR_UNIX logpath in
 	         (try

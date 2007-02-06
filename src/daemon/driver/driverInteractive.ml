@@ -2039,10 +2039,11 @@ let runinfo html buf o =
   tack list
     (
       "", 
-      Printf.sprintf "\t\t max_string_length: %d - word_size: %d - max_array_length: %d"
+      Printf.sprintf "\t\t max_string_length: %d - word_size: %d - max_array_length: %d - max_int: %d"
 	Sys.max_string_length
 	Sys.word_size
 	Sys.max_array_length
+	Pervasives.max_int
     );
   tack list
     (

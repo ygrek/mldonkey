@@ -78,10 +78,10 @@ let iter_directory f dirname =
     with End_of_file -> ())
 
 let is_directory filename =
-  try let s = Unix.stat filename in s.st_kind = S_DIR with _ -> false
+  try let s = Unix.LargeFile.stat filename in s.LargeFile.st_kind = S_DIR with _ -> false
 
 let is_link filename =
-  try let s = Unix.lstat filename in s.st_kind = S_LNK with _ -> false
+  try let s = Unix.LargeFile.lstat filename in s.LargeFile.st_kind = S_LNK with _ -> false
 
 let chmod f o = 
   try 
@@ -136,12 +136,12 @@ let rec really_read fd s pos len =
 
 let copy oldname newname =
   tryopen_read_bin oldname (fun ic ->
-    let stats = Unix.fstat (Unix.descr_of_in_channel ic) in
+    let stats = Unix.LargeFile.fstat (Unix.descr_of_in_channel ic) in
     tryopen_write_bin newname (fun oc ->
       let descr = Unix.descr_of_out_channel oc in
-      (try Unix.fchown descr stats.Unix.st_uid stats.Unix.st_gid 
+      (try Unix.fchown descr stats.Unix.LargeFile.st_uid stats.Unix.LargeFile.st_gid 
        with e -> lprintf_nl "copy: failed to preserve owner");
-      (try Unix.fchmod descr stats.Unix.st_perm 
+      (try Unix.fchmod descr stats.Unix.LargeFile.st_perm 
        with e -> lprintf_nl "copy: failed to preserve mode");
       let buffer_len = 8192 in
       let buffer = String.create buffer_len in

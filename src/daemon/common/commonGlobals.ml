@@ -263,6 +263,7 @@ let exit_properly n = Pervasives.exit n
 let user_socks = ref ([] : TcpBufferedSocket.t list)
 let dialog_history = ref ([] : (int * string * string) list )
 
+exception Incoming_full
 
 let want_and_not andnot f none value =
 (*   lprintf "want_and_not [%s]\n" value; *)

@@ -544,7 +544,7 @@ let copy_file_to_entry infilename ofile ?(extra = "") ?(comment = "")
     match mtime with 
       Some t -> mtime
     | None ->
-        try Some((Unix.stat infilename).Unix.st_mtime)
+        try Some((Unix.LargeFile.stat infilename).Unix.LargeFile.st_mtime)
         with Unix.Unix_error(_,_,_) -> None in
   try
     copy_channel_to_entry ic ofile ~extra ~comment ~level ?mtime:mtime' name;

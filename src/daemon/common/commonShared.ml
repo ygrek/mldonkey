@@ -247,14 +247,15 @@ let shared_add_directory shared_dir local_dir =
   waiting_directories := (shared_dir, local_dir) :: !waiting_directories
   
 let shared_scan_directory shared_dir local_dir =
+  let module U = Unix.LargeFile in
   let incoming_files_inode = 
-    ((Unix.stat ((CommonComplexOptions.incoming_dir false ()).shdir_dirname)).Unix.st_ino)
+    ((U.stat ((CommonComplexOptions.incoming_dir false ()).shdir_dirname)).U.st_ino)
   in
   let incoming_directories_inode = 
-    ((Unix.stat ((CommonComplexOptions.incoming_dir true ()).shdir_dirname)).Unix.st_ino)
+    ((U.stat ((CommonComplexOptions.incoming_dir true ()).shdir_dirname)).U.st_ino)
   in
   let temp_directory_inode =
-    ((Unix.stat !!temp_directory).Unix.st_ino)
+    ((U.stat !!temp_directory).U.st_ino)
   in
   let dirname = shared_dir.shdir_dirname in
   let strategy = 

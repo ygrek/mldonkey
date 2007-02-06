@@ -962,8 +962,6 @@ let search_incoming_directories () =
         [default_incoming_directories]
   | l -> l
 
-exception Incoming_full
-
 let incoming_dir usedir ?user ?needed_space ?network () =
 
   let directories =
@@ -994,12 +992,13 @@ let incoming_dir usedir ?user ?needed_space ?network () =
   in
 
   let checkdir =
+    let module U = Unix.LargeFile in
     try
       List.find (fun d ->
 	let dirname = compute_dir_name d.shdir_dirname in
 (* check if temp_directory and incoming are on different partitions *)
 	try
-          if (Unix.stat dirname).Unix.st_dev <> (Unix.stat !!temp_directory).Unix.st_dev then
+          if (U.stat dirname).U.st_dev <> (U.stat !!temp_directory).U.st_dev then
             begin
               match needed_space with
               | None -> true
@@ -1100,8 +1099,9 @@ let backup_zip archive files =
     Unix2.tryopen_write_zip archive (fun oc ->
       List.iter (fun file ->
 	try
-          let s = Unix.stat file in
-	  Zip.copy_file_to_entry file oc ~level:9 ~mtime:s.Unix.st_mtime file
+          let module U = Unix.LargeFile in
+          let s = U.stat file in
+	  Zip.copy_file_to_entry file oc ~level:9 ~mtime:s.U.st_mtime file
 	with e ->
 	  failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) file)
       ) files)

@@ -67,12 +67,13 @@ let zip_extract zipfile =
     List.iter (zip_extract_entry ic) (Zip.entries ic))
 
 let rec zip_add_entry oc file =
-  let s = Unix.stat file in
-  match s.Unix.st_kind with
+  let module U = Unix.LargeFile in
+  let s = U.stat file in
+  match s.U.st_kind with
     Unix.S_REG ->
-      Zip.copy_file_to_entry file oc ~mtime:s.Unix.st_mtime file
+      Zip.copy_file_to_entry file oc ~mtime:s.U.st_mtime file
   | Unix.S_DIR ->
-      Zip.add_entry "" oc ~mtime:s.Unix.st_mtime
+      Zip.add_entry "" oc ~mtime:s.U.st_mtime
         (if Filename.check_suffix file "/" then file else file ^ "/");
       Unix2.tryopen_dir file (fun d ->
 	try
