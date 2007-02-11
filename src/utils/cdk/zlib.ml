@@ -143,10 +143,10 @@ let uncompress ?(header = true) refill flush =
       let incount = refill inbuf in
       if incount = 0 then uncompr_finish true else uncompr 0 incount
     end else begin
-      let (_, used_in, used_out) =
+      let (finished, used_in, used_out) =
         inflate zs inbuf inpos inavail outbuf 0 buffer_size Z_SYNC_FLUSH in
       flush outbuf used_out;
-      uncompr (inpos + used_in) (inavail - used_in)
+      if not finished then uncompr (inpos + used_in) (inavail - used_in)
     end
   and uncompr_finish first_finish =
     (* Gotcha: if there is no header, inflate requires an extra "dummy" byte
