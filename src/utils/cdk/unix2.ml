@@ -136,13 +136,18 @@ let rec really_read fd s pos len =
 
 let copy oldname newname =
   tryopen_read_bin oldname (fun ic ->
-    let stats = Unix.LargeFile.fstat (Unix.descr_of_in_channel ic) in
+    let stats =
+      try Some (Unix.LargeFile.fstat (Unix.descr_of_in_channel ic)) with _ -> None
+    in
     tryopen_write_bin newname (fun oc ->
+      (match stats with
+      | None -> ()
+      | Some stats ->
       let descr = Unix.descr_of_out_channel oc in
       (try Unix.fchown descr stats.Unix.LargeFile.st_uid stats.Unix.LargeFile.st_gid 
        with e -> lprintf_nl "copy: failed to preserve owner");
       (try Unix.fchmod descr stats.Unix.LargeFile.st_perm 
-       with e -> lprintf_nl "copy: failed to preserve mode");
+       with e -> lprintf_nl "copy: failed to preserve mode"));
       let buffer_len = 8192 in
       let buffer = String.create buffer_len in
       let rec copy_file () =

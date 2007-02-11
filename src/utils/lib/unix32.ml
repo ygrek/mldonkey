@@ -204,16 +204,24 @@ module FDCache = struct
       raise e
 
     let owner t =
+      let module U = Unix.LargeFile in
       try
       check_destroyed t;
-      let s = Unix.LargeFile.fstat (local_force_fd t) in
-      let user = Unix.getpwuid s.Unix.LargeFile.st_uid in
-      let group = Unix.getgrgid s.Unix.LargeFile.st_gid in
+      let s =
+        try
+          U.fstat (local_force_fd t)
+        with
+ (* Unix.fstat is not supported on MinGW, Unix.stat is supported *)
+        | Invalid_argument _ -> U.stat t.filename
+      in
+      let user = Unix.getpwuid s.U.st_uid in
+      let group = Unix.getgrgid s.U.st_gid in
       user.Unix.pw_name, group.Unix.gr_name
-      with e ->
-      if !verbose then lprintf_nl "Exception in FDCache.owner %s: %s"
-        t.filename
-        (Printexc2.to_string e);
+      with
+      | Not_found -> "", ""
+      | e -> if !verbose then
+            lprintf_nl "Exception in FDCache.owner %s: %s"
+              t.filename (Printexc2.to_string e);
       raise e
 
     let mtime64 t =
@@ -1435,13 +1443,15 @@ let owner_fd t =
   | Destroyed -> "", ""
 
 let owner s =
-  try
     let old_fd_exists = fd_exists s in
     let fd = create_ro s in
-    let user,group = owner_fd fd in
-    if not old_fd_exists then close fd;
-    user,group
+  let user,pass =
+    try
+      owner_fd fd
   with _ -> "", ""
+  in
+  if not old_fd_exists then close fd;
+  user, pass
 
 let rename t f =
   flush_fd t;

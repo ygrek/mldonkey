@@ -616,9 +616,14 @@ let load_torrent_string s user =
     (if torrent.torrent_announce_list <> [] then torrent.torrent_announce_list else [torrent.torrent_announce]);
   if not !torrent_is_usable then raise Torrent_can_not_be_used;
 
-  let torrent_diskname = Filename.concat
-    downloads_directory
-    torrent.torrent_name ^ ".torrent"
+  let torrent_diskname =
+    let fs = Unix32.filesystem downloads_directory in
+    let namemax =
+      match Unix32.fnamelen downloads_directory with
+      | None -> 0
+      | Some v -> Int64.to_int v in
+    Filename.concat downloads_directory
+    (Filename2.filesystem_compliant torrent.torrent_name fs namemax) ^ ".torrent"
     in
   if Sys.file_exists torrent_diskname then
     begin

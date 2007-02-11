@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/02/11
+5737: MinGW: Work-around missing Unix.fstat
+- fixes failed removal of torrent files from torrents/[incoming|downloads]
+
 2007/02/06
 5719: Unix2: Fix copying files > 1GB (1073741823 bytes),
       bug was introduced by patch 5589 after release of 2.8.2
