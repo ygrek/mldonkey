@@ -326,9 +326,9 @@ let encode_torrent torrent =
 
   let encode_file (filename, size) =
     Dictionary [
+      String "length", Int size;
       String "path", List (List.map
           (fun s -> String s)(Filepath.string_to_path '/' filename));
-      String "length", Int size;
     ]
   in
 
@@ -357,11 +357,11 @@ let encode_torrent torrent =
   file_id,
   Dictionary [
     String "announce", String torrent.torrent_announce;
-    String "info", info;
     String "comment", String torrent.torrent_comment;
     String "created by", String torrent.torrent_created_by;
     String "creation date", Int torrent.torrent_creation_date;
     String "encoding", String torrent.torrent_encoding;
+    String "info", info;
     String "modified-by", String torrent.torrent_modified_by;
 (*
     String "nodes", String torrent.torrent_nodes;
