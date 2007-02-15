@@ -202,7 +202,6 @@ NET_SRCS = \
   $(NET)/tcpBufferedSocket.ml \
   $(NET)/tcpServerSocket.ml \
   $(NET)/udpSocket.ml $(NET)/http_server.ml $(NET)/http_client.ml \
-  $(NET)/multicast.ml $(NET)/multicast_c.c  \
   $(NET)/cobs.ml \
   $(NET)/terminal.ml
 
@@ -546,10 +545,6 @@ DRIVER_SRCS+= \
   $(DRIVER)/driverControlers.ml  \
   $(DRIVER)/driverInterface.ml \
   $(DRIVER)/driverMain.ml 
-
-MLCAST_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  tools/mlcast.ml
 
 ICONS_CMXA=icons.cmxa
 
