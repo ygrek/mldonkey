@@ -4,10 +4,532 @@ ChangeLog
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
-2005/07/06: spiralvoice
+2007/02/15: spiralvoice
 
-Split Changelog in two parts, all stuff newer than 2.7.3 is now
-in distrib/ChangeLog
+Split Changelog, all stuff newer than 2.7.7 is now in distrib/ChangeLog
+-------------------------------------------------------------------------------
+2006/06/19: version 2.7.7 = tag release-2-7-7
+5196: IP: Store IPs with two int values instead of four to save RAM (pango)
+5195: BT: Log tracker error messages in UTF-8
+5194: HTML: Print warning on opening page when enable_servers is set to false
+
+2006/06/18
+5191: HTML: remove sysinfo on opening page & option motd_html
+5192: Fix deactivation of verbosity "gui"
+5163: Configure: CVS SCM support for Mac OS X 10.3 (gstat)
+
+2006/06/17
+5158: HTML: Use table for printing buildinfo and runinfo data (schlumpf, pango)
+
+2006/06/16
+5187: New option: BT_import_new_torrents_interval,
+      ignore Thumbs.db & desktop.ini in directory lists
+5186: GUI: Send only non-empty real_startup_message string
+
+2006/06/15
+5156: HTML, improve Options output (schlumpf)
+* new command html_mods_use_js_helptext (true|false)
+  to change display of helptext between javascript popup`s and html table
+* fix some padding and border bugs
+* add "toggle js_helptext" button to 'vo' and 'voo' to directly toggle the style
+
+2006/06/12
+5061: New option small_files_slot_limit to push release of small files (pango)
+      all files below the configured file size (default 10kb) are uploaded
+      through one reserved slot
+5144: Increase default max_upload_rate to 10 (schlumpf)
+5177: HTML, Options: update display after changing options (schlumpf)
+5176: Swarming: Change error message text and verbosity for BAD WRITE
+      BAD WRITE is not really an error, MLDonkey just receives unwanted data
+5175: GTK1 oldgui: Last compile fix for abstract verification bitmaps (pango)
+5174: Abstract verification bitmaps:
+      compile fixes for GTK1 GUIs, move generic code to CDK (pango)
+5173: Swarmer: Small fix for merged downloads (WIP7b') (pango)
+
+2006/06/11
+5172: EDK: Log error which causes pausing a download
+5171: New command group "Driver/Users",
+      print help text for "Bad number of arguments" error message
+5170: Fix default max_indirect_connections, minimum is 30
+5169: HTML, Options: add description to option section buttons,
+      remove 'save' button (schlumpf)
+5168: Global module to abstract verification bitmaps (pango)
+5167: Swarmer: Fix saving ini data for merged downloads (pango)
+5166: Swarmer: New module to abstract verification bitmaps (pango)
+
+2006/06/07
+5164: CommonSwarming: Pangos WIP5e'
+* When cutting a range, the reciprocal link of the range after the right part
+  still references the left part
+* When cutting a block in two parts can before empty, but then can also before
+  complete (if they have no ranges left)
+* Added bad_writes_is_back patch
+* When find_range can only find ranges already being downloaded, it now first
+  does a quick check to see if there's no other, probably more interesting,
+  blocks remaining. If so, it forces a block change (report no more ranges left)
+* While it's a good feature in itself, it's probably a workaround for a bug in
+  select_block (?); It seems that blocks oversaturated with sources happen way
+  too often (4 or 5 sources on a single range shouldn't happen).
+* Compute the size of unselected ranges in each blocks, so that sources don't
+  "rush" on blocks just left by a source.
+* Some BAD WRITEs seems to happen because we forget ranges we requested
+  (when switching blocks ?)
+* Replaced call to clear_uploader_ranges by a call to clear_uploader_intervals
+  in BitTorrent support Choke message handler.
+5063: EDK: remove duplicate entries in shared_files_new.ini (pango)
+5160: Remove stale avifile.ml, clean commonMultimedia logging
+5159: Compute magic values only when needed
+5157: add some line breaks to option help text for shorter lines (schlumpf)
+
+2006/06/01
+5153: New command: force_web_infos to manually download web_infos URLs
+5152: Do not connect friends from disabled networks
+5151: Options: New stringvalue functions needed for multiuser support
+5150: Log: Fix log when server list is empty in check_blocked_servers
+
+2006/05/31
+5149: Log: Some additions for commonSwarming
+5148: Mail: Fix for multiline SMTP responses (zet)
+5143: HTML/Telnet: Country codes for servers
+5147: G1/G2: Display proper filename (and therefore support rename) (zet)
+5145: EDK: Fix md4 hashing when filesize is an exact multiple
+      of edk chunk size, MLDonkey is now eMule-compatible (zet)
+
+2006/05/30
+5141: Swarmer: New option swarming_block_selection_algorithm (pango)
+* Allow to choose swarmer block selection algorithm at runtime.
+  - Algorithm 1 is the current default algorithm
+  - Algorithm 2, from WIP3o patch, should try harder to complete partially
+    downloaded chunks, specially with Bittorrent. It was previously
+    reverted because of unknown performance problem (slower download ?)
+5140: Update .cvsignore files (pango)
+5138: Catch ip banned exception (zet)
+5137: HTML: Fix display of file magic values with '
+5136: FileTP: fixes and enhancements (zet)
+* Add "FTP-chunk_size" option (0 = no chunks = download full file at once)
+-- A chunk_size would be required if downloading from > 1 source
+* Add FTP downloads to bandwidth controller (for stats & speed limiter)
+* Support FTP sites that do not buffer input (MS FTP)
+* Add support for user/pass (http://user:pass@site or ftp://user:pass@site).
+  This also adds user/pass support to http_client.
+* Error codes from HTTP (ie: 404) and some from FTP are supported (530 sometimes
+  signals a retry, sometimes a login failure so a regex was used (lftp)).
+  Downloads are paused when a hard error is received (and noted in the log).
+
+2006/05/25
+5131: New option gui_log_size: number of lines for GUI console messages
+5129: HTML: Display client_bind_addr in options menu
+5124: Log: Login messages can be disabled with verbosity "no-login"
+5130: CommonSwarming: Pangos WIP4a'
+thanks for testing goes to SchAmane, CruX, jave (forgot someone?)
+That's a huge patch over CommonSwarming module (whose job is to select what data
+to ask from connected sources, and the merging of received data),
+I hope I'm not forgetting anything important :
+* first, it's a mantainance patch; Lots of code have been reworked for
+  readability and compactness (iterators...), functions grouped together,
+  sometimes renamed to more descriptive names. Lots of comments have been added,
+  including the description of invariants I've found, and a nice ASCII art
+  schema of the swarming datastructures ;)
+* naming has been made more consistant, to differenciate chunks (from each
+  network view) from blocks (internal to swarming), and intervals (list of
+  int64 * int64 beggining/end offset pairs)
+* Support for bitmaps encoded as strings (AvailableCharBitmap) removed, since
+  it's no longer used anywhere; use the more compact AvailableBitv instead
+* Removed range_current_begin from ranges, it's enough for a range to have a
+  beginning and a end ;)
+* Rewrote compute_block_num to have precise preconditions, and algorithm proof
+* Added some assertions to better enforce invariants
+  (on verification bitmaps, for example)
+* Allocation of ranges is now delayed until the very last moment, instead of
+  when a chunk starts being downloaded. Main benefit (beside small memory gain)
+  is that requests for different ranges sizes can be fulfilled at any time.
+* Modified received function so that no BAD WRITE message can happen anymore:
+  condition when data that does not start from the beginning of a range is
+  correctly detected and data discarded
+  (since ranges cannot handle that case anyway)
+* Rewrote a much simpler version of present_intervals
+* Rewrote block selection algorithm for readability and flexibility; select_block
+  simply "folds" over all available blocks, using compare_choices function to
+  keep the best available one(s). May need some more CPU (no fast exit)
+* Fixed donkey uploaders calls when disconnected
+* Reenable the copy of identical chunks between files. Opportunities for copies
+  are checked every 5 minutes.
+* Made file writing a bit smarter in Unix32 module so that writing zeroed chunks
+  (as can happen a lot with chunks copying) on an otherwise sparse temp file
+  does not allocate disk space. A bit hackish.
+
+2006/05/23
+5121: EDK: Remove obsolete option emule_compression
+5122: improve block_list output and runinfo ip blocking (schlumpf)
+5123: Fix Invalid_argument("UTF8.length") bug in HTML, down-/uploaders
+-------------------------------------------------------------------------------
+2006/05/21: version 2.7.6 = tag release-2-7-6
+5119: HTML, Options: Include Wiki link in options names
+5117: Telnet: replace "avail" by "last seen"/fix non-ASCII-filename column width
+
+2006/05/20
+5118: Log: Correct prefix for donkeyClient.ml
+5116: HTML: Fix javascript popup in search results for Opera (dextarr)
+5112: Fix lprintf_nl (search/replace ()'s) (zet)
+5113: Fix config/wget.c (zet)
+5111: Configure: Fix $SOURCE_DIR broken since patch #5095
+5109: New option: pause_new_downloads
+- Set to true all new downloads will be paused automatically.
+- This option is automatically set to false on core start.
+EDK: Disable ED2K_connect_only_preferred_server if not preferred server is
+     found, this check is done once per minute
+
+2006/05/19
+5107: Configure: Check for MAGIC_ERROR in magic.h
+5106: BT: only send stop once on exit and then wait for success (Amorphous)
+5105: BT: Avoid starting torrent which has the same name
+      as a currently downloading torrent
+
+2006/05/18
+5097: HTML: Improved DL multiline input button (jave)
+5103: Fix compile bug in magiclib_stub.c on Solaris & NetBSD
+
+2006/05/17
+5101: G2: Gnutella2 fixes/log updates (zet)
+- Gnutella2 (G2) is working again
+- Re-enables search result networks
+- Log logged-in users
+5098: EDK: Update option description for initial_score
+
+2006/05/15
+5090: Http_client: Fix 302 redirect when Location starts with "."
+      and filename changes
+5095: Configure: improve libpng detection, optical improvements
+
+2006/05/14
+5094: Wget: New internal variable req_save <bool>
+5093: CommonSwarming: Verbose error message if file size does not match
+5092: HTML, rss: Add startbt link
+5091: HTML: update EDK history links
+
+2006/05/13
+5089: IPBlock: Print seperate lists in block_list command for IPs
+      blocked by local and web IP blocklists (pango)
+
+2006/05/12
+4976: Filetype recognition with libmagic
+- new debug command: debug_dir, prints magic values for all files
+- display file magic values in vd & upstats HTML popup & vd #num
+NetBSD/Solaris users have to disable this function "--disable-magic"
+until this bug is fixed:
+http://savannah.nongnu.org/patch/?func=detailitem&item_id=4976#comment9
+5088: Gnutella/FT/http_client fixes (zet)
+- Gnutella (G1) is working again
+
+2006/05/11
+5087: HTML, upstats: new tooltip with complete filename,
+      respect max_name_len for filename
+
+2006/05/10
+5083: HTML: Update EDK file history links (unease)
+
+2006/05/09
+5082: FileTP/Fasttrack/Soulseek: Fix splitting chunks off-by-one (pango)
+5081: Change default ip_blocking_descriptions to false for faster startup
+5080: Only print servers of enabled networks (pango)
+5079: Ignore ._* in directory lists (pango)
+5078: Telnet: Remove HTML code from sysinfo command
+5077: FT: Fix fasttrack connection problem and adds a bootstrap nodes file url
+      Removes old/broken imesh bootstrap node (zet)
+
+2006/05/07
+5076: Gd: Do not disable html_mods_vd_gfx if core is compiled without GD support
+5075: DNS round robin, keep all IP addresses associated with DNS names,
+      and return next one upon each request. (pango)
+
+2006/05/06
+5069: EDK: Fix broken unicode URIs parsing broken since 2.7.4 (pango)
+5074: Change default Ocaml version to 3.09.2
+5073: Update default IP blocklist URL, replaced
+      http://www.bluetack.co.uk/config/antip2p.txt with
+      http://www.bluetack.co.uk/config/level1.gz
+5068: New global option user_agent, current option BT-user_agent overrides
+      the global value in BT module (pango)
+5064: BT: only try to connect to http trackers (pango)
+5040: Overnet: Open TCP port only when network is active
+
+2006/04/14
+5036: BT: Correctly parse .torrent files with an empty directory (again)
+5039: Fix dp500 compile
+-------------------------------------------------------------------------------
+2006/04/13: version 2.7.5 = tag release-2-7-5
+
+2006/04/10
+5035: Make Soulseek, Opennapster, DirectConnect compilable again
+  This does not mean the network modules work again,
+  they only compile again. More work is needed.
+5032: CommonSwarming/WIP2: Some function rewrites and comments (pango)
+
+2006/04/09
+5031: Merge CommonSwarming and CommonSwarming2 code (pango)
+
+2006/04/08
+5029: EDK: Remove set_brothers command and brotherhood option
+5030: Update config.guess and config.sub to version 2006-02-27
+4778: CommonSwarming: In addition to the first and last chunk also load
+      the second last chunk if available before the rest to improve preview
+5028: New environment variable for file_completed_cmd:
+      $DLFILES (number of downloading files)
+5027: EDK: Deactivate DonkeySUI if /dev/urandom is missing
+
+2006/04/06
+5021: Fix compile bug in tryopen patch when bzip2 is disabled
+5020: Allow compile with Ocaml 3.09.2 CVS code,
+      3.09.1 will stay default for MLDonkey-compiled Ocaml
+5016: Options save: Really fix bug addressed in patch #5015
+
+2006/04/05
+5015: Fix option file saving bug introduced in tryopen patch
+
+2006/04/03
+5011: EDK: Update server info received by UDP when
+      update_server_list_server false (pango)
+5009: Ignore files .DS_Store and ._filename.ext in dir listings on all platforms
+5006: Small logfile change
+5004: Automatically closes opened descriptors using "tryopen pattern" (pango)
+5005: CommonBlocking: Do not block IPs when GeoIP database is not loaded
+
+2006/04/02
+5003: BT: Improve client recognition (zet)
+5002: Overnet: Fix Out of Memory Exception (zet)
+
+2006/03/31
+4997: Swarming: correctly create a new range when one is splitted (pango)
+
+2006/03/29
+4931: CommonBlocking: Block/allow IPs by country codes (requires GeoIP) (pango)
+- new options:
+  - ip_blocking_countries, insert country codes here
+  - ip_blocking_countries_block true|false
+      false: use ip_blocking_countries as block list,
+             all other countries are allowed
+      true:  use ip_blocking_countries as allow list,
+             all other countries are blocked
+4995: HTML: Fix friends filelist display
+4996: HTML: Add/remove for web_infos (vwi), update old contact.dat URL
+- web_infos, rename command add_url to urladd, new command urlremove
+- prints option help texts for web_infos and calendar command
+- file_kinds are now printed as list with descriptions for easier setup
+
+2006/03/19
+4917: HDD space check
+- New options:
+  hdd_send_warning_interval
+    Send a warning mail each <interval> hours for each directory,
+    0 to deactivate mail warnings.
+
+  hdd_temp_minfree
+    Mininum free space in MB on temp_directory, minimum 50
+  hdd_temp_stop_core, default false
+    If true core shuts down when free space on temp dir is below
+    hdd_temp_minfree, otherwise all downloads are queued and a
+    warning email is sent.
+
+  hdd_coredir_minfree
+    Mininum free space in MB on core or log directory, minimum 20
+  hdd_coredir_stop_core, default true
+    If true core shuts down when free space on core dir is below
+    hdd_coredir_minfree, otherwise all ini file saving is stopped
+    until core shutdown and a warning email is sent.
+    Logging is sent to RAM when log dir is full.
+
+The hard-coded minimum values can not be circumvented, MLDonkey will always
+perform these HDD space checks once a minute.
+
+2006/03/18
+4985: Log file clean-up for verbosity = "md4"
+
+2006/03/17
+4981: Dllink: Fix wrong referer in HEAD request
+4980: Multiuser: internal admin_user variable
+4979: Fix hashing large number of files
+
+2006/03/15
+4972: FileTP: Allow ftp:// downloads via dllink command
+4971: BT: Allow read-only access for shared files
+4967: CommonUserDb: Keep old user database updated for easy downgrades
+
+2006/03/09
+4962: BT: New command "startbt" to force the start of a torrent download (jave)
+
+2006/03/08
+4963: Re-apply $DEVFLAGS to Makefile.in (pango)
+4961: EDK: New default URL for server list download
+4960: Ignore .DS_Store on MacOSX, BT: ignore dirs in torrents/incoming (pango)
+
+2006/03/06
+4954: New function Unix32.owner to read user and group entry of a file 
+- to debug use command debug_fileinfo <file>
+- renamed debug command "disk" to "debug_disk"
+- renamed debug command "rlimit" to "debug_rlimit"
+4950: Close unneeded file descriptors
+
+2006/03/05
+4946: System-wide cookies and referers option
+- MLDonkey will not move data from bittorrent.ini to downloads.ini
+- This data will be used in web_infos, dllink and BT module.
+4951: GUI: Update server country codes after loading GeoIP data
+4949: Gzip/Bzip2: Close opened FD after opening an invalid archive file
+4945: BT: Automatically start new torrents downloads
+- new directory $MLDONKEY_DIR/torrents/incoming, all files present
+  in this dir are started automatically, its scanned every 10 seconds.
+
+2006/03/01
+4939: Support for compressed ipfilter.dat files (.gz, .bz2 or .zip) (pango)
+4930: giFT GUI: Authentication support (pango)
+- login with giFTcurs now has to be done like this: giFTcurs -p user:password
+
+2006/02/26
+4938: Improve MLDonkey system user database
+due to older problems with HTML interface:
+- renamed command add_user to useradd
+- renamed command remove_user to userdel
+- user name is printed in browser title when bwstats is active
+-------------------------------------------------------------------------------
+2006/02/26: version 2.7.4 = tag release-2-7-4
+
+2006/02/25
+4928: BT: Fix invalid encoding in announce URL (darkfader)
+- removed old, broken version and added new version
+
+2006/02/23
+4934: FileTP: Small improvements
+- fix download restart bug when core is restarted, sources where not loaded
+- save referer values to files.ini
+- display amount of transfered data in downloaders list
+- display source IP and Countrycode in HTML downloaders list
+- display filesize in GUI
+- display number of sources in GUI
+4933: BT: Display number of sources in GUI
+
+2006/02/21
+4928: BT: Fix invalid encoding in announce URL (darkfader)
+4929: Do not print password_empty warning if enable_user_config true
+4926: Runinfo: Warn about not-working DNS resolution,
+      /dev/urandom detection was not disabled if --disable-donkeysui is used
+
+2006/02/20
+4922: OpenBSD: Small change for patch 4920
+4921: MinGW: show current DL & UL stats in console title (Schlumpf)
+4909: Print warning messages when run on non-supported operating systems
+      currently for example Windows 95/98/ME (Schlumpf)
+4920: Cleanup included header files in C code (Schlumpf)
+
+2006/02/17
+4910: EDK: Use updated protocol information when parsing
+      consecutive messages (sam_dennis)
+4915: Log: Small cleanups
+4918: some syntax and comment cleanups in stubs_c.c (Schlumpf)
+
+2006/02/13
+4906: MinGW: improve uname output (Schlumpf)
+4908: Configure: Fix for Beos, allow use of Dragonfly BSD
+
+2006/02/11
+4883: Mac OS X: Fix for broken Apple cpp-3.3
+4902: EDK: Stub respond to directory browsing requests (sam_dennis)
+4905: Update for patch 4823: add another -fno-fomit-frame-pointer
+      in config/Makefile.in to avoid breaking CryptoPP (mikeX)
+4903: EDK: Remove obsolete donkeyNeighbours (thx to sam_dennis)
+4907: EDK: Fixed copy/paste error in emule miscoptions1 reading (sam_dennis)
+
+2006/02/10
+4904: Configure: Raise required autoconf version to 2.55 due to AC_MSG_FAILURE
+
+2006/02/09
+4892: Fix make when CXXFLAGS is defined (mikex)
+4894: EDK: Support "new ed2k meta tags" to allow browsing
+      shared directories of newer eMule clients (sam_dennis)
+4891: Configure: Override system-installed Ocaml and force local compile
+  Use ./configure --enable-force-ocaml to force MLDonkey to compile Ocaml,
+  regardless if the system has Ocaml already installed or not.
+  --enable-ocamlver=CVS uses a CVS checkout of Ocaml HEAD.
+4885: EDK: Show correct IP of indirect clients in uploader list
+
+2006/02/06
+4879: EDK: Support for sources in ed2k:// links
+- example:
+ed2k://|file|a.txt|1|AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA|/|sources,1.0.0.0:4662|/
+4849: EDK: Fix hashing of newly shared files
+- avoid hashing shared files twice
+- avoid problems while hashing big files
+- remove obsolete compute_md4_delay option
+4878: Addition to patch 4875 (conditional bzip2 support using cpp)
+
+2006/02/05
+4877: BT: Recognize Ktorrent clients (CruX, zet)
+4876: EDK: Remove obsolete option random_order_download
+4875: conditional bzip2 support using cpp (pango)
+4870: runinfo: add connected_user and check empty PW (schlumpf)
+4872: Fix gd detection on NetBSD, use data from gdlib-config
+      MinGW compile-guide was updated, gdlib-config has to be changed
+4871: Optimize some Printf.sprintf "%s" code
+4869: Remove obsolete redirector code
+      http://mldonkey.sourceforge.net/Redirector
+4856: reverse patch: configure: disable iconv by default on MinGW
+      it is not necessary anymore
+
+2006/02/04
+4867: Use setrlimit to raise allowed ulimit open files
+
+2006/02/03
+4863: GUI/Multiuser: Prevent kill by users other than admin
+4862: EDK: Fix broken import of eMule temp Files (import_temp) (schlumpf)
+4860: Multiuser: print warning if admin password is empty
+- user admin is re-created if deleted, it has to be present in any case because
+  some commands are only available for admin,  like users, remove_user and kill
+- create structure for startup messages, displayed on GUI, HTML, Telnet
+4859: Multiuser: Only user "admin" is allowed to change options
+      if the new option enable_user_config (default true) is set to false
+4858: HTML: Update some links to mldonkey.sf.net
+4857: SIGUSR1 & SIGUSR2 do not exist on Windows
+4856: configure: disable iconv by default on MinGW
+4853: Fix HTML errors on rss command output (unease)
+
+2006/02/02
+4851: Support system signals SIGUSR1 & SIGUSR2
+      SIGUSR1 saves options
+      SIGUSR2 performs garbage collection
+4850: Fixed bitprint hashing for files > 4GB (thx to zet)
+      mld_hash: implement SIGINT and SIGTERM signals
+
+2006/01/29
+4844: Fix Solaris compile broken since DonkeySUI patch
+4830: Update Wiki links
+      New Wiki URL: http://mldonkey.sourceforge.net
+      New Forum URL: http://mldonkey.sourceforge.net/forums
+4843: HTML: Improve output of rss command
+4842: Some logfile stuff
+4841: Create new dir web_infos for web_infos files,
+      BT: do not save .torrent or announce.*
+      all files downloaded by web_infos go to $MLDONKEY_DIR/web_infos
+      to avoid downloading files twice move files from $MLDONKEY_DIR
+      into that new dir
+4826: improve error message due to corrupt config files (schlumpf)
+4821: improve display of sysinfo (schlumpf)
+
+2006/01/26
+4816: Update Ocaml-RSS and Xml-light to current versions
+4827: longhelp cleanup (anhi)
+4823: EDK: CryptoPP optional, disable with --disable-donkeysui
+      Makefile: link CryptoPP stuff only in binaries which need it
+      Buildinfo: show compiler versions
+      Configure: display compiler versions (schlumpf)
+      Configure: if iconv checking fails continue with disabled iconv
+      Configure: do not use bzip2 if bzip.h is not found (FLI4L buildroot)
+
+2006/01/25
+4820: Move CommonGraphics to DriverGraphics, check libgd version
+      Configure: Check if libgd > 2.0.14 is installed
+      NetBSD: added paths for libgd package
+      NetBSD: adjusted stat command to properly read SCM date
+      move build-, run-, and diskinfo command to driver module
+      (thanks to SchAmane)
 -------------------------------------------------------------------------------
 2006/01/19: version 2.7.3 = tag release-2-7-3
 4791: web_infos: New type geoip.dat, save files to local disk,
