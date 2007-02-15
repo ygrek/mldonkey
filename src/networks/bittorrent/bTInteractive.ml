@@ -149,6 +149,28 @@ let op_file_commit file new_name =
               file.file_torrent_diskname new_torrent_diskname));
       file.file_torrent_diskname <- new_torrent_diskname;
 
+      (* update file_shared with new path to commited file *)
+      match file.file_shared with
+      | None -> ()
+      | Some old_impl ->
+	begin
+	  let impl = {
+	    impl_shared_update = 1;
+	    impl_shared_fullname = file_disk_name file;
+	    impl_shared_codedname = old_impl.impl_shared_codedname;
+	    impl_shared_size = file_size file;
+	    impl_shared_id = Md4.null;
+	    impl_shared_num = 0;
+	    impl_shared_uploaded = old_impl.impl_shared_uploaded;
+	    impl_shared_ops = shared_ops;
+	    impl_shared_val = file;
+	    impl_shared_requests = old_impl.impl_shared_requests;
+	    impl_shared_file = Some (as_file file);
+	    impl_shared_servers = [];
+	  } in
+	  file.file_shared <- Some impl;
+          replace_shared old_impl impl;
+	end
     end 
 
 let op_file_print file o =
