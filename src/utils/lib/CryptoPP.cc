@@ -9473,7 +9473,7 @@ typedef unsigned int wxUint32;
     (((wxUint32) (val) & (wxUint32) 0x00ff0000U) >>  8) | \
     (((wxUint32) (val) & (wxUint32) 0xff000000U) >> 24)))
 
-#ifdef WORDS_BIGENDIAN
+#ifndef IS_LITTLE_ENDIAN
 	#define wxUINT32_SWAP_ON_BE(val)  wxUINT32_SWAP_ALWAYS(val)
 #else
 	#define wxUINT32_SWAP_ON_BE(val)  (val)
