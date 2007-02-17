@@ -32,12 +32,15 @@ open DonkeyOvernet
 
 module Proto = struct
 
-    let log_prefix = "[Overnet]"
+    let log_prefix = "[OV]"
 
     let lprintf_nl fmt =
       lprintf_nl2 log_prefix fmt
 
     let lprintf_n fmt =
+      lprintf2 log_prefix fmt
+
+    let lprintf fmt =
       lprintf2 log_prefix fmt
 
    let names_of_tag = [
@@ -191,23 +194,16 @@ module Proto = struct
           match tag.tag_name with
             Field_KNOWN "loc" ->
               for_string_tag tag (fun bcp ->
-                  if !verbose_overnet then lprintf_nl "loc tag : [%s]" bcp;
                   if String2.starts_with bcp "bcp://" then
                     let bcp2 = String.sub bcp 6 (String.length bcp - 6)
                     in
                     match String2.split_simplify bcp2 ':' with
                     | [_;ip;udpport;tcpport] ->
-                        if !verbose_overnet then
-                          lprintf_nl "Received BCP type 3 %s" bcp;
                         peer_ip := Ip.of_string ip;
                         peer_udpport := int_of_string udpport;
                         peer_tcpport := int_of_string tcpport;
 
-                    | [_;ip;port] ->
-                        if !verbose_overnet then
-                          lprintf_nl "Received BCP type 2 %s, ignoring"
-                            bcp;
-
+                    | [_;ip;port] -> ()
 (* FIXME: A firewalled peer...
                                 peer_ip := Ip.of_string ip;
                                 peer_tcpport := int_of_string port;
@@ -406,9 +402,16 @@ module Proto = struct
                           Ip.of_inet_addr inet, port
                       | _ -> assert false
                     in
-
                     let t = parse ip port (int_of_char pbuf.[1]) (String.sub pbuf 2 (len-2)) in
-                    f t p
+                    let is_not_banned ip =
+                      match !Ip.banned ip with
+                         None -> true
+                       | Some reason ->
+                      if !verbose_overnet then
+                        lprintf_nl "%s blocked: %s" (Ip.to_string ip) reason;
+                      false
+                    in
+                    if is_not_banned ip then f t p
                   end
               with e ->
                 if !verbose_unknown_messages then begin
@@ -438,7 +441,7 @@ module Proto = struct
         let s = Buffer.contents udp_buf in
         if !verbose_overnet then
           begin
-            lprintf_nl "Sending UDP to %s:%d (opcode 0x%02X len %d) type %s"
+            lprintf_nl "UDP to %s:%d op 0x%02X len %d type %s"
               (Ip.to_string ip) port (get_uint8 s 1) (String.length s) (message_to_string msg);
           end;
         UdpSocket.write sock ping s ip port

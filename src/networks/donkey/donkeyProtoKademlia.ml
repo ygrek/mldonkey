@@ -35,12 +35,15 @@ open DonkeyOptions
 
 module P = struct
 
-    let log_prefix = "[Kademlia]"
+    let log_prefix = "[KAD]"
 
     let lprintf_nl fmt =
       lprintf_nl2 log_prefix fmt
 
     let lprintf_n fmt =
+      lprintf2 log_prefix fmt
+
+    let lprintf fmt =
       lprintf2 log_prefix fmt
 
     let names_of_tag =
@@ -442,7 +445,7 @@ module P = struct
 
         if !verbose_overnet then
           begin
-            lprintf_nl "Sending UDP to %s:%d (opcode 0x%02X len %d) type %s"
+            lprintf_nl "UDP to %s:%d op 0x%02X len %d type %s"
               (Ip.to_string ip) port (get_uint8 s 1) (String.length s) (message_to_string msg);
           end;
         (*
@@ -472,7 +475,15 @@ module P = struct
                   | _ -> assert false
                 in
                 let t = parse_message ip port pbuf in
-                f t p
+                let is_not_banned ip =
+                  match !Ip.banned ip with
+                    None -> true
+                   | Some reason ->
+                  if !verbose_overnet then
+                    lprintf_nl "%s blocked: %s" (Ip.to_string ip) reason;
+                  false
+                in
+                if is_not_banned ip then f t p
               with e ->
                 if !verbose_unknown_messages then
                 begin

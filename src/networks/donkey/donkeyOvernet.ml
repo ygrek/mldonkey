@@ -139,11 +139,11 @@ search for files and search for sources. *)
 let print_peer buf p =
   let hours = (last_time () - p.peer_created) / 3600 in
   let mins = (last_time () - p.peer_created) / 60 in
-  Printf.bprintf buf "   { md4 = %s ip = %s port = %d %s kind = %d l_send = %d expire = %d created = %d h = %d mins = %d %s}\n"
+  Printf.bprintf buf " {%s:%s:%d%s k=%d ls=%d ex=%d cr=%d h=%d m=%d%s}\n"
     (Md4.to_string p.peer_md4) (Ip.to_string p.peer_ip) p.peer_port
-    (if p.peer_tcpport <> 0 then Printf.sprintf "tcp = %d" p.peer_tcpport
+    (if p.peer_tcpport <> 0 then Printf.sprintf " tcp=%d" p.peer_tcpport
     else "") p.peer_kind p.peer_last_send p.peer_expire p.peer_created
-    hours mins (if p.peer_expire > last_time () && p.peer_last_send <> 0 then "OK " else "")
+    hours mins (if p.peer_expire > last_time () && p.peer_last_send <> 0 then " OK" else "")
     
 
 let message_to_string t =
@@ -151,61 +151,61 @@ let message_to_string t =
   begin
     match t with
       OvernetConnect p ->
-        Buffer.add_string buf "OvernetConnect\n";
+        Buffer.add_string buf "Connect\n";
         print_peer buf p
     | OvernetConnectReply peers ->
-        Buffer.add_string buf "OvernetConnectReply\n";
+        Buffer.add_string buf "ConnectReply\n";
         List.iter (print_peer buf) peers
     | OvernetPublicize p ->
-        Buffer.add_string buf "OvernetPublicize\n";
+        Buffer.add_string buf "Publicize\n";
         print_peer buf p
     | OvernetPublicized p ->
-        Buffer.add_string buf "OvernetPublicized\n";
+        Buffer.add_string buf "Publicized\n";
         (match p with
           Some p -> print_peer buf p
         | None -> ())
     | OvernetSearch (nresults, md4, _) ->
-        Buffer.add_string buf "OvernetSearch\n";
-        Printf.bprintf buf "   target = %s nresults = %d\n"
+        Buffer.add_string buf "Search\n";
+        Printf.bprintf buf " target=%s nresults=%d\n"
           (Md4.to_string md4) nresults
     | OvernetSearchReply (target, peers) ->
-        Buffer.add_string buf "OvernetSearchReply\n";
-        Printf.bprintf buf "  target = %s npeers = %d\n"
+        Buffer.add_string buf "SearchReply\n";
+        Printf.bprintf buf " target=%s npeers=%d\n"
           (Md4.to_string target) (List.length peers);
         List.iter (print_peer buf) peers
     | OvernetGetSearchResults (target, _, _, _) ->
-        Printf.bprintf buf "OvernetGetSearchResults %s\n" (Md4.to_string target)
+        Printf.bprintf buf "GetSearchResults %s\n" (Md4.to_string target)
     | OvernetSearchFilesResults (target, results) ->
-        Printf.bprintf buf "OvernetSearchFilesResults %s\n"
+        Printf.bprintf buf "SearchFilesResults %s\n"
           (Md4.to_string target);
         List.iter (fun (r_md4, r_tags) ->
-            Printf.bprintf buf "    %s\n       " (Md4.to_string r_md4);
+            Printf.bprintf buf "  %s\n   " (Md4.to_string r_md4);
             bprint_tags buf r_tags ;
             Printf.bprintf buf "\n";
         ) results
     | OvernetSearchSourcesResults (target, peers) ->
-        Printf.bprintf buf "OvernetSearchSourcesResults %s\n"
+        Printf.bprintf buf "SearchSourcesResults %s\n"
           (Md4.to_string target);
         List.iter (print_peer buf) peers
     | OvernetPublishFiles (target, results) ->
-        Printf.bprintf buf "OvernetPublish %s\n"
+        Printf.bprintf buf "Publish %s\n"
           (Md4.to_string target);
         List.iter (fun (r_md4, r_tags) ->
-            Printf.bprintf buf "    %s\n       " (Md4.to_string r_md4);
+            Printf.bprintf buf "  %s\n   " (Md4.to_string r_md4);
             bprint_tags buf r_tags ;
             Printf.bprintf buf "\n";
         ) results
     | OvernetPublishSources (target, peers) ->
-        Printf.bprintf buf "OvernetPublishSources %s\n"
+        Printf.bprintf buf "PublishSources %s\n"
           (Md4.to_string target);
         List.iter (print_peer buf) peers
     | OvernetPublished target ->
-        Printf.bprintf buf "OvernetPublished %s\n" (Md4.to_string target)
+        Printf.bprintf buf "Published %s\n" (Md4.to_string target)
     | OvernetPeerNotFound p ->
-        Printf.bprintf buf "OvernetPeerNotFound\n";
+        Printf.bprintf buf "PeerNotFound\n";
         print_peer buf p
     | OvernetUnknown21 p ->
-        Printf.bprintf buf "OvernetUnknown21\n";
+        Printf.bprintf buf "Unknown21\n";
         print_peer buf p
     | _ ->
         Buffer.add_string buf "unknown\n"
@@ -347,12 +347,15 @@ module Make(Proto: sig
 
     open Proto
 
-    let log_prefix = (if Proto.redirector_section = "DKKO" then "[Overnet]" else "[Kademlia]")
+    let log_prefix = (if Proto.redirector_section = "DKKO" then "[OV]" else "[KAD]")
 
     let lprintf_nl fmt =
       lprintf_nl2 log_prefix fmt
 
     let lprintf_n fmt =
+      lprintf2 log_prefix fmt
+
+    let lprintf fmt =
       lprintf2 log_prefix fmt
 
 (********************************************************************
@@ -626,12 +629,11 @@ let bucket_number md4 =
 let search_hits = ref 0
 let source_hits = ref 0
 
-(* when we created the searches for all files last time*)
-let last_check_current_downloads = ref 0
-
 let udp_sock = ref None
 
 let overnet_searches = ref []
+let current_files = ref []
+
 
 (********************************************************************
 
@@ -733,6 +735,15 @@ module PublishedFiles = Publish(struct
       type t = peer
       let item_name = "Files"
     end)
+
+let remove_current_file file =
+  current_files := List.filter (fun (f,start,last) ->
+    if (f != file) then true else false
+  ) !current_files
+
+
+let add_current_file file =
+  current_files := (file, last_time (), 0) :: !current_files
 
 let debug_client ip = false
 (*  Ip.matches ip !!overnet_debug_clients *)
@@ -870,10 +881,10 @@ let get_closest_peers md4 nb =
            yet removed because of timeouts *)
         (* TODO: Keep order? Then we need a in_use flag? *)
         if p.peer_kind < 3 && p.peer_expire > last_time () then begin
-            if !verbose_overnet then begin
-            lprintf_nl "Adding good search peer %s:%d"
+            (* if !verbose_overnet then begin
+             lprintf_nl "Adding search peer %s:%d" 
               (Ip.to_string p.peer_ip) p.peer_port;
-	    end;
+            end; *)
             decr nb;
             list := p :: !list;
           end;
@@ -962,7 +973,7 @@ let add_search_peer s p =
 
 let create_search kind md4 =
   if !verbose_overnet then lprintf_nl "create_search";
-  let starttime = last_time () + (3 * List.length !overnet_searches) in
+  let starttime = last_time () + (List.length !overnet_searches) in
   let s = ref {
       search_md4 = md4;
       search_kind = kind;
@@ -1069,7 +1080,7 @@ let udp_client_handler t p =
   let other_ip = ip_of_udp_packet p in
   let other_port = port_of_udp_packet p in
   if !verbose_overnet then
-    lprintf_nl "UDP FROM %s:%d type %s"
+    lprintf_nl "UDP from %s:%d type %s"
       (Ip.to_string other_ip) other_port
       (message_to_string t);
   (* Emule uses other_ip:other_port, so do we *)
@@ -1323,11 +1334,7 @@ let overnet_search_tick () =
   ) !overnet_searches
 
 let recover_file file =
-  if file_state file = FileDownloading then
-    ignore (create_search (FileSearch file) file.file_md4)
-
-let check_current_downloads () =
-  List.iter recover_file !DonkeyGlobals.current_files
+  add_current_file file
 
 let update_buckets () =
 
@@ -1438,6 +1445,27 @@ let compute_to_ping () =
           end;
           ()
 
+(* start max three searches for sources *)
+let start_max_source_searches () =
+      begin
+          let current_files2 = ref [] in
+          (try
+            while (List.length !overnet_searches) < 3 && !current_files <> [] do
+              let (file, start, last) = List.hd !current_files in
+	      current_files := List.tl !current_files;
+              if file_state file = FileDownloading &&
+	         (last + 900) < last_time () then begin
+	        ignore (create_search (FileSearch file) file.file_md4);
+   	        current_files2 := (file, start, last_time ()) :: !current_files2;
+	      end else
+   	        current_files2 := (file, start, last) :: !current_files2;
+	    done;
+	  with Failure "hd" -> ()
+	     | Failure "tl" -> (); );
+          List.iter (fun (file, start, last) ->
+            current_files := (file, start, last) :: !current_files
+	  ) !current_files2;
+       end	
 
 let enable () =
   if !!enable_overnet && not !is_enabled then begin
@@ -1520,11 +1548,41 @@ let enable () =
 
           compute_to_ping ();
 
+(* dump searches older than lifetime to the logfile *)
+          if !verbose_overnet then List.iter (fun s ->
+            if s.search_lifetime + s.search_start <= last_time () then begin
+              lprintf_nl "Removing search %s for %s (requests:%d queries:%d seconds alive:%d lifetime:%d)"
+                (match s.search_kind with
+                  KeywordSearch _ -> "keyword"
+                  | FileSearch _ -> "file"
+                  | FillBuckets -> "fillbuckets" )
+                (Md4.to_string s.search_md4) s.search_requests s.search_queries (last_time ()-s.search_start) s.search_lifetime;
+                for i = 128 downto 0 do
+                  let npeers = Fifo.length s.search_peers.(i) in
+                  let count = ref 0 in
+                  let cp p = if (common_bits p.peer_md4 s.search_md4) = i then count := !count + 1 in
+                  KnownPeers.iter cp s.search_asked_peers;
+                  let nasked = !count in
+                  count := 0;
+                  KnownPeers.iter cp s.search_ok_peers;
+                  let nok = !count in
+                  count := 0;
+                  KnownPeers.iter cp s.search_result_asked_peers;
+                  let nres = !count in
+                  if npeers > 0 || nasked > 0 then
+                    lprintf_nl
+                    " nbits[%d] = %d peer(s) total, %d peer(s) asked, %d peer(s) ok, %d peer(s) result asked"
+                      i npeers nasked nok nres
+                done;
+            end;
+          ) !overnet_searches;
+
 (* remove searches that are older than their lifetime *)
           overnet_searches := List.filter (fun s ->
-              (* s.search_lifetime + s.search_start > last_time () *)
-(*DEBUG:show longer *)              360 + s.search_start > last_time ()
+              s.search_lifetime + s.search_start > last_time ()
           ) !overnet_searches;
+
+          start_max_source_searches ();
 
           (* FIXE: Dump latencies to logfile *)
           if !verbose_overnet then ignore (UdpSocket.get_latencies (ref true));
@@ -1544,21 +1602,36 @@ let enable () =
 (* every 15min for light operations *)
       add_session_timer enabler 900. (fun _ ->
           if !!enable_overnet then begin
-              let _ = create_search FillBuckets !!overnet_md4 in
-              check_current_downloads ();
-              last_check_current_downloads := last_time ();
+              ignore(create_search FillBuckets !!overnet_md4);
+	      (* Remove all files not actuall downloading/pause/new etc *)
+                (* TODO: Are there states enough? There are:  FileDownloading
+                | FileQueued
+                | FilePaused
+                | FileDownloaded
+                | FileShared
+                | FileCancelled
+                | FileNew
+                | FileAborted of string
+                *)
+              current_files := List.filter (fun (f,_,_) ->
+                match file_state f with
+                    FileDownloading
+                  | FileQueued
+                  | FilePaused
+                  | FileNew -> true;
+                  | _ -> false;
+              ) !current_files;
             end
       );
 
-      begin
-        check_current_downloads ();
-(* Delay the first normal searches, so we can fill the buckets first *)
-        List.iter (fun s ->
-          s.search_start <- s.search_start + 30;
-        ) !overnet_searches;
+      begin 
+        (* First fill the buckets *)
         ignore (create_search FillBuckets !!overnet_md4);
-        last_check_current_downloads := last_time ();
+        (* start with all actual files *)
+        List.iter add_current_file !DonkeyGlobals.current_files
       end;
+
+      start_max_source_searches ();
       
       add_infinite_timer 1800. (fun _ ->
           if !!enable_overnet then begin
@@ -1733,21 +1806,23 @@ let _ =
             Printf.bprintf buf "\\<tr\\>";
             html_mods_td buf [
               ("", "srh", Printf.sprintf "%s statistics" command_prefix_to_net);
-              ("", "srh", Printf.sprintf "Last file search started %d seconds ago\n" 
-                          (last_time () - !last_check_current_downloads));
               ("", "srh", Printf.sprintf "Search hits: %d\n" !search_hits);
-              ("", "srh", Printf.sprintf "Source hits: %d\n" !source_hits); ];
+              ("", "srh", Printf.sprintf "Source hits: %d\n" !source_hits); 
+              ("", "srh", Printf.sprintf "Current files: %d\n" (List.length !current_files)); ];
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
           end
         else
           begin
             Printf.bprintf buf "%s statistics:\n"
 	    (command_prefix_to_net);
-            Printf.bprintf buf "  Last file search started %d seconds ago\n"
-            (last_time () - !last_check_current_downloads);
             Printf.bprintf buf "  Search hits: %d\n" !search_hits;
             Printf.bprintf buf "  Source hits: %d\n" !source_hits;
           end;
+(* Only for debuging current_file
+          List.iter (fun (file,start,last) ->
+          Printf.bprintf buf "current_file %s (%d,%d)\n" (file_disk_name file) start last
+        ) !current_files;
+*)
         List.iter (fun s ->
             if o.conn_output = HTML then
               begin
@@ -1975,8 +2050,9 @@ let cancel_recover_file file =
    overnet_searches := List.filter (fun s ->
       match s.search_kind with
         FileSearch f when f == file -> false
-      | _ -> true) !overnet_searches
-   end   
+      | _ -> true) !overnet_searches;
+   remove_current_file file;
+   end  
 
 let _ =
   CommonWeb.add_web_kind web_info web_info_descr (fun _ filename ->

@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/02/18
+5748: KAD/OV: Limit searches for sources (bogeyman)
+
 2007/02/15
 5738: Remove obsolete multicast files (orbit)
 5743: BT: Show shared torrents in upload list after commit (xergius)
