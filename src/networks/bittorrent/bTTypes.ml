@@ -111,8 +111,15 @@ type brand =
 | Brand_qbittorrent
 | Brand_qt4
 | Brand_uleecher
-
-
+| Brand_flashget
+| Brand_xtorrent
+| Brand_limewire
+| Brand_btpd
+| Brand_btyrant
+| Brand_ares
+| Brand_bitpump
+| Brand_deluge
+| Brand_btuga
 
 let brand_list = [ 
    ( Brand_unknown          , "unknown"                , "unk" ) ;
@@ -179,6 +186,15 @@ let brand_list = [
    ( Brand_qbittorrent      , "qBittorrent"            , "qbt" ) ;
    ( Brand_qt4              , "QT4"                    , "qt4" ) ;
    ( Brand_uleecher         , "uLeecher!"              , "ul!" ) ;
+   ( Brand_flashget         , "FlashGet"               , "flg" ) ;
+   ( Brand_xtorrent         , "Xtorrent"               , "xto" ) ;
+   ( Brand_limewire         , "LimeWire"               , "lwi" ) ;
+   ( Brand_btpd             , "BT Protocol Daemon"     , "bpd" ) ;
+   ( Brand_btyrant          , "BitTyrant"              , "bty" ) ;
+   ( Brand_ares             , "Ares"                   , "are" ) ;
+   ( Brand_bitpump          , "BitPump"                , "bpu" ) ;
+   ( Brand_deluge           , "Deluge"                 , "del" ) ;
+   ( Brand_btuga            , "BTuga Revolution"       , "btr" ) ;
   ] 
 
 let brand_count = List.length brand_list
