@@ -183,6 +183,10 @@ let script_for_file file incoming new_name =
 	    ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4));
 	    ("FILE_OWNER",(file_owner file).user_name);
 	    ("FILE_GROUP",user2_print_group (file_group file));
+	    ("USER_MAIL", ( if (file_owner file).user_mail <> "" then
+                              (file_owner file).user_mail
+                            else
+                              if !!mail <> "" then !!mail else ""));
 	    ]
 
   with e -> 
