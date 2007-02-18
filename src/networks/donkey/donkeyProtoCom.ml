@@ -78,26 +78,13 @@ let direct_client_sock_send emule_version sock m =
 
 let client_send c m =
   let emule_version = c.client_emule_proto in
-  if !verbose_msg_clients || c.client_debug then begin
+  do_if_connected c.client_source.DonkeySources.source_sock (fun sock ->
+    if !verbose_msg_clients || c.client_debug then begin
       lprintf_nl "Sent to client %s" (full_client_identifier c);
       DonkeyProtoClient.print m;
       lprint_newline ();
     end;
-  do_if_connected c.client_source.DonkeySources.source_sock (fun sock ->
-      direct_client_sock_send emule_version sock m)
-
-  (*
-let emule_send sock m =
-  let m = client_msg_to_string 0xc5 m in
-  (*
-  lprintf "Message to emule client:"; lprint_newline ();
-  LittleEndian.dump m;
-  lprint_newline ();
-  lprint_newline (); *)
-  write_string sock m
-    *)
-
-(* let client_msg_to_string m = client_msg_to_string 227 m *)
+    direct_client_sock_send emule_version sock m)
 
 let servers_send socks m =
   let m = server_msg_to_string m in

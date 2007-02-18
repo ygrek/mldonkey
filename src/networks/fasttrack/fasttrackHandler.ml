@@ -118,7 +118,7 @@ let server_msg_handler sock s addr t =
     match t with
 
     | M.NodeListReq list ->
-        set_rtimeout sock half_day;
+        set_rtimeout sock (float_of_int Date.half_day_in_secs);
         set_server_state s (Connected (-1));
         s.server_connected <- int64_time ();
         if not (List.memq s !connected_servers) then
@@ -146,7 +146,7 @@ AS A SUPERNODE, which is not good at this point, since we want to
 be connected only AS A NODE. We should transfer this connection to
 the FasttrackSupernode module, and get rid of it. *)
 
-        set_rtimeout sock half_day;
+        set_rtimeout sock (float_of_int Date.half_day_in_secs);
         set_server_state s (Connected (-1));
         s.server_connected <- int64_time ();
         if not (List.memq s !connected_servers) then

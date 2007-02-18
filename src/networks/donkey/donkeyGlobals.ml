@@ -421,7 +421,7 @@ let new_file file_diskname file_state md4 file_size filename writable user =
           impl_file_fd = Some t;
           impl_file_best_name = Filename.basename file_diskname;
           impl_file_filenames = (if filename = "" then [] else [filename]);
-          impl_file_last_seen = last_time () - 100 * 24 * 3600;
+          impl_file_last_seen = last_time () - 100 * Date.day_in_secs;
         }
       in
 
@@ -958,21 +958,20 @@ let save_join_queue c =
       with _ -> ()
     end
 
-let half_hour = 30 * 60
 let clean_join_queue_tables () =
   let current_time = last_time () in
 
   let list = Hashtbl2.to_list2 join_queue_by_md4 in
   Hashtbl.clear join_queue_by_md4;
   List.iter (fun (key, ((v,time) as e)) ->
-      if time + half_hour > current_time then
+      if time + Date.half_hour_in_secs > current_time then
         Hashtbl.add join_queue_by_md4 key e
   ) list;
 
   let list = Hashtbl2.to_list2 join_queue_by_id in
   Hashtbl.clear join_queue_by_id;
   List.iter (fun (key, ((v,time) as e)) ->
-      if time + half_hour > current_time then
+      if time + Date.half_hour_in_secs > current_time then
         Hashtbl.add join_queue_by_id key e
   ) list
 

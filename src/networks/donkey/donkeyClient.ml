@@ -1375,7 +1375,7 @@ end; *)
           end;
 
 (*    set_rtimeout sock !!upload_timeout; *)
-          set_lifetime sock one_day;
+          set_lifetime sock (float_of_int Date.day_in_secs);
           add_pending_slot c
         
 with _ -> *)
@@ -2016,7 +2016,7 @@ end else *)
             (full_client_identifier c) (file_best_name file);
 
       let prio = (file_priority file) in
-      let client_upload_lifetime = ref ((max 0 !!upload_lifetime) * 60) in
+      let client_upload_lifetime = ref ((max 0 !!upload_lifetime) * Date.minute_in_secs) in
         
       if !!dynamic_upload_lifetime && not !!upload_complete_chunks
             && c.client_session_uploaded > c.client_session_downloaded

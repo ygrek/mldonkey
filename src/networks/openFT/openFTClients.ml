@@ -194,7 +194,7 @@ let client_reader c sock nread =
     match c.client_file with
       None -> disconnect_client c
     | Some file ->
-        set_rtimeout sock half_day;
+        set_rtimeout sock Date.half_day_in_secs;
         begin
           let fd = try
               Unix64.force_fd (file_fd file) 

@@ -280,7 +280,7 @@ try_nick s sock;
       login_on_server s sock
       
   | OP.LoginAckReq mail ->
-      set_rtimeout sock DG.half_day;
+      set_rtimeout sock Date.half_day_in_secs;
       lprintf "*****  CONNECTED %s  ******\n" mail;
       set_server_state s (Connected (-1));
       connected_servers := s :: !connected_servers;

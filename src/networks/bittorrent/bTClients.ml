@@ -1284,7 +1284,7 @@ let resume_clients file =
       try
         match c.client_sock with
         | Connection sock -> ()
-            (*i think this one is not realy usefull for debugging
+            (*i think this one is not really usefull for debugging
               lprintf_nl "[BT]: RESUME: Client is already connected"; *)
         | _ ->
             (try

@@ -59,17 +59,15 @@ let sort_file_queue c =
   match c.client_download with
     Some _ -> ()
   | None ->
-      match c.client_file_queue with
+      (match c.client_file_queue with
         [] -> ()
       | [ (file, chunks, up) ] ->
-          if !verbose_download || c.client_debug then begin
+          if !verbose_download || c.client_debug then
               lprintf_nl "sort_file_queue: single file. client(%d): %s, file(%d): %s" (client_num c) c.client_name (file_num file) (file_best_name file);
-            end
       | (file, chunks, up) :: _ ->
           let fn = file_num file in
-          if !verbose_download || c.client_debug then begin
+          if !verbose_download || c.client_debug then
               lprintf_nl "sort_file_queue: multiple files. client(%d): %s, file(%d): %s" (client_num c) c.client_name (file_num file) (file_best_name file);
-            end;
           c.client_file_queue <- List.stable_sort (fun (f1, _, _) (f2, _, _) ->
               let v = file_priority f2 - file_priority f1 in
               if v <> 0 then v else
@@ -81,23 +79,11 @@ let sort_file_queue c =
                 else 0 in
               s2 - s1
           ) c.client_file_queue;
-          match c.client_file_queue with
+          (match c.client_file_queue with
             [] -> ()
           | (file, chunks, _) :: _ ->
-              if (file_num file) <> fn then begin
-                  if !verbose_download || c.client_debug then begin
-                      lprintf_nl "sort_file_queue: queue change. client(%d): %s, file(%d): %s" (client_num c) c.client_name (file_num file) (file_best_name file);
-                    end;
-(*
-(*                  c.client_chunks <- chunks; *)
-(*                  c.client_all_chunks <- String.make file.file_nchunks '0'; *)
-(*                  c.client_zones <- []; *)
-                  for i = 0 to file.file_nchunks - 1 do
-                    if c.client_chunks.(i)  then
-                      c.client_all_chunks.[i] <- '1';
-done;
-  *)
-                end
+              if (file_num file) <> fn && (!verbose_download || c.client_debug) then
+                lprintf_nl "sort_file_queue: queue change. client(%d): %s, file(%d): %s" (client_num c) c.client_name (file_num file) (file_best_name file)))
 
 let remove_client_slot c =
   if c.client_debug || (

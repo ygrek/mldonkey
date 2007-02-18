@@ -229,7 +229,7 @@ let client_reader2 c sock nread =
 (*    lprintf "CLIENT READER %d BYTES" nread; lprint_newline ();  *)
   if nread = 0 then () else
   let b = buf sock in
-  set_rtimeout sock half_day;
+  set_rtimeout sock Date.half_day_in_secs;
   match !c with
     None -> (* waiting for SENDnick "filename" size *) 
       begin

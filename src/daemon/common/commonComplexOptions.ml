@@ -71,16 +71,15 @@ module FileOption = struct
           let get_value name conv = conv (List.assoc name assocs) in
 	  let get_value_nil name conv =
 	    try conv (List.assoc name assocs) with Not_found -> [] in
+          let filename = get_value "file_filename" value_to_string in
           let network = try get_value "file_network" value_to_string
             with _ -> "Donkey" in
           let network = 
             try network_find_by_name network with e ->
                 lprintf_nl
 		  "Error %s for network %s while parsing file %s"
-		    (Printexc2.to_string e)
-		    network
-		    (get_value "file_filename" value_to_string);
-    lprintf_nl "This core is lacking support for network %s, exiting" network;
+		    (Printexc2.to_string e) network filename;
+                lprintf_nl "This core is lacking support for network %s, exiting" network;
                 exit_properly 70
           in
           let file_state = 
@@ -110,7 +109,6 @@ module FileOption = struct
             with _ -> ());
 
 	  let file_user =
-	    let filename = get_value "file_filename" value_to_string in
 	    try
 	      let u = get_value "file_owner" value_to_string in
 		begin
@@ -129,7 +127,6 @@ module FileOption = struct
 	  set_file_owner file file_user;
 
 	  let file_group =
-	    let filename = get_value "file_filename" value_to_string in
 	    let dgroup = user2_print_user_default_group file_user in
 	    try
 	      match (get_value "file_group" stringvalue_to_option) with
@@ -161,8 +158,7 @@ module FileOption = struct
           set_file_state file file_state;       
 
           (try
-              set_file_best_name file
-              (get_value "file_filename" value_to_string) "" 0
+              set_file_best_name file filename "" 0
             with _ -> ());
 
           (try
@@ -172,12 +168,8 @@ module FileOption = struct
 
           set_file_priority file priority;
 
-          if !verbose then lprintf_nl "New %s file %s"
-	      (match file_state with
-                 FileDownloading -> "downloading"
-               | FileDownloaded -> "downloaded"
-               | _ -> "other")
-	     (file_best_name file);
+          if !verbose && !CommonGlobals.is_startup_phase then
+            lprintf_nl "Started download of %s" (file_best_name file);
 
           file
       | _ -> assert false

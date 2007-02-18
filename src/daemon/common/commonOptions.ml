@@ -2056,7 +2056,7 @@ let rec update_options () =
   match !!options_version with
     0 ->
       web_infos =:= List.map (fun (kind, period, url) ->
-          kind, period * 24, url
+          kind, period * Date.day_in_hours, url
       ) !!web_infos;
       web_infos =:= !!web_infos @ [
         ("rss", 6,

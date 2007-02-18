@@ -98,6 +98,8 @@ let networks_string = ref ""
 
 let patches_string = ref ""
 
+let is_startup_phase = ref true
+
 let version () =
   Printf.sprintf "MLNet %s: Multi-Network p2p client (%s)"
     Autoconf.current_version !networks_string
@@ -147,11 +149,6 @@ let find_port server_name bind_addr port_option handler =
     iter !!port_option
   else None
 
-let one_day = 3600. *. 24.
-let half_day = one_day /. 2.
-
-let minutes25 = 25 * 60
-
 let new_connection_control () = {
     control_last_ok = 0;
     control_state = 0;
@@ -160,7 +157,7 @@ let new_connection_control () = {
   }
 
 let new_connection_control_recent_ok () = {
-    control_last_ok = last_time () - minutes25;
+    control_last_ok = last_time () - (Date.minute_in_secs * 25);
     control_state = 0;
     control_last_try = 0;
     control_min_reask = !!min_reask_delay;
@@ -337,49 +334,6 @@ let rec find_tag name tags =
 
   (* first GUI have gui_num = 2, since newly created objects have _update = 1 *)
 let gui_counter = ref 2
-
-  (*
-let ip_of_addr addr f =
-  if addr.addr_name <> "" then
-    if addr.addr_age + !!ip_cache_timeout < last_time () then begin
-        Ip.async_ip  addr.addr_name (fun ip ->
-            addr.addr_ip <- ip;
-            addr.addr_age <- last_time ();
-            f ip)
-      end else
-      f addr.addr_ip
-  else
-    f addr.addr_ip
-
-let sync_ip_of_addr addr =
-  if addr.addr_name <> "" then
-    if addr.addr_age + !!ip_cache_timeout < last_time () then begin
-        let ip = Ip.from_name  addr.addr_name in
-        addr.addr_ip <- ip;
-        addr.addr_age <- last_time ();
-        ip
-      end else
-      addr.addr_ip
-  else
-    addr.addr_ip
-
-let new_addr_ip ip = {
-    addr_ip = ip; addr_name = Ip.to_string ip; addr_age = 0;
-  }
-
-let new_addr_name name = {
-    addr_ip = Ip.null; addr_name = name; addr_age = 0
-  }
-
-let string_of_addr addr =
-  if addr.addr_name = "" then Ip.to_string addr.addr_ip else addr.addr_name
-
-let addr_of_string s =
-  let ip = try Ip.of_string s with _ -> Ip.null in
-  if ip <> Ip.null then new_addr_ip ip else new_addr_name s
-
-let addr_is_ip addr = addr.addr_name = ""
-    *)
 
 let upload_counter = ref Int64.zero
 let download_counter = ref Int64.zero
@@ -757,11 +711,6 @@ let partial_chunk c =
       true
   | VerificationBitmap.State_complete | VerificationBitmap.State_verified -> 
       false
-
-module Connections = struct
-
-  end
-
 
 let parse_magnet url =
   let url = Url.of_string url in

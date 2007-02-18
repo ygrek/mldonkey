@@ -1343,7 +1343,7 @@ let set_frontend_state_complete t j =
 let set_frontend_state_verified t j =
   let mark_verified () =
     VB.set t.t_converted_verified_bitmap j VB.State_verified;
-    if !verbose_swarming || !verbose then
+    if (not !CommonGlobals.is_startup_phase) && (!verbose_swarming || !verbose) then
       lprintf_nl "Verified block %d/%d of %s"
         (j + 1) t.t_nchunks (file_best_name t.t_file);
     if t.t_primary then begin

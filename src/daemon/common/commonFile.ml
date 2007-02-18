@@ -312,7 +312,8 @@ let set_file_best_name file name fs namemax =
     if name <> real_name then
       lprintf_nl "wanted new name \"%s\" changed to \"%s\" due to system limitations"
         (String.escaped name) (String.escaped file.impl_file_best_name);
-    if !verbose && old_name <> file.impl_file_best_name then
+    if !verbose && old_name <> file.impl_file_best_name &&
+       (not !CommonGlobals.is_startup_phase) then
       lprintf_nl "best_name of \"%s\" changed to \"%s\""
         (String.escaped old_name) (String.escaped file.impl_file_best_name)
   end

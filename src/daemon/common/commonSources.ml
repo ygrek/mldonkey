@@ -1022,7 +1022,7 @@ module Make(M:
        remove_from_queue s r;
        if r.request_score > not_found_score then
          (* query_files will query all files for a source, check that we are
-            realy downloading! example source s has file f1 and file f2,
+            really downloading! example source s has file f1 and file f2,
             file f2 is paused we connect because of f1 and then query both
             files f1 and f2 ... and yes, we do a cleanup ... but a timed one,
             so we can't be sure *)

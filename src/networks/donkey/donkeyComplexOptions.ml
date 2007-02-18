@@ -246,7 +246,7 @@ let value_to_file file_size file_state assocs =
                 !!temp_directory
                 ( string_of_uid ( Ed2k (Md4.of_string file_md4) ) )
             in
-            lprintf_nl "geting file_diskname from ini failed, testing for ed2k-temp-file %s"
+            lprintf_nl "getting file_diskname from ini failed, testing for ed2k-temp-file %s"
               filename;
             if Sys.file_exists filename then
               filename
@@ -260,7 +260,7 @@ let value_to_file file_size file_state assocs =
       (* I think we should die here, to prevent any corruption. *)
       lprintf_nl "ERROR ED2K-TEMP-FILE %s DOES NOT EXIST, THIS WILL PERHAPS LEAD TO CORRUPTION IN THAT DOWNLOAD!"
         filename;
-    if !verbose then lprintf_nl "ed2k-temp-file %s used." filename;
+    if !verbose && (not !CommonGlobals.is_startup_phase) then lprintf_nl "ed2k-temp-file %s used." filename;
     filename
   in
 

@@ -488,7 +488,7 @@ Buffer.add_string "X-Try-Ultrapeers: ...\r\n"; *)
     
     if h.hsrpl_content_deflate then deflate_connection sock;
     
-    set_rtimeout sock CommonGlobals.half_day;
+    set_rtimeout sock (float_of_int Date.half_day_in_secs);
     set_server_state s (Connected (-1));
     s.server_connected <- int64_time ();    
     GnutellaHandler.init s sock gconn;

@@ -375,7 +375,7 @@ let server_parse_header s sock header =
   if String2.starts_with header gnutella_200_ok then begin
 (*      lprintf "GOOD HEADER FROM ULTRAPEER";
       lprint_newline (); *)
-        set_rtimeout sock DG.half_day;
+        set_rtimeout sock Date.half_day_in_secs;
 (*        lprintf "SPLIT HEADER..."; lprint_newline ();*)
       let lines = Http_client.split_header header in
       match lines with

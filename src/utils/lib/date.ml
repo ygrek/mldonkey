@@ -121,8 +121,14 @@ let time_of_string date =
     with e -> failwith (Printf.sprintf "date error %s" (Printexc2.to_string e))
   end
 
-let hour_in_secs = 3600
-let day_in_secs = 24 * hour_in_secs
+let minute_in_secs = 60
+let hour_in_minutes = 60
+let day_in_hours = 24
+let half_hour_in_secs = 30 * minute_in_secs
+let hour_in_secs = 60 * minute_in_secs
+let half_day_in_secs = (day_in_hours / 2) * hour_in_secs
+let day_in_secs = day_in_hours * hour_in_secs
+let day_in_minutes = day_in_hours * hour_in_minutes
 let year_in_secs = 365 * day_in_secs
 
 let time_to_string time print_format =
