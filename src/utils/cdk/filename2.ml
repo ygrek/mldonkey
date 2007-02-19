@@ -71,15 +71,21 @@ let rec dirname name =
     | n -> String.sub name 0 n
   with Not_found -> "."
 
-      
 let last_extension file =
   try
     let pos = String.rindex file '.' in
-    let pos2 = try String.rindex file slash with _ -> 0 in 
+    let pos2 = try String.rindex file slash with Not_found -> 0 in 
     if pos < pos2 then raise Not_found;
-    let len = String.length file in
-    String.sub file pos (len -pos)
-  with _ -> ""
+    String2.after file pos
+  with Not_found -> ""
+
+let last_extension2 file =
+  try
+    let pos = String.rindex file '.' in
+    let pos2 = try String.rindex file slash with Not_found -> 0 in 
+    if pos < pos2 then raise Not_found;
+    String2.after file (pos + 1)
+  with Not_found -> ""
 
 let extension file =
   try

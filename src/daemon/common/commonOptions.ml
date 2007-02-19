@@ -283,14 +283,6 @@ let define_expert_option a b ?desc ?restart ?public ?internal c d e =
     None -> define_expert_option a b (_s c) d e ?restart ?public ?internal
   | Some desc -> define_expert_option a b ~desc: (_s desc) (_s c) d e ?restart ?public ?internal
 
-let string_list_option = define_option_class "String"
-    (fun v ->
-      match v with
-        List _ | SmallList _ -> ""
-      | _ -> value_to_string v
-  )
-  string_to_value
-
 let html_themes_dir = "html_themes"
 let downloads_ini = create_options_file "downloads.ini"
 let servers_ini = create_options_file "servers.ini"
@@ -309,7 +301,7 @@ let ip_range_list_option = list_option Ip.range_option
 
 let int_list_option = list_option int_option
 
-let country_list_option = list_option string_option
+let string_list_option = list_option string_option
 
 let allow_browse_share_option = define_option_class "Integer"
     (fun v ->
@@ -357,7 +349,7 @@ let _ =
       let list = String2.tokens s in
       List.map (fun i -> int_of_string i) list
   );
-  Options.set_string_wrappers country_list_option
+  Options.set_string_wrappers string_list_option
   (String.concat " ")
   String2.tokens
 
@@ -1056,7 +1048,7 @@ let ip_blocking_countries = define_expert_option current_section ["ip_blocking_c
   "List of countries to block connections from/to (requires Geoip).
   Names are in ISO 3166 format, see http://www.maxmind.com/app/iso3166
   You can also at your own risk use \"Unknown\" for IPs Geoip won't recognize."
-    country_list_option []
+    string_list_option []
 
 let ip_blocking_countries_block = define_expert_option current_section ["ip_blocking_countries_block"]
   "false: use ip_blocking_countries as block list, all other countries are allowed
@@ -1378,10 +1370,6 @@ let save_results = define_option current_section ["save_results"]
 let use_result_history = define_expert_option current_section ["use_file_history"]
   "keep seen files in history to allow local search (can be expensive in memory)"
     bool_option false
-
-let filters = define_option current_section ["filters"]
-  "filters on replies (replies will be kept)."
-    string_list_option ""
 
 let buffer_writes = define_option current_section ["buffer_writes"]
   "Buffer writes and flush after buffer_writes_delay seconds (experimental)"

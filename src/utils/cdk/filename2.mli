@@ -34,6 +34,11 @@ val last_extension : string -> string
 which is the substring after the last "." in [filename] 
   (including the "."). If no extension is present, returns "". *)
 
+val last_extension2 : string -> string
+(*d [last_extension filename] returns the last extension of [filename], 
+which is the substring after the last "." in [filename] 
+  (without the "."). If no extension is present, returns "". *)
+
 val extensions : string -> string list
 (*d [extensions filename] returns the list of extensions (without the dot)
   found at the end of filename. *)

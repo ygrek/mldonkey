@@ -207,7 +207,12 @@ module NewUpload = struct
 (* Is there a message to warn that a file is not shared anymore ? *)
               DonkeyOneFile.remove_client_slot c
               else
-            let compress = !!upload_compression && (c.client_emule_proto.emule_compression <> 0) in
+            let compress =
+              !!upload_compression &&
+              (c.client_emule_proto.emule_compression <> 0) &&
+              not (List.mem (String.lowercase (Filename2.last_extension2 (file_best_name up.up_file)))
+                  !!upload_compression_ext_exclude)
+            in
             let cfile,ccomp = match cached_load up.up_file begin_offset end_offset compress with
               Some (cached_file,cached_comp) -> cached_file,cached_comp
               | _ -> "",""

@@ -202,10 +202,18 @@ let upload_compression_threshold = define_expert_option donkey_section ["upload_
   counterpart, which has to occure, to send compressed parts instead of plain."
     int_option 2000
 
+let upload_compression_ext_exclude = define_expert_option donkey_section ["upload_compression_ext_exclude"]
+  "Disable upload compression based on file extensions (without dot)"
+    string_list_option ["zip"; "7z"; "gz"; "bz2"; "rar"; "ace"; "ogm"; "avi"; "mpg"]
+
 let _ =
   option_hook upload_compression_threshold (fun _ ->
     if !!upload_compression_threshold < 0 then
         upload_compression_threshold =:= 0
+  );
+  option_hook upload_compression_ext_exclude (fun _ ->
+    let l = List.map String.lowercase !!upload_compression_ext_exclude in
+    if !!upload_compression_ext_exclude <> l then upload_compression_ext_exclude =:= l
   )
 
 let upload_compression_level = define_expert_option donkey_section ["upload_compression_level"]
