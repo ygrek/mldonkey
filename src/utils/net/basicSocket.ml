@@ -507,17 +507,10 @@ let loop () =
         lprintf_nl "[BW1] Resetting bandwidth counters";
       List.iter (fun f -> try f () with _ -> ()) !bandwidth_second_timers
   );
-  let loop_time = ref 0. in
   while true do
     try
-      let time = 
- 	let new_time = update_time () in
- 	let dynamic_loop_delay =  !loop_time +. !loop_delay -. new_time in
-        if dynamic_loop_delay > 0. then begin
- 	  (try select [] dynamic_loop_delay;  with _ -> ());
- 	  update_time ()
- 	end else new_time in
-      loop_time := time;
+      if !loop_delay > 0. then (try select [] !loop_delay;  with _ -> ());
+      let _ = update_time () in
       exec_tasks !fd_tasks;
       exec_hooks !after_select_hooks;
       exec_timers !timers;

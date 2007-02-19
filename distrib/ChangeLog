@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/02/19
+5752: Fix core hanging on ARM CPUs
 5750: EDK: New option upload_compression_ext_exclude (thx to pango)
 - space-separated list of file extensions which are not compressed when uploaded
 

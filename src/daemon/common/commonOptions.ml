@@ -628,7 +628,7 @@ let max_connections_per_second = define_option current_section ["max_connections
 let loop_delay = define_expert_option current_section ["loop_delay"]
   "The delay in milliseconds to wait in the event loop. Can be decreased to
   increase the bandwidth usage, or increased to lower the CPU usage."
-    int_option 20
+    int_option 5
 
 let nolimit_ips = define_option current_section ["nolimit_ips"]
   ~desc: "No-limit IPs"
@@ -1584,8 +1584,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 let options_version = define_expert_option current_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 14
-
+    int_option 15
 
 let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
   "Maximum number of comments per file"
@@ -2119,7 +2118,7 @@ let rec update_options () =
           [
       ("server.met", 0, "http://www.gruk.org/server.met.gz")
           ];
-  web_infos_add "server.met" 0 "http://www.jd2k.com/server.met";
+      web_infos_add "server.met" 0 "http://www.jd2k.com/server.met";
       end;
       update 10
 
@@ -2159,5 +2158,10 @@ let rec update_options () =
 	web_infos_add "server.met" 0 "http://www.gruk.org/server.met.gz";
       end;
       update 14
+
+  | 14 ->
+      (* set back to 5 because dynamic_loop_delay patch was removed *)
+      loop_delay =:= 5;
+      update 15
 
   | _ -> ()
