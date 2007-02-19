@@ -44,6 +44,7 @@ type spec =
   | Clear of bool ref          (** Set the reference to false *)
   | String of (string -> unit) (** Call the function with a string argument *)
   | Int of (int -> unit)       (** Call the function with an int argument *)
+  | Int64 of (int64 -> unit)       (** Call the function with an int argument *)
   | Float of (float -> unit)   (** Call the function with a float argument *)
   | Rest of (string -> unit)   (** Stop interpreting keywords and call the 
                                    function with each remaining argument *)

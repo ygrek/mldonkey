@@ -15,6 +15,11 @@ ChangeLog
 =========
 
 2007/02/19
+5754: mld_hash: Compute AICH hashes (thx to pango)
+- parameter hash takes new option: aich to compute eMule AICH hashes
+- new parameter partial_zone: Display hashing of zones (subparts of chunks)
+- new parameter check_keep, keep files after checking functions (-check) for later testing
+- parameter check, option filesize is now Int64 and in bytes
 5752: Fix core hanging on ARM CPUs
 5750: EDK: New option upload_compression_ext_exclude (thx to pango)
 - space-separated list of file extensions which are not compressed when uploaded
