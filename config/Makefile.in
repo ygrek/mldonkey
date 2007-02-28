@@ -1276,7 +1276,7 @@ MLTSOURCES +=  $($1_MLT:.mlt=.ml)
 MLPSOURCES +=  $($1_MLP:.mlcpp=.ml)
 
 build/$2.cmxa: $($1_OBJS) $($1_CMXS) 
-	$(OCAMLOPT) $(PLUGIN_FLAG) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
+	$(OCAMLOPT) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMXS) 
  
 build/$2.cma: $($1_OBJS) $($1_CMOS) 
 	$(OCAMLC) -a -o $[[@]]  $($1_OBJS) $(LIBS_flags) $($3_LIBS_flags) $($1_CMOS) 
@@ -1382,7 +1382,7 @@ $1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)
 TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -o $[[@]] \
+	$(OCAMLOPT) -linkall -o $[[@]] \
 	$($1_OBJS) $(LIBS_opt) $(LIBS_flags) \
 	$($3_LIBS_opt) $($3_LIBS_flags) \
 	$($5_LIBS_opt) $($5_LIBS_flags) \
@@ -1400,13 +1400,22 @@ $2.byte: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 	-I build $($1_CMAS) $($1_CMOS) 
  
 $2.static: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
-	$(OCAMLOPT) -linkall $(PLUGIN_FLAG) -ccopt -static -o $[[@]] \
+	$(OCAMLOPT) -linkall -ccopt -static -o $[[@]] \
 	$($1_OBJS) $(LIBS_opt) $(LIBS_flags) \
 	$($3_LIBS_flags) $($3_STATIC_LIBS_opt) \
 	$($5_LIBS_flags) $($5_STATIC_LIBS_opt) \
 	$($6_LIBS_flags) $($6_STATIC_LIBS_opt) \
 	$($7_LIBS_flags) $($7_STATIC_LIBS_opt) \
 	-I build $($1_CMXAS) $($1_CMXS)
+
+$2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
+	$(OCAMLC) -linkall -ccopt -static -o $[[@]] \
+	$($1_OBJS) $(LIBS_byte) $(LIBS_flags) \
+	$($3_LIBS_flags) $($3_STATIC_LIBS_opt) \
+	$($5_LIBS_flags) $($5_STATIC_LIBS_opt) \
+	$($6_LIBS_flags) $($6_STATIC_LIBS_opt) \
+	$($7_LIBS_flags) $($7_STATIC_LIBS_opt) \
+	-I build $($1_CMAS) $($1_CMOS) 
 ]])
 
 # $1 = source-code collection
@@ -1487,7 +1496,7 @@ TOP_CMAS=$(foreach file, $(TOP_CMXA),   build/$(basename $(file)).cma)
 TMPSOURCES += $(TOP_ML4:.ml4=.ml) $(TOP_MLL:.mll=.ml) $(TOP_MLY:.mly=.ml) $(TOP_MLY:.mly=.mli) $(TOP_ZOG:.zog=.ml) 
 
 mldonkeytop: $(TOP_OBJS) $(TOP_CMOS) $(TOP_CMAS)
-	$(OCAMLMKTOP) -linkall $(PLUGIN_FLAG) -o $@  \
+	$(OCAMLMKTOP) -linkall -o $@  \
 	$(TOP_OBJS) \
 	$(LIBS_byte) $(LIBS_flags) $(_LIBS_byte) $(_LIBS_flags) \
 	$(CRYPTOPP_LIBS_byte) $(CRYPTOPP_LIBS_flags) \
@@ -1669,9 +1678,22 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML)
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
-utils: svg_converter mld_hash make_torrent copysources get_range subconv
 utils.byte: mld_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte
-utils.static: svg_converter mld_hash.static make_torrent.static copysources.static get_range.static subconv.static
+utils.opt: svg_converter mld_hash make_torrent copysources get_range subconv
+utils.opt.static: svg_converter mld_hash.static make_torrent.static copysources.static get_range.static subconv.static
+utils.byte.static: mld_hash.byte.static make_torrent.byte.static copysources.byte.static get_range.byte.static subconv.byte.static
+utils.static: 
+	if test "$(TARGET_TYPE)" = "byte"; then \
+		$(MAKE) utils.byte.static; \
+	else \
+		$(MAKE) utils.opt.static; \
+	fi
+utils: 
+	if test "$(TARGET_TYPE)" = "byte"; then \
+		$(MAKE) utils.byte; \
+	else \
+		$(MAKE) utils.opt; \
+	fi
 
 #######################################################################
 
@@ -1731,6 +1753,15 @@ release.mlnet.static: mlnet.static
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+
+release.mlnet.byte.static: mlnet.byte.static
+	rm -rf mldonkey-*
+	cp -R distrib $(DISDIR)
+	cp mlnet.byte.static $(DISDIR)/mlnet
+	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
+	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).byte.static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).byte.static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 
 release.mlnet.distri: mlnet mlnet.static
 	rm -rf mldonkey-*
@@ -1892,15 +1923,15 @@ rpm: sourcedist
 .SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlt .mlii .mlcpp .svg
 
 .mli.cmi :
-	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLC) $(INCLUDES) -c $<
 
 .ml.mlii :
 	rm -f $*.mli
-	$(OCAMLC) -i $(OFLAGS) $(INCLUDES) -c $< > $*.mlii
+	$(OCAMLC) -i $(INCLUDES) -c $< > $*.mlii
 	mv $*.mlii $*.mli
 
 .ml.cmi :
-	$(OCAMLC) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLC) $(INCLUDES) -c $<
 
 .xpm.ml_icons :
 	echo "let t = [|" > $@
@@ -1916,10 +1947,10 @@ rpm: sourcedist
 	./svg_converter.byte $@
 
 .ml.cmx :
-	$(OCAMLOPT) $(DEVFLAGSOPT) $(DEVFLAGS) $(PLUGIN_FLAG) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLOPT) $(DEVFLAGSOPT) $(DEVFLAGS) $(INCLUDES) -c $<
 
 .ml.cmo :
-	$(OCAMLC) $(DEVFLAGS) $(OFLAGS) $(INCLUDES) -c $<
+	$(OCAMLC) $(DEVFLAGS) $(INCLUDES) -c $<
 
 .mlcpp.ml:
 	cpp -P $< $(FIX_BROKEN_CPP) > $@
@@ -1953,7 +1984,7 @@ rpm: sourcedist
 	$(OCAMLC) -o $*.byte $(LIBS) $<
 
 .cmx.opt:
-	$(OCAMLOPT) $(PLUGIN_FLAG) -o $*.opt $(OPTLIBS) $<
+	$(OCAMLOPT) -o $*.opt $(OPTLIBS) $<
 
 
 .plugindep:

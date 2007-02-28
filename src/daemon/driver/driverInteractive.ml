@@ -1859,6 +1859,9 @@ let buildinfo html buf =
     (
       "Version:\t", 
       "MLNet Multi-Network p2p client version " ^ Autoconf.current_version 
+      ^ (match Filename.basename (Sys.executable_name) with
+         | "mlnet" | "mlnet.static" -> ""
+         | bin -> Printf.sprintf " (%s)" bin)
     );
   if Autoconf.scm_version <> "" then 
     tack list 

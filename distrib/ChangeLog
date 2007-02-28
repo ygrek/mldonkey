@@ -15,6 +15,12 @@ ChangeLog
 =========
 
 2007/02/28
+5757: Some improvements for byte-code build
+- "make utils" now builds byte-code if needed
+- new build targets: mlnet.byte.static, release.mlnet.byte.static
+- print configure infos when byte-code is to be compiled
+- buildinfo prints the binary name if not "mlnet" or "mlnet.static"
+- remove some unneeded variables from configure
 5759: OV/KAD: improve stats, remove obsolete options, save bandwidth (bogeyman)
 
 2007/02/19

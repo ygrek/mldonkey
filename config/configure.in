@@ -1590,15 +1590,19 @@ if test "$LABLGTK_CONFIG" = "yes"; then
   fi
 fi
 
+if test "$TARGET_TYPE" = "byte"; then
+  OCAML_TYPE="- byte code"
+  COMPILE_TARGET=".byte"
+fi
 echo -e "\nCompilers:"
-echo -e " - Ocaml version     $OCAMLVERSION"
+echo -e " - Ocaml version     $OCAMLVERSION $OCAML_TYPE"
 echo -e " - $CC version       $CC_VERSION"
 if test "x$CXX" != "x"; then
   echo -e " - $CXX version       $CXX_VERSION"
 fi
 echo -e "\nNow execute '$GNU_MAKE' to start compiling. Good luck!"
 
-echo -e "\nTo compile a static code execute:     $GNU_MAKE mlnet.static"
+echo -e "\nTo compile a static code execute:     $GNU_MAKE mlnet$COMPILE_TARGET.static"
 echo      "To produce a release tarball execute: $GNU_MAKE release.mlnet.static"
 echo      "To clean the build directory execute: $GNU_MAKE maintainerclean"
 if test "$DONKEY_SUI" = "yes"; then
