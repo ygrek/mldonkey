@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/02/28
+5759: OV/KAD: improve stats, remove obsolete options, save bandwidth (bogeyman)
+
 2007/02/19
 5754: mld_hash: Compute AICH hashes (thx to pango)
 - parameter hash takes new option: aich to compute eMule AICH hashes

@@ -384,39 +384,14 @@ let overnet_store_size =
   define_option overnet_section [Proto.options_section_name; "store_size"] "Size of the filename storage used to answer queries"
     int_option 2000
 
-let overnet_max_known_peers =
-  define_option overnet_section [Proto.options_section_name; "max_known_peers"]
-  "maximal number of peers to keep overnet connected (should be >2048)"
-    int_option 8192
-
 let overnet_search_keyword =
   define_option overnet_section [Proto.options_section_name; "search_keyword"]
   "allow extended search to search on overnet" bool_option true
-
-let overnet_search_timeout =
-  define_option overnet_section [Proto.options_section_name; "search_timeout"]
-  "How long shoud a search on Overnet wait for the last answer before terminating"
-    int_option 140
-
-let overnet_query_peer_period =
-  define_option overnet_section [Proto.options_section_name; "query_peer_period"]
-  "Period between two queries in the overnet tree (should not be set under 5)"
-    float_option 5.
-
-let overnet_max_search_hits =
-  define_option overnet_section [Proto.options_section_name; "max_search_hits"]
-  "Max number of hits in a search on Overnet"
-    int_option 200
 
 let overnet_republish =
   define_option overnet_section [Proto.options_section_name; "republish"]
   "Interval (in seconds) before republish files"
     float_option 10800.
-
-let overnet_exclude_peers =
-  define_option overnet_section [Proto.options_section_name; "exclude_peers"]
-  "These IP addresses cannot be peers. Elements are separated by spaces, wildcard=255 ie: use 192.168.0.255 for 192.168.0.* "
-    ip_list_option [Ip.of_string "1.0.0.0"]
 
 let overnet_md4 = define_option overnet_section
   [Proto.options_section_name; "md4"]
@@ -438,9 +413,6 @@ let gui_overnet_options_panel =
     "Enable Overnet", shortname enable_overnet, "B";
     "Port", shortname overnet_port, "T";
     "Search for keywords", shortname overnet_search_keyword, "B";
-    "Search Timeout", shortname overnet_search_timeout, "T";
-    "Search Internal Period", shortname overnet_query_peer_period, "T";
-    "Search Max Hits", shortname overnet_max_search_hits, "T";
   ]
 
 
@@ -561,7 +533,7 @@ let boot_peers = define_option servers_section
     "List of IP addresses to use to boot Kademlia networks"
     LimitedList.option (LimitedList.create max_boot_peers)
 
-(* peers we may ping *)
+(* peers we may ping: We got only an ip and port *)
 let unknown_peers = LimitedList.create 2000
 
 (* the total number of buckets used. We must fill a bucket before using the
@@ -574,6 +546,9 @@ The buckets should preferably contain peers that have already send us a
   message, because we are not sure for other peers.
   *)
 
+(* FIXME: The function that adds the peers into the buckets should increase 
+   n_used_buckets when needed, but I have the feeling it does not work as expected, 
+   so I set n_used_buckets to some value.*)
 let n_used_buckets = ref 42
 
 (* We distinguish between buckets and prebuckets: peers in buckets are peers
@@ -582,17 +557,18 @@ are peers that we are not sure of. *)
 let buckets = Array.init 129 (fun _ -> Fifo.create ())
 let prebuckets = Array.init 129 (fun _ -> Fifo.create ())
 
+(* The peers we want to ping in the next 60 seconds *)
 let to_ping = ref []
+
+(* Every peer we have in the buckets und prebuckets goes into known_peers *)
 let known_peers = KnownPeers.create 1023
 
 (*
 We keep the data in buckets depending on the number of bits they have
 in common with our identifier. When we exceed the desired storage,
 we start removing associations from the buckets with the fewest common
-bits. Once every 30 minutes, we remove the associations which are older
-than 1 hour.
+bits. 
 *)
-
 
 (* Argh, we MUST verify how MD4s are compared, from left to right, or from
 right to left ?? *)
@@ -626,8 +602,13 @@ let common_bits m1 m2 =
 let bucket_number md4 =
   common_bits md4 !!overnet_md4
 
+(* Stats *)
 let search_hits = ref 0
 let source_hits = ref 0
+
+(* To know if we are can receive UDP packets *)
+let global_last_recv = ref 0
+let global_last_send = ref 0
 
 let udp_sock = ref None
 
@@ -778,16 +759,20 @@ let udp_send_direct ip port msg =
     None -> ()
   | Some sock ->
 (* Why check this? Because it may have been blocked since it was added *)    
-     if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then
-      Proto.udp_send sock ip port false msg
+     if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then begin
+      Proto.udp_send sock ip port false msg;
+      global_last_send := last_time ()
+     end
 
 let udp_send_ping ip port msg =
   match !udp_sock with
     None -> ()
   | Some sock ->
 (* Why check this? Because it may have been blocked since it was added *)    
-     if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then
-      Proto.udp_send sock ip port true msg
+     if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then begin
+      Proto.udp_send sock ip port true msg;
+      global_last_send := last_time ()
+     end
 
 let udp_send p msg =
   p.peer_last_send <- last_time ();
@@ -848,7 +833,8 @@ restart. *)
                 p.peer_md4 <> Md4.null then begin
             Fifo.put prebuckets.(!n_used_buckets) p;
             incr pre_connected_peers;
-
+(* increase n_used_buckets if the buckets and prebuckets are full *)
+(* FIXME: Does it work correctly? Until sure, n_used_buckets is set to some value *)
             while !n_used_buckets < 128 &&
               Fifo.length prebuckets.(!n_used_buckets)
               = max_peers_per_bucket do
@@ -1087,6 +1073,7 @@ let udp_client_handler t p =
   (* Update known_peers by other_port:other_ip *)
   let sender = new_peer { dummy_peer with peer_port = other_port ; peer_ip = other_ip } in
   new_peer_message sender;
+  global_last_recv := last_time ();
   match t with
 
   | OvernetConnect p ->
@@ -1138,6 +1125,7 @@ let udp_client_handler t p =
       ()
 
   | OvernetSearch (nresults, md4, from_who) ->
+      let nresults = min 10 nresults in
       let peers = get_closest_peers md4 nresults in
       udp_send sender (OvernetSearchReply (md4,peers))
 
@@ -1662,9 +1650,7 @@ let _ =
     (fun _ ->
       if !CommonOptions.start_running_plugins then
         if !!enable_overnet = false then disable() else enable ()
-  );
-  option_hook overnet_query_peer_period
-    (fun _ -> if !!overnet_query_peer_period < 5. then overnet_query_peer_period =:= 5.)
+  )
 
 let load_contact_dat filename =
   try
@@ -1805,18 +1791,46 @@ let _ =
             html_mods_table_header buf "ovstatsTable" "sources" [];
             Printf.bprintf buf "\\<tr\\>";
             html_mods_td buf [
+              ("", "srh", Printf.sprintf "%s %s\n" (command_prefix_to_net)
+                  (if !!enable_overnet then "is enabled" else "is DISABLED"));
+              ("", "srh", Printf.sprintf "%s Connectivity: %s%s" (command_prefix_to_net)
+                   (if (!connected_peers + !pre_connected_peers) > 20 then "Got enough online peers" else "NOT enough online peers")
+                   (if (abs(!global_last_recv - !global_last_send)) > 60 then " ,there maybe a problem with incoming upd packets" else "" ));
+
+            ];
+            Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
+
+            Printf.bprintf buf "\\<div class=results\\>";
+            html_mods_table_header buf "ovstatsTable" "sources" [];
+            Printf.bprintf buf "\\<tr\\>";
+            html_mods_td buf [
               ("", "srh", Printf.sprintf "%s statistics" command_prefix_to_net);
               ("", "srh", Printf.sprintf "Search hits: %d\n" !search_hits);
               ("", "srh", Printf.sprintf "Source hits: %d\n" !source_hits); 
               ("", "srh", Printf.sprintf "Current files: %d\n" (List.length !current_files)); ];
+            if !verbose_overnet then begin
+              Printf.bprintf buf "\\</tr\\>\\<tr\\>\n";
+              html_mods_td buf [
+                ("", "srh", Printf.sprintf "Verbose:");
+                ("", "srh", Printf.sprintf "last upd send: %d\n" !global_last_send);
+                ("", "srh", Printf.sprintf "last upd recv: %d\n" !global_last_recv);
+                ("", "srh", Printf.sprintf "diff: %d\n" (abs(!global_last_recv - !global_last_send)));
+              ];
+            end;
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
           end
         else
           begin
+            Printf.bprintf buf "%s %s\n" (command_prefix_to_net) 
+               (if !!enable_overnet then "is enabled" else "is DISABLED");
+            Printf.bprintf buf "%s Connectivity: %s%s\n" (command_prefix_to_net)
+                   (if (!connected_peers + !pre_connected_peers) > 20 then "Got enough online peers" else "NOT enough online peers")
+                   (if (abs(!global_last_recv - !global_last_send)) > 60 then " ,there maybe a problem with incoming upd packets" else "");
             Printf.bprintf buf "%s statistics:\n"
 	    (command_prefix_to_net);
             Printf.bprintf buf "  Search hits: %d\n" !search_hits;
             Printf.bprintf buf "  Source hits: %d\n" !source_hits;
+            Printf.bprintf buf "  Current files: %d\n" (List.length !current_files);
           end;
 (* Only for debuging current_file
           List.iter (fun (file,start,last) ->
