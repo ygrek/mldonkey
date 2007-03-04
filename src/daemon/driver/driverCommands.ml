@@ -1081,15 +1081,15 @@ let _ =
             Printf.bprintf buf "\\<td\\>\\<table border=0 cellspacing=0 cellpadding=0\\>\\<tr\\>";
 
             html_mods_td buf [
-              ("Download KB/s (UDP|TCP)", "bu bbig bbig1 bb4", Printf.sprintf "Down: %.1f KB/s (%d|%d)"
-                  dlkbs !udp_download_rate !control_download_rate);
-              ("Upload KB/s (UDP|TCP)", "bu bbig bbig1 bb4", Printf.sprintf "Up: %.1f KB/s (%d|%d)"
-                  ulkbs !udp_upload_rate !control_upload_rate);
+              ("Download KB/s (UDP|TCP), total", "bu bbig bbig1 bb4", Printf.sprintf "Down: %.1f KB/s (%d|%d), %s"
+                  dlkbs !udp_download_rate !control_download_rate (size_of_int64 !download_counter));
+              ("Upload KB/s (UDP|TCP), total", "bu bbig bbig1 bb4", Printf.sprintf "Up: %.1f KB/s (%d|%d), %s"
+                  ulkbs !udp_upload_rate !control_upload_rate (size_of_int64 !upload_counter));
               ("Total shared files/bytes", "bu bbig bbig1 bb4", Printf.sprintf "Shared(%d): %s"
                 !nshared_files (size_of_int64 !nshared_bytes));
-              ("Total uploaded bytes", "bu bbig bbig1 bb3", Printf.sprintf "Uploaded: %s"
-                (size_of_int64 !upload_counter) ) ];
-
+              ("Bandwidth (Up|Down), open connections (max_opened_connections)", "bu bbig bbig1 bb3",
+                Printf.sprintf "DL %d KB/s, UL %d KB/s, Conn: %d (%d)"
+                !!max_hard_download_rate !!max_hard_upload_rate (nb_sockets ()) !!max_opened_connections) ]; 
 
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>";
 
