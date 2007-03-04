@@ -624,6 +624,12 @@ let search_info_mp3 filename =
       *)
 
 let get_info file =
+  let file =
+    if Autoconf.windows then
+      Charset.to_locale (file)
+    else
+      file
+  in
   try
     Unix2.tryopen_read_bin file (fun ic ->
       search_info_mp3 file;
