@@ -93,7 +93,7 @@ let print_stats o style =
         end
 
 let _ =
-  network.op_network_display_stats <- (fun buf o -> print_stats o New);
+  network.op_network_display_stats <- (fun o -> print_stats o New);
 
   network.op_network_stat_info_list <- (fun _ ->
     let l1 = stats_list brand_list stats_array in

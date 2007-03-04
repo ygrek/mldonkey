@@ -548,11 +548,11 @@ let start_search user query buf =
 let network_must_update n =
    CommonEvent.add_event (Network_info_event n)
 
-let network_display_stats buf o =
+let network_display_stats o =
   networks_iter_all (fun r ->
     try
       if List.mem NetworkHasStats r.network_flags then
-        network_display_stats r buf o
+        network_display_stats r o
     with _ -> ())
 
 let print_connected_servers o =

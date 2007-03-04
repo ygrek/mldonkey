@@ -216,7 +216,7 @@ let print_stats_ascii buf arr l tl uptime =
 
 let stats_html_header buf =
   html_mods_table_header buf "csTable" "cs" [
-   ( "0", "srh", "BT Client brand", "Brand" );
+   ( "0", "srh", "Client brand", "Brand" );
    ( "0", "srh", "Separator", ":" );
    ( "1", "srh ar", "Successful connections", "Seen" );
    ( "1", "srh", "Successful connections percent", "%" );

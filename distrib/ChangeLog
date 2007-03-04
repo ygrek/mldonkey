@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/03/04
+5782: Improve CommonNetwork.network_display_stats function
+
 2007/02/28
 5757: Some improvements for byte-code build
 - "make utils" now builds byte-code if needed

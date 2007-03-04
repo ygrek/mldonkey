@@ -1793,7 +1793,8 @@ let print_network_modules buf o =
           with _ -> ())
     end
 
-let print_gdstats buf o =
+let print_gdstats o =
+  let buf = o.conn_buf in
   let picture_suffix () =
     if !!html_mods_vd_gfx_png then
       Printf.bprintf buf "png\\\"\\>"

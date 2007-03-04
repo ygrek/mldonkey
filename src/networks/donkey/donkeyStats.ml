@@ -170,7 +170,7 @@ let print_stats o style mods =
           end
 
 let _ =
-  network.op_network_display_stats <- (fun buf o -> print_stats o New false);
+  network.op_network_display_stats <- (fun o -> print_stats o New false);
 
   network.op_network_stat_info_list <- (fun _ ->
     let r = ref [] in

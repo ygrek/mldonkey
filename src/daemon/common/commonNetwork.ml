@@ -249,7 +249,7 @@ let network_parse_url n url =
   let url = try Url.decode url with _ -> url in
   n.op_network_parse_url url
     
-let network_display_stats n buf o = n.op_network_display_stats buf o
+let network_display_stats n o = n.op_network_display_stats o
 let network_info n = n.op_network_info ()
 let network_stat_info_list n = n.op_network_stat_info_list ()
 let network_gui_message n s u = n.op_network_gui_message s u
@@ -290,7 +290,7 @@ let new_network shortname name ?comment flags =
       op_network_add_server = (fun _ -> fni name "op_network_add_server");
       op_network_gui_message = (fun _ _ -> ni_ok name "gui_message");
       op_network_download = (fun _ _ -> fni name "network_download");
-      op_network_display_stats = (fun _ _ -> ni_ok name "display_stats");
+      op_network_display_stats = (fun _ -> ni_ok name "display_stats");
       op_network_stat_info_list = (fun _ -> []);
       op_network_clean_exit = (fun _ -> true);
       op_network_reset = (fun _ -> ni_ok name "reset");

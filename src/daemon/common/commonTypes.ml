@@ -533,7 +533,7 @@ and network = {
     mutable op_network_gui_message : (string -> userdb -> unit);
     
     mutable op_network_download : (result_info -> userdb -> file);
-    mutable op_network_display_stats : (Buffer.t -> ui_conn -> unit);
+    mutable op_network_display_stats : (ui_conn -> unit);
     mutable op_network_stat_info_list : unit -> (string * int * (network_stat_info list)) list;
     mutable op_network_clean_exit : (unit -> bool);
     mutable op_network_reset : (unit -> unit);

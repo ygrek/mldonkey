@@ -212,10 +212,9 @@ val network_download :
 (** call the op_network_display_stats method of a network.
     Output statistics about a network
     @param network instance
-    @param output buffer
     @param interface context *)
 val network_display_stats : 
-  CommonTypes.network -> Buffer.t -> CommonTypes.ui_conn -> unit
+  CommonTypes.network -> CommonTypes.ui_conn -> unit
 
 (** call the op_network_info method of a network.
     Return the current status of a network.

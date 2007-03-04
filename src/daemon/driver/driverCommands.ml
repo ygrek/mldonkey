@@ -1119,32 +1119,29 @@ let _ =
     ), ":\t\t\t\ttoggle between the two rate sets";
 
     "stats", Arg_none (fun o ->
-        let buf = o.conn_buf in
-        CommonInteractive.network_display_stats buf o;
+        CommonInteractive.network_display_stats o;
         if use_html_mods o then
-          print_gdstats buf o;
+          print_gdstats o;
       _s ""), ":\t\t\t\t\tdisplay transfer statistics";
 
     "gdstats", Arg_none (fun o ->
-        let buf = o.conn_buf in
 	if Autoconf.has_gd then
           if use_html_mods o then
-            print_gdstats buf o
+            print_gdstats o
           else
-            Printf.bprintf buf "Only available on HTML interface"
+            print_command_result o (_s "Only available on HTML interface")
 	else
-	  Printf.bprintf buf "Gd support was not compiled";
+          print_command_result o (_s "Gd support was not compiled");
       _s ""), ":\t\t\t\tdisplay graphical transfer statistics";
 
     "gdremove", Arg_none (fun o ->
-        let buf = o.conn_buf in
 	if Autoconf.has_gd then
 	  begin
 	    DriverGraphics.G.really_remove_files ();
-	    Printf.bprintf buf "Gd files were removed"
+            print_command_result o (_s "Gd files were removed")
 	  end
 	else
-	  Printf.bprintf buf "Gd support was not compiled";
+          print_command_result o (_s "Gd support was not compiled");
       _s ""), ":\t\t\t\tremove graphical transfer statistics files";
 
     "!", Arg_multiple (fun arg o ->
