@@ -30,7 +30,7 @@ let max_connections_per_second = ref (fun () -> 50)
 let opened_connections = ref 0
 let opened_connections_this_second = ref 0
 
-let max_buffer_size = ref 10000000
+let max_buffer_size = ref 50000
 
 let bind_address = ref Unix.inet_addr_any
 let ip_packet_size = ref 40
@@ -464,7 +464,6 @@ let can_write_len t len =
       t.wbuf.max_buf_size t.wbuf.len len; *)
   b
 let not_buffer_more t max =  t.wbuf.len < max
-let can_fill t = t.wbuf.len < (t.wbuf.max_buf_size / 2)
 let get_rtimeout t = get_rtimeout t.sock_in
 let max_refill t = t.wbuf.max_buf_size - t.wbuf.len
 
@@ -1836,6 +1835,7 @@ let _ =
       Printf.bprintf buf "  to_deflate: %d\n" (List.length !to_deflate);
       Printf.bprintf buf "  max_opened_connections: %d\n" (!max_opened_connections ());
       Printf.bprintf buf "  max_connections_per_second: %d\n" (!max_connections_per_second ());
+      Printf.bprintf buf "  max_buffer_size: %d\n" (!max_buffer_size);
   );
   add_infinite_timer 1.0 proc_net_timer
 

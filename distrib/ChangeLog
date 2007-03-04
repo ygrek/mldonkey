@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2007/03/04
+5765: Change hard-coded maximum value for client_buffer_size
+- default stays at 500.000
+- for high-volume links raise this value to 1.000.000 or higher
 5767: HTML: Improve bw_stats
 5768: New default for option messages_filter (thx to atordo)
 5766: Windows/Unicode: Fix broken get_info function for non-ascii filenames

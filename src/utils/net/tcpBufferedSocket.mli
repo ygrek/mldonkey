@@ -103,7 +103,6 @@ val peer_port : t -> int
   
 val stats :  Buffer.t -> t -> unit
 val buf_size : t -> int * int
-val can_fill : t -> bool
   
 (* val if_possible : bandwidth_controler -> int -> bool *)
   

@@ -1534,7 +1534,8 @@ let filter_table_threshold = define_expert_option current_section ["filter_table
     int_option 50
 
 let client_buffer_size = define_expert_option current_section ["client_buffer_size"]
-  "Maximal size of the buffers of a client"
+  "Maximal size in byte of the buffers of a client, minimum 50.000 byte.
+For high-volume links raise this value to 1.000.000 or higher."
     int_option 500000
 
 let save_options_delay = define_expert_option current_section ["save_options_delay"]
@@ -1804,7 +1805,7 @@ let _ =
         (!!minor_heap_size * 1024) };
   );
   option_hook client_buffer_size (fun _ ->
-      TcpBufferedSocket.max_buffer_size := max 10000000 !!client_buffer_size
+      TcpBufferedSocket.max_buffer_size := max 50000 !!client_buffer_size
   );
   if Autoconf.has_gd then begin
     option_hook html_mods_vd_gfx_png (fun _ ->
