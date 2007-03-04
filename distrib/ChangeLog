@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/03/04
+5768: New default for option messages_filter (thx to atordo)
 5766: Windows/Unicode: Fix broken get_info function for non-ascii filenames
 5782: Improve CommonNetwork.network_display_stats function
 

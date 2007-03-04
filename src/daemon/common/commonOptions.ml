@@ -1346,7 +1346,7 @@ let allow_browse_share = define_option current_section ["allow_browse_share"]
 
 let messages_filter = define_option current_section ["messages_filter"]
   "Regexp of messages to filter out, example: string1|string2|string3"
-    string_option "Your client is connecting too fast"
+    string_option "DI-Emule|ZamBoR|Ketamine|eMule FX|AUTOMATED MESSAGE"
 
 let comments_filter = define_option current_section ["comments_filter"]
   "Regexp of comments to filter out, example: string1|string2|string3"
@@ -1584,7 +1584,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 let options_version = define_expert_option current_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 15
+    int_option 16
 
 let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
   "Maximum number of comments per file"
@@ -2163,5 +2163,10 @@ let rec update_options () =
       (* set back to 5 because dynamic_loop_delay patch was removed *)
       loop_delay =:= 5;
       update 15
+
+  | 15 ->
+      if !!messages_filter = "Your client is connecting too fast" then
+        messages_filter =:= "DI-Emule|ZamBoR|Ketamine|eMule FX|AUTOMATED MESSAGE";
+      update 16
 
   | _ -> ()
