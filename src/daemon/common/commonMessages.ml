@@ -1067,6 +1067,9 @@ onClick=\"mSub('fstatus','bw_stats');mSub('output','gstats')\">Gnutella</TD>
 <TD class=\"bu bbig\" title=\"Gnutella2 statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','bw_stats');mSub('output','g2stats')\">Gnutella2</TD>
+<TD class=\"bu bbig\" title=\"Country statistics - all seen\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('fstatus','bw_stats');mSub('output','costats all')\">Countries</TD>
 <TD class=\"bu bbig\" title=\"Memory statistics\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('fstatus','bw_stats');mSub('output','mem_stats 0')\">Memory</TD>

@@ -1118,6 +1118,177 @@ let _ =
 	""
     ), ":\t\t\t\ttoggle between the two rate sets";
 
+    "costats", Arg_multiple (fun args o ->
+        let filter cs =
+          match (List.map String.lowercase args) with
+          | [] -> cs.country_total_upload <> 0L || cs.country_total_download <> 0L
+          | ["all"] -> true
+	  | args ->
+              let match_star = Str.regexp "\\*" in
+              let regexp = Str.regexp ("^\\("
+                ^ (List.fold_left (fun acc a -> acc
+                ^ (if acc <> "" then "\\|" else "")
+                ^ (Str.global_replace match_star ".*" a)) "" args)
+                ^ "\\)$") in
+              let check_string s =
+                Str.string_match regexp (String.lowercase s) 0 in
+              check_string cs.country_code ||
+              check_string cs.country_name ||
+              check_string cs.country_continent
+        in
+        let buf = o.conn_buf in
+        if use_html_mods o then
+          begin
+            let u1 = BasicSocket.last_time () - !CommonStats.start_time in
+            let u2 = (CommonStats.guptime () + u1) in
+            let t1 = Printf.sprintf "Session uptime: %s" (Date.time_to_string u1 "verbose") in
+            let t2 = Printf.sprintf "Total uptime: %s" (Date.time_to_string u2 "verbose") in
+            html_mods_big_header_start buf "shares" [t1;t2];
+
+            html_mods_table_header buf "sharesTable" "shares" [
+               ( "0", "srh", "Country name", "Country" ) ;
+               ( "0", "srh", "Country code", "Code" ) ;
+               ( "0", "srh", "Continent", "Con" ) ;
+               ( "0", "srh ar", "Session uploaded", "sUl" ) ;
+               ( "0", "srh ar", "Session downloaded", "sDl" ) ;
+               ( "0", "srh ar", "Session seen", "sSe" ) ;
+               ( "0", "srh ar", "Total uploaded", "tUl" ) ;
+               ( "0", "srh ar", "Total downloaded", "tDl" ) ;
+               ( "0", "srh ar", "Total seen", "tSe" ) ;
+            ];
+            html_mods_cntr_init ();
+            let csu = ref 0L in
+            let csd = ref 0L in
+            let css = ref 0L in
+            let ctu = ref 0L in
+            let ctd = ref 0L in
+            let cts = ref 0L in
+            List.iter (fun cs ->
+              if filter cs then begin
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+                html_mods_td buf [
+		    ("", "sr", cs.country_name);
+		    ("", "sr", cs.country_code);
+		    ("", "sr", cs.country_continent);
+		    ("", "sr ar", size_of_int64 cs.country_session_upload);
+		    ("", "sr ar", size_of_int64 cs.country_session_download);
+		    ("", "sr ar", Printf.sprintf "%Ld" cs.country_session_seen);
+		    ("", "sr ar", size_of_int64 cs.country_total_upload);
+		    ("", "sr ar", size_of_int64 cs.country_total_download);
+		    ("", "sr ar", Printf.sprintf "%Ld" cs.country_total_seen);
+		    ];
+                Printf.bprintf buf "\\</tr\\>\n";
+                csu := !csu ++ cs.country_session_upload;
+                csd := !csd ++ cs.country_session_download;
+                css := !css ++ cs.country_session_seen;
+                ctu := !ctu ++ cs.country_total_upload;
+                ctd := !ctd ++ cs.country_total_download;
+                cts := !cts ++ cs.country_total_seen;
+              end
+              ) (List.sort (fun c1 c2 -> compare c1.country_code c2.country_code) !!CommonStats.country_stats);
+              Printf.bprintf buf "\\</tr\\>\n";
+
+              html_mods_td buf [ (* Display totals *)
+		("", "sr", "Total");
+		("", "sr", "");
+		("", "sr", "");
+		("", "sr ar", size_of_int64 !csu);
+		("", "sr ar", size_of_int64 !csd);
+		("", "sr ar", Printf.sprintf "%Ld" !css);
+		("", "sr ar", size_of_int64 !ctu);
+		("", "sr ar", size_of_int64 !ctd);
+		("", "sr ar", Printf.sprintf "%Ld" !cts);
+		];
+              Printf.bprintf buf "\\</tr\\>\n"
+          end
+        else
+          begin
+            let list = ref [] in
+            List.iter (fun cs ->
+              if filter cs then list := [|
+                cs.country_name;
+                cs.country_code;
+                cs.country_continent;
+                size_of_int64 cs.country_session_upload;
+                size_of_int64 cs.country_session_download;
+                Printf.sprintf "%Ld" cs.country_session_seen;
+                size_of_int64 cs.country_total_upload;
+                size_of_int64 cs.country_total_download;
+                Printf.sprintf "%Ld" cs.country_total_seen;
+              |] :: !list
+            ) (List.sort (fun c1 c2 -> compare c1.country_code c2.country_code) !!CommonStats.country_stats);
+            print_table_text buf
+            [|
+              Align_Left; Align_Left; Align_Left; Align_Right; Align_Right; Align_Right; Align_Right; Align_Right; Align_Right |]
+            [|
+              "Country";
+              "Code";
+              "Con";
+              "sUL";
+              "sDL";
+              "sSeen";
+              "tUL";
+              "tDL";
+              "tSeen";
+            |] (List.rev !list)
+          end;
+      _s ""), "[<all|regex>]:\t\t\tdisplay country based transfer statistics for countries with data transfered,\n\t\t\t\t\tuse arg 'all' for all countries seen\n\t\t\t\t\tor * as wildcard for country name, code and continent";
+
+    "countries", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        if use_html_mods o then
+          begin
+            html_mods_table_header buf "sharesTable" "shares" [
+               ( "0", "srh ar", "Number", "Num" ) ;
+               ( "0", "srh", "Country name", "Country" ) ;
+               ( "0", "srh", "Country code", "Code" ) ;
+               ( "0", "srh", "Continent code", "Con" ) ;
+               ( "0", "srh", "Continent name", "Continent" ) ;
+            ];
+            html_mods_cntr_init ();
+            Array.iteri (fun i _ ->
+              Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
+                ("", "sr ar", Printf.sprintf "%d" i);
+                ("", "sr", Geoip.country_code_array.(i));
+                ("", "sr", Geoip.country_name_array.(i));
+                ("", "sr", Geoip.country_continent_code_array.(i));
+                ("", "sr", Geoip.country_continent_name_array.(i));
+              ];
+              Printf.bprintf buf "\\</tr\\>\n"
+            ) Geoip.country_code_array;
+            Printf.bprintf buf "\\</tr\\>\n";
+          end
+        else
+          begin
+            let list = ref [] in
+            Array.iteri (fun i _ ->
+              list := [|
+                Printf.sprintf "%d" i;
+                Geoip.country_code_array.(i);
+                Geoip.country_name_array.(i);
+                Geoip.country_continent_code_array.(i);
+                Geoip.country_continent_name_array.(i);
+              |] :: !list
+            ) Geoip.country_code_array;
+            print_table_text buf
+            [|
+              Align_Right; Align_Left; Align_Left; Align_Left; Align_Left |]
+            [|
+              "Num";
+              "Country";
+              "Code";
+              "Con";
+              "Continent";
+            |] (List.rev !list)
+          end;
+      _s ""), ":\t\t\t\tdisplay country database";
+
+    "reset_costats", Arg_none (fun o ->
+        CommonStats.country_reset ();
+        print_command_result o (_s "country statistics resetted");
+      _s ""), ":\t\t\t\treset country based transfer statistics and save statistics.ini";
+
     "stats", Arg_none (fun o ->
         CommonInteractive.network_display_stats o;
         if use_html_mods o then

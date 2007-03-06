@@ -411,6 +411,7 @@ or getting a binary compiled with glibc %s.\n\n")
 (*  lprintf "(1) CommonComplexOptions.load\n"; *)
   CommonComplexOptions.load ();
   CommonUploads.load ();
+  CommonStats.load ();
 
 (*  lprintf "(2) CommonComplexOptions.load done\n"; *)
   begin

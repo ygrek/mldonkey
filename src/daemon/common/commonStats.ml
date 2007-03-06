@@ -17,7 +17,9 @@
 *)      
 
 open Int64ops
+open Gettext
 open Printf2
+open Options
 open CommonTypes
 open CommonGlobals
 open CommonInteractive
@@ -25,12 +27,115 @@ open CommonInteractive
 
 type style = Old | New
 
-let global_count_upload n v =
+let _s x = _s "CommonStats" x
+let _b x = _b "CommonStats" x
+
+let define_option a b ?desc ?restart ?public ?internal c d e =
+  match desc with
+    None -> define_option a b (_s c) d e ?restart ?public ?internal
+  | Some desc -> define_option a b ~desc: (_s desc) (_s c) d e ?restart ?public ?internal
+
+let statistics_ini = create_options_file "statistics.ini"
+
+let country_stats_section = file_section statistics_ini
+    ["Country statistics"] "Country-based traffic statistics"
+
+module CountryStatsOption = struct
+
+    let value_to_country v =
+      match v with
+      | Options.Module assocs ->
+          let int64v s = try value_to_int64 (List.assoc s assocs) with Not_found -> 0L in
+          let cc = value_to_string (List.assoc "country_code" assocs) in
+          let cn = try
+              Geoip.country_name_array.(Hashtbl.find Geoip.country_index cc)
+            with Not_found -> "??" in
+          let co = try
+              Geoip.country_continent_name_array.(Hashtbl.find Geoip.country_index cc)
+            with Not_found -> "??" in
+          { country_code = cc;
+            country_name = cn;
+            country_continent = co;
+            country_total_upload = int64v "country_upload";
+            country_total_download = int64v "country_download";
+            country_total_seen = int64v "country_seen";
+            country_session_upload = 0L;
+            country_session_download = 0L;
+            country_session_seen = 0L;
+          }
+      | _ -> failwith "Options: invalid country statistics"
+
+    let country_to_value c =
+      Options.Module (
+        ["country_code", string_to_value c.country_code] @
+        (if c.country_total_upload = 0L then [] else
+        ["country_upload", int64_to_value c.country_total_upload]) @
+        (if c.country_total_download = 0L then [] else
+        ["country_download", int64_to_value c.country_total_download]) @
+        (if c.country_total_seen = 0L then [] else
+        ["country_seen", int64_to_value c.country_total_seen])
+      )
+
+    let t = define_option_class "CountryStats" value_to_country country_to_value
+
+  end
+
+let country_stats_uptime = define_option country_stats_section ["guptime"]
+  "Uptime" int_option 0
+
+let country_stats = define_option country_stats_section ["country_stats"]
+  "Country-based traffic statistics" (list_option CountryStatsOption.t) []
+
+let country_stats_find cc =
+  try
+    List.find (fun c -> c.country_code = cc) !!country_stats
+  with Not_found ->
+    let rec cs = {
+      country_code = cc;
+      country_name = Geoip.country_name_array.(Hashtbl.find Geoip.country_index cc);
+      country_continent = Geoip.country_continent_name_array.(Hashtbl.find Geoip.country_index cc);
+      country_total_upload = 0L;
+      country_total_download = 0L;
+      country_total_seen = 0L;
+      country_session_upload = 0L;
+      country_session_download = 0L;
+      country_session_seen = 0L;
+    } in
+    country_stats =:= cs :: !!country_stats;
+    cs
+
+let country_upload ip v =
+  try
+    let cc,_ = Geoip.get_country ip in
+    let c = country_stats_find cc in
+    c.country_session_upload <- c.country_session_upload ++ v;
+    c.country_total_upload <- c.country_total_upload ++ v
+  with _ -> ()
+
+let country_download ip v =
+  try
+    let cc,_ = Geoip.get_country ip in
+    let c = country_stats_find cc in
+    c.country_session_download <- c.country_session_download ++ v;
+    c.country_total_download <- c.country_total_download ++ v
+  with _ -> ()
+
+let country_seen ip =
+  try
+    let cc,_ = Geoip.get_country ip in
+    let c = country_stats_find cc in
+    c.country_session_seen <- c.country_session_seen ++ 1L;
+    c.country_total_seen <- c.country_total_seen ++ 1L
+  with _ -> ()
+
+let global_count_upload n ip v =
   upload_counter := !upload_counter ++ v;
+  country_upload ip v;
   network_must_update n
 
-let global_count_download n v =
+let global_count_download n ip v =
   download_counter := !download_counter ++ v;
+  country_download ip v;
   network_must_update n
 
 let find_int_of_brand brand brand_list =
@@ -325,3 +430,38 @@ let print_stats_html_mods buf arr l tl uptime =
   html_mods_big_header_end buf;
   Buffer.add_string buf "\\<P\\>\n"
 
+let start_time = ref (BasicSocket.last_time ())
+let diff_time = ref 0
+let guptime () = !!country_stats_uptime - !diff_time
+let config_files_loaded = ref false
+
+let load () =
+  Options.load statistics_ini;
+  config_files_loaded := true
+
+let save () =
+  if !config_files_loaded then begin
+      let time_diff = BasicSocket.last_time () - BasicSocket.start_time in
+      country_stats_uptime =:= !!country_stats_uptime + time_diff - !diff_time;
+      diff_time := time_diff;
+    Options.save statistics_ini
+  end
+
+let country_reset () =
+  country_stats =:= [];
+  country_stats_uptime =:= 0;
+  diff_time := 0;
+  start_time := BasicSocket.last_time ();
+  save ()
+
+let _ =
+  option_hook country_stats (fun _ ->
+    try
+      ignore (List.find (fun c -> c.country_name = "??") !!country_stats);
+      country_stats =:= List.filter (fun c -> c.country_name <> "??") !!country_stats;
+    with Not_found -> ());
+  Heap.add_memstat "CommonStats" (fun level buf ->
+    Printf.bprintf buf "  countries: %d%s\n"
+      (List.length !!country_stats)
+      (if not !Geoip.active then " - Geoip not active" else "");
+   )

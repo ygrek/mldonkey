@@ -14,6 +14,20 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/03/06
+5773: Geoip: Country-based up-/download statistics
+- new ini file statistics.ini, to be used later for all statistics
+- new command "costats", accepts parameters:
+  without parameter it displays all countries where data was transfered to
+  parameter "all" displays all seen countries, countries where MLDonkey never
+  saw a client are not part of the statistics data
+  regular expressions can be used for country names/codes and continents,
+  like "costats *aus*" (Austria and Australia), "costats *europe* *africa*"
+- new command "countries" to print country database
+- new command "reset_costats" to reset country statistics
+- mem_stats support for modules CommonStats & Geoip
+- updated country database based on GeoIP 1.4.2 C-library
+
 2007/03/04
 5765: Change hard-coded maximum value for client_buffer_size
 - default stays at 500.000

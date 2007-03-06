@@ -39,6 +39,7 @@ let stats_array = Array.init brand_count (fun _ ->
 
 let count_seen c =
   let i = brand_to_int c.client_brand in
+  CommonStats.country_seen (fst c.client_host);
   stats_array.(i).brand_seen <- stats_array.(i).brand_seen + 1;
   !!gstats_array.(i).brand_seen <- !!gstats_array.(i).brand_seen + 1
 
@@ -60,7 +61,7 @@ let count_download c v =
   c.client_total_downloaded <- c.client_total_downloaded ++ v;
   c.client_session_downloaded <- c.client_session_downloaded ++ v;
   bt_download_counter := !bt_download_counter ++ v;
-  global_count_download network v
+  global_count_download network (fst c.client_host) v
 
 let count_upload c v =
   let i = brand_to_int c.client_brand in
@@ -70,7 +71,7 @@ let count_upload c v =
   c.client_total_uploaded <- c.client_total_uploaded ++ v;
   c.client_session_uploaded <- c.client_session_uploaded ++ v;
   bt_upload_counter := !bt_upload_counter ++ v;
-  global_count_upload network v
+  global_count_upload network (fst c.client_host) v
 
 let print_stats o style = 
   let buf = o.conn_buf in

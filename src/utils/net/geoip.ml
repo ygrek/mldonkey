@@ -44,6 +44,10 @@ let databaseInfo_CITY_EDITION_REV0 = 6
 let databaseInfo_CITY_EDITION_REV1 = 2
 let databaseInfo_ORG_EDITION = 5
 let databaseInfo_ISP_EDITION = 4
+let databaseInfo_PROXY_EDITION = 8
+let databaseInfo_ASNUM_EDITION = 9
+let databaseInfo_NETSPEED_EDITION = 10
+let databaseInfo_DOMAIN_EDITION = 11
 
 let country_code_array = [|
   "--";"AP";"EU";"AD";"AE";"AF";"AG";"AI";"AL";"AM";"AN";"AO";"AQ";"AR";
@@ -61,9 +65,9 @@ let country_code_array = [|
   "PA";"PE";"PF";"PG";"PH";"PK";"PL";"PM";"PN";"PR";"PS";"PT";"PW";"PY";
   "QA";"RE";"RO";"RU";"RW";"SA";"SB";"SC";"SD";"SE";"SG";"SH";"SI";"SJ";
   "SK";"SL";"SM";"SN";"SO";"SR";"ST";"SV";"SY";"SZ";"TC";"TD";"TF";"TG";
-  "TH";"TJ";"TK";"TM";"TN";"TO";"TP";"TR";"TT";"TV";"TW";"TZ";"UA";"UG";
+  "TH";"TJ";"TK";"TM";"TN";"TO";"TL";"TR";"TT";"TV";"TW";"TZ";"UA";"UG";
   "UM";"US";"UY";"UZ";"VA";"VC";"VE";"VG";"VI";"VN";"VU";"WF";"WS";"YE";
-  "YT";"YU";"ZA";"ZM";"ZR";"ZW";"A1";"A2";"O1";
+  "YT";"RS";"ZA";"ZM";"ME";"ZW";"A1";"A2";"O1";"AX";"GG";"IM";"JE";
 |]
 
 let country_name_array = [|
@@ -109,21 +113,64 @@ let country_name_array = [|
   "Senegal";"Somalia";"Suriname";"Sao Tome and Principe";"El Salvador";
   "Syrian Arab Republic";"Swaziland";"Turks and Caicos Islands";"Chad";
   "French Southern Territories";"Togo";"Thailand";"Tajikistan";"Tokelau";
-  "Turkmenistan";"Tunisia";"Tonga";"East Timor";"Turkey";"Trinidad and Tobago";
+  "Turkmenistan";"Tunisia";"Tonga";"Timor-Leste";"Turkey";"Trinidad and Tobago";
   "Tuvalu";"Taiwan";"Tanzania; United Republic of";"Ukraine";"Uganda";
   "United States Minor Outlying Islands";"United States";"Uruguay";"Uzbekistan";
   "Holy See (Vatican City State)";"Saint Vincent and the Grenadines";
   "Venezuela";"Virgin Islands; British";"Virgin Islands; U.S.";"Vietnam";
-  "Vanuatu";"Wallis and Futuna";"Samoa";"Yemen";"Mayotte";"Yugoslavia";
-  "South Africa";"Zambia";"Zaire";"Zimbabwe";"Anonymous Proxy";
-  "Satellite Provider";"Other";
+  "Vanuatu";"Wallis and Futuna";"Samoa";"Yemen";"Mayotte";"Serbia";
+  "South Africa";"Zambia";"Montenegro";"Zimbabwe";"Anonymous Proxy";
+  "Satellite Provider";"Other";"Aland Islands";"Guernsey";"Isle of Man";"Jersey";
 |]
 
-let country_index = Hashtbl.create 10
+let country_continent_code_array = [| "--";
+  "AS";"EU";"EU";"AS";"AS";"SA";"SA";"EU";"AS";"SA";
+  "AF";"AN";"SA";"OC";"EU";"OC";"SA";"AS";"EU";"SA";
+  "AS";"EU";"AF";"EU";"AS";"AF";"AF";"SA";"AS";"SA";
+  "SA";"SA";"AS";"AF";"AF";"EU";"SA";"NA";"AS";"AF";
+  "AF";"AF";"EU";"AF";"OC";"SA";"AF";"AS";"SA";"SA";
+  "SA";"AF";"AS";"AS";"EU";"EU";"AF";"EU";"SA";"SA";
+  "AF";"SA";"EU";"AF";"AF";"AF";"EU";"AF";"EU";"OC";
+  "SA";"OC";"EU";"EU";"EU";"AF";"EU";"SA";"AS";"SA";
+  "AF";"EU";"SA";"AF";"AF";"SA";"AF";"EU";"SA";"SA";
+  "OC";"AF";"SA";"AS";"AF";"SA";"EU";"SA";"EU";"AS";
+  "EU";"AS";"AS";"AS";"AS";"AS";"EU";"EU";"SA";"AS";
+  "AS";"AF";"AS";"AS";"OC";"AF";"SA";"AS";"AS";"AS";
+  "SA";"AS";"AS";"AS";"SA";"EU";"AS";"AF";"AF";"EU";
+  "EU";"EU";"AF";"AF";"EU";"EU";"AF";"OC";"EU";"AF";
+  "AS";"AS";"AS";"OC";"SA";"AF";"SA";"EU";"AF";"AS";
+  "AF";"NA";"AS";"AF";"AF";"OC";"AF";"OC";"AF";"SA";
+  "EU";"EU";"AS";"OC";"OC";"OC";"AS";"SA";"SA";"OC";
+  "OC";"AS";"AS";"EU";"SA";"OC";"SA";"AS";"EU";"OC";
+  "SA";"AS";"AF";"EU";"EU";"AF";"AS";"OC";"AF";"AF";
+  "EU";"AS";"AF";"EU";"EU";"EU";"AF";"EU";"AF";"AF";
+  "SA";"AF";"SA";"AS";"AF";"SA";"AF";"AF";"AF";"AS";
+  "AS";"OC";"AS";"AF";"OC";"AS";"AS";"SA";"OC";"AS";
+  "AF";"EU";"AF";"OC";"NA";"SA";"AS";"EU";"SA";"SA";
+  "SA";"SA";"AS";"OC";"OC";"OC";"AS";"AF";"EU";"AF";
+  "AF";"EU";"AF";"--";"--";"--";"EU";"EU";"EU";"EU";
+|]
+
+let country_continent_name_array =
+  Array.make (Array.length country_continent_code_array) "N/A"
+
+let country_index = Hashtbl.create 250
 let _ =
   Array.iteri (fun i cc -> 
     Hashtbl.add country_index cc i
-  ) country_code_array
+  ) country_code_array;
+  Array.iteri (fun i ccc ->
+    country_continent_name_array.(i) <- (
+      match ccc with
+      | "AF" -> "Africa"
+      | "AN" -> "Antarctica"
+      | "AS" -> "Asia"
+      | "EU" -> "Europe"
+      | "NA" -> "North America"
+      | "OC" -> "Oceania"
+      | "SA" -> "South America"
+      | _    -> "N/A"
+    )) country_continent_code_array
 
 let unknown_country = ("--", "N/A")
 let file = ref (Obj.magic 0)
@@ -131,6 +178,31 @@ let active = ref false
 let database_type = ref databaseInfo_COUNTRY_EDITION 
 let database_segments = ref 0
 let record_length = ref 0
+
+let database_name () =
+  if !database_type = databaseInfo_COUNTRY_EDITION then
+  "country edition" else
+  if !database_type = databaseInfo_REGION_EDITION_REV0 then
+  "region edition v0" else
+  if !database_type = databaseInfo_REGION_EDITION_REV1 then
+  "region edition v1" else
+  if !database_type = databaseInfo_CITY_EDITION_REV0 then
+  "city edition v0" else
+  if !database_type = databaseInfo_CITY_EDITION_REV1 then
+  "city edition v1" else
+  if !database_type = databaseInfo_ORG_EDITION then
+  "org edition" else
+  if !database_type = databaseInfo_ISP_EDITION then
+  "isp edition" else
+  if !database_type = databaseInfo_PROXY_EDITION then
+  "proxy edition" else
+  if !database_type = databaseInfo_ASNUM_EDITION then
+  "asnum edition" else
+  if !database_type = databaseInfo_NETSPEED_EDITION then
+  "netspeed edition" else
+  if !database_type = databaseInfo_DOMAIN_EDITION then
+  "domain edition" else
+  "unknown edition"
 
 let unpack filename =
   let ext = String.lowercase (Filename2.extension filename) in
@@ -227,6 +299,7 @@ let init filename =
                  || !database_type = databaseInfo_CITY_EDITION_REV1
                  || !database_type = databaseInfo_ORG_EDITION 
                  || !database_type = databaseInfo_ISP_EDITION
+                 || !database_type = databaseInfo_ASNUM_EDITION
                   then begin
              
             database_segments := 0;
@@ -258,13 +331,16 @@ let init filename =
 
     setup_types 0;
 
-    if !database_type = databaseInfo_COUNTRY_EDITION then begin
+    if !database_type = databaseInfo_COUNTRY_EDITION ||
+       !database_type = databaseInfo_PROXY_EDITION ||
+       !database_type = databaseInfo_NETSPEED_EDITION
+    then begin
       database_segments := country_begin;
       record_length := standard_record_length;
     end;
 
     active := true; 
-    lprintf_nl (_b "[GeoIP] database loaded")
+    lprintf_nl (_b "[GeoIP] %s database loaded") (database_name ())
   with _ -> 
     active := false
 
@@ -320,3 +396,14 @@ let get_country ip =
     with _ -> 
       unknown_country
   end
+
+let _ =
+  Heap.add_memstat "GeoIp" (fun level buf ->
+    if !active then
+      begin
+        Printf.bprintf buf "  countries: %d\n" (Array.length country_code_array);
+        Printf.bprintf buf "  database_type: %s\n" (database_name ());
+      end
+    else
+      Printf.bprintf buf "  module not active\n"
+  )

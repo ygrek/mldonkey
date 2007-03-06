@@ -45,6 +45,7 @@ let count_seen c =
   let i = brand_to_int c.client_brand in
   stats_array.(i).brand_seen <- stats_array.(i).brand_seen + 1;
   !!gstats_array.(i).brand_seen <- !!gstats_array.(i).brand_seen + 1;
+  CommonStats.country_seen c.client_ip;
   
   if !!emule_mods_count then begin
     let i = brand_mod_to_int c.client_brand_mod in
@@ -88,7 +89,7 @@ let count_download c v =
   c.client_total_downloaded <- c.client_total_downloaded ++ v;
   c.client_session_downloaded <- c.client_session_downloaded ++ v;
   donkey_download_counter := !donkey_download_counter ++ v;
-  global_count_download network v
+  global_count_download network c.client_ip v
 
 let count_upload c v =
   let i = brand_to_int c.client_brand in
@@ -104,7 +105,7 @@ let count_upload c v =
   c.client_total_uploaded <- c.client_total_uploaded ++ v;
   c.client_session_uploaded <- c.client_session_uploaded ++ v;
   donkey_upload_counter := !donkey_upload_counter ++ v;
-  global_count_upload network v
+  global_count_upload network c.client_ip v
 
 let print_stats_mods o style =
   let buf = o.conn_buf in

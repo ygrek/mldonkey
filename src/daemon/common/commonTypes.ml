@@ -927,6 +927,19 @@ let dummy_stats =
     brand_upload = 0L;
   }
 
+type country_stats =
+  {
+    country_code : string;
+    country_name : string;
+    country_continent : string;
+    mutable country_session_upload : int64;
+    mutable country_session_download : int64;
+    mutable country_session_seen : int64;
+    mutable country_total_upload : int64;
+    mutable country_total_download : int64;
+    mutable country_total_seen : int64;
+  }
+
 type kind_type = {
   f : string -> string -> unit;
   description : string

@@ -313,6 +313,7 @@ let save_config () =
       Options.save_with_help_private users_ini;
       CommonComplexOptions.save ();
       CommonUploads.save ();
+      CommonStats.save ();
       networks_iter_all (fun r ->
           List.iter (fun opfile ->
               Options.save_with_help opfile
