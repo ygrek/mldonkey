@@ -259,6 +259,19 @@ value ml_image_arc(value *argv, int argn) {
                         argv[6], argv[7]);
 }
 
+value ml_image_arc_fill_native(value gdw, value cx, value cy, value w, value h,
+                          value s, value e, value c, value style) {
+  gdImageFilledArc(IM_VAL(gdw), Int_val(cx), Int_val(cy), Int_val(w), Int_val(h),
+             Int_val(s), Int_val(e), Int_val(c), Int_val(style));
+  return Val_unit;
+}
+
+value ml_image_arc_fill(value *argv, int argn) {
+  return
+    ml_image_arc_fill_native(argv[0], argv[1], argv[2], argv[3], argv[4], argv[5],
+                        argv[6], argv[7], argv[8]);
+}
+
 value ml_image_border_fill_native(value gdw, value x, value y, value b,
                                   value c) {
   gdImageFillToBorder(IM_VAL(gdw), Int_val(x), Int_val(y), Int_val(b),

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/03/06
+5784: Gd: Implement binding for function gdImageFilledArc
 5773: Geoip: Country-based up-/download statistics
 - new ini file statistics.ini, to be used later for all statistics
 - new command "costats", accepts parameters:

@@ -67,6 +67,7 @@ object
   method virtual rectangle: x1:int -> y1:int -> x2:int -> y2:int -> color -> unit
   method virtual filled_rectangle: x1:int -> y1:int -> x2:int -> y2:int -> color -> unit
   method virtual arc: cx:int -> cy:int -> w:int -> h:int -> s:int -> e:int -> color -> unit
+  method virtual arc_fill: cx:int -> cy:int -> w:int -> h:int -> s:int -> e:int -> color -> style:int -> unit
   method virtual border_fill: x:int -> y:int -> border:color -> fill:color -> unit
   method virtual fill: x:int -> y:int -> color -> unit
   method virtual save_as_png: string -> unit
@@ -112,6 +113,9 @@ external do_draw_frect: t -> int -> int -> int -> int -> int -> unit
 
 external do_draw_arc: t -> int -> int -> int -> int -> int -> int -> int -> unit
     = "ml_image_arc" "ml_image_arc_native"
+
+external do_draw_arc_fill: t -> int -> int -> int -> int -> int -> int -> int -> int -> unit
+    = "ml_image_arc_fill" "ml_image_arc_fill_native"
 
 external do_border_fill: t -> int -> int -> int -> int -> unit
     = "ml_image_border_fill" "ml_image_border_fill_native"
@@ -256,6 +260,9 @@ object
 
   method arc ~cx ~cy ~w ~h ~s ~e color =
     do_draw_arc im cx cy w h s e color#code
+
+  method arc_fill ~cx ~cy ~w ~h ~s ~e color ~style =
+    do_draw_arc_fill im cx cy w h s e color#code style
 
   method border_fill ~x ~y ~border ~fill =
     do_border_fill im x y (border#code) (fill#code)
