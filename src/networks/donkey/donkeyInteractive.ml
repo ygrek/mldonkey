@@ -1497,7 +1497,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
                   | Some b -> if b then "P" else "F"
                 ));
             ("", "sr br", ip_string);
-            ] @ (if !Geoip.active then [(cn, "sr br", cc)] else []) @ [
+            ] @ (if !Geoip.active then [(cn, "sr br", CommonPictures.flag_html cc)] else []) @ [
             ("", "sr ar", (size_of_int64 c.client_total_uploaded));
             ("", "sr ar br", (size_of_int64 c.client_total_downloaded));
             ("", "sr ar", (size_of_int64 c.client_session_uploaded));
@@ -1839,7 +1839,7 @@ let _ =
                         | Some b -> if b then "P" else "F"
                       )); 
                       ("", "sr", ip_string);
-                      ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
+                      ] @ (if !Geoip.active then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
                       ("", "sr ar", (size_of_int64 c.client_total_uploaded));
                       ("", "sr ar", (size_of_int64 c.client_total_downloaded));
                       ("", "sr ar", (size_of_int64 c.client_session_uploaded));

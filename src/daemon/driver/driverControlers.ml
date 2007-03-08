@@ -819,14 +819,22 @@ let http_add_bin_stream_header r ext =
   add_reply_header r "Accept-Ranges" "bytes"
 
 let http_send_bin r buf filename =
-  let file_to_send = File.to_string filename in
-  let clen = String.length file_to_send in
-  let ext_pos = (String.rindex filename '.') + 1 in
-  let exten = (String.sub filename ext_pos ((String.length filename) - ext_pos)) in
-  if !verbose_msg_servers then
-    lprintf_nl "Extension found [%s] for file: [%s]" exten filename;
-  let ext = extension_to_file_ext exten in
-  http_add_bin_header r ext clen;
+  let file_to_send =
+    try
+      File.to_string filename
+    with _ ->
+      try
+        Hashtbl.find CommonPictures.files filename
+      with Not_found ->
+        try
+          if String.sub filename 0 4 = "flag" then
+            Hashtbl.find CommonPictures.files "flag_--.png"
+          else
+            raise Not_found
+        with _ -> raise Not_found
+  in
+  let ext = extension_to_file_ext (Filename2.last_extension2 filename) in
+  http_add_bin_header r ext (String.length file_to_send);
   Buffer.add_string buf file_to_send
 
 let http_error_no_gd img_type =
@@ -1189,11 +1197,6 @@ let http_handler o t r =
                 http_send_bin r buf "tag.jpg"
             | true -> raise Not_found)
 
-        | "favicon.ico" ->
-            if !verbose_msg_servers then
-              lprintf_nl "favicon.ico request received by tracker";
-            http_send_bin r buf "favicon.ico"
-
         | "filter" ->
             html_open_page buf t r true;
             let b = Buffer.create 10000 in
@@ -1493,7 +1496,7 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.download_html_js_mods0
               else !!CommonMessages.download_html_js_old)
-        | _ -> raise Not_found
+        | s ->  http_send_bin r buf (String.lowercase s)
       with
       | Not_found ->
 	  let _, error_text_long, header = Http_server.error_page "404" "" ""

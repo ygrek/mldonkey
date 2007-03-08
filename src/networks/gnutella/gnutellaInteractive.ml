@@ -451,6 +451,11 @@ let _ =
         let buf = o.conn_buf in
         let cc = as_client c in
         let cinfo = client_info cc in
+        let ccode,cname =
+          match c.client_host with
+          | None -> "?", "?"
+          | Some (ip, _) -> Geoip.get_country ip
+        in
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;
         
@@ -476,7 +481,7 @@ let _ =
           ("", "sr", "D");
           ("", "sr", "N");
           ("", "sr", (string_of_kind cinfo.GuiTypes.client_kind));
-          ] @ (if !Geoip.active then [("?", "sr", "?")] else []) @ [
+          ] @ (if !Geoip.active then [( cname, "sr br", CommonPictures.flag_html ccode)] else []) @ [
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_downloaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_session_uploaded));

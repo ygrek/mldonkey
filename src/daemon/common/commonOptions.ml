@@ -760,6 +760,10 @@ let html_mods_vd_age = define_expert_option current_section ["html_mods_vd_age"]
   "Whether to display the Age column in vd output"
     bool_option true
 
+let html_flags = define_expert_option current_section ["html_flags"]
+  "Whether to display flags instead of country codes"
+    bool_option true
+
 let html_mods_vd_gfx = define_expert_option current_section ["html_mods_vd_gfx"]
   "Show graph in vd output"
     bool_option true

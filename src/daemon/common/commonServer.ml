@@ -521,7 +521,7 @@ let server_print s o =
       ("", "sr", n.network_name);
       ("", "sr", server_state_string);
       ("", "sr br", ip_port_string);
-      ] @ (if !Geoip.active then [(cn, "sr br", cc)] else []) @ [
+      ] @ (if !Geoip.active then [(cn, "sr br", CommonPictures.flag_html cc)] else []) @ [
       ("", "sr ar", if info.G.server_nusers = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_nusers);
       ("", "sr ar br", if info.G.server_max_users = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_max_users);
       ("", "sr ar br", if info.G.server_lowid_users = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_lowid_users);

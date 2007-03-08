@@ -1149,12 +1149,12 @@ let _ =
                ( "0", "srh", "Country name", "Country" ) ;
                ( "0", "srh", "Country code", "Code" ) ;
                ( "0", "srh", "Continent", "Con" ) ;
-               ( "0", "srh ar", "Session uploaded", "sUl" ) ;
-               ( "0", "srh ar", "Session downloaded", "sDl" ) ;
-               ( "0", "srh ar", "Session seen", "sSe" ) ;
-               ( "0", "srh ar", "Total uploaded", "tUl" ) ;
-               ( "0", "srh ar", "Total downloaded", "tDl" ) ;
-               ( "0", "srh ar", "Total seen", "tSe" ) ;
+               ( "1", "srh ar", "Session uploaded", "sUl" ) ;
+               ( "1", "srh ar", "Session downloaded", "sDl" ) ;
+               ( "1", "srh ar", "Session seen", "sSe" ) ;
+               ( "1", "srh ar", "Total uploaded", "tUl" ) ;
+               ( "1", "srh ar", "Total downloaded", "tDl" ) ;
+               ( "1", "srh ar", "Total seen", "tSe" ) ;
             ];
             html_mods_cntr_init ();
             let csu = ref 0L in
@@ -1168,7 +1168,7 @@ let _ =
                 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
                 html_mods_td buf [
 		    ("", "sr", cs.country_name);
-		    ("", "sr", cs.country_code);
+		    (cs.country_code, "sr", CommonPictures.flag_html cs.country_code);
 		    ("", "sr", cs.country_continent);
 		    ("", "sr ar", size_of_int64 cs.country_session_upload);
 		    ("", "sr ar", size_of_int64 cs.country_session_download);
@@ -1240,8 +1240,8 @@ let _ =
           begin
             html_mods_table_header buf "sharesTable" "shares" [
                ( "0", "srh ar", "Number", "Num" ) ;
-               ( "0", "srh", "Country name", "Country" ) ;
                ( "0", "srh", "Country code", "Code" ) ;
+               ( "0", "srh", "Country name", "Country" ) ;
                ( "0", "srh", "Continent code", "Con" ) ;
                ( "0", "srh", "Continent name", "Continent" ) ;
             ];
@@ -1250,7 +1250,7 @@ let _ =
               Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
                 ("", "sr ar", Printf.sprintf "%d" i);
-                ("", "sr", Geoip.country_code_array.(i));
+                (Geoip.country_code_array.(i), "sr", CommonPictures.flag_html (String.lowercase Geoip.country_code_array.(i)));
                 ("", "sr", Geoip.country_name_array.(i));
                 ("", "sr", Geoip.country_continent_code_array.(i));
                 ("", "sr", Geoip.country_continent_name_array.(i));
@@ -1952,6 +1952,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option display_downloaded_results;
 			strings_of_option vd_reload_delay;
 			strings_of_option html_use_gzip;
+			strings_of_option html_flags;
 			strings_of_option html_mods_use_js_tooltips;
 			strings_of_option html_mods_js_tooltips_wait;
 			strings_of_option html_mods_js_tooltips_timeout;
@@ -2699,7 +2700,7 @@ let _ =
                                | Some b -> if b then "P" else "F"
                             )); 
                             ("", "sr", ips);
-                            ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
+                            ] @ (if !Geoip.active then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
                             ("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
                             (client_software i.client_software i.client_os, "sr", client_software_short i.client_software i.client_os);
                             ("", "sr", i.client_release);
@@ -2775,7 +2776,7 @@ let _ =
                           | Some b -> if b then "P" else "F"
                         )); 
                         ("", "sr", ips);
-                        ] @ (if !Geoip.active then [(cn, "sr", cc)] else []) @ [
+                        ] @ (if !Geoip.active then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
                         (client_software i.client_software i.client_os, "sr", client_software_short i.client_software i.client_os);
                         ("", "sr", i.client_release);
                         ] @
@@ -4022,4 +4023,9 @@ let _ =
         | Some reason ->
           Printf.sprintf "Blocked, %s\n" reason)
     ), "<ip> :\t\t\tcheck whether an IP is blocked";
+
+    "debug_pictures", Arg_two (fun dir output o ->
+        CommonPictures.compute_ocaml_code dir output;
+        _s "done"
+    ), ":\t\t\t\tfor debugging only";
   ]

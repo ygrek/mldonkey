@@ -219,6 +219,7 @@ COMMON_SRCS = \
   $(COMMON)/guiProto.ml \
   $(COMMON)/commonEvent.ml \
   $(COMMON)/commonOptions.ml \
+  $(COMMON)/commonPictures.ml \
   $(COMMON)/commonUserDb.ml \
   $(COMMON)/commonMessages.ml \
   $(COMMON)/commonGlobals.ml \

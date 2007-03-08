@@ -14,6 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/03/08
+5787: HTML/Geoip: Show country flags
+- new option html_flags to disable display of flags 
+- favicon.ico now built-in
+- fix sorting bug in costats (thx to orbit)
+
 2007/03/06
 5784: Gd: Implement binding for function gdImageFilledArc
 5773: Geoip: Country-based up-/download statistics
