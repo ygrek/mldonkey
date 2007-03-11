@@ -3,7 +3,6 @@ MLdonkey Source Tree (outdated):
 
 In src/:
 
-applets/     Sources to build applets (kde, gnome) for MLdonkey
 config/      Configuration dependent sources (Unix, MinGW)
 daemon/      Sources of MLdonkey daemon
                  common/: common types used by all network plugins

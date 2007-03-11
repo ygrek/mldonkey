@@ -517,8 +517,6 @@ GET_RANGE_SRCS = \
   $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   tools/get_range.ml
 
-KDE_APPLET=yes
-
 ifeq ("$(OPENFT)" , "yes")
 SUBDIRS += $(SRC_OPENFT)
 
@@ -1523,29 +1521,6 @@ ocamldoc: ocamldoc_html
 ocamldoc_html: $(CORE_DOC) $(libclient_DOC)
 	mkdir -p ocamldoc
 	$(OCAMLDOC) -sort -dump ocamldoc/ocamldocdump -html -d ocamldoc $(INCLUDES) $(libclient_DOC) $(CORE_DOC)
-
-kde_applet: $(APPLET_OBJS)
-	cd src/applets/kde; ./configure --prefix /usr; make
-	@echo; echo
-	@echo "      Go in src/applets/kde, su root, and call 'make install'"
-	@echo; echo
-
-gnome_applet: $(APPLET_OBJS)
-	cd src/applets/gnome; make
-	@echo; echo
-	@echo "      Go in src/applets/gnome, su root, and call 'make install'"
-	@echo; echo
-
-APPLET_SRCS=\
-  src/applets/api/endianess.c \
-  src/applets/api/gui_protocol.c \
-  src/applets/api/main.c
-
-APPLET_OBJS += $(foreach file, $(APPLET_SRCS), $(basename $(file)).o)
-
-text_applet: $(APPLET_OBJS)
-	$(CC) -o text_applet $(APPLET_OBJS)
-
 
 $(LIB)/md4_cc.o: $(LIB)/md4.c
 	$(OCAMLC) -ccopt "$(CFLAGS) -O6 -o $(LIB)/md4_cc.o" -ccopt "" -c $(LIB)/md4.c
