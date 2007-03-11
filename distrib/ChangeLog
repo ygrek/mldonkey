@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/03/11
+5775: removed, it breaks BT downloads
 5775: HTML: Fix url parsing for URLs with ()' (orbit)
 5774: BT: fix upload managment (orbit)
 5786: HTML: small javascript search improve (orbit)

@@ -103,7 +103,7 @@ let rec dollar_escape o with_frames s =
 
 let eval auth cmd o =
   let buf = o.conn_buf in
-  let cmd = Url.decode ~raw:false cmd in
+  let cmd = Url.decode cmd in
   let cmd =
     if String2.check_prefix cmd "ed2k://" ||
        String2.check_prefix cmd "ftp://" ||

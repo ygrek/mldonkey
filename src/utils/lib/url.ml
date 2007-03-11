@@ -31,8 +31,8 @@ type url = {
     
     string : string;
   }
-
-(* encode using RFC 1738 form *)
+  
+(* encode using x-www-form-urlencoded form *)
 let encode s =
   let pos = ref 0 in
   let len = String.length s in
@@ -42,8 +42,9 @@ let encode s =
     else Char.chr (Char.code '0' + x) in
   for i=0 to len-1 do
     match s.[i] with
-    | 'a'..'z' | 'A'..'Z' | '0'..'9' | '.' | '-' | '*' | '_' | '\''| '(' | ')'->
+    | 'a'..'z' | 'A'..'Z' | '0'..'9' | '.' | '-' | '*' | '_' ->
         res.[!pos] <- s.[i]; incr pos
+(*    | ' ' -> res.[!pos] <- '+'; incr pos *)
     | c ->
         res.[!pos] <- '%';
         res.[!pos+1] <- hexa_digit (Char.code c / 16);
@@ -52,33 +53,35 @@ let encode s =
   done;
   String.sub res 0 !pos
 
-(** decodes a sting according RFC 1738
-or x-www-form-urlencoded ('+' with ' ')
-  @param raw true use RFC 1738
-  @param string string to decode
-*)
-let decode ?(raw=true) s =
+(* decode using x-www-form-urlencoded form *)
+
+let digit_hexa x =
+  match x with
+  | 'a' .. 'f' -> (Char.code x) + 10 - (Char.code 'a')
+  | 'A' .. 'F' -> (Char.code x) + 10 - (Char.code 'A')
+  | '0' .. '9' -> (Char.code x) - (Char.code '0')
+  | _ -> failwith "Not an hexa number (encode.ml)" 
+
+let decode s =
   let len = String.length s in
   let r = Buffer.create len in
   let rec iter i =
     if i < len then
       match s.[i] with
+      | '+' -> Buffer.add_char r  ' '; iter (i+1)
       | '%' ->
           let n = 
             try
-              (* int_of_string with leading "0x", string is read hexadecimal *)
-              Buffer.add_char r (char_of_int (int_of_string ("0x" ^ (String.sub s (i+1) 2))));
+              let fst = digit_hexa s.[i+1] in
+              let snd = digit_hexa s.[i+2] in
+              Buffer.add_char r (char_of_int (fst*16 + snd));
               3
             with _ ->
                 Buffer.add_char r '%';
                 1
           in
           iter (i+n)
-
-      (* if not raw decode '+' -> ' ' else don't change char *)
-      | '+' ->  let c = if raw then '+' else ' ' in
-                Buffer.add_char r c; iter (i+1)
-
+          
       | c -> Buffer.add_char r c; iter (i+1)
   in
   iter 0;
@@ -114,7 +117,7 @@ let cut_args url_end =
   let args = String2.split url_end '&' in
   List.map (fun s -> 
         let (name, value) = String2.cut_at s '=' in
-      decode ~raw:false name, decode ~raw:false value
+      decode name, decode value
     ) args 
 
 let create proto user passwd server port full_file =

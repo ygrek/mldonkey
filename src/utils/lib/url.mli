@@ -54,7 +54,7 @@ val put_args : string -> (string * string) list -> string
 
   
 val encode : string -> string
-val decode : ?raw:bool -> string -> string
+val decode : string -> string
 
 val option : url Options.option_class
   
