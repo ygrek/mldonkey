@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2007/03/11
+5799: Flags: Added Aland Islands, Guernsey and Jersey,
+      fixed debug_pictures command
 5797: Remove unused source code in src/applets/*
 5775: removed, it breaks BT downloads
 5775: HTML: Fix url parsing for URLs with ()' (orbit)
