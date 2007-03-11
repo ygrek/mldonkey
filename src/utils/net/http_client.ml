@@ -90,8 +90,7 @@ let make_full_request r =
       then  Url.to_string_no_args url
       else url.short_file
     in
-  (* I get a lot more bittorrent urls with this line: *)
-  let url = (Str.global_replace (Str.regexp " ") "%20" url) in
+  let url = Url.encode url in
     let url = if is_real_post then url else
         Url.put_args url args
     in
