@@ -69,7 +69,7 @@ let choose_next_uploaders files fun_comp =
       max_list:= to_add;
       (* clients in optim are current optimistic uploaders (30 seconds) *)
       let optim,notoptim = List.partition ( fun a ->
-            (Rate.ratesince a.client_upload_rate) > 0.
+            (Rate.ratesince a.client_upload_rate) > 0
               && a.client_last_optimist + 30 > last_time()
         ) next in
       let notoptim = List.sort (fun a b -> compare a.client_last_optimist b.client_last_optimist) notoptim in

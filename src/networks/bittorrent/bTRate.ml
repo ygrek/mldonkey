@@ -24,49 +24,41 @@ open BasicSocket
 module Rate = struct
 
 type t = {
-  mutable ratesince : float;
-  mutable lasttime : float;
-  mutable rate : float;
+  mutable ratesince : int;
+  mutable lasttime : int;
+  mutable rate : int;
 }
 
-let (>) a b = a.rate > b.rate
-
-let update r amount =
-  let t = float_of_int (last_time ()) in
-    r.rate <- (r.rate *. (r.lasttime -. r.ratesince) +.
-	       amount) /. (t -. r.ratesince);
+let update ?(amount=0) r  =
+  let t =  last_time () in
+    try 
+      r.rate <- (r.rate * (r.lasttime - r.ratesince) + amount) / (t - r.ratesince)
+    with Division_by_zero ->
+      r.rate <- 0;
     r.lasttime <- t;
-    if r.ratesince < (t -. 20.) then
-      r.ratesince <- (t -. 20.)
+    if r.ratesince < (t - 20) then
+      r.ratesince <- (t - 20)
 
 let update_no_change r =
-  let t = float_of_int (last_time ()) in
-    r.ratesince <- t
+  let t = last_time () in
+    r.ratesince <- t;
+    r.lasttime <- t
 
 let ratesince r =
   r.ratesince
 
 let new_rate () =
-  let t = float_of_int (last_time()) in
+  let t = last_time() in
   {
-    ratesince = t -. 1.;
+    ratesince = t - 1;
     lasttime = t;
-    rate = 0.;
+    rate = 0;
   }
-
-let last_time t =
-  t.lasttime
 
 let get_rate r =
   r.rate
 
 let compare r1 r2 =
   compare r1.rate r2.rate
-
-let zero =   {
-    ratesince = 0.;
-    lasttime = 0.;
-    rate = 0.;
-  }
 
 end

@@ -844,7 +844,7 @@ and client_to_client c sock msg =
             (*Update rate and amount of data received from client*)
             count_download c (new_downloaded -- old_downloaded);
             (* use len here with max_dr quickfix *)
-            Rate.update c.client_downloaded_rate  (float_of_int len);
+            Rate.update c.client_downloaded_rate ~amount:len;
             if !verbose_msg_clients then
               (match c.client_ranges_sent with
                   [] -> lprintf_file_nl (as_file file) "EMPTY Ranges !!!"
@@ -869,16 +869,6 @@ and client_to_client c sock msg =
               c.client_ranges_sent <- tail;
         end;
         get_from_client sock c;
-        if (List.length !current_uploaders < (!!max_bt_uploaders-1)) &&
-          (List.mem c (!current_uploaders)) == false && c.client_interested then
-          begin
-            (*we are probably an optimistic uploaders for this client
-              don't miss the oportunity if we can
-            *)
-            current_uploaders := c::(!current_uploaders);
-            c.client_sent_choke <- false;
-	    start_upload c
-          end;
 
         (* Check if the client is still interesting for us... *)
         check_if_interesting file c
@@ -891,24 +881,8 @@ and client_to_client c sock msg =
           let brand, release = parse_software p in
           c.client_brand <- brand;
           c.client_release <- release;
-(* TODO : enable it
-      c.client_release <- (parse_release p c.client_brand);
- *)
-
-          if (List.length !current_uploaders < (!!max_bt_uploaders-1)) &&
-            (List.mem c (!current_uploaders)) == false then
-            begin
-            (*we are probably an optimistic uploader for this client
-              don't miss the opportunity if we can *)
-              current_uploaders := c::(!current_uploaders);
-              c.client_sent_choke <- false;
-	      start_upload c
-            end
-          else
-            begin
-              send_client c Choke;
-              c.client_sent_choke <- true;
-            end
+          send_client c Choke;
+          c.client_sent_choke <- true;
         end
       else
         disconnect_client c Closed_by_user
@@ -1519,7 +1493,8 @@ let rec iter_upload sock c =
 (*          lprintf "Unix32.read: offset %Ld len %d\n" offset len; *)
           Unix32.read (file_fd file) offset upload_buffer 0 len;
           (* update upload rate from len bytes *)
-          Rate.update c.client_upload_rate  (float_of_int len);
+          Rate.update c.client_upload_rate  ~amount:len;
+          Rate.update c.client_downloaded_rate;
           file.file_uploaded <- file.file_uploaded ++ (Int64.of_int len);
           let _ =
             (* update stats *)
