@@ -1,5 +1,0 @@
-[mldonkey_applet]
-type=exe
-repo_id=IDL:GNOME/Applet:1.1
-description=MLDonkey applet
-location_info=mldonkey_applet

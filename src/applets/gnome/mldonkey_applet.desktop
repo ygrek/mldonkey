@@ -1,7 +1,0 @@
-[Desktop Entry]
-Name=MLDonkey
-Comment=Applet which displays MLDonkey status in panel
-Exec=mldonkey_applet --activate-goad-server=mldonkey_applet
-Icon=
-Terminal=0
-Type=Application

@@ -1,5 +1,0 @@
-#MIN_CONFIG
-AC_HEADER_DIRENT
-AC_HEADER_STDC
-AC_CHECK_HEADERS(fcntl.h sys/sysctl.h sys/param.h sys/time.h sys/types.h sys/user.h sys/vmmeter.h sys/resource.h vm/vmparam.h unistd.h)
-CXXFLAGS="$CXXFLAGS -DQT_CLEAN_NAMESPACE -DQT_NO_COMPAT -DQT_NO_ASCII_CAST"
