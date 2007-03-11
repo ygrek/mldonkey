@@ -461,7 +461,6 @@ function _tabCreateArray(obj,st){
                }
             }
 	}
-	}}
 	_tabS[i-1]= new _rObj(_raw,rw.item(i).cloneNode(true));
 	}
 	if (st==1) { _tabS.sort(_cmpFloat); }
