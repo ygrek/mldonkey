@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/03/11
+5786: HTML: small javascript search improve (orbit)
+
 2007/03/08
 5787: HTML/Geoip: Show country flags
 - new option html_flags to disable display of flags 

@@ -447,23 +447,22 @@ function _tabCreateArray(obj,st){
 	var _tabS=new Array(_nRows-1);
 	var _nCells = rw.item(0).cells.length;
 	for(var i=1;i<_nRows;i++){
-		var _raw = rw.item(i).cells.item(obj.cellIndex).innerHTML;
-		if (st==1) {
-			_raw = _raw.replace((new RegExp('\\\\\\(','gi')), '');
-		   if (_raw.indexOf(\":\") != -1) { _raw = _raw.substring(2,99); }
-		 if (_raw.search(new RegExp(\"[TGMk]\",\"i\"))) {
-		  if (_raw.indexOf(\"T\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024 * 1024; }
-		  else {
-			if (_raw.indexOf(\"G\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024 * 1024; }
-			else {
-				 if (_raw.indexOf(\"M\") != -1) { _raw = parseFloat(_raw) * 1024 * 1024; }
-				 else {
-					if (_raw.indexOf(\"k\") != -1) { _raw = parseFloat(_raw) * 1024; }
-				 }
-			}
-	      }
-		}}
-			_tabS[i-1]= new _rObj(_raw,rw.item(i).cloneNode(true));
+	var _raw = rw.item(i).cells.item(obj.cellIndex).innerHTML;
+	if (st==1) {
+            var _regexp = /[TGMk]$/;
+            _raw = _raw.replace(/\\(/gi, \"\");	  
+            if (_raw.indexOf(\":\") != -1) { _raw = _raw.substring(2,99); }
+            if (_regexp.test(_raw)) {
+              switch (_raw.charAt(_raw.search(_regexp))) {
+               case \"k\": _raw = parseFloat(_raw) * 1024; break;
+               case \"M\": _raw = parseFloat(_raw) * 1024 * 1024; break;
+               case \"G\": _raw = parseFloat(_raw) * 1024 * 1024 * 1024; break;
+               case \"T\": _raw = parseFloat(_raw) * 1024 * 1024 * 1024 * 1024; break;
+               }
+            }
+	}
+	}}
+	_tabS[i-1]= new _rObj(_raw,rw.item(i).cloneNode(true));
 	}
 	if (st==1) { _tabS.sort(_cmpFloat); }
 	else { _tabS.sort(_cmpTxt); }
