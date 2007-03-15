@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/03/16
+Updated Mozilla protocol handler to version 2.0
+(re-committed after data loss due to Savannah crash on 2007/03/12)
+
 2007/03/11
 5799: Flags: Added Aland Islands, Guernsey and Jersey,
       fixed debug_pictures command

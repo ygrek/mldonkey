@@ -1,25 +1,28 @@
-Firefox MLdonkey/eMule Protocol Handler 1.10
-Copyright (C) 2003 - 2006 Simon Peter <dn.tlp@gmx.net>
+Firefox MLdonkey/eMule/aMule Protocol Handler 2.0
+Copyright (C) 2003 - 2007 Simon Peter <dn.tlp@gmx.net>
 
 Description:
 ------------
 This is a protocol handler for Firefox 1.5 and later (see
 www.mozilla.com) that forwards some link types to a running MLdonkey
-(see www.mldonkey.net) or eMule (see www.emule-project.net) client.
+(see mldonkey.sf.net), eMule (see www.emule-project.net) or aMule
+(see www.amule.org) web interface enabled client. The protocol handler
+is implemented in JavaScript and should run on any platform supported
+by Firefox.
 
-Supported protocols are ed2k:, magnet: and sig2dat:. For eMule, only
-ed2k: is supported, of course.
+Supported protocols are ed2k:, magnet: and sig2dat:. BitTorrent links
+are supported as well. For eMule and aMule, only ed2k: is supported,
+of course.
 
-Also note that eMule support is still beta and has only been tested to
-work with eMule versions 0.45* and 0.46a as of yet. Please send eMule
-specific questions to Dan Fritz.
-
-The protocol handler is implemented in JavaScript and should run on
-any platform supported by Firefox.
+Please note that eMule and aMule support is still beta and has only
+been tested to work with eMule versions 0.45* and 0.46a, as well as
+aMule version 2.1.3, respectively. Also note that current
+authentication support for both is insecure! Passwords are sent in
+plain. Please send eMule specific questions to Dan Fritz.
 
 Prerequisites:
 --------------
-The Web interface of your Donkey client must be enabled and access for
+The web interface of your Donkey client must be enabled and access for
 the host, this extension should be running on, must be enabled in
 order for this extension to work.
 
@@ -35,47 +38,41 @@ instructions.
 If you are on a UNIX derivative system (e.g. Linux, BSD, MacOS X and
 the like) and like to install this extension for all users on your
 system, you most likely need to start your browser as root before the
-installation.
-
-It is best to shutdown the browser completely by closing all open
-windows prior to restarting it as root because there may be some
-startup scripts used by your version that may just open another window
-instead of starting the whole browser as root.
+installation. It is best to shutdown the browser completely by closing
+all open windows prior to restarting it as root because there may be
+some startup scripts used by your version that may just open another
+window instead of starting the whole browser as root.
 
 After having installed the package, you need to set it up. Refer to
-the next section on this topic.
-
-After setup, restart your browser and everything should be in
-place. Supported link types will automatically be forwarded to your
-MLdonkey or eMule client when you click on them.
+the next section on this topic. After setup, restart your browser and
+everything should be in place. Supported link types will automatically
+be forwarded to your Donkey when you click on them.
 
 Configuration:
 --------------
-The protocol handler is GUI configurable through Firefox' extensions
-menu, for Firefox versions 1.5 and later. Go to the extensions menu,
-by clicking on Tools->Extensions from the main bar of pull-down
-menus. There, select the MLdonkey Protocol Handler and click on
-Options. A GUI configuration dialog should pop up, which allows you to
-set all options. The following preference options are available:
+The protocol handler is GUI configurable through Firefox' Extensions
+or Add-ons menu. You can go there by clicking on Tools->Extensions or
+Tools->Add-ons from the main bar of pull-down menus. There, select the
+MLdonkey Protocol Handler and click on Options or Preferences. A small
+configuration dialog should pop up, which allows you to set all
+options. The following preference options are available:
 
-Option: Server
+Option: Host Address
 Default: localhost
-Description: Hostname on which MLdonkey/eMule is running
+Description: Hostname on which your Donkey is running
 
-Option: Port
+Option: Web Port
 Default: 4080
-Description: Port of the MLdonkey/eMule web service
+Description: Port of the Donkey's web service
 
 Option: Password
 Default: (empty)
-Description: Password for eMule clients (MLdonkey is handled
+Description: Password for eMule and aMule (MLdonkey is handled
 automatically by Firefox' password manager)
 
 Option: Mode
-Default: mldonkey
-Description: Donkey client to send the data to. This can be set to
-'mldonkey', 'emule' (without the quotes) to talk to an MLdonkey or
-eMule client, respectively.
+Default: MLDonkey
+Description: Type of Donkey client to communicate with
 
 Remember to restart your browser before any of these options can take
 effect!
@@ -83,11 +80,14 @@ effect!
 Deinstallation:
 ---------------
 Deinstallation of the plugin in Firefox is straight-forward. Just open
-the extensions dialog by clicking on Extensions in the Tools
-menu. Select the plugin there and click on Uninstall.
+the Extensions dialog, select the plugin there and click on Uninstall.
 
 News:
 -----
+Changes for version 2.0:
+- Added support for BitTorrent links (many thanks to Dominik Röttsches).
+- Added support for the aMule web client.
+
 Changes for version 1.10:
 - Fixed another problem with the port GUI configuration option (thanks
   to Toni Cunat).
@@ -97,7 +97,7 @@ Changes for version 1.9:
 
 Changes for version 1.8:
 - Support for GUI configuration through Firefox' extensions menu
-  (thanks to David Ciecierski).
+  (thanks to David Ciecierski <dawid.ciecierski@googlemail.com>).
 
   ATTENTION upgraders: If you manually set configuration options
   through the about:config dialog for a previous version of this
@@ -126,7 +126,7 @@ Changes for version 1.5:
 
 Changes for version 1.4:
 - Added compatibility for the new component system of Firefox 0.9
-  (thanks to Len Walter).
+  (thanks to Len Walter <len@unsw.edu.au>).
 - Username is now empty by default.
 
 Changes for version 1.3:
@@ -163,15 +163,15 @@ The Original Code is the MLdonkey protocol handler.
 
 The Initial Developer of the Original Code is
 Simon Peter <dn.tlp@gmx.net>.
-Portions created by the Initial Developer are Copyright (C) 2003 - 2006
+Portions created by the Initial Developer are Copyright (C) 2003 - 2007
 the Initial Developer. All Rights Reserved.
 
 Contributor(s):
 Sven Koch
-Len Walter
-Dan Fritz
-David Ciecierski
-Dennis Plöger
+Len Walter <len@unsw.edu.au>
+Dan Fritz <templar_of_ni@yahoo.se>
+David Ciecierski <dawid.ciecierski@gmail.com>
+Dominik Röttsches <d-r@roettsches.de>
 
 Alternatively, the contents of this file may be used under the terms of
 either the GNU General Public License Version 2 or later (the "GPL"), or
