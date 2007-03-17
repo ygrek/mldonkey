@@ -93,8 +93,8 @@ let set_ip_blocking_countries_block v =
 let _ =
   CommonWeb.add_web_kind "guarding.p2p"
     "IP blocking lists (ipfilter and guardian v2 formats)"
-    (fun _ filename ->
-    try
+    (fun url filename ->
+    (try
       web_ip_blocking_list :=
 	if filename = "" then
 	  Ip_set.bl_empty
@@ -102,10 +102,14 @@ let _ =
 	  Ip_set.load filename;
       update_bans ()
     with _ -> ());
+    CommonWeb.remove_job url
+  );
   CommonWeb.add_web_kind "geoip.dat" "IP to country mapping database"
-    (fun _ filename ->
+    (fun url filename ->
     Geoip.init (Geoip.unpack filename);
-    update_bans ());
+    update_bans ();
+    CommonWeb.remove_job url
+  );
 
   Heap.add_memstat "CommonBlocking" (fun level buf ->
       Printf.bprintf buf "  local ranges: %d\n" 

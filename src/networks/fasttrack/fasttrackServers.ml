@@ -84,11 +84,12 @@ let _ =
     CommonWeb.add_web_kind "nodes.gzip" "List of fasttrack nodes"
     (fun url filename -> 
         lprintf_nl "nodes.gzip loaded from %s" url;
-        try
+        (try
           let f = unpack_nodes_gzip filename url in
           load_nodes_file f;
           if f <> filename then Sys.remove f;
-        with _ -> () 
+        with _ -> ());
+        CommonWeb.remove_job url
     )    
 
 let server_parse_after s gconn sock =

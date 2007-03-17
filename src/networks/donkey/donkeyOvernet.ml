@@ -2069,7 +2069,7 @@ let cancel_recover_file file =
    end  
 
 let _ =
-  CommonWeb.add_web_kind web_info web_info_descr (fun _ filename ->
+  CommonWeb.add_web_kind web_info web_info_descr (fun url filename ->
       let s = File.to_string filename in
       let s = String2.replace s '"' "" in
       let lines = String2.split_simplify s '\n' in
@@ -2083,10 +2083,11 @@ let _ =
                     let port = int_of_string port in
                     if !verbose_overnet then
                       lprintf_nl "Adding %s peer %s:%d" command_prefix_to_net name port;
-                    bootstrap ip port)
+                    bootstrap ip port) (fun _ -> ())
             | _ -> lprintf_nl "BAD LINE ocl: %s" s;
           with _ -> lprintf_nl "DNS failed";
-      ) lines
+      ) lines;
+  CommonWeb.remove_job url
   );
 
   (* Add this kind of web_info only for overnet *)
@@ -2100,7 +2101,8 @@ let _ =
 	  if not !!enable_overnet then
       lprintf_nl "Overnet module is disabled, ignoring..."
 	  else
-      lprintf_nl "Overnet_update_nodes is disabled, ignoring..."
+      lprintf_nl "Overnet_update_nodes is disabled, ignoring...";
+      CommonWeb.remove_job url
         );
 
 (*************************************************************

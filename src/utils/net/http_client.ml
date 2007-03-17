@@ -255,13 +255,8 @@ let rec get_page r content_handler f ferr =
         TcpBufferedSocket.set_reader sock (http_reply_handler nread
             (default_headers_handler url level));
         set_rtimeout sock 5.;
-      (*
-        TcpBufferedSocket.set_closer sock (fun _ _ -> ()
-        lprintf "Connection closed nread:%b\n" !nread; 
-        )
-      *)
-
     )
+    ferr;
   with e -> 
     lprintf_nl "error in get_url"; 
     raise Not_found
@@ -363,6 +358,7 @@ let rec get_page r content_handler f ferr =
     end
         else begin
           lprintf_nl "more than %d retries, aborting." r.req_max_retry;
+          ferr ans_code;
           raise Not_found
         end
           

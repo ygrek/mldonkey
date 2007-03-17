@@ -45,6 +45,21 @@ let lprintf_n fmt =
 let days = ref 0
 let hours = ref 0
 
+type web_jobs = {
+  mutable downloaded : bool;
+}
+
+let running_jobs = Hashtbl.create (List.length !!web_infos)
+
+let add_job url =
+  let wj = {
+    downloaded = false;
+  } in
+  Hashtbl.add running_jobs url wj
+
+let remove_job url =
+  Hashtbl.remove running_jobs url
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         load_url                                      *)
@@ -59,6 +74,7 @@ let add_web_kind kind descr f =
 
   
 let mldonkey_wget_url url f =
+  add_job url;
   let module H = Http_client in
   let r = {
       H.basic_request with
@@ -91,7 +107,7 @@ let mldonkey_wget_url url f =
     } in
     let date  = ref None in
     begin try
-    H.whead r1 (fun headers ->
+    H.whead2 r1 (fun headers ->
       List.iter (fun (name, content) ->
 	if String.lowercase name = "last-modified" then
           try
@@ -125,7 +141,41 @@ let mldonkey_wget_url url f =
 	        end
 	  end
       )
+      (fun c ->
+	match c with
+          | x when x < 200 || x > 299 -> begin
+            (* use local version if wget fail and file exists *)
+            let file = Filename.concat "web_infos" (Filename.basename r.H.req_url.Url.short_file) in
+            (try (* mark this job downloaded *)
+                (Hashtbl.find running_jobs url).downloaded <- true
+             with Not_found -> ());
+            if Sys.file_exists file then begin
+              lprintf_nl (_b "using local version of %s, HTTP request failed (error %d)") file x;
+              add_timer 5. (fun timer ->
+                let jobs =
+                  (* check if other jobs are still in downloading state to avoid calling
+                     function f, which might hurt other downloads for expensive functions *)
+                  let others_running = ref 0 in
+                  Hashtbl.iter (fun url j ->
+                    if not j.downloaded then others_running := succ !others_running
+                  ) running_jobs;
+                  !others_running
+                in
+                if jobs = 0 then
+                (* no other jobs in downloading state, process local versions of remotely failed job *)
+                  (f file : unit)
+                else
+                (* other jobs in downloading state, reactivate this timer to check again in 5s *)
+                  reactivate_timer timer
+                );
+              end
+            else
+              lprintf_nl (_b "local file %s not found, HTTP request failed (error %d)") file x;
+            end
+	  | _ -> ()
+      )
     with e -> 
+      remove_job url;
       lprintf_nl (_b "Exception %s while loading %s")
         (Printexc2.to_string e) url
     end
@@ -159,13 +209,6 @@ let load_url can_fail kind url =
     else
       lprintf_nl (_b "Exception %s while loading %s")
           (Printexc2.to_string e) url
-
-let load_file kind file =
-  try
-    (List.assoc kind !file_kinds).f file file
-  with e ->
-      lprintf_nl (_b "Exception %s while loading kind %s")
-        (Printexc2.to_string e) kind
 
 (*************************************************************************)
 (*                                                                       *)
@@ -244,5 +287,6 @@ let _ =
             feed
       in
       feed.rss_date <- last_time ();
-      feed.rss_value <- c
+      feed.rss_value <- c;
+      remove_job url
   )

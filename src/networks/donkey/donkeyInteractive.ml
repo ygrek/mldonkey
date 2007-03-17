@@ -1930,12 +1930,8 @@ let _ =
       if not !!enable_donkey then
         lprintf_nl "eDonkey module is disabled, ignoring..."
       else
-        lprintf_nl "ED2K-update_server_list_server_met is disabled, ignoring..."
-  );
-  CommonWeb.add_web_kind "comments.met" "List of edonkey files comments" 
-    (fun _ filename ->
-(* TODO      DonkeyIndexer.load_comments filename; *)
-      lprintf_nl "COMMENTS ADDED";
+        lprintf_nl "ED2K-update_server_list_server_met is disabled, ignoring...";
+    CommonWeb.remove_job url
   );
 
   file_ops.op_file_proposed_filenames <- op_file_proposed_filenames;

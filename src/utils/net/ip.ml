@@ -285,6 +285,7 @@ type job = {
     mutable entries : Unix.inet_addr array;
     mutable error : bool;
     handler : (t -> unit);
+    err_handler : (int -> unit);
   }
 
 
@@ -294,13 +295,13 @@ external job_start : job -> unit = "ml_ip_job_start"
 let current_job = ref None
 let ip_fifo = Fifo.create ()
 
-let async_ip name f =
+let async_ip name f ferr =
   try
 (*    lprintf "async_ip [%s]\n" name; *)
     let ip = resolve_name_immediate name in
     (try f ip with _ -> ())
   with Not_found ->
-    Fifo.put ip_fifo (name, f)
+    Fifo.put ip_fifo (name, f, ferr)
 
 (* We check for names every 1/10 second. Too long ? *)
 let _ =
@@ -315,7 +316,7 @@ let _ =
     while true do
       match !current_job with
       | None ->
-          let (name, f) = Fifo.take ip_fifo in
+          let (name, f, ferr) = Fifo.take ip_fifo in
           (try
 	    let ip = resolve_name_immediate name in
             (try f ip with _ -> ())
@@ -325,6 +326,7 @@ let _ =
               BasicSocket.has_threads () then
                 let job = {
                   handler = f;
+                  err_handler = ferr;
                   name = name;
                   entries = [||];
                   error = false;
@@ -351,6 +353,7 @@ let _ =
               job.handler ip
             end else begin
               lprintf_nl (_b "[DNS] could not resolve %s, check URL") job.name;
+              job.err_handler 0;
               raise Not_found
             end
           end else raise Exit
@@ -376,10 +379,10 @@ let ip_of_addr addr =
     AddrIp ip -> ip
   | AddrName name -> from_name name
 
-let async_ip_of_addr addr f =
+let async_ip_of_addr addr f ferr =
   match addr with
     AddrIp ip -> f ip
-  | AddrName name -> async_ip name f
+  | AddrName name -> async_ip name f ferr
 
 
 let value_to_addr v = addr_of_string (value_to_string v)
