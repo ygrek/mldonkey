@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/03/17
+5802: Telnet: Support non-ascii input (Hung-Te Lin)
+
 2007/03/16
 Updated Mozilla protocol handler to version 2.0
 (re-committed after data loss due to Savannah crash on 2007/03/12)

@@ -452,7 +452,7 @@ type telnet_conn = {
     telnet_auth : bool ref;
   }
 
-
+let iac_will_8bit = "\255\253\000"
 let iac_will_naws = "\255\253\031"
 
 let user_reader o telnet sock nread =
@@ -480,7 +480,7 @@ let user_reader o telnet sock nread =
 
       let i = int_of_char c in
       telnet.telnet_iac <- false;
-      let is_normal_char = i > 31 && i < 127 in
+      let is_normal_char = i > 31 in
 
       if telnet.telnet_wait = 1 then begin
           Buffer.add_char telnet.telnet_buffer c;
@@ -603,6 +603,7 @@ let telnet_handler t event =
         TcpBufferedSocket.set_closer sock user_closed;
         user_socks := sock :: !user_socks;
 
+        TcpBufferedSocket.write_string sock iac_will_8bit;
         TcpBufferedSocket.write_string sock iac_will_naws;
 
         before_telnet_output o sock;
