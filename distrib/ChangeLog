@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/03/17
+5806: Update GNU config.guess and config.sub to version 2007/01
 5775: http_client: Fix loading URLs with ()' (orbit)
 5781: web_infos: Load local file if remote file can not be accessed
       (thx to xergius)
