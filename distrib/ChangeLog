@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/03/17
+5775: http_client: Fix loading URLs with ()' (orbit)
 5781: web_infos: Load local file if remote file can not be accessed
       (thx to xergius)
 5802: Telnet: Support non-ascii input (Hung-Te Lin)
