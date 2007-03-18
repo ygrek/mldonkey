@@ -285,7 +285,7 @@ $bGeneral:$n
 Use '$rlonghelp$n' or '$r??$n' for all commands.
 Use '$rhelp command$n' or '$r? command$n' for help on a command.
             ";
-    | "?" :: args | "help" :: args ->
+    | "?" :: args | "help" :: args | "man" :: args ->
           List.iter (fun arg ->
               List.iter (fun (cmd, _, _, help) ->
                   if cmd = arg then
