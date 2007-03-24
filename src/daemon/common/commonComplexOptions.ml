@@ -1096,7 +1096,8 @@ let backup_zip archive files =
 	  Zip.copy_file_to_entry file oc ~level:9 ~mtime:s.U.st_mtime file
 	with e ->
 	  failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) file)
-      ) files)
+      ) files);
+    (try Unix.chmod archive 0o600 with _ -> ())
   with e ->
     failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) archive)
 
@@ -1115,10 +1116,10 @@ let backup_tar archive files =
 	      failwith (Printf.sprintf "Tar: file %s too big, limit %d byte" arg Sys.max_string_length);
 	    let header = 
 	      { Tar.t_name = arg;
-	      t_mode = 0o644;
+	      t_mode = stat.Unix.st_perm;
 	      t_uid = stat.Unix.st_uid;
 	      t_gid = stat.Unix.st_gid;
-	      t_size = 0;
+	      t_size = stat.Unix.st_size;
 	      t_mtime = Int32.of_float stat.Unix.st_mtime;
 	      t_chksum = 0;
 	      t_typeflag = REGULAR;
@@ -1144,6 +1145,7 @@ let backup_tar archive files =
 	  failed_files := arg :: !failed_files;
 	  lprintf_nl "Tar: error %s in %s" (Printexc2.to_string e) arg
     ) files);
+    (try Unix.chmod archive 0o600 with _ -> ());
     if !failed_files <> [] then
       failwith (Printf.sprintf "Tar: error backing up %s"
 	(String.concat " " (List.rev !failed_files)))

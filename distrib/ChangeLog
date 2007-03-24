@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/03/24
+5813: Options: Use original file rights in tar.gz backup,
+      save backups with rights 600
+
 2007/03/18
 5807: Implement new command "man" to display command help
 
