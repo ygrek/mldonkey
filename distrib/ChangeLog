@@ -14,6 +14,16 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/03/25
+5817: Code updates for Ocaml 3.10.0beta compatability
+- to use Ocaml 3.10 add ./configure option --enable-ocamlver=3.10
+- MLDonkey will accept the new Ocaml version without this option when
+  the final version of Ocaml 3.10 is released and proven to be working
+- GTK1 oldgui does currently not compile with Ocaml 3.10 code
+  - lablgtk1 & lablgtk2 compile with Ocaml 3.10, but some MLDonkey code
+    still needs fixing, GTK1 newgui and GTK2 gui compile with Ocaml 3.10
+- parts of the patch by pango
+
 2007/03/24
 5813: Options: Use original file rights in tar.gz backup,
       save backups with rights 600

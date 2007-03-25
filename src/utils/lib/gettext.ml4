@@ -376,12 +376,12 @@ let lexer = make_lexer [ "=" ; "module" ]
 let current_modname = ref ""
   
 let rec parse_file = (parser
-  |   [< 'String s0; 'Kwd "="; 'String s1 >] ->
+  |   [< 'String s0; 'Kwd "="; 'String s1; strm >] ->
 (*      lprintf "trans\n"; *)
-  translate !current_modname s0 s1; parse_file strm__
-  |   [< 'Kwd "module"; 'String modname >] ->
+  translate !current_modname s0 s1; parse_file strm
+  |   [< 'Kwd "module"; 'String modname; strm >] ->
   current_modname := modname;
-  parse_file  strm__
+  parse_file  strm
   |   [< >] -> (* lprintf "done\n" *) ())
   
 let set_strings_file filename =   
@@ -434,8 +434,8 @@ in
 
     
 let rec parse_file = (parser
-  |   [< 'Ident s0; 'Kwd "="; s1 = parse_next >] ->
-  translate1 s0 s1; parse_file strm__
+  |   [< 'Ident s0; 'Kwd "="; s1 = parse_next; strm >] ->
+  translate1 s0 s1; parse_file strm
   |   [< >] -> (* lprintf "done\n" *) ())
   
 and parse_next = parser
@@ -467,8 +467,8 @@ let translate2 s0 s1 =
 in
     
 let rec parse_file = (parser
-  |   [< 'Ident s0; 'Kwd "="; s1 = parse_next >] ->
-  translate2 s0 s1; parse_file strm__
+  |   [< 'Ident s0; 'Kwd "="; s1 = parse_next; strm >] ->
+  translate2 s0 s1; parse_file strm
   |   [< >] -> (* lprintf "done\n" *) ())
   
 and parse_next = parser

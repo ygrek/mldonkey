@@ -230,10 +230,10 @@ and parse_id = parser
 |   [< 'String s >] -> s
 
 and parse_list list = parser
-    [< 'Kwd ";" >] -> parse_list (list) strm__
-|   [< 'Kwd "," >] -> parse_list (list) strm__
-|   [< 'Kwd "." >] -> parse_list (list) strm__
-|   [< v = parse_option>] -> parse_list (v :: list) strm__
+    [< 'Kwd ";"; strm >] -> parse_list (list) strm
+|   [< 'Kwd ","; strm >] -> parse_list (list) strm
+|   [< 'Kwd "."; strm >] -> parse_list (list) strm
+|   [< v = parse_option; strm >] -> parse_list (v :: list) strm
 |   [< 'Kwd "]" >] -> List.rev list
 |   [< 'Kwd ")" >] -> List.rev list
 

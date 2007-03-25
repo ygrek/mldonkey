@@ -1630,11 +1630,17 @@ $(MLTSOURCES): $(OCAMLPP)
 #ocamlpp.byte: tools/ocamlpp.ml
 #	$(OCAMLC) str.cma -o ocamlpp.byte tools/ocamlpp.ml
 
+ifeq ("$(GUI_CODE)", "OLDGUI")
+
+PA_ZOG: pa_zog.cma
+
+endif
+
 resfile.o:
 	windres -o resfile.o config/mldonkey.rc
 
 depend:   $(RESFILE) \
-	pa_zog.cma $(LIB)/http_lexer.ml $(TMPSOURCES)
+	$(PA_ZOG) $(LIB)/http_lexer.ml $(TMPSOURCES)
 	$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) *.ml *.mli > .depend
 	(for i in $(SUBDIRS); do \
 		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
