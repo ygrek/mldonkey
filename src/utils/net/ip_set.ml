@@ -216,8 +216,8 @@ let load_merge bl filename remove =
 	with _ ->
 	  if not !error then
 	    begin
-        lprintf_n "Syntax error while loading IP blocklist in line";
-	      error := true
+              lprintf_n "Syntax error while loading IP blocklist in line";
+              error := true
 	    end;
 	    lprintf " %d" !nlines;
     done
@@ -241,8 +241,11 @@ let load filename =
   if Sys.file_exists filename then
     let last_ext = String.lowercase (Filename2.last_extension filename) in
     if last_ext = ".zip" then
-      let filenames_list = 
-	["guarding.p2p"; "guarding_full.p2p"; "ipfilter.dat"] in
+      let filenames_list =
+        Unix2.tryopen_read_zip filename (fun ic ->
+          try
+            List.map (fun e -> e.Zip.filename) (Zip.entries ic)
+          with _ -> []) in
       (try
 	Unix2.tryopen_read_zip filename (fun ic ->
 	  try
@@ -252,9 +255,13 @@ let load filename =
 		| h :: q ->
 		    try
 		      let file = Zip.find_entry ic h in
-			lprintf_nl (_b "%s found in zip file") h;
-		      ignore(Misc.archive_extract filename "zip");
-		      load_merge bl_empty file.Zip.filename true
+                      lprintf_nl (_b "%s found in zip file") h;
+                      ignore(Misc.archive_extract filename "zip");
+                      let bl = load_merge bl_empty file.Zip.filename true in
+                      if bl_length bl = 0 then
+                        raise Not_found
+                      else
+                        bl
 		    with Not_found ->
 		      find_in_zip q in
 	    find_in_zip filenames_list
@@ -263,7 +270,7 @@ let load filename =
 	      (Printexc2.to_string e) 
 	      (String.concat "/" filenames_list)
 	      filename;
-	    lprintf_nl "One of the mentioned files has to be present in the zip file";
+	    lprintf_nl "One of the mentioned files has to be a valid IP blocklist";
 	    bl_empty)
       with e ->
 	lprintf_nl "Exception %s while opening %s"
