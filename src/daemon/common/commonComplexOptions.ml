@@ -331,7 +331,7 @@ module ServerOption = struct
           in
           let network = 
             try network_find_by_name network with e ->
-                lprintf_nl "Network %s not supported" network;
+                lprintf_nl "Loading servers, network %s not supported, deleting server" network;
                 raise e
               in
           let server = network_server_of_option network assocs in

@@ -464,7 +464,7 @@ let ftp_check_size file url start_download_file =
       TcpBufferedSocket.set_closer sock (fun _ _ -> ()
 (*        lprintf "Connection closed nread:%b\n" !nread; *)
       )
-  );
+  ) (fun _ -> ());
   ()
 
 (*************************************************************************)

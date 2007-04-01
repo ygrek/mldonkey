@@ -157,7 +157,7 @@ let mldonkey_wget_url url f =
                      function f, which might hurt other downloads for expensive functions *)
                   let others_running = ref 0 in
                   Hashtbl.iter (fun url j ->
-                    if not j.downloaded then others_running := succ !others_running
+                    if not j.downloaded then incr others_running
                   ) running_jobs;
                   !others_running
                 in

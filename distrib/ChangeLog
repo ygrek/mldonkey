@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/04/01
+5840: Some small stuff (logging, code improvements)
 5839: IP block: Scan all files inside a .zip file when loading
       a blocklist, use the first valid file
 5831: BT: New option BT-tracker_retries
