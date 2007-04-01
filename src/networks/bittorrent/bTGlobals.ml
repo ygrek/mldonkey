@@ -855,7 +855,9 @@ let remove_tracker url file =
 
 let tracker_is_enabled t =
   match t.tracker_status with
-    Enabled -> true
+  | Enabled -> true
+  | Disabled_failure (i,_) ->
+      if !!tracker_retries = 0 || i < !!tracker_retries then true else false
   | _ -> false
 
 let torrents_directory = "torrents"

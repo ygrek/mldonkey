@@ -212,7 +212,7 @@ type tracker_status =
   Enabled
 | Disabled of string
 | Disabled_mld of string
-| Disabled_failure of string
+| Disabled_failure of (int * string)
 
 type client = {
     client_client : client CommonClient.client_impl;

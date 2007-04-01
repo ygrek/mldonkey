@@ -140,15 +140,15 @@ let connect_trackers file event f =
       List.iter (fun t ->
 	match t.tracker_status with
       (* only re-enable after normal error *)
-	  Disabled _ -> t.tracker_status <- Enabled
+        | Disabled _ -> t.tracker_status <- Enabled
 	| _ -> ()) file.file_trackers;
-      let enabled_trackers = List.filter (fun t -> t.tracker_status = Enabled) file.file_trackers in
+      let enabled_trackers = List.filter (fun t -> tracker_is_enabled t) file.file_trackers in
       if enabled_trackers = [] && (file_state file) <> FilePaused then
 	begin
 	  file_pause (as_file file) CommonUserDb.admin_user;
 	  lprintf_file_nl (as_file file) "Paused %s, no usable trackers left" (file_best_name (as_file file))
 	end;
-      file.file_trackers;
+      enabled_trackers
     end in
 
   List.iter (fun t ->
@@ -1326,12 +1326,26 @@ let get_sources_from_tracker file =
     match v with
       Dictionary list ->
         List.iter (fun (key,value) ->
+            (match (key, value) with
+            | String "failure reason", _ -> ()
+            | _ -> (match t.tracker_status with
+                   | Disabled_failure (i, _) ->
+                        lprintf_file_nl (as_file file) "Received good message from Tracker %s in file: %s after %d bad attempts"
+                          t.tracker_url file.file_name i
+                   | _ -> ());
+                   (* Received good message from tracker after failures, re-enable tracker *)
+                   t.tracker_status <- Enabled);
+
             match (key, value) with
             | String "failure reason", String failure ->
-                (* On failure, disable the tracker and forbid re-enabling *)
-		t.tracker_status <- Disabled_failure (intern failure);
-                lprintf_file_nl (as_file file) "Failure from Tracker %s in file: %s Reason: %s\nBT: Tracker %s disabled for failure"
-                  t.tracker_url file.file_name (Charset.to_utf8 failure) t.tracker_url
+                (* On failure, disable the tracker, count the attempts and forbid re-enabling *)
+		t.tracker_status <- (match t.tracker_status with
+                  | Disabled_failure (i,_) -> Disabled_failure (i + 1, intern failure)
+                  | _ -> Disabled_failure (1, intern failure));
+                lprintf_file_nl (as_file file) "Failure no. %d%s from Tracker %s in file: %s Reason: %s"
+                  (match t.tracker_status with | Disabled_failure (i,_) -> i | _ -> 1)
+                  (if !!tracker_retries = 0 then "" else Printf.sprintf "/%d" !!tracker_retries)
+                  t.tracker_url file.file_name (Charset.to_utf8 failure)
             | String "warning message", String warning ->
                 lprintf_file_nl (as_file file) "Warning from Tracker %s in file: %s Reason: %s" t.tracker_url file.file_name warning
             | String "interval", Int n ->

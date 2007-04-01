@@ -195,8 +195,10 @@ let op_file_print file o =
   List.iter (fun tracker ->
     let tracker_text =
       match tracker.tracker_status with
-        | Disabled s | Disabled_mld s | Disabled_failure s -> 
+        | Disabled s | Disabled_mld s ->
             Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s\\</font\\>" tracker.tracker_url s
+        | Disabled_failure (i,s) -> 
+            Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s (try %d)\\</font\\>" tracker.tracker_url s i
         | _ ->
             Printf.sprintf "enabled: %s" tracker.tracker_url
 
@@ -364,9 +366,11 @@ let op_file_print file o =
   Printf.bprintf buf "Trackers:\n";
   List.iter (fun tracker ->
     match tracker.tracker_status with
-      Disabled s | Disabled_mld s | Disabled_failure s -> 
-	Printf.bprintf buf "%s, disabled: %s\n" tracker.tracker_url s
-      | _ -> Printf.bprintf buf "%s\n" tracker.tracker_url
+    | Disabled s | Disabled_mld s ->
+        Printf.bprintf buf "%s, disabled: %s\n" tracker.tracker_url s
+    | Disabled_failure (i,s) -> 
+        Printf.bprintf buf "%s, disabled (try %d): %s\n" tracker.tracker_url i s
+    | _ -> Printf.bprintf buf "%s\n" tracker.tracker_url
   ) file.file_trackers;
   let s = Charset.safe_convert file.file_encoding file.file_torrent_diskname in
   if s <> "" then Printf.bprintf buf "Torrent diskname: %s\n" s;

@@ -105,6 +105,10 @@ let import_new_torrents_interval = define_option bittorrent_section ["import_new
   0 to deactivate, changes require restart"
     float_option 60.
 
+let tracker_retries = define_option bittorrent_section ["tracker_retries"]
+  "Number of retries before a tracker is disabled, use 0 to not disable trackers"
+    int_option 10
+
 let _ =
   begin
     option_hook max_uploaders_per_torrent
