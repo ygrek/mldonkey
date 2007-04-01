@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2007/04/01
+2007/04/01: version 2.8.4 = tag release-2-8-4
 5840: Some small stuff (logging, code improvements)
 5839: IP block: Scan all files inside a .zip file when loading
       a blocklist, use the first valid file
