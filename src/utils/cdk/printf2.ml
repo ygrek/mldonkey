@@ -301,7 +301,7 @@ let html_mods_commands buf n c l =
 *)
 
 
-let html_mods_table_header buf n c l =
+let html_mods_table_header buf ?(total = "0") n c l =
     (* Name Class List *)
     Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>"
     c n n c;
@@ -309,21 +309,21 @@ let html_mods_table_header buf n c l =
         Printf.bprintf buf "\\<tr\\>";
         List.iter (fun (w,x,y,z)  ->
          (* Sort Class Title Value *)
-         Printf.bprintf buf "\\<td onClick=\\\"_tabSort(this,%s);\\\" class=\\\"%s\\\" title=\\\"%s\\\"\\>%s\\</td\\>"
-         w x y z;
+         Printf.bprintf buf "\\<td onClick=\\\"_tabSort(this,%s,%s);\\\" class=\\\"%s\\\" title=\\\"%s\\\"\\>%s\\</td\\>"
+         w total x y z;
         ) l;
         Printf.bprintf buf "\\</tr\\>"
       end
 (* Add colspan functionality to html_mods_table_header *)
 
-let html_mods_table_header_colspan buf n c l =
+let html_mods_table_header_colspan buf ?(total="0") n c l =
     (* Name Class List *)
     Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0\\>\\<tr\\>"
     c n n c;
     List.iter (fun (v,w,x,y,z)  ->
      (* Sort Class Title Value *)
-     Printf.bprintf buf "\\<td colspan=%s onClick=\\\"_tabSort(this,%s);\\\" class=\\\"%s\\\" title=\\\"%s\\\"\\>%s\\</td\\>"
-     v w x y z;
+     Printf.bprintf buf "\\<td colspan=%s onClick=\\\"_tabSort(this,%s,%s);\\\" class=\\\"%s\\\" title=\\\"%s\\\"\\>%s\\</td\\>"
+     v w total x y z;
     ) l;
     Printf.bprintf buf "\\</tr\\>"
 

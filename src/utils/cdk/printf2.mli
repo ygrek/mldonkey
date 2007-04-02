@@ -48,8 +48,8 @@ val close_log : unit -> unit
 val html_mods_big_header_start : Buffer.t -> string -> string list -> unit
 val html_mods_big_header_end : Buffer.t -> unit
 val html_mods_commands : Buffer.t -> string -> string -> (string * string * string * string) list -> unit
-val html_mods_table_header : Buffer.t -> string -> string -> (string * string * string * string) list -> unit
-val html_mods_table_header_colspan : Buffer.t -> string -> string -> (string * string * string * string * string) list -> unit
+val html_mods_table_header : Buffer.t -> ?total:string -> string -> string -> (string * string * string * string) list -> unit
+val html_mods_table_header_colspan : Buffer.t -> ?total:string -> string -> string -> (string * string * string * string * string) list -> unit
 val html_mods_table_no_header : Buffer.t -> string -> string -> (string * string * string) list -> unit
 val html_mods_table_one_row : Buffer.t -> string -> string -> (string * string * string) list -> unit
 val html_mods_table_one_col : Buffer.t -> string -> string -> (string * string * string) list -> unit

@@ -440,10 +440,10 @@ function _rObj (s,ar) {
  this.s = s;
  this.ar = ar;
 }
-function _tabCreateArray(obj,st){
+function _tabCreateArray(obj,st,total){
 	var tb=obj.parentNode.parentNode;
 	var rw=obj.parentNode.parentNode.rows;
-	var _nRows=rw.length;
+	var _nRows=rw.length-total;
 	var _tabS=new Array(_nRows-1);
 	var _nCells = rw.item(0).cells.length;
 	for(var i=1;i<_nRows;i++){
@@ -493,10 +493,10 @@ function _cmpFloat(a,b) {
 	if (isNaN(parseFloat(b.s))) {return -1;}
 	return (parseFloat(b.s) - parseFloat(a.s));
 }
-function _tabSort(obj,st){
+function _tabSort(obj,st,total){
 	if (_tabLast==obj) {_tabMode=!(_tabMode);}
 	else {_tabMode=true;}
-	_tabCreateArray(obj,st);
+	_tabCreateArray(obj,st,total);
 	_tabLast=obj;
 	return _tabMode;
 }

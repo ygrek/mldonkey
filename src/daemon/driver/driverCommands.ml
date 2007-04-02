@@ -1145,7 +1145,7 @@ let _ =
             let t2 = Printf.sprintf "Total uptime: %s" (Date.time_to_string u2 "verbose") in
             html_mods_big_header_start buf "shares" [t1;t2];
 
-            html_mods_table_header buf "sharesTable" "shares" [
+            html_mods_table_header buf ~total:"1" "sharesTable" "shares" [
                ( "0", "srh", "Country name", "Country" ) ;
                ( "0", "srh", "Country code", "Code" ) ;
                ( "0", "srh", "Continent", "Con" ) ;
@@ -1186,20 +1186,20 @@ let _ =
                 cts := !cts ++ cs.country_total_seen;
               end
               ) (List.sort (fun c1 c2 -> compare c1.country_code c2.country_code) !!CommonStats.country_stats);
-              Printf.bprintf buf "\\</tr\\>\n";
+              Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
               html_mods_td buf [ (* Display totals *)
-		("", "sr", "Total");
-		("", "sr", "");
-		("", "sr", "");
-		("", "sr ar", size_of_int64 !csu);
-		("", "sr ar", size_of_int64 !csd);
-		("", "sr ar", Printf.sprintf "%Ld" !css);
-		("", "sr ar", size_of_int64 !ctu);
-		("", "sr ar", size_of_int64 !ctd);
-		("", "sr ar", Printf.sprintf "%Ld" !cts);
+		("", "sr total", "Total");
+		("", "sr total", "");
+		("", "sr total", "");
+		("", "sr ar total", size_of_int64 !csu);
+		("", "sr ar total", size_of_int64 !csd);
+		("", "sr ar total", Printf.sprintf "%Ld" !css);
+		("", "sr ar total", size_of_int64 !ctu);
+		("", "sr ar total", size_of_int64 !ctd);
+		("", "sr ar total", Printf.sprintf "%Ld" !cts);
 		];
-              Printf.bprintf buf "\\</tr\\>\n"
+              Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\n"
           end
         else
           begin
@@ -1257,7 +1257,7 @@ let _ =
               ];
               Printf.bprintf buf "\\</tr\\>\n"
             ) Geoip.country_code_array;
-            Printf.bprintf buf "\\</tr\\>\n";
+            Printf.bprintf buf "\\</table\\>\n";
           end
         else
           begin
@@ -3971,7 +3971,7 @@ let _ =
       if o.conn_output = HTML then
 	List.iter (fun (tablename, l) ->
 	  html_mods_cntr_init ();
-	  html_mods_table_header buf tablename "servers" [
+	  html_mods_table_header buf ~total:"1" tablename "servers" [
 	    ( "0", "srh ac br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
 	    ( "0", "srh ac br", "Hits", "Hits") ;
 	    ( "0", "srh ac", "Range", "Range")];
