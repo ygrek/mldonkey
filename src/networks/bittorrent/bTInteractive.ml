@@ -1302,6 +1302,10 @@ let _ =
   client_ops.op_client_bprint <- op_client_bprint;
   client_ops.op_client_dprint <- op_client_dprint;
   client_ops.op_client_dprint_html <- op_client_dprint_html;
+  client_ops.op_client_browse <- (fun _ _ -> ());
+  client_ops.op_client_files <- (fun _ -> []);
+  client_ops.op_client_clear_files <- (fun _ -> ());
+  client_ops.op_client_to_option <- (fun _ -> []);
 
   CommonNetwork.register_commands commands;
 

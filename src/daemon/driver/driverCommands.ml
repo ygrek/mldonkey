@@ -986,7 +986,7 @@ let _ =
                   i.client_name
                   i.client_num
 
-                  (let rs = client_files c in
+                  (let rs = try client_files c with _ -> [] in
                   if (List.length rs) > 0 then Printf.sprintf "%d Files Listed" (List.length rs)
                   else string_of_connection_state (client_state c) )
 
