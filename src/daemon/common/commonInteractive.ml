@@ -392,7 +392,7 @@ let file_add impl state =
           | FileDownloading
           | FileQueued
           | FilePaused ->
-              files =:= file :: !!files);
+              files =:= !!files @ [file]);
         update_file_state impl state
       end
   with e ->
