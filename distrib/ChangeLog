@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2007/04/03
+5821: New variables for file_completed_cmd:
+      file_group_cnt, file_group_user, file_group_dir
 5849: EDK: Report correct short versions for Windows clients
 
 2007/04/02

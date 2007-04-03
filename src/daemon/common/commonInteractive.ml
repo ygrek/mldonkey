@@ -163,6 +163,22 @@ let script_for_file file incoming new_name =
   in
   let network = network_find_by_num info.G.file_network in
   let filename = Filename.basename new_name in
+  let file_group_info =
+    match file_group file with
+    | None -> 0, []
+    | Some _ ->
+      let users = ref [] in
+      let counter = ref 0 in
+      user2_users_iter (fun u ->
+        if file_owner file <> u &&
+          user2_can_view_file u (file_owner file) (file_group file) then
+            begin
+              incr counter;
+              users :=  (Printf.sprintf "FILE_GROUP_USER_%d" !counter, u.user_name) ::
+                        (Printf.sprintf "FILE_GROUP_DIR_%d" !counter, u.user_commit_dir) :: !users
+            end);
+      !counter, !users
+  in
   begin try
   MlUnix.fork_and_exec !!file_completed_cmd
       [|  (* keep those for compatibility *)
@@ -171,7 +187,7 @@ let script_for_file file incoming new_name =
       size; (* $2 *)
       filename (* $3 *)
     |]
-     ~vars:[("TEMPNAME",  temp_name);
+     ~vars:([("TEMPNAME",  temp_name);
 	    ("FILEID",    file_id);
 	    ("FILESIZE",  size);
 	    ("FILENAME",  filename);
@@ -187,7 +203,9 @@ let script_for_file file incoming new_name =
                               (file_owner file).user_mail
                             else
                               if !!mail <> "" then !!mail else ""));
+	    ("FILE_GROUP_CNT", string_of_int (fst (file_group_info)));
 	    ]
+            @ snd (file_group_info))
 
   with e -> 
       lprintf_nl "Exception %s while executing %s"
