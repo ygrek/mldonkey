@@ -14,7 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2007/04/02:
+2007/04/03
+5849: EDK: Report correct short versions for Windows clients
+
+2007/04/02
 5847: BT: Fix exceptions when handling BT clients as friends
 5845: Do not reverse order in files.ini after restart (pango)
 5844: HTML: Keep totals line when sorting statistics tables (schlumpf)

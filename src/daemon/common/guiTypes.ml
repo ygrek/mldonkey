@@ -261,7 +261,8 @@ let osinfo_short i =
       s = "netbsd" ||
       s = "macos" ||
       s = "freebsd" ||
-      s = "windows" -> Some (String.sub s 0 1)
+      s = "mingw" ||
+      s = "cygwin" -> Some (String.sub s 0 1)
   | _ -> i
 
 let client_software_short software os =
