@@ -1305,7 +1305,6 @@ let _ =
   client_ops.op_client_browse <- (fun _ _ -> ());
   client_ops.op_client_files <- (fun _ -> []);
   client_ops.op_client_clear_files <- (fun _ -> ());
-  client_ops.op_client_to_option <- (fun _ -> []);
 
   CommonNetwork.register_commands commands;
 
