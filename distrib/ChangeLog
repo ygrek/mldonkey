@@ -18,14 +18,14 @@ ChangeLog
 5854: Set shared_check_files = 0 to disable scanning of shared directories
 5853: New option defaults
 - download_sample_size 100, 10 is too low, download rate is computed wrong
-- EDK-propagate_sources false, this activates outdated MLDonkey-style source
+- ED2K-propagate_sources false, this activates outdated MLDonkey-style source
   exchange, MLDonkey supports eMule-style source exchange which is not affected
   by this option
-- EDK-update_server_list_server should be false, there are lots of fake servers
+- ED2K-update_server_list_server should be false, there are lots of fake servers
   out there, trust only servers from trusted server lists. For more details read
   http://mldonkey.sourceforge.net/ServerList#Fake_search_results
-- EDK-upload_full_chunks should be true to reflect the same default eMule uses
-- EDK-upload_compression_table_size should not be smaller than max_upload_slots
+- ED2K-upload_full_chunks should be true to reflect the same default eMule uses
+- ED2K-upload_compression_table_size should not be smaller than max_upload_slots
 
 2007/04/03
 5821: New variables for file_completed_cmd:
