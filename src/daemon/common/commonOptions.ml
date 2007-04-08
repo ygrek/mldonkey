@@ -1270,7 +1270,9 @@ let temp_directory = define_option current_section ["temp_directory"]
 
 let share_scan_interval = define_option current_section ["share_scan_interval"]
   ~restart: true
-  "How often (in minutes) should MLDonkey scan all shared directories for new/removed files"
+  "How often (in minutes) should MLDonkey scan all shared directories for new/removed files.
+  0 to disable scanning of shared directories. Use command reshare to manually scan shares.
+  When core starts all shared directories are scanned once, independent of this option."
     int_option 1
 
 let create_file_mode = define_option current_section ["create_file_mode"]
@@ -1723,7 +1725,7 @@ let _ =
     if !!min_reask_delay < 600 then min_reask_delay =:= 600
   );
   option_hook share_scan_interval (fun _ ->
-    if !!share_scan_interval < 1 then share_scan_interval =:= 1
+    if !!share_scan_interval < 0 then share_scan_interval =:= 1
   );
   option_hook global_login (fun _ ->
       let len = String.length !!global_login in

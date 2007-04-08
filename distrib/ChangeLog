@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/04/08
+5854: Set shared_check_files = 0 to disable scanning of shared directories
 5853: New option defaults
 - download_sample_size 100, 10 is too low, download rate is computed wrong
 - EDK-propagate_sources false, this activates outdated MLDonkey-style source

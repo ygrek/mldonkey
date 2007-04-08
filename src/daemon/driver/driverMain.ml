@@ -465,6 +465,7 @@ or getting a binary compiled with glibc %s.\n\n")
   add_infinite_timer 0.1 CommonUploads.upload_download_timer;
   add_infinite_timer !!buffer_writes_delay (fun _ -> Unix32.flush ());
 
+  if !!share_scan_interval <> 0 then
   add_infinite_timer ((float_of_int !!share_scan_interval) *. 60.)
     (fun _ -> CommonShared.shared_check_files ());
   CommonShared.shared_check_files ();
