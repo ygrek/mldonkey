@@ -368,6 +368,11 @@ let rec update_options () =
       if !!upload_timeout = 60. then
         upload_timeout =:= 600.;
       update 3
+  | 3 ->
+      propagate_sources =:= false;
+      update_server_list_server =:= false;
+      upload_full_chunks =:= true;
+      update 4
   | _ -> ()
 
 

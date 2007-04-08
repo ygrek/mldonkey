@@ -1559,7 +1559,7 @@ let download_sample_rate = define_expert_option current_section ["download_sampl
 
 let download_sample_size = define_expert_option current_section ["download_sample_size"]
   "How many samples go into an estimate of transfer rates"
-    int_option 10
+    int_option 100
 
 let calendar = define_expert_option current_section ["calendar"]
   "This option defines a set of date at which some commands have to be executed.
@@ -1589,7 +1589,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 let options_version = define_expert_option current_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 16
+    int_option 17
 
 let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
   "Maximum number of comments per file"
@@ -2173,5 +2173,9 @@ let rec update_options () =
       if !!messages_filter = "Your client is connecting too fast" then
         messages_filter =:= "DI-Emule|ZamBoR|Ketamine|eMule FX|AUTOMATED MESSAGE";
       update 16
+
+  | 16 ->
+      if !!download_sample_size = 10 then download_sample_size =:= 100;
+      update 17
 
   | _ -> ()

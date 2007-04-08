@@ -80,7 +80,7 @@ let force_client_high_id = define_option donkey_section ["force_client_high_id"]
 let update_server_list_server = define_option donkey_section ["update_server_list_server"]
   "Set this option to false if you don't want to
   receive new servers from servers"
-    bool_option true
+    bool_option false
 
 let update_server_list_server_met = define_option donkey_section ["update_server_list_server_met"]
   "Set this option to false if you don't want to
@@ -116,8 +116,10 @@ let log_clients_on_console = define_expert_option donkey_section ["log_clients_o
     bool_option false
 
 let propagate_sources = define_expert_option donkey_section ["propagate_sources"]
-  "Allow mldonkey to propagate your sources to other donkey clients"
-    bool_option true
+  "Allow mldonkey to propagate your sources to other mldonkey clients.
+   This function is superseeded by eMule-style source exchange,
+   this option is outdated"
+    bool_option false
 
 let max_sources_per_file = define_option donkey_section ["max_sources_per_file"]
   "Maximal number of sources for each file"
@@ -177,7 +179,7 @@ let upload_lifetime = define_expert_option donkey_section ["upload_lifetime"]
 
 let upload_full_chunks = define_expert_option donkey_section ["upload_full_chunks"]
   "If true, each client is allowed to receive one chunk, this setting overrides upload_lifetime"
-    bool_option false
+    bool_option true
 
 let upload_complete_chunks = define_expert_option donkey_section ["upload_complete_chunks"]
   "If true, each client is allowed to complete only one chunk, independent, if it is empty or
@@ -233,14 +235,13 @@ let upload_compression_table_size = define_expert_option donkey_section ["upload
   ~restart: true
   "Size of the cache table in entries (ca. 2 * 180 kbytes). zones have to be
   compressed at once, but only parts of it are sent at a time (10 kbytes).
-  to reduce diskaccess and repeated compression to a minimum, size should be
-  at least the number of total upload slots. restart of core is required."
+  Minimum value is the number of total upload slots."
     int_option 20
 
 let _ =
   option_hook upload_compression_table_size (fun _ ->
-    if !!upload_compression_table_size < 1 then
-        upload_compression_table_size =:= 1
+    if !!upload_compression_table_size < !!max_upload_slots then
+        upload_compression_table_size =:= !!max_upload_slots
   )
 
 let connected_server_timeout = define_expert_option donkey_section ["connected_server_timeout"]
@@ -336,7 +337,7 @@ let overnet_port = define_option overnet_section [overnet_options_section_name; 
 let options_version = define_expert_option donkey_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 3
+    int_option 4
 
 let gui_donkey_options_panel =
   [
