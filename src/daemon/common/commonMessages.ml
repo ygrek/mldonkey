@@ -411,26 +411,35 @@ function mOvr(src,clrOver) {
 function mOut(src) {
  src.className=mOvrClass;
 }
+function _getFrameByName(name) {
+  switch (name) {
+    case 'commands' :
+      return('0');
+    case 'fstatus' :
+      return('1');
+    case 'output' :
+      return('2');
+    default :
+      alert('wrong arg for _getFrameByName');
+      break;
+  }
+}
 function mSub(target,cmd) {
-if (target != '') {
-       if (cmd=='kill') {
-               if (confirm('Are you sure?')) {
-                       parent.document.getElementsByName(target).item(0).src='submit?q=' + cmd;
-               }
-       }
-       else {
-               if (cmd.substring(0,6)=='custom') {
-                       parent.document.getElementsByName(target).item(0).src='submit?' + cmd;
-               }
-               else {
-                       parent.document.getElementsByName(target).item(0).src='submit?q=' + cmd;
-               } 
- 	}
+  if (cmd=='kill') {
+    if (confirm('Are you sure?')) {
+      parent.frames[_getFrameByName(target)].location.href='submit?q=kill';
+    }
+  }
+  else {
+    if (cmd.substring(0,6)=='custom') {
+      parent.frames[_getFrameByName(target)].location.href='submit?' + cmd;
+    }
+    else {
+      parent.frames[_getFrameByName(target)].location.href='submit?q=' + cmd;
+    } 
+  }
 }
-else {
-       parent.document.getElementsByName(target).item(0).src='submit?q=' + cmd;
-}
-}
+
 function showTab(t){
        for (i=1; i<=6; i++) document.getElementById('tab' + i).style.display = 'none';
        document.getElementById(\"tab\" + t).style.display = 'block';

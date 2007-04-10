@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2004/04/10
+5860: HTML: fix broken refresh on Opera/Safari (schlumpf)
+
 2007/04/08
 5854: Set shared_check_files = 0 to disable scanning of shared directories
 5853: New option defaults
