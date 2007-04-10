@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2004/04/10
+5861: HTML: Fix errors reported by w3.org validator in html_header_mods0
 5860: HTML: fix broken refresh on Opera/Safari (schlumpf)
 
 2007/04/08

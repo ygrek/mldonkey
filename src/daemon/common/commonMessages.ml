@@ -664,17 +664,16 @@ fixHeightOfTheText();
 let html_header_mods0 = define_option message_section ["html_header_mods0"]
   "Header - style 0"
     string_option
-  "
-<title>MLdonkey: Web Interface</title>
-<meta name=\"generator\" content=\"MLDonkey\" />
-<meta name=\"robots\" content=\"noindex,nofollow\" />
-<meta http-equiv=\"Expires\" content=\"-1\" />
-<meta http-equiv=\"Pragma\" content=\"no-cache\" />
-<link rel=\"shortcut icon\" href=\"favicon.ico\" type=\"image/x-icon\" />
-<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\" />
-<script type=\"text/javascript\" src=\"i.js\">
-</script>
-"
+"<title>MLdonkey: Web Interface</title>
+<meta name=\"generator\" content=\"MLDonkey\" >
+<meta name=\"robots\" content=\"noindex,nofollow\" >
+<meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" >
+<meta http-equiv=\"Expires\" content=\"-1\" >
+<meta http-equiv=\"Pragma\" content=\"no-cache\" >
+<link rel=\"shortcut icon\" href=\"favicon.ico\" type=\"image/x-icon\" >
+<link href=\"h.css\" rel=\"stylesheet\" type=\"text/css\" >
+<script type=\"text/javascript\" src=\"i.js\" >
+</script>"
 
 let download_html_css_mods0 = define_option message_section ["download_html_css_mods0"]
   "Download CSS - style 0"
