@@ -821,18 +821,21 @@ let http_add_bin_stream_header r ext =
 
 let http_send_bin r buf filename =
   let file_to_send =
-    try
-      File.to_string filename
-    with _ ->
+    if theme_page_exists filename then
+      File.to_string (get_theme_page filename)
+    else
       try
-        Hashtbl.find CommonPictures.files filename
-      with Not_found ->
+        File.to_string filename
+      with _ ->
         try
-          if String.sub filename 0 4 = "flag" then
-            Hashtbl.find CommonPictures.files "flag_--.png"
-          else
-            raise Not_found
-        with _ -> raise Not_found
+          Hashtbl.find CommonPictures.files filename
+        with Not_found ->
+          try
+            if String.sub filename 0 4 = "flag" then
+              Hashtbl.find CommonPictures.files "flag_--.png"
+            else
+              raise Not_found
+          with _ -> raise Not_found
   in
   let ext = extension_to_file_ext (Filename2.last_extension2 filename) in
   http_add_bin_header r ext (String.length file_to_send);

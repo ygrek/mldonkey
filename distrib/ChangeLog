@@ -14,7 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2004/04/10
+2007/04/12
+5859: HTML: Support sending files from $MLDONKEY_DIR/html_themes/
+
+2007/04/10
 5861: HTML: Fix errors reported by w3.org validator in html_header_mods0
 5860: HTML: fix broken refresh on Opera/Safari (schlumpf)
 
