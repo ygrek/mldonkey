@@ -1185,9 +1185,12 @@ let string_of_client_addr c =
 let get_ips_cc_cn c =
   try
     match c.client_kind with
-      Direct_address (ip,port) -> 
+    | Direct_address (ip,port) ->
         let cc,cn = Geoip.get_country ip in
         (Ip.to_string ip),cc,cn
+    | Indirect_address (_,_,_,_,real_ip) ->
+        let cc,cn = Geoip.get_country real_ip in
+        (Ip.to_string real_ip),cc,cn
     | _ ->  
         let cc,cn = Geoip.unknown_country in
         (string_of_client_addr c),cc,cn

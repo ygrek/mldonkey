@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/04/12
+5867: EDK: Show country code/flags for indirect clients
 5862: BT: Informative GUI console messages after sending a .torrent file to GUI
 5859: HTML: Support sending files from $MLDONKEY_DIR/html_themes/
 
