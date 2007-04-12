@@ -640,7 +640,7 @@ let load_torrent_string s user =
     String2.check_prefix url "http://" in
   List.iter (fun url -> if can_handle_tracker url then torrent_is_usable := true)
     (if torrent.torrent_announce_list <> [] then torrent.torrent_announce_list else [torrent.torrent_announce]);
-  if not !torrent_is_usable then raise Torrent_can_not_be_used;
+  if not !torrent_is_usable then raise (Torrent_can_not_be_used torrent.torrent_name);
 
   let torrent_diskname =
     let fs = Unix32.filesystem downloads_directory in
@@ -654,7 +654,7 @@ let load_torrent_string s user =
   if Sys.file_exists torrent_diskname then
     begin
       if !verbose then lprintf_nl "load_torrent_string: %s already exists, ignoring" torrent_diskname;
-      raise Torrent_already_exists
+      raise (Torrent_already_exists torrent.torrent_name)
     end;
   File.from_string torrent_diskname s;
 
@@ -804,7 +804,7 @@ let scan_new_torrents_directory () =
       load_torrent_file file (try CommonUserDb.user2_user_find user with Not_found -> CommonUserDb.admin_user);
       (try Sys.remove file with _ -> ())
     with 
-      Torrent_can_not_be_used ->
+      Torrent_can_not_be_used _ ->
 	Unix2.rename file (Filename.concat old_directory file_basename);
 	lprintf_nl "Torrent %s does not have valid tracker URLs, moved to torrents/old ..." file_basename
     | e ->
@@ -888,8 +888,8 @@ let op_network_parse_url url user =
             load_torrent_file url user;
             "", true
           with
-	    Torrent_already_exists -> "A torrent with this name is already in the download queue", false
-	  | Torrent_can_not_be_used -> "This torrent does not have valid tracker URLs", false
+	    Torrent_already_exists _ -> "A torrent with this name is already in the download queue", false
+	  | Torrent_can_not_be_used _ -> "This torrent does not have valid tracker URLs", false
         with e ->
           lprintf_nl "Exception %s while 2nd loading" (Printexc2.to_string e);
 	  let s = Printf.sprintf "Can not load load torrent file: %s"
@@ -1213,10 +1213,11 @@ let op_gui_message s user =
       let text = String.sub s 2 (String.length s - 2) in
       if !verbose then lprintf_nl "received torrent from gui...";
       (try
-        ignore (load_torrent_string text user)
+        let file = load_torrent_string text user in
+        raise (Torrent_started file.file_name)
       with e -> (match e with
-	  Torrent_can_not_be_used -> lprintf_nl "Loading torrent from GUI: this torrent can not be used"
-	| Torrent_already_exists -> lprintf_nl "Loading torrent from GUI: this torrent is already in download queue"
+	| Torrent_can_not_be_used s -> lprintf_nl "Loading torrent from GUI: torrent %s can not be used" s
+	| Torrent_already_exists s -> lprintf_nl "Loading torrent from GUI: torrent %s is already in download queue" s
 	| _ -> ());
 	raise e)
   | 1 -> (* 34+ *)

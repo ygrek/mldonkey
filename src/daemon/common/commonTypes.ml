@@ -88,8 +88,9 @@ let file_string_of_uid uid =
   string_of_uid_sep uid "_"
 
 exception Illegal_urn of string
-exception Torrent_already_exists
-exception Torrent_can_not_be_used
+exception Torrent_started of string
+exception Torrent_already_exists of string
+exception Torrent_can_not_be_used of string
 
 let uid_of_string s =
   let s = String.lowercase s in
