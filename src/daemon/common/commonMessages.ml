@@ -1046,7 +1046,7 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onclick=\"servers();\">Import Server.met</TD>
 <TD class=\"bu bbig\" title=\"Open Serverlist\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"mSub('fstatus','bw_stats');top.output.location.href='http://www.gruk.org/list.php'\">Serverlist</TD>
+onClick=\"mSub('fstatus','bw_stats');parent.frames[_getFrameByName('output')].location.href='http://www.gruk.org/list.php'\">Serverlist</TD>
 </TR></TBODY></TABLE></DIV>
 
 <DIV ID=\"tab4\" style=\"display: none\">
@@ -1133,16 +1133,16 @@ onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','porttest')\">Porttest</TD>
 <TD class=\"bu bbig\" title=\"View ChangeLog\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&amp;content-type=text/vnd.viewcvs-markup'\">ChangeLog</TD>
+onClick=\"parent.frames[_getFrameByName('output')].location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&amp;content-type=text/vnd.viewcvs-markup'\">ChangeLog</TD>
 <TD class=\"bu bbig\" title=\"Homepage\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://mldonkey.sourceforge.net'\">Homepage</TD>
+onClick=\"parent.frames[_getFrameByName('output')].location.href='http://mldonkey.sourceforge.net'\">Homepage</TD>
 <TD class=\"bu bbig\" title=\"Support forum english\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://mldonkey.sourceforge.net/forums'\">English support</TD>
+onClick=\"parent.frames[_getFrameByName('output')].location.href='http://mldonkey.sourceforge.net/forums'\">English support</TD>
 <TD class=\"bu bbig\" title=\"Support forum german\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"top.output.location.href='http://mldonkey.org/phpbb2'\">German forum</TD>
+onClick=\"parent.frames[_getFrameByName('output')].location.href='http://mldonkey.org/phpbb2'\">German forum</TD>
 <TD class=\"bu bbig\" title=\"View core log\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','log')\">Log</TD>

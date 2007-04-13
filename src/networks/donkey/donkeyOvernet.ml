@@ -1768,16 +1768,16 @@ let _ =
         let buf = o.conn_buf in
         html_mods_commands buf "commandsTable" "commands" ([
           ("bu bbig", command_prefix_to_net ^ " boots list",
-           "top.output.location.href='submit\\?q=" ^ command_prefix ^ "boots'",
+           "mSub('output','" ^ command_prefix ^ "boots')",
            command_prefix_to_net ^ " boots");
           ("bu bbig", command_prefix_to_net ^ " buckets list",
-           "top.output.location.href='submit\\?q=" ^ command_prefix ^ "buckets'",
+           "mSub('output','" ^ command_prefix ^ "buckets')",
            command_prefix_to_net ^ " buckets");
           ("bu bbig", command_prefix_to_net ^ " stats",
-           "top.output.location.href='submit\\?q=" ^ command_prefix ^ "stats'",
+           "mSub('output','" ^ command_prefix ^ "stats')",
            command_prefix_to_net ^ " stats");
           ("bu bbig", command_prefix_to_net ^ " store list",
-           "top.output.location.href='submit\\?q=" ^ command_prefix ^ "store'",
+           "mSub('output','" ^ command_prefix ^ "store')",
            command_prefix_to_net ^ " store");
           ]);
         "";

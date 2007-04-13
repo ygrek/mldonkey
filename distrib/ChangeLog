@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/04/13
+5866: HTML: fix third button row to also successful act within frames (schlumpf)
+
 2007/04/12
 5867: EDK: Show country code/flags for indirect clients
 5862: BT: Informative GUI console messages after sending a .torrent file to GUI

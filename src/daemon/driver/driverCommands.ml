@@ -1611,7 +1611,7 @@ let _ =
                 if use_html_mods o then
                   custom_commands := !custom_commands @ [ ( "bu bbig",
                   name,
-                  Printf.sprintf "top.output.location.href='submit\\?custom=%s'" (Url.encode name),
+                  Printf.sprintf "mSub('output','custom=%s')" (Url.encode name),
                   name ) ; ]
                 else
                   Printf.bprintf buf
@@ -1626,13 +1626,13 @@ let _ =
         if use_html_mods o then
           html_mods_commands buf "commandsTable" "commands" (!custom_commands @ [
             ("bu bbig", "Visit FileHeaven",
-             "top.output.location.href='http://www.fileheaven.org/'", "FileHeaven");
+             "parent.frames[_getFrameByName('output')].location.href='http://www.fileheaven.org/'", "FileHeaven");
             ("bu bbig", "Visit FileDonkey",
-             "top.output.location.href='http://www.filedonkey.com/'", "FileDonkey");
+             "parent.frames[_getFrameByName('output')].location.href='http://www.filedonkey.com/'", "FileDonkey");
             ("bu bbig", "Visit Bitzi",
-             "top.output.location.href='http://www.fileheaven.org/'", "Bitzi");
+             "parent.frames[_getFrameByName('output')].location.href='http://www.fileheaven.org/'", "Bitzi");
             ("bu bbig", "Visit eMugle",
-             "top.output.location.href='http://www.emugle.com/'", "eMugle");
+             "parent.frames[_getFrameByName('output')].location.href='http://www.emugle.com/'", "eMugle");
           ]);
         ""
     ), ":\t\t\tview custom queries";
