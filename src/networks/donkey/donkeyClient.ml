@@ -1541,7 +1541,7 @@ is checked for the file.
               end else begin
 (* We should check the correctness of the Md4 array *)
                let md4s = t.Q.chunks in
-               let md4 = DonkeyShare.md4_of_array md4s in
+               let md4 = md4_of_array md4s in
                if md4 <> file.file_md4 then begin
                  lprintf_nl "[ERROR] Chunks md4s do not match file_md4 for %s(%s) from %s"
                     (file_best_name file) 

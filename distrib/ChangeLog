@@ -15,6 +15,11 @@ ChangeLog
 =========
 
 2007/04/19
+5869: EDK/Swarmer: Try harder to read corrupt files.ini
+- reset chunk table to missing after re-creating a missing temp file
+- discard swarmers without files entry in files.ini instead of stopping
+- check that partial hashes file_md4s match with file_md4 when reading files.ini
+
 5870: Updated distrib/mldonkey_submit, it now uses command dllink instead of dd,
       it also supports http and sig2dat links (atordo)
 

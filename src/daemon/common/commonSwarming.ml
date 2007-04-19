@@ -3274,7 +3274,7 @@ module SwarmerOption = struct
 let check_swarmer s =
   try
     match s.s_networks with
-    | [] -> assert false
+    | [] -> lprintf_nl "found unused swarmer %s, discarding" s.s_filename;
     | tprim :: tail ->
         assert(tprim.t_primary);
 

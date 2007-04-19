@@ -299,6 +299,13 @@ let get_udp_sock () =
     None -> failwith "No UDP socket"
   | Some sock -> sock
 
+let md4_of_array md4s =
+  let s = String.create ((Array.length md4s) * 16) in
+  Array.iteri (fun i v -> 
+    String.blit (Md4.direct_to_string v) 0 s (i*16) 16
+  ) md4s;
+  Md4.string s
+
 (* compute the name used to save the file *)
 
 let update_best_name file =

@@ -66,16 +66,6 @@ let must_share_file file codedname has_old_impl =
         None -> update_shared_num impl
       | Some old_impl -> replace_shared old_impl impl
 
-
-let md4_of_array md4s =
-  let len = Array.length md4s in
-  let s = String.create (len * 16) in
-  for i = 0 to len-1 do
-    let md4 = Md4.direct_to_string md4s.(i) in
-    String.blit md4 0 s (i*16) 16;
-  done;
-  Md4.string s
-
 let new_file_to_share sh codedname old_impl =
   try
 (* How do we compute the total MD4 of the file ? *)

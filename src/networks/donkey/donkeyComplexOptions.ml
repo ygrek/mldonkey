@@ -37,6 +37,8 @@ open DonkeyTypes
 open DonkeyOptions
 open DonkeyGlobals
 
+module VB = VerificationBitmap
+
 let shared_files_ini = create_options_file "shared_files_new.ini"
 
 let file_sources_ini = create_options_file "file_sources.ini"
@@ -230,7 +232,7 @@ let value_to_file file_size file_state assocs =
       get_value "file_md4" value_to_string
     with _ -> failwith "Bad file_md4"
   in
-  let file_diskname =
+  let file_diskname, empty =
     let filename =
       try
         get_value "file_diskname" value_to_string
@@ -256,12 +258,15 @@ let value_to_file file_size file_state assocs =
                 ( file_string_of_uid ( Ed2k (Md4.of_string file_md4) ) )
           end
     in
-    if not (Sys.file_exists filename) then
+    let file_exists filename = Sys.file_exists filename in
+    if not (file_exists filename) then
       (* I think we should die here, to prevent any corruption. *)
-      lprintf_nl "ERROR ED2K-TEMP-FILE %s DOES NOT EXIST, THIS WILL PERHAPS LEAD TO CORRUPTION IN THAT DOWNLOAD!"
-        filename;
-    if !verbose && (not !CommonGlobals.is_startup_phase) then lprintf_nl "ed2k-temp-file %s used." filename;
-    filename
+      lprintf_nl "Error: temp file %s not found, re-creating empty one" filename;
+
+    if !verbose && (not !CommonGlobals.is_startup_phase) then
+      lprintf_nl "ed2k-temp-file %s used." filename;
+
+    filename, not (file_exists filename)
   in
 
   let file = DonkeyGlobals.new_file file_diskname file_state
@@ -275,8 +280,16 @@ let value_to_file file_size file_state assocs =
   let md4s = try get_value "file_md4s" (value_to_array value_to_md4) 
     with _ -> [||] in
   
-  if md4s <> [||] then file.file_computed_md4s <- md4s;
-  
+  if md4s <> [||] then
+    begin
+      if md4_of_array md4s <> (Md4.of_string file_md4) ||
+        Array.length md4s <> file.file_nchunk_hashes then
+        lprintf_nl "discarding partial chunks hashes, computed hash is wrong for %s"
+          (file_best_name file)
+      else
+        file.file_computed_md4s <- md4s
+    end;
+
   (match file.file_swarmer with
       None -> ()
     | Some swarmer ->
@@ -285,7 +298,14 @@ let value_to_file file_size file_state assocs =
             VerificationNotAvailable
           else
             Verification
-            (Array.map (fun md4 -> Ed2k md4) md4s))
+            (Array.map (fun md4 -> Ed2k md4) md4s));
+        if empty then
+          begin
+            lprintf_nl "re-created missing temp file of %s , resetting chunk status to missing"
+              (file_best_name file);
+            let ver_str = String.make (Array.length md4s) (VB.state_to_char VB.State_missing) in
+            CommonSwarming.set_chunks_verified_bitmap swarmer (VB.of_string ver_str);
+          end
   );
   as_file file
   
