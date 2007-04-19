@@ -88,13 +88,13 @@ let tcp_handler t sock event =
       
 let dummy_sock = Obj.magic 0  
   
-let create name addr port handler =
+let create name addr port ?(backlog = 3) handler =
   try
     let fd = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     Unix.setsockopt fd Unix.SO_REUSEADDR true; 
     MlUnix.set_close_on_exec fd;  
     Unix.bind fd (Unix.ADDR_INET ((*Unix.inet_addr_any*) addr, port));
-    Unix.listen fd 3;
+    Unix.listen fd backlog;
     let t = {
         name = name;
         sock = dummy_sock;

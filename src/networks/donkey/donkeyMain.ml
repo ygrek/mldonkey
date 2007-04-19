@@ -278,7 +278,7 @@ be useful when users want to share files that they had already previously
           let sock = TcpServerSocket.create 
               "donkey client server"
               (Ip.to_inet_addr !!client_bind_addr)
-            !!donkey_port (client_connection_handler false) in
+            !!donkey_port ~backlog:!!max_upload_slots (client_connection_handler false) in
           
           TcpServerSocket.set_accept_controler sock connections_controler;
           listen_sock := Some sock;

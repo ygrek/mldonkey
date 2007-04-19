@@ -24,7 +24,7 @@ type t
 type handler = t -> event -> unit
 
 val sock : t -> BasicSocket.t
-val create : string -> Unix.inet_addr -> int -> handler -> t
+val create : string -> Unix.inet_addr -> int -> ?backlog:int -> handler -> t
 val close : t -> BasicSocket.close_reason -> unit
 val debug : bool ref
   
