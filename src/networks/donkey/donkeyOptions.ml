@@ -195,55 +195,6 @@ let dynamic_upload_threshold = define_expert_option donkey_section ["dynamic_upl
   "Uploaded zones (1 zone = 180 kBytes) needed to enable the dynamic upload lifetime"
     int_option 10
 
-let upload_compression = define_expert_option donkey_section ["upload_compression"]
-  "Enables compressed upload as part of the protocol"
-    bool_option true
-
-let upload_compression_threshold = define_expert_option donkey_section ["upload_compression_threshold"]
-  "Sizedifference in bytes between one zone (180 kBytes) and its compressed
-  counterpart, which has to occure, to send compressed parts instead of plain."
-    int_option 2000
-
-let upload_compression_ext_exclude = define_expert_option donkey_section ["upload_compression_ext_exclude"]
-  "Disable upload compression based on file extensions (without dot)"
-    string_list_option ["zip"; "7z"; "gz"; "bz2"; "rar"; "ace"; "ogm"; "avi"; "mpg"]
-
-let _ =
-  option_hook upload_compression_threshold (fun _ ->
-    if !!upload_compression_threshold < 0 then
-        upload_compression_threshold =:= 0
-  );
-  option_hook upload_compression_ext_exclude (fun _ ->
-    let l = List.map String.lowercase !!upload_compression_ext_exclude in
-    if !!upload_compression_ext_exclude <> l then upload_compression_ext_exclude =:= l
-  )
-
-let upload_compression_level = define_expert_option donkey_section ["upload_compression_level"]
-  "Level of the used zlibcompression. allowed are values between 0 and 9. higher
-  level means better compression, but higher cpu usage too. (emules default
-  compression level for compressed parts is 9)"
-    int_option 9
-
-let _ =
-  option_hook upload_compression_level (fun _ ->
-    if !!upload_compression_level < 0
-      || !!upload_compression_level > 9 then
-        upload_compression_level =:= 9
-  )
-
-let upload_compression_table_size = define_expert_option donkey_section ["upload_compression_table_size"]
-  ~restart: true
-  "Size of the cache table in entries (ca. 2 * 180 kbytes). zones have to be
-  compressed at once, but only parts of it are sent at a time (10 kbytes).
-  Minimum value is the number of total upload slots."
-    int_option 20
-
-let _ =
-  option_hook upload_compression_table_size (fun _ ->
-    if !!upload_compression_table_size < !!max_upload_slots then
-        upload_compression_table_size =:= !!max_upload_slots
-  )
-
 let connected_server_timeout = define_expert_option donkey_section ["connected_server_timeout"]
   "How long can a silent server stay connected"
     float_option 1800.

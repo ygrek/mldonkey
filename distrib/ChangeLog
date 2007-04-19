@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/04/19
+5857: EDK: Remove upload compression (patch #5665) due to ineffective caching
 5875: Swarmer: Some cosmetic changes (pango)
 5856: EDK: Set TCP backlog to max_upload_slots for donkey_port socket
 5869: EDK/Swarmer: Try harder to read corrupt files.ini
