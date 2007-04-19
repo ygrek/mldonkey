@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/04/19
+5870: Updated distrib/mldonkey_submit, it now uses command dllink instead of dd,
+      it also supports http and sig2dat links (atordo)
+
 2007/04/13
 5866: HTML: fix third button row to also successful act within frames (schlumpf)
 

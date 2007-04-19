@@ -45,24 +45,25 @@ foreach (@lines) {
 my $ua = LWP::UserAgent->new;
 
 while (my $uri = shift @ARGV) {
-	$_ = URI::Escape::uri_unescape($uri);
-	if (/^ed2k:\/\/\|file\|[^|]+\|(\d+)\|([\dabcdefABCDEF]+)\|/) {	
-		my $size = $1;
-		my $md4 = $2;
+	if ($uri=~m/^(ed2k|http|ftp|sig2dat):\/\//) {
+		my $url=$uri;
+		$url=~s/([^A-Za-z0-9])/sprintf("%%%02X", ord($1))/seg;
 		my $req = HTTP::Request->new(
-			GET => "$vars{'HTTPURL'}/submit?q=dd+$size+$md4"
-		);
+			GET => "$vars{'HTTPURL'}/submit?q=dllink+$url" );
 		if (($vars{'HTTPUSER'}) && ($vars{'HTTPPASS'})) {
 			$req->authorization_basic($vars{'HTTPUSER'},
 				$vars{'HTTPPASS'});
 		}
 		my $response = $ua->request($req);
-		if (!($response->is_success)) {
+		unless ($response->is_success) {
 			print $response->error_as_HTML;
 			exit 1;
 		}
-	} else {
-		print "Not an ed2k URI: $_\n";
+		else {
+			print "Link sent.\n";
+		}
+	}
+	else {
+		print "$uri does not seem a valid URI.\n";
 	}
 }
-
