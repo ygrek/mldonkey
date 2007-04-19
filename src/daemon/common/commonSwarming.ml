@@ -176,7 +176,7 @@ and block = {
 				      or a balanced tree ? *)
     mutable block_remaining : int64; (* amount of bytes missing. *)
     mutable block_unselected_remaining : int64; (* same, less ranges
-						   selected by sources. *)
+						   selected for uploaders. *)
   }
 
 and range = {
@@ -249,7 +249,7 @@ and uploader_block = {
    
 (* range owners are only used thru uploaders.up_ranges. blocks could be
    saved in [uploaders]' [up_ranges] along range, but would
-   need uploading when the swarmer is splitted.
+   need updating when the swarmer is splitted.
 
    Removing [range] from [up_ranges] and [range_nuploading] from
    [range] could be good too, because they're not correctly updated
@@ -530,6 +530,20 @@ let block_is_full b =
   let r = b.block_ranges in
   r.range_next = None && r.range_begin = r.range_end
       
+(** iter function [f] over all the blocks contained in the list of [intervals]
+
+    [f] will receive block number, block beginning and ending offsets,
+    and overlapping interval beginning and ending offsets.
+
+    If an interval starts halfway of a block, iteration starts on the
+    next block, with interval_begin < block_begin indicating where the
+    interval really started.
+
+    If an interval ends halfway of a block, iteration ends on that
+    block, with interval_end < block_end indicating where the interval
+    really ended.
+*)
+
 let iter_intervals s f intervals =
   let nchunks = Array.length s.s_blocks in
   List.iter (fun (interval_begin, interval_end) ->
@@ -936,20 +950,6 @@ let mark_disk_space_preallocated t interval_begin interval_end =
   iter_disk_space (fun s fd disk_block ->
     Bitv.set s.s_disk_allocated disk_block true
   ) t interval_begin interval_end
-
-(** iter function f over all the blocks contained in the list of [intervals]
-
-    f with receive block number, block beginning and ending offsets,
-    and overlapping interval beginning and ending offsets.
-
-    If an interval starts halfway of a block, iteration starts on the
-    next block, with interval_begin < block_begin indicating where the
-    interval really started.
-
-    If an interval ends halfway of a block, iteration ends on that
-    block, with interval_end < block_end indicating where the interval
-    really ended.
-*)
 
 let check_finished t =
   let file = t.t_file in
@@ -1996,11 +1996,15 @@ let linear_select_blocks up =
   in
   iter_complete up
 
-(** Check whether block [n] of swarmer [s] is not completed yet,
-    calling chunk verification first if block still need verification *)
+(** Check whether block [n] of swarmer [s] is not already downloaded
+    and verified.
+
+    Chunk verification may be called if the block is completed but not
+    verified.
+*)
 
 let should_download_block s n =
-(*  lprintf "should_download_block %d\n" n; *)
+  (*  lprintf "should_download_block %d\n" n; *)
   let result =
     match VB.get s.s_verified_bitmap n with
     | VB.State_missing | VB.State_partial -> true
@@ -2290,7 +2294,8 @@ let select_blocks up =
 	  Array2.subarray_fold_lefti (fun 
 	    ((current_chunk_num, current_chunk_blocks_indexes, 
 	    best_choices, specimen) as acc) n b ->
-	    if not (should_download_block s b) then acc else
+	    if not (should_download_block s b) then acc 
+	    else
 	      let chunk_num = t.t_chunk_of_block.(b) in
 	      if chunk_num = current_chunk_num then
 		(current_chunk_num, n :: current_chunk_blocks_indexes,

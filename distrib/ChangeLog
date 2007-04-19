@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/04/19
+5875: Swarmer: Some cosmetic changes (pango)
 5856: EDK: Set TCP backlog to max_upload_slots for donkey_port socket
 5869: EDK/Swarmer: Try harder to read corrupt files.ini
 - reset chunk table to missing after re-creating a missing temp file
