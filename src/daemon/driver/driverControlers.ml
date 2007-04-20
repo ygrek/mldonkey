@@ -682,6 +682,7 @@ let extension_to_file_ext extension =
   | "jpeg"
   | "jpg" -> JPEG
   | "js" -> JAVASCRIPT
+  | "vob"
   | "mpe"
   | "mpeg"
   | "mpg" -> MPEG

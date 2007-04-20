@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/04/20
+5876: HTML: Send mime-type video/mpeg for file extension .vob
+
 2007/04/19
 5857: EDK: Remove upload compression (patch #5665) due to ineffective caching
 5875: Swarmer: Some cosmetic changes (pango)
