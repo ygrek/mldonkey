@@ -21,6 +21,10 @@ type t
 
 val verbose : bool ref
 
+val get_max_cache_size : unit -> int
+val set_max_cache_size : int -> unit
+val max_cache_size_default : int
+
 val external_start : unit -> unit
 val external_exit : unit -> unit
 val uname : unit -> string
@@ -42,7 +46,6 @@ val close_all : unit -> unit
 val fds_size : int
 val filename : t -> string
 val rename : t -> string -> unit 
-val max_cache_size : int ref
 val mtime : string -> float
 val mtime64 : t -> float
 val owner : string -> (string * string)

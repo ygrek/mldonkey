@@ -34,7 +34,8 @@ let max_buffered = ref (Int64.of_int (1024 * 1024))
 let create_file_mode = ref 0o664
 let create_dir_mode = ref 0o755
 let verbose = ref false
-let max_cache_size = ref 50
+let max_cache_size_default = 50
+let max_cache_size = ref max_cache_size_default
   
 let mini (x: int) (y: int) =
   if x > y then y else x
@@ -1835,6 +1836,12 @@ let filesystem dir =
 	   else
 	     Printf.sprintf "unknown (%Ld)" s.f_type
   with e -> "not supported"
+
+let set_max_cache_size v =
+  max_cache_size := v;
+  while !FDCache.cache_size > !max_cache_size do FDCache.close_one () done
+
+let get_max_cache_size () = !max_cache_size
 
 let _ =
   Heap.add_memstat "Unix32" (fun level buf ->

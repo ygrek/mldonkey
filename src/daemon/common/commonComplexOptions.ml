@@ -1211,63 +1211,77 @@ let _ =
   option_hook max_filenames (fun _ ->
     shorten_all_file_filenames !!max_filenames
   );
+
+  let max_opened_connections_pass = ref 0 in
   option_hook max_opened_connections (fun _ ->
+
+  incr max_opened_connections_pass;
+
+(* let users see if the option is called again *)
+  let lprintf_nl s = lprintf_nl2
+      (Printf.sprintf "%s pass %d:" log_prefix !max_opened_connections_pass) s in
+
   if !verbose then lprintf_nl
     "checking max_opened_connections = %d for validity" !!max_opened_connections;
-(* original code from ./src/config/unix/MlUnix.ml
-let max_all_sockets = getdtablesize ()
-let max_sockets = max (max_all_sockets - 100) (max_all_sockets / 2)
-let max_filedescs = (max_all_sockets - max_sockets) / 2 *)
 
-  (* ulimit open files. minimum 150, most systems have 1024 *)
-  let max_all_sockets = Unix2.c_getdtablesize () in
+(* maximum value of open sockets/files allowed *)
+  let max_all_fds = Unix2.c_getdtablesize () in
 
-  (* old max_sockets code: max (150 - 100) (150 / 2),
-     minimum number of max_opened_connections *)
-  let min_conns = 75 in
+(* ini files, dynamic libs, etc. *)
+  let reserved_fds = max CommonOptions.min_reserved_fds (max_all_fds / 50) in
 
-  if min_conns > !!max_opened_connections then begin
-    lprintf_nl "max_opened_connections is set too low (%d), raising to %d"
-      !!max_opened_connections min_conns;
-    max_opened_connections =:= min_conns
-  end;
+(* minimum number of max_opened_connections, p2p needs some sockets *)
+  let min_conns = CommonOptions.min_connections in
+(* max_conns *should* be greater than min_conns at that point, because of
+   the sanity check at start time in CommonOptions;
+   taking the max is just a safety belt from a paranoid :) *)
+  let max_conns = max min_conns
+    (max_all_fds - reserved_fds - Unix32.max_cache_size_default) in
 
-  let reserved_fds = 40 in (* ini files, dynamic libs, etc. *)
-
-  let total_files = (* maximum number of files in use at the same time *)
-    (max (List.length !!files) !!max_concurrent_downloads) + !!max_upload_slots + reserved_fds
+  let print_stats verbose =
+    if verbose then begin
+      lprintf_nl "file descriptors status: total allowed (ulimit -n) %d" max_all_fds;
+      lprintf_nl "- max_opened_connections %d (%d%% indirect)"
+        !!max_opened_connections !!max_indirect_connections;
+      lprintf_nl "- file cache size %d" (Unix32.get_max_cache_size ());
+      lprintf_nl "- reserved %d" reserved_fds;
+      let s,v =
+        let v1 =
+          max_all_fds - !!max_opened_connections - (Unix32.get_max_cache_size ()) - reserved_fds
+        in
+        if v1 >= 0 then "left", v1 else "missing", (abs v1)
+      in
+      lprintf_nl "= %d descriptors %s" v s
+    end
   in
 
-  let wanted_socks = !!max_opened_connections + total_files in
+  if !!max_opened_connections < min_conns then begin
+    lprintf_nl "max_opened_connections is set too low (%d), raising to %d"
+      !!max_opened_connections min_conns;
+    print_stats true;
+    max_opened_connections =:= min_conns
+  end
+  else if !!max_opened_connections > max_conns then begin
+    lprintf_nl "max_opened_connections is set too high (%d), lowering to %d"
+      !!max_opened_connections max_conns;
+    print_stats true;
+    max_opened_connections =:= max_conns
+  end
+  else begin
+    TcpBufferedSocket.set_max_opened_connections (fun _ -> !!max_opened_connections);
 
-  if max_all_sockets < wanted_socks then
-    if max_all_sockets < total_files + min_conns then (* check if ulimit is enough to allow total_files + min_conns *)
-      begin
-        lprintf_nl "only %d file descriptors available, raise ulimit open files to at least %d"
-          max_all_sockets wanted_socks;
-        lprintf_nl "FD info: max_opened_connections %d, number of (possible) concurrent downloads %d, = %d fd needed"
-          !!max_opened_connections total_files wanted_socks;
-        CommonGlobals.exit_properly 71
-      end
-  else
-    begin
-      let new_max_opened_connections =
-        max (max_all_sockets - total_files) (max_all_sockets / 2)
-      in
-      lprintf_nl "max_opened_connections is set too high (%d), reducing to %d"
-        !!max_opened_connections new_max_opened_connections;
-      max_opened_connections =:= new_max_opened_connections;
-    end;
+    let unused_fds = max_conns - !!max_opened_connections in
 
-  if !verbose then lprintf_nl
-    "max_opened_connections %d, total_files %d, max_concurrent_downloads %d, !!files %d"
-      !!max_opened_connections total_files !!max_concurrent_downloads (List.length !!files);
+    Unix32.set_max_cache_size
+      (Unix32.max_cache_size_default + unused_fds * 75 / 100);
 
-  TcpBufferedSocket.set_max_opened_connections
-    (fun _ -> !!max_opened_connections);
+    calc_real_max_indirect_connections ();
 
-  Unix32.max_cache_size := total_files - reserved_fds;
-  calc_real_max_indirect_connections ()
+    print_stats !verbose
+  end;
+
+  if !verbose then lprintf_nl "checking max_opened_connections finished";
+  decr max_opened_connections_pass
 )
 
 let _ =

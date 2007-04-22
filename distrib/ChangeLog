@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/04/23
+5855: Increase Unix32.max_cache_size, fix max_opened_connections check
+      (thx to pango)
+
 2007/04/21
 5878: HTML: Fix preview in vd <num> broken by patch #5866
 

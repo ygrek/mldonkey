@@ -127,6 +127,9 @@ let windows_sleep seconds =
   lprintf_nl "waiting %d seconds to exit..." seconds;
   Unix.sleep seconds
 
+let min_reserved_fds = 50
+let min_connections = 50
+
 let _ =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
   let ulof_old = Unix2.c_getdtablesize () in
@@ -139,8 +142,10 @@ let _ =
   let ulof = Unix2.c_getdtablesize () in
   if ulof_old <> ulof then
     lprintf_nl "raised ulimit for open files from %d to %d" ulof_old ulof;
-  if ulof < 150 then begin
-    lprintf_nl "ulimit for open files is set to %d, at least 150 is required, exiting..." ulof;
+  let absolute_min = Unix32.max_cache_size_default +
+    min_reserved_fds + min_connections in
+  if ulof < absolute_min then begin
+    lprintf_nl "ulimit for open files is set to %d, at least %d is required, exiting..." ulof absolute_min;
     exit 2
   end;
 
