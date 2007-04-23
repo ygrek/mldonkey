@@ -176,7 +176,7 @@ module NewUpload = struct
           send_client_block c sock size;
            (match c.client_upload with
             | Some ({ up_chunks = _ :: _ }) ->
-                if !CommonUploads.has_upload = 0 then
+                if !CommonGlobals.has_upload = 0 then
                   CommonUploads.ready_for_upload (as_client c)
 	    | _ -> ()
           )

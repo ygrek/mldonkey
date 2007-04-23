@@ -1036,29 +1036,36 @@ let _ =
     [
 
     "nu", Arg_one (fun num o ->
+        if user2_is_admin o.conn_user.ui_user then begin
         let num = int_of_string num in
 
         if num > 0 then (* we want to disable upload for a short time *)
-          let num = min !CommonUploads.upload_credit num in
-          CommonUploads.has_upload := !CommonUploads.has_upload + num;
-          CommonUploads.upload_credit := !CommonUploads.upload_credit - num;
-          Printf.sprintf
-            "upload disabled for %d minutes (remaining credits %d)"
-            !CommonUploads.has_upload !CommonUploads.upload_credit
+          let num = min !CommonGlobals.upload_credit num in
+          CommonGlobals.has_upload := !CommonGlobals.has_upload + num;
+          CommonGlobals.upload_credit := !CommonGlobals.upload_credit - num;
         else
 
-        if num < 0 && !CommonUploads.has_upload > 0 then
+        if num < 0 && !CommonGlobals.has_upload > 0 then begin
 (* we want to restart upload probably *)
           let num = - num in
-          let num = min num !CommonUploads.has_upload in
-          CommonUploads.has_upload := !CommonUploads.has_upload - num;
-          CommonUploads.upload_credit := !CommonUploads.upload_credit + num;
-          Printf.sprintf
-            "upload disabled for %d minutes (remaining credits %d)"
-            !CommonUploads.has_upload !CommonUploads.upload_credit
+          let num = min num !CommonGlobals.has_upload in
+          CommonGlobals.has_upload := !CommonGlobals.has_upload - num;
+          CommonGlobals.upload_credit := !CommonGlobals.upload_credit + num;
+        end;
+        if !CommonGlobals.has_upload > 0 then clear_upload_slots ();
+        print_command_result o
+        (Printf.sprintf "upload disabled for %d minutes (remaining credits %d)"
+          !CommonGlobals.has_upload !CommonGlobals.upload_credit)
+	end else
+	  print_command_result o "You are not allowed to disable upload"; ""
+    ), "<m> :\t\t\t\tdisable upload during <m> minutes, queue all files";
 
-        else ""
-    ), "<m> :\t\t\t\tdisable upload during <m> minutes (multiple of 5)";
+    "vu", Arg_none (fun o ->
+        Printf.sprintf
+          "Upload credits : %d minutes\nUpload disabled for %d minutes"
+          !CommonGlobals.upload_credit !CommonGlobals.has_upload;
+
+    ), ":\t\t\t\t\tview upload credits";
 
     "bw_stats", Arg_multiple (fun args o ->
         let buf = o.conn_buf in

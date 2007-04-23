@@ -751,10 +751,6 @@ let streaming_amount () =
 let streaming_left = ref (streaming_amount ())
 let streaming_time = (ref None : float option ref)
 
-let has_upload = ref 0
-let upload_credit = ref 0
-
-
 let can_write_len sock len =
   let bool1 = can_write_len sock len in
 (* changed 2.5.24: Don't put in a socket more than 10 seconds of upload. *)
@@ -810,11 +806,6 @@ let next_uploads () =
   streaming_left := min !streaming_left (streaming_amount ());
   streaming_time := Some new_streaming_time;
   next_uploads_aux ()
-
-let reset_upload_timer () = ()
-
-let reset_upload_timer _ =
-  reset_upload_timer ()
 
 let upload_credit_timer _ =
   if !has_upload = 0 then
@@ -965,6 +956,7 @@ let dynamic_refill_upload_slots () =
 let turn = ref (-1)
 
 let refill_upload_slots () =
+  if !CommonGlobals.has_upload = 0 then begin
   incr turn;
   if !turn = 5 then
     turn := 0;
@@ -975,6 +967,7 @@ let refill_upload_slots () =
   end else
     (* call every 1s *)
     static_refill_upload_slots ()
+  end
 
 let consume_bandwidth len =
   streaming_left := !streaming_left - len

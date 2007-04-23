@@ -695,13 +695,6 @@ let commands = [
         "friend added";
     ),  "<ip> [<port>] :\t\t\tadd a friend";
 
-    "vu", Arg_none (fun o ->
-        Printf.sprintf
-          "Upload credits : %d minutes\nUpload disabled for %d minutes"
-          !CommonUploads.upload_credit !CommonUploads.has_upload;
-
-    ), ":\t\t\t\t\tview upload credits";
-
 (*
     "comments", Arg_one (fun filename o ->
 (* TODO        DonkeyIndexer.load_comments filename;

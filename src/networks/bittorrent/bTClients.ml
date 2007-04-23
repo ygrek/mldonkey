@@ -1021,7 +1021,7 @@ and client_to_client c sock msg =
             raise Exit
           end;
 
-        if !CommonUploads.has_upload = 0 then
+        if !CommonGlobals.has_upload = 0 then
           begin
             if client_has_a_slot (as_client c) then
               begin

@@ -14,6 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/04/24
+5718: Improve command "nu"
+- close all upload slots
+- do not give an upload slot to clients in pending slot
+- restrict command "nu" to admin users
+-------------------------------------------------------------------------------
 2007/04/23: version 2.8.5 = tag release-2-8-5
 5855: Increase Unix32.max_cache_size, fix max_opened_connections check
       (thx to pango)

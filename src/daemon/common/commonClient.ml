@@ -471,6 +471,7 @@ let client_has_bitmap (client : client) (file : file) bitmap =
   CommonEvent.add_event (File_update_availability (file, client, bitmap))
 
 let clear_upload_slots () =
+  if !CommonGlobals.has_upload = 0 then
   Intmap.iter (fun _ c ->
     try
       let i = client_info c in
@@ -486,6 +487,15 @@ let clear_upload_slots () =
 	    ctime (Printf2.print_plural_s ctime)
 	end
     with _ -> ()
+  ) !uploaders
+  else
+  Intmap.iter (fun _ c ->
+    let i = client_info c in
+    client_disconnect c;
+    if !verbose then lprintf_nl "disconnected client %d: [%s %s] %s after user disabled upload."
+      (client_num c)
+      (GuiTypes.client_software i.GuiTypes.client_software i.GuiTypes.client_os)
+      i.GuiTypes.client_release i.GuiTypes.client_name
   ) !uploaders
 
 let impl_client_info impl =

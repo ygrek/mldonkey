@@ -87,7 +87,6 @@ let second_timer timer =
      CommonUploads.refill_upload_slots ()
    with e ->
         lprintf_nl (_b "Exception %s") (Printexc2.to_string e));
-  CommonUploads.reset_upload_timer ();
   CommonUploads.shared_files_timer ();
   ()
 

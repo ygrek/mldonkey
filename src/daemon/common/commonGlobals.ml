@@ -340,6 +340,8 @@ let download_counter = ref Int64.zero
 let nshared_files = ref 0
 let nshared_bytes = ref Int64.zero
 let shared_counter = ref Int64.zero
+let has_upload = ref 0
+let upload_credit = ref 0
 
 let string_of_field t =
   match t with

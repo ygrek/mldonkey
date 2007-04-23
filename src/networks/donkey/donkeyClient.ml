@@ -1648,7 +1648,7 @@ is checked for the file.
         t.Q.start_pos t.Q.bloc_str t.Q.bloc_begin t.Q.bloc_len
 
 (* Upload requests *)
-  | M.ViewFilesReq t when !CommonUploads.has_upload = 0 && 
+  | M.ViewFilesReq t when !CommonGlobals.has_upload = 0 && 
     (match !!allow_browse_share with
         1 -> client_friend_tag land client_type c <> 0
       | 2 -> true
@@ -1668,7 +1668,7 @@ is checked for the file.
       client_send_files sock !published_files
   
   (*TODO: real directory support*)
-  | M.ViewDirsReq t when !CommonUploads.has_upload = 0 && 
+  | M.ViewDirsReq t when !CommonGlobals.has_upload = 0 && 
     (match !!allow_browse_share with
         1 -> client_friend_tag land client_type c <> 0
       | 2 -> true
@@ -1680,7 +1680,7 @@ is checked for the file.
   
   (*TODO: real directory support*)
   (*TODO: "!Incomplete Files" support*)
-  | M.ViewFilesDirReq t when !CommonUploads.has_upload = 0 && 
+  | M.ViewFilesDirReq t when !CommonGlobals.has_upload = 0 && 
     (match !!allow_browse_share with
         1 -> client_friend_tag land client_type c <> 0
       | 2 -> true
@@ -1703,7 +1703,7 @@ is checked for the file.
       let md4 = t.M.QueryFile.md4 in
       c.client_requests_received <- c.client_requests_received + 1;
       
-      if  !CommonUploads.has_upload = 0 && 
+      if  !CommonGlobals.has_upload = 0 && 
         not (!!ban_queue_jumpers && c.client_banned) then
         
         (try client_wants_file c md4 with _ -> ());
@@ -1942,7 +1942,7 @@ end else *)
       in
       log_chat_message cip (client_num c) c.client_name s;
   
-  | M.QueryChunkMd4Req t when !CommonUploads.has_upload = 0 -> 
+  | M.QueryChunkMd4Req t when !CommonGlobals.has_upload = 0 -> 
       
       let file = find_file t in
       begin
@@ -1962,7 +1962,7 @@ end else *)
       c.client_requests_received <- c.client_requests_received + 1;
 
       (* All clients query chunks during download! This is legitimate!
-        !CommonUploads.has_upload = 0 && *)
+        !CommonGlobals.has_upload = 0 && *)
       (* banned is banned, do we need to check ban_queue_jumpers
          here? besides that ... we shouldn't be connected with
          a banned client! Waste of resources! Or? *)
@@ -2006,7 +2006,7 @@ end else *)
                 client_send c ( M.NoSuchFileReq t );
         end
   
-  | M.QueryBlocReq t when !CommonUploads.has_upload = 0 &&
+  | M.QueryBlocReq t when !CommonGlobals.has_upload = 0 &&
     client_has_a_slot (as_client c) ->
       
       let module Q = M.QueryBloc in
@@ -2097,7 +2097,7 @@ end else *)
           | chunks ->
         c.client_upload <- Some up;
         set_client_upload (as_client c) (as_file file);
-        if not waiting && !CommonUploads.has_upload = 0 then begin
+        if not waiting && !CommonGlobals.has_upload = 0 then begin
             CommonUploads.ready_for_upload (as_client c);
             up.up_waiting <- true
           end)
@@ -2177,7 +2177,7 @@ let init_client sock c =
   set_handler sock WRITE_DONE (fun s ->
       match c.client_upload with
       | Some ({ up_chunks = _ :: _ } as up) ->
-          if not up.up_waiting && !CommonUploads.has_upload = 0 then begin
+          if not up.up_waiting && !CommonGlobals.has_upload = 0 then begin
               up.up_waiting <- true;
               CommonUploads.ready_for_upload (as_client c)
             end
