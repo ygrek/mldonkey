@@ -56,7 +56,7 @@ ChangeLog
 5860: HTML: fix broken refresh on Opera/Safari (schlumpf)
 
 2007/04/08
-5854: Set shared_check_files = 0 to disable scanning of shared directories
+5854: Set share_scan_interval = 0 to disable scanning of shared directories
 5853: New option defaults
 - download_sample_size 100, 10 is too low, download rate is computed wrong
 - ED2K-propagate_sources false, this activates outdated MLDonkey-style source
