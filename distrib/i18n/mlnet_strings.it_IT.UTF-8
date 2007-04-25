@@ -10,13 +10,13 @@
 
 "%d ranges loaded - optimized to %d" = "caricati %d intervalli - ottimizzazione per %d"
 
-"loading %s" = "caricando %s"
+"loading %s" = "caricamento di %s"
 
 (************************************)
          module "CommonWeb"
 (************************************)
 
-"using local version of %s (%s), HTML header (%s)" = "in uso la versione locale di %s (%s), intestazione HTML (%s)"
+"using local version of %s (%s), HTML header (%s)" = "è in uso la versione locale di %s (%s), intestazione HTML (%s)"
 
 "request %s (%s)" = "richiesta di %s (%s)"
 
@@ -28,13 +28,13 @@
 
 "Core started" = "Nucleo avviato"
 
-"mldonkey is now running as user %s" = "mldonkey sta eseguendo con i privilegi dell'utente %s"
+"mldonkey is now running as user %s" = "mldonkey sta lavorando con i privilegi dell'utente %s"
 
 "If you connect from a remote machine adjust allowed_ips" = "Se ci si collega da una macchina remota modificare la variabile allowed_ips"
 
 "Connect to IP %s, port %d" = "Collegamento all'indirizzo IP %s, porta %d"
 
-"For a GUI check out http://sancho-gui.sourceforge.net" = "Per una GUI visitare http://sancho-gui.sourceforge.net"
+"For a GUI check out http://sancho-gui.sourceforge.net" = "Per l'utilizzo di una GUI visitare http://sancho-gui.sourceforge.net"
 
 "Or with browser: http://%s:%d" = "Oppure con il browser web: http://%s:%d"
 
@@ -44,13 +44,13 @@
 
 "%s[dMain] disabled networks: " = "%s[dMain] reti disabilitate: "
 
-"---- enabling interfaces ----" = "---- abilitando le interfacce ----"
+"---- enabling interfaces ----" = "---- abilitazione delle interfacce ----"
 
-"---- enabling %s ----" = "---- abilitando %s ----"
+"---- enabling %s ----" = "---- abilitazione di %s ----"
 
-"enabling networks: " = "abilitando le reti: "
+"enabling networks: " = "abilitazione delle reti: "
 
-"Check http://www.mldonkey.org for updates" = "Controllare http://www.mldonkey.org per aggiornamenti"
+"Check http://www.mldonkey.org for updates" = "Si controlli http://www.mldonkey.org per aggiornamenti"
 
 " : print version number and exit" = " : mostra il numero di versione ed esce"
 
@@ -58,7 +58,7 @@
 
 "<ip> : undocumented" = "<ip> : non documentato"
 
-" : display information on the implementations" = " : mostra delle informazioni sulle implementazioni"
+" : display information on the implementations" = " : mostra informazioni sulle implementazioni"
 
 ": keep output to stdout after startup" = ": mantiene l'output sullo stdout dopo l'avvio"
 
@@ -70,7 +70,7 @@
 
 ": directory for pid file" = ": directory per il file pid"
 
-"\"<user> <pass>\" : create user/change password" = "\"<utente> <pass>\" : crea l'utente/cambia la password"
+"\"<user> <pass>\" : create user/change password" = "\"<utente> <password>\" : crea l'utente oppure cambia la password"
 
 "Libmagic file-type recognition database not present" = "Database libmagic per il riconoscimento del tipo dei file non presente"
 
@@ -78,7 +78,7 @@
          module "Ip"
 (************************************)
 
-"[DNS] Resolving [%s] ..." = "[DNS] Risolvendo [%s] ..."
+"[DNS] Resolving [%s] ..." = "[DNS] Risoluzione di [%s] ..."
 
 (************************************)
          module "DriverCommands"
@@ -90,33 +90,33 @@
 
 ":\t\t\t\tfor debugging only" = ":\t\t\t\tsolo per debug"
 
-":\t\t\t\tclose all files (use to free space on disk after remove)" = ":\t\t\t\tchiude tutti i file (usare per liberare spazio sul disco dopo la rimozione)"
+":\t\t\t\tclose all files (use to free space on disk after remove)" = ":\t\t\t\tchiude tutti i file (usare per liberare spazio sul disco dopo la rimozione dello stesso)"
 
 "<bool> :\t\t\tuse poll instead of select" = "<bool> :\t\t\tusare poll al posto di select"
 
 ":\t\t\tclose all opened sockets" = ":\t\t\tchiude tutti i socket aperti"
 
-":\t\t\t\tprint memory stats [<verbosity #num>]" = ":\t\t\t\tmostra statistiche sulla memoria [<livello di informazione #num>]"
+":\t\t\t\tprint memory stats [<verbosity #num>]" = ":\t\t\t\tmostra statistiche sulla memoria [<livello verbosità #num>]"
 
-"<theme> :\t\t\tselect html_theme" = "<theme> :\t\t\tseleziona il html_theme"
+"<theme> :\t\t\tselect html_theme" = "<theme> :\t\t\tseleziona html_theme"
 
-":\t\t\t\t\tprint RSS feeds" = ":\t\t\t\t\tprint RSS feeds"
+":\t\t\t\t\tprint RSS feeds" = ":\t\t\t\t\tmostra i feed RSS"
 
-":\t\t\tselect html_mods_style <#>" = ":\t\t\tselect html_mods_style <#>"
+":\t\t\tselect html_mods_style <#>" = ":\t\t\tseleziona html_mods_style <#>"
 
-":\t\t\t\ttoggle html_mods" = ":\t\t\t\ttoggle html_mods"
+":\t\t\t\ttoggle html_mods" = ":\t\t\t\tinverti html_mods"
 
-":\t\t\t\tclear log_file" = ":\t\t\t\tclear log_file"
+":\t\t\t\tclear log_file" = ":\t\t\t\tpulisce log_file"
 
-":\t\t\t\tclose logging to file" = ":\t\t\t\tclose logging to file"
+":\t\t\t\tclose logging to file" = ":\t\t\t\tchiude il salvataggio dei log sul file"
 
-":\t\t\t\tenable logging to file" = ":\t\t\t\tenable logging to file"
+":\t\t\t\tenable logging to file" = ":\t\t\t\tabilita il salvataggio dei log sul file"
 
-"<num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)" = "<num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)"
+"<num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)" = "<num1> <num2> :\t\t\tprova a riversare il download dal file <num2> (secondario) al file <num1> (primario)"
 
-":\t\t\t\tclear the table of clients being debugged" = ":\t\t\t\tclear the table of clients being debugged"
+":\t\t\t\tclear the table of clients being debugged" = ":\t\t\t\tpulisce la tabella dei client debuggati"
 
-"<client nums> :\t\tdebug file state" = "<client nums> :\t\tdebug file state"
+"<client nums> :\t\tdebug file state" = "<numero client> :\t\tmostra lo stato dei file"
 
 "<client nums> :\t\tdebug message in communications with these clients" = "<client nums> :\t\tdebug message in communications with these clients"
 

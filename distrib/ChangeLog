@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/04/25
+5892: Updated italian translation for mldonkey (surricani)
+
 2007/04/24
 5888: Partial italian translation for mldonkey (surricani)
       stored in ./distrib/i18n/mlnet_strings.it_IT.UTF-8
