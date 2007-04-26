@@ -8,7 +8,7 @@
          module "Ip_set"
 (************************************)
 
-"%d ranges loaded - optimized to %d" = "caricati %d intervalli - ottimizzazione per %d"
+"%d ranges loaded - optimized to %d" = "caricati %d intervalli - intervalli ottimizzati %d"
 
 "loading %s" = "caricamento di %s"
 
@@ -86,17 +86,17 @@
 
 "<ip> :\t\t\tcheck whether an IP is blocked" = "<ip> :\t\t\tcontrolla se un indirizzo IP è bloccato o meno"
 
-":\t\t\t\tdisplay the list of blocked IP ranges that were hit" = ":\t\t\t\tmostra la lista delle serie di indirizzi IP bloccati che sono stati riconosciuti"
+":\t\t\t\tdisplay the list of blocked IP ranges that were hit" = ":\t\t\t\tmostra la lista delle serie di indirizzi IP bloccati riconosciuti"
 
 ":\t\t\t\tfor debugging only" = ":\t\t\t\tsolo per debug"
 
-":\t\t\t\tclose all files (use to free space on disk after remove)" = ":\t\t\t\tchiude tutti i file (usare per liberare spazio sul disco dopo la rimozione dello stesso)"
+":\t\t\t\tclose all files (use to free space on disk after remove)" = ":\t\t\t\tchiude tutti i file (usare per liberare spazio sul disco dopo la rimozione del file)"
 
-"<bool> :\t\t\tuse poll instead of select" = "<bool> :\t\t\tusare poll al posto di select"
+"<bool> :\t\t\tuse poll instead of select" = "<bool> :\t\t\tusare poll invece di select"
 
 ":\t\t\tclose all opened sockets" = ":\t\t\tchiude tutti i socket aperti"
 
-":\t\t\t\tprint memory stats [<verbosity #num>]" = ":\t\t\t\tmostra statistiche sulla memoria [<livello verbosità #num>]"
+":\t\t\t\tprint memory stats [<verbosity #num>]" = ":\t\t\t\tmostra le statistiche sulla memoria [<livello_verbosità #num>]"
 
 "<theme> :\t\t\tselect html_theme" = "<theme> :\t\t\tseleziona html_theme"
 
@@ -104,7 +104,7 @@
 
 ":\t\t\tselect html_mods_style <#>" = ":\t\t\tseleziona html_mods_style <#>"
 
-":\t\t\t\ttoggle html_mods" = ":\t\t\t\tinverti html_mods"
+":\t\t\t\ttoggle html_mods" = ":\t\t\t\talterna html_mods"
 
 ":\t\t\t\tclear log_file" = ":\t\t\t\tpulisce log_file"
 
@@ -114,41 +114,41 @@
 
 "<num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)" = "<num1> <num2> :\t\t\tprova a riversare il download dal file <num2> (secondario) al file <num1> (primario)"
 
-":\t\t\t\tclear the table of clients being debugged" = ":\t\t\t\tpulisce la tabella dei client debuggati"
+":\t\t\t\tclear the table of clients being debugged" = ":\t\t\t\tpulisce la tabella dei client su cui è effettuato il debug"
 
 "<client nums> :\t\tdebug file state" = "<numero client> :\t\tmostra lo stato dei file"
 
-"<client nums> :\t\tdebug message in communications with these clients" = "<client nums> :\t\tdebug message in communications with these clients"
+"<client nums> :\t\tdebug message in communications with these clients" = "<numeri client> :\t\tmostra messaggi di informazione durante la comunicazione con questi client"
 
-"<true|false> :\t\t\treactivate log to stdout" = "<true|false> :\t\t\treactivate log to stdout"
+"<true|false> :\t\t\treactivate log to stdout" = "<true|false> :\t\t\triattiva il log sullo stdout"
 
-"<width> <height> :\t\t\tset terminal width and height (devel)" = "<width> <height> :\t\t\tset terminal width and height (devel)"
+"<width> <height> :\t\t\tset terminal width and height (devel)" = "<larghezza> <altezza> :\t\t\timposta la larghezza e l'altezza del terminale (in sviluppo)"
 
-":\t\t\t\t\ttoggle ansi terminal (devel)" = ":\t\t\t\t\ttoggle ansi terminal (devel)"
+":\t\t\t\t\ttoggle ansi terminal (devel)" = ":\t\t\t\t\talterna lo stato del terminale ansi (sviluppo)"
 
-":\t\t\t\t\tdump current log state to console" = ":\t\t\t\t\tdump current log state to console"
+":\t\t\t\t\tdump current log state to console" = ":\t\t\t\t\tmostra lo stato corrente dei log sulla console"
 
-":\t\t\treload messages file" = ":\t\t\treload messages file"
+":\t\t\treload messages file" = ":\t\t\tricarica il file dei messaggi"
 
-"<user> <num> :\t\t\tchange owner of download <num> to <user>" = "<user> <num> :\t\t\tchange owner of download <num> to <user>"
+"<user> <num> :\t\t\tchange owner of download <num> to <user>" = "<utente> <numero> :\t\t\tcambia il proprietario del download <numero> nell'utente <utente>"
 
-"<group> <num> :\t\t\tchange group of download <num> to <group>, use group = none for private file" = "<group> <num> :\t\t\tchange group of download <num> to <group>, use group = none for private file"
+"<group> <num> :\t\t\tchange group of download <num> to <group>, use group = none for private file" = "<gruppo> <numero> :\t\t\tcambia il gruppo proprietario del download <numero> nel gruppo <gruppo>, si usi gruppo = none per file privati"
 
-":\t\t\t\tprint default group of logged-in user" = ":\t\t\t\tprint default group of logged-in user"
+":\t\t\t\tprint default group of logged-in user" = ":\t\t\t\tmostra il gruppo di appartenenza predefinito dell'utente attuale"
 
-":\t\t\t\tprint groups of logged-in user" = ":\t\t\t\tprint groups of logged-in user"
+":\t\t\t\tprint groups of logged-in user" = ":\t\t\t\tmostra i gruppi di appartenenza dell'utente attuale"
 
-":\t\t\t\tprint logged-in user name" = ":\t\t\t\tprint logged-in user name"
+":\t\t\t\tprint logged-in user name" = ":\t\t\t\tmostra il nome utente dell'utente attuale"
 
-":\t\t\t\t\tprint users" = ":\t\t\t\t\tprint users"
+":\t\t\t\t\tprint users" = ":\t\t\t\t\tmostra utenti"
 
-"<group> <true|false> :\tchange group admin status" = "<group> <true|false> :\tchange group admin status"
+"<group> <true|false> :\tchange group admin status" = "<gruppo> <true|false> :\tcambia lo stato di amministrazione del gruppo"
 
-"<group> :\t\t\tremove an unused mldonkey group" = "<group> :\t\t\tremove an unused mldonkey group"
+"<group> :\t\t\tremove an unused mldonkey group" = "<gruppo> :\t\t\telimina un gruppo da mldonkey inutilizzato"
 
-"<group> <admin: true|false> :\tadd new mldonkey group" = "<group> <admin: true|false> :\tadd new mldonkey group"
+"<group> <admin: true|false> :\tadd new mldonkey group" = "<gruppo> <admin: true|false> :\taggiunge un nuovo gruppo a mldonkey"
 
-"<user> <dir> :\t\tchange user specific commit directory" = "<user> <dir> :\t\tchange user specific commit directory"
+"<user> <dir> :\t\tchange user specific commit directory" = "<utente> <dir> :\t\tcambia la directory dell'utente specifica per il commit"
 
 "<user> <num> :\t\t\tchange number of allowed concurrent downloads" = "<user> <num> :\t\t\tchange number of allowed concurrent downloads"
 
@@ -366,49 +366,49 @@
          module "DonkeyInteractive"
 (************************************)
 
-"No forceable download found" = "No forceable download found"
+"No forceable download found" = "Nessun download che possa essere forzato è stato trovato"
 
-"File already downloaded (use 'force_download' if necessary)" = "File already downloaded (use 'force_download' if necessary)"
+"File already downloaded (use 'force_download' if necessary)" = "File già scaricato (usare 'force_download' se necessario)"
 
 (************************************)
          module "CommonComplexOptions"
 (************************************)
 
-"Options backup as %s correctly saved" = "Backup delle opzioni come %s salvato correttamente"
+"Options backup as %s correctly saved" = "Backup delle opzioni con formato %s salvato correttamente"
 
 "Sources correctly saved" = "Sorgenti salvate correttamente"
 
-"Album Search" = "Album Search"
+"Album Search" = "Ricerca Album"
 
-"Keywords" = "Keywords"
+"Keywords" = "Parole chiave"
 
-"Movie Search" = "Movie Search"
+"Movie Search" = "Ricerca Film"
 
-"MP3 Search" = "MP3 Search"
+"MP3 Search" = "Ricerca MP3"
 
-"Complex Search" = "Complex Search"
+"Complex Search" = "Ricerca Complessa"
 
-"Mp3 Options" = "Mp3 Options"
+"Mp3 Options" = "Opzioni Mp3"
 
-"Min Bitrate" = "Min Bitrate"
+"Min Bitrate" = "Bitrate Minimo"
 
-"Title" = "Title"
+"Title" = "Titolo"
 
 "Album" = "Album"
 
-"Artist" = "Artist"
+"Artist" = "Artista"
 
-"Simple Options" = "Simple Options"
+"Simple Options" = "Opzioni Semplici"
 
-"Format" = "Format"
+"Format" = "Formato"
 
 "Media" = "Media"
 
-"Max Size" = "Max Size"
+"Max Size" = "Dimensione Massima"
 
-"Min Size" = "Min Size"
+"Min Size" = "Dimensione Minima"
 
-"keywords" = "keywords"
+"keywords" = "parole chiave"
 
 "Options correctly saved" = "Opzioni salvate correttamente"
 
@@ -418,23 +418,23 @@
 
 "Logging in %s" = "Salvataggio dei file di log in %s"
 
-"List of IP addresses to use to boot Kademlia networks" = "List of IP addresses to use to boot Kademlia networks"
+"List of IP addresses to use to boot Kademlia networks" = "Lista degli indirizzi IP da usare per caricare la rete Kademlia"
 
-"Set this option to false if you don't want to receive new Overnet peers" = "Set this option to false if you don't want to receive new Overnet peers"
+"Set this option to false if you don't want to receive new Overnet peers" = "Si imposti questa opzione a false se non si vogliono ricevere nuove fonti Overnet"
 
-"The MD4 of the Overnet client" = "L'hash MD4 di questo client Overnet"
+"The MD4 of the Overnet client" = "L'hash Overnet MD4 di questo client"
 
-"Interval (in seconds) before republish files" = "Interval (in seconds) before republish files"
+"Interval (in seconds) before republish files" = "Intervallo (in secondi) di attesa prima di ripubblicare i file"
 
-"allow extended search to search on overnet" = "allow extended search to search on overnet"
+"allow extended search to search on overnet" = "permettere alla ricerca estesa di cercare su overnet"
 
 "Size of the filename storage used to answer queries" = "Size of the filename storage used to answer queries"
 
 "port for Kademlia" = "porta da usare per il protocollo Kademlia"
 
-"The files that were downloaded" = "The files that were downloaded"
+"The files that were downloaded" = "I file che sono stati scaricati"
 
-"port for overnet" = "port for overnet"
+"port for overnet" = "porta da usare per il protocollo overnet"
 
 "login of client on eDonkey network (nothing default to global one)" = "login of client on eDonkey network (nothing default to global one)"
 
