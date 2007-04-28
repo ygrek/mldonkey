@@ -150,19 +150,19 @@
 
 "<user> <dir> :\t\tchange user specific commit directory" = "<utente> <dir> :\t\tcambia la directory dell'utente specifica per il commit"
 
-"<user> <num> :\t\t\tchange number of allowed concurrent downloads" = "<user> <num> :\t\t\tchange number of allowed concurrent downloads"
+"<user> <num> :\t\t\tchange number of allowed concurrent downloads" = "<utente> <numero> :\t\t\tcambia il numero dei download concorrenti permessi all'utente"
 
-"<user> <mail> :\t\tchange user mail address" = "<user> <mail> :\t\tchange user mail address"
+"<user> <mail> :\t\tchange user mail address" = "<utente> <mail> :\t\tcambia l'indirizzo di posta dell'utente"
 
-"<passwd> :\t\t\tchange own password" = "<passwd> :\t\t\tchange own password"
+"<passwd> :\t\t\tchange own password" = "<passwd> :\t\t\tcambia la propria password"
 
-"<user> <group|None> :\tchange user default group" = "<user> <group|None> :\tchange user default group"
+"<user> <group|None> :\tchange user default group" = "<utente> <gruppo|None> :\tcambia il gruppo predefinito dell'utente"
 
-"<user> <group> :\t\tremove a group from a mldonkey user" = "<user> <group> :\t\tremove a group from a mldonkey user"
+"<user> <group> :\t\tremove a group from a mldonkey user" = "<utente> <gruppo> :\t\trimuove l'appartenenza al gruppo per l'utente"
 
-"<user> <group> :\t\tadd a group to a mldonkey user" = "<user> <group> :\t\tadd a group to a mldonkey user"
+"<user> <group> :\t\tadd a group to a mldonkey user" = "<utente> <gruppo> :\t\taggiunge l'appartenenza al gruppo per l'utente"
 
-"<user> :\t\t\tremove a mldonkey user" = "<user> :\t\t\tremove a mldonkey user"
+"<user> :\t\t\tremove a mldonkey user" = "<utente> :\t\t\trimuove l'utente da mldonkey"
 
 "<user> <passwd> :\t\tadd new mldonkey user/change user password" = "<user> <passwd> :\t\tadd new mldonkey user/change user password"
 
