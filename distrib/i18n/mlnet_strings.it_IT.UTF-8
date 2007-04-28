@@ -164,53 +164,53 @@
 
 "<user> :\t\t\tremove a mldonkey user" = "<utente> :\t\t\trimuove l'utente da mldonkey"
 
-"<user> <passwd> :\t\tadd new mldonkey user/change user password" = "<user> <passwd> :\t\tadd new mldonkey user/change user password"
+"<user> <passwd> :\t\tadd new mldonkey user/change user password" = "<utente> <password> :\t\taggiunge un nuovo utente a mldonkey/cambia la password dell'utente"
 
-"<file> :\t\t\tdownload all the links contained in the file" = "<file> :\t\t\tdownload all the links contained in the file"
+"<file> :\t\t\tdownload all the links contained in the file" = "<file> :\t\t\tdownload di tutti i link contenuti nel file"
 
-"<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link" = "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link"
+"<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link" = "<link> :\t\t\t\tdownload dei link ed2k, sig2dat, torrent o altri"
 
-":\t\t\ttell which files have several very different names" = ":\t\t\ttell which files have several very different names"
+":\t\t\ttell which files have several very different names" = ":\t\t\tmostra quali file hanno diversi nomi molto differenti"
 
-"<num> \"<new name>\" :\t\tchange name of download <num> to <new name>" = "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>"
+"<num> \"<new name>\" :\t\tchange name of download <num> to <new name>" = "<num> \"<nuovo nome>\" :\t\tcambia il nome del download <num> in <nuovo nome>"
 
-"<file number> :\t\t\tstart previewer for file <file number>" = "<file number> :\t\t\tstart previewer for file <file number>"
+"<file number> :\t\t\tstart previewer for file <file number>" = "<numero file> :\t\t\tavvia l'anteprima per il file <numero file>"
 
-"[<num>|queued|paused|downloading] :\t$bview file info for download <num>, or lists of queued, paused or downloading files, or all downloads if no argument given$n" = "[<num>|queued|paused|downloading] :\t$bview file info for download <num>, or lists of queued, paused or downloading files, or all downloads if no argument given$n"
+"[<num>|queued|paused|downloading] :\t$bview file info for download <num>, or lists of queued, paused or downloading files, or all downloads if no argument given$n" = "[<num>|queued|paused|downloading] :\t$bmostra informazioni sul file per il download <num>, oppure mostra la lista dei file accodati, in pausa o in download, oppure tutti i download se nessun argomento è fornito$n"
 
-":\t\t\t\t$bmove downloaded files to incoming directory$n" = ":\t\t\t\t$bmove downloaded files to incoming directory$n"
+":\t\t\t\t$bmove downloaded files to incoming directory$n" = ":\t\t\t\t$bsposta i file scaricati nella directory incoming$n"
 
-"<num> :\t\t\t\tchange release state of a download" = "<num> :\t\t\t\tchange release state of a download"
+"<num> :\t\t\t\tchange release state of a download" = "<num> :\t\t\t\tcambia lo stato di release di un download"
 
-"<num|all> :\t\t\tresume a paused download (use arg 'all' for all files)" = "<num|all> :\t\t\tresume a paused download (use arg 'all' for all files)"
+"<num|all> :\t\t\tresume a paused download (use arg 'all' for all files)" = "<num|all> :\t\t\tcontinua un download in pausa (si usi l'argomento 'all' per tutti i file)"
 
-"<num|all> :\t\t\tpause a download (use arg 'all' for all files)" = "<num|all> :\t\t\tpause a download (use arg 'all' for all files)"
+"<num|all> :\t\t\tpause a download (use arg 'all' for all files)" = "<num|all> :\t\t\tmette in pausa un download (si usi l'argomento 'all' per tutti i file)"
 
-"<num> :\t\t\tverify chunks of file <num>" = "<num> :\t\t\tverify chunks of file <num>"
+"<num> :\t\t\tverify chunks of file <num>" = "<num> :\t\t\tverifica i pezzi del file <num>"
 
-":\t\t\t\tdisplay downloaders list" = ":\t\t\t\tdisplay downloaders list"
+":\t\t\t\tdisplay downloaders list" = ":\t\t\t\tmostra la lista dei downloader"
 
-"<num|all> :\t\t\tcancel download (use arg 'all' for all files)" = "<num|all> :\t\t\tcancel download (use arg 'all' for all files)"
+"<num|all> :\t\t\tcancel download (use arg 'all' for all files)" = "<num|all> :\t\t\tannulla il download (si usi l'argomento 'all' per tutti i file)"
 
-"<num> :\t\t\tprint the segments downloaded in file" = "<num> :\t\t\tprint the segments downloaded in file"
+"<num> :\t\t\tprint the segments downloaded in file" = "<num> :\t\t\tmostra i segmenti scaricati nel file"
 
-"<yes|no|what> :\t\t\tconfirm cancellation" = "<yes|no|what> :\t\t\tconfirm cancellation"
+"<yes|no|what> :\t\t\tconfirm cancellation" = "<yes|no|what> :\t\t\tsi conferma l'annullamento"
 
-"<priority> <files numbers> :\tchange file priorities" = "<priority> <files numbers> :\tchange file priorities"
+"<priority> <files numbers> :\tchange file priorities" = "<priorità> <files numbers> :\tcambia le priorità dei file"
 
-":\t\t\t\tshow users currently uploading" = ":\t\t\t\tshow users currently uploading"
+":\t\t\t\tshow users currently uploading" = ":\t\t\t\tmostra gli utenti che al momento stanno effettuando l'upload"
 
-":\t\t\t\t\tlist links of shared files" = ":\t\t\t\t\tlist links of shared files"
+":\t\t\t\t\tlist links of shared files" = ":\t\t\t\t\tmostra i collegamenti dei file condivisi"
 
-":\t\t\t\tstatistics on upload" = ":\t\t\t\tstatistics on upload"
+":\t\t\t\tstatistics on upload" = ":\t\t\t\tstatistiche sugli upload"
 
-"<dir> :\t\t\t\tunshare directory <dir>" = "<dir> :\t\t\t\tunshare directory <dir>"
+"<dir> :\t\t\t\tunshare directory <dir>" = "<dir> :\t\t\t\ttogli dalla condivisione la directory <dir>"
 
-"<priority> <dir> [<strategy>] :\tshare directory <dir> with <priority> [and sharing strategy <strategy>]" = "<priority> <dir> [<strategy>] :\tshare directory <dir> with <priority> [and sharing strategy <strategy>]"
+"<priority> <dir> [<strategy>] :\tshare directory <dir> with <priority> [and sharing strategy <strategy>]" = "<priority> <dir> [<strategy>] :\tcondivide la directory <dir> con la priorità <priority> [e strategia di condivisione <strategy>]"
 
-":\t\t\t\tprint shared directories" = ":\t\t\t\tprint shared directories"
+":\t\t\t\tprint shared directories" = ":\t\t\t\tmostra le directory condivise"
 
-"debug command" = "debug command"
+"debug command" = "comando per il debug"
 
 "debug command (example: file .)" = "debug command (example: file .)"
 
