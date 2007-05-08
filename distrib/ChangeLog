@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2007/05/08
+5815: Unix32: Override system umask to force correct function
+      of option create_file_mode (pango)
 5912: Extend patch 5817: "Code updates for Ocaml 3.10.0beta compatability"
       to Ocaml 3.11
 5910: EDK: Revoke upload slot when client asks for blocks positioned after EOF

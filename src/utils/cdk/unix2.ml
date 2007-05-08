@@ -52,6 +52,10 @@ let tryopen_read_gzip fn f =
   tryopen Gzip.open_in Gzip.close_in fn f
 let tryopen_write_gzip ?level fn f = 
   tryopen (Gzip.open_out ?level) Gzip.close_out fn f
+let tryopen_umask temp_umask f =
+  (* Unix.umask is not implemented on MinGW *)
+  let safe_umask umask = try Unix.umask umask with Invalid_argument _ -> 0 in
+  tryopen safe_umask (fun oldumask -> ignore(safe_umask oldumask)) temp_umask f
 
 let list_directory filename =
   let list = ref [] in

@@ -117,7 +117,10 @@ module FDCache = struct
           | Some fd -> fd
           | None ->
 	      if !cache_size >= !max_cache_size then close_one ();
-	      let fd =
+	      let fd = Unix2.tryopen_umask 0 (fun _old_umask ->
+		(* disable umask restrictions temporarily; 
+		   rights on downloaded files should be dictated 
+		   by create_file_mode instead *)
 		try
 		  if t.writable then
                     Unix.openfile t.filename 
@@ -130,7 +133,7 @@ module FDCache = struct
 		    t.filename 
 		    (if t.writable then "rw" else "ro") 
                     (Printexc2.to_string e);
-		  raise e
+		  raise e)
 	      in
 		incr cache_size;
 (*              lprintf "local_force: opening %d\n" (Obj.magic fd_rw);  *)
