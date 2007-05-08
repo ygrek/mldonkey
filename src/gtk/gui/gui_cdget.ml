@@ -81,7 +81,7 @@ let request_and_parse parse_fun  url wtree =
         parse_fun wtree page)
     (fun pos max ->
         counter := !counter + pos;
-        lprintf "pos: %d/%d" !counter max; lprint_newline (); 
+        lprintf "pos: %d/%Ld" !counter max; lprint_newline (); 
     )
 
 

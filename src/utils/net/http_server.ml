@@ -105,7 +105,7 @@ type header =
 
 type options = {
     referer : Url.url option;
-    content_length : int;
+    content_length : int64;
     content_type : string;
     login : string;
     passwd : string;
@@ -166,7 +166,7 @@ let escaped s =
 let default_options = {
 (*    authorization = No_auth;*)
     referer = None;
-    content_length = -1;
+    content_length = -1L;
     content_type = "";
     login = "";
     passwd = "";
@@ -286,7 +286,7 @@ let parse_head sock s =
                   passwd = pswd }
               | "content-length"
                 ->
-                { options with content_length = int_of_string value }
+                { options with content_length = Int64.of_string value }
               | "content-type" ->
                 { options with content_type = value }
               | "host" ->

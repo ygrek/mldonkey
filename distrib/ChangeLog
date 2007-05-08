@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/05/08
+5897: FileTP: Support HTTP downloads of files > 1GB
 5815: Unix32: Override system umask to force correct function
       of option create_file_mode (pango)
 5912: Extend patch 5817: "Code updates for Ocaml 3.10.0beta compatability"

@@ -27,6 +27,7 @@ open BasicSocket
 open Unix
 open Url
 open TcpBufferedSocket
+open Int64ops
 
 
 type http_request =
@@ -54,7 +55,7 @@ type request = {
   }
 
 type content_handler = 
-  int -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
+  int64 -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
 
 let log_prefix = "[HTTPcl]"
 
@@ -276,10 +277,10 @@ let rec get_page r content_handler f ferr =
               f ()
             );
 
-        let content_length = ref (-1) in
+        let content_length = ref (-1L) in
         List.iter (fun (name, content) ->
             if String.lowercase name = "content-length" then
-            try content_length := int_of_string content
+            try content_length := Int64.of_string content
             with _ -> lprintf_nl "bad content length [%s]" content;
         ) headers;
         let location = "Location", Url.to_string old_url in
@@ -374,7 +375,7 @@ let rec get_page r content_handler f ferr =
 let wget r f = 
   
   let file_buf = Buffer.create 1000 in
-  let file_size = ref 0 in
+  let file_size = ref 0L in
   
   try
   get_page r (fun maxlen headers sock nread ->
@@ -383,13 +384,13 @@ let wget r f =
       
       if nread > 0 then begin
           let left = 
-            if maxlen >= 0 then
-              min (maxlen - !file_size) nread
+            if maxlen >= 0L then
+              min (Int64.to_int (maxlen -- !file_size)) nread
             else nread
           in
           Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
           buf_used buf left;
-          file_size := !file_size + left;
+          file_size := !file_size ++ (Int64.of_int left);
           if nread > left then
             TcpBufferedSocket.close sock Closed_by_user
         end
@@ -447,7 +448,7 @@ let whead r f = whead2 r f def_ferr
 let wget_string r f progress =
     
   let file_buf = Buffer.create 1000 in
-  let file_size = ref 0 in
+  let file_size = ref 0L in
 
   get_page r
     (fun maxlen headers sock nread ->
@@ -455,14 +456,14 @@ let wget_string r f progress =
         
         if nread > 0 then begin
             let left = 
-              if maxlen >= 0 then
-                min (maxlen - !file_size) nread
+              if maxlen >= 0L then
+                min (Int64.to_int (maxlen -- !file_size)) nread
               else nread
           in
           Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
           progress left maxlen;
           buf_used buf left;
-          file_size := !file_size + left;
+          file_size := !file_size ++ (Int64.of_int left);
           if nread > left then
             TcpBufferedSocket.close sock Closed_by_user
         end)

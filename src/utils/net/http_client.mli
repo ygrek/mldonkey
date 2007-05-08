@@ -47,7 +47,7 @@ type request = {
   }
 
 type content_handler = 
-  int -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
+  int64 -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
 
 val basic_request : request
   
@@ -57,7 +57,7 @@ val whead : request -> ( (string * string) list -> unit) -> unit
 val whead2 : request -> ( (string * string) list -> unit) -> (int -> unit) -> unit
 
 val wget_string : request -> (string -> unit) ->
-  (int -> int -> unit) -> unit
+  (int -> int64 -> unit) -> unit
 
   
   

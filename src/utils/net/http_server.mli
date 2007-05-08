@@ -24,7 +24,7 @@ and header =
   | Authorization of auth
 type options = {
     referer : Url.url option;
-    content_length : int;
+    content_length : int64;
     content_type : string;
     login : string;
     passwd : string;

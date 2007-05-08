@@ -1196,8 +1196,8 @@ let razorback2_stats k () =
       let tt = !t in
       t := !t +. float_of_int n;
       let p =
-        if m > 0
-          then min 1. (!t /. float_of_int m)
+        if m > 0L
+          then min 1. (!t /. Int64.to_float m)
           else if !t > 0. then tt /. !t else 0.
       in
       let v = int_of_float (p *. 100.) in
@@ -1251,8 +1251,8 @@ let filedonkey_stats k () =
       let tt = !t in
       t := !t +. float_of_int n;
       let p =
-        if m > 0
-          then min 1. (!t /. float_of_int m)
+        if m > 0L
+          then min 1. (!t /. Int64.to_float m)
           else if !t > 0. then tt /. !t else 0.
       in
       let v = int_of_float (p *. 100.) in
@@ -1306,8 +1306,8 @@ let isohunt_stats k () =
       let tt = !t in
       t := !t +. float_of_int n;
       let p =
-        if m > 0
-          then min 1. (!t /. float_of_int m)
+        if m > 0L
+          then min 1. (!t /. Int64.to_float m)
           else if !t > 0. then tt /. !t else 0.
       in
       let v = int_of_float (p *. 100.) in

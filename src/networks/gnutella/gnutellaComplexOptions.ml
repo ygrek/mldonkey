@@ -168,7 +168,6 @@ let file_to_value file =
   let assocs =
     [
       "file_name", string_to_value file.file_name;
-      "file_downloaded", int64_to_value (file_downloaded file);
       "file_temp", string_to_value file.file_temp;
       
       "file_sources", 

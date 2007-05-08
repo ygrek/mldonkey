@@ -103,8 +103,6 @@ let value_to_file file_size file_state assocs =
 let file_to_value file =
   let assocs =
     [
-(*      "file_name", string_to_value file.file_name; *)
-      "file_downloaded", int64_to_value (file_downloaded file);
       "file_id", string_to_value (Md4.to_string file.file_id);
       "file_sources",
       list_to_value (fun c ->
