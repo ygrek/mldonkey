@@ -901,11 +901,10 @@ let received_client_bitmap c file chunks =
   let module M = DonkeyProtoClient in
   
   if !verbose_msg_clients then begin
-      lprintf_nl "Compared to:";
       match file.file_swarmer with
         None -> ()
       | Some swarmer ->
-          lprintf_nl "   %s" (VB.to_string (CommonSwarming.chunks_verified_bitmap swarmer));
+          lprintf_nl "Compared to: %s" (VB.to_string (CommonSwarming.chunks_verified_bitmap swarmer));
     end;
   
   let chunks = 
@@ -2011,6 +2010,21 @@ end else *)
       
       let module Q = M.QueryBloc in
       let file = find_file t.Q.md4 in
+
+      let check_file_size size =
+        if size > file_size file && size <> 0L then
+          begin
+            lprintf_nl "client requested filesize %Ld > real filesize %Ld, %s %s, upload slot revoked"
+              size (file_size file) (file_best_name file) (full_client_identifier c);
+            DonkeyOneFile.remove_client_slot c;
+            raise Not_found
+          end
+      in
+
+(* ignore block requests outside file boundaries *)
+      check_file_size t.Q.start_pos1;
+      check_file_size t.Q.start_pos2;
+      check_file_size t.Q.start_pos3;
 
       if !verbose_upload then lprintf_nl "donkeyClient: uploader %s asks for %s"
             (full_client_identifier c) (file_best_name file);
