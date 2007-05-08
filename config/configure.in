@@ -485,12 +485,7 @@ if [ test -z "$OCAMLC" ] || [ test -z "$CAMLP4" ] || [ test "$REQUIRED_OCAML" = 
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
   case "$OCAMLVERSION" in
-    "$REQUIRED_OCAML"*) ;;
-    3.09.0*) ;;
-    3.09.1*) ;;
-    3.09.2*) ;;
-    3.08.4*) ;;
-    3.08.3*) ;;
+    "$REQUIRED_OCAML"*|3.09.0*|3.09.1*|3.09.2*|3.08.4*|3.08.3*) ;;
     *)
         echo "Need build"
         BUILD_OCAML=yes
@@ -638,18 +633,13 @@ OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 OCAMLLIB=`$OCAMLC -where`
 REBUILD_OCAML=no
 case "$OCAMLVERSION" in
-    3.10*)
+    3.10*|3.11*)
       if test "$GUI" = "oldgui"; then
         OLDGUI_NO_310=yes
         GUI=no
       fi
       ;;
-    "$REQUIRED_OCAML"*) ;;
-    3.09.0*) ;;
-    3.09.1*) ;;
-    3.09.2*) ;;
-    3.08.4*) ;;
-    3.08.3*) ;;
+    "$REQUIRED_OCAML"*|3.09.0*|3.09.1*|3.09.2*|3.08.4*|3.08.3*) ;;
     *)
       if [ test "$REQUIRED_OCAML" != "CVS" ]; then
         REBUILD_OCAML=yes
@@ -1597,7 +1587,7 @@ if test "$LABLGTK_CONFIG" = "yes"; then
 fi
 
 if test "$OLDGUI_NO_310" = "yes"; then
-  echo " - GUI support       GTK1 oldgui does not work with Ocaml 3.10, disabled"
+  echo " - GUI support       GTK1 oldgui does not work with Ocaml 3.10/3.11, disabled"
 fi
 
 if test "$TARGET_TYPE" = "byte"; then
