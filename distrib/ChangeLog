@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/05/08
+5908: Fix commit when incoming filesystem allows more than 16M chars
 5906: Telnet/BT: Display clients country code without HTML in vd <num>
 
 2007/04/28
