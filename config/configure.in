@@ -485,7 +485,7 @@ if [ test -z "$OCAMLC" ] || [ test -z "$CAMLP4" ] || [ test "$REQUIRED_OCAML" = 
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
   case "$OCAMLVERSION" in
-    "$REQUIRED_OCAML"*|3.09.0*|3.09.1*|3.09.2*|3.08.4*|3.08.3*) ;;
+    "$REQUIRED_OCAML"*|3.09.0*|3.09.1*|3.09.2*|3.08.4*|3.08.3*|3.10.0*) ;;
     *)
         echo "Need build"
         BUILD_OCAML=yes
@@ -529,6 +529,9 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           echo Downloading ...
           $WGET http://caml.inria.fr/pub/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$REQUIRED_OCAML".tar.gz
+        fi
+        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.10/ocaml-"$REQUIRED_OCAML".tar.gz
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           $WGET http://caml.inria.fr/pub/distrib/ocaml-3.08/ocaml-"$REQUIRED_OCAML".tar.gz
@@ -639,7 +642,7 @@ case "$OCAMLVERSION" in
         GUI=no
       fi
       ;;
-    "$REQUIRED_OCAML"*|3.09.0*|3.09.1*|3.09.2*|3.08.4*|3.08.3*) ;;
+    "$REQUIRED_OCAML"*|3.09.0*|3.09.1*|3.09.2*|3.08.4*|3.08.3*|3.10.0*) ;;
     *)
       if [ test "$REQUIRED_OCAML" != "CVS" ]; then
         REBUILD_OCAML=yes

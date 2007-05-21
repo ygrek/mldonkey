@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/05/21
+5944: configure: Allow use of Ocaml 3.10.0, keep 3.09.3 as default
+
 2007/05/08
 5897: FileTP: Support HTTP downloads of files > 1GB
 5815: Unix32: Override system umask to force correct function
