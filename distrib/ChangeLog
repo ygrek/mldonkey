@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/05/22
+Updated Mozilla protocol handler to version 2.1
+- original source from http://www.informatik.uni-oldenburg.de/~dyna/mldonkey
+
 2007/05/21
 5944: configure: Allow use of Ocaml 3.10.0, keep 3.09.3 as default
 
