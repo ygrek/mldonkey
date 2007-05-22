@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/05/23
+5956: Remove unused files src/networks/donkey/donkeyIndexer.ml*
+
 2007/05/22
 Updated Mozilla protocol handler to version 2.1
 - original source from http://www.informatik.uni-oldenburg.de/~dyna/mldonkey
