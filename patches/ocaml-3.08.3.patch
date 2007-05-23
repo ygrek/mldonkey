@@ -1,0 +1,24 @@
+--- ./otherlibs/num/bng_ia32.c	2003-10-26 10:51:11.000000000 +0100
++++ ./otherlibs/num/bng_ia32.c	2007-05-23 12:44:56.000000000 +0200
+@@ -121,8 +121,8 @@
+         "leal 4(%1), %1 \n\t"
+         "decl %2 \n\t"
+         "jnz 1b"
+-        : "+&r" (a), "+&r" (b), "+&rm" (blen), "+&r" (out)
+-        : "rm" (d)
++        : "+&r" (a), "+&r" (b), "+&r" (blen), "=m" (out)
++        : "m" (d)
+         : "eax", "edx");
+   }
+   if (alen == 0) return out;
+@@ -164,8 +164,8 @@
+         "leal 4(%1), %1 \n\t"
+         "decl %2 \n\t"
+         "jnz 1b"
+-        : "+&r" (a), "+&r" (b), "+&rm" (blen), "+&rm" (out), "=&r" (tmp)
+-        : "rm" (d)
++        : "+&r" (a), "+&r" (b), "=m" (blen), "=m" (out), "=&r" (tmp)
++        : "m" (d)
+         : "eax", "edx");
+   }
+   if (alen == 0) return out;
