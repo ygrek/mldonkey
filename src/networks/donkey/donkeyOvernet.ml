@@ -49,6 +49,7 @@ type peer =
     mutable peer_ip : Ip.t;
     mutable peer_port : int;
     mutable peer_tcpport : int;
+    mutable peer_country_code : int option;
     mutable peer_kind : int;
     mutable peer_expire : int;
     mutable peer_last_send : int;
@@ -430,6 +431,7 @@ let dummy_peer =
     peer_ip = Ip.null;
     peer_port = 0;
     peer_tcpport = 0;
+    peer_country_code = None;
     peer_kind = 0;
     peer_expire = 0;
     peer_last_send = 0;
@@ -439,9 +441,15 @@ let dummy_peer =
 let connected_peers = ref 0
 let pre_connected_peers = ref 0
 
-let is_overnet_ip ip =
+let check_peer_country_code p =
+  if !Geoip.active then
+    match p.peer_country_code with
+    | None -> p.peer_country_code <- Geoip.get_country_code_option p.peer_ip
+    | _ -> ()
+
+let is_overnet_ip ip cc =
   let is_not_banned ip =
-       match !Ip.banned ip with
+       match !Ip.banned (ip, cc) with
        None -> true
      | Some reason ->
          if !verbose_overnet then
@@ -471,7 +479,7 @@ module LimitedList = struct
 
     let add t key =
       let (ip, port) = key in
-      if ip <> Ip.localhost && is_overnet_ip ip &&
+      if ip <> Ip.localhost && is_overnet_ip ip None &&
         not (Hashtbl.mem t.objects_table key) then
         begin
           Hashtbl.add t.objects_table key key;
@@ -759,7 +767,7 @@ let udp_send_direct ip port msg =
     None -> ()
   | Some sock ->
 (* Why check this? Because it may have been blocked since it was added *)    
-     if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then begin
+     if ip <> Ip.localhost && is_overnet_ip ip None && port <> 0 then begin
       Proto.udp_send sock ip port false msg;
       global_last_send := last_time ()
      end
@@ -769,7 +777,7 @@ let udp_send_ping ip port msg =
     None -> ()
   | Some sock ->
 (* Why check this? Because it may have been blocked since it was added *)    
-     if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then begin
+     if ip <> Ip.localhost && is_overnet_ip ip None && port <> 0 then begin
       Proto.udp_send sock ip port true msg;
       global_last_send := last_time ()
      end
@@ -779,11 +787,12 @@ let udp_send p msg =
   udp_send_direct p.peer_ip p.peer_port msg
 
 let bootstrap ip port =
-  if !!overnet_update_nodes && is_overnet_ip ip &&
+  if !!overnet_update_nodes && is_overnet_ip ip None &&
      port <> 0 && not (KnownPeers.mem known_peers { dummy_peer with peer_port = port ; peer_ip = ip } ) then
        LimitedList.add unknown_peers (ip,port)
 
 let new_peer p =
+  check_peer_country_code p;
   let ip = p.peer_ip in
   let port = p.peer_port in
  
@@ -793,7 +802,7 @@ let new_peer p =
       pp
     with _ ->
 
-   if ip <> Ip.localhost && is_overnet_ip ip 
+   if ip <> Ip.localhost && is_overnet_ip ip p.peer_country_code
      && port <> 0 && p.peer_created <> 0 then
    
         let bucket = bucket_number p.peer_md4 in
@@ -908,6 +917,7 @@ let my_peer () =
     peer_port = !!overnet_port;
     peer_kind = 0;
     peer_tcpport = !!overnet_tcpport;
+    peer_country_code = None;
     peer_last_send = 0;
     peer_expire = 0;
     peer_created = 0;
@@ -940,7 +950,7 @@ let get_any_peers  nb =
   !list
 
 let add_search_peer s p =
-  if p.peer_ip <> Ip.localhost && is_overnet_ip p.peer_ip && 
+  if p.peer_ip <> Ip.localhost && is_overnet_ip p.peer_ip p.peer_country_code && 
      p.peer_port <> 0 && p.peer_created <> 0 then begin
     let nbits = common_bits p.peer_md4 s.search_md4 in
 (* Don't add ourself *)
@@ -1077,7 +1087,7 @@ let udp_client_handler t p =
   match t with
 
   | OvernetConnect p ->
-      if is_overnet_ip sender.peer_ip && sender.peer_port <> 0 then
+      if is_overnet_ip sender.peer_ip p.peer_country_code && sender.peer_port <> 0 then
         let sender = new_peer { p with peer_ip = other_ip; peer_kind = 2 } in
         (* let sender = new_peer { p with peer_port = other_port ; peer_ip = other_ip } in *)
         new_peer_message sender;
@@ -1107,7 +1117,7 @@ let udp_client_handler t p =
   | OvernetPublicize p ->
       let sender = new_peer { p with peer_ip = other_ip; peer_kind = 2 } in
       new_peer_message sender;
-      if is_overnet_ip sender.peer_ip && sender.peer_port <> 0 then
+      if is_overnet_ip sender.peer_ip p.peer_country_code && sender.peer_port <> 0 then
         udp_send sender (OvernetPublicized (Some (my_peer ())))
        else begin
 	      if !verbose_overnet then
@@ -1188,9 +1198,9 @@ let udp_client_handler t p =
                   List.iter (fun p ->
                       let ip = p.peer_ip in
                       let port = p.peer_tcpport in
-                      if is_overnet_ip ip && port <> 0 then
-                        let s = DonkeySources.find_source_by_uid
-                            (Direct_address (ip, port))  in
+                      if is_overnet_ip ip p.peer_country_code && port <> 0 then
+                        let s = DonkeySources.create_source_by_uid
+                            (Direct_address (ip, port)) None in
 			if !verbose_overnet then
 			  lprintf_nl "added new source %s:%d for file %s"
 			    (Ip.to_string ip) port (Md4.to_string md4);
@@ -1335,7 +1345,8 @@ let update_buckets () =
       let p = Fifo.take b in
       (* bad peers have kind = 4 and did not respond within peer_expire *)
       (* Why check is_overnet_ip? Because it may have been blocked since it was added *)
-      if not (p.peer_kind = 4 && p.peer_expire <= last_time ()) && is_overnet_ip p.peer_ip then
+      if not (p.peer_kind = 4 && p.peer_expire <= last_time ()) &&
+             is_overnet_ip p.peer_ip p.peer_country_code then
         Fifo.put b p 
       else
       begin
@@ -1367,7 +1378,7 @@ let update_buckets () =
             (* bad peers are removed *)    
             (* Why check is_overnet_ip? Because it may have been blocked since it was added *)
             end else if (p.peer_kind = 4 && p.peer_expire <= last_time ()) || 
-                        not (is_overnet_ip p.peer_ip) then begin
+                        not (is_overnet_ip p.peer_ip p.peer_country_code) then begin
               decr pre_connected_peers;
               KnownPeers.remove known_peers p;
               if !verbose_overnet then lprintf_nl "update_bucket2: removing %s:%d" (Ip.to_string p.peer_ip) p.peer_port;
@@ -1471,7 +1482,7 @@ let enable () =
 
 (* copy all boot_peers to unknown_peers *)
       LimitedList.iter (fun (ip, port) ->
-          if ip <> Ip.localhost && is_overnet_ip ip && port <> 0 then
+          if ip <> Ip.localhost && is_overnet_ip ip None && port <> 0 then
             LimitedList.add unknown_peers (ip, port)
           ) !!boot_peers;
 

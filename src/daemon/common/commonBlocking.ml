@@ -31,14 +31,23 @@ let country_blocking_block = ref false
 let country_blocking_list = 
   Array.create (Array.length Geoip.country_code_array) false
 
+(* Keep a copy of valid values from !!ip_blocking_countries to
+   check if geoip_hit needs really to compute the country code.
+   If this list is empty, do not call GeoIP *)
+let country_blocking_string_list_copy = ref []
+
 let ip_set_hit bl ip =
   match Ip_set.match_ip bl ip with
     | None -> None
     | Some br -> Some br.Ip_set.blocking_description
 
-let geoip_hit cbl ip =
-  let index = Geoip.get_country_code ip in
-  if not !Geoip.active then None
+let geoip_hit cbl ip cc =
+  let index =
+    match cc with
+    | None -> 0
+    | Some cc -> if cc = 0 then Geoip.get_country_code ip else cc
+  in
+  if not !Geoip.active || !country_blocking_string_list_copy = [] then None
   else if cbl.(index) then
     Some (Printf.sprintf "IPs from %s are currently blocked"
       Geoip.country_name_array.(index))
@@ -46,13 +55,13 @@ let geoip_hit cbl ip =
 
 let update_bans () =
   Ip.banned :=
-    (fun ip ->
+    (fun (ip, cc) ->
       if Ip.local_ip ip then None else
       let block = ip_set_hit !web_ip_blocking_list ip in
       if block <> None then block else
       let block = ip_set_hit !ip_blocking_list ip in
       if block <> None then block else
-      let block = geoip_hit country_blocking_list ip in
+      let block = geoip_hit country_blocking_list ip cc in
       if block <> None then block else 
       None
     );
@@ -71,19 +80,25 @@ let set_geoip_dat filename =
   update_bans ()
 
 let set_ip_blocking_countries cl =
+  let temp_list = ref [] in
   let cl = List.map String.uppercase cl in
   Array.fill country_blocking_list 0 
     (Array.length country_blocking_list) !country_blocking_block;
   List.iter (fun cc ->
     if cc = "UNKNOWN" then 
-      country_blocking_list.(0) <- (not !country_blocking_block)
+      begin
+        temp_list := cc :: !temp_list;
+        country_blocking_list.(0) <- (not !country_blocking_block)
+      end
     else
       try
 	let index = Hashtbl.find Geoip.country_index cc in
+          temp_list := cc :: !temp_list;
 	  country_blocking_list.(index) <- (not !country_blocking_block)
       with Not_found ->
 	lprintf_nl "Country code %s not found" cc
   ) cl;
+  country_blocking_string_list_copy := !temp_list;
   update_bans ()
 
 let set_ip_blocking_countries_block v =

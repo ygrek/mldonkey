@@ -160,6 +160,7 @@ type server_info = {
     mutable server_addr : Ip.addr;
     mutable server_port : int;
     mutable server_realport : int;
+    mutable server_country_code : int option;
     mutable server_score : int;
     mutable server_tags : CommonTypes.tag list;
     mutable server_nusers : int64;
@@ -211,6 +212,7 @@ type client_info = {
     mutable client_type : client_type;
     mutable client_tags: CommonTypes.tag list;
     mutable client_name : string;
+    mutable client_country_code : int option;
     mutable client_rating : int;
     mutable client_chat_port : int;
     mutable client_connect_time : int;

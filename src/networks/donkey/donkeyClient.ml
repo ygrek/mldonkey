@@ -72,6 +72,7 @@ let add_source file ip tcp_port serverIP serverPort =
   (* man, we are receiving sources from some clients even when we release *)
   if (file_state file) = FileDownloading then
     try
+      let cc = ref None in
       let uid = 
     	if low_id ip then
           begin
@@ -91,18 +92,24 @@ let add_source file ip tcp_port serverIP serverPort =
               else raise Not_found
           end
         else
-          if Ip.usable ip then
-            if not ( is_black_address ip tcp_port ) then
+          if Ip.usable ip then begin
+            let uid = Direct_address (ip, tcp_port) in
+            (try
+              cc := (DonkeySources.find_source_by_uid uid).DonkeySources.source_country_code;
+            with Not_found ->
+              cc := Geoip.get_country_code_option ip);
+            if not (is_black_address ip tcp_port !cc) then
               if not ( Hashtbl.mem banned_ips ip) then
-                Direct_address ( ip, tcp_port )
+                uid
               else
                 raise Not_found
             else
               raise Not_found
+            end
           else
             raise Not_found
       in
-      let s = DonkeySources.find_source_by_uid uid in
+      let s = DonkeySources.create_source_by_uid uid !cc in
       DonkeySources.set_request_result s file.file_sources File_new_source;
     with Not_found -> ()
 
@@ -324,7 +331,7 @@ let new_udp_client c group =
 
       
 let udp_client_send uc t =
-  if not ( is_black_address uc.udp_client_ip (uc.udp_client_port+4)) then
+  if not (is_black_address uc.udp_client_ip (uc.udp_client_port+4) None) then
     begin
       DonkeyProtoCom.udp_send (get_udp_sock ())
       uc.udp_client_ip (uc.udp_client_port+4)
@@ -332,7 +339,7 @@ let udp_client_send uc t =
     end
             
 let client_udp_send ip port t =
-  if not ( is_black_address ip (port+4)) then
+  if not (is_black_address ip (port+4) None) then
     begin
       DonkeyProtoCom.udp_send (get_udp_sock ()) 
       ip (port+4)
@@ -948,11 +955,15 @@ let send_pending_messages c sock =
   
 let init_client_after_first_message sock c = 
   (* we read something on socket so ip is now known for socket *)
+  let old_ip = c.client_ip in
   c.client_ip <- peer_ip sock;
+  if old_ip <> Ip.null && old_ip <> c.client_ip &&
+     c.client_country_code = None then
+      check_client_country_code c;
   (* Add the Connected tag and when needed the NoLimit tag *)
   let t = client_type c lor client_initialized_tag in
   let t = try
-      if Ip.matches (peer_ip sock) !!nolimit_ips then t lor client_nolimit_tag
+      if Ip.matches c.client_ip !!nolimit_ips then t lor client_nolimit_tag
       else t
     with _ -> t in
   set_client_type c t;
@@ -1152,7 +1163,7 @@ let client_to_client for_files c t sock =
           raise Exit
         end;
       
-      if (is_black_address t.CR.ip t.CR.port) then raise Exit;
+      if (is_black_address t.CR.ip t.CR.port c.client_country_code) then raise Exit;
       
       check_stolen_hash c sock t.CR.md4; 
 
@@ -1205,7 +1216,11 @@ let client_to_client for_files c t sock =
   
   | M.EmuleClientInfoReq t ->      
       
+      let old_ip = c.client_ip in
       c.client_ip <- peer_ip sock;
+      if old_ip <> Ip.null && old_ip <> c.client_ip &&
+         c.client_country_code = None then
+          check_client_country_code c;
 (*      lprintf "Emule Extended Protocol asked\n";  *)
       let module CI = M.EmuleClientInfo in
       process_mule_info c t.CI.tags;
@@ -1257,6 +1272,7 @@ let client_to_client for_files c t sock =
                 sources := {
                   E.src_ip = ip;
                   E.src_port = port;
+                  E.src_cc = None;
                   E.src_server_ip = Ip.null;
                   E.src_server_port = 0;
 (* this is not very good, but what can we do ? we don't keep sources UIDs *)
@@ -2213,12 +2229,15 @@ let init_client sock c =
   c.client_requests_sent <- 0;
   c.client_slot <- SlotNotAsked
         
-let read_first_message overnet server m sock =
+let read_first_message overnet server cc m sock =
   let module M = DonkeyProtoClient in
-    
+  let real_ip = peer_ip sock in
   if (not server && !verbose_msg_clients) || (server && !verbose_msg_servers) then begin
-      lprintf_nl "Message from incoming %s %s:%d"
-	(if server then "server" else "client") (Ip.to_string (peer_ip sock)) (peer_port sock);
+      lprintf_nl "Message from incoming %s %s:%d%s"
+	(if server then "server" else "client")
+        (Ip.to_string real_ip)
+        (peer_port sock)
+        (match cc with | None -> "" | Some cc -> Printf.sprintf "(%d)" cc);
       M.print m;
     end;
 
@@ -2226,7 +2245,7 @@ let read_first_message overnet server m sock =
   
   | M.ConnectReq t ->
       if !verbose_msg_clients then begin
-        lprintf_nl "[HELLO] %s" (Ip.to_string (peer_ip sock));
+        lprintf_nl "[HELLO] %s" (Ip.to_string real_ip);
       end;
       
       let module CR = M.Connect in
@@ -2237,7 +2256,7 @@ let read_first_message overnet server m sock =
           raise Exit
         end;
 
-      if (is_black_address t.CR.ip t.CR.port) then raise Exit;
+      if (is_black_address t.CR.ip t.CR.port cc) then raise Exit;
 
       let name = ref "" in
       List.iter (fun tag ->
@@ -2253,7 +2272,7 @@ let read_first_message overnet server m sock =
                 Invalid_address (!name, Md4.to_string t.CR.md4)
             | Some (ip,port) ->
                 if Ip.usable ip then
-                    Indirect_address (ip, port, id_of_ip t.CR.ip, t.CR.port, (peer_ip sock))
+                    Indirect_address (ip, port, id_of_ip t.CR.ip, t.CR.port, real_ip)
                 else
                     Invalid_address (!name, Md4.to_string t.CR.md4)
         else
@@ -2263,8 +2282,7 @@ let read_first_message overnet server m sock =
             Invalid_address  (!name, Md4.to_string t.CR.md4)
       in
       
-      let c = new_client kind in
-      
+      let c = new_client kind cc in
       if c.client_debug || !verbose_msg_clients || !verbose_msg_clienttags then begin  
         M.print m;
       end;
@@ -2301,7 +2319,7 @@ let read_first_message overnet server m sock =
       check_stolen_hash c sock t.CR.md4;
       
       if !!reliable_sources && 
-        ip_reliability (peer_ip sock) = Reliability_suspicious 0 then begin
+        ip_reliability real_ip = Reliability_suspicious 0 then begin
           set_client_state c BlackListedHost;
           raise Not_found
         end;
@@ -2376,7 +2394,7 @@ let read_first_message overnet server m sock =
       if !verbose_unknown_messages then
         begin
           lprintf_nl "BAD MESSAGE FROM CONNECTING CLIENT with ip:%s port:%i overnet:%b"
-            (Ip.to_string (peer_ip sock)) (peer_port sock) overnet;
+            (Ip.to_string real_ip) (peer_port sock) overnet;
           M.print m; lprint_newline ();
         end;
       close sock (Closed_for_error "bad connecting message");
@@ -2389,7 +2407,7 @@ let reconnect_client c =
       Indirect_address _ | Invalid_address _ -> ()
     | Direct_address (ip, port) ->
         if client_state c <> BlackListedHost then
-          if !!black_list && is_black_address ip port ||
+          if !!black_list && is_black_address ip port c.client_country_code ||
             (!!reliable_sources && ip_reliability ip = Reliability_suspicious 0) then
             set_client_state c BlackListedHost
           else
@@ -2427,7 +2445,12 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
                         (client_to_client files c));
                       
                       c.client_source.DonkeySources.source_sock <- Connection sock;
+
+                      let old_ip = c.client_ip in
                       c.client_ip <- ip;
+                      if old_ip <> Ip.null && old_ip <> c.client_ip &&
+                         c.client_country_code = None then
+                          check_client_country_code c;
                       c.client_connected <- true;
                       let server_ip, server_port, server_cid = 
                         try
@@ -2533,7 +2556,8 @@ let client_connection_handler overnet t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
       let from_ip = Ip.of_inet_addr from_ip in
       let s_from_ip = Ip.to_string from_ip in
-      let is_ip_blocked = !Ip.banned from_ip <> None in
+      let cc = Geoip.get_country_code_option from_ip in
+      let is_ip_blocked = !Ip.banned (from_ip, cc) <> None in
       let too_many_indirect_connections =
         !DonkeySources.indirect_connections >
         !real_max_indirect_connections
@@ -2593,7 +2617,7 @@ let client_connection_handler overnet t event =
               );
               (try
                   set_reader sock 
-                    (DonkeyProtoCom.client_handler2 c (read_first_message overnet is_connecting_server)
+                    (DonkeyProtoCom.client_handler2 c (read_first_message overnet is_connecting_server cc)
                     (client_to_client []));
                 
                 with e -> lprintf_nl "Exception %s in init_connection"
@@ -2663,11 +2687,11 @@ let _ =
         );
   
   DonkeySources.functions.DonkeySources.function_connect <-
-    (fun s_uid ->
+    (fun s_uid s_cc ->
       try
         match s_uid with
           Direct_address _ ->
-            let c = new_client s_uid in        
+            let c = new_client s_uid s_cc in
             reconnect_client c
         | Invalid_address _ -> ()
         | Indirect_address (server_ip, server_port, id, port, real_ip) ->
@@ -2701,10 +2725,10 @@ for a given time. For example, we could put successful clients in
 a FIFO from where they are removed after 30 minutes. What about using
   file.file_clients for this purpose !! *)
   DonkeySources.functions.DonkeySources.function_add_location <- (fun
-      s_uid file_uid ->
+      s_uid file_uid s_cc ->
       try
         let file = find_file (Md4.of_string file_uid) in
-        let c = new_client s_uid in
+        let c = new_client s_uid s_cc in
         
         CommonFile.file_add_source (CommonFile.as_file file.file_file) 
         (CommonClient.as_client c.client_client);
@@ -2720,7 +2744,7 @@ a FIFO from where they are removed after 30 minutes. What about using
       s_uid file_uid ->
       try
         let file = find_file (Md4.of_string file_uid) in
-        let c = new_client s_uid in
+        let c = new_client s_uid None in
         CommonFile.file_remove_source (CommonFile.as_file file.file_file)
         (CommonClient.as_client c.client_client);
         

@@ -75,7 +75,7 @@ module ClientOption = struct
           in
           let client_port = get_value "client_port" value_to_int in
           let client_uid = get_value "client_uid" (from_value Sha1.option) in
-          let c = new_client file client_uid (client_ip, client_port) in
+          let c = new_client file client_uid (client_ip, client_port) None in
 
           c
       | _ -> failwith "Options: Not a client"

@@ -216,7 +216,7 @@ let add_user_friend s u =
           Invalid_address (u.user_name, Md4.to_string u.user_md4)
         end
   in
-  let c = new_client kind  in
+  let c = new_client kind None in
   c.client_tags <- u.user_tags;
   set_client_name c u.user_name u.user_md4;
   friend_add c

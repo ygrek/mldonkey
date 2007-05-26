@@ -464,7 +464,7 @@ let rec client_parse_header counter cc init_sent gconn sock
     let c =
       match !cc with
         None ->
-          let c = new_client file Sha1.null (TcpBufferedSocket.peer_addr sock) in
+          let c = new_client file Sha1.null (TcpBufferedSocket.peer_addr sock) None in
           if !verbose_connect then lprintf_file_nl (as_file file) "Client %d: incoming connection" (client_num c);
           cc := Some c;
           c
@@ -1072,7 +1072,7 @@ be put in a fifo and dequeued according to
 let connect_client c =
   if can_open_connection connection_manager &&
     (let (ip,port) = c.client_host in
-     match !Ip.banned ip with
+     match !Ip.banned (ip, c.client_country_code) with
        None -> true
      | Some reason ->
          if !verbose_connect then
@@ -1176,7 +1176,7 @@ let listen () =
                 to bypass the max_connection parameter
               *)
               if can_open_connection connection_manager &&
-                (match !Ip.banned ip with
+                (match !Ip.banned (ip, None) with
                    None -> true
                  | Some reason ->
                      if !verbose_connect then
@@ -1406,11 +1406,12 @@ let get_sources_from_tracker file =
                         ) list;
 
                         (* Only record valid clients *)
+                        let cc = Geoip.get_country_code_option !peer_ip in
                         if !peer_id != Sha1.null &&
                           !peer_id <> !!client_uid &&
                           !peer_ip != Ip.null &&
                           !port <> 0 &&
-                          (match !Ip.banned !peer_ip with
+                          (match !Ip.banned (!peer_ip, cc) with
                               None -> true
                             | Some reason ->
                                 if !verbose_connect then
@@ -1418,10 +1419,10 @@ let get_sources_from_tracker file =
                                     (Ip.to_string !peer_ip) !port reason;
                                 false)
                         then
-                          let _ = new_client file !peer_id (!peer_ip,!port)
-                          in
-                          if !verbose_sources > 1 then lprintf_file_nl (as_file file) "Received %s:%d" (Ip.to_string !peer_ip)
-                          !port;
+                          ignore (new_client file !peer_id (!peer_ip,!port) cc);
+                          if !verbose_sources > 1 then
+                            lprintf_file_nl (as_file file) "Received %s:%d"
+                              (Ip.to_string !peer_ip) !port;
                           ()
                     | _ -> assert false
                 ) list
@@ -1432,7 +1433,7 @@ let get_sources_from_tracker file =
                         get_uint8 s (pos+2),get_uint8 s (pos+3))
                     and port = get_int16 s (pos+4)
                     in
-                    ignore( new_client file Sha1.null (ip,port));
+                    ignore (new_client file Sha1.null (ip,port) None);
                     t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
 
                     iter_comp s (pos+6) l

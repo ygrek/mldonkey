@@ -558,6 +558,7 @@ let start_tracker () =
           requests = [];
           addrs = Ip_set.of_list [ Ip.RangeCIDR (Ip.null, 0) ];
           base_ref = "";
+(* limit access to MLDonkey BT tracker based on IP blocklist *)
 	  use_ip_block_list = true;
           default = http_handler;
         } in

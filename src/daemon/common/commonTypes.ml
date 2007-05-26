@@ -900,15 +900,23 @@ let string_of_kind kind =
     | Indirect_location (server_ip, server_port, ip, port) -> Ip.to_string ip
   with _ -> ""
 
-let string_of_kind_geo kind =
+let string_of_kind_geo kind cc =
+  let ip_cn_cc ip =
+    match cc with
+    | None ->
+        let ccode, cname = Geoip.get_country ip in
+        Ip.to_string ip, ccode, cname
+    | Some cc ->
+        Ip.to_string ip, 
+        Geoip.country_code_array.(cc),
+        Geoip.country_name_array.(cc)
+  in
   try
     match kind with
     | Known_location (ip,port) -> 
-        let cc,cn = Geoip.get_country ip in
-        (Ip.to_string ip),cc,cn
+        ip_cn_cc ip
     | Indirect_location (server_ip, server_port, ip, port) ->
-        let cc,cn = Geoip.get_country ip in
-        (Ip.to_string ip),cc,cn
+        ip_cn_cc ip
   with _ -> "","X","Country error"
 
 type brand_stat = {

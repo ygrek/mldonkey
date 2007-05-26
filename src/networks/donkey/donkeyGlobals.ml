@@ -479,7 +479,7 @@ let low_id ip =
     | _, _, _, 0 -> true
     | _ -> false
 
-let is_black_address ip port =
+let is_black_address ip port cc =
   !!black_list && not (low_id ip) && (
 (* lprintf "is black ="; *)
     not (Ip.reachable ip) || 
@@ -487,12 +487,18 @@ let is_black_address ip port =
      | Some br -> true 
      | None -> false) ||
     (List.mem port !!port_black_list) ||
-    (match !Ip.banned ip with
+    (match !Ip.banned (ip, cc) with
         None -> false
       | Some reason ->
           if !verbose_connect then
             lprintf_nl "%s:%d blocked: %s" (Ip.to_string ip) port reason;
           true))
+
+let check_server_country_code s =
+  if !Geoip.active then
+    match s.server_country_code with
+    | None -> s.server_country_code <- Geoip.get_country_code_option s.server_ip
+    | _ -> ()
 
 let new_server ip port =
   let key = (ip) in
@@ -510,6 +516,7 @@ let new_server ip port =
         server_cid = None (* client_ip None *);
         server_port = port;
         server_realport = None;
+        server_country_code = None;
         server_sock = NoConnection;
         server_search_queries = Fifo.create ();
         server_users_queries = Fifo.create ();
@@ -567,6 +574,7 @@ let new_server ip port =
       server_add server_impl;
       Heap.set_tag s tag_server;
       Hashtbl.add servers_by_key key s;
+      check_server_country_code s;
       server_must_update s;
       s
 
@@ -589,6 +597,18 @@ let remove_server ip port =
           TcpBufferedSocket.shutdown sock Closed_by_user)
   with _ -> ()
 
+let check_client_country_code c =
+  if !Geoip.active then
+    match c.client_country_code with
+    | None ->
+        (match c.client_kind with
+        | Direct_address (ip,port) ->
+            c.client_country_code <- Geoip.get_country_code_option ip
+        | Indirect_address (_,_,_,_,real_ip) ->
+            c.client_country_code <- Geoip.get_country_code_option real_ip
+        | _ -> ())
+    | _ -> ()
+
 let dummy_client =
   let module D = DonkeyProtoClient in
   let rec c = {
@@ -597,6 +617,7 @@ let dummy_client =
       client_kind = Direct_address (Ip.null, 0);
       client_source = DonkeySources.dummy_source;
       client_ip = Ip.null;
+      client_country_code = None;
       client_md4 = Md4.null;
       client_download = None;
       client_file_queue = [];
@@ -640,17 +661,18 @@ let dummy_client =
   in
   c
 
-let create_client key =
+let create_client key cc =
   let module D = DonkeyProtoClient in
-  let s = DonkeySources.find_source_by_uid (match key with
+  let s = DonkeySources.create_source_by_uid (match key with
       Indirect_address (server_ip, server_port, id, port, real_ip) -> Indirect_address (server_ip, server_port, id, 0, Ip.null) 
-      | _ -> key) in
+      | _ -> key) cc in
   let rec c = {
       client_client = client_impl;
       client_kind = key;
       client_upload = None;
       client_source = s;
       client_ip = Ip.null;
+      client_country_code = cc;
       client_md4 = Md4.null;
       client_download = None;
       client_file_queue = [];
@@ -695,26 +717,49 @@ let create_client key =
   CommonClient.new_client_with_num client_impl s.DonkeySources.source_num;
   H.add clients_by_kind c;
   clients_root := c :: !clients_root;
+  check_client_country_code c;
   c
 
 exception ClientFound of client
 let find_client_by_key key =
   try
     H.iter (fun c ->
-        if (match c.client_kind with
-      Indirect_address (server_ip, server_port, id, port, real_ip) -> Indirect_address (server_ip, server_port, id, 0, Ip.null)
-      | _ -> c.client_kind) = (match key with
-      Indirect_address (server_ip, server_port, id, port, real_ip) -> Indirect_address (server_ip, server_port, id, 0, Ip.null) 
-      | _ -> key) then raise (ClientFound c)
+      if
+     (match c.client_kind with
+      | Indirect_address (server_ip, server_port, id, port, real_ip) ->
+          Indirect_address (server_ip, server_port, id, 0, Ip.null)
+      | _ -> c.client_kind) =
+     (match key with
+      | Indirect_address (server_ip, server_port, id, port, real_ip) ->
+          Indirect_address (server_ip, server_port, id, 0, Ip.null) 
+      | _ -> key) then
+        raise (ClientFound c)
     ) clients_by_kind;
     raise Not_found
   with ClientFound c -> c
 
-let new_client key =
+let new_client key cc =
   try
-      find_client_by_key key
+    let c = find_client_by_key key in
+(* An indirect client without real_ip might have been created earlier.
+   If that client connected us later we have its real ip *)
+    (match key with
+    | Indirect_address (_,_,_,_,ip_real) ->
+        let old_ip =
+          match c.client_kind with
+          | Indirect_address (_,_,_,_,old_ip) ->
+              if old_ip = Ip.null then None else Some old_ip
+          | _ -> None
+        in
+        if ip_real <> Ip.null then c.client_kind <- key;
+        (match old_ip with
+        | Some old_ip ->
+            if old_ip <> ip_real then check_client_country_code c
+        | None -> if ip_real <> Ip.null then check_client_country_code c)
+    | _ -> ());
+    c
   with _ ->
-      create_client key
+      create_client key cc
 
 let create_client = ()
 
@@ -1018,11 +1063,14 @@ let _ =
 let full_client_identifier c =
     Printf.sprintf "%s (%s%s) '%s'"
       (match c.client_kind with
-          Indirect_address (server_ip, server_port, ip, port, real_ip) ->
-            Printf.sprintf "%s:%d(lowID, server:%s:%d]"
-              (Ip.to_string real_ip) port (Ip.to_string server_ip) server_port;
+          Indirect_address (server_ip, server_port, id, port, real_ip) ->
+            Printf.sprintf "%s:%d%s[lowID %Ld, server:%s:%d]"
+              (Ip.to_string real_ip) port
+              (match c.client_country_code with | None -> "" | Some cc -> Printf.sprintf "(%d)" cc)
+              id (Ip.to_string server_ip) server_port
         | Direct_address (ip,port) ->
-            Printf.sprintf "%s:%d" (Ip.to_string ip) port;
+            Printf.sprintf "%s:%d%s" (Ip.to_string ip) port
+              (match c.client_country_code with | None -> "" | Some cc -> Printf.sprintf "(%d)" cc)
         | Invalid_address _ -> " invalid IP")
       (GuiTypes.client_software_short (brand_to_string_short c.client_brand) c.client_osinfo)
       (if c.client_emule_proto.emule_release = "" then "" else " " ^ c.client_emule_proto.emule_release)

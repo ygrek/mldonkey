@@ -89,6 +89,7 @@ module Make(M:
       mutable source_last_attempt : int;
       mutable source_sock : tcp_connection;
       mutable source_brand : M.source_brand;
+      mutable source_country_code : int option;
     }
 
     and file_request = {
@@ -107,14 +108,14 @@ module Make(M:
     }
 
     and functions = {
-      mutable function_connect: (M.source_uid -> unit);
+      mutable function_connect: (M.source_uid -> int option -> unit);
       mutable function_query: (M.source_uid -> string -> unit);
       mutable function_string_to_manager: (string -> file_sources_manager);
       mutable function_max_connections_per_second : (unit -> int);
       mutable function_max_sources_per_file : (unit -> int);
       
       mutable function_add_location : 
-        (M.source_uid -> string -> unit);
+        (M.source_uid -> string -> int option -> unit);
       mutable function_remove_location : 
         (M.source_uid -> string -> unit);
     }
@@ -128,6 +129,7 @@ module Make(M:
 *)        
 (* Find a given source *)
 
+    val create_source_by_uid : M.source_uid -> int option -> source
     val find_source_by_uid : M.source_uid -> source
 (*
     val find_source_by_num : int -> source

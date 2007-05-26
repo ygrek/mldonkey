@@ -130,7 +130,8 @@ let value_to_client is_friend assocs =
       let last_conn = normalize_time last_conn in
       last_conn
     with _ -> 0 in
-  let l = DonkeyGlobals.new_client (Direct_address (ip,port)) in
+  let cc = Geoip.get_country_code_option ip in
+  let l = DonkeyGlobals.new_client (Direct_address (ip,port)) cc in
   
   let md4 = try
       get_value "client_md4" value_to_md4 
@@ -148,7 +149,8 @@ let value_to_donkey_client v =
     List [ip;port] | SmallList [ip;port] ->
       let ip = Ip.of_string (value_to_string ip) in
       let port = value_to_int port in
-      DonkeyGlobals.new_client (Direct_address (ip, port))
+      let cc = Geoip.get_country_code_option ip in
+      DonkeyGlobals.new_client (Direct_address (ip, port)) cc
   | Module assocs ->
       value_to_client false assocs 
   | _ -> assert false
@@ -449,13 +451,13 @@ let force_add_server ip port =
       
 let check_add_server ip port =
   if Ip.usable ip &&
-    not (is_black_address ip port) && port <> 4662 then
+    not (is_black_address ip port None) && port <> 4662 then
     force_add_server ip port
   else raise Not_found
 
 let safe_add_server ip port =
   if Ip.usable ip &&
-    not (is_black_address ip port) && port <> 4662 then
+    not (is_black_address ip port None) && port <> 4662 then
     try
       ignore (DonkeyGlobals.find_server ip port)
     with _ ->

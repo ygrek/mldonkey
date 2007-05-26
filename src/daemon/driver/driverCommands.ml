@@ -2698,7 +2698,7 @@ let _ =
                           html_mods_td buf [
                             ("", "sr", Printf.sprintf "%d" (client_num c)); ];
 
-                          let ips,cc,cn = string_of_kind_geo i.client_kind in
+                          let ips,cc,cn = string_of_kind_geo i.client_kind i.client_country_code in
 
                           client_print_html c o;
                           html_mods_td buf ([
@@ -2765,7 +2765,7 @@ let _ =
 
                     try
                       let i = client_info c in
-		      let ips,cc,cn = string_of_kind_geo i.client_kind in
+		      let ips,cc,cn = string_of_kind_geo i.client_kind i.client_country_code in
 
                       Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"
 					title=\\\"Add as Friend\\\" onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\"
@@ -4025,7 +4025,7 @@ let _ =
 
     "block_test", Arg_one (fun arg o ->
       let ip = Ip.of_string arg in
-      _s (match !Ip.banned ip with
+      _s (match !Ip.banned (ip, None) with
           None -> "Not blocked"
         | Some reason ->
           Printf.sprintf "Blocked, %s\n" reason)

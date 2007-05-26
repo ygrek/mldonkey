@@ -561,6 +561,7 @@ let verbosity = define_expert_option current_section ["verbosity"]
   com : commands by non-admin users
   act : debug activity
   bw : debug bandwidth
+  geo : debug GeoIP
   unexp : debug unexpected messages"
     string_option ""
 
@@ -1850,6 +1851,7 @@ let verbose_supernode = ref false
 let verbose_swarming = ref false
 let verbose_activity = ref false
 let verbose_user_commands = ref false
+let verbose_geoip = ref false
 let verbose_unexpected_messages = ref false
 
 let set_all v =
@@ -1879,6 +1881,7 @@ let set_all v =
   Http_server.verbose := v;
   verbose_activity := v;
   verbose_user_commands := v;
+  Geoip.verbose := v;
   verbose_unexpected_messages := v
 
 let _ =
@@ -1915,6 +1918,7 @@ let _ =
           | "bw" -> incr BasicSocket.verbose_bandwidth
           | "unexp" -> verbose_unexpected_messages := true
           | "com" -> verbose_user_commands := true
+          | "geo" -> Geoip.verbose := true
 
           | "all" ->
 

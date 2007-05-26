@@ -237,6 +237,7 @@ module P = struct
         peer_ip = ip;
         peer_port = udp_port;
         peer_tcpport = tcp_port;
+        peer_country_code = Geoip.get_country_code_option ip;
         peer_kind = 3;
         peer_last_send = 0;
         peer_expire = 0;
@@ -273,6 +274,7 @@ module P = struct
             peer_ip = !peer_ip;
             peer_port = !peer_udpport;
             peer_tcpport = !peer_tcpport;
+            peer_country_code = Geoip.get_country_code_option !peer_ip;
             peer_md4 = r_md4;
             peer_last_send = 0;
             peer_expire = 0;
@@ -476,7 +478,7 @@ module P = struct
                 in
                 let t = parse_message ip port pbuf in
                 let is_not_banned ip =
-                  match !Ip.banned ip with
+                  match !Ip.banned (ip, None) with
                     None -> true
                    | Some reason ->
                   if !verbose_overnet then

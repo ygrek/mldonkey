@@ -220,6 +220,7 @@ type client = {
     mutable client_connection_control : connection_control;
     mutable client_sock : tcp_connection;
     mutable client_host : Ip.t * int;
+    mutable client_country_code : int option;
     mutable client_chunks : (int64 * int64) list;
     mutable client_uploader : CommonSwarming.uploader option;
     mutable client_ranges_sent : (int64 * int64 * CommonSwarming.range) list;

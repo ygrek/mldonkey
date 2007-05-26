@@ -1543,6 +1543,7 @@ let create_http_handler () =
       port = !!http_port;
       requests = [];
       addrs = Ip_set.of_list !!allowed_ips;
+(* do not limit access to MLDonkey web interface by IP blocklist *)
       use_ip_block_list = false;
       base_ref = "";
       default = http_handler http_options;

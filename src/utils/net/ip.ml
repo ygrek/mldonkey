@@ -142,7 +142,7 @@ let pred t =
   else
     { hi = t.hi - 1; lo = 0xffff; }
 
-let banned = ref (fun (ip:t) -> None)
+let banned = ref (fun (ip:t * int option) -> None)
 
 let localhost = of_string "127.0.0.1"
 

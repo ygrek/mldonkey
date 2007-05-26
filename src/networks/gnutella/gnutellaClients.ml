@@ -702,6 +702,8 @@ by the bandwidth manager... 2004/02/03: Normally, not true anymore, it should
                     in
                     
                     c.client_host <- Some (ip, port);
+                    c.client_country_code <- None;
+                    check_client_country_code c;
                     set_client_state c Connecting;
                     c.client_sock <- Connection sock;
                     TcpBufferedSocket.set_closer sock (fun _ s ->
@@ -768,6 +770,7 @@ let push_handler cc gconn sock (first_line, headers) =
             
     in
     c.client_host <- Some (ip, port);
+    check_client_country_code c;
     match c.client_sock with
     | Connection _ -> 
         if !verbose_msg_clients then begin

@@ -642,7 +642,7 @@ let parse_donkey_url url user =
   | "friend" :: ip :: port :: _ ->
       let ip = Ip.of_string ip in
       let port = int_of_string port in
-      let c = new_client (Direct_address (ip,port)) in
+      let c = new_client (Direct_address (ip,port)) None in
       friend_add c;
       "", true
 
@@ -690,7 +690,7 @@ let commands = [
         in
         let ip = Ip.from_name ip in
         let port = int_of_string port in
-        let c = new_client (Direct_address (ip,port)) in
+        let c = new_client (Direct_address (ip,port)) None in
         friend_add c;
         "friend added";
     ),  "<ip> [<port>] :\t\t\tadd a friend";
@@ -1112,6 +1112,7 @@ let _ =
 
 let _ =
   server_ops.op_server_info <- (fun s ->
+      check_server_country_code s;
       if !!enable_donkey then
         { (impl_server_info s.server_server) with
 
@@ -1119,6 +1120,7 @@ let _ =
           P.server_addr = Ip.addr_of_ip s.server_ip;
           P.server_port = s.server_port;
           P.server_realport = (match s.server_realport with Some x -> x | None -> 0);
+    	  P.server_country_code = s.server_country_code;
           P.server_score = s.server_score;
           P.server_nusers = (match s.server_nusers with None -> 0L | Some v -> v);
           P.server_nfiles = (match s.server_nfiles with None -> 0L | Some v -> v);
@@ -1176,13 +1178,14 @@ let string_of_client_addr c =
   with _ -> ""
 
 let get_ips_cc_cn c =
+  check_client_country_code c;
   try
     match c.client_kind with
     | Direct_address (ip,port) ->
-        let cc,cn = Geoip.get_country ip in
+        let cc,cn = Geoip.get_country_code_name c.client_country_code in
         (Ip.to_string ip),cc,cn
     | Indirect_address (_,_,_,_,real_ip) ->
-        let cc,cn = Geoip.get_country real_ip in
+        let cc,cn = Geoip.get_country_code_name c.client_country_code in
         (Ip.to_string real_ip),cc,cn
     | _ ->  
         let cc,cn = Geoip.unknown_country in
@@ -1192,6 +1195,7 @@ let get_ips_cc_cn c =
 
 let _ =
   client_ops.op_client_info <- (fun c ->
+      check_client_country_code c;
       { (impl_client_info c.client_client) with
 
         P.client_network = network.network_num;
@@ -1200,6 +1204,7 @@ let _ =
 	  | Indirect_address (server_ip, server_port, ip, port, real_ip) -> 
 	      Indirect_location (c.client_name,c.client_md4, real_ip, port)
           | _ -> Indirect_location (c.client_name,c.client_md4, c.client_ip, 0));
+        P.client_country_code = c.client_country_code;
         P.client_state = client_state c;
         P.client_type = client_type c;
         P.client_name = c.client_name;
@@ -1286,7 +1291,7 @@ let _ =
       let list = ref [] in
       DonkeySources.iter_all_sources (fun s ->
           let s_uid = s.DonkeySources.source_uid in
-          let c = new_client s_uid in
+          let c = new_client s_uid s.DonkeySources.source_country_code in
           list := (as_client c) :: !list
       ) file.file_sources;
       !list
@@ -1295,7 +1300,7 @@ let _ =
       let list = ref [] in
       DonkeySources.iter_active_sources (fun s ->
           let s_uid = s.DonkeySources.source_uid in
-          let c = new_client s_uid in
+          let c = new_client s_uid s.DonkeySources.source_country_code in
           list := (as_client c) :: !list
       ) file.file_sources;
       !list
@@ -1384,7 +1389,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
     let sources_list = ref [] in
     DonkeySources.iter_relevant_sources (fun s ->
       let s_uid = s.DonkeySources.source_uid in
-      let c = new_client s_uid in
+      let c = new_client s_uid s.DonkeySources.source_country_code in
       sources_list := (s,c) :: !sources_list
     ) file.file_sources;
 

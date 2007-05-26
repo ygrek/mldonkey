@@ -87,6 +87,7 @@ let country_stats = define_option country_stats_section ["country_stats"]
   "Country-based traffic statistics" (list_option CountryStatsOption.t) []
 
 let country_stats_find cc =
+  let cc = Geoip.country_code_array.(cc) in
   try
     List.find (fun c -> c.country_code = cc) !!country_stats
   with Not_found ->
@@ -104,38 +105,35 @@ let country_stats_find cc =
     country_stats =:= cs :: !!country_stats;
     cs
 
-let country_upload ip v =
-  try
-    let cc,_ = Geoip.get_country ip in
+let country_upload cc v =
+  match cc with | None -> ()
+  | Some cc ->
     let c = country_stats_find cc in
     c.country_session_upload <- c.country_session_upload ++ v;
     c.country_total_upload <- c.country_total_upload ++ v
-  with _ -> ()
 
-let country_download ip v =
-  try
-    let cc,_ = Geoip.get_country ip in
+let country_download cc v =
+  match cc with | None -> ()
+  | Some cc ->
     let c = country_stats_find cc in
     c.country_session_download <- c.country_session_download ++ v;
     c.country_total_download <- c.country_total_download ++ v
-  with _ -> ()
 
-let country_seen ip =
-  try
-    let cc,_ = Geoip.get_country ip in
+let country_seen cc =
+  match cc with | None -> ()
+  | Some cc ->
     let c = country_stats_find cc in
     c.country_session_seen <- c.country_session_seen ++ 1L;
     c.country_total_seen <- c.country_total_seen ++ 1L
-  with _ -> ()
 
-let global_count_upload n ip v =
+let global_count_upload n cc v =
   upload_counter := !upload_counter ++ v;
-  country_upload ip v;
+  country_upload cc v;
   network_must_update n
 
-let global_count_download n ip v =
+let global_count_download n cc v =
   download_counter := !download_counter ++ v;
-  country_download ip v;
+  country_download cc v;
   network_must_update n
 
 let find_int_of_brand brand brand_list =

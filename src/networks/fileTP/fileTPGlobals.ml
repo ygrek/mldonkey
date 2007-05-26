@@ -178,6 +178,14 @@ let new_file file_id file_name file_size users =
       Hashtbl.add files_by_uid file_id file;
       file
 
+let check_client_country_code c =
+  if !Geoip.active then
+    match c.client_country_code with
+    | None ->
+        c.client_country_code <-
+          Geoip.get_country_code_option (Ip.from_name c.client_hostname)
+    | _ -> ()
+
 let new_client proto hostname port referer =
   let key = (hostname,port) in
   try
@@ -192,6 +200,7 @@ let new_client proto hostname port referer =
           client_hostname = hostname;
           client_referer = referer;
           client_port = port;
+          client_country_code = None;
 	  client_total_downloaded = zero;
 	  client_session_downloaded = zero;
           client_reconnect = false;
@@ -207,6 +216,7 @@ let new_client proto hostname port referer =
 	  impl_client_upload = None;
         } in
       new_client impl;
+      check_client_country_code c;
       Hashtbl.add clients_by_uid key c;
       c
     

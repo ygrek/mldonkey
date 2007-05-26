@@ -188,6 +188,13 @@ module H = CommonHosts.Make(struct
       let max_peers = max_known_peers
     end)
 
+let check_server_country_code s =
+  if !Geoip.active then
+    match s.server_country_code with
+    | None ->
+        s.server_country_code <-
+          Geoip.get_country_code_option (Ip.ip_of_addr s.server_host.host_addr)
+    | _ -> ()
 
 let new_server ip port =
   let h = H.new_host ip port Ultrapeer in
@@ -197,6 +204,7 @@ let new_server ip port =
       let rec s = {
           server_server = server_impl;
           server_host = h;
+          server_country_code = None;
           server_sock = NoConnection;
           server_ciphers = None;
           server_agent = "<unknown>";
@@ -225,6 +233,7 @@ let new_server ip port =
         } in
       server_add server_impl;
       h.host_server <- Some s;
+      check_server_country_code s;
       s
 
 let add_source r (user : user) =
@@ -380,6 +389,15 @@ let new_user kind =
       Hashtbl.add users_by_uid kind user;
       user
 
+let check_client_country_code c =
+  if !Geoip.active then
+    match c.client_country_code with
+    | None ->
+        (match c.client_host with
+        | Some (ip,port) -> c.client_country_code <- Geoip.get_country_code_option ip
+        | _ -> ())
+    | _ -> ()
+
 let new_client kind =
   try
     Hashtbl.find clients_by_uid kind
@@ -401,6 +419,7 @@ client_error = false;
           client_connection_control = new_connection_control (());
           client_downloads = [];
           client_host = None;
+          client_country_code = None;
           client_reconnect = false;
           client_in_queues = [];
           client_connected_for = None;

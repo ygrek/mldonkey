@@ -834,7 +834,7 @@ let handler config t event =
       in
       let ip_is_blocked from_ip =
 	if config.use_ip_block_list then
-	  match !Ip.banned from_ip with
+	  match !Ip.banned (from_ip, None) with
             None -> false
            | Some reason -> lprintf_nl "%s:%d blocked: %s"
                (Ip.to_string from_ip) from_port reason; true

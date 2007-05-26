@@ -100,6 +100,7 @@ let impl_server_info impl =
     T.server_addr = Ip.addr_of_ip Ip.null;
     T.server_port = 0;
     T.server_realport = 0;
+    T.server_country_code = None;
     T.server_score = 0;
     T.server_tags = [];
     T.server_nusers = 0L;
@@ -272,7 +273,7 @@ let server_find (num : int) =
 
 let server_blocked s =
   let info = server_info s in
-  !Ip.banned (Ip.ip_of_addr info.G.server_addr) <> None
+  !Ip.banned (Ip.ip_of_addr info.G.server_addr, info.G.server_country_code) <> None
 
 let server_connect s =
   if not (server_blocked s) then
@@ -408,7 +409,7 @@ let server_print s o =
           lprintf_nl "Exception %s in server_info (%s)\n"
             (Printexc2.to_string e) n.network_name;
           raise e in
-    let cc,cn = Geoip.get_country (Ip.ip_of_addr info.G.server_addr) in
+    let cc,cn = Geoip.get_country_code_name info.G.server_country_code in
     let buf = o.conn_buf in
   
   if use_html_mods o then begin
@@ -514,7 +515,6 @@ let server_print s o =
       | _ -> string_of_connection_state impl.impl_server_state
     in
 
-    let cc,cn = Geoip.get_country (Ip.ip_of_addr info.G.server_addr) in
     html_mods_td buf ([
       ("", "srb", if info.G.server_master then "M" else "-");
       (id_title, "sr", id_text);

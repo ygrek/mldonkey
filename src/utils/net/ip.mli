@@ -32,7 +32,7 @@ val valid : t -> bool
 val local_ip : t -> bool
 val reachable : t -> bool
 val usable : t -> bool
-val banned : (t -> string option) ref
+val banned : (t * int option -> string option) ref
   
 val resolve_one : t -> string
 val matches : t -> t list -> bool

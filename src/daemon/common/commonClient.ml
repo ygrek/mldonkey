@@ -445,7 +445,7 @@ let client_print c o =
   let n = impl.impl_client_ops.op_client_network in
   let info = client_info c in
   let buf = o.conn_buf in
-  let ips,cc,cn = string_of_kind_geo info.G.client_kind in
+  let ips,cc,cn = string_of_kind_geo info.G.client_kind info.G.client_country_code in
   if use_html_mods o then begin
 	html_mods_td buf ([
 	("", "sr", Printf.sprintf "%d" (client_num c));
@@ -507,6 +507,7 @@ let impl_client_info impl =
   
      T.client_tags = [];
      T.client_name = "";
+     T.client_country_code = None;
      T.client_network = 0;
      T.client_rating = 0;
      T.client_chat_port = 0;

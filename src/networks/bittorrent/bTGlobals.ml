@@ -767,10 +767,24 @@ let parse_software s =
     try iter decoder_list
     with _ -> default
 
-let new_client file peer_id kind =
+let check_client_country_code c =
+  if !Geoip.active then
+    match c.client_country_code with
+    | None ->
+        c.client_country_code <-
+          Geoip.get_country_code_option (fst c.client_host)
+    | _ -> ()
+
+let new_client file peer_id kind cc =
   try
     let c = Hashtbl.find file.file_clients kind in
+    let old_ip = fst c.client_host in
     c.client_host <- kind;
+    if old_ip <> Ip.null && old_ip <> fst c.client_host then
+      begin
+        c.client_country_code <- None;
+        check_client_country_code c
+      end;
     c
   with _ ->
       let brand, release = parse_software (Sha1.direct_to_string peer_id) in
@@ -781,6 +795,7 @@ let new_client file peer_id kind =
           client_connection_control = new_connection_control (());
           client_file = file;
           client_host = kind;
+          client_country_code = cc;
           client_choked = true;
           client_received_peer_id = false;
           client_sent_choke = false;
@@ -824,6 +839,7 @@ let new_client file peer_id kind =
           impl_client_upload = None;
         } in
       c.client_connection_control.control_min_reask <- 120;
+      check_client_country_code c;
       new_client impl;
       Hashtbl.add file.file_clients kind c;
       file.file_clients_num <- file.file_clients_num + 1;

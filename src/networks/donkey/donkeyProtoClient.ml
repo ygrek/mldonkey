@@ -973,6 +973,7 @@ module EmuleRequestSourcesReply = struct
         mutable src_server_ip : Ip.t;
         mutable src_server_port : int;
         mutable src_md4 : Md4.t;
+        mutable src_cc : int option;
       }
 
     type t = {
@@ -986,6 +987,7 @@ module EmuleRequestSourcesReply = struct
         src_server_ip = Ip.null;
         src_server_port = 0;
         src_md4 = Md4.null;
+        src_cc = None;
       }
 
     let parse e len s =
@@ -999,10 +1001,13 @@ module EmuleRequestSourcesReply = struct
         let sources = Array.create ncount dummy_source in
         let rec iter pos i =
           if i < ncount then
-            let ss = {
+            let ss =
+              let ip = get_ip s pos in
+              {
                 dummy_source with
-                src_ip = get_ip s pos;
+                src_ip = ip;
                 src_port = get_int16 s (pos+4);
+                src_cc = Geoip.get_country_code_option ip
               } in
             let pos =
               if slen > 6 then begin

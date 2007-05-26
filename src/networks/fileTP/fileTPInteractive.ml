@@ -112,10 +112,12 @@ let string_of_client_addr c = c.client_hostname
 
 let _ =
   client_ops.op_client_info <- (fun c ->
+      check_client_country_code c;
       { (impl_client_info c.client_client) with
         P.client_network = network.network_num;
         P.client_kind = Known_location (Ip.from_name c.client_hostname,
           c.client_port);
+        P.client_country_code = c.client_country_code;
         P.client_state = client_state (as_client c);
         P.client_type = client_type c;
         P.client_name = (Printf.sprintf "%s:%d"
@@ -156,7 +158,9 @@ let _ =
 	    Indirect_location (_, _, ip, port)
 	  | Known_location (ip, port) -> ip, port
 	in
-        let ccode,cname = Geoip.get_country (fst (client_ip,client_port)) in
+        let ccode,cname =
+          Geoip.get_country_code_name cinfo.GuiTypes.client_country_code
+        in
 
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;

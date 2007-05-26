@@ -321,12 +321,14 @@ let _ =
   
 let _ =
   server_ops.op_server_info <- (fun s ->
+      check_server_country_code s;
       if !!enable_gnutella then
         { (impl_server_info s.server_server) with
 
           P.server_network = network.network_num;
           P.server_addr = s.server_host.host_addr;
           P.server_port = s.server_host.host_port;
+          P.server_country_code = s.server_country_code;
           P.server_nusers = s.server_nusers;
           P.server_max_users = s.server_maxnusers;
           P.server_nfiles = s.server_nfiles;
@@ -412,6 +414,7 @@ let _ =
   
 let _ =
   client_ops.op_client_info <- (fun c ->
+      check_client_country_code c;
       { (impl_client_info c.client_client) with
 
         P.client_network = network.network_num;
@@ -420,6 +423,7 @@ let _ =
         P.client_name = if c.client_user.user_speed > 0 
                           then Printf.sprintf "%s (%d)" c.client_user.user_nick c.client_user.user_speed
                           else c.client_user.user_nick;
+        P.client_country_code = c.client_country_code;
         P.client_software = c.client_user.user_software;
 
       }
@@ -453,8 +457,8 @@ let _ =
         let cinfo = client_info cc in
         let ccode,cname =
           match c.client_host with
-          | None -> "?", "?"
-          | Some (ip, _) -> Geoip.get_country ip
+          | None -> Geoip.unknown_country
+          | Some _ -> Geoip.get_country_code_name cinfo.GuiTypes.client_country_code
         in
         Printf.bprintf buf " \\<tr onMouseOver=\\\"mOvr(this);\\\"
     onMouseOut=\\\"mOut(this);\\\" class=\\\"%s\\\"\\>" str;

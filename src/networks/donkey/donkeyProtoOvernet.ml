@@ -63,6 +63,7 @@ module Proto = struct
         peer_ip = ip;
         peer_port = port;
         peer_tcpport = 0;
+        peer_country_code = Geoip.get_country_code_option ip;
         peer_kind = 3;
         peer_last_send = 0;
         peer_expire = 0;
@@ -228,6 +229,7 @@ module Proto = struct
           peer_ip = !peer_ip;
           peer_port = !peer_udpport;
           peer_tcpport = !peer_tcpport;
+          peer_country_code = Geoip.get_country_code_option !peer_ip;
           peer_md4 = r_md4;
           peer_last_send = 0;
           peer_expire = 0;
@@ -247,6 +249,7 @@ module Proto = struct
               peer_md4 = md4;
               peer_ip = ip;
               peer_port = port;
+              peer_country_code = Geoip.get_country_code_option ip;
               peer_kind = 3;
               peer_tcpport = 0;
               peer_last_send = 0;
@@ -265,6 +268,7 @@ module Proto = struct
               peer_md4 = md4;
               peer_ip = ip;
               peer_port = port;
+              peer_country_code = Geoip.get_country_code_option ip;
               peer_kind = 3;
               peer_tcpport = 0;
               peer_last_send = 0;
@@ -404,7 +408,7 @@ module Proto = struct
                     in
                     let t = parse ip port (int_of_char pbuf.[1]) (String.sub pbuf 2 (len-2)) in
                     let is_not_banned ip =
-                      match !Ip.banned ip with
+                      match !Ip.banned (ip, None) with
                          None -> true
                        | Some reason ->
                       if !verbose_overnet then

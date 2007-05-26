@@ -460,6 +460,7 @@ and server = (*[]*){
     mutable server_cid : Ip.t option;
     mutable server_port : int;
     mutable server_realport : int option; (* in case we connect through auxport; this is the true one *)
+    mutable server_country_code : int option;
     mutable server_sock : tcp_connection;
     mutable server_search_queries : CommonTypes.search Fifo.t;
     mutable server_users_queries : bool Fifo.t;
@@ -552,6 +553,7 @@ and client = {
     client_source : DonkeySources.source;
     mutable client_md4 : Md4.t;
     mutable client_ip : Ip.t;
+    mutable client_country_code : int option;
     mutable client_download : (file * CommonSwarming.uploader) option;
     mutable client_file_queue : (
       file * (* has displayed when connected *)

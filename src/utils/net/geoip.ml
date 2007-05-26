@@ -27,6 +27,13 @@ open Gettext
 let _s x = _s "GeoIp" x
 let _b x = _b "GeoIp" x
 
+let verbose = ref false
+
+let log_prefix = "[Geo]"
+
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
+
 let country_begin = 16776960
 let state_begin_rev0 = 16700000
 let state_begin_rev1 = 16000000
@@ -340,7 +347,7 @@ let init filename =
     end;
 
     active := true; 
-    lprintf_nl (_b "[GeoIP] %s database loaded") (database_name ())
+    lprintf_nl (_b "%s database loaded") (database_name ())
   with _ -> 
     active := false
 
@@ -379,15 +386,27 @@ let seek_country ip =
     dive 31 0
 
 let get_country_code ip =
-  if not !active then 0
+  if !verbose then lprintf_nl "get_country_code %s" (Ip.to_string ip);
+  if not !active || ip = Ip.null then 0
   else begin
     try   
       (seek_country ip) - country_begin 
     with _ -> 0
   end
 
+let get_country_code_option ip =
+  if !verbose then lprintf_nl "get_country_code_option %s" (Ip.to_string ip);
+  if not !active || ip = Ip.null then None
+  else begin
+    try   
+      let cc = (seek_country ip) - country_begin in
+      if cc = 0 then None else Some cc
+    with _ -> None
+  end
+
 let get_country ip = 
-  if not !active then unknown_country
+  if !verbose then lprintf_nl "get_country %s" (Ip.to_string ip);
+  if not !active || ip = Ip.null then unknown_country
   else begin
     try 
       let ret = (seek_country ip) - country_begin in
@@ -396,6 +415,13 @@ let get_country ip =
     with _ -> 
       unknown_country
   end
+
+let get_country_code_name cc =
+  match cc with
+  | Some cc ->
+      country_code_array.(cc),
+      country_name_array.(cc)
+  | None -> unknown_country
 
 let _ =
   Heap.add_memstat "GeoIp" (fun level buf ->

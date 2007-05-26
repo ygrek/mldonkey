@@ -26,6 +26,7 @@ type peer =
     mutable peer_ip : Ip.t;
     mutable peer_port : int; 
     mutable peer_tcpport : int;
+    mutable peer_country_code : int option;
     mutable peer_kind : int;
     mutable peer_expire : int;
     mutable peer_last_send : int;

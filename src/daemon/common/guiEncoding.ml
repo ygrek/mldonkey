@@ -97,12 +97,13 @@ let buf_hostname proto buf s =
     let cc = 0 in (* TODO: figure out country# of this hostname *)
     buf_int8 buf cc
 
-let buf_ip2 proto buf ip =
+let buf_ip2 proto buf ip cc =
   buf_ip buf ip;
   if proto > 37 then begin
     let cc =
-      try Geoip.get_country_code ip
-      with _ -> 0
+      match cc with
+      | None -> Geoip.get_country_code ip
+      | Some cc -> cc
     in
     buf_int8 buf cc
   end
@@ -202,7 +203,7 @@ let buf_tag proto buf t =
   | Uint64 s -> buf_int8 buf 0; buf_int64_32 buf s
   | Fint64 s -> buf_int8 buf 1; buf_int64_32 buf s
   | String s -> buf_int8 buf 2; buf_string buf s
-  | Addr ip -> buf_int8 buf 3; buf_ip2 proto buf ip
+  | Addr ip -> buf_int8 buf 3; buf_ip2 proto buf ip None
   | Uint16 n -> buf_int8 buf 4; buf_int16 buf n
   | Uint8 n -> buf_int8 buf 5; buf_int8 buf n
   | Pair (n1,n2) -> buf_int8 buf 6; buf_int64_32 buf n1; buf_int64_32 buf n2
@@ -277,7 +278,7 @@ let buf_user proto buf u =
   buf_int buf u.user_num;
   buf_md4 buf u.user_md4;
   buf_string buf u.user_name;
-  buf_ip2 proto buf u.user_ip;
+  buf_ip2 proto buf u.user_ip None;
   buf_int16 buf u.user_port;
   buf_list2 proto buf buf_tag u.user_tags;
   buf_int buf u.user_server
@@ -396,13 +397,13 @@ let buf_format proto buf f =
           buf_list buf buf_ogg ogg_infos;
         end else buf_int8 buf 0
 
-let buf_kind proto buf k =
+let buf_kind proto buf k cc =
   match k with
     Known_location (ip, port) -> 
-      buf_int8 buf 0; buf_ip2 proto buf ip; buf_int16 buf port
+      buf_int8 buf 0; buf_ip2 proto buf ip cc; buf_int16 buf port
   | Indirect_location (name, md4, ip, port) ->
       buf_int8 buf 1; buf_hostname proto buf name; buf_md4 buf md4;
-        if proto > 38 then begin buf_ip2 proto buf ip; buf_int16 buf port end
+        if proto > 38 then begin buf_ip2 proto buf ip cc; buf_int16 buf port end
       
 let buf_partial_file proto buf f =
   buf_int buf f.file_num;
@@ -559,7 +560,7 @@ let buf_sub_files proto buf l =
 
 let buf_file_comments proto buf l =
   buf_list buf (fun buf (ip, name, rating, comment) ->
-    buf_ip2 proto buf ip;
+    buf_ip2 proto buf ip None;
     buf_string buf name;
     buf_int8 buf rating;
     buf_string buf comment;
@@ -612,18 +613,18 @@ let buf_file proto buf f =
       buf_string buf f.file_group;
     end
       
-let buf_addr proto buf addr =
+let buf_addr proto buf addr cc =
   (match addr with
     Ip.AddrIp ip ->
       buf_int8 buf 0;
-      buf_ip2 proto buf ip
+      buf_ip2 proto buf ip cc
   | Ip.AddrName s ->
       buf_int8 buf 1;
       buf_hostname proto buf s
   );
   if proto > 33 then begin
-    let is_blocked = 
-      try !Ip.banned (Ip.ip_of_addr addr) <> None
+    let is_blocked =
+      try !Ip.banned (Ip.ip_of_addr addr, cc) <> None
       with _ -> false
     in
     buf_bool buf is_blocked 
@@ -635,7 +636,7 @@ let buf_server proto buf s =
   if proto < 2 then 
     buf_ip buf (Ip.ip_of_addr s.server_addr)
   else
-    buf_addr proto buf s.server_addr;    
+    buf_addr proto buf s.server_addr s.server_country_code;
   buf_int16 buf s.server_port;
   buf_int buf s.server_score;
   buf_list2 proto buf buf_tag s.server_tags;
@@ -658,7 +659,7 @@ let buf_server proto buf s =
 let buf_client proto buf c =
   buf_int buf c.client_num;
   buf_int buf c.client_network;
-  buf_kind proto buf c.client_kind;
+  buf_kind proto buf c.client_kind c.client_country_code;
   buf_host_state proto buf c.client_state;
   buf_client_type buf c.client_type;
   buf_list2 proto buf buf_tag c.client_tags;

@@ -477,11 +477,12 @@ let op_file_print_sources file o =
       html_mods_table_header buf "sourcesTable" "sources al" header_list;
 
       Hashtbl.iter (fun _ c ->
+          let cinfo = client_info (as_client c) in
 	  if use_html_mods o then
           Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr());
 
           let btos b = if b then "T" else "F" in
-          let cc,cn = Geoip.get_country (fst c.client_host) in
+          let cc,cn = Geoip.get_country_code_name cinfo.GuiTypes.client_country_code in
           let td_list = [
             ("", "sr br ar", Printf.sprintf "%d" (client_num c));
             ("", "sr br", (Sha1.to_string c.client_uid));
@@ -909,12 +910,14 @@ let op_network_parse_url url user =
        s, false
 
 let op_client_info c =
+  check_client_country_code c;
   let module P = GuiTypes in
   let (ip,port) = c.client_host in
   { (impl_client_info c.client_client) with
 
     P.client_network = network.network_num;
     P.client_kind = Known_location (ip,port);
+    P.client_country_code = c.client_country_code;
     P.client_state = client_state (as_client c);
     P.client_type = client_type c;
     P.client_name = (Printf.sprintf "%s:%d" (Ip.to_string ip) port);
@@ -971,7 +974,7 @@ let op_client_dprint_html c o file str =
         show_emulemods_column := true
     end;
 
-    let cc,cn = Geoip.get_country (fst c.client_host) in
+    let cc,cn = Geoip.get_country_code_name cinfo.GuiTypes.client_country_code in
 
     html_mods_td buf ([
         ("", "srb ar", Printf.sprintf "%d" (client_num c));

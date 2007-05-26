@@ -198,6 +198,7 @@ module Make(M:
        mutable source_sock : tcp_connection;
 
        mutable source_brand : M.source_brand;
+       mutable source_country_code : int option;
      }
 
      and file_request = {
@@ -216,7 +217,7 @@ module Make(M:
      }
 	 
      and functions = {
-       mutable function_connect: (M.source_uid -> unit);
+       mutable function_connect: (M.source_uid -> int option -> unit);
        mutable function_query: (M.source_uid -> string -> unit);
        
        mutable function_string_to_manager: (string -> file_sources_manager);
@@ -225,7 +226,7 @@ module Make(M:
        mutable function_max_sources_per_file : (unit -> int);
        
        mutable function_add_location :
-         (M.source_uid -> string -> unit);
+         (M.source_uid -> string -> int option -> unit);
        mutable function_remove_location :
          (M.source_uid -> string -> unit);
      }
@@ -270,6 +271,7 @@ module Make(M:
        source_sock = NoConnection;
 
        source_brand = M.dummy_source_brand;
+       source_country_code = None;
      }
 
      let last_refill = ref 0
@@ -1064,7 +1066,7 @@ module Make(M:
            (try
               let m = r.request_file in
               functions.function_add_location s.source_uid
-                m.manager_uid with _ -> ());
+                m.manager_uid s.source_country_code with _ -> ());
            reschedule_source_for_file false s r
          end 
 	   (* else lprintf "outside queue\n" *)
@@ -1131,7 +1133,7 @@ module Make(M:
        if !verbose_sources > 1 then
          lprintf_nl "[cSrc] connect_source";
        s.source_score <- s.source_score + 1;
-       functions.function_connect s.source_uid
+       functions.function_connect s.source_uid s.source_country_code
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1217,11 +1219,11 @@ module Make(M:
 
 (*************************************************************************)
 (*                                                                       *)
-(*                         find_source_by_uid                            *)
+(*                         create_source_by_uid                          *)
 (*                                                                       *)
 (*************************************************************************)
 
-     let find_source_by_uid uid =
+     let create_source_by_uid uid cc =
        try
          let finder =  { dummy_source with source_uid = uid } in
          HS.find sources_by_uid finder
@@ -1235,10 +1237,21 @@ module Make(M:
                      source_age = 0;
                      source_num = n;
                      source_files = [];
+                     source_country_code = cc;
 		 }  in
          HS.add sources_by_uid s;
          H.add sources_by_num s;
          s
+
+(*************************************************************************)
+(*                                                                       *)
+(*                         find_source_by_uid                            *)
+(*                                                                       *)
+(*************************************************************************)
+
+     let find_source_by_uid uid =
+         let finder =  { dummy_source with source_uid = uid } in
+         HS.find sources_by_uid finder
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1475,7 +1488,7 @@ module Make(M:
 
        if !verbose_sources > 1 then
          lprintf_nl "[cSrc] New source from value";
-       let s = find_source_by_uid addr in
+       let s = create_source_by_uid addr None in
        s.source_score <- score;
        s.source_age <- last_conn;
        s.source_brand <- brand;

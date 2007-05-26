@@ -14,6 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/05/27
+5940: GeoIP: Reduce disc access to lower CPU usage
+- store computed country values in client/server structures
+- EDK: fix a bug where a firewalled client was displayed with IP 0.0.0.0
+- new verbosity level "geo" to monitor access to GeoIP.dat
+
 2007/05/23
 5961: Include compile patch for Ocaml 3.08.3
 5956: Remove unused files src/networks/donkey/donkeyIndexer.ml*

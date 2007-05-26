@@ -52,6 +52,7 @@ and server = {
     mutable server_connected : int64;
     
     mutable server_host : host;
+    mutable server_country_code : int option;
     mutable server_query_key : GnutellaNetwork.query_key;
     mutable server_searches : local_search Fifo.t;
     
@@ -94,6 +95,7 @@ and client = {
     mutable client_all_files : file list option;
     mutable client_requests : download list;
     mutable client_host : (Ip.t * int) option;
+    mutable client_country_code : int option;
     mutable client_reconnect : bool;
     mutable client_connected_for : file option;
     mutable client_support_head_request : bool;

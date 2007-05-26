@@ -430,15 +430,15 @@ let client_to_server s t sock =
             | Some file ->
                 if !verbose then
                   lprintf_nl "QueryIDReplyReq: This was a QueryID reply !?";
-                let s = DonkeySources.find_source_by_uid
-                  (Direct_address (t.Q.ip, t.Q.port)) in
+                let s = DonkeySources.create_source_by_uid
+                  (Direct_address (t.Q.ip, t.Q.port)) None in
                 DonkeySources.set_request_result s file.file_sources
                   File_new_source
         with _ ->
           if !verbose then
             lprintf_nl "QueryIDReplyReq: Calling back to %s:%d"
               (Ip.to_string t.Q.ip) t.Q.port;
-          let c = new_client (Direct_address (t.Q.ip, t.Q.port)) in
+          let c = new_client (Direct_address (t.Q.ip, t.Q.port)) None in
           DonkeyClient.reconnect_client c;
       end
 
@@ -524,7 +524,7 @@ and remove clients whose server is deconnected. *)
       ()
 
 let connect_server s =
-  if !!enable_servers && not (!Ip.banned s.server_ip <> None)
+  if !!enable_servers && not (!Ip.banned (s.server_ip, s.server_country_code) <> None)
     && (not !!connect_only_preferred_server || s.server_preferred)
   then
     match s.server_sock with
@@ -663,7 +663,7 @@ position to the min_left_servers position.
   Hashtbl.iter (fun _ s ->
       if connection_was_tried s.server_connection_control then
         if not s.server_preferred &&
-          (is_black_address s.server_ip s.server_port || s.server_port = 4662)
+          (is_black_address s.server_ip s.server_port s.server_country_code || s.server_port = 4662)
           then
             to_remove := s :: !to_remove
           else

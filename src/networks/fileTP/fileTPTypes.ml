@@ -29,6 +29,7 @@ type client = {
     client_client : client CommonClient.client_impl;
     mutable client_port : int;
     mutable client_hostname : string;
+    mutable client_country_code : int option;
     mutable client_referer : string;
     mutable client_downloads : download list;
     mutable client_in_queues : file list;
