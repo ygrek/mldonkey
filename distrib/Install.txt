@@ -65,7 +65,7 @@ is compiled.
 ------------------------------------------------------------------------
 1) Installing required tools: Objective-Caml 3.09.3 and LablGTK
 
- 1.1) Objective-Caml 3.09.3 (from http://pauillac.inria.fr/caml)
+ 1.1) Objective-Caml 3.09.3 (from http://caml.inria.fr/pub/distrib/ocaml-3.09)
 
     ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.09/ocaml-3.09.3.tar.gz
     ~/tmp> tar zxf ocaml-3.09.3.tar.gz
