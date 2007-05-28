@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/05/28
+5976: Search for autoconf261 in ./configure
+
 2007/05/27
 5940: GeoIP: Reduce disc access to lower CPU usage
 - store computed country values in client/server structures

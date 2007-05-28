@@ -25,7 +25,9 @@ if test ! -d config; then
 else
     cd config \
     && if test ! -f ./configure; then
-          if which autoconf259; then
+          if which autoconf261; then
+              ac="autoconf261"
+          else if which autoconf259; then
               ac="autoconf259"
           else if which autoconf-2.59; then
               ac="autoconf-2.59"
@@ -33,7 +35,7 @@ else
               ac="autoconf-2.5x"
           else
               ac="autoconf"
-          fi; fi; fi
+          fi; fi; fi; fi
           echo "Running Autoconf ($ac)..."
           $ac
        fi \
