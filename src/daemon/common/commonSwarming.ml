@@ -2123,7 +2123,7 @@ let select_blocks up =
  			else acc) 0 t.t_blocks_of_chunk.(chunk)) (t.t_num, i))
  	      ) 0 s.s_networks) i in
 
-	let preview_beginning = 10000000L in
+	let preview_beginning = 9000000L in
 	let preview_end = (s.s_size ** 98L) // 100L in
 
 	(* sources_per_chunk was initially for edonkey only *)

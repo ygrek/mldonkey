@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2007/05/31
+5981: EDK/Swarming: Download first 9MB first for preview,
+      not 10MB to avoid downloading second chunk too early (pango)
 5972: GeoIP: Load GeoIP.dat into RAM (pango)
 
 2007/05/28
