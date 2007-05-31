@@ -461,5 +461,5 @@ let _ =
   Heap.add_memstat "CommonStats" (fun level buf ->
     Printf.bprintf buf "  countries: %d%s\n"
       (List.length !!country_stats)
-      (if not !Geoip.active then " - Geoip not active" else "");
+      (if not (Geoip.active ()) then " - Geoip not active" else "");
    )

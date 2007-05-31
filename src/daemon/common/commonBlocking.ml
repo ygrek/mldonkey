@@ -47,7 +47,7 @@ let geoip_hit cbl ip cc =
     | None -> 0
     | Some cc -> if cc = 0 then Geoip.get_country_code ip else cc
   in
-  if not !Geoip.active || !country_blocking_string_list_copy = [] then None
+  if not (Geoip.active ()) || !country_blocking_string_list_copy = [] then None
   else if cbl.(index) then
     Some (Printf.sprintf "IPs from %s are currently blocked"
       Geoip.country_name_array.(index))

@@ -2000,7 +2000,7 @@ let runinfo html buf o =
   tack list
     (
       "Geoip:\t\t", 
-      if !Geoip.active then "enabled, GeoLite data created by MaxMind, available from http://maxmind.com/"
+      if Geoip.active () then "enabled, GeoLite data created by MaxMind, available from http://maxmind.com/"
       else "disabled, to enable adjust web_infos in downloads.ini for automatic download"
     );
   tack list

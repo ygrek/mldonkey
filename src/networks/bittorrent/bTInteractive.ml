@@ -434,7 +434,7 @@ let op_file_print_sources file o =
         ( "0", "srh br", "Client software", "Soft" ) ;
         ( "0", "srh", "IP address", "IP address" ) ;
         ( "0", "srh br ar", "Port", "Port" ) ;
-        ] @ (if !Geoip.active then [( "0", "srh br ar", "Country Code/Name", "CC" )] else []) @ [
+        ] @ (if Geoip.active () then [( "0", "srh br ar", "Country Code/Name", "CC" )] else []) @ [
         ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
         ( "1", "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
         ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
@@ -489,7 +489,7 @@ let op_file_print_sources file o =
             ("", "sr br", Printf.sprintf "%s %s" (brand_to_string c.client_brand) c.client_release);
             ("", "sr", (Ip.to_string (fst c.client_host)));
             ("", "sr br ar", Printf.sprintf "%d" (snd c.client_host));
-            ] @ (if !Geoip.active then 
+            ] @ (if Geoip.active () then 
               [( cn, "sr br", if use_html_mods o then CommonPictures.flag_html cc else cc)]
                  else []) @ [
             ("", "sr ar", (size_of_int64 c.client_total_uploaded));
@@ -992,7 +992,7 @@ let op_client_dprint_html c o file str =
         ("", "sr", "D");
         ("", "sr", "N");
         ("", "sr", (Ip.to_string (fst c.client_host)));
-        ] @ (if !Geoip.active then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
+        ] @ (if Geoip.active () then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
         ("", "sr ar", (size_of_int64 c.client_total_uploaded));
         ("", "sr ar", (size_of_int64 c.client_total_downloaded));
         ("", "sr ar", (size_of_int64 c.client_session_uploaded));

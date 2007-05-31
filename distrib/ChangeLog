@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/05/31
+5972: GeoIP: Load GeoIP.dat into RAM (pango)
+
 2007/05/28
 5976: Search for autoconf261 in ./configure
 

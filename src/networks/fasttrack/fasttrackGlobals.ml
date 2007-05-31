@@ -189,7 +189,7 @@ module H = CommonHosts.Make(struct
     end)
 
 let check_server_country_code s =
-  if !Geoip.active then
+  if Geoip.active () then
     match s.server_country_code with
     | None ->
         s.server_country_code <-
@@ -390,7 +390,7 @@ let new_user kind =
       user
 
 let check_client_country_code c =
-  if !Geoip.active then
+  if Geoip.active () then
     match c.client_country_code with
     | None ->
         (match c.client_host with

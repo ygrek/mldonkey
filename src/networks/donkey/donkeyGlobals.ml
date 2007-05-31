@@ -495,7 +495,7 @@ let is_black_address ip port cc =
           true))
 
 let check_server_country_code s =
-  if !Geoip.active then
+  if Geoip.active () then
     match s.server_country_code with
     | None -> s.server_country_code <- Geoip.get_country_code_option s.server_ip
     | _ -> ()
@@ -598,7 +598,7 @@ let remove_server ip port =
   with _ -> ()
 
 let check_client_country_code c =
-  if !Geoip.active then
+  if Geoip.active () then
     match c.client_country_code with
     | None ->
         (match c.client_kind with

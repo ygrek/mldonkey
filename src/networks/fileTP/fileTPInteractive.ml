@@ -187,7 +187,7 @@ let _ =
           ("", "sr", "D");
           ("", "sr", "N");
           ("", "sr", Printf.sprintf "%s:%d" (Ip.to_string client_ip) client_port);
-          ] @ (if !Geoip.active then [(cname, "sr", CommonPictures.flag_html ccode)] else []) @ [
+          ] @ (if Geoip.active () then [(cname, "sr", CommonPictures.flag_html ccode)] else []) @ [
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_downloaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_session_uploaded));

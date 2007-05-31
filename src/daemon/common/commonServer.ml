@@ -386,7 +386,7 @@ let server_print_html_header buf ext =
     ( "0", "srh", "Network name", "Network" ) ;
     ( "0", "srh", "Connection status", "Status" ) ;
     ( "0", "srh br", "IP address", "IP address" ) ;
-    ] @ (if !Geoip.active then [( "0", "srh br", "Country Code/Name", "CC" )] else []) @ [
+    ] @ (if Geoip.active () then [( "0", "srh br", "Country Code/Name", "CC" )] else []) @ [
     ( "1", "srh ar", "Number of connected users", "Users" ) ;
     ( "1", "srh ar br", "Max number of users", "MaxUsers" ) ;
     ( "1", "srh ar br", "LowID users", "LowID" ) ;
@@ -521,7 +521,7 @@ let server_print s o =
       ("", "sr", n.network_name);
       ("", "sr", server_state_string);
       ("", "sr br", ip_port_string);
-      ] @ (if !Geoip.active then [(cn, "sr br", CommonPictures.flag_html cc)] else []) @ [
+      ] @ (if Geoip.active () then [(cn, "sr br", CommonPictures.flag_html cc)] else []) @ [
       ("", "sr ar", if info.G.server_nusers = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_nusers);
       ("", "sr ar br", if info.G.server_max_users = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_max_users);
       ("", "sr ar br", if info.G.server_lowid_users = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_lowid_users);
@@ -559,7 +559,7 @@ onClick=\\\"location.href='submit?q=server_shares+%d'\\\"\\>%d\\</TD\\>"
             then "(" ^ (string_of_int info.G.server_realport) ^ ")" 
             else ""))
           (info.G.server_name)
-	  (if !Geoip.active then Printf.sprintf "%33s/%-2s%9s" cn cc "" else "")
+	  (if Geoip.active () then Printf.sprintf "%33s/%-2s%9s" cn cc "" else "")
           (info.G.server_nusers)
           (info.G.server_nfiles)
           (if server_blocked s 

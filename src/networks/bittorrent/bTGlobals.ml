@@ -768,7 +768,7 @@ let parse_software s =
     with _ -> default
 
 let check_client_country_code c =
-  if !Geoip.active then
+  if Geoip.active () then
     match c.client_country_code with
     | None ->
         c.client_country_code <-

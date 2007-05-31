@@ -485,7 +485,7 @@ let _ =
           ("", "sr", "D");
           ("", "sr", "N");
           ("", "sr", (string_of_kind cinfo.GuiTypes.client_kind));
-          ] @ (if !Geoip.active then [( cname, "sr br", CommonPictures.flag_html ccode)] else []) @ [
+          ] @ (if Geoip.active () then [( cname, "sr br", CommonPictures.flag_html ccode)] else []) @ [
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_uploaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_downloaded));
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_session_uploaded));

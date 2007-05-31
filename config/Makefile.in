@@ -28,8 +28,8 @@ NO_LIBS_opt=
 NO_STATIC_LIBS_opt=
 NO_CMXA=
 
-LIBS_byte=-custom unix.cma str.cma
-LIBS_opt= unix.cmxa str.cmxa
+LIBS_byte=-custom bigarray.cma unix.cma str.cma
+LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa
 
 BIGARRAY_LIBS_opt=bigarray.cmxa
 BIGARRAY_LIBS_byte=bigarray.cma

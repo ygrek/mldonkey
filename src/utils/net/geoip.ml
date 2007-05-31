@@ -23,6 +23,7 @@ open Ip
 open Int64ops
 open Printf2
 open Gettext
+open Bigarray
 
 let _s x = _s "GeoIp" x
 let _b x = _b "GeoIp" x
@@ -44,17 +45,48 @@ let standard_record_length = 3
 let org_record_length = 4
 let max_record_length = 4
 
-let databaseInfo_COUNTRY_EDITION = 1
-let databaseInfo_REGION_EDITION_REV0 = 7
-let databaseInfo_REGION_EDITION_REV1 = 3
-let databaseInfo_CITY_EDITION_REV0 = 6
-let databaseInfo_CITY_EDITION_REV1 = 2
-let databaseInfo_ORG_EDITION = 5
-let databaseInfo_ISP_EDITION = 4
-let databaseInfo_PROXY_EDITION = 8
-let databaseInfo_ASNUM_EDITION = 9
-let databaseInfo_NETSPEED_EDITION = 10
-let databaseInfo_DOMAIN_EDITION = 11
+type database_type =
+    DatabaseInfo_UNKNOWN
+  | DatabaseInfo_COUNTRY_EDITION
+  | DatabaseInfo_REGION_EDITION_REV0
+  | DatabaseInfo_REGION_EDITION_REV1
+  | DatabaseInfo_CITY_EDITION_REV0
+  | DatabaseInfo_CITY_EDITION_REV1
+  | DatabaseInfo_ORG_EDITION
+  | DatabaseInfo_ISP_EDITION
+  | DatabaseInfo_PROXY_EDITION
+  | DatabaseInfo_ASNUM_EDITION
+  | DatabaseInfo_NETSPEED_EDITION
+  | DatabaseInfo_DOMAIN_EDITION
+
+let database_type_of_int =
+  [| DatabaseInfo_UNKNOWN;
+     DatabaseInfo_COUNTRY_EDITION;
+     DatabaseInfo_CITY_EDITION_REV1;
+     DatabaseInfo_REGION_EDITION_REV1;
+     DatabaseInfo_ISP_EDITION;
+     DatabaseInfo_ORG_EDITION;
+     DatabaseInfo_CITY_EDITION_REV0;
+     DatabaseInfo_REGION_EDITION_REV0;
+     DatabaseInfo_PROXY_EDITION;
+     DatabaseInfo_ASNUM_EDITION;
+     DatabaseInfo_NETSPEED_EDITION;
+     DatabaseInfo_DOMAIN_EDITION |]
+
+let database_name dbtype =
+  match dbtype with
+  | DatabaseInfo_COUNTRY_EDITION -> "country edition"
+  | DatabaseInfo_REGION_EDITION_REV0 -> "region edition v0"
+  | DatabaseInfo_REGION_EDITION_REV1 -> "region edition v1"
+  | DatabaseInfo_CITY_EDITION_REV0 -> "city edition v0"
+  | DatabaseInfo_CITY_EDITION_REV1 -> "city edition v1"
+  | DatabaseInfo_ORG_EDITION -> "org edition"
+  | DatabaseInfo_ISP_EDITION -> "isp edition"
+  | DatabaseInfo_PROXY_EDITION -> "proxy edition"
+  | DatabaseInfo_ASNUM_EDITION -> "asnum edition"
+  | DatabaseInfo_NETSPEED_EDITION -> "netspeed edition"
+  | DatabaseInfo_DOMAIN_EDITION -> "domain edition"
+  | DatabaseInfo_UNKNOWN -> "unknown edition"
 
 let country_code_array = [|
   "--";"AP";"EU";"AD";"AE";"AF";"AG";"AI";"AL";"AM";"AN";"AO";"AQ";"AR";
@@ -162,7 +194,7 @@ let country_continent_name_array =
   Array.make (Array.length country_continent_code_array) "N/A"
 
 let country_index = Hashtbl.create 250
-let _ =
+let () =
   Array.iteri (fun i cc -> 
     Hashtbl.add country_index cc i
   ) country_code_array;
@@ -180,241 +212,224 @@ let _ =
     )) country_continent_code_array
 
 let unknown_country = ("--", "N/A")
-let file = ref (Obj.magic 0)
-let active = ref false
-let database_type = ref databaseInfo_COUNTRY_EDITION 
-let database_segments = ref 0
-let record_length = ref 0
 
-let database_name () =
-  if !database_type = databaseInfo_COUNTRY_EDITION then
-  "country edition" else
-  if !database_type = databaseInfo_REGION_EDITION_REV0 then
-  "region edition v0" else
-  if !database_type = databaseInfo_REGION_EDITION_REV1 then
-  "region edition v1" else
-  if !database_type = databaseInfo_CITY_EDITION_REV0 then
-  "city edition v0" else
-  if !database_type = databaseInfo_CITY_EDITION_REV1 then
-  "city edition v1" else
-  if !database_type = databaseInfo_ORG_EDITION then
-  "org edition" else
-  if !database_type = databaseInfo_ISP_EDITION then
-  "isp edition" else
-  if !database_type = databaseInfo_PROXY_EDITION then
-  "proxy edition" else
-  if !database_type = databaseInfo_ASNUM_EDITION then
-  "asnum edition" else
-  if !database_type = databaseInfo_NETSPEED_EDITION then
-  "netspeed edition" else
-  if !database_type = databaseInfo_DOMAIN_EDITION then
-  "domain edition" else
-  "unknown edition"
+type geoip_database = {
+  file: in_channel;
+  dbtype: database_type;
+  segments: int;
+  record_length: int;
+  map: (int, int8_unsigned_elt, c_layout) Array1.t;
+} 
+
+let new_map file =
+  Array1.map_file (Unix.descr_of_in_channel file) 
+    int8_unsigned c_layout false (-1)
 
 let unpack filename =
   let ext = String.lowercase (Filename2.extension filename) in
-    let last_ext = String.lowercase (Filename2.last_extension filename) in
-    let real_ext = if last_ext = ".zip" then
-      last_ext
-    else
-      ext
-    in
-    match real_ext with
-    | ".zip" ->
-	(try
-	  let file =
-	    Unix2.tryopen_read_zip filename (fun ic ->
-	      try
-		Zip.find_entry ic "GeoIP.dat"
-	      with e ->
-		lprintf_nl "Exception %s while extracting geoip.dat"
-		  (Printexc2.to_string e);
-		raise e) in
-	  try
-	    ignore(Misc.archive_extract filename "zip");
-	    let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
-	    (try Sys.remove geo_file with _ -> ());
-	    Unix2.rename file.Zip.filename geo_file;
-	    geo_file
-	  with e ->
-	    lprintf_nl "Exception %s while extracting geoip.dat"
-	      (Printexc2.to_string e);
-	    raise e
-	with e ->
-	  lprintf_nl "Exception %s while opening %s"
-	    (Printexc2.to_string e) filename;
-	  raise Not_found)
+  let last_ext = String.lowercase (Filename2.last_extension filename) in
+  let real_ext = if last_ext = ".zip" then last_ext else ext in
+  match real_ext with
+  | ".zip" ->
+      (try
+	 let file =
+	   Unix2.tryopen_read_zip filename (fun ic ->
+	     try
+	       Zip.find_entry ic "GeoIP.dat"
+	     with e ->
+	       lprintf_nl "Exception %s while extracting geoip.dat"
+		 (Printexc2.to_string e);
+	       raise e) in
+	 try
+	   ignore(Misc.archive_extract filename "zip");
+	   let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
+	   (try Sys.remove geo_file with _ -> ());
+	   Unix2.rename file.Zip.filename geo_file;
+	   geo_file
+	 with e ->
+	   lprintf_nl "Exception %s while extracting geoip.dat"
+	     (Printexc2.to_string e);
+	   raise e
+       with e ->
+	 lprintf_nl "Exception %s while opening %s"
+	   (Printexc2.to_string e) filename;
+	 raise Not_found)
 
-    | ".dat.gz" | ".dat.bz2" | ".gz" | ".bz2" ->
-	begin
-	  let filetype =
-	    if ext = ".bz2" || ext = ".dat.bz2" then
-	      "bz2"
-	    else
-	      "gz"
-	  in try
-	    let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
-	    let s = Misc.archive_extract filename filetype in
-	    (try Sys.remove geo_file with _ -> ());
-	    Unix2.rename s geo_file;
-	    geo_file
-          with e ->
-            lprintf_nl "Exception %s while extracting"
-	      (Printexc2.to_string e);
-	    raise Not_found
-        end
+  | ".dat.gz" | ".dat.bz2" | ".gz" | ".bz2" ->
+      let filetype =
+	if ext = ".bz2" || ext = ".dat.bz2" then "bz2" else "gz" in
+      (try
+	 let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
+	 let s = Misc.archive_extract filename filetype in
+	 (try Sys.remove geo_file with _ -> ());
+	 Unix2.rename s geo_file;
+	 geo_file
+       with e ->
+         lprintf_nl "Exception %s while extracting"
+	   (Printexc2.to_string e);
+	 raise Not_found)
 (* if file is not a supported archive type try loading that file anyway *)
     | _ -> filename
 
-let close () =
-  try 
-    if !active then close_in !file;
-    active := false
-  with _ -> ()
+let close_geoip_db geoip_db =
+  close_in geoip_db.file
 
-let init filename =
+let open_geoip_db filename =
   try
-    close ();
-    file := open_in filename;
+    let f = open_in filename in
+    let size = in_channel_length f in
+    let map = new_map f in
 
-    let size = in_channel_length !file in
-    ignore( seek_in !file (size-3) );
- 
+    let new_database ?offset dbtype =
+      let read_segment_size () =
+	match offset with
+	| None -> failwith "Can't read variable segment size without a signature"
+	| Some offset ->
+	    let result = ref 0 in
+	    for j = 0 to segment_record_length - 1 do
+	      let k = map.{offset + j} lsl (j * 8) in
+	      result := !result + k
+	    done;
+	    !result in
+
+      match dbtype with
+      | DatabaseInfo_UNKNOWN -> assert false
+      | DatabaseInfo_DOMAIN_EDITION ->
+	  None; (* Missing in previous implementation! *)
+      | _ ->
+	  Some {
+	    file = f;
+	    dbtype = dbtype;
+	    segments = 
+	      (match dbtype with
+	       | DatabaseInfo_COUNTRY_EDITION 
+	       | DatabaseInfo_PROXY_EDITION
+	       | DatabaseInfo_NETSPEED_EDITION -> 
+		   country_begin
+	       | DatabaseInfo_REGION_EDITION_REV0 -> 
+		   state_begin_rev0
+	       | DatabaseInfo_REGION_EDITION_REV1 -> 
+		   state_begin_rev1
+	       | _ -> 
+		   read_segment_size ());
+	    record_length =
+	      (match dbtype with
+	       | DatabaseInfo_ORG_EDITION 
+	       | DatabaseInfo_ISP_EDITION 
+	       | DatabaseInfo_ASNUM_EDITION -> 
+		   org_record_length
+	       | _ -> 
+		   standard_record_length);
+	    map = map;
+	  } in
+
     let rec setup_types i =
-      if i < structure_info_max_size then begin
- 
-        let delim_len = 3 in
-        let delim = String.create delim_len in
-        ignore( input !file delim 0 delim_len );
-  
-        if delim = "\255\255\255" then begin
-  
-          database_type := input_byte !file;
-  
-          if !database_type >= 106 then
-            database_type := !database_type - 105;
-        
-          if !database_type = databaseInfo_REGION_EDITION_REV0 then begin
-            database_segments := state_begin_rev0;
-            record_length := standard_record_length;
-          end
-          else if !database_type = databaseInfo_REGION_EDITION_REV1 then begin
-            database_segments := state_begin_rev1;
-            record_length := standard_record_length;
-          end
-          else if !database_type = databaseInfo_CITY_EDITION_REV0 
-                 || !database_type = databaseInfo_CITY_EDITION_REV1
-                 || !database_type = databaseInfo_ORG_EDITION 
-                 || !database_type = databaseInfo_ISP_EDITION
-                 || !database_type = databaseInfo_ASNUM_EDITION
-                  then begin
-             
-            database_segments := 0;
-  
-            if !database_type = databaseInfo_CITY_EDITION_REV0 
-              || !database_type = databaseInfo_CITY_EDITION_REV1 then begin
-                record_length := standard_record_length;
-            end else begin
-                record_length := org_record_length;
-            end;
-        
-            let buf = String.create segment_record_length in
-            ignore( input !file buf 0 segment_record_length );
-        
-            for j = 0 to segment_record_length - 1 do
-              let k = (int_of_char buf.[j] land 0xff) lsl (j * 8) in
-              database_segments := !database_segments + k;
-            done;
-          end;
-  
-        end
-        else begin
-          let pos = pos_in !file in
-          ignore(seek_in !file (pos - 4));
-          setup_types (i+1);
-        end;
-      end
+      if i >= structure_info_max_size then
+	new_database DatabaseInfo_COUNTRY_EDITION
+      else
+	let offset = size - 3 - i in
+        if map.{offset} <> 255 ||
+	  map.{offset + 1} <> 255 ||
+	  map.{offset + 2} <> 255 then setup_types (i + 1)
+	else
+          let type_byte = map.{offset + 3} in
+	  let type_byte = if type_byte >= 106 then
+	    type_byte - 105 else type_byte in
+	  if type_byte < 1 || type_byte >= Array.length database_type_of_int 
+	  then setup_types (i + 1)
+	  else 
+	    let dbtype = database_type_of_int.(type_byte) in
+	    new_database ~offset:(offset + 4) dbtype
     in
+    setup_types 0
+  with e -> 
+    lprintf_nl "Exception %s while opening"
+      (Printexc2.to_string e);
+    None
 
-    setup_types 0;
+let seek_country db ip =
+  let ip_long = Ip.to_int64 ip in
 
-    if !database_type = databaseInfo_COUNTRY_EDITION ||
-       !database_type = databaseInfo_PROXY_EDITION ||
-       !database_type = databaseInfo_NETSPEED_EDITION
-    then begin
-      database_segments := country_begin;
-      record_length := standard_record_length;
-    end;
-
-    active := true; 
-    lprintf_nl (_b "%s database loaded") (database_name ())
-  with _ -> 
-    active := false
-
-let seek_country ip =
-    let ip_long = Ip.to_int64 ip in
-    let buf = String.create (2 * max_record_length) in
-
-    let rec dive depth offset = 
-
-      if depth < 0 then 0 else begin
-
-        ignore( seek_in !file (2 * !record_length * offset) );
-        ignore( input !file buf 0 (2 * max_record_length) );
-        
-        let update i =
+  let rec dive depth offset = 
+    if depth < 0 then 0 else
+      let update i =
+	match db.record_length with
+	| 3 -> (* specialized code for common case *)
+ 	  let offset = 6 * offset + 3 * i in
+	  db.map.{offset} +
+	  (db.map.{offset + 1} lsl 8) +
+	  (db.map.{offset + 2} lsl 16)
+	| _ ->
+	  let offset = (2 * offset + i) * db.record_length in
           let tmp = ref 0 in
-          for j = 0 to !record_length - 1 do
-            let y = ref (int_of_char buf.[i * !record_length + j]) in
-            if !y < 0 then y := !y + 256;
-            tmp := !tmp + (!y lsl (j * 8));
+          for j = 0 to db.record_length - 1 do
+            let y = db.map.{offset + j} in
+            tmp := !tmp + (y lsl (j * 8));
           done;
-          !tmp
-        in
+	  !tmp in
           
-        let swim i = 
-          if i >= !database_segments then i else dive (depth-1) i
-        in
+      let swim i = 
+	if i >= db.segments then i - country_begin
+	else dive (depth - 1) i in
 
-        if (and64 ip_long (left64 1L depth)) > 0L 
-          then swim (update 1)
-          else swim (update 0)
-      
-      end
+      let bit = if (and64 ip_long (left64 1L depth)) = 0L then 0 else 1 in
+      swim (update bit) in
+	
+  dive 31 0
 
-    in
-    dive 31 0
+let current_db = ref (None: geoip_database option)
+
+let active () =
+  !current_db <> None
+
+let close () =
+  match !current_db with
+  | None -> ()
+  | Some db ->
+      close_geoip_db db;
+      current_db := None
+
+let init filename = 
+  close ();
+  current_db := open_geoip_db filename;
+  (match !current_db with
+   | None -> lprintf_nl (_b "database not loaded")
+   | Some db -> lprintf_nl (_b "%s database loaded") (database_name db.dbtype))
 
 let get_country_code ip =
   if !verbose then lprintf_nl "get_country_code %s" (Ip.to_string ip);
-  if not !active || ip = Ip.null then 0
-  else begin
-    try   
-      (seek_country ip) - country_begin 
-    with _ -> 0
-  end
+  if ip = Ip.null then 0
+  else
+    match !current_db with
+    | None -> 0
+    | Some db ->
+	try seek_country db ip
+	with _ -> 0
 
 let get_country_code_option ip =
   if !verbose then lprintf_nl "get_country_code_option %s" (Ip.to_string ip);
-  if not !active || ip = Ip.null then None
-  else begin
-    try   
-      let cc = (seek_country ip) - country_begin in
-      if cc = 0 then None else Some cc
-    with _ -> None
-  end
+  if ip = Ip.null then None
+  else 
+    match !current_db with
+    | None -> None
+    | Some db ->
+        try
+          let cc = seek_country db ip in
+          if cc = 0 then None else Some cc
+        with _ -> None
 
 let get_country ip = 
   if !verbose then lprintf_nl "get_country %s" (Ip.to_string ip);
-  if not !active || ip = Ip.null then unknown_country
-  else begin
-    try 
-      let ret = (seek_country ip) - country_begin in
-      if ret = 0 then unknown_country 
-        else country_code_array.(ret), country_name_array.(ret);
-    with _ -> 
-      unknown_country
-  end
+  if ip = Ip.null then unknown_country
+  else
+    match !current_db with
+    | None -> unknown_country
+    | Some db ->
+	try 
+	  let ret = seek_country db ip in
+	  if ret = 0 then unknown_country 
+	  else country_code_array.(ret), country_name_array.(ret);
+	with _ -> unknown_country
 
 let get_country_code_name cc =
   match cc with
@@ -425,11 +440,10 @@ let get_country_code_name cc =
 
 let _ =
   Heap.add_memstat "GeoIp" (fun level buf ->
-    if !active then
-      begin
+    match !current_db with
+    | Some db ->
         Printf.bprintf buf "  countries: %d\n" (Array.length country_code_array);
-        Printf.bprintf buf "  database_type: %s\n" (database_name ());
-      end
-    else
-      Printf.bprintf buf "  module not active\n"
+        Printf.bprintf buf "  database_type: %s\n" (database_name db.dbtype);
+	Printf.bprintf buf "  map size: %d\n" (Array1.dim db.map);
+    | None -> Printf.bprintf buf "  module not active\n"
   )

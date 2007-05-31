@@ -442,7 +442,7 @@ let connected_peers = ref 0
 let pre_connected_peers = ref 0
 
 let check_peer_country_code p =
-  if !Geoip.active then
+  if Geoip.active () then
     match p.peer_country_code with
     | None -> p.peer_country_code <- Geoip.get_country_code_option p.peer_ip
     | _ -> ()

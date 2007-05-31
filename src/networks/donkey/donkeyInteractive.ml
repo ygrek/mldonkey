@@ -1416,7 +1416,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
           ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
           ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
           ( "0", "srh br", "IP address", "IP address" ) ;
-          ] @ (if !Geoip.active then [( "0", "srh br", "Country Code/Name", "CC" )] else []) @ [
+          ] @ (if Geoip.active () then [( "0", "srh br", "Country Code/Name", "CC" )] else []) @ [
           ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
           ( "1", "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
           ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
@@ -1498,7 +1498,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
                   | Some b -> if b then "P" else "F"
                 ));
             ("", "sr br", ip_string);
-            ] @ (if !Geoip.active then [(cn, "sr br", CommonPictures.flag_html cc)] else []) @ [
+            ] @ (if Geoip.active () then [(cn, "sr br", CommonPictures.flag_html cc)] else []) @ [
             ("", "sr ar", (size_of_int64 c.client_total_uploaded));
             ("", "sr ar br", (size_of_int64 c.client_total_downloaded));
             ("", "sr ar", (size_of_int64 c.client_session_uploaded));
@@ -1718,7 +1718,7 @@ let _ =
       );
       Printf.bprintf buf "  state: %s, rank: %d\n"
         (string_of_connection_state (client_state c)) c.client_rank;
-      if !Geoip.active then Printf.bprintf buf "  country: %s: %s\n" cc cn;
+      if Geoip.active () then Printf.bprintf buf "  country: %s: %s\n" cc cn;
       Printf.bprintf buf "  MD4: %s\n" (Md4.to_string c.client_md4);
       Printf.bprintf buf "  downloaded\n";
       Printf.bprintf buf "   - session %s\n" (size_of_int64 c.client_session_downloaded);
@@ -1840,7 +1840,7 @@ let _ =
                         | Some b -> if b then "P" else "F"
                       )); 
                       ("", "sr", ip_string);
-                      ] @ (if !Geoip.active then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
+                      ] @ (if Geoip.active () then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
                       ("", "sr ar", (size_of_int64 c.client_total_uploaded));
                       ("", "sr ar", (size_of_int64 c.client_total_downloaded));
                       ("", "sr ar", (size_of_int64 c.client_session_uploaded));

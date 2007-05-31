@@ -396,7 +396,7 @@ let _ =
                 ( "1", "srh ac", "Client number", "Num" ) ;
                 ( "0", "srh", "Network", "Network" ) ;
                 ( "0", "srh", "IP address", "IP address" ) ;
-                ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
+                ] @ (if Geoip.active () then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
                 ( "0", "srh", "Client name", "Client name" ) ;
                 ( "0", "srh", "Client brand", "CB" ) ;
                 ( "0", "srh", "Client release", "CR" ) ;
@@ -2666,7 +2666,7 @@ let _ =
                   ( "0", "srh", "Client name", "Client name" ) ;
                   ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
                   ( "0", "srh", "IP address", "IP address" ) ;
-		  ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
+		  ] @ (if Geoip.active () then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
                   ( "0", "srh", "Connected time (minutes)", "CT" ) ;
                   ( "0", "srh", "Client brand", "CB" ) ;
                   ( "0", "srh", "Client release", "CR" ) ;
@@ -2707,7 +2707,7 @@ let _ =
                                | Some b -> if b then "P" else "F"
                             )); 
                             ("", "sr", ips);
-                            ] @ (if !Geoip.active then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
+                            ] @ (if Geoip.active () then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
                             ("", "sr", Printf.sprintf "%d" (((last_time ()) - i.client_connect_time) / 60));
                             (client_software i.client_software i.client_os, "sr", client_software_short i.client_software i.client_os);
                             ("", "sr", i.client_release);
@@ -2749,7 +2749,7 @@ let _ =
                   ( "0", "srh", "Client name", "Client name" ) ;
                   ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
                   ( "0", "srh", "IP address", "IP address" ) ;
-		  ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
+		  ] @ (if Geoip.active () then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
                   ( "0", "srh", "Client brand", "CB" ) ;
                   ( "0", "srh", "Client release", "CR" ) ;
                   ] @
@@ -2783,7 +2783,7 @@ let _ =
                           | Some b -> if b then "P" else "F"
                         )); 
                         ("", "sr", ips);
-                        ] @ (if !Geoip.active then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
+                        ] @ (if Geoip.active () then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
                         (client_software i.client_software i.client_os, "sr", client_software_short i.client_software i.client_os);
                         ("", "sr", i.client_release);
                         ] @
@@ -2942,7 +2942,7 @@ let _ =
               ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
               ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
               ( "0", "srh", "IP address", "IP address" ) ;
-              ] @ (if !Geoip.active then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [ 
+              ] @ (if Geoip.active () then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [ 
               ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL");
               ( "1", "srh ar", "Total DL bytes from this client for all files", "tDL");
               ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL");

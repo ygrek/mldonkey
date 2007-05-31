@@ -451,7 +451,7 @@ let client_print c o =
 	("", "sr", Printf.sprintf "%d" (client_num c));
 	("", "sr", n.network_name);
 	("", "sr", ips);
-	] @ (if !Geoip.active then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
+	] @ (if Geoip.active () then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
 	(String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ]);
     end
   else begin
