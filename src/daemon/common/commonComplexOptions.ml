@@ -1088,16 +1088,15 @@ open Zip
 
 let backup_zip archive files =
   try 
-    Unix2.tryopen_write_zip archive (fun oc ->
-      List.iter (fun file ->
-	try
+    Unix2.tryopen_umask 0o066 (fun _old_umask ->
+      Unix2.tryopen_write_zip archive (fun oc ->
+        List.iter (fun file -> try
           let module U = Unix.LargeFile in
           let s = U.stat file in
 	  Zip.copy_file_to_entry file oc ~level:9 ~mtime:s.U.st_mtime file
 	with e ->
 	  failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) file)
-      ) files);
-    (try Unix.chmod archive 0o600 with _ -> ())
+      ) files))
   with e ->
     failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) archive)
 
@@ -1105,9 +1104,9 @@ open Tar
 
 let backup_tar archive files =
   let failed_files = ref [] in
-  Unix2.tryopen_write_tar ~compress:`Gzip archive (fun otar ->
-    List.iter (fun arg ->
-      try
+  Unix2.tryopen_umask 0o066 (fun _old_umask ->
+    Unix2.tryopen_write_tar ~compress:`Gzip archive (fun otar ->
+      List.iter (fun arg -> try
 	let header, s =
 	  Unix2.tryopen_read_bin arg (fun ic ->
 	    let stat = Unix.stat arg in
@@ -1144,8 +1143,7 @@ let backup_tar archive files =
       | e ->
 	  failed_files := arg :: !failed_files;
 	  lprintf_nl "Tar: error %s in %s" (Printexc2.to_string e) arg
-    ) files);
-    (try Unix.chmod archive 0o600 with _ -> ());
+    ) files));
     if !failed_files <> [] then
       failwith (Printf.sprintf "Tar: error backing up %s"
 	(String.concat " " (List.rev !failed_files)))
