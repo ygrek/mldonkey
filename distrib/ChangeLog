@@ -3,7 +3,7 @@ will not get a release tag in CVS, also the version number reported
 by MLDonkey will stay the same.
 
 Patches done after the last release are experimental,
-please test carefully and report your findings.
+please test carefully and report your results.
 
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
