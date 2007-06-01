@@ -1566,7 +1566,6 @@ let _ =
     file_ops.op_file_set_format <- (fun _ _ -> ());
     file_ops.op_file_check <- (fun _ -> ());
     file_ops.op_file_recover <- (fun _ -> ());
-    file_ops.op_file_set_priority <- (fun _ _ -> ())
     (*file_ops.op_file_print_html <- (fun _ _ -> lprintf_nl "Received (op_file_print_html)"; ());*)
     (*file_ops.op_file_print_sources_html <- (fun _ _ -> lprintf_nl "Received (op_file_print_sources_html)"; ())*)
 (*    mutable op_file_files : ('a -> 'a file_impl -> file list);

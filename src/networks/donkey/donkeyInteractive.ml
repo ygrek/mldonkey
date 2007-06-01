@@ -1018,7 +1018,7 @@ let _ =
   file_ops.op_file_pause <- (fun file ->
     DonkeySources.iter_active_sources (fun s ->
       let s_uid = s.DonkeySources.source_uid in
-      let c = new_client s_uid in
+      let c = new_client s_uid s.DonkeySources.source_country_code in
       match client_state c with
       | Connected_downloading f when f = file_num file -> disconnect_client c Closed_by_peer
       | _ -> ()
