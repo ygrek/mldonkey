@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/06/01
+5984: EDK: Small log updates
+
 2007/05/31
 5982: Save archives used for ini files backup with rights 600 (pango)
 5981: EDK/Swarming: Download first 9MB first for preview,

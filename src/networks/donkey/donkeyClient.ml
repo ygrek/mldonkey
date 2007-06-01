@@ -708,7 +708,7 @@ let update_client_from_tags c tags =
           parse_mod_version s c
       | Field_KNOWN _ -> if !verbose_unknown_messages then
             lprintf_nl "update_client_from_tags, known tag: [%s] (%s)" (string_of_tag tag) (full_client_identifier c)
-      | _ -> if not (DonkeySources.source_brand c.client_source) then
+      | _ -> if not (DonkeySources.source_brand c.client_source) && !verbose_unknown_messages then
             lprintf_nl "update_client_from_tags, unknown tag: [%s] (%s) %s"
               (hexstring_of_tag tag) (full_client_identifier c) (string_of_tags_list tags)
   ) tags
@@ -756,7 +756,7 @@ let update_emule_proto_from_tags c tags =
 	  | _ ->  if s <> "" then c.client_osinfo <- Some s)
       | Field_KNOWN _ -> if !verbose_unknown_messages then
             lprintf_nl "update_emule_proto_from_tags, known tag: [%s] (%s)" (string_of_tag tag) (full_client_identifier c)
-      | _ -> if not (DonkeySources.source_brand c.client_source) then
+      | _ -> if not (DonkeySources.source_brand c.client_source) && !verbose_unknown_messages then
             lprintf_nl "update_emule_proto_from_tags, unknown tag: [%s] (%s) %s"
               (hexstring_of_tag tag) (full_client_identifier c) (string_of_tags_list tags)
   ) tags
