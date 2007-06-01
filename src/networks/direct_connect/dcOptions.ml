@@ -17,77 +17,93 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Options
 open CommonOptions
 open CommonTypes
-open DcTypes
-open Options
 
-let directconnect_ini = create_options_file "directconnect.ini"
+open DcTypes
+
   
+let directconnect_ini = create_options_file "directconnect.ini"
 let directconnect_section = file_section directconnect_ini ["DirectConnect"] "DirectConnect options"
   
-let max_connected_servers = define_option directconnect_section
-  ["max_connected_servers"] 
-    "The number of servers you want to stay connected to" int_option 5
-
-let login_messages = define_option directconnect_section
-    ["login_messages"]
-    "Some more messages to send to the server when connecting"
-    (list_option string_option)
-  ["$Version 1,0091"; "$GetNickList"]
+let dc_port = define_option directconnect_section ["client_port"]
+    "The port to bind the client to"
+    int_option 4444
   
+let dc_open_slots = define_option directconnect_section ["dc_open_slots"]
+    "How many slots are open to other clients"
+    int_option 2
+
+let login = define_option directconnect_section ["login"]
+    "Your login on DC (no spaces !!!)" string_option ""
+
+(*let load_hublist = define_option directconnect_section ["load_hublist"]
+    "Download a list of servers"
+    bool_option true *)
+  
+let servers_list_url = define_option directconnect_section ["servers_list_url"]
+    "The URL from which the first server list is downloaded"
+    string_option  "http://dchublist.com/hublist.config.bz2"
+  
+let hubs_passwords = define_option directconnect_section ["hubs_passwords"]
+    "Define here a list of address/passwords/nick triples for hubs in form:
+    [ (\"hubserver.ip.com\", \"nick1\", \"pass1\");
+     (\"somehub.somewhere.org\", \"nick2\", \"pass2\");
+     (\"11.22.333.444\", \"nick3\", \"pass3\");
+    ]"
+    (list_option (tuple3_option (string_option, string_option, string_option)))
+    []
 
 let search_timeout = define_option directconnect_section
     ["search_timeout"]
-  "The time a search is active"
+    "The time a search is active"
     int_option 60
-
-let load_hublist = define_option directconnect_section ["load_hublist"]
-    "Download a list of servers"
-    bool_option true
   
+let file_search_time = define_option directconnect_section
+    ["file_search_time"]
+    "Minimum time between automated file tth searches in minutes"
+    int_option 60
+  
+let client_timeout = define_option directconnect_section
+    ["client_timeout"]
+    "In initialization, the time in seconds we wait connection responses from client"
+    int_option 90
+
+let client_read_timeout = define_option directconnect_section
+    ["client_read_timeout"]
+    "The maximum time in seconds we wait data from client in downloading"
+    int_option 60
+    
+let client_write_timeout = define_option directconnect_section
+    ["client_write_timeout"]
+    "The maximum time in seconds we wait to continue pushing data to client in uploading"
+    int_option 60
+    
+let wait_for_next_upload = define_option directconnect_section
+    ["wait_for_next_upload"]
+    "How many seconds we wait a client to continue slot before closing and freeing the slot"
+    int_option 30
+
 let firewalled = define_option directconnect_section ["firewalled"]
-  "Is this client firewalled (use passive searches)"
+    "Is this client firewalled (use passive searches)"
     bool_option false
   
-let shared_offset = define_option directconnect_section
-    ["shared_offset"]
-    "An amount of bytes to add to the shared total (can help to connect)"
-    float_option (1024. *. 1024. *. 11.)
-
+let autosearch_by_tth = define_option directconnect_section ["autosearch_by_tth"]
+    "Automatically find alternative sources, if file is unavailable. Also add sources
+     from searches automatically"
+    bool_option true
   
-let dc_port = define_option directconnect_section ["client_port"]
-  ~restart: true
-  "The port to bind the client to"
-    int_option 4444
-  
-let login = define_option directconnect_section ["login"]
-    "Your login on DC (no spaces !!!)" string_option ""
-    
-let max_known_servers = define_option directconnect_section
-    ["query_hublist_limit"] 
-    "The limit on the number of servers to avoid asking for a new list" 
-  int_option 100
-    
-let servers_list_url = define_option directconnect_section ["servers_list_url"]
-    "The URL from which the first server list is downloaded"
-    string_option  "http://www.neo-modus.com/PublicHubList.config"
-  
-let client_description = define_option directconnect_section
-    ["client_description"] "The description sent in the MyINFO message"
-    string_option "mldc client"
-  
-(* We should probably only have one common option for all networks for the
-  speed. However, it might be interesting to cheat on some networks... *)
+let max_sources_file = define_option directconnect_section ["max_sources_file"]
+    "Maximal number of sources to single file"
+    int_option 5
   
 let client_speed = define_option directconnect_section
-    ["client_speed"] "The line speed sent in the MyINFO message"
+    ["client_speed"]
+    "The line speed sent in the MyINFO message
+     eg. Modem, Cable, DSL, Satellite, LAN(T1), LAN(T3)"
     string_option "DSL"
   
-let client_keyinfo = define_option directconnect_section
-    ["client_keyinfo"] "The key info sent in the handshake message"
-    string_option "Pk=mldc"
-
 let options_version = define_option directconnect_section ["options_version"]
     ~internal: true
     "(internal option)"
@@ -105,12 +121,9 @@ let gui_dc_options_panel =
   *)
   [
     "Login (nothing for global one)", shortname login, "T";
-    "Description", shortname client_description, "T";
     "Port", shortname dc_port, "T";
     "Hub List URL", shortname servers_list_url, "T";
     "Search Timeout", shortname search_timeout, "T";
-    ("Max Connected Servers", shortname max_connected_servers, "T");
-    ("Firewalled", shortname firewalled, "B");
-    ("Client Speed", shortname client_speed, "T");
-    ("Shared Offset", shortname shared_offset, "T");
+    "Firewalled", shortname firewalled, "B";
+    "Connection Type", shortname client_speed, "T";
   ]

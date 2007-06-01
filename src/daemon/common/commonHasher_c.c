@@ -348,6 +348,7 @@ static void * hasher_thread(void * arg)
 
       case METHOD_TIGER:
         bsize = tiger_block_size(job_len);
+        os_lseek(job_fd, job_begin_pos, SEEK_SET);
         tiger_tree_fd(job_fd, job_len, 0, bsize, p_job_result);
       break;
 

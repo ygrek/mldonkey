@@ -18,6 +18,9 @@
 *)
 
 open Printf2
+open BasicSocket
+open TcpBufferedSocket
+open Options
 open CommonOptions
 open CommonUser
 open CommonRoom
@@ -26,69 +29,32 @@ open CommonComplexOptions
 open CommonSearch
 open CommonResult
 open CommonTypes
-open BasicSocket
-open TcpBufferedSocket
-open Options
+open CommonGlobals
+open CommonUploads
+open CommonShared
+
+open DcTypes
 open DcOptions
 open DcComplexOptions
-open CommonGlobals
-open DcTypes
-open DcProtocol
 open DcGlobals
+open DcProtocol
+open DcClients
 
-module CO = CommonOptions
-
-let active_search_supported = false
-  
-
-
-let try_connect_client c =
-  if connection_can_try c.client_connection_control then
-    match c.client_sock with
-    | NoConnection -> begin
-          match c.client_addr with
-            None ->
-              List.iter (fun s ->
-                  match s.server_sock with
-                  | Connection sock ->
-                      server_send !verbose_msg_servers sock (
-                        let module C = RevConnectToMe in
-                        RevConnectToMeReq {
-                          C.orig = s.server_last_nick;
-                          C.dest = c.client_name;
-                        }
-                      );
-                      if not !!firewalled then
-                        server_send !verbose_msg_servers sock (
-                          let module C = ConnectToMe in
-                          ConnectToMeReq {
-                            C.nick = c.client_name;
-                            C.ip = CO.client_ip (Some sock);
-                            C.port = !!dc_port;
-                          }
-                        );
-                  | _ -> ()
-              )                    
-              c.client_user.user_servers 
-          | Some (ip, port) ->
-              DcClients.connect_client c
-        end
-    | _ -> ()
+let log_prefix = "[dcSer]"
             
-let add_search s words =
-  if not (Fifo.mem s.server_searches words) then
-    Fifo.put s.server_searches words
+let lprintf_nl fmt =
+  lprintf_nl2 log_prefix fmt
     
-let rec remove_short list list2 =
+(*let rec remove_short list list2 =
   match list with
     [] -> List.rev list2
   | s :: list -> 
-      if String.length s < 5 then (* keywords should had list be 5 bytes *)
+      if String.length s < 5 then 
         remove_short list list2
       else
-        remove_short list (s :: list2)
+        remove_short list (s :: list2) *)
           
-let stem s =
+(*let stem s =
   let s = String.lowercase (String.copy s) in
   for i = 0 to String.length s - 1 do
     let c = s.[i] in
@@ -96,517 +62,565 @@ let stem s =
       'a'..'z' | '0' .. '9' -> ()
     | _ -> s.[i] <- ' ';
   done;
-  remove_short (String2.split s ' ') []
-           
-let ask_for_file file =
-  if file_state file = FileDownloading then
-    List.iter (fun c ->
-        try_connect_client c
-    ) file.file_clients
-  
-let ask_for_files () =
-  Hashtbl.iter (fun _ file ->
-      ask_for_file file
-  ) files_by_key
-     
-let recover_files_from_server s = 
-  List.iter (fun file ->
-      if file_state file = FileDownloading then begin
-          
-          List.iter (fun c ->
-              do_if_connected  c.client_sock 
-                (fun _ ->
-                  match c.client_addr with
-                    Some _ -> ()
-                  | None ->
-                      do_if_connected s.server_sock (fun sock ->
-
-(* TODO: Get Information on this client to have its IP address, and
-  directly connect to him *)
-                          server_send !verbose_msg_servers sock (
-                            let module C = RevConnectToMe in
-                            RevConnectToMeReq {
-                              C.orig = s.server_last_nick;
-                              C.dest = c.client_name;
-                            }
-                          );
-                          if not !!firewalled then 
-                            
-                            server_send !verbose_msg_servers sock (
-                              let module C = ConnectToMe in
-                              ConnectToMeReq {
-                                C.nick = c.client_name;
-                                C.ip = CO.client_ip (Some sock);
-                                C.port = !!dc_port;
-                              }
-                            );
-                      )                    
-              )
-          )
-          file.file_clients;
-          
-(* try to find new sources by queries *)
-          let keywords = 
-            match stem file.file_name with 
-              [] | [_] -> 
-(*            lprintf "Not enough keywords to recover %s" f.file_name;
-            lprint_newline (); *)
-                [file.file_name]
-            | l -> l
-          in
-          let words = String2.unsplit keywords ' ' in
-          add_search s words
-        end
-  ) !current_files;
-  ()
+  remove_short (String2.split s ' ') [] *)
   
 let server_addr s = Ip.string_of_addr s.server_addr
 
-  
+(* disconnect from DC hub *) 
 let disconnect_server s reason =
-  match s.server_sock with
+  (match s.server_sock with
   | NoConnection -> ()
   | ConnectionWaiting token -> 
       cancel_token token;
       s.server_sock <- NoConnection
   | Connection sock ->
-      (try close sock reason with _ -> ());      
-      decr nservers;
-      if !verbose_msg_servers then begin
-          lprintf "%s:%d CLOSED received by server for reason %s\n"
+      if !verbose_msg_servers then
+        lprintf_nl "Server (%s:%d) CLOSED connection for reason (%s)"
             (server_addr s) s.server_port (BasicSocket.string_of_reason reason); 
-        end;
+      (try TcpBufferedSocket.close sock reason with _ -> () );      
       connection_failed (s.server_connection_control);
       s.server_sock <- NoConnection;
-      if !verbose_msg_servers then begin
-          lprintf "******** NOT CONNECTED *****\n"; 
-        end;
+      s.server_hub_state <- Waiting;
       set_server_state s (NotConnected (reason, -1));
-      connected_servers := List2.removeq s !connected_servers;
-      s.server_messages <- 
-        (room_new_message (as_room s.server_room) 
-        (ServerMessage "************* CLOSED ***********\n"))
-      :: s.server_messages;
-      set_room_state s RoomClosed;
-      room_must_update (as_room s.server_room)
+      remove_connected_server s )
   
+(* Server connection handler *) 
 let server_handler s sock event = 
-  match event with
-    BASIC_EVENT (CLOSED r) -> disconnect_server s r     
-  | _ -> ()
+  (match event with
+  | BASIC_EVENT (CLOSED r) ->
+      disconnect_server s r     
+  | _ -> () )
 
+(* Get MyInfo Hubs information of connected servers atm *)
+let get_myhubs_info () =
+  let n_hubs = ref 0 in (* how many servers has sent $Hello *)
+  let r_hubs = ref 0 in (* how many servers we have sent $MyPass *)
+  let o_hubs = ref 0 in (* how many servers has sent $LogedIn *)
+  List.iter (fun server ->
+    (match server.server_sock with
+    | Connection _ ->
+      (match server.server_hub_state with
+      | Opped -> incr o_hubs
+      | Vipped -> incr r_hubs
+      | User -> incr n_hubs
+      | _ -> () )
+    | _ -> () )
+  ) !connected_servers;
+  !n_hubs,!r_hubs,!o_hubs
+
+(* MyInfo record sending *)
+let create_myinfo s = (* every server is sent its own info (nick) (uptime) *) 
+  (* <++ V:x,M:x,H:x/y/z,S:x[,O:x]>
+     V(ersion) x = client version
+     M(ode) x = mode (A = Active, P = Passive, 5 = SOCKS5)
+     H(ubs) x = number of hubs connected to where you're not a registered user
+            y = number of hubs you're registered in
+            z = number of hubs you're registered as an operator
+     S(lots) x = number of upload slots you have open (note that they may be in use already)
+     O(pen an extra slot if speed is below)
+             x = if total upload is below this value DC++ will open another slot
+                 This part of the tag is only shown when the option for it is enabled.
+
+     <flag> User status as ascii char (byte)
+        1 normal - 2,3 away - 4,5 server - 6,7 server away - 8,9 fireball - 10,11 fireball away 
+        * The server icon is used when the client has uptime > 2 hours, > 2 GB shared, upload > 200 MB.
+        * The fireball icon is used when the client has had an upload > 100 kB/s. *)
+   let version = Autoconf.current_version in
+   let uptime = current_time () -. s.server_connection_time in
+   let mode = ref ( if (!!firewalled = true) then 'P' else 'A') in
+   let own_brand = "MLDC" in 
+   let norm_hubs,reg_hubs,opped_hubs = get_myhubs_info () in
+   let time_flag =  
+     if (uptime > 7200.) && 
+        (!nshared_bytes > (Int64.mul (Int64.of_int 2) int64_gbyte)) &&
+        (!dc_total_uploaded > (Int64.mul (Int64.of_int 200) int64_mbyte)) then 5 
+     else 1
+   in
+   {
+     dest = "$ALL";
+     nick = s.server_last_nick;
+     client_brand = own_brand;
+     version = version;
+     mode = !mode;
+     hubs = norm_hubs, reg_hubs, opped_hubs ; 
+     slots = open_slots (); 
+     open_upload_slot = 0; (*TODO Automatically open an extra slot if speed is below kB/s*)
+     description = 
+       Printf.sprintf "<%s V:%s,M:%c,H:%d/%d/%d,S:%d>" own_brand version !mode
+         norm_hubs reg_hubs opped_hubs (open_slots ());
+     conn_speed = !!client_speed;
+     flag = time_flag;
+     email = "";
+     sharesize = !nshared_bytes;
+     bwlimit = !!max_hard_upload_rate;
+   }
+
+(* Send to all connected servers *)
+let send_myinfo_connected_servers () =
+  List.iter (fun s -> (* send myinfo to all servers *)
+    (match s.server_sock with
+    | Connection sock ->
+        let dc_myinfo = create_myinfo s in
+        dc_send_msg sock (MyInfoReq (dc_myinfo))
+    | _ -> () )
+  ) !connected_servers
       
+(* Server message handler *)
+let client_to_server s m sock = 
       
-let rec client_to_server s m sock = 
+  (match m with
   
-  if !CommonOptions.verbose_msg_servers then begin
-      lprintf "From %s:%d"
-        (server_addr s) s.server_port; lprint_newline ();
-      DcProtocol.print m;
-    end;
-  match m with
-  
-  | LockReq lock ->
-      server_send !verbose_msg_servers sock (
-        KeyReq { Key.key = DcKey.gen lock.Lock.key });
-      let nick = login s in
-      server_send !verbose_msg_servers sock (
-        ValidateNickReq nick)
+  | BadPassReq ->
+      if !verbose_msg_servers then lprintf_nl "Bad password for server: %s" (Ip.string_of_addr s.server_addr);
+      s.server_hub_state <- User
+
+  | ConnectToMeReq t ->  (* client is unknown at this moment until $MyNick is received *)
+      (try
+        if !verbose_msg_clients then
+          lprintf_nl "$ConnectToMe (%s:%d) (%s) (%s:%d)" 
+            (server_addr s) s.server_port t.ConnectToMe.nick (Ip.to_string t.ConnectToMe.ip)
+            t.ConnectToMe.port; 
+        let c = new_client () in
+        c.client_name <- Some t.ConnectToMe.nick; (* unknown *) 
+        c.client_addr <- Some (t.ConnectToMe.ip, t.ConnectToMe.port);
+        c.client_state <- DcConnectionStyle (ClientActive (Upload 0)); (* level is set later*)
+        DcClients.connect_client c
+      with e -> 
+          if !verbose_unexpected_messages then lprintf_nl "%s in ConnectToMe sending" (Printexc2.to_string e) )
   
   | ForceMoveReq t ->
+       disconnect_server s (Closed_for_error "Forcemove command received");
       
-      let new_s = new_server (Ip.addr_of_string t) 411 in
-      close sock (Closed_for_error "Redirected");
-      if s != new_s then connect_server s
+  | GetPassReq -> (* After password request from hub ... *)
+      let addr = Ip.string_of_addr s.server_addr in
+      let nick = s.server_last_nick in
+      let rec loop i =
+        (match i with
+        | [] -> dc_send_msg sock ( MyPassReq "IDontKnowThePass" ) (* What to do when have no pass ? *)
+        | (a , n, p) :: tl -> 
+            if (a = addr) && (n = nick) then begin (* Send pass from .ini if present for this hub *)
+              s.server_hub_state <- Vipped;  
+              dc_send_msg sock ( MyPassReq p );
+            end else loop tl )
+      in
+      loop !!hubs_passwords   
   
-  | RevConnectToMeReq t -> 
-      let dest = t.RevConnectToMe.dest in
-      if not !!firewalled then
-        let c = new_client dest in
-        
-        server_send !verbose_msg_servers sock (
-          let module C = ConnectToMe in
-          ConnectToMeReq {
-            C.nick = c.client_name;
-            C.ip = CO.client_ip (Some sock);
-            C.port = !!dc_port;
-          }
-        );
-  
-  | ConnectToMeReq t ->
-(* nick/ip/port *)
-      begin
-        if !verbose_msg_servers then begin
-            lprintf "From %s:%d"
-              (server_addr s) s.server_port; lprint_newline ();
-            DcProtocol.print m;
-          end;
-
-(*
-        let c = new_client t.ConnectToMe.nick in
-        c.client_addr <- Some (t.ConnectToMe.ip, t.ConnectToMe.port);
-        match c.client_sock with 
-          None ->  
-            DcClients.connect_client c
-        | Some sock ->
-            lprintf "We are already connected to that client !!";
-lprint_newline () 
-*)
-        DcClients.connect_anon s t.ConnectToMe.ip t.ConnectToMe.port
-      end
-  
-  | HubNameReq t ->
-      s.server_name <- t;
-      server_must_update s
-  
-  | HelloReq t ->
-      if t = s.server_last_nick then begin
-          set_rtimeout sock half_day;
-          List.iter (fun m ->
-              server_send !verbose_msg_servers sock (UnknownReq m);
-          ) !!login_messages;
-          
-          if !verbose_msg_servers then begin
-              lprintf "*****  CONNECTED  ******"; lprint_newline (); 
-            end;
+  | HelloReq n -> 
+      if n = s.server_last_nick then begin (* if the $Hello is for me :) *)
+        (match s.server_hub_state with
+        | Waiting | Opped | Vipped ->    
+          if !verbose_msg_servers then lprintf_nl "Connected to Hub: %s" s.server_name;
+          add_connected_server s;
           set_server_state s (Connected (-1));
-          set_room_state s RoomOpened;
-          connected_servers := s :: !connected_servers;
-          let module I = MyINFO in
-          server_send !verbose_msg_servers sock (MyINFOReq {
-              I.dest = "$ALL";
-              I.nick = s.server_last_nick;
-              I.description = !!client_description;
-              I.speed = !!client_speed;
-              I.kind = 6;
-              I.email = "";
-              I.size = Int64.to_float !shared_counter +. !!shared_offset;
-            });
-          recover_files_from_server s
-        end  else
-        ignore (user_add s t)
+          dc_send_msg sock (VersionReq Autoconf.current_version);
+          dc_send_msg sock (GetNickListReq); (* Send even if we don't need *)  
+          set_rtimeout sock (float_of_int Date.half_day_in_secs);        (* set read socket timeout big enough *)
+          if s.server_hub_state = Waiting then s.server_hub_state <- User; (* set state with hub to User *)
+          ignore (new_user (Some s) s.server_last_nick);                   (* add myself to this serverlist for sure *)   
+          let dc_myinfo = create_myinfo s in
+          dc_send_msg sock (MyInfoReq (dc_myinfo))
+        | User -> (* We have already passed servers negotiations once and are inside... *)
+            set_rtimeout sock (float_of_int Date.half_day_in_secs))
+      end else    (* $Hello from hub is not for me so it is a new user *)
+        ignore (new_user (Some s) n) 
+        
+  | HubIsFullReq -> 
+     disconnect_server s (Closed_for_error (Printf.sprintf "Hub %s is full" (Ip.string_of_addr s.server_addr) ) )
   
-  | OpListReq list ->
+  | HubNameReq name ->
+      s.server_name <- name;
+      server_must_update s
+
+  | HubTopicReq topic ->
+      s.server_topic <- topic
+  
+  | LockReq lock -> (* After $Lock from hub, answer with possible $Supports followed by $Key and $ValidateNick *)
+      if (lock.Lock.extended_protocol = true) then (* if EXTENDEDPROTOCOL sent from hub, send own $Supports *)
+        dc_send_msg sock ( SupportsReq (HubSupports mldonkey_dc_hub_supports) );
+
+      dc_send_msg sock ( KeyReq { Key.key = DcKey.calculate_key lock.Lock.key } ); (* Send $Key *)
+      let addr = Ip.string_of_addr s.server_addr in (* current server ip as string *)
+        let rec loop passline =
+          match passline with
+          | [] ->                  (* end of !!hubs_passwords option list *)
+              let my_nick = local_login () in (* use global or local nick if nick/pass pair not set in .ini *)
+              s.server_last_nick <- my_nick; 
+              dc_send_msg sock (ValidateNickReq my_nick )
+          | (a , n, _) :: tl -> (* on every line in !!hubs_passwords list check for match *)
+              if (a = addr) then begin
+                s.server_last_nick <- n;
+                dc_send_msg sock ( ValidateNickReq n ) (* send a nick that has password match in .ini *)
+              end else loop tl
+        in
+        loop !!hubs_passwords
+  
+  | LogedInReq n -> 
+      if n = s.server_last_nick then begin (* if we are really opped *) 
+        if !verbose_msg_servers then lprintf_nl "Opped to server %s" (Ip.string_of_addr s.server_addr);
+        s.server_hub_state <- Opped;
+        (*let dc_myinfo = create_myinfo s in
+        dc_send_msg sock (MyInfoReq (dc_myinfo)) *)
+      end
+          
+  | MessageReq t ->
+      s.server_messages <- s.server_messages @ [
+        (int_of_float (current_time ()), t.Message.from, PublicMessage (0,t.Message.message))];
+  
+  | MyInfoReq t ->
+      let u = new_user (Some s) t.nick in
+      (* some hubs send empty info fields, so son't update user if already info filled *)
+      if (t.description = empty_string) && (u.user_myinfo.description <> empty_string) then ()
+      else u.user_myinfo <- t; 
+      (*if u.user_myinfo.conn_speed = "" then u.user_type <- Bot;*)
+      user_must_update (as_user u.user_user);
+      ignore (DcClients.ask_user_for_download u) (* start downloading pending load immediately *)
+  
+  | NickListReq list ->
       List.iter (fun nick ->
-          let u = user_add s nick in
-          u.user_admin <- true;
+        let u = new_user (Some s) nick in
           user_must_update (as_user u.user_user)
       ) list
   
-  | MyINFOReq t ->
-      if t.MyINFO.nick <> s.server_last_nick then begin
-          let u = user_add s t.MyINFO.nick in
-          u.user_link <- t.MyINFO.speed;
-          u.user_data <- t.MyINFO.size;
+  | OpListReq list ->
+      List.iter (fun nick ->
+        let u = new_user (Some s) nick in
+        (*u.user_type <- if u.user_myinfo.conn_speed = "" then Bot*)
+        u.user_type <- Op;
           user_must_update (as_user u.user_user)
-        end
-  
-  | ToReq t ->
-      
-      String2.replace_char t.To.message '\r' ' ';
-      
-      if t.To.orig = "Hub" then
-        let m = Printf.sprintf "\n+-- From server %s [%s:%d] ------\n%s\n"
-            s.server_name (Ip.string_of_addr s.server_addr) s.server_port 
-            t.To.message in
-        
-        CommonEvent.add_event (Console_message_event m);
-      else
-      let orig = user_add s t.To.orig in
-      
-      s.server_messages <- (
-        room_new_message (as_room s.server_room)
-        (PrivateMessage (orig.user_user.impl_user_num,
-            t.To.message))) :: s.server_messages;
-      room_must_update (as_room s.server_room)
+      ) list
   
   | QuitReq t ->
-      user_remove s t
+      remove_user s (search_user_by_name t);
   
-  | NickListReq t ->
-      List.iter (fun t  -> ignore (user_add s t)) t
-  
-  | MessageReq t ->
-      s.server_messages <- (room_new_message
-          (as_room s.server_room) 
-        (ServerMessage t)) :: s.server_messages;
-      room_must_update (as_room s.server_room)
-  
-  | SearchReq t -> begin
-        try
-          let orig = t.Search.orig in
+  | RevConnectToMeReq t ->
+      let orig = t.RevConnectToMe.orig in
+      if !verbose_msg_clients then lprintf_nl "Received RevConnectToMe (%s)" orig;
+      if not !!firewalled then begin (* we are in active mode, send $ConnectToMe *)
+        (match !dc_tcp_listen_sock with 
+        | Some lsock -> (* our listenin socket is active, so send ConnectToMe *)
+            (try 
+              let u = search_user_by_name orig in
+              if (u.user_state = UserIdle) then begin
+                u.user_state <- UserPassiveUserInitiating (current_time() );
+                dc_send_msg sock (
+                  let module C = ConnectToMe in
+                  ConnectToMeReq { 
+                    C.nick = orig;
+                    C.ip = CommonOptions.client_ip (Some sock);
+                    C.port = !!dc_port;
+                  }
+                )
+              end (*else lprintf_nl "Reveived Revconnect: User not UserIdle. Cannot send $ConnectToMe %s - " u.user_nick*)
+            with _ -> if !verbose_msg_clients then lprintf_nl "  No user by name: %s" orig )  
+        | _ -> () ) 
+      end else
+        if !verbose_msg_clients then lprintf_nl "  We are in passive mode and client seems to be also"
           
-          lprintf "SEARCH from %s !!!" orig; lprint_newline ();
-          if String.sub orig 0 5 = " Hub:" then
-            let nick = String.sub orig 5 (String.length orig - 5) in
-            lprintf "nick: %s/%s" nick s.server_last_nick;
-            lprint_newline ();
-            if nick <> s.server_last_nick then begin
-                ignore (user_add s nick);
-                try
-                  lprintf "SEARCH RECEIVED"; lprint_newline ();
-                  let files = CommonUploads.query (
+  | SearchReq t ->
+      (try
+        let find () = 
+          let amount = if t.Search.passive then 5 else 10 in
+          (match t.Search.filetype with
+          | 9 -> 
+              let dcsh = Hashtbl.find dc_shared_files_by_hash t.Search.words_or_tth in
+              [dcsh]
+          | 1 ->
+              let results = ref [] in
+              let words =
+                (match String2.split_simplify t.Search.words_or_tth ' ' with
+                | [] -> raise Not_found
+                | words -> words ) 
+              in
+              let all_match = ref true in
+              let count = ref 0 in
+              (try
+                Hashtbl.iter (fun _ dcsh ->
+                  all_match := true;
+                  let rec search list =
+                    (match list with
+                    | [] -> ()
+                    | word :: tail ->
+                        if String2.contains dcsh.dc_shared_searchname word then search tail
+                        else all_match := false )
+                  in
+                  search words;
+                  if !all_match then begin
+                    results := dcsh :: !results;
+                    incr count;
+                    if !count = amount then raise BreakIter (* lets stop the search if enough found already *)
+                  end
+                ) dc_shared_files_by_hash
+              with BreakIter -> () );
+              !results
+          | _ ->
+              [] )   
+          (*if t.Search.filetype = 9 then begin
+            (try
+              let dcsh = Hashtbl.find dc_shared_files_by_hash t.Search.words_or_tth in
+              let sh = CommonUploads.find_by_name dcsh.dc_shared_codedname in
+              let index = Hashtbl.find CommonUploads.infos_by_name dcsh.dc_shared_fullname in
+              let info = IndexedSharedFiles.get_result index in 
+              [(sh,info)]                     
+            with _ -> raise Not_found )
+          end else begin     
+            CommonUploads.query (
                       let q = 
-                        match String2.split_simplify t.Search.words ' ' with
-                          [] -> raise Not_found
-                        | s :: tail ->
-                            List.fold_left (fun q s ->
-                                QAnd (q, (QHasWord s))
-                            ) (QHasWord s) tail
+                (match String2.split_simplify t.Search.words_or_tth ' ' with
+                | [] -> raise Not_found
+                | s :: tail -> List.fold_left (fun q s -> QAnd (q, (QHasWord s))) (QHasWord s) tail )
                       in
-                      match t.Search.sizelimit with
+              (match t.Search.sizelimit with
                       | NoLimit -> q
-                      | AtMost n -> 
-                          QAnd (QHasMaxVal (Field_Size, n),q)
-                      | AtLeast n -> 
-                          QAnd (QHasMinVal (Field_Size, n),q)
-                    ) in
-                  lprintf "%d replies found" (List.length files); 
-                  lprint_newline ();
-                  
-                  let files,_ = List2.cut 50 files in
-                  let module U = CommonUploads in
-                  List.iter (fun (sh, info) ->
-                      
-                    server_send !verbose_msg_servers sock (SRReq (
-                        let module S = SR in
-                        {
-                          S.owner = s.server_last_nick (* Printf.sprintf "Hub:%s" nick *);
-                          S.filename = sh.CommonUploads.shared_codedname;
-                          S.filesize = info.CommonUploads.shared_size;
-                          S.open_slots = 1;
-                          S.all_slots = 1;      (* TODO *)
-                          S.server_name = s.server_name; (* BUG VERIFY TODO *)
-                          S.server_ip = Some (Printf.sprintf "%s:%d" (Ip.to_string (Ip.ip_of_addr s.server_addr)) s.server_port);
-                          S.to_nick = Some nick;
+              | AtMost n -> QAnd (QHasMaxVal (Field_Size, n),q)
+              | AtLeast n -> QAnd (QHasMinVal (Field_Size, n),q) )
+            )
+          end *)
+        in
+        let send_sr_messages files =      (* function to send both active and passive messages *)
+          (*lprintf_nl "Results %d" (List.length files);*)
+          List.iter (fun dcsh -> 
+            let codedname = String2.replace dcsh.dc_shared_codedname '/' (String2.of_char char92) in
+            (*let length = String.length codedname in*)
+            let directory,filename =
+              (try 
+                let pos = String.rindex codedname char92 in
+                (String2.before codedname pos), (String2.after codedname (pos+1))
+              with _ ->
+                if !verbose_unknown_messages then lprintf_nl "Codedname was wrong in Search receiving";
+                raise Not_found )
+            in
+            let message =                 (* message structure for both active and passive messages *)        
+              let module S = SR in {
+                S.owner = s.server_last_nick;
+                S.directory = directory;
+                S.filename = filename;
+                S.filesize = dcsh.dc_shared_size;
+                S.open_slots = current_slots ();
+                S.all_slots = open_slots ();
+                S.tth = dcsh.dc_shared_tiger_root; 
+                S.server_name = s.server_name;
+                S.server_ip = Printf.sprintf "%s" (Ip.to_string (Ip.ip_of_addr s.server_addr));
+                S.server_port = Printf.sprintf "%d" s.server_port;
+                S.to_nick = if t.Search.passive then Some t.Search.nick else None;
                         }
-                        ))
-                  ) files
-                with Not_found -> 
-                    lprintf "NO REPLY TO SEARCH"; lprint_newline ();
-              end else
-              (lprintf "MY NICK %s" orig;lprint_newline ();)
-          else
-            (lprintf "NOT STARTING BY Hub: [%s]" orig;lprint_newline ();)
-        with e ->
-            lprintf "Exception %s" (Printexc2.to_string e);
-            lprint_newline ();
-      end;
-      lprintf "END OF SEARCH"; lprint_newline ();
-  
-  | SRReq t ->
-      begin
-        if s.server_search_timeout < last_time () then
-          s.server_search <- None;
-        begin
-          try
-            let file = find_file (Filename2.basename t.SR.filename) t.SR.filesize in 
-            if !verbose_msg_servers then begin
-                lprintf "**** FILE RECOVERED on user %s ****"
-                  t.SR.owner; lprint_newline ();
-              end;
-            let user = new_user (Some s) t.SR.owner in
-            let c = add_file_client file user t.SR.filename in
-            if file_state file = FileDownloading then
-              try_connect_client c      
-          with _ -> ()
+            in
+            if !verbose_msg_clients then begin
+              let mode = if t.Search.passive then 'P' else 'A' in
+              lprintf_nl "Sending $SR: (%s)(%c)(%s)(%s)(%s)" t.Search.nick mode directory filename 
+                dcsh.dc_shared_tiger_root
         end;
+            if t.Search.passive then 
+              dc_send_msg sock (SRReq ( message ))
+            else             
+              DcClients.udp_send (Ip.of_string t.Search.ip) (int_of_string t.Search.port) (SRReq ( message ))
+          ) files
+        in
         
-        match s.server_search with 
-          None -> ()
-        | Some q -> 
-(*            add_source result t s; *)
-            let result = new_result t.SR.filename t.SR.filesize in
-            let user = new_user (Some s) t.SR.owner in
-            add_result_source result user t.SR.filename;
-            CommonInteractive.search_add_result true q result
+        if t.Search.passive then begin                          (* if passive search received *)
+          if not !!firewalled then begin                        (* and we are in active mode  *)
+            if (t.Search.nick <> s.server_last_nick) then begin (* if search is not from ourself ... *)
+              ignore (new_user (Some s) t.Search.nick);
+              let files = find () in
+              send_sr_messages files
+            end
+          end                                                   (* passive search to passive user, do nothing *)
+        end else begin                                          (* active search received ... *)
+          if (t.Search.ip <> Ip.to_string (CommonOptions.client_ip (Some sock))) ||
+             (t.Search.port <> string_of_int(!!dc_port)) then begin (* check that ip & port is not ours *)
+                let files = find () in
+                send_sr_messages files
       end
-  
-  | UnknownReq "" -> ()
-  
-  | _ -> 
-      if !verbose_msg_servers then begin
-          lprintf "###UNUSED SERVER MESSAGE###########"; lprint_newline ();
-          DcProtocol.print m
         end
+      with _ -> () (*lprintf_nl "Exception %s in SEARCH receiving" (Printexc2.to_string e)*) )
 
+  | SRReq t -> (* download is resumed automatically, if file is found already to be in file list *)
+      DcClients.received_new_search_result s t
 
+  | SupportsReq t -> (* After EXTENDEDPROTOCOL support list from hub ... *)
+      (match t with
+      | HubSupports t -> s.server_supports <- Some t (* Save supports into serverdata *)
+      | _ -> () )
 
-and connect_server s =
-  Ip.async_ip_of_addr s.server_addr (fun ip ->
-      match s.server_sock with
-      | NoConnection ->
-          if can_open_connection connection_manager then 
-            let token = 
-              add_pending_connection connection_manager (fun token ->
-                  s.server_sock <- NoConnection;
-                  try
-                    connection_try s.server_connection_control;
-                    incr nservers;
+  | ToReq t ->
+      if !verbose_msg_clients then lprintf_nl "Received $To: from %s (%s)" t.To.from t.To.message;
+      let u = new_user (Some s) t.To.from in
+      u.user_messages <- u.user_messages @ [
+        (int_of_float (current_time ()), t.To.from, PrivateMessage (0, t.To.message))];
+      
+  | UnknownReq m -> 
+      if m <> "" then
+        if !verbose_unexpected_messages || !verbose_msg_servers then
+          let l = String.length m in
+          let txt = Printf.sprintf "Unknown server message: (%s)" (shorten_string s.server_name 20)in
+          if l > 50 then lprintf_nl "%s (%s...%d chars)" txt (shorten_string m 50) l
+          else lprintf_nl "%s (%s)" txt m
+
+  | UserCommandReq -> () (* Not supported atm *)
+  
+  | UserIPReq st -> (* CHECK *)
+      if !verbose_msg_servers then lprintf_nl "Received $UserIP";
+      List.iter ( fun nameip ->
+        lprintf_nl "UserIPReq: nameip=%s" nameip; 
+        match String2.split nameip ' ' with
+        | name :: ip :: [] -> 
+            (try
+              let u = search_user_by_name name in 
+              ( try u.user_ip <- Ip.addr_of_string ip with _ -> () );
+              lprintf_nl "Added ip %s to user %s" (Ip.string_of_addr u.user_ip) u.user_nick
+            with _ ->
+                if !verbose_unexpected_messages then lprintf_nl "No user by name %s" name )
+        | _ -> ()
+      ) st;
                     
-                    let sock = TcpBufferedSocket.connect token
-                        "directconnect to server" 
-                        (Ip.to_inet_addr ip)
-                      s.server_port (server_handler s)  in
+  | ValidateDenideReq n ->  
+      let errortxt = Printf.sprintf "Nick %s is already in use" n in
+      if !verbose_unexpected_messages || !verbose_msg_servers then
+        lprintf_nl "%s" errortxt;
+      disconnect_server s (Closed_for_error errortxt )
                     
-                    set_server_state s Connecting;
-                    set_read_controler sock download_control;
-                    set_write_controler sock upload_control;
+  | VersionReq v -> ()
                     
-                    Fifo.clear s.server_searches;
-                    s.server_search_timeout <- last_time () + 30;
+  | _ -> 
+    lprintf_nl "--> Unhandled server message. Implement ?:";
+    DcProtocol.dc_print m )
                     
-                    set_reader sock (DcProtocol.dc_handler verbose_msg_servers (client_to_server s));
-                    set_rtimeout sock 60.;
-                    set_handler sock (BASIC_EVENT RTIMEOUT) (fun s ->
-                        close s Closed_for_timeout
-                    );
-                    s.server_nick <- 0;
+(* connect to DC server *)
+let connect_server s =
+  if can_open_connection connection_manager then
+    (match s.server_sock with
+    | NoConnection ->
+        let token = add_pending_connection connection_manager (fun token ->
+          (*s.server_sock <- NoConnection;*)
+          (try
+            connection_try s.server_connection_control;
+            (*printf_char 's'; *)
+            let sock = TcpBufferedSocket.connect token "directconnect to server" 
+                       (Ip.to_inet_addr (Ip.ip_of_addr s.server_addr)) s.server_port (server_handler s) in
+              set_server_state s Connecting;
+              TcpBufferedSocket.set_read_controler sock download_control; (* CommonGlobals.download_control *)
+              TcpBufferedSocket.set_write_controler sock upload_control;
+              (*s.server_search_timeout <- last_time () + 30;*)
+              TcpBufferedSocket.set_reader sock (dc_handler_server (client_to_server s));
+              TcpBufferedSocket.set_rtimeout sock !!server_connection_timeout (*60.*);
+              TcpBufferedSocket.set_handler sock (BASIC_EVENT RTIMEOUT) (fun s -> close s Closed_for_timeout);
                     s.server_sock <- Connection sock;
+              s.server_ip <- Ip.ip_of_addr s.server_addr;
+              s.server_connection_time <- current_time ();
                   with e -> 
-                      if !verbose_msg_servers then begin
-                          lprintf "%s:%d IMMEDIAT DISCONNECT %s"
-                            (Ip.string_of_addr s.server_addr) s.server_port
-                            (Printexc2.to_string e); lprint_newline ();
-                        end;
-(*      lprintf "DISCONNECTED IMMEDIATLY"; lprint_newline (); *)
-                      decr nservers;
-                      s.server_sock <- NoConnection;
-                      set_server_state s (NotConnected (Closed_connect_failed, -1));
-                      connection_failed s.server_connection_control)
-            in  
+            disconnect_server s (Closed_for_exception e) )
+        ) in  
             s.server_sock <- ConnectionWaiting token
-      | _ -> ()
-  ) 
+    | _ -> () )
   
 let try_connect_server s =
   if connection_can_try s.server_connection_control && 
     s.server_sock = NoConnection then
     connect_server s
     
-let rec connect_one_server () =
-  if can_open_connection connection_manager then
-    match !servers_list with
-      [] ->
-        Hashtbl.iter (fun _ h ->
-            servers_list := h :: !servers_list) servers_by_addr;
-        if !servers_list = [] then begin
-            lprintf "No DC server to connect to"; lprint_newline ();
-            raise Not_found;
-          end;
-        connect_one_server ()
-    | s :: list ->
-        servers_list := list;
-        try_connect_server s
-      
-let connect_servers () = 
-  if !nservers < !!max_connected_servers then
-    for i = !nservers to !!max_connected_servers do
-      connect_one_server ()
-    done
-
-let parse_servers_list s =
+(* Make hublist from file f, return hublist *)
+let make_hublist_from_file f =
+  let s = File.to_string f in
+  let hublist = ref [] in
+  let counter = ref 0 in
   let lines = String2.split s '\n' in
-  List.iter (fun s ->
-      match String2.split s '|' with
-        server_name :: server_addr :: server_info :: server_nusers :: _ ->
-          let s = new_server (Ip.addr_of_string server_addr) 411 in
-          s.server_name <- server_name;
-          s.server_info <- server_info;
-          (try s.server_nusers <- Int64.of_string server_nusers with _ -> ());
-	  server_must_update s
-      | _ -> 
-          lprintf "Bad line [%s]" s; lprint_newline ();      
+  List.iter (fun l ->
+    (match String2.split l '|' with
+    | server_name :: server_addr :: server_info :: server_nusers :: _ ->
+        let ap = String2.split server_addr ':' in
+        let port = ref 411 in
+        let addr = ref "" in
+        let ll = List.length ap in
+        if ll > 0 then begin
+          addr := List.hd ap;
+          if ll = 2 then begin
+            (try
+              port := int_of_string (List.nth ap 1)
+            with e -> () )
+          end;
+          if (ll < 3) && ((String.length !addr) > 2) && (!port > 0) && (!port < 65536) then begin
+            let nusers = ref 0 in begin
+              try
+                nusers := int_of_string server_nusers 
+              with _ -> ()
+            end;
+            incr counter;
+            let r = {
+              dc_name = Charset.to_utf8 server_name;  
+              dc_ip = Ip.addr_of_string !addr;
+              dc_port = !port;
+              dc_info = Charset.to_utf8 server_info;
+              dc_nusers = !nusers;
+            } in
+            hublist := r :: !hublist
+          end
+        end
+    | _ -> () )
   ) lines;
-  ()
-    
-let load_servers_list url =
-  let url = if url = "" then !!servers_list_url
-    else "" in
-  CommonWeb.mldonkey_wget url (fun filename ->
-      parse_servers_list (File.to_string filename))
+  if !verbose_msg_servers then lprintf_nl "Found %d valid servers from hublist" !counter;
+  !hublist
 
+(* Connect to all autoconnect servers once *)  
+let autoconnect_to_servers () =
+  Hashtbl.iter (fun _ s ->
+    if s.server_autoconnect then begin                    (* only if server is marked as autoconnect *) 
+      if not (List.memq s !connected_servers) then begin  (* and not already connected               *)
+        if s.server_sock = NoConnection then begin        (* and not in connection state             *)
+          try_connect_server s;
+        end
+      end
+    end  
+ ) servers_by_ip;
 
 module P = GuiTypes
   
+(* register server operations *)
 let _ =
+  server_ops.op_server_connect <- (fun s -> connect_server s);
+  server_ops.op_server_disconnect <- (fun s -> disconnect_server s Closed_by_user);
+  server_ops.op_server_query_users <- (fun s ->
+    do_if_connected s.server_sock (fun sock ->
+      dc_send_msg sock (GetNickListReq)
+    )
+  );
+  server_ops.op_server_users <- (fun s ->
+    let list = ref [] in
+    List.iter (fun u ->
+       list := (as_user u.user_user) :: !list
+    ) s.server_users;
+    !list
+  );
+  server_ops.op_server_remove <- (fun s ->
+    disconnect_server s Closed_by_user;
+    server_remove s
+  );
   server_ops.op_server_info <- (fun s ->
         { (impl_server_info s.server_server) with
           P.server_num = (server_num s);
           P.server_network = network.network_num;
           P.server_addr = s.server_addr;
           P.server_port = s.server_port;
-          P.server_nusers = s.server_nusers;
+          P.server_realport = 0;
+          P.server_score = 0;
+          P.server_tags = [];
+          P.server_nusers = Int64.of_int (List.length s.server_users);
           P.server_state = server_state s;
           P.server_name = s.server_name;
           P.server_description = s.server_info;
           P.server_preferred = false;
         }
+  );
+  server_ops.op_server_set_preferred <- (fun s preferred ->
+    s.server_autoconnect <- preferred;
+    if !verbose_msg_servers then lprintf_nl "Server autoconnection state set to (%s)" (if preferred then "true" else "false")
 )
 
-let recover_files_clients () = 
-  List.iter (fun file ->
-(* try to connect to known sources *)
-      if file_state file = FileDownloading then begin
-          List.iter (fun c ->
-              if !verbose_msg_servers then begin
-                  lprintf "ATTEMPT TO RECOVER CONNECTION TO %s"
-                    c.client_user.user_nick; lprint_newline ();
-                end;
-              try_connect_client c;
-              List.iter (fun s ->
-                  if s.server_sock = NoConnection then
-                    try_connect_server s
-              ) c.client_user.user_servers
-          ) file.file_clients;
+(*
+    mutable op_server_network : network;
+    mutable op_server_find_user : ('a -> string -> unit);
+    mutable op_server_cid : ('a -> Ip.t);
+    mutable op_server_low_id : ('a -> bool);
+    mutable op_server_rename : ('a -> string -> unit);
+*)
 
-
-          
-(* try to find new sources by queries *)
-          let keywords = 
-            match stem file.file_name with 
-              [] | [_] -> 
-(*            lprintf "Not enough keywords to recover %s" f.file_name;
-            lprint_newline (); *)
-                [file.file_name]
-            | l -> l
-          in
-          let words = String2.unsplit keywords ' ' in
-(*      ignore (send_query (Recover_file keywords) keywords) *)
-          List.iter (fun s ->
-              add_search s words
-              
-              ) !connected_servers
-        end
-  ) !current_files;
-  ()
-
-let recover_files_searches () =
-  List.iter (fun s ->
-      try
-        if s.server_search_timeout < last_time () then
-          do_if_connected  s.server_sock (fun sock ->
-              let words = Fifo.take s.server_searches in
-              s.server_search_timeout <- last_time () + !!search_timeout;
-              let module S = Search in
-              let msg = SearchReq {
-                  S.orig = 
-                  (if (not active_search_supported) || !!firewalled then
-                      Printf.sprintf "Hub:%s" s.server_last_nick
-                    else
-                      Printf.sprintf "%s:%d" (
-                        Ip.to_string (CO.client_ip (Some sock)))
-                      !!dc_port);
-                  S.sizelimit = NoLimit;
-                  S.filetype = 0;
-                  S.words = words;
-                } in
-              server_send !verbose_msg_servers sock msg; 
-              if !verbose_msg_servers then begin
-                  Printf.bprintf  buf "Sending search\n"
-                end
-          )
-      with _ -> ()
-  ) !connected_servers
   
   

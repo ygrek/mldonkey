@@ -19,9 +19,19 @@ $Key 5/%DCN096%/(181)(18)(7)1(183)(134)q(166)(17)w(230)(227)(145)(130)W(240)W (1
 
 *)
 
+let char_is_extra ch buf =
+    match ch with
+    | 0 -> Printf.bprintf buf "/%%DCN000%%/"
+    | 5 -> Printf.bprintf buf "/%%DCN005%%/"
+    | 36 -> Printf.bprintf buf "/%%DCN036%%/"
+    | 96 -> Printf.bprintf buf "/%%DCN096%%/"
+    | 124 -> Printf.bprintf buf "/%%DCN124%%/"
+    | 126 -> Printf.bprintf buf "/%%DCN126%%/"
+    | _ -> Buffer.add_char buf (char_of_int ch)
+
 let get s pos = int_of_char s.[pos]
 
-let gen s =
+let calculate_key s =
   let buf = Buffer.create 100 in
   let len = String.length s in
 
@@ -35,27 +45,30 @@ let gen s =
   
   let v = (((u lsl 8) lor u) lsr 4) land 255 in (*  v=(((u<<8)|u)>>4)&255; *)
   
-  begin
-    match v with
-      0 | 5 -> Printf.bprintf buf "/%%DCN%03d%%/" v
-    | 36 (* '$' *) -> Printf.bprintf buf "/%%DCN036%%/"
+  char_is_extra v buf;
+(*    match v with
+    | 0 | 5 -> Printf.bprintf buf "/%%DCN%03d%%/" v
+    | 36 -> Printf.bprintf buf "/%%DCN036%%/"
     | 96 -> Printf.bprintf buf "/%%DCN096%%/"
-    | _ -> Buffer.add_char buf (char_of_int v)
-  end;
-  
+    | _ -> Buffer.add_char buf (char_of_int v) *)
   for i = 1 to len - 1 do
     let u = (get s i) land 255 in
     let l = (get s (i-1)) land 255 in
     let u = u lxor l in
     let v = (((u lsl 8) lor u) lsr 4) land 255 in (*  v=(((u<<8)|u)>>4)&255; *)
-    
-    begin
-      match v with
-        0 | 5 -> Printf.bprintf buf "/%%DCN%03d%%/" v
-      | 36 (* '$' *) -> Printf.bprintf buf "/%%DCN036%%/"
-      | 96 -> Printf.bprintf buf "/%%DCN096%%/"
-      | _ -> Buffer.add_char buf (char_of_int v)
-    end;
+    char_is_extra v buf;
   done;
   Buffer.contents buf
   
+let char_percent =  int_of_char '%'
+let char_z =  int_of_char 'z'
+  
+let create_key = "MLDonkey"
+(*  let len = 80 + Random.int 15  in
+  let key = String.create len in
+  for i = 0 to len - 1 do  
+    key.[i] <- char_of_int (char_percent + Random.int (char_z - char_percent))
+  done;
+  key *)
+  
+
