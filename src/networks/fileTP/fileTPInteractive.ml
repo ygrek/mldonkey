@@ -423,6 +423,7 @@ let _ =
       | _ -> ()
     ) file.file_clients
   );
+  file_ops.op_file_queue <- file_ops.op_file_pause;
   file_ops.op_file_resume <- (fun file -> ());
   file_ops.op_file_print <- (fun file buf -> ());
   network.op_network_close_search <- (fun s -> ());

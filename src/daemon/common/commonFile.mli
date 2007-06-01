@@ -50,6 +50,7 @@ and 'a file_ops = {
   mutable op_file_to_option : 'a -> (string * Options.option_value) list;
   mutable op_file_cancel : 'a -> unit;
   mutable op_file_pause : 'a -> unit;
+  mutable op_file_queue : 'a -> unit;
   mutable op_file_resume : 'a -> unit;
   mutable op_file_info : 'a -> GuiTypes.file_info;
   mutable op_file_set_format : 'a -> CommonTypes.format -> unit;
@@ -58,7 +59,6 @@ and 'a file_ops = {
   mutable op_file_all_sources : 'a -> CommonTypes.client list;
   mutable op_file_active_sources : 'a -> CommonTypes.client list;
   mutable op_file_comment : 'a -> string;
-  mutable op_file_set_priority : 'a -> int -> unit;
     mutable op_file_print: 'a -> CommonTypes.ui_conn -> unit;
     mutable op_file_print_sources : 'a -> CommonTypes.ui_conn -> unit;
     mutable op_file_files : ('a -> 'a file_impl -> CommonTypes.file list);    
@@ -85,6 +85,7 @@ val file_comment : CommonTypes.file -> string
 val file_network : CommonTypes.file -> CommonTypes.network
 val file_info : CommonTypes.file -> GuiTypes.file_info
 val file_pause : CommonTypes.file -> CommonTypes.userdb -> unit
+val file_queue : CommonTypes.file -> unit
 val file_resume : CommonTypes.file -> CommonTypes.userdb -> unit
 val set_file_release : CommonTypes.file -> bool -> CommonTypes.userdb -> unit
 val file_release : CommonTypes.file -> bool

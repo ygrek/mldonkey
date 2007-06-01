@@ -15,7 +15,10 @@ ChangeLog
 =========
 
 2007/06/01
+5891: Disconnect clients we download from when a file is queued/paused
 5905: Replace old DirectConnect module with new DC++ code (alffa)
+- enable it with ./configure --enable-directconnect
+- bzip2 support is manditory
 -------------------------------------------------------------------------------
 2007/06/01: version 2.8.6 = tag release-2-8-6
 5984: EDK: Small log updates

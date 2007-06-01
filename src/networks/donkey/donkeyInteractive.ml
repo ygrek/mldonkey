@@ -1015,12 +1015,16 @@ let _ =
   file_ops.op_file_resume <- (fun file ->
       reconnect_all file;
   );
-  file_ops.op_file_set_priority <- (fun file _ ->
-(*  TODO PRIORITY: take care priorities in CommonSources
-DonkeySources.recompute_ready_sources ()        *)
-      ()
+  file_ops.op_file_pause <- (fun file ->
+    DonkeySources.iter_active_sources (fun s ->
+      let s_uid = s.DonkeySources.source_uid in
+      let c = new_client s_uid in
+      match client_state c with
+      | Connected_downloading f when f = file_num file -> disconnect_client c Closed_by_peer
+      | _ -> ()
+    ) file.file_sources
   );
-  file_ops.op_file_pause <- (fun file -> ()  );
+  file_ops.op_file_queue <- file_ops.op_file_pause;
 
   file_ops.op_file_commit <- (fun file new_name ->
 

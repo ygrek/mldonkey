@@ -83,6 +83,7 @@ it will happen soon. *)
     mutable op_file_to_option : ('a -> (string * option_value) list);
     mutable op_file_cancel : ('a -> unit);
     mutable op_file_pause : ('a -> unit);
+    mutable op_file_queue : ('a -> unit);
     mutable op_file_resume : ('a -> unit);
     mutable op_file_info : ('a -> GuiTypes.file_info);
     mutable op_file_set_format : ('a -> CommonTypes.format -> unit);
@@ -91,7 +92,6 @@ it will happen soon. *)
     mutable op_file_all_sources : ('a -> client list);
     mutable op_file_active_sources : ('a -> client list);
     mutable op_file_comment : ('a -> string);
-    mutable op_file_set_priority : ('a -> int -> unit);
     mutable op_file_print : ('a -> CommonTypes.ui_conn -> unit);
     mutable op_file_print_sources : ('a -> CommonTypes.ui_conn -> unit);
     mutable op_file_files : ('a -> 'a file_impl -> file list);    
@@ -245,11 +245,19 @@ let file_pause (file : file) user =
       file.impl_file_ops.op_file_pause file.impl_file_val
   | _ -> ()
 
+let file_queue (file : file) =
+  let file = as_file_impl file in
+  match file.impl_file_state with
+  | FileDownloading ->
+      update_file_state file FileQueued;
+      file.impl_file_ops.op_file_queue file.impl_file_val
+  | _ -> ()
+
 let file_resume (file : file) user =
   if user2_allow_file_admin file user then
   let file = as_file_impl file in
   match file.impl_file_state with
-  | FilePaused | FileAborted _ ->
+  | FileQueued | FilePaused | FileAborted _ ->
       update_file_state file FileDownloading;
       file.impl_file_ops.op_file_resume file.impl_file_val
   | _ -> ()
@@ -522,7 +530,6 @@ let set_file_priority file p =
   let impl = as_file_impl file in
   if impl.impl_file_priority <> p then begin
       impl.impl_file_priority <- p;
-      impl.impl_file_ops.op_file_set_priority  impl.impl_file_val p;
       file_must_update file
     end
 
@@ -988,6 +995,7 @@ let new_file_ops network =
       op_file_info = (fun _ -> fni network "file_info");
       op_file_files = (fun _ impl -> [as_file impl]);
       op_file_pause = (fun _ -> ni_ok network "file_pause");
+      op_file_queue = (fun _ -> ni_ok network "file_queue");
       op_file_resume = (fun _ -> ni_ok network "file_resume");
 (*      op_file_disk_name = (fun _ -> fni network "file_disk_name"); *)
       op_file_check = (fun _ -> ni_ok network "file_check");
@@ -996,7 +1004,6 @@ let new_file_ops network =
       op_file_all_sources = (fun _ -> fni network "file_all_sources");
       op_file_active_sources = (fun _ -> fni network "file_active_sources");
       op_file_comment = (fun _ -> ni_ok network "file_comment"; "");
-      op_file_set_priority = (fun _ _ -> ni_ok network "file_set_priority");
       op_file_print = (fun _ _ -> ni_ok network "file_print_html");
       op_file_print_sources = (fun _ _ -> fni network "file_print_sources");
       op_file_debug = (fun _ -> "");
@@ -1027,6 +1034,8 @@ let check_file_implementations () =
         lprintf_nl "op_file_cancel";
       if c.op_file_pause == cc.op_file_pause then
         lprintf_nl "op_file_pause";
+      if c.op_file_queue == cc.op_file_queue then
+        lprintf_nl "op_file_queue";
       if c.op_file_resume == cc.op_file_resume then
         lprintf_nl "op_file_resume";
 (*      if c.op_file_disk_name == cc.op_file_disk_name then

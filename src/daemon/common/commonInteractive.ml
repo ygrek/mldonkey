@@ -975,7 +975,7 @@ let force_download_quotas () =
   let queue_files files =
     List.iter (fun file ->
       if file_state file = FileDownloading then
-	set_file_state file FileQueued
+	file_queue file
     ) files in
 
   let queue_user_file_list (_user, user_file_list) =
@@ -1060,7 +1060,7 @@ let force_download_quotas () =
 	      match file_state first_file with
 	      | FileDownloading -> true
 	      | FileQueued ->
-		  set_file_state first_file FileDownloading;
+		  file_resume first_file CommonUserDb.admin_user;
 		  true
 	      | _ -> false in
 	    if is_downloading then

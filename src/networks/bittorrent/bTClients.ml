@@ -1596,6 +1596,7 @@ let _ =
        (*When a file is paused we consider it is stopped*)
       file_stop file
   );
+  file_ops.op_file_queue <- file_ops.op_file_pause;
   client_ops.op_client_enter_upload_queue <- (fun c ->
       if !verbose_msg_clients then
         lprintf_nl "Client %d: client_enter_upload_queue" (client_num c);
