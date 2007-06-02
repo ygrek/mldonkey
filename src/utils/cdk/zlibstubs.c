@@ -57,14 +57,13 @@ static void camlzip_error(char * fn, value vzs)
 
 static value camlzip_new_stream(void)
 {
-  value res = alloc((sizeof(z_stream) + sizeof(value) - 1) / sizeof(value),
-                    Abstract_tag);
-  ZStream_val(res)->zalloc = NULL;
-  ZStream_val(res)->zfree = NULL;
-  ZStream_val(res)->opaque = NULL;
-  ZStream_val(res)->next_in = NULL;
-  ZStream_val(res)->next_out = NULL;
-  return res;
+  z_stream * zs = (z_stream *) malloc(sizeof(z_stream));
+  zs->zalloc = NULL;
+  zs->zfree = NULL;
+  zs->opaque = NULL;
+  zs->next_in = NULL;
+  zs->next_out = NULL;
+  return (value) zs;
 }
 
 value camlzip_deflateInit(value vlevel, value expect_header)
@@ -119,6 +118,7 @@ value camlzip_deflateEnd(value vzs)
 {
   if (deflateEnd(ZStream_val(vzs)) != Z_OK)
     camlzip_error("Zlib.deflateEnd", vzs);
+  free(ZStream_val(vzs));
   return Val_unit;
 }
 
@@ -168,6 +168,7 @@ value camlzip_inflateEnd(value vzs)
 {
   if (inflateEnd(ZStream_val(vzs)) != Z_OK)
     camlzip_error("Zlib.inflateEnd", vzs);
+  free(ZStream_val(vzs));
   return Val_unit;
 }
 
@@ -229,14 +230,13 @@ static void camlzip_bzerror(char * fn, int err)
 
 static value camlzip_new_bzstream(void)
 {
-  value res = alloc((sizeof(bz_stream) + sizeof(value) - 1) / sizeof(value),
-                    Abstract_tag);
-  ZStream_val(res)->zalloc = NULL;
-  ZStream_val(res)->zfree = NULL;
-  ZStream_val(res)->opaque = NULL;
-  ZStream_val(res)->next_in = NULL;
-  ZStream_val(res)->next_out = NULL;
-  return res;
+  bz_stream * bzs = (bz_stream *) malloc(sizeof(bz_stream));
+  bzs->bzalloc = NULL;
+  bzs->bzfree = NULL;
+  bzs->opaque = NULL;
+  bzs->next_in = NULL;
+  bzs->next_out = NULL;
+  return (value) bzs;
 }
 
 int camlzip_action_table[] = { BZ_RUN, BZ_FLUSH, BZ_FINISH };
@@ -299,6 +299,7 @@ value camlzip_bzCompressEnd(value stream) {
   int err;
   if ((err = BZ2_bzCompressEnd(BZStream_val(stream))) != BZ_OK)
     camlzip_bzerror("Bzlib.compress_end", err);
+  free(BZStream_val(stream));
 #else
   failwith("Bzip2 compression not supported");
 #endif
@@ -359,6 +360,7 @@ value camlzip_bzDecompressEnd(value stream) {
   int err;
   if ((err = BZ2_bzDecompressEnd(BZStream_val(stream))) != BZ_OK)
     camlzip_bzerror("Bzlib.decompressEnd", err);
+  free(BZStream_val(stream));
 #else
   failwith("Bzip2 compression not supported");
 #endif
