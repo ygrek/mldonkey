@@ -76,7 +76,8 @@ let set_ip_blocking_list filename =
   update_bans ()
 
 let set_geoip_dat filename =
-  Geoip.init (Geoip.unpack filename);
+  if filename <> "" then Geoip.init (Geoip.unpack filename)
+  else Geoip.close ();
   update_bans ()
 
 let set_ip_blocking_countries cl =

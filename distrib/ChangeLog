@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/06/02
+5987: GeoIP: Small cosmetical fix for loading GeoIP.dat (pango)
 5986: Fix GC problem in bz2 code (pango)
 
 2007/06/01
