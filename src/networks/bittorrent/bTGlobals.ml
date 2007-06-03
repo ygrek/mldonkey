@@ -451,6 +451,7 @@ let decode_az_style s =
       | "BX" -> Brand_bittorrentx
       | "CT" (* ctorrent *)
       | "CD" -> Brand_ctorrent
+      | "lt" (* libtorrent *)
       | "LT" -> Brand_libtorrent
       | "MT" -> Brand_moonlighttorrent
       | "SB" -> Brand_swiftbit
@@ -463,7 +464,6 @@ let decode_az_style s =
       | "XT" -> Brand_xantorrent
       | "ZT" -> Brand_ziptorrent
       | "bk" -> Brand_bitkitten
-      | "lt" -> Brand_libtorrent
       | "MP" -> Brand_moopolice
       | "UT" -> Brand_utorrent
       | "KT" -> Brand_ktorrent

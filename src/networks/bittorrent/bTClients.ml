@@ -553,6 +553,16 @@ let rec client_parse_header counter cc init_sent gconn sock
         bt_handler TcpMessages.parsing (client_to_client c) c sock
     );
 
+    let b = TcpBufferedSocket.buf sock in
+(* The receive buffer is normally not empty now, lets parse the rest, most likely PeerID *)
+    if b.len <> 0 then
+      ignore (bt_handler TcpMessages.parsing (client_to_client c) c sock);
+
+(* Some newer clients send more opcodes in their handshake packet, lets parse them now.
+   Using "while b.len <> 0 do ... done" is not possible here because libtorrent clients
+   send unparsable five extra bytes after their PeerID which would result into a loop *)
+    if b.len <> 0 then
+      ignore (bt_handler TcpMessages.parsing (client_to_client c) c sock);
     ()
   with
       | Not_found ->
@@ -783,9 +793,10 @@ and get_from_client sock (c: client) =
 *)
 and client_to_client c sock msg =
   if !verbose_msg_clients then begin
+      let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
       let (timeout, next) = get_rtimeout sock in
-      lprintf_nl "CLIENT %d: (%d, %d,%d) Received %s"
-        (client_num c)
+      lprintf_nl "CLIENT %d(%s:%d): (%d, %d,%d) Received %s"
+        (client_num c) (Ip.to_string ip) port
       (last_time ())
       (int_of_float timeout)
       (int_of_float next)

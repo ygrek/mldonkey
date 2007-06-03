@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/06/03
+5988: BT: Completely parse handshake packet of newer BT clients (thx to Berni)
+- this patch should fix the serious performance problem with BT downloads
+
 2007/06/02
 5987: GeoIP: Small cosmetical fix for loading GeoIP.dat (pango)
 5986: Fix GC problem in bz2 code (pango)
