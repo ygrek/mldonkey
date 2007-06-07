@@ -2203,6 +2203,7 @@ let select_blocks up =
 	    (choice_availability c) 
 	    (choice_preallocated c) in
 
+	(** > 0 == c1 is best, < 0 = c2 is best, 0 == they're equivalent *)
 	let compare_choices c1 c2 =
 	  (* "RULES" *)
 	  (* Avoid stepping on each other's feet *)
