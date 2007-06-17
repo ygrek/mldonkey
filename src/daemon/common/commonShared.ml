@@ -307,8 +307,7 @@ let shared_scan_directory shared_dir local_dir =
                   new_shared dirname shared_dir.shdir_priority
                     local_name full_name
               with e -> 
-                  lprintf_nl "%s will not be shared (exception %s)"
-                    full_name (Printexc2.to_string e);
+                  lprintf_nl "Share error: %s" (Printexc2.to_string e);
             with _ -> ()
       ) files
     with e -> 

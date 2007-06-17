@@ -263,12 +263,15 @@ let enable () =
 be useful when users want to share files that they had already previously
   shared *)
           let key = (file.sh_name, file.sh_size, file.sh_mtime) in
+          (try
           if Unix32.file_exists file.sh_name &&
             not (Hashtbl.mem shared_files_info key) 
             then begin
               Hashtbl.add shared_files_info key file;
               list := file :: !list
             end
+          with e ->
+            lprintf_nl "ignoring share: %s" (Printexc2.to_string e))
       ) !!known_shared_files;
       known_shared_files =:= !list;
 

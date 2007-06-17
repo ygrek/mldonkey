@@ -376,7 +376,10 @@ let new_file file_diskname file_state md4 file_size filename writable user =
           Unix32.create_sparsefile file_diskname writable
         else
 *)
-          Unix32.create_diskfile file_diskname writable
+          try
+            Unix32.create_diskfile file_diskname writable
+          with e ->
+            failwith (Printf.sprintf "Error: %s" (Printexc2.to_string e))
       in
       let file_size =
         if file_size = Int64.zero then
