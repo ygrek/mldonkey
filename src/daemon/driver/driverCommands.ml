@@ -3137,23 +3137,41 @@ let _ =
 let _ =
   register_commands "Driver/Users" [
 
-    "useradd", Arg_two (fun user pass o ->
-	if user2_is_admin o.conn_user.ui_user
-	  || o.conn_user.ui_user.user_name = user then
-	    if user2_user_exists user then
-	      begin
-		user2_user_set_password (user2_user_find user) pass;
-		print_command_result o (Printf.sprintf "Password of user %s changed" user)
-	      end
-	    else
-	      begin
-		user2_user_add user (Md4.string pass) ();
-		print_command_result o (Printf.sprintf "User %s added" user)
-	      end
+    "useradd", Arg_multiple (fun args o ->
+        let group_convert g =
+          try
+            if String.lowercase g = "none" || g = "" then None
+            else Some (user2_group_find g).group_name
+          with Not_found -> None
+        in
+        let (user, pass, group, cdir) =
+          match args with
+          | [user; pass; group; cdir] -> user, pass, (group_convert group), cdir
+          | [user; pass; group] -> user, pass, (group_convert group), ""
+          | [user; pass] -> user, pass, Some admin_group_name, ""
+          | _ -> failwith "wrong parameters"
+        in
+        if user2_is_admin o.conn_user.ui_user
+          || o.conn_user.ui_user.user_name = user then
+          if user2_user_exists user then
+            begin
+              user2_user_set_password (user2_user_find user) pass;
+              print_command_result o (Printf.sprintf "Password of user %s changed" user)
+            end
           else
-	    print_command_result o "You are not allowed to add users";
-	_s ""
-    ), "<user> <passwd> :\t\tadd new mldonkey user/change user password";
+            begin
+              match group with
+              | None -> user2_user_add user (Md4.string pass)
+                          ~groups:[] ~default_group:None ~commit_dir:cdir ();
+                        print_command_result o (Printf.sprintf "User %s added" user)
+              | Some g -> user2_user_add user (Md4.string pass)
+                            ~groups:[g] ~default_group:group ~commit_dir:cdir ();
+                          print_command_result o (Printf.sprintf "User %s added, group %s" user g)
+            end
+        else
+          print_command_result o "You are not allowed to add users";
+        _s ""
+    ), "<user> <passwd> [<group>] [<commit_dir>]: add new mldonkey user/change user password";
 
     "userdel", Arg_one (fun user o ->
         if user <> o.conn_user.ui_user.user_name then
@@ -3398,7 +3416,7 @@ let _ =
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
-                   var getdir = prompt('Input: <user> <pass>','user pass')
+                   var getdir = prompt('Input: <user> <pass>','user pass <group> <commit_dir>')
                    var reg = new RegExp (' ', 'gi') ;
                    var outstr = getdir.replace(reg, '+');
                    parent.fstatus.location.href='submit?q=useradd+' + outstr;
@@ -3469,7 +3487,7 @@ class=\\\"srb\\\"\\>%s\\</a\\> " user.user_name group.group_name group.group_nam
 \\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
-                   var getdir = prompt('Input: <group> <admin: true|false> [<mail>]','group true')
+                   var getdir = prompt('Input: <group> <admin: true|false>','group true')
                    var reg = new RegExp (' ', 'gi') ;
                    var outstr = getdir.replace(reg, '+');
                    parent.fstatus.location.href='submit?q=groupadd+' + outstr;
@@ -4034,5 +4052,5 @@ let _ =
     "debug_pictures", Arg_two (fun dir output o ->
         CommonPictures.compute_ocaml_code dir output;
         _s "done"
-    ), ":\t\t\t\tfor debugging only";
+    ), ":\t\t\tfor debugging only";
   ]

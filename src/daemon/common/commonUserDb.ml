@@ -269,10 +269,7 @@ let user2_user_add name pass ?(groups = [admin_group_name])
 			     ?(default_group = Some admin_group_name)
 			     ?(mail = "") ?(commit_dir = "") ?(max_dl = 0) () =
   (* shouldn't we warn admin about already existing user ? *)
-  let groups =
-    let l = List.map user2_group_find (List.filter user2_group_exists groups) in
-    if l = [] then [admin_group ()] else l
-  in
+  let groups = List.map user2_group_find (List.filter user2_group_exists groups) in
   let default_group =
     match default_group with
       None -> None

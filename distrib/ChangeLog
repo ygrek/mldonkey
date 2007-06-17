@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/06/17
+6017: Multiuser: New optional parameters group/commit_dir for command useradd
 6020: Multiuser: Fix handling of user "admin", its user_commit_dir was not
       used when MLDonkey was not restarted between download start and commit
 6019: BT: Disable user_commit_dir for multifile torrents to fix seeding
