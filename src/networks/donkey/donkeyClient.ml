@@ -1621,7 +1621,7 @@ is checked for the file.
           in
           let pos = iter comp.comp_blocs in
           assert (pos = comp.comp_len);
-            let s = Autoconf.zlib__uncompress_string2 s in
+            let s = Zlib.uncompress_string2 s in
             if !verbose_download then
         lprintf_nl "Decompressed: %d/%d" (String.length s) comp.comp_len;
             

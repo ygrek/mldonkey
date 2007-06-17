@@ -1124,7 +1124,7 @@ let rec parse magic s =
               raise Not_found
         end
     | 0xD4 -> (* 212 *)
-          let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in
+          let s = Zlib.uncompress_string2 (String.sub s 1 (len-1)) in
           let s = Printf.sprintf "%c%s" (char_of_int opcode) s in
           parse 227 s
 
@@ -1365,8 +1365,8 @@ let to_string m =
   (*
 let _ =
   let s = "abcdefghijklmnopqrstuvwxyz" in
-  let compressed = Autoconf.zlib__compress_string s in
-  let ss = Autoconf.zlib__uncompress_string2 compressed in
+  let compressed = Zlib.compress_string s in
+  let ss = Zlib.uncompress_string2 compressed in
   lprintf "[%s] <> [%s]\n" s (String.escaped ss);
   assert (s = ss);
   exit 2

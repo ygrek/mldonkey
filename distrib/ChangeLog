@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2007/06/17
+6021: Remove leftovers from optional zlib support,
+      replace Autoconf.zlib__* with Zlib.* functions
 6005: Swarmer: Implement new download mechanism
 - its now possible to switch the order blocks are downloaded from random
   (first and last block first, default) to linear

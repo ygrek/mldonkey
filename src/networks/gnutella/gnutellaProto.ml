@@ -850,8 +850,8 @@ let send_qrt_sequence s update_table =
   
   let compressor, table =
       1, 
-      let t = Autoconf.zlib__compress_string table in
-      assert (Autoconf.zlib__uncompress_string2 t = table);
+      let t = Zlib.compress_string table in
+      assert (Zlib.uncompress_string2 t = table);
       t
   in
   

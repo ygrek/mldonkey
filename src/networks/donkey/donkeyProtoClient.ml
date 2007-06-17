@@ -1446,7 +1446,7 @@ and parse emule_version magic s =
 
     | 0xD4 -> (* 212 *)
 
-          let s = Autoconf.zlib__uncompress_string2 (String.sub s 1 (len-1)) in
+          let s = Zlib.uncompress_string2 (String.sub s 1 (len-1)) in
           let s = Printf.sprintf "%c%s" (char_of_int opcode) s in
     begin try
             parse_emule_packet emule_version opcode (String.length s) s

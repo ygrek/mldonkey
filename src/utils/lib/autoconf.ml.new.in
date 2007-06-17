@@ -48,7 +48,3 @@ let has_gd_jpg = "@GD_JPG@" = "yes"
 let bzip2 = "@BZIP2@" = "yes"
 let magic = "@MAGIC@" = "yes"
 let magic_works = ref false
-
-let zlib__uncompress_string2 s = Zlib.uncompress_string2 s
-let zlib__compress_string s = Zlib.compress_string s
-let zlib__gzip_string s = Zlib.gzip_string s

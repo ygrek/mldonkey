@@ -326,7 +326,7 @@ let server_send_share compressed sock msg =
       Buffer.reset buf;
       let s_c =
         if compressed then
-          Autoconf.zlib__compress_string s
+          Zlib.compress_string s
         else
           s
       in

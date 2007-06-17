@@ -130,7 +130,7 @@ struct gnutella_qrp_patch {
             if t.compressor < 2 then
               let table = 
                 if t.compressor = 1 then
-                  Autoconf.zlib__uncompress_string2 !patches
+                  Zlib.uncompress_string2 !patches
                 else
                   !patches
               in
