@@ -78,7 +78,7 @@ let value_to_file file_size file_state assocs =
       Md4.of_string (get_value "file_id" value_to_string)
     with _ -> failwith "Bad file_id"
   in
-  let file = new_file file_id file_name file_size CommonUserDb.admin_user in
+  let file = new_file file_id file_name file_size (CommonUserDb.admin_user ()) in
 
   (match file.file_swarmer with
       None -> ()

@@ -40,7 +40,6 @@ open CommonResult
 open CommonServer
 open CommonTypes
 open CommonComplexOptions
-open CommonUserDb
 
 let log_prefix = "[cInt]"
 
@@ -525,7 +524,7 @@ let display_vd = ref false
 let display_bw_stats = ref false
 
 let start_download file =
-  if !!pause_new_downloads then file_pause file admin_user;
+  if !!pause_new_downloads then file_pause file (admin_user ());
   if !!file_started_cmd <> "" then
       MlUnix.fork_and_exec  !!file_started_cmd
       [|
@@ -1060,7 +1059,7 @@ let force_download_quotas () =
 	      match file_state first_file with
 	      | FileDownloading -> true
 	      | FileQueued ->
-		  file_resume first_file CommonUserDb.admin_user;
+		  file_resume first_file (admin_user ());
 		  true
 	      | _ -> false in
 	    if is_downloading then

@@ -744,7 +744,7 @@ let try_share_file torrent_diskname =
     in
 
     let file = new_file file_id torrent torrent_diskname
-        filename FileShared CommonUserDb.admin_user in
+        filename FileShared (CommonUserDb.admin_user ()) in
     if !verbose_share then lprintf_file_nl (as_file file) "Sharing file %s" filename;
     BTClients.connect_trackers file "started"
       (parse_tracker_reply file)
@@ -804,7 +804,7 @@ let scan_new_torrents_directory () =
     if not (Unix2.is_directory file) then
     try
       let user = fst (Unix32.owner file) in
-      load_torrent_file file (try CommonUserDb.user2_user_find user with Not_found -> CommonUserDb.admin_user);
+      load_torrent_file file (try CommonUserDb.user2_user_find user with Not_found -> CommonUserDb.admin_user ());
       (try Sys.remove file with _ -> ())
     with 
       Torrent_can_not_be_used _ ->
@@ -827,7 +827,7 @@ let load_torrent_from_web r user ft =
   H.wget r (fun filename ->
       if ft_state ft = FileDownloading then begin
           load_torrent_file filename user;
-          file_cancel (as_ft ft) CommonUserDb.admin_user
+          file_cancel (as_ft ft) (CommonUserDb.admin_user ())
         end)
 
 let valid_torrent_extension url =

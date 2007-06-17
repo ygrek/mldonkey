@@ -279,13 +279,13 @@ let ftp_send_range_request c (x,y) sock d =
                 | "530 " ->
                     let reason = String.sub line 4 (slen - 4) in
                     if not (retry_530 reason) then begin
-                      pause_for_cause d.download_file "530" CommonUserDb.admin_user;
+                      pause_for_cause d.download_file "530" (CommonUserDb.admin_user ());
                     end else begin
                       c.client_reconnect <- true;
                     end;
                     disconnect_client c Closed_by_user;
                 | "550 " ->
-                    pause_for_cause d.download_file "550" CommonUserDb.admin_user;
+                    pause_for_cause d.download_file "550" (CommonUserDb.admin_user ());
                     disconnect_client c Closed_by_user;
                 | _ -> 
                     if !verbose then lprintf_nl "Unexpected line %s" line;
@@ -444,11 +444,11 @@ let ftp_check_size file url start_download_file =
                     | "530 " ->
                       let reason = String.sub line 4 (slen - 4) in
                       if not (retry_530 reason) then begin
-                        pause_for_cause file "530" CommonUserDb.admin_user;
+                        pause_for_cause file "530" (CommonUserDb.admin_user ());
                       end;
                       close sock Closed_by_user;
                     | "550 " ->
-                      pause_for_cause file "550" CommonUserDb.admin_user;
+                      pause_for_cause file "550" (CommonUserDb.admin_user ());
                       close sock Closed_by_user;
                     | _ -> 
                       if !verbose then lprintf_nl "Unexpected line %s" line;

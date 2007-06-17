@@ -310,7 +310,7 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
         let user, pass =
           match args with
             [] -> failwith "Usage: auth <user> <password>"
-          | [s1] -> admin_user.CommonTypes.user_name, s1
+          | [s1] -> (admin_user ()).CommonTypes.user_name, s1
           | user :: pass :: _ -> user, pass
         in
         if valid_password user pass then begin
@@ -581,7 +581,7 @@ let telnet_handler t event =
           "telnet connection"
           s in
         let telnet = {
-            telnet_auth = ref (has_empty_password admin_user);
+            telnet_auth = ref (has_empty_password (admin_user ()));
             telnet_iac = false;
             telnet_wait = 0;
             telnet_buffer = Buffer.create 100;
@@ -958,7 +958,7 @@ let http_handler o t r =
 	 List.iter (fun (arg, value) -> Printf.bprintf b " %s %s" arg value) r.get_url.Url.args;
 	 if Buffer.contents b <> "" then Printf.sprintf "(%s)" (Buffer.contents b) else "");
 
-  let user = if r.options.login = "" then admin_user.CommonTypes.user_name else r.options.login in
+  let user = if r.options.login = "" then (admin_user ()).CommonTypes.user_name else r.options.login in
   if not (valid_password user r.options.passwd) then begin
       clear_page buf;
       http_file_type := HTM;

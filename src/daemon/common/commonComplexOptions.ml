@@ -116,13 +116,13 @@ module FileOption = struct
 		    user2_user_find u
 		  with Not_found ->
 		    lprintf_nl "file_owner %s of %s does not exist, changing to %s"
-		      u filename admin_user.user_name;
-		    admin_user
+		      u filename (admin_user ()).user_name;
+		    admin_user ()
 		end
 	    with Not_found ->
 		lprintf_nl "file_owner of %s is empty, changing to %s"
-		  filename admin_user.user_name;
-		admin_user
+		  filename (admin_user ()).user_name;
+		admin_user ()
 	  in
 	  set_file_owner file file_user;
 

@@ -130,7 +130,7 @@ let value_to_file file_size file_state assocs =
       file_uids := hash :: !file_uids;
     with _ -> ());
   
-  let file = new_file file_temp file_name file_size !file_uids CommonUserDb.admin_user in
+  let file = new_file file_temp file_name file_size !file_uids (CommonUserDb.admin_user ()) in
   
   (try
       file.file_ttr <- Some (get_value "file_ttr" (value_to_array 

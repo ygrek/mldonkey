@@ -2982,7 +2982,7 @@ let _ =
     "pause", Arg_multiple (fun args o ->
         if args = ["all"] && user2_is_admin o.conn_user.ui_user then
           List.iter (fun file ->
-              file_pause file admin_user;
+              file_pause file (admin_user ())
           ) !!files
         else
           List.iter (fun num ->
@@ -2996,7 +2996,7 @@ let _ =
     "resume", Arg_multiple (fun args o ->
         if args = ["all"] && user2_is_admin o.conn_user.ui_user then
           List.iter (fun file ->
-              file_resume file admin_user
+              file_resume file (admin_user ())
           ) !!files
         else
           List.iter (fun num ->
@@ -3158,7 +3158,7 @@ let _ =
     "userdel", Arg_one (fun user o ->
         if user <> o.conn_user.ui_user.user_name then
           if user2_is_admin o.conn_user.ui_user then
-	    if user = admin_user.user_name then
+	    if user = (admin_user ()).user_name then
 	      print_command_result o "User 'admin' can not be removed"
 	    else
 	      try
@@ -3355,7 +3355,7 @@ let _ =
 		    (Printf.sprintf "Can not remove group %s, it has %d member%s"
 		      group g_mem (Printf2.print_plural_s g_mem))
 		else
-		  if g.group_name = system_user_default_group.group_name then
+		  if g = admin_group () then
 		    print_command_result o (Printf.sprintf "Can not remove system group %s" group)
 		  else
 		    begin
@@ -3374,7 +3374,7 @@ let _ =
 	  begin
 	    try
 	      let g = user2_group_find group in
-	      if g.group_name = system_user_default_group.group_name then
+	      if g = admin_group () then
 		print_command_result o (Printf.sprintf "Can not change state of system group %s" group)
 	      else
 		begin
@@ -3422,7 +3422,7 @@ let _ =
 		let u_dls = user2_num_user_dls user in
                 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
                 (html_mods_cntr ());
-		if user <> admin_user && (u_dls = 0) then Printf.bprintf buf
+		if user <> (admin_user ()) && (u_dls = 0) then Printf.bprintf buf
 "\\<td title=\\\"Click to remove user\\\"
 onMouseOver=\\\"mOvr(this);\\\"
 onMouseOut=\\\"mOut(this);\\\"
@@ -3433,7 +3433,7 @@ class=\\\"srb\\\"\\>Remove\\</td\\>" user.user_name
 		else Printf.bprintf buf
 "\\<td title=\\\"%s\\\"
 class=\\\"srb\\\"\\>------\\</td\\>"
-  (if user.user_name = admin_user.user_name then "Admin user can not be removed" else
+  (if user.user_name = (admin_user ()).user_name then "Admin user can not be removed" else
      if u_dls <> 0 then Printf.sprintf "User has %d download%s" u_dls
      (Printf2.print_plural_s u_dls) else "");
 		html_mods_td buf [
@@ -3488,7 +3488,7 @@ class=\\\"srb\\\"\\>%s\\</a\\> " user.user_name group.group_name group.group_nam
             user2_groups_iter (fun group ->
 		let g_dls = user2_num_group_dls group in
 		let g_mem = user2_num_group_members group in
-		let is_sys_group = group.group_name = system_user_default_group.group_name in
+		let is_sys_group = group = admin_group () in
 		Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 		if g_dls = 0 && g_mem = 0 && not is_sys_group then Printf.bprintf buf
 "\\<td title=\\\"Click to remove group\\\"

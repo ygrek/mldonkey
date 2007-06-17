@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2007/06/17
+6020: Multiuser: Fix handling of user "admin", its user_commit_dir was not
+      used when MLDonkey was not restarted between download start and commit
 6019: BT: Disable user_commit_dir for multifile torrents to fix seeding
 6011: BT: Send no_peer_id to trackers to save some bandwidth (berni)
 6010: Update syslog.ml to version 1.4

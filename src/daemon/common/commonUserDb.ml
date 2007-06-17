@@ -40,34 +40,11 @@ let users_ini = create_options_file "users.ini"
 let users2_section = file_section users_ini ["Users"] "User accounts on the core (new format)"
 let users_section = file_section users_ini ["Users"] "User accounts on the core (old format)"
 
-let dummy_group = {
-  group_name = "";
-  group_admin = true;
-}
-
-let default_group_name = "mldonkey"
-let system_user_default_group = {
-  dummy_group with
-  group_name = default_group_name
-}
+let admin_group_name = "mldonkey"
 
 let blank_password = Md4.string ""
 
-let dummy_user = {
-  user_name = "";
-  user_pass = blank_password;
-  user_groups = [system_user_default_group];
-  user_default_group = Some system_user_default_group;
-  user_mail = "";
-  user_commit_dir = "";
-  user_max_concurrent_downloads = 0;
-}
-
 let admin_user_name = "admin"
-let admin_user = {
-  dummy_user with
-  user_name = admin_user_name;
-}
 
 (*************************************************************************)
 (*                         GroupOption                                   *)
@@ -82,7 +59,7 @@ module GroupOption = struct
           let gname =
             try
               get_value "group_name" value_to_string
-            with _ -> default_group_name
+            with _ -> admin_group_name
           in
           let gadmin =
 	    try
@@ -111,7 +88,11 @@ let grouplist = define_option users2_section ["groups"]
 group_admin           = Are members of this group MLDonkey admins?
                         Only members of this group can change settings and see uploads.
 "
-    (list_option GroupOption.t) [system_user_default_group]
+    (list_option GroupOption.t)
+    [{
+      group_name = admin_group_name;
+      group_admin = true;
+    }]
 
 (*************************************************************************)
 (*                         Group database functions                      *)
@@ -151,9 +132,22 @@ let user2_default_group_matches_group dgroup group =
 let user2_group_admin group admin =
   group.group_admin <- admin
 
+let admin_group () =
+  user2_group_find admin_group_name
+
 (*************************************************************************)
 (*                         UserOption                                    *)
 (*************************************************************************)
+
+let default_admin_user = {
+  user_name = "";
+  user_pass = blank_password;
+  user_groups = [admin_group ()];
+  user_default_group = Some (admin_group ());
+  user_mail = "";
+  user_commit_dir = "";
+  user_max_concurrent_downloads = 0;
+  }
 
 module UserOption = struct
 
@@ -191,7 +185,7 @@ module UserOption = struct
 	    try
 	      let ugl = get_value "user_groups" (value_to_list value_to_string) in
 	      List.map user2_group_find ugl
-            with Not_found -> [system_user_default_group]
+            with Not_found -> [admin_group ()]
           in
           let udgroup =
 	    try
@@ -210,7 +204,7 @@ module UserOption = struct
 		    lprintf_nl "user_default_group %s of user %s does not exist, setting to None" udg uname;
 		    None
 		  end
-            with Not_found -> Some system_user_default_group
+            with Not_found -> Some (admin_group ())
           in
 	  { user_name = uname;
 	    user_pass = upass;
@@ -249,12 +243,13 @@ user_commit_dir               = Commit files to <incoming>/<user_commit_dir>
 user_mail                     = Address used to sent confirmation mails after comitting a download
 user_max_concurrent_downloads = Maximum number of downloads allowed, 0 = unlimited
 "
-    (list_option UserOption.t) [admin_user]
+    (list_option UserOption.t) [default_admin_user]
+
 
 let users = define_option users_section ["users"]
   "Depreciated option, kept for compatibility reasons - used by MLDonkey < 2.7.5"
     (list_option (tuple2_option (string_option, Md4.option)))
-    [admin_user.user_name, blank_password]
+    [admin_user_name, blank_password]
 
 (*************************************************************************)
 (*                         User database functions                       *)
@@ -270,13 +265,13 @@ let update_user name new_user =
       | None -> other_users
       | Some new_user -> new_user :: other_users
 
-let user2_user_add name pass ?(groups = [default_group_name])
-			     ?(default_group = Some default_group_name)
+let user2_user_add name pass ?(groups = [admin_group_name])
+			     ?(default_group = Some admin_group_name)
 			     ?(mail = "") ?(commit_dir = "") ?(max_dl = 0) () =
   (* shouldn't we warn admin about already existing user ? *)
   let groups =
     let l = List.map user2_group_find (List.filter user2_group_exists groups) in
-    if l = [] then [system_user_default_group] else l
+    if l = [] then [admin_group ()] else l
   in
   let default_group =
     match default_group with
@@ -341,6 +336,11 @@ let user2_user_commit_dir user =
 let user2_user_set_commit_dir user dir =
   user.user_commit_dir <- dir
 
+let admin_user () =
+  try
+    user2_user_find admin_user_name
+  with Not_found -> default_admin_user
+
 (*************************************************************************)
 (*                         User/Group database functions                 *)
 (*************************************************************************)
@@ -383,7 +383,7 @@ let user2_num_group_members group =
 (*************************************************************************)
 
 let user2_is_admin user =
-  user.user_name = admin_user.user_name ||
+  user = admin_user () ||
   List.exists (fun groupname ->
     try
       groupname.group_admin
@@ -416,21 +416,21 @@ let _ =
 (* Security and default checks 
    - user "admin" must exist, it has hard-coded admin rights independent of group membership
    - group "mldonkey" must exist and must have admin status *)
-    if not (user2_user_exists admin_user.user_name) then
+    if not (user2_user_exists admin_user_name) then
       begin
-	user2_user_add admin_user.user_name blank_password ();
+	user2_user_add admin_user_name blank_password ();
 	lprintf_nl "SECURITY INFO: user 'admin' has to be present, creating with empty password..."
       end;
     begin
       try
-	let g = user2_group_find default_group_name in
+	let g = admin_group () in
 	if not g.group_admin then
 	  begin
 	    user2_group_admin g true;
 	    lprintf_nl "SECURITY INFO: group 'mldonkey' must have admin status, updating..."
 	  end
       with Not_found ->
-	user2_group_add default_group_name true;
+	user2_group_add admin_group_name true;
 	lprintf_nl "SECURITY INFO: group 'mldonkey' has to be present, creating with admin rights..."
     end
   );
@@ -444,3 +444,13 @@ let _ =
   );
 (* clean !!users to avoid saving users more than once *)
   set_after_save_hook users_ini (fun _ -> users =:= [])
+
+let _ =
+  Heap.add_memstat "CommonUserDb" (fun level buf ->
+      Printf.bprintf buf "  grouplist: %d\n" (List.length !!grouplist);
+      if level > 0 then
+        List.iter (fun g -> Printf.bprintf buf "    group %s\n" g.group_name) !!grouplist;
+      Printf.bprintf buf "  userlist: %d\n" (List.length !!userlist);
+      if level > 0 then
+        List.iter (fun u -> Printf.bprintf buf "    user %s\n" u.user_name) !!userlist;
+  )

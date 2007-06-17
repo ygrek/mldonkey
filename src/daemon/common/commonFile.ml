@@ -140,8 +140,8 @@ let dummy_file_impl = {
     impl_file_last_seen = 0;
     impl_file_comment = "";
     impl_file_probable_name = None;
-    impl_file_owner = admin_user;
-    impl_file_group = Some system_user_default_group;
+    impl_file_owner = admin_user ();
+    impl_file_group = Some (admin_group ());
   }
 
 let dummy_file = as_file dummy_file_impl

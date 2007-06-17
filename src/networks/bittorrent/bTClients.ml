@@ -146,7 +146,7 @@ let connect_trackers file event f =
       let enabled_trackers = List.filter (fun t -> tracker_is_enabled t) file.file_trackers in
       if enabled_trackers = [] && (file_state file) <> FilePaused then
 	begin
-	  file_pause (as_file file) CommonUserDb.admin_user;
+	  file_pause (as_file file) (CommonUserDb.admin_user ());
 	  lprintf_file_nl (as_file file) "Paused %s, no usable trackers left" (file_best_name (as_file file))
 	end;
       enabled_trackers

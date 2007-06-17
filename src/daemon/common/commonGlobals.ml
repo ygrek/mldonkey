@@ -465,7 +465,7 @@ let last_message_log = ref 0
 let debug_clients = ref Intset.empty
 
 let default_user = {
-    ui_user = CommonUserDb.admin_user;
+    ui_user = CommonUserDb.admin_user ();
     ui_user_searches = [];
     ui_last_search = None;
     ui_last_results = [];

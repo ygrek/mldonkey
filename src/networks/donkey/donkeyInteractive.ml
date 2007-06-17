@@ -438,7 +438,7 @@ let import_temp temp_dir =
 		(match !filename_met with
 		   None -> filename
 		| Some s -> s) !size f.P.md4 None
-              (Some filename) (Some (List.rev f.P.absents)) CommonUserDb.admin_user);
+              (Some filename) (Some (List.rev f.P.absents)) (CommonUserDb.admin_user ()));
       with _ -> ()
   ) list
 
@@ -1581,7 +1581,7 @@ let try_recover_temp_file filename md4 =
       let size = Unix32.getsize file_diskname in
       if size <> zero then
 	begin
-	  ignore (really_query_download (Md4.to_string md4) size md4 None (Some file_diskname) None CommonUserDb.admin_user);
+	  ignore (really_query_download (Md4.to_string md4) size md4 None (Some file_diskname) None (CommonUserDb.admin_user ()));
 	  recover_md4s md4
 	end
 
