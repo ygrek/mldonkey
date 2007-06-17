@@ -956,17 +956,16 @@ let search_incoming_directories () =
 
 let incoming_dir usedir ?user ?needed_space ?network () =
 
-  let directories =
+  let directories, dirname_user =
+    let dirname_user =
+      match user with
+      | None -> ""
+      | Some user -> user.user_commit_dir
+    in
     if usedir then
-      search_incoming_directories ()
+      search_incoming_directories (), ""
     else
-      search_incoming_files ()
-  in
-
-  let dirname_user =
-    match user with
-    | None -> ""
-    | Some user -> user.user_commit_dir
+      search_incoming_files (), dirname_user
   in
 
 (*
