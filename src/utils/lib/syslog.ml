@@ -185,6 +185,22 @@ let ascdate {tm_sec=sec;tm_min=min;tm_hour=hour;
   in
     (Printf.sprintf "%s %02d %02d:%02d:%02d" asc_mon mday hour min sec)
 
+let protected_write loginfo str =
+  let fallback _ =
+    (try close loginfo.fd with _ -> ());
+    loginfo.connected <- false;
+    (try open_connection loginfo with _ -> ());
+    if List.mem `LOG_CONS loginfo.flags then log_console str
+  in
+  let prev = Sys.signal Sys.sigpipe (Sys.Signal_handle fallback) in
+  try
+    ignore (write loginfo.fd str 0 (String.length str));
+    Sys.set_signal Sys.sigpipe prev
+  with Unix_error (_, _, _) ->
+    (* on error, attempt to reconnect *)
+    fallback ();
+    Sys.set_signal Sys.sigpipe prev
+
 let syslog ?fac loginfo lev str =
   let msg = Buffer.create 64 in
   let realfac = match fac with 
@@ -209,17 +225,7 @@ let syslog ?fac loginfo lev str =
 	  realmsg := String.sub !realmsg 0 1024;
 	  String.blit "<truncated>" 0 !realmsg 1012 11
 	end;
-	begin try
-	  ignore (Unix.write loginfo.fd !realmsg 0 (String.length !realmsg))
-	with 
-	  | Unix.Unix_error(_,_,_) -> (* on error, attempt to reconnect *)
-	      (try close loginfo.fd
-	       with _ -> ());
-	      loginfo.connected <- false;
-	      (try open_connection loginfo with _ -> ());
-	      if List.mem `LOG_CONS loginfo.flags then
-		log_console !realmsg
-	end;
+        protected_write loginfo !realmsg;
 	if List.mem `LOG_PERROR loginfo.flags then begin
 	  try
 	    ignore (Unix.write Unix.stderr !realmsg 0 (String.length !realmsg));
