@@ -970,3 +970,7 @@ let string_of_slot_kind slot_kind short =
   | SmallFileSlot -> "SmallFileSlot"
   | NormalSlot -> if short then "" else "NormalSlot"
   | PrioSlot dir -> Printf.sprintf "Prio %s" dir
+
+type swarming_strategy =
+  LinearStrategy    (* one after the other one *)
+| AdvancedStrategy

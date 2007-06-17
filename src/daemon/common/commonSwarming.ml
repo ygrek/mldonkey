@@ -53,10 +53,6 @@ open CommonTypes
 
 let debug_all = false
 
-type strategy =
-  LinearStrategy    (* one after the other one *)
-| AdvancedStrategy
-
 exception VerifierNotReady
 
 type intervals =
@@ -144,7 +140,7 @@ and swarmer = {
 
     mutable s_networks : t list; (** list of frontends, primary at head 
 				     t.t_s = s <=> t in s.s_networks *)
-    mutable s_strategy : strategy;
+    mutable s_strategy : swarming_strategy;
 
     mutable s_verified_bitmap : VerificationBitmap.t;
     mutable s_disk_allocated : Bitv.t;
@@ -2477,6 +2473,10 @@ let current_blocks up =
 let in_uploader_ranges r list =
   List.exists (fun (_,_,r') -> r' == r) list
 
+let set_strategy t strategy = t.t_s.s_strategy <- strategy
+
+let get_strategy t = t.t_s.s_strategy
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         find_range                                    *)
@@ -3242,6 +3242,12 @@ module SwarmerOption = struct
           let file_size = get_value "file_size" value_to_int64 in
           let file_name = get_value "file_name" value_to_string in
           let s = create_swarmer file_name file_size in
+	  (let order =
+            try
+              get_value "file_download_random" value_to_bool
+            with _ -> true
+           in
+           s.s_strategy <- if order then AdvancedStrategy else LinearStrategy);
 	  (try
 	    let bitmap = Bitv.of_string (get_value "file_disk_allocation_bitmap"
 	      value_to_string) in
@@ -3267,6 +3273,10 @@ module SwarmerOption = struct
 	  (Bitv.to_string s.s_disk_allocated));
         ("file_chunk_sizes", list_to_value int64_to_value
             (List.map (fun t -> t.t_chunk_size) s.s_networks));
+        ("file_download_random", bool_to_value
+            (match s.s_strategy with
+             | AdvancedStrategy -> true
+             | LinearStrategy -> false));
         ]
 
     let t =

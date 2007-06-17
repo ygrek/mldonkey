@@ -1256,6 +1256,16 @@ let _ =
         None -> None
       | Some sh -> Some (as_shared sh)
   );
+  file_ops.op_file_download_order <- (fun file strategy ->
+      match file.file_swarmer with
+      | None -> None
+      | Some s ->
+          (match strategy with
+          (* return current strategy *)
+          | None -> Some (CommonSwarming.get_strategy s)
+          | Some strategy -> CommonSwarming.set_strategy s strategy;
+                      Some (CommonSwarming.get_strategy s))
+  );
 
   network.op_network_gui_message <- op_gui_message;
   network.op_network_connected <- op_network_connected;

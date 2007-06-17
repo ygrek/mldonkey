@@ -85,6 +85,7 @@ it will happen soon. *)
     mutable op_file_pause : ('a -> unit);
     mutable op_file_queue : ('a -> unit);
     mutable op_file_resume : ('a -> unit);
+    mutable op_file_download_order : ('a -> swarming_strategy option -> swarming_strategy option);
     mutable op_file_info : ('a -> GuiTypes.file_info);
     mutable op_file_set_format : ('a -> CommonTypes.format -> unit);
     mutable op_file_check : ('a -> unit);
@@ -565,6 +566,19 @@ let file_preview (file : file) =
       [| Filename2.basename !!previewer; file_disk_name file; file_best_name file |]
       Unix.stdin Unix.stdout Unix.stderr)
 
+let file_download_order (file : file) strategy =
+  let file = as_file_impl file in
+  file.impl_file_ops.op_file_download_order file.impl_file_val strategy
+
+let file_print_download_order (file : file) =
+  let file = as_file_impl file in
+  match file.impl_file_ops.op_file_download_order file.impl_file_val None with
+  | None -> "unknown"
+  | Some strategy ->
+      match strategy with
+      | LinearStrategy -> "linear"
+      | AdvancedStrategy -> "random"
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         file_downloaders                              *)
@@ -769,6 +783,11 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
         ("", "sr", (match file_group file with
           Some group -> Printf.sprintf "%s" group.group_name
         | None -> "None"))];
+
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+      html_mods_td buf [
+        ("Download strategy", "sr br", "DL strategy");
+        ("", "sr", file_print_download_order file) ];
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [
@@ -997,6 +1016,7 @@ let new_file_ops network =
       op_file_pause = (fun _ -> ni_ok network "file_pause");
       op_file_queue = (fun _ -> ni_ok network "file_queue");
       op_file_resume = (fun _ -> ni_ok network "file_resume");
+      op_file_download_order = (fun _ _ -> None);
 (*      op_file_disk_name = (fun _ -> fni network "file_disk_name"); *)
       op_file_check = (fun _ -> ni_ok network "file_check");
       op_file_recover = (fun _ -> ni_ok network "file_recover");
@@ -1038,6 +1058,8 @@ let check_file_implementations () =
         lprintf_nl "op_file_queue";
       if c.op_file_resume == cc.op_file_resume then
         lprintf_nl "op_file_resume";
+      if c.op_file_download_order == cc.op_file_download_order then
+        lprintf_nl "op_file_download_order";
 (*      if c.op_file_disk_name == cc.op_file_disk_name then
         lprintf_nl "op_file_disk_name"; *)
       if c.op_file_check == cc.op_file_check then

@@ -423,6 +423,16 @@ let _ =
       | _ -> ()
     ) file.file_clients
   );
+  file_ops.op_file_download_order <- (fun file strategy ->
+      match file.file_swarmer with
+      | None -> None
+      | Some s ->
+          (match strategy with
+          (* return current strategy *)
+          | None -> Some (CommonSwarming.get_strategy s)
+          | Some strategy -> CommonSwarming.set_strategy s strategy;
+                      Some (CommonSwarming.get_strategy s))
+  );
   file_ops.op_file_queue <- file_ops.op_file_pause;
   file_ops.op_file_resume <- (fun file -> ());
   file_ops.op_file_print <- (fun file buf -> ());

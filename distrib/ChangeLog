@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2007/06/17
+6005: Swarmer: Implement new download mechanism
+- its now possible to switch the order blocks are downloaded from random
+  (first and last block first, default) to linear
+- new command: download_order <file number> <random|linear>
 6017: Multiuser: New optional parameters group/commit_dir for command useradd
 6020: Multiuser: Fix handling of user "admin", its user_commit_dir was not
       used when MLDonkey was not restarted between download start and commit

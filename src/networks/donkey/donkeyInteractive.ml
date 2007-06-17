@@ -1012,6 +1012,16 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
 
 let _ =
   register_commands commands;
+  file_ops.op_file_download_order <- (fun file strategy ->
+      match file.file_swarmer with
+      | None -> None
+      | Some s ->
+          (match strategy with
+          (* return current strategy *)
+          | None -> Some (CommonSwarming.get_strategy s)
+          | Some strategy -> CommonSwarming.set_strategy s strategy;
+                      Some (CommonSwarming.get_strategy s))
+  );
   file_ops.op_file_resume <- (fun file ->
       reconnect_all file;
   );

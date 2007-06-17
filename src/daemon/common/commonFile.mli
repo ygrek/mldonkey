@@ -52,6 +52,7 @@ and 'a file_ops = {
   mutable op_file_pause : 'a -> unit;
   mutable op_file_queue : 'a -> unit;
   mutable op_file_resume : 'a -> unit;
+  mutable op_file_download_order : 'a -> CommonTypes.swarming_strategy option -> CommonTypes.swarming_strategy option;
   mutable op_file_info : 'a -> GuiTypes.file_info;
   mutable op_file_set_format : 'a -> CommonTypes.format -> unit;
   mutable op_file_check : 'a -> unit;
@@ -124,6 +125,8 @@ val set_file_disk_name : CommonTypes.file -> string -> unit
 val file_downloaded : CommonTypes.file -> int64
 val file_network : CommonTypes.file -> CommonTypes.network
 val file_priority : CommonTypes.file -> int
+val file_download_order : CommonTypes.file -> CommonTypes.swarming_strategy option -> CommonTypes.swarming_strategy option
+val file_print_download_order : CommonTypes.file -> string
 val set_file_priority : CommonTypes.file -> int -> unit
 val set_file_last_seen : CommonTypes.file -> int -> unit
 val file_debug : CommonTypes.file -> string

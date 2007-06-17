@@ -2866,6 +2866,17 @@ let _ =
 
     ), "<priority> <files numbers> :\tchange file priorities";
 
+    "download_order", Arg_two (fun num v o ->
+        try
+          let file = file_find (int_of_string num) in
+          (match v with
+          | "linear" -> ignore (CommonFile.file_download_order file (Some CommonTypes.LinearStrategy))
+          | _ -> ignore (CommonFile.file_download_order file (Some CommonTypes.AdvancedStrategy)));
+          _s (Printf.sprintf "Changed download order of %s to %s"
+                (file_best_name file) (file_print_download_order file))
+        with e -> Printf.sprintf "Exception %s" (Printexc2.to_string e)
+    ), "<file number> <random|linear> :\tchange download order of file blocks (default random, with first and last block first)";
+
     "confirm", Arg_one (fun arg o ->
         match String.lowercase arg with
           "yes" | "y" | "true" ->
