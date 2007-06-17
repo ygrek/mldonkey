@@ -461,17 +461,20 @@ let rec client_parse_header counter cc init_sent gconn sock
     let file = Hashtbl.find files_by_uid file_id in
     if !verbose_msg_clients then
       lprintf_file_nl (as_file file) "file found";
+    let ccc, cc_country_code = !cc in
     let c =
-      match !cc with
+      match ccc with
         None ->
-          let c = new_client file Sha1.null (TcpBufferedSocket.peer_addr sock) None in
+          let c = new_client file Sha1.null (TcpBufferedSocket.peer_addr sock) cc_country_code in
           if !verbose_connect then lprintf_file_nl (as_file file) "Client %d: incoming connection" (client_num c);
-          cc := Some c;
+          cc := (Some c), cc_country_code;
           c
       | Some c ->
           (* Does it happen that this c was already used to connect successfully?
              If yes then this must happen: *)
           c.client_received_peer_id <- false;
+          if cc_country_code <> None && c.client_country_code = None then
+            c.client_country_code <- cc_country_code;
           c
           (* client could have had Sha1.null as peer_id/uid *)
           (* this is to be done, later
@@ -1087,8 +1090,10 @@ let connect_client c =
        None -> true
      | Some reason ->
          if !verbose_connect then
-           lprintf_nl "%s:%d blocked: %s"
-             (Ip.to_string ip) port reason;
+           lprintf_nl "%s:%d (%s), blocked: %s"
+             (Ip.to_string ip) port
+             (fst (Geoip.get_country_code_name c.client_country_code))
+             reason;
          false)
   then
   match c.client_sock with
@@ -1148,7 +1153,7 @@ let connect_client c =
                     be parsed
                   *)
                   set_bt_sock sock !verbose_msg_clients
-                    (BTHeader (client_parse_header !counter (ref (Some c)) true))
+                    (BTHeader (client_parse_header !counter (ref ((Some c), c.client_country_code)) true))
                 end
             with e ->
                 lprintf_nl "Exception %s while connecting to client"
@@ -1180,6 +1185,7 @@ let listen () =
                 to connect to us
               *)
               let ip = (Ip.of_inet_addr from_ip) in
+              let cc = Geoip.get_country_code_option ip in
               if !verbose_sources > 1 then lprintf_nl "CONNECTION RECEIVED FROM %s"
                 (Ip.to_string (Ip.of_inet_addr from_ip))
               ;
@@ -1187,12 +1193,14 @@ let listen () =
                 to bypass the max_connection parameter
               *)
               if can_open_connection connection_manager &&
-                (match !Ip.banned (ip, None) with
+                (match !Ip.banned (ip, cc) with
                    None -> true
                  | Some reason ->
                      if !verbose_connect then
-                       lprintf_nl "%s:%d blocked: %s"
-                         (Ip.to_string ip) from_port reason;
+                       lprintf_nl "%s:%d (%s) blocked: %s"
+                         (Ip.to_string ip) from_port
+                         (fst (Geoip.get_country_code_name cc))
+                         reason;
                      false)
               then
                 begin
@@ -1212,9 +1220,9 @@ let listen () =
                   TcpBufferedSocket.set_read_controler sock download_control;
                   TcpBufferedSocket.set_write_controler sock upload_control;
 
-                  let c = ref None in
+                  let c = ref (None, cc) in
                   TcpBufferedSocket.set_closer sock (fun _ r ->
-                      match !c with
+                      match fst !c with
                         Some c ->  begin
                             match c.client_sock with
                             | Connection s when s == sock ->

@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/06/17
+5992: BT/IP block: Fix country-based IP blocking
+-------------------------------------------------------------------------------
 2007/06/03: version 2.8.7 = tag release-2-8-7
 5988: BT: Completely parse handshake packet of newer BT clients (thx to Berni)
 - this patch should fix the serious performance problem with BT downloads

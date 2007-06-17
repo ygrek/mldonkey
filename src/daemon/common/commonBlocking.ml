@@ -44,12 +44,12 @@ let ip_set_hit bl ip =
 let geoip_hit cbl ip cc =
   let index =
     match cc with
-    | None -> 0
+    | None -> Geoip.get_country_code ip
     | Some cc -> if cc = 0 then Geoip.get_country_code ip else cc
   in
   if not (Geoip.active ()) || !country_blocking_string_list_copy = [] then None
   else if cbl.(index) then
-    Some (Printf.sprintf "IPs from %s are currently blocked"
+    Some (Printf.sprintf "IPs from country %s are currently blocked"
       Geoip.country_name_array.(index))
   else None
 
