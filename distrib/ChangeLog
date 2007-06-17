@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/06/17
+6011: BT: Send no_peer_id to trackers to save some bandwidth (berni)
 6010: Update syslog.ml to version 1.4
 5995: EDK: Better handle permission denied errors for shared/downloading files
 5992: BT/IP block: Fix country-based IP blocking

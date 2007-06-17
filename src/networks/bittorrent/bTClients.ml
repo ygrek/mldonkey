@@ -110,6 +110,16 @@ let connect_trackers file event f =
         | _ -> [],true,local_downloaded, left
   in
 
+  let args = ("no_peer_id", "1") :: ("compact", "1") :: args in
+  let args = if !!numwant > -1 then
+      ("numwant", string_of_int !!numwant) :: args else args
+  in
+  let args = if !!send_key then
+      ("key", Sha1.to_hexa !!client_uid) :: args else args
+  in
+   let args = if !!force_client_ip then
+      ("ip", Ip.to_string !!set_client_ip) :: args else args
+  in
   let args =
     ("info_hash", Sha1.direct_to_string file.file_id) ::
     ("peer_id", Sha1.direct_to_string !!client_uid) ::
@@ -117,18 +127,9 @@ let connect_trackers file event f =
     ("uploaded", Int64.to_string file.file_uploaded) ::
     ("downloaded", Int64.to_string downloaded) ::
     ("left", Int64.to_string left) ::
-    ("compact","1") ::
     args
   in
-  let args = if !!send_key then
-      ("key", Sha1.to_hexa !!client_uid) :: args else args
-  in
-  let args = if !!numwant > -1 then
-      ("numwant", string_of_int !!numwant) :: args else args
-  in
-  let args = if !!force_client_ip then
-      ("ip", Ip.to_string !!set_client_ip) :: args else args
-  in
+  
 
   let enabled_trackers =
     let enabled_trackers = List.filter (fun t -> tracker_is_enabled t) file.file_trackers in
