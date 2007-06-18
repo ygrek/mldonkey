@@ -3155,11 +3155,14 @@ let _ =
             else Some (user2_group_find g).group_name
           with Not_found -> None
         in
-        let (user, pass, group, cdir) =
+        let (user, pass, group, cdir, mail, mdl) =
           match args with
-          | [user; pass; group; cdir] -> user, pass, (group_convert group), cdir
-          | [user; pass; group] -> user, pass, (group_convert group), ""
-          | [user; pass] -> user, pass, Some admin_group_name, ""
+          | [user; pass; group; cdir; mail; mdl] ->
+              user, pass, (group_convert group), cdir, mail, (try int_of_string mdl with _ -> 0)
+          | [user; pass; group; cdir; mail] -> user, pass, (group_convert group), cdir, mail, 0
+          | [user; pass; group; cdir] -> user, pass, (group_convert group), cdir, "", 0
+          | [user; pass; group] -> user, pass, (group_convert group), "", "", 0
+          | [user; pass] -> user, pass, Some admin_group_name, "", "", 0
           | _ -> failwith "wrong parameters"
         in
         if user2_is_admin o.conn_user.ui_user
@@ -3173,16 +3176,16 @@ let _ =
             begin
               match group with
               | None -> user2_user_add user (Md4.string pass)
-                          ~groups:[] ~default_group:None ~commit_dir:cdir ();
+                          ~groups:[] ~default_group:None ~commit_dir:cdir ~mail:mail ~max_dl:mdl ();
                         print_command_result o (Printf.sprintf "User %s added" user)
               | Some g -> user2_user_add user (Md4.string pass)
-                            ~groups:[g] ~default_group:group ~commit_dir:cdir ();
+                            ~groups:[g] ~default_group:group ~commit_dir:cdir ~mail:mail ~max_dl:mdl ();
                           print_command_result o (Printf.sprintf "User %s added, group %s" user g)
             end
         else
           print_command_result o "You are not allowed to add users";
         _s ""
-    ), "<user> <passwd> [<group>] [<commit_dir>]: add new mldonkey user/change user password";
+    ), "<user> <passwd> [<group>] [<commit_dir>] [<mail>] [<max_downloads>]: add new mldonkey user/change user password";
 
     "userdel", Arg_one (fun user o ->
         if user <> o.conn_user.ui_user.user_name then
