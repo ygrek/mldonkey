@@ -37,7 +37,6 @@ open CommonTypes
 open CommonGlobals
 open CommonOptions
 open CommonUserDb
-open CommonTypes
 open Int64ops
 
 module VB = VerificationBitmap

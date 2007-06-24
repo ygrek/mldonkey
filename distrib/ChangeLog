@@ -14,6 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/06/24
+6025: Extend command "links" to optionally display all downloading files
+- "links" displays all files, not only shared ones like before
+- "links shared" lists only shared files
+- "links downloading" lists only downloading files
+
 2007/06/18
 6024: Multiuser: New parameters for command useradd:
       user_mail + user_max_concurrent_downloads

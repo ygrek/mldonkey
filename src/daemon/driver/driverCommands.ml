@@ -60,6 +60,12 @@ let lprintf_n fmt =
 let _s x = _s "DriverCommands" x
 let _b x = _b "DriverCommands" x
 
+type command_links_data = {
+  filename : string;
+  filesize : int64;
+  fileid : Md4.t;
+  }
+
 let to_cancel = ref []
 
 let files_to_cancel o =
@@ -2610,34 +2616,60 @@ let _ =
         _s ""
     ), ":\t\t\t\tstatistics on upload";
 
-    "links", Arg_none (fun o ->
+    "links", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if not (user2_can_view_uploads o.conn_user.ui_user) then
 	  print_command_result o "You are not allowed to see shared files list"
         else begin
 
-        let list = ref [] in
-        shared_iter (fun s ->
-          let impl = as_shared_impl s in
-          list := impl :: !list
-        );
+        let list = Hashtbl.create !shared_counter in
+
+        let compute_shares () =
+          shared_iter (fun s ->
+            let impl = as_shared_impl s in
+            try
+              ignore (Hashtbl.find list impl.impl_shared_id)
+            with Not_found ->
+                Hashtbl.add list impl.impl_shared_id {
+                    filename = impl.impl_shared_codedname;
+                    filesize = impl.impl_shared_size;
+                    fileid = impl.impl_shared_id;
+                })
+        in
+
+        let compute_downloads () =
+          List.iter (fun f ->
+            try
+              ignore (Hashtbl.find list f.file_md4)
+            with Not_found ->
+                Hashtbl.add list f.file_md4 {
+                    filename = f.file_name;
+                    filesize = f.file_size;
+                    fileid = f.file_md4;
+                }) (List2.tail_map file_info 
+                      (user2_filter_files !!files o.conn_user.ui_user))
+        in
 
         let list =
           List.sort ( fun f1 f2 ->
             String.compare
-              (Filename.basename f1.impl_shared_codedname)
-              (Filename.basename f2.impl_shared_codedname)
-        ) !list in
+              (Filename.basename f1.filename)
+              (Filename.basename f2.filename)
+        )
+        (match args with
+         | ["downloading"] -> compute_downloads (); Hashtbl2.to_list list
+         | ["shared"] -> compute_shares (); Hashtbl2.to_list list
+         | _ -> compute_shares (); compute_downloads (); Hashtbl2.to_list list)
+        in
 
-        List.iter (fun impl ->
-          if (impl.impl_shared_id <> Md4.null) then
+        List.iter (fun f ->
+          if (f.fileid <> Md4.null) then
 	    Printf.bprintf buf "%s\n" (file_print_ed2k_link
-	      (Filename.basename impl.impl_shared_codedname)
-	      impl.impl_shared_size impl.impl_shared_id);
+	      (Filename.basename f.filename) f.filesize f.fileid);
         ) list;
         end;
         "Done"
-    ), ":\t\t\t\t\tlist links of shared files";
+    ), "[downloading|shared|empty for all]: list links of shared files";
 
     "uploaders", Arg_none (fun o ->
         let buf = o.conn_buf in
