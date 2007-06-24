@@ -346,20 +346,19 @@ let _ =
           | _  -> failwith "Bad number of arguments"
         in
 	web_infos_add kind period url;
-	CommonWeb.load_url true kind url;
+        (match web_infos_find url with
+        | None -> ()
+        | Some w -> CommonWeb.load_url true w);
         "url added to web_infos. downloading now"
     ), "<kind> <url> [<period>] :\tload this file from the web\n"
        ^"\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)\n"
        ^"\t\t\t\t\tperiod is the period between updates (in hours, default 0 = only loaded at startup)";
 
     "urlremove", Arg_one (fun url o ->
-    	if web_infos_exists url then
-	  begin
-	    web_infos_remove [("",0,url)];
-            "removed URL from web_infos"
-	  end
-	else
-            "URL does not exists in web_infos"
+        match web_infos_find url with
+        | None -> "URL does not exists in web_infos"
+        | Some w -> web_infos_remove w.url;
+                      "removed URL from web_infos"
     ), "<url> :\t\t\tremove URL from web_infos";
 
     "force_web_infos", Arg_multiple (fun args o ->
@@ -368,12 +367,12 @@ let _ =
                 "requesting all web_infos files"
         | args -> let list = ref [] in
                   List.iter (fun arg ->
-                    List.iter (fun (kind, _, url) ->
-                      if kind = arg || url = arg then begin
-                        CommonWeb.load_url false kind url;
+                    Hashtbl.iter (fun key w ->
+                      if w.kind = arg || w.url = arg then begin
+                        CommonWeb.load_url false w;
                         list := arg :: !list
                       end
-                  ) !!web_infos) args;
+                  ) web_infos_table) args;
                   if !list = [] then
                     Printf.sprintf "found no web_infos entries for %s" (String.concat " " args)
                   else
@@ -2191,7 +2190,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
 
-            if !!web_infos = [] then
+            if Hashtbl.length web_infos_table = 0 then
               html_mods_table_one_row buf "serversTable" "servers" [
                 ("", "srh", "no jobs defined"); ]
 	    else begin
@@ -2199,12 +2198,14 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
     	      html_mods_table_header buf "web_infoTable" "vo" [
 	        ( "0", "srh ac", "Click to remove URL", "Remove" ) ;
 	        ( "0", "srh", "Download now", "DL" ) ;
-	        ( "0", "srh", "Option type", "Type" ) ;
-	        ( "0", "srh", "Option delay", "Delay" ) ;
-	        ( "0", "srh", "Option value", "Value" ) ] ;
+	        ( "0", "srh", "Filetype", "Type" ) ;
+	        ( "0", "srh", "Interval in hours", "Interval" ) ;
+	        ( "0", "srh", "URL", "URL" ) ;
+	        ( "0", "srh", "URL state", "State" ) ;
+              ] ;
 
               html_mods_cntr_init ();
-              List.iter (fun (kind, period, url) ->
+              Hashtbl.iter (fun key w ->
                 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 		Printf.bprintf buf "
         \\<td title=\\\"Click to remove URL\\\"
@@ -2213,21 +2214,23 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
         onClick=\\\'javascript:{
 	parent.fstatus.location.href=\\\"submit?q=urlremove+\\\\\\\"%s\\\\\\\"\\\"
         setTimeout(\\\"window.location.reload()\\\",1000);}'
-        class=\\\"srb\\\"\\>Remove\\</td\\>" (Url.encode url);
+        class=\\\"srb\\\"\\>Remove\\</td\\>" (Url.encode w.url);
 		Printf.bprintf buf "
         \\<td title=\\\"Download now\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
         onClick=\\\'javascript:{
 	parent.fstatus.location.href=\\\"submit?q=force_web_infos+\\\\\\\"%s\\\\\\\"\\\";}'
-        class=\\\"srb\\\"\\>DL\\</td\\>" (Url.encode url);
+        class=\\\"srb\\\"\\>DL\\</td\\>" (Url.encode w.url);
           Printf.bprintf buf "
               \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-	      \\<td class=\\\"sr\\\"\\>%d\\</td\\>"  url kind period;
+	      \\<td class=\\\"sr\\\"\\>%d\\</td\\>"  w.url w.kind w.period;
+          Printf.bprintf buf "
+              \\<td class=\\\"sr\\\"\\>%s\\</td\\>" w.url;
           Printf.bprintf buf "
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-              \\</tr\\>" url
-              ) !!web_infos;
+              \\</tr\\>" (string_of_web_infos_state w.state);
+              ) web_infos_table;
 	    end;
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
 
@@ -2249,10 +2252,11 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
           end
         else
 	    begin
-	      Printf.bprintf buf "kind / period / url :\n";
-	      List.iter (fun (kind, period, url) ->
-	          Printf.bprintf buf "%s ; %d ; %s\n"  kind period url
-	      ) !!web_infos;
+	      Printf.bprintf buf "kind / period / url / state :\n";
+	      Hashtbl.iter (fun key w ->
+	          Printf.bprintf buf "%s ; %d ; %s; %s\n"
+                    w.kind w.period w.url (string_of_web_infos_state w.state)
+	      ) web_infos_table;
 	      Printf.bprintf buf "\nAllowed values for kind:\n";
 	      List.iter (fun (kind, data) ->
 	          Printf.bprintf buf "%s - %s\n" kind data.description

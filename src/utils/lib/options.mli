@@ -190,7 +190,6 @@ val value_to_filename : option_value -> string
 val set_simple_option : options_file -> string -> string -> unit
 val simple_options : string -> options_file -> bool -> option_info list
 val get_simple_option : options_file -> string -> string
-val set_option_hook : options_file -> string -> (unit -> unit) -> unit
 
 val set_string_wrappers : 'a option_class -> 
   ('a -> string) -> (string -> 'a) -> unit

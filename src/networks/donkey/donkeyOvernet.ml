@@ -1916,15 +1916,21 @@ let _ =
         let urls =
           match args with
             [] -> let list = ref [] in
-              List.iter (fun (kind,_, url) ->
-                  if kind = web_info then list := url :: !list
-              )!!web_infos;
+              Hashtbl.iter (fun key w ->
+                  if w.kind = web_info then list := w :: !list
+              ) web_infos_table;
               !list
-          | _ -> args
+          | _ -> List.map (fun url -> 
+                    { 
+                      url = url;
+                      kind = web_info;
+                      period = 0;
+                      state = None;
+                    }) args
         in
-        List.iter (fun url ->
-            Printf.bprintf o.conn_buf "Loading %s\n" url;
-            CommonWeb.load_url true web_info url) urls;
+        List.iter (fun w ->
+            Printf.bprintf o.conn_buf "Loading %s\n" w.url;
+            CommonWeb.load_url true w) urls;
         "web boot started"
     ), "<urls> : \t\t\tdownload .ocl URLs (no arg load default)";
 
@@ -2097,8 +2103,7 @@ let _ =
                     bootstrap ip port) (fun _ -> ())
             | _ -> lprintf_nl "BAD LINE ocl: %s" s;
           with _ -> lprintf_nl "DNS failed";
-      ) lines;
-  CommonWeb.remove_job url
+      ) lines
   );
 
   (* Add this kind of web_info only for overnet *)
@@ -2110,11 +2115,10 @@ let _ =
             lprintf_nl "contact.dat loaded from %s, added %d peers" url n;
 	else
 	  if not !!enable_overnet then
-      lprintf_nl "Overnet module is disabled, ignoring..."
+            lprintf_nl "Overnet module is disabled, ignoring..."
 	  else
-      lprintf_nl "Overnet_update_nodes is disabled, ignoring...";
-      CommonWeb.remove_job url
-        );
+            lprintf_nl "Overnet_update_nodes is disabled, ignoring..."
+      );
 
 (*************************************************************
 

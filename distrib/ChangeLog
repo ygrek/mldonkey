@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2007/06/24
+6034: Load $MLDONKEY/web_infos/* before activating network modules
+- this fixes a security hole when networks started connecting
+  before IP blocklist was loaded
 6025: Extend command "links" to optionally display all downloading files
 - "links" displays all files, not only shared ones like before
 - "links shared" lists only shared files

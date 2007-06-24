@@ -24,6 +24,7 @@ open BasicSocket
 open TcpBufferedSocket
 open Options
 open Unix
+open CommonTypes
 
 let log_prefix = "[cO]"
 
@@ -938,7 +939,7 @@ let html_mods_theme = define_option current_section ["html_mods_theme"]
     string_option ""
 
 let use_html_mods o =
-  o.CommonTypes.conn_output = CommonTypes.HTML && !!html_mods
+  o.conn_output = HTML && !!html_mods
 
 let html_checkbox_vd_file_list = define_expert_option current_section ["html_checkbox_vd_file_list"]
   "Whether to use checkboxes in the WEB interface for download list"
@@ -1789,16 +1790,6 @@ let _ =
       let gc_control = Gc.get () in
       Gc.set { gc_control with Gc.space_overhead = !!space_overhead };
   );
-  option_hook web_infos (fun _ ->
-      List.iter (fun remove ->
-          if List.mem remove !!web_infos then
-            web_infos =:= List2.remove remove !!web_infos
-      )
-      [
-        ("server.met", 1, "http://savannah.nongnu.org/download/mldonkey/network/servers.met");
-        ("ocl",1, "http://savannah.nongnu.org/download/mldonkey/network/peers.ocl");
-      ]
-  );
   option_hook tcpip_packet_size (fun _ ->
       TcpBufferedSocket.ip_packet_size := !!tcpip_packet_size
   );
@@ -2033,21 +2024,54 @@ let _ =
   option_hook allow_local_network (fun _ ->
       Ip.allow_local_network := !!allow_local_network)
 
-let web_infos_exists url =
-  List.exists (fun (_, _, weburl) ->
-    weburl = url) !!web_infos
+let web_infos_table = Hashtbl.create 10
 
-let web_infos_remove outdated_web_infos =
-  web_infos =:=
-  List.fold_left (fun acc owi ->
-    let (kind2, _, url2) = owi in
-    List.filter (fun (_,_,url) -> url <> url2) acc
-  ) !!web_infos outdated_web_infos
+exception Found_web_infos of web_infos
+
+let web_infos_find url =
+  let found = ref None in
+  (try
+    Hashtbl.iter (fun key w ->
+      if w.url = url then raise (Found_web_infos w)
+    ) web_infos_table
+  with Found_web_infos w -> found := Some w);
+  !found
+
+let web_infos_remove url =
+  let delete_list = ref [] in
+  Hashtbl.iter (fun key w -> 
+    if w.url = url then delete_list := !delete_list @ [key]
+  ) web_infos_table;
+  List.iter (fun key -> Hashtbl.remove web_infos_table key) !delete_list
 
 let web_infos_add kind period url =
-  let web_info = (kind,period,url) in
-  if web_infos_exists url then web_infos_remove [web_info];
-  web_infos =:=  web_info :: !!web_infos
+  (match web_infos_find url with
+  | None -> ()
+  | Some w -> web_infos_remove w.url);
+  Hashtbl.add web_infos_table (kind, period, url)
+    {
+      kind = kind;
+      period = period;
+      url = url;
+      state = None;
+    }
+
+let _ =
+(* convert list option web_infos to a hashtable for better usage *)
+  set_after_load_hook downloads_ini (fun _ ->
+    List.iter (fun (kind, period, url) ->
+      web_infos_add kind period url
+    ) !!web_infos;
+    web_infos =:= []
+  );
+  set_before_save_hook downloads_ini (fun _ ->
+    Hashtbl.iter (fun _ w ->
+      web_infos =:= !!web_infos @ [(w.kind, w.period, w.url)]
+    ) web_infos_table
+  );
+  set_after_save_hook downloads_ini (fun _ ->
+    web_infos =:= []
+  )
 
 let rec update_options () =
   let update v =
@@ -2061,14 +2085,9 @@ let rec update_options () =
       web_infos =:= List.map (fun (kind, period, url) ->
           kind, period * Date.day_in_hours, url
       ) !!web_infos;
-      web_infos =:= !!web_infos @ [
-        ("rss", 6,
-          "http://www.ed2k-it.com/forum/news_rss.php");
-        ("rss", 6,
-          "http://www.torrents.co.uk/backend.php");
-        ("rss", 6,
-          "http://varchars.com/rss/suprnova-movies.rss");
-      ];
+      web_infos_add "rss" 6 "http://www.ed2k-it.com/forum/news_rss.php";
+      web_infos_add "rss" 6 "http://www.torrents.co.uk/backend.php";
+      web_infos_add "rss" 6 "http://varchars.com/rss/suprnova-movies.rss";
       update 1
 
   | 1 ->
@@ -2077,34 +2096,19 @@ let rec update_options () =
       update 2
 
   | 2 ->
-      web_infos_remove
-        [
-          ("rss", 6,
-            "http://www.ed2k-it.com/forum/news_rss.php");
-          ("rss", 6,
-            "http://www.torrents.co.uk/backend.php");
-          ("rss", 6,
-            "http://varchars.com/rss/suprnova-movies.rss");
-        ];
-      if !!min_reask_delay = 720 then
-          min_reask_delay =:= 600;
+      web_infos_remove "http://www.ed2k-it.com/forum/news_rss.php";
+      web_infos_remove "http://www.torrents.co.uk/backend.php";
+      web_infos_remove "http://varchars.com/rss/suprnova-movies.rss";
+      if !!min_reask_delay = 720 then min_reask_delay =:= 600;
       update 3
 
   | 3 ->
-      web_infos_remove
-        [
-          ("ocl", 24,
-            "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl");
-        ];
+      web_infos_remove "http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl";
       web_infos_add "contact.dat" 168 "http://www.overnet.org/download/contact.dat";
       update 4
 
   | 4 ->
-      web_infos_remove
-        [
-          ("server.met", 24,
-            "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met");
-        ];
+      web_infos_remove "http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-best.met";
       web_infos_add "server.met" 0 "http://www.gruk.org/server.met.gz";
       update 5
 
@@ -2128,38 +2132,18 @@ let rec update_options () =
       update 9
 
   | 9 ->
-      if web_infos_exists "http://www.gruk.org/server.met.gz" then
-      begin
-        web_infos_remove
-          [
-      ("server.met", 0, "http://www.gruk.org/server.met.gz")
-          ];
+      web_infos_remove "http://www.gruk.org/server.met.gz";
       web_infos_add "server.met" 0 "http://www.jd2k.com/server.met";
-      end;
       update 10
 
   | 10 ->
-      if web_infos_exists "http://www.overnet.org/download/contact.dat" then
-      begin
-        web_infos_remove
-          [
-      ("contact.dat", 672,
-        "http://www.overnet.org/download/contact.dat");
-          ];
-  web_infos_add "contact.dat" 168 "http://download.overnet.org/contact.dat";
-      end;
+      web_infos_remove "http://www.overnet.org/download/contact.dat";
+      web_infos_add "contact.dat" 168 "http://download.overnet.org/contact.dat";
       update 11
 
   | 11 ->
-      if web_infos_exists "http://www.bluetack.co.uk/config/antip2p.txt" then
-      begin
-        web_infos_remove
-          [
-      ("guarding.p2p", 96,
-        "http://www.bluetack.co.uk/config/antip2p.txt");
-          ];
-  web_infos_add "guarding.p2p" 0 "http://www.bluetack.co.uk/config/level1.gz";
-      end;
+      web_infos_remove "http://www.bluetack.co.uk/config/antip2p.txt";
+      web_infos_add "guarding.p2p" 0 "http://www.bluetack.co.uk/config/level1.gz";
       update 12
 
   | 12 ->
@@ -2167,12 +2151,8 @@ let rec update_options () =
       update 13
 
   | 13 ->
-      if web_infos_exists "http://www.jd2k.com/server.met" then
-      begin
-        web_infos_remove
-          [("server.met", 0, "http://www.jd2k.com/server.met")];
-	web_infos_add "server.met" 0 "http://www.gruk.org/server.met.gz";
-      end;
+      web_infos_remove "http://www.jd2k.com/server.met";
+      web_infos_add "server.met" 0 "http://www.gruk.org/server.met.gz";
       update 14
 
   | 14 ->

@@ -1930,23 +1930,18 @@ let _ =
     if !!enable_donkey && !!update_server_list_server_met then
       begin
         lprintf_nl "server.met loaded from %s" url;
-  begin
-    try
-      let s = unpack_server_met filename url in
+        let s = unpack_server_met filename url in
         let nservers = List.length (Hashtbl2.to_list servers_by_key) in
-              let n = load_server_met s in
-                if s <> filename then Sys.remove s;
-            lprintf_nl "%d servers found, %d new ones inserted"
-        n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
-           with _ -> ()
-  end;
+        let n = load_server_met s in
+        if s <> filename then Sys.remove s;
+        lprintf_nl "%d servers found, %d new ones inserted"
+          n ((List.length (Hashtbl2.to_list servers_by_key)) - nservers)
       end
     else
       if not !!enable_donkey then
         lprintf_nl "eDonkey module is disabled, ignoring..."
       else
-        lprintf_nl "ED2K-update_server_list_server_met is disabled, ignoring...";
-    CommonWeb.remove_job url
+        lprintf_nl "ED2K-update_server_list_server_met is disabled, ignoring..."
   );
 
   file_ops.op_file_proposed_filenames <- op_file_proposed_filenames;

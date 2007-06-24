@@ -423,6 +423,18 @@ or getting a binary compiled with glibc %s.\n\n")
 
   CommonGlobals.is_startup_phase := false;
 
+(* before activating network modules load all local files from web_infos/
+   to avoid security holes, especially for IP blocking *)
+  Hashtbl.iter (fun key w ->
+    let file = Filename.concat "web_infos" (Filename.basename w.url) in
+    if Sys.file_exists file then
+      try
+        lprintf_nl "loading %s from %s" w.kind file;
+        ((List.assoc w.kind !CommonWeb.file_kinds).f w.url) file;
+        w.state <- Some FileLoaded;
+      with _ -> ()
+  ) web_infos_table;
+
   lprintf_nl (_b "Check http://www.mldonkey.org for updates");
   networks_iter (fun r -> network_load_complex_options r);
   lprintf_nl (_b "enabling networks: ");
@@ -501,7 +513,6 @@ or getting a binary compiled with glibc %s.\n\n")
 
   Options.prune_file downloads_ini;
   Options.prune_file users_ini;
-(*  Options.prune_file downloads_expert_ini; *)
   add_timer 1. (fun _ -> try CommonWeb.load_web_infos true false with _ -> ());
   lprintf_nl  (_b "To command: telnet %s %d")
 	(if !!telnet_bind_addr = Ip.any then "127.0.0.1"

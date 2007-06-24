@@ -467,12 +467,12 @@ and save_module_fields indent oc m =
 let options_file_name f = f.file_name
 
 let load opfile =
-  try
+  (try
     opfile.file_rc <-
       really_load opfile.file_name opfile.file_sections;
-    opfile.file_after_load_hook ()
   with
-    Not_found | Sys_error _ -> (* lprintf "No %s found\n" opfile.file_name *) ()
+  | Not_found | Sys_error _ -> ());
+  opfile.file_after_load_hook ()
       
 let append opfile filename =
   try
@@ -1090,9 +1090,6 @@ let get_simple_option opfile name =
   match o.option_class.string_wrappers with
     None -> safe_value_to_string (o.option_class.to_value o.option_value)
   | Some (to_string, _) -> to_string o.option_value
-  
-let set_option_hook opfile name hook =
-  let o = get_option opfile name in o.option_hooks <- hook :: o.option_hooks
   
 let set_string_wrappers o to_string from_string =
   o.string_wrappers <- Some (to_string, from_string)

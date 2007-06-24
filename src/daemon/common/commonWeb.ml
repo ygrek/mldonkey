@@ -45,21 +45,6 @@ let lprintf_n fmt =
 let days = ref 0
 let hours = ref 0
 
-type web_jobs = {
-  mutable downloaded : bool;
-}
-
-let running_jobs = Hashtbl.create (List.length !!web_infos)
-
-let add_job url =
-  let wj = {
-    downloaded = false;
-  } in
-  Hashtbl.add running_jobs url wj
-
-let remove_job url =
-  Hashtbl.remove running_jobs url
-
 (*************************************************************************)
 (*                                                                       *)
 (*                         load_url                                      *)
@@ -73,22 +58,24 @@ let add_web_kind kind descr f =
   file_kinds := (kind, kind_record) :: !file_kinds
 
   
-let mldonkey_wget_url url f =
-  add_job url;
+let mldonkey_wget_url w f =
+  (match w.state with
+  | None -> w.state <- Some DownloadStarted;
+  | _ -> ());
   let module H = Http_client in
   let r = {
       H.basic_request with
-      H.req_url = Url.of_string url;
+      H.req_url = Url.of_string w.url;
       H.req_proxy = !CommonOptions.http_proxy;
       H.req_referer = (
         let (rule_search,rule_value) =
           try (List.find(fun (rule_search,rule_value) ->
-            Str.string_match (Str.regexp rule_search) url 0
+            Str.string_match (Str.regexp rule_search) w.url 0
           ) !!referers )
-          with Not_found -> ("",url) in
+          with Not_found -> ("", w.url) in
         Some (Url.of_string rule_value) );
       H.req_headers = (try
-        let cookies = List.assoc url !!cookies in
+        let cookies = List.assoc w.url !!cookies in
           [ ( "Cookie", List.fold_left (fun res (key, value) ->
               if res = "" then
                 key ^ "=" ^ value
@@ -115,7 +102,10 @@ let mldonkey_wget_url url f =
 	  with _ -> ()
     ) headers;
     match !date with
-      None -> H.wget r f
+      None -> (try
+          H.wget r f;
+          w.state <- Some FileLoaded
+        with e -> w.state <- None; raise e)
     | Some date ->
 	let file = Filename.concat "web_infos" (Filename.basename r.H.req_url.Url.short_file) in
 	r.H.req_save_to_file_time <- (begin try
@@ -124,20 +114,38 @@ let mldonkey_wget_url url f =
 	    Unix.time ()
 	  end);
 	if not (Sys.file_exists file) then
-	  H.wget r f
+          begin
+            try
+              H.wget r f;
+              w.state <- Some FileLoaded
+            with e -> w.state <- None; raise e
+          end
 	else
 	  begin
+            let file_loaded state =
+              match state with
+              | Some FileLoaded -> true
+              | _ -> false
+            in
 	    let file_date = Unix.LargeFile.stat file in
 	      if r.H.req_save_to_file_time <= file_date.Unix.LargeFile.st_mtime then
 	        begin
-	        lprintf_nl (_b "using local version of %s (%s), HTML header (%s)")
-		  file (Date.to_full_string file_date.Unix.LargeFile.st_mtime) date;
-	        (f file : unit)
+                  lprintf_nl (_b "%s version of %s (%s), HTML header (%s)")
+                    (if file_loaded w.state then "already loaded local" else "re-loading possible broken")
+                    file (Date.to_full_string file_date.Unix.LargeFile.st_mtime) date;
+                  if not (file_loaded w.state) then
+                    try
+                      H.wget r f;
+                      w.state <- Some FileLoaded
+                    with e -> w.state <- None; raise e
 	        end
 	      else
 	        begin
 	          lprintf_nl (_b "downloading newer %s, HTML header (%s)") file date;
-	          H.wget r f
+                  try
+                    H.wget r f;
+                    w.state <- Some FileLoaded
+                  with e -> w.state <- None; raise e
 	        end
 	  end
       )
@@ -146,9 +154,11 @@ let mldonkey_wget_url url f =
           | x when x < 200 || x > 299 -> begin
             (* use local version if wget fail and file exists *)
             let file = Filename.concat "web_infos" (Filename.basename r.H.req_url.Url.short_file) in
-            (try (* mark this job downloaded *)
-                (Hashtbl.find running_jobs url).downloaded <- true
-             with Not_found -> ());
+            (* mark this job downloaded *)
+            match w.state with
+            | Some FileLoaded ->
+                lprintf_nl (_b "already loaded local version of %s, HTTP request failed (error %d)") file x
+            | _ ->
             if Sys.file_exists file then begin
               lprintf_nl (_b "using local version of %s, HTTP request failed (error %d)") file x;
               add_timer 5. (fun timer ->
@@ -156,9 +166,11 @@ let mldonkey_wget_url url f =
                   (* check if other jobs are still in downloading state to avoid calling
                      function f, which might hurt other downloads for expensive functions *)
                   let others_running = ref 0 in
-                  Hashtbl.iter (fun url j ->
-                    if not j.downloaded then incr others_running
-                  ) running_jobs;
+                  Hashtbl.iter (fun key w ->
+                    match w.state with
+                    | Some DownloadStarted -> incr others_running
+                    | _ -> ()
+                  ) web_infos_table;
                   !others_running
                 in
                 if jobs = 0 then
@@ -171,44 +183,44 @@ let mldonkey_wget_url url f =
               end
             else
               lprintf_nl (_b "local file %s not found, HTTP request failed (error %d)") file x;
+              w.state <- None
             end
 	  | _ -> ()
       )
     with e -> 
-      remove_job url;
-      lprintf_nl (_b "Exception %s while loading %s")
-        (Printexc2.to_string e) url
+      w.state <- None;
+      lprintf_nl (_b "Exception %s while loading %s") (Printexc2.to_string e) w.url
     end
 
-let mldonkey_wget_shell url f =
-  let command_urlencoded = Str.string_after url 8 in
+let mldonkey_wget_shell w f =
+  let command_urlencoded = Str.string_after w.url 8 in
   let command = Url.decode command_urlencoded in
   let filename = Filename.temp_file "wget_" ".tmp" in
     ignore (Sys.command (Printf.sprintf "%s > %s" command filename));
     (f filename : unit)
       
-let mldonkey_wget url f =
-  if Str.string_match (Str.regexp "shell://") url 0 then
-    mldonkey_wget_shell url f
+let mldonkey_wget w f =
+  if Str.string_match (Str.regexp "shell://") w.url 0 then
+    mldonkey_wget_shell w f
   else
-    mldonkey_wget_url url f
+    mldonkey_wget_url w f
       
-let load_url can_fail kind url =
+let load_url can_fail w =
   let f =
     try
-      (List.assoc kind !file_kinds).f url
-    with e -> failwith (Printf.sprintf "Unknown kind [%s]" kind)
+      (List.assoc w.kind !file_kinds).f w.url
+    with e -> failwith (Printf.sprintf "Unknown kind [%s]" w.kind)
   in
   try
-    lprintf_nl (_b "request %s (%s)") kind url;
-    mldonkey_wget url f
+    lprintf_nl (_b "request %s (%s)") w.kind w.url;
+    mldonkey_wget w f
   with e ->
     if can_fail then
       failwith (Printf.sprintf "Exception %s while loading %s"
-          (Printexc2.to_string e) url)
+          (Printexc2.to_string e) w.url)
     else
       lprintf_nl (_b "Exception %s while loading %s")
-          (Printexc2.to_string e) url
+          (Printexc2.to_string e) w.url
 
 (*************************************************************************)
 (*                                                                       *)
@@ -217,16 +229,16 @@ let load_url can_fail kind url =
 (*************************************************************************)
 
 let load_web_infos core_start force =
-  List.iter (fun (kind, period, url) ->
-    if (core_start && period = 0) || (period <> 0 && !hours mod period = 0) || force then
+  Hashtbl.iter (fun key w ->
+    if (core_start && w.period = 0) || (w.period <> 0 && !hours mod w.period = 0) || force then
       begin
         try
-          load_url false kind url
+          load_url false w
 	with e ->
             lprintf_nl (_b "%s while loading %s")
-	      (Printexc2.to_string e) url
+	      (Printexc2.to_string e) w.url
       end
-  ) !!CommonOptions.web_infos
+  ) CommonOptions.web_infos_table
 
 type rss_feed = {
     mutable rss_date : int;
@@ -288,5 +300,4 @@ let _ =
       in
       feed.rss_date <- last_time ();
       feed.rss_value <- c;
-      remove_job url
   )

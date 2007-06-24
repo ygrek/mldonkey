@@ -699,10 +699,15 @@ let commands = [
         | "load" ->
           let url =
             if (!!servers_list_url = empty_string) then failwith "No valid url" 
-            else !!servers_list_url
+            else
+              { url = !!servers_list_url;
+                kind = "";
+                period = 0;
+                state = None;
+              }
           in
           CommonWeb.mldonkey_wget url (fun _ -> () );
-          Printf.bprintf buf "Trying to load %s\n" url;
+          Printf.bprintf buf "Trying to load %s\n" url.url;
         | "show" ->
             let filename = Filename.concat "web_infos" (Filename.basename !!servers_list_url) in
             if !verbose_msg_servers then lprintf_nl "Loading hublist with filename (%s) " filename;   

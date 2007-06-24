@@ -974,3 +974,21 @@ let string_of_slot_kind slot_kind short =
 type swarming_strategy =
   LinearStrategy    (* one after the other one *)
 | AdvancedStrategy
+
+type web_infos_state =
+| DownloadStarted
+| FileLoaded
+
+type web_infos = {
+  kind : string;
+  period : int;
+  url : string;
+  mutable state : web_infos_state option;
+}
+
+let string_of_web_infos_state state =
+  match state with
+  | None -> "unknown"
+  | Some DownloadStarted -> "DL started"
+  | Some FileLoaded -> "File loaded"
+
