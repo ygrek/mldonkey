@@ -15,6 +15,12 @@ ChangeLog
 =========
 
 2007/06/24
+6043: Discover WAN IP
+- new command "discover_ip" to force discovery
+- new option "discover_ip" to enable automatic discovery on startup
+  and after SIGHUP, default true
+- this patch is important for BT-only usage, without this patch the
+  WAN IP was discovered only by using EDK server replies
 6034: Load $MLDONKEY/web_infos/* before activating network modules
 - this fixes a security hole when networks started connecting
   before IP blocklist was loaded

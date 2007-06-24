@@ -989,6 +989,10 @@ let force_client_ip = define_option current_section ["force_client_ip"]
   ourself. Don't set this option to true if you have dynamic IP."
     bool_option false
 
+let discover_ip = define_option current_section ["discover_ip"]
+  "Use http://ip.discoveryvip.com/ip.asp to obtain WAN IP"
+    bool_option true
+
 let user_agent = define_option current_section ["user_agent"]
   "User agent string (default = \"default\")"
     string_option "default"

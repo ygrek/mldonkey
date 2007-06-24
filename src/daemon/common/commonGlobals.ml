@@ -883,6 +883,38 @@ let print_command_result o result =
   else
     Printf.bprintf o.conn_buf "%s" result
 
+let discover_ip force =
+  if !!discover_ip || force then
+    begin
+      if !verbose then lprintf_nl "started IP discovery";
+      let module H = Http_client in
+      let r = { H.basic_request with
+        H.req_url = Url.of_string "http://ip.discoveryvip.com/ip.asp";
+        H.req_proxy = !CommonOptions.http_proxy;
+        H.req_max_retry = 10;
+        H.req_user_agent = get_user_agent () }
+      in
+      H.wget r (fun file ->
+        if !verbose then lprintf_nl "downloaded IP discovery page, parsing...";
+        Unix2.tryopen_read file (fun cin ->
+          try
+            while true do
+              let line = input_line cin in
+              let search_string = "Your Ip address is  " in
+                try
+                  if Str.string_match (Str.regexp ("^" ^ search_string)) line 0 then
+                    begin
+                      set_client_ip =:=
+                        Ip.of_string (String.sub line (String.length search_string)
+                          ((String.length line) - (String.length search_string)));
+                      if !verbose then lprintf_nl "discovered IP %s" (Ip.to_string !!set_client_ip)
+                    end
+                with e -> lprintf_nl "IP discovery parse error: %s" (Printexc2.to_string e)
+            done
+          with End_of_file -> ())
+      )
+    end
+
 let _ =
   Heap.add_memstat "CommonGlobals" (fun level buf ->
       let counter = ref 0 in

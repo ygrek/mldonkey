@@ -435,6 +435,8 @@ or getting a binary compiled with glibc %s.\n\n")
       with _ -> ()
   ) web_infos_table;
 
+  discover_ip false;
+
   lprintf_nl (_b "Check http://www.mldonkey.org for updates");
   networks_iter (fun r -> network_load_complex_options r);
   lprintf_nl (_b "enabling networks: ");
@@ -575,11 +577,12 @@ or getting a binary compiled with glibc %s.\n\n")
 
   if not Autoconf.windows then
     MlUnix.set_signal  Sys.sighup
-      (Sys.Signal_handle (fun _ -> lprintf_nl (_b "Received SIGHUP, closing all files and client/server sockets");
+      (Sys.Signal_handle (fun _ -> lprintf_nl (_b "Received SIGHUP, closing all files and client/server sockets, start IP discovery");
          networks_iter (fun r -> CommonNetwork.network_reset r); (* stop_all_bt *)
 	 CommonServer.disconnect_all_servers ();
 	 CommonClient.disconnect_all_clients ();
-	 Unix32.close_all () (* close all files *)
+         Unix32.close_all (); (* close all files *)
+         discover_ip false;
          ));
 
   if not Autoconf.windows then

@@ -1427,6 +1427,12 @@ let _ =
         _s ""
     ) , "<num> :\t\t\t\tdisable a particular network";
     
+    "discover_ip", Arg_none (fun o ->
+      CommonGlobals.discover_ip true;
+      print_command_result o "discover ip started";
+           ""
+    ) , ":\t\t\t\tstart IP discovery";
+
     "force_porttest", Arg_none (fun o ->
     networks_iter (fun n ->
       match network_porttest_result n with
@@ -1778,6 +1784,7 @@ let _ =
                 strings_of_option allowed_ips;
                 strings_of_option set_client_ip;
                 strings_of_option force_client_ip;
+                strings_of_option discover_ip;
               ] );
 
             Printf.bprintf buf "\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>\\<td class=downloaded width=100%%\\>\\</td\\>
@@ -1802,6 +1809,7 @@ let _ =
               strings_of_option allowed_ips;
               strings_of_option set_client_ip;
               strings_of_option force_client_ip;
+              strings_of_option discover_ip;
             ]
           );
 
@@ -1913,6 +1921,7 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option global_login;
 			strings_of_option set_client_ip;
 			strings_of_option force_client_ip;
+			strings_of_option discover_ip;
 			strings_of_option max_upload_slots;
 			strings_of_option max_release_slots;
 			strings_of_option dynamic_slots;
