@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/06/24
+6044: BT: Limit max_bt_uploaders to max_upload_slots (pango)
 6043: Discover WAN IP
 - new command "discover_ip" to force discovery
 - new option "discover_ip" to enable automatic discovery on startup

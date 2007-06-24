@@ -109,6 +109,10 @@ let tracker_retries = define_option bittorrent_section ["tracker_retries"]
   "Number of retries before a tracker is disabled, use 0 to not disable trackers"
     int_option 10
 
+let check_bt_uploaders () =
+  if !!max_bt_uploaders > !!max_upload_slots then
+    max_bt_uploaders =:= !!max_upload_slots
+
 let _ =
   begin
     option_hook max_uploaders_per_torrent
@@ -116,7 +120,13 @@ let _ =
         if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= 5);
     option_hook max_bt_uploaders
       (fun _ ->
-        if !!max_bt_uploaders < 0 then max_bt_uploaders =:= 5);
+        if !!max_bt_uploaders < 0 then max_bt_uploaders =:= 5;
+	check_bt_uploaders ()
+        );
+    (* adds another hook to this common option here, to work around 
+       cross-referencing problem *)
+    option_hook max_upload_slots
+      (fun _ -> check_bt_uploaders ());
     option_hook max_tracker_redirect   (** #4541 [egs] **)
       (fun _ ->
         if !!max_tracker_redirect < 0 then max_tracker_redirect =:= 0
