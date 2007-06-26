@@ -63,17 +63,17 @@ Note: At least 70 M of free disk space is required on the partition where mldonk
 is compiled.
 
 ------------------------------------------------------------------------
-1) Installing required tools: Objective-Caml 3.09.3 and LablGTK
+1) Installing required tools: Objective-Caml 3.10.0 and LablGTK
 
- 1.1) Objective-Caml 3.09.3 (from http://caml.inria.fr/pub/distrib/ocaml-3.09)
+ 1.1) Objective-Caml 3.10.0 (from http://caml.inria.fr/pub/distrib/ocaml-3.10)
 
-    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.09/ocaml-3.09.3.tar.gz
-    ~/tmp> tar zxf ocaml-3.09.3.tar.gz
-    ~/tmp> cd ocaml-3.09.3
+    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.10/ocaml-3.10.0.tar.gz
+    ~/tmp> tar zxf ocaml-3.10.0.tar.gz
+    ~/tmp> cd ocaml-3.10.0
 
-    ~/tmp/ocaml-3.09.3> ./configure
-    ~/tmp/ocaml-3.09.3> make world.opt
-    ~/tmp/ocaml-3.09.3> make install
+    ~/tmp/ocaml-3.10.0> ./configure
+    ~/tmp/ocaml-3.10.0> make world.opt
+    ~/tmp/ocaml-3.10.0> make install
 
  1.2.1) LablGTK 1.2.7 for GTK1
       (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
@@ -100,6 +100,7 @@ is compiled.
 
     To build GTK1 newgui: ./configure --enable-gui=newgui1
     To build GTK1 oldgui: ./configure --enable-gui=oldgui
+      - note: oldgui does not compile with Ocaml >= 3.10
     To build GTK2 GUI:    ./configure --enable-gui[=newgui2]
     lablgtk-1.2.7 and lablgtk-2.6.0 can both be installed at the same time.
 

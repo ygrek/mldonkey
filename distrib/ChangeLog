@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/06/26
+6048: Make Ocaml 3.10.0 the default compiler
+- MLDonkey can still be compiled with Ocaml 3.08.3/4 & 3.09.*
+- if you need GTK1 oldgui you must use Ocaml < 3.10.0 to compile
+
 2007/06/24
 6044: BT: Limit max_bt_uploaders to max_upload_slots (pango)
 6043: Discover WAN IP
