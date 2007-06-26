@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/06/26
+Move docs/multiuser.txt to distrib/multiuser.txt
 6048: Make Ocaml 3.10.0 the default compiler
 - MLDonkey can still be compiled with Ocaml 3.08.3/4 & 3.09.*
 - if you need GTK1 oldgui you must use Ocaml < 3.10.0 to compile
