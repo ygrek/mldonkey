@@ -740,7 +740,7 @@ let try_share_file torrent_diskname =
             else
               iter tail
       in
-      iter !!shared_directories
+      iter (shared_directories_including_user_commit ())
     in
 
     let file = new_file file_id torrent torrent_diskname
@@ -761,11 +761,6 @@ let try_share_file torrent_diskname =
         with _ ->
           (lprintf_nl "Failed to rename %s to %s"
               torrent_diskname new_torrent_diskname));
-(*
-      (try Sys.remove torrent_diskname with e ->
-          if !verbose_share then
-            lprintf_nl "Error: %s while removing torrent %s" (Printexc2.to_string e) s)
-*)
   | e ->
       lprintf_nl "Cannot share torrent %s for %s"
         torrent_diskname (Printexc2.to_string e)
@@ -774,13 +769,9 @@ let try_share_file torrent_diskname =
   automatically contact the tracker. *)
 let share_files _ =
   if !verbose_share then lprintf_nl "share_files";
-  List.iter (fun dir ->
-      let filenames = Unix2.list_directory dir in
-      List.iter (fun file ->
-          let filename = Filename.concat dir file in
-          try_share_file filename
-      ) filenames
-  ) [seeded_directory];
+  List.iter (fun file ->
+    try_share_file (Filename.concat seeded_directory file)
+  ) (Unix2.list_directory seeded_directory);
   let shared_files_copy = !current_files in
  (* if the torrent is gone while the file is still shared, remove the share *)
   List.iter (fun file ->

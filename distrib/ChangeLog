@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/06/30
+6049: BT: Support user_commit_dir when seeding,
+      reshare every share_scan_interval minutes
+
 2007/06/26
 Move docs/multiuser.txt to distrib/multiuser.txt
 6048: Make Ocaml 3.10.0 the default compiler

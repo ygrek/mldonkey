@@ -954,18 +954,44 @@ let search_incoming_directories () =
         [default_incoming_directories]
   | l -> l
 
+let shared_directories_including_user_commit () =
+(* This function is to be used in bTInteractive.try_share_file which is not recursive.
+   Its a replacement for !!shared_directories and provides the same list, but with
+   sub-directories added based on user_commit_dir.
+   This function works without disc access to avoid overhead. *)
+  let list = ref [] in
+  List.iter (fun s ->
+    let user_commit_dir_list = ref [] in
+    if (sharing_strategy s.shdir_strategy).sharing_incoming then
+      begin
+        user2_users_iter (fun u ->
+          if u.user_commit_dir <> "" then
+            user_commit_dir_list := !user_commit_dir_list @
+              [{
+                shdir_dirname = Filename.concat s.shdir_dirname u.user_commit_dir;
+                shdir_priority = s.shdir_priority;
+                shdir_networks = s.shdir_networks;
+                shdir_strategy = s.shdir_strategy;
+              }]
+        )
+      end;
+    list := !list @ [s] @ !user_commit_dir_list
+  ) !!shared_directories;
+  !list
+
 let incoming_dir usedir ?user ?needed_space ?network () =
 
-  let directories, dirname_user =
-    let dirname_user =
-      match user with
-      | None -> ""
-      | Some user -> user.user_commit_dir
-    in
+  let directories =
     if usedir then
-      search_incoming_directories (), ""
+      search_incoming_directories ()
     else
-      search_incoming_files (), dirname_user
+      search_incoming_files ()
+  in
+
+  let dirname_user =
+    match user with
+    | None -> ""
+    | Some user -> user.user_commit_dir
   in
 
 (*

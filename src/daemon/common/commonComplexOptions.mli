@@ -43,7 +43,8 @@ val shared_directories :
 val incoming_dir : bool -> ?user:CommonTypes.userdb -> ?needed_space:int64 -> ?network:string -> unit -> CommonTypes.shared_directory
 val search_incoming_files : unit -> CommonTypes.shared_directory list
 val search_incoming_directories : unit -> CommonTypes.shared_directory list
-  
+val shared_directories_including_user_commit : unit -> CommonTypes.shared_directory list
+
 val sharing_only_directory : CommonTypes.sharing_strategy
 
 val swarmers_section : Options.options_section

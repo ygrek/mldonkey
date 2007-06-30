@@ -55,28 +55,20 @@ let disable enabler () =
     end
 
 let enable () =
-  (* lprintf "enable\n"; *)
   if not !is_enabled then
     let enabler = ref true in
-    (* lprintf "enabling...\n"; *)
-    Unix2.safe_mkdir torrents_directory;
-    Unix2.safe_mkdir seeded_directory;
-    Unix2.safe_mkdir tracked_directory;
-    Unix2.safe_mkdir downloads_directory;
-    Unix2.safe_mkdir old_directory;
-    Unix2.safe_mkdir new_torrents_directory;
-    Unix2.can_write_to_directory torrents_directory;
-    Unix2.can_write_to_directory seeded_directory;
-    Unix2.can_write_to_directory tracked_directory;
-    Unix2.can_write_to_directory downloads_directory;
-    Unix2.can_write_to_directory old_directory;
-    Unix2.can_write_to_directory new_torrents_directory;
+    List.iter (fun dir ->
+      Unix2.safe_mkdir dir;
+      Unix2.can_write_to_directory dir;
+    )  [torrents_directory; seeded_directory;
+        tracked_directory; downloads_directory;
+        old_directory; new_torrents_directory];
     is_enabled := true;
     if !!BTTracker.tracker_port = !!client_port then
       begin
         lprint_newline();
-  lprintf_nl "BT-client_port and BT-tracker_port can not be the same.";
-  lprintf_nl "Change one of the settings and restart MLDonkey, exiting...\n";
+        lprintf_nl "BT-client_port and BT-tracker_port can not be the same.";
+        lprintf_nl "Change one of the settings and restart MLDonkey, exiting...\n";
 	Pervasives.exit 69
       end;
     if !!BTTracker.tracker_port > 0 then (
@@ -84,8 +76,8 @@ let enable () =
         with e ->
             lprintf "Exception in BTTracker.start_tracker: %s\n"
               (Printexc2.to_string e));
-    add_session_timer enabler 300. (fun _ ->
-        BTInteractive.share_files ();
+    add_session_timer enabler ((float_of_int !!share_scan_interval) *. 60.)
+      (fun _ -> BTInteractive.share_files ();
     );
     if !!import_new_torrents_interval <> 0. then
     add_session_timer enabler !!import_new_torrents_interval (fun _ ->
@@ -96,22 +88,6 @@ let enable () =
     network.op_network_disable <- disable enabler;
 
     if not !!enable_bittorrent then enable_bittorrent =:= true;
-(*
-  List.iter (fun s ->
-      try
-        let ip = Ip.from_name s in
-        redirectors_ips := ip :: !redirectors_ips
-      with _ -> ()
-  ) !!redirectors;
-*)
-
-(*
-  Hashtbl.iter (fun _ file ->
-      if file_state file <> FileDownloaded then
-        current_files := file :: !current_files
-  ) files_by_key;
-*)
-
 
     BTClients.recover_files ();
     add_session_timer enabler 60.0 (fun timer ->
