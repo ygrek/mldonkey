@@ -95,6 +95,7 @@ let hdd_full_log_closed = ref false
 let all_temp_queued = ref false
 
 let send_dirfull_warning dir full line1 =
+  if !!smtp_server <> "" && !!smtp_port <> 0 then begin
   let status = if full then "is full" else "has enough space again" in
   lprintf_nl "WARNING: Directory %s %s, %s" dir status line1;
   if (not (keep_console_output ())) then
@@ -124,6 +125,7 @@ let send_dirfull_warning dir full line1 =
           M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
 	with _ -> ()
     end
+  end
 
 let file_commited_name incoming_dir file =
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
@@ -328,7 +330,7 @@ let file_cancel file user =
 
 let mail_for_completed_file file =
   let usermail = (file_owner file).user_mail in
-  if !!mail <> "" || usermail <> "" then begin
+  if (!!mail <> "" || usermail <> "") && !!smtp_server <> "" && !!smtp_port <> 0 then begin
     let module M = Mailer in
     let info = file_info file in
     let line1 = "mldonkey has completed the download of:\r\n\r\n" in

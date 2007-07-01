@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/07/01
+6060: Do not send mail notifications when smtp_server = ""
 6059: Multiuser: Avoid double group entries in user_groups
 6056: Log username, IP:port and old/new value when changing options
 
