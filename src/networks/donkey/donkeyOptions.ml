@@ -32,7 +32,7 @@ let max_xs_packets = define_expert_option donkey_section ["max_xs_packets"]
 let donkey_port = define_option donkey_section ["port"]
   ~restart: true
   "The port used for connection by other donkey clients."
-    int_option (2000 + Random.int 20000)
+    port_option (2000 + Random.int 20000)
 
 let check_client_connections_delay = define_expert_option donkey_section ["check_client_connections_delay"]
   "Delay used to request file sources"
@@ -283,7 +283,7 @@ let overnet_section = file_section donkey_ini [ overnet_options_section_name ]
 let overnet_port = define_option overnet_section [overnet_options_section_name; "port"]
   ~restart: true
   "port for overnet"
-    int_option (2000 + Random.int 20000)
+    port_option (2000 + Random.int 20000)
 
 let options_version = define_expert_option donkey_section ["options_version"]
   ~internal: true

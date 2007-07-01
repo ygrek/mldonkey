@@ -497,7 +497,7 @@ let login = define_option mldonkey_gui_section ["login"]
 let password = define_option mldonkey_gui_section ["password"] 
     (gettext M.h_gui_password) string_option ""
 let port = define_option mldonkey_gui_section ["port"] 
-    (gettext M.h_gui_port) int_option 4001
+    (gettext M.h_gui_port) port_option 4001
 let hostname = define_option mldonkey_gui_section ["hostname"] 
     (gettext M.h_hostname) string_option "localhost"
 

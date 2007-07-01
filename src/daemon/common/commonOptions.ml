@@ -479,27 +479,27 @@ let gui_port = define_option current_section ["gui_port"]
   ~desc: "The port to connect the GUI"
   ~restart: true
   "port for Graphical Interfaces"
-    int_option 4001
+    port_option 4001
 
 let gift_port = define_option current_section ["gift_port"]
   ~desc: "The port to connect for GiFT GUIs."
   ~restart: true
   "port for GiFT Graphical Interfaces interaction. It was 1213, but the default is
   now 0 for disabled, because it does not check for a password." 
-    int_option 0
+    port_option 0
 
 let http_port = define_option current_section ["http_port"]
   ~desc: "The port to connect via HTTP"
   ~public: true
   ~restart: true
   "The port used to connect to your client with a WEB browser"
-    int_option 4080
+    port_option 4080
 
 let telnet_port = define_option current_section ["telnet_port"]
   ~desc: "The port to connect via telnet"
   ~restart: true
   "port for user interaction"
-    int_option 4000
+    port_option 4000
 
 let http_bind_addr = define_expert_option current_section ["http_bind_addr"]
   ~restart: true
@@ -1116,7 +1116,7 @@ let http_proxy_server = define_option current_section ["http_proxy_server"]
 
 let http_proxy_port = define_option current_section ["http_proxy_port"]
   "Port of HTTP proxy"
-    int_option 8080
+    port_option 8080
 
 let http_proxy_tcp = define_option current_section ["http_proxy_tcp"]
   "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)"
@@ -1139,7 +1139,7 @@ let smtp_server = define_option current_section ["smtp_server"]
 
 let smtp_port = define_option current_section ["smtp_port"]
   "The port to use on the mail server (default 25)"
-    int_option 25
+    port_option 25
 
 let mail = define_option current_section ["mail"]
   "Your e-mail if you want to receive mails when downloads are completed"

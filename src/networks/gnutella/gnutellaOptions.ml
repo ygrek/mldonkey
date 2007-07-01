@@ -39,7 +39,7 @@ let _ =
 let client_port = define_option gnutella_section ["client_port"]
     ~restart: true
     "The port to bind the client to"
-    int_option GnutellaNetwork.port
+    port_option GnutellaNetwork.port
   
 let gnutella_experimental = define_option gnutella_section
     ["experimental"]

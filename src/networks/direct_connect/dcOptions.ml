@@ -29,7 +29,7 @@ let directconnect_section = file_section directconnect_ini ["DirectConnect"] "Di
   
 let dc_port = define_option directconnect_section ["client_port"]
     "The port to bind the client to"
-    int_option 4444
+    port_option 4444
   
 let dc_open_slots = define_option directconnect_section ["dc_open_slots"]
     "How many slots are open to other clients"

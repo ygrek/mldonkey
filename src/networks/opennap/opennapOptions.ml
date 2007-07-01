@@ -29,7 +29,7 @@ let opennap_section = file_section opennap_ini ["Opennap"] "Opennap options"
 let client_port = define_option opennap_section ["client_port"]
     ~restart: true
     "The port to bind the client to"
-    int_option 6699
+    port_option 6699
   
 let max_connected_servers = define_option opennap_section ["max_connected_servers"] 
     "The number of servers you want to stay connected to" int_option 5

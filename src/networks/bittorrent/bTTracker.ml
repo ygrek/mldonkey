@@ -98,7 +98,7 @@ let ntracked_files = ref 0
 let tracker_port = define_option bittorrent_section ["tracker_port"]
   ~restart: true
   "The port to bind the tracker to"
-    int_option 6881
+    port_option 6881
 
 let max_tracked_files = define_option bittorrent_section ["max_tracked_files"]
   "The maximal number of tracked files (to prevend saturation attack)"

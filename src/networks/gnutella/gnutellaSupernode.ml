@@ -96,7 +96,7 @@ let node_guids = Hashtbl.create 1111
 let supernode_port = define_option gnutella_section 
   ["supernode_port"]
   "(only for development tests)"  
-    int_option 6348
+    port_option 6348
   
 let supernode_degree = define_option gnutella_section 
   ["supernode_degree"]

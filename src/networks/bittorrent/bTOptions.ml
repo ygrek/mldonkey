@@ -28,7 +28,7 @@ let bittorrent_section = file_section bittorrent_ini ["Bittorrent"] "Bittorrent 
 let client_port = define_option bittorrent_section ["client_port"]
   ~restart: true
   "The port to bind the client to"
-    int_option 6882
+    port_option 6882
 
 (* Generate client_uid *)
 (* current_version could be "2.6.6.CVS" (why send the dots?)

@@ -172,7 +172,7 @@ let create_downloads_ini () =
     define_option downloads_ini ["http_port"] "The port used to connect to your client with a WEB browser" int_option 4080
     in
   
-  let telnet_port = define_option downloads_ini ["telnet_port"] "port for user interaction" int_option 4000
+  let telnet_port = define_option downloads_ini ["telnet_port"] "port for user interaction" port_option 4000
     in
   
   let http_login = 

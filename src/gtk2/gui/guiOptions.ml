@@ -158,7 +158,7 @@ let gtk_connection_http_proxy_port = define_option current_section
     ["gtk_connection_http_proxy_port"]
     ~desc:"HTTP proxy server port"
     "Port of HTTP proxy"
-    int_option 8080
+    port_option 8080
 
 let gtk_connection_http_use_proxy = define_option current_section
     ["gtk_connection_http_use_proxy"]
@@ -184,7 +184,7 @@ let gtk_client_port = define_option current_section
     ["gtk_client_port"]
     ~desc:"MLgui port"
     "The server port to connect to"
-    int_option 4001
+    port_option 4001
 
 let gtk_client_hostname = define_option current_section
     ["gtk_client_hostname"]

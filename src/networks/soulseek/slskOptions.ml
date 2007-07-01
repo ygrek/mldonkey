@@ -48,7 +48,7 @@ let main_server_port = define_option soulseek_section ["main_server_port"]
 let slsk_port = define_option soulseek_section ["client_port"]
   ~restart: true
   "The port to bind the client to"
-    int_option 2234
+    port_option 2234
   
 let login = define_option soulseek_section ["login"]
   "Your login on SoulSeek" string_option ""

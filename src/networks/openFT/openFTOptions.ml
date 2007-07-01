@@ -29,12 +29,12 @@ let max_ultrapeers = define_option openft_ini ["max_ultrapeers"]
 let port = define_option openft_ini ["client_port"]
     ~restart: true
     "The port to bind the client to"
-    int_option 1215
+    port_option 1215
 
 let http_port = define_option openft_ini ["http_port"]
     ~restart: true
     "The port to bind the client to for downloads"
-    int_option 1216
+    port_option 1216
     
 let max_known_ultrapeers = define_option openft_ini ["max_known_ultrapeers"]
   "Maximal number of ultrapeers remembered"

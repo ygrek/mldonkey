@@ -754,7 +754,7 @@ let password = define_option mldonkey_gui_section
 let port = define_option mldonkey_gui_section 
     ["port"] 
     ( M.h_gui_port) 
-    int_option 4001
+    port_option 4001
 
 let hostname = define_option mldonkey_gui_section 
     ["hostname"] 
