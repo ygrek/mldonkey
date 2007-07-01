@@ -101,8 +101,7 @@ let numwant = define_option bittorrent_section ["numwant"]
 
 let import_new_torrents_interval = define_option bittorrent_section ["import_new_torrents_interval"]
   ~restart: true
-  "Interval in seconds 'torrents/incoming' is scanned for new torrent files to be downloaded,
-  0 to deactivate, changes require restart"
+  "Interval in seconds 'torrents/incoming' is scanned for new torrent files to be downloaded, 0 to deactivate"
     float_option 60.
 
 let tracker_retries = define_option bittorrent_section ["tracker_retries"]

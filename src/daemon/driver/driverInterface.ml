@@ -92,8 +92,6 @@ let gui_can_write gui =
     None -> not !gui_reconnected
   | Some sock -> TcpBufferedSocket.can_write sock
           
-let restart_gui_server = ref (fun _ -> ())
-
 let update_events gui update user_num map =
   if not gui.gui_poll then
     let gui_num = gui.gui_num in

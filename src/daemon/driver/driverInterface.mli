@@ -16,25 +16,8 @@
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
-(*
-  val gui_send :
-  DonkeyTypes.gui_record -> DonkeyTypes.GuiProto.to_gui -> unit
-val send_result :
-  DonkeyTypes.gui_record -> int -> DonkeyTypes.result -> unit
-val send_download : DonkeyTypes.gui_record -> DonkeyTypes.file -> unit
-val send_server : DonkeyTypes.gui_record -> DonkeyTypes.server -> unit
-val gui_reader :
-  DonkeyTypes.gui_record -> DonkeyTypes.GuiProto.from_gui -> 'a -> unit
-val gui_closed : DonkeyTypes.gui_record -> 'a -> 'b -> unit
-val gui_server_change_hook :
-  DonkeyTypes.server -> DonkeyTypes.gui_record -> unit
-val gui_friend_change_hook : 'a -> 'b -> unit
-val gui_file_change_hook :
-  DonkeyTypes.file -> DonkeyTypes.gui_record -> unit
-*)
 
 val gui_handler : 'a -> TcpServerSocket.event -> unit
 val update_gui_info : unit -> unit
 val install_hooks : unit -> unit
-val restart_gui_server : (unit -> unit) ref
 val gift_handler : 'a -> TcpServerSocket.event -> unit
