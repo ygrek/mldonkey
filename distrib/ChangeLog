@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/07/01
+6053: HTML: Send correct filename when previewing (chandlerding)
 6061: Options: New type port_option, values are bound to be >= 0 and <= 65535
 6060: Do not send mail notifications when smtp_server = ""
 6059: Multiuser: Avoid double group entries in user_groups

@@ -913,6 +913,8 @@ let send_preview r file fd size filename exten =
       else String.lowercase (String.sub exten 1 (len - 1)) in
   http_add_bin_stream_header r (extension_to_file_ext exten);
 
+  add_reply_header r "Content-Disposition"
+  (Printf.sprintf "inline;filename=\"%s\"" (Filename.basename filename)); 
   let s = String.create 200000 in
   set_max_output_buffer r.sock (String.length s);
   set_rtimeout r.sock 10000.;
