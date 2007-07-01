@@ -184,7 +184,18 @@ module UserOption = struct
           let ugroups =
 	    try
 	      let ugl = get_value "user_groups" (value_to_list value_to_string) in
-	      List.map user2_group_find ugl
+              let ugl2 = ref ([]: groupdb list) in
+              List.iter (fun ug ->
+                try
+                  let usergroup = user2_group_find ug in
+                  if not (List.mem usergroup !ugl2) then
+                    ugl2 := !ugl2 @ [usergroup]
+                  else
+                    lprintf_nl "Removing duplicate group %s from user %s" ug uname
+                with Not_found ->
+                  lprintf_nl "Removing non-existing group %s from user %s" ug uname
+              ) ugl;
+              !ugl2
             with Not_found -> [admin_group ()]
           in
           let udgroup =

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/07/01
+6059: Multiuser: Avoid double group entries in user_groups
 6056: Log username, IP:port and old/new value when changing options
 
 2007/06/30

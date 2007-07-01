@@ -3269,8 +3269,15 @@ let _ =
 	        begin
 		  try
 		    let g = user2_group_find group in
-		    user2_user_add_group u g;
-		    print_command_result o (Printf.sprintf "Added group %s to user %s" g.group_name u.user_name)
+                    if List.mem g u.user_groups then
+                      print_command_result o
+                        (Printf.sprintf "User %s already member of group %s" u.user_name g.group_name)
+                    else
+                      begin
+                        user2_user_add_group u g;
+                        print_command_result o
+                          (Printf.sprintf "Added group %s to user %s" g.group_name u.user_name)
+                      end
 		  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
 		end
 	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
