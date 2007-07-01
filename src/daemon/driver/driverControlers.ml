@@ -342,8 +342,9 @@ let calendar_options = {
     conn_output = TEXT;
     conn_sortvd = NotSorted;
     conn_filter = (fun _ -> ());
-    conn_user = default_user;
+    conn_user = find_ui_user CommonUserDb.admin_user_name;
     conn_width = 80; conn_height = 0;
+    conn_info = Some (CALENDAR, (Ip.null, 0));
   }
 
 let check_calendar () =
@@ -558,19 +559,6 @@ let user_closed sock  msg =
   user_socks := List2.removeq sock !user_socks;
   ()
 
-(* Here, we clearly need a good html parser to remove tags, and to translate
-special characters. Avoid them in the meantime. *)
-let text_of_html html =
-  String2.convert false (fun buf state c ->
-    if state then
-      c <> '>'
-    else
-      if c = '<' then true else begin
-        Buffer.add_char buf c;
-        false
-      end
-) html
-
 let telnet_handler t event =
   match event with
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
@@ -591,9 +579,10 @@ let telnet_handler t event =
             conn_output = (if !!term_ansi then ANSI else TEXT);
             conn_sortvd = NotSorted;
             conn_filter = (fun _ -> ());
-            conn_user = default_user;
+            conn_user = find_ui_user CommonUserDb.admin_user_name;
             conn_width = 80;
             conn_height = 0;
+            conn_info = Some (TELNET, (from_ip, from_port));
           } in
 	(match Ip_set.match_ip !allowed_ips_set from_ip with
 	| Some br -> 
@@ -975,8 +964,10 @@ let http_handler o t r =
     begin
       let user = find_ui_user user  in
       let o = match user.ui_http_conn with
-          Some oo -> oo.conn_buf <- o.conn_buf; oo
-        | None -> let oo = { o with conn_user = user } in
+          Some oo -> oo.conn_buf <- o.conn_buf;
+            oo.conn_info <- Some (WEB, peer_addr t); oo
+        | None -> let oo = { o with conn_user = user;
+                                    conn_info = Some (WEB, peer_addr t)} in
             user.ui_http_conn <- Some oo; oo
       in
       try
@@ -1400,9 +1391,16 @@ let http_handler o t r =
 
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf t r true;
+                  let gui_type, ip, port =
+                    match o.conn_info with
+                    | None -> None, None, None
+                    | Some (gui_type, (ip, port)) -> Some gui_type, Some ip, Some port
+                  in
 		  if user2_is_admin o.conn_user.ui_user then
 		    begin
-                      CommonInteractive.set_fully_qualified_options name value;
+                      CommonInteractive.set_fully_qualified_options name value
+                        ~user:(Some o.conn_user.ui_user.CommonTypes.user_name)
+                        ~ip:ip ~port:port ~gui_type:gui_type ();
                       Buffer.add_string buf "Option value changed"
 		    end
 		  else
@@ -1533,8 +1531,9 @@ let http_options = {
     conn_output = HTML;
     conn_sortvd = NotSorted;
     conn_filter = (fun _ -> ());
-    conn_user = default_user;
+    conn_user = find_ui_user CommonUserDb.admin_user_name;
     conn_width = 80; conn_height = 0;
+    conn_info = Some (WEB, (Ip.null, 0));
   }
 
 let create_http_handler () =

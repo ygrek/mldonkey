@@ -140,7 +140,7 @@ let admin_group () =
 (*************************************************************************)
 
 let default_admin_user = {
-  user_name = "";
+  user_name = admin_user_name;
   user_pass = blank_password;
   user_groups = [admin_group ()];
   user_default_group = Some (admin_group ());
@@ -451,3 +451,32 @@ let _ =
       if level > 0 then
         List.iter (fun u -> Printf.bprintf buf "    user %s\n" u.user_name) !!userlist;
   )
+
+(* GUI user list *)
+let ui_users = ref []
+
+let find_ui_user user =
+  let rec iter list =
+    match list with
+      [] ->
+        let u = {
+            ui_user = user2_user_find user;
+            ui_user_searches = [];
+            ui_last_search = None;
+            ui_last_results = [];
+            ui_http_conn = None;
+          } in
+        ui_users := u :: !ui_users;
+        u
+    | u :: tail ->
+        if u.ui_user = user2_user_find user then u else iter tail
+  in
+  iter !ui_users
+
+let _ =
+(* these functions are called before ini files are read
+   user "admin" is always needed in !!users, so create a
+   dummy here which is replaced during start-up with the
+   admin user read from users.ini *)
+  update_user admin_user_name (Some default_admin_user);
+  ignore (find_ui_user admin_user_name)

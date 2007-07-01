@@ -1098,18 +1098,6 @@ let option_type o = (get_class o).class_name
 
 let once_value v = OnceValue v
 
-  (*
-let strings_of_option o =
-  match o.option_name with
-    [] | _ :: _ :: _ -> failwith "Complex option"
-  | [name] ->
-      name,
-      (match o.option_class.string_wrappers with
-         None -> safe_value_to_string (o.option_class.to_value o.option_value)
-       | Some (to_string, _) -> to_string o.option_value)
-      *)
-
-
 let restore_default o = 
   o =:= o.option_default
 let set_option_desc o s =

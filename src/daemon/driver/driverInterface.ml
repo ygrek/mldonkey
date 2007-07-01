@@ -621,11 +621,18 @@ let gui_reader (gui: gui_record) t _ =
               ) list
           
           | P.SetOption (name, value) ->
+              let o = gui.gui_conn in
+              let gui_type, ip, port =
+                match o.conn_info with
+                | None -> None, None, None
+                | Some (gui_type, (ip, port)) -> Some gui_type, Some ip, Some port
+              in
 	      if user2_is_admin gui.gui_conn.conn_user.ui_user then
 		CommonInteractive.set_fully_qualified_options name value
+                  ~user:(Some o.conn_user.ui_user.user_name)
+                  ~ip:ip ~port:port ~gui_type:gui_type ()
 	      else
 	        begin
-                  let o = gui.gui_conn in
                   let buf = o.conn_buf in
                   Buffer.reset buf; 
                   Buffer.add_string buf "\nYou are not allowed to change options\n";
@@ -787,9 +794,18 @@ let gui_reader (gui: gui_record) t _ =
               server_remove (server_find num)
           
           | P.SaveOptions_query list ->
+              let o = gui.gui_conn in
+              let gui_type, ip, port =
+                match o.conn_info with
+                | None -> None, None, None
+                | Some (gui_type, (ip, port)) -> Some gui_type, Some ip, Some port
+              in
 	      if user2_is_admin gui.gui_conn.conn_user.ui_user then
               List.iter (fun (name, value) ->
-                  CommonInteractive.set_fully_qualified_options name value) list;
+                  CommonInteractive.set_fully_qualified_options name value
+                    ~user:(Some o.conn_user.ui_user.user_name)
+                    ~ip:ip ~port:port ~gui_type:gui_type ();
+              ) list;
               DriverInteractive.save_config ()
           
           | P.RemoveDownload_query num ->
@@ -1133,7 +1149,7 @@ let gui_events () =
     
   }
   
-let new_gui gui_send gui_auth sock  =
+let new_gui gui_send gui_auth sock gui_type =
   incr gui_counter;
   let gui = {
       gui_searches = [];
@@ -1155,8 +1171,12 @@ let new_gui gui_send gui_auth sock  =
         conn_sortvd = BySize;
         conn_filter = (fun _ -> ()); 
         conn_buf = Buffer.create 100;
-        conn_user = default_user;
+        conn_user = find_ui_user CommonUserDb.admin_user_name;
         conn_width = 80; conn_height = 25;
+        conn_info =
+          match sock with
+          | None -> Some (gui_type, (Ip.null, 0));
+          | Some t -> Some (gui_type, peer_addr t);
       };
       gui_send = gui_send;
     } in
@@ -1183,7 +1203,7 @@ let gui_handler t event =
             s in
         
         let gui = new_gui binary_gui_send 
-            false (Some sock) in
+            false (Some sock) GUI in
         gui.gui_result_handler <- binary_result_handler gui;
         TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_lifetime sock 30.;
@@ -1221,7 +1241,7 @@ let gift_handler t event =
             "gui connection"
             s in
         
-        let gui = new_gui gift_gui_send true (Some sock) in
+        let gui = new_gui gift_gui_send true (Some sock) GIFT in
         gui.gui_result_handler <- gift_result_handler gui;
         guis := gui :: !guis;
         
@@ -1462,7 +1482,7 @@ let _ =
             if !gui_reconnected then begin
                 lprintf "gui_reconnected !\n"; 
                 gui_reconnected := false;
-                let gui = new_gui binary_gui_send false None in
+                let gui = new_gui binary_gui_send false None GUI in
                 gui.gui_result_handler <- binary_result_handler gui;
                 local_gui := Some gui;
                 ()

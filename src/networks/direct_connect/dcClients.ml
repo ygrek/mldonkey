@@ -259,7 +259,7 @@ let received_new_search_result s msg =
 (* Create new search automatically if possible *)
 let create_new_search f =
   let query = QAnd (QHasField (Field_Type , "TTH") , (QHasWord f.file_unchecked_tiger_root)) in
-  let search = CommonSearch.new_search CommonGlobals.default_user
+  let search = CommonSearch.new_search (CommonUserDb.find_ui_user CommonUserDb.admin_user_name)
     (let module G = GuiTypes in
       { G.search_num = 0;
         G.search_query = query;
@@ -272,7 +272,7 @@ let create_new_search f =
     server_send_search s search 9 f.file_unchecked_tiger_root
   );
   (match !dc_last_autosearch with
-  | Some s -> CommonSearch.search_forget CommonGlobals.default_user s
+  | Some s -> CommonSearch.search_forget (CommonUserDb.find_ui_user CommonUserDb.admin_user_name) s
   | _ -> () );
   dc_last_autosearch := Some search;
   dc_last_autosearch_time := current_time ();

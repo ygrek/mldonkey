@@ -1718,9 +1718,15 @@ let _ =
 	if user2_is_admin o.conn_user.ui_user then begin
         try
           try
-            CommonInteractive.set_fully_qualified_options name value;
+            let gui_type, ip, port =
+              match o.conn_info with
+              | None -> None, None, None
+              | Some (gui_type, (ip, port)) -> Some gui_type, Some ip, Some port
+            in
+            CommonInteractive.set_fully_qualified_options name value
+              ~user:(Some o.conn_user.ui_user.user_name)
+              ~ip:ip ~port:port ~gui_type:gui_type ();
             Printf.sprintf "option %s value changed" name
-
           with _ ->
               Options.set_simple_option downloads_ini name value;
               Printf.sprintf "option %s value changed" name

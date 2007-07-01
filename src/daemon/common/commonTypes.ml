@@ -366,7 +366,17 @@ type connection_control = {
   }
 
 type output_type = TEXT | HTML | ANSI | XML | XHTML
-  
+
+type connection_type = TELNET | WEB | GUI | GIFT | CALENDAR
+
+let connection_type_to_text ct =
+  match ct with
+  | TELNET -> "Telnet"
+  | WEB -> "Web"
+  | GUI -> "GUI"
+  | GIFT -> "Gift"
+  | CALENDAR -> "Calendar"
+
 type sortvd_type = 
   BySize
 | ByName
@@ -559,6 +569,7 @@ and ui_conn = {
     mutable conn_user : ui_user;
     mutable conn_width : int;
     mutable conn_height : int;
+    mutable conn_info : (connection_type * (Ip.t * int)) option;
   }
 
   

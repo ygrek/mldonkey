@@ -832,11 +832,9 @@ let all_active_network_opfile_network_names () =
        !names
 
 let apply_on_fully_qualified_options name f =
-  if !verbose then lprintf_nl "Change option %s" name;
   let rec iter prefix opfile =
     let args = simple_options prefix opfile true in
     List.iter (fun o ->
-(*        lprintf "Compare [%s] [%s]\n" o.option_name name; *)
         if o.option_name = name then
           (f opfile o.option_shortname o.option_value; raise Exit))
     args
@@ -848,7 +846,6 @@ let apply_on_fully_qualified_options name f =
             try
               List.iter (fun opfile ->
                   let prefix = r.network_shortname ^ "-" in
-(*                  lprintf "Prefix [%s]\n" prefix; *)
                   iter prefix opfile;
               )
               r.network_config_file ;
@@ -860,10 +857,6 @@ let apply_on_fully_qualified_options name f =
       end
   with Exit -> ()
 
-let set_fully_qualified_options name value =
-  apply_on_fully_qualified_options name (fun opfile old_name old_value ->
-      set_simple_option opfile old_name value)
-
 let get_fully_qualified_options name =
   let value = ref None in
   (try
@@ -872,14 +865,30 @@ let get_fully_qualified_options name =
       );
     with _ -> ());
   match !value with
-    None -> "????"
+    None -> "unknown"
   | Some s -> s
 
-let add_item_to_fully_qualified_options name value =
-  ()
-
-let del_item_from_fully_qualified_options name value =
-  ()
+let set_fully_qualified_options name value ?(user = None) ?(ip = None) ?(port = None) ?(gui_type = None) () =
+  let old_value = get_fully_qualified_options name in
+  apply_on_fully_qualified_options name
+    (fun opfile old_name old_value -> set_simple_option opfile old_name value);
+  if !verbose && old_value <> get_fully_qualified_options name then
+    begin
+      let ip_port_text =
+        match ip with
+        | None -> "IP unknown"
+        | Some ip ->
+            Printf.sprintf "from host %s%s" (Ip.to_string ip)
+              (match port with | None -> "" | Some port -> Printf.sprintf ":%d" port)
+      in
+      lprintf_nl "User %s changed option %s %s %s, old: %s, new %s"
+        (match user with | None -> "unknown" | Some user -> user)
+        name ip_port_text
+        (match gui_type with
+        | None -> "GUI type unknown"
+        | Some gt -> Printf.sprintf "using %s interface" (connection_type_to_text gt))
+        old_value (get_fully_qualified_options name)
+    end
 
 let keywords_of_query query =
   let keywords = ref [] in

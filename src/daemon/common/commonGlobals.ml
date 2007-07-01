@@ -460,37 +460,7 @@ let log_chat_message i num n s =
 
 let last_message_log = ref 0
 
-
-
 let debug_clients = ref Intset.empty
-
-let default_user = {
-    ui_user = CommonUserDb.admin_user ();
-    ui_user_searches = [];
-    ui_last_search = None;
-    ui_last_results = [];
-    ui_http_conn = None;
-  }
-
-let ui_users = ref [default_user]
-
-let find_ui_user user =
-  let rec iter list =
-    match list with
-      [] ->
-        let u = {
-            ui_user = (CommonUserDb.user2_user_find user);
-            ui_user_searches = [];
-            ui_last_search = None;
-            ui_last_results = [];
-            ui_http_conn = None;
-          } in
-        ui_users := u :: !ui_users;
-        u
-    | u :: tail ->
-        if u.ui_user = (CommonUserDb.user2_user_find user) then u else iter tail
-  in
-  iter !ui_users
 
 (* control_: means that it is the limited bandwidth, not the unlimited one
   used by the interfaces. tcp_: the full bandwidth (limited+unlimited) *)
