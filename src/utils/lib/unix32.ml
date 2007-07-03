@@ -1719,7 +1719,7 @@ let bavail dir =
 
 let fnamelen dir =
   try
-    Some (min (Int64.to_int (statfs dir).f_fnamelen) Sys.max_string_length)
+    Some (Int64.to_int (min (statfs dir).f_fnamelen (Int64.of_int Sys.max_string_length)))
   with e -> None
 
 let disktotal dir =
