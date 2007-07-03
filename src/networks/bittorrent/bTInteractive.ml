@@ -650,7 +650,8 @@ let load_torrent_string s user =
     let namemax =
       match Unix32.fnamelen downloads_directory with
       | None -> 0
-      | Some v -> Int64.to_int v in
+      | Some v -> v
+    in
     Filename.concat downloads_directory
     (Filename2.filesystem_compliant torrent.torrent_name fs namemax) ^ ".torrent"
     in

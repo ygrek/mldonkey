@@ -2359,12 +2359,15 @@ let _ =
 	 let print_i64o = function
 	   | None -> "Unknown"
 	   | Some v -> Printf.sprintf "%Ld" v in
+	 let print_io = function
+	   | None -> "Unknown"
+	   | Some v -> Printf.sprintf "%d" v in
          Printf.bprintf buf "working on dir %s\n" arg;
          Printf.bprintf buf "bsize %s\n" (print_i64o (Unix32.bsize arg));
          Printf.bprintf buf "blocks %s\n" (print_i64o (Unix32.blocks arg));
          Printf.bprintf buf "bfree %s\n" (print_i64o (Unix32.bfree arg));
          Printf.bprintf buf "bavail %s\n" (print_i64o (Unix32.bavail arg));
-         Printf.bprintf buf "fnamelen %s\n" (print_i64o (Unix32.fnamelen arg));
+         Printf.bprintf buf "fnamelen %s\n" (print_io (Unix32.fnamelen arg));
          Printf.bprintf buf "filesystem %s\n" (Unix32.filesystem arg);
 	 let print_i64o_amount = function
 	   | None -> "Unknown"

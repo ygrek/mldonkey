@@ -132,12 +132,8 @@ let file_commited_name incoming_dir file =
   let fs = Unix32.filesystem incoming_dir in
   let namemax =
     match Unix32.fnamelen incoming_dir with
-      None -> 0
-    | Some v ->
-        if v > Int64.of_int Sys.max_string_length then
-          Sys.max_string_length
-        else
-          Int64.to_int v
+    | None -> 0
+    | Some v -> v
   in
   let new_name =
     Filename2.filesystem_compliant 

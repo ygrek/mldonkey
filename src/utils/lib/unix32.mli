@@ -98,7 +98,7 @@ val bsize : string -> int64 option
 val blocks : string -> int64 option
 val bfree : string -> int64 option
 val bavail : string -> int64 option
-val fnamelen : string -> int64 option
+val fnamelen : string -> int option
 val disktotal : string -> int64 option
 val diskfree : string -> int64 option
 val diskused : string -> int64 option

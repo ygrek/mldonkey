@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/07/03
+6068: BT: Fix download start when torrents/downloads filesystem
+      allows more than 16M chars
+
 2007/07/01
 6064: BT: Earlier first scan of torrents/incoming/*
 6053: HTML: Send correct filename when previewing (chandlerding)
