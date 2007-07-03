@@ -1675,7 +1675,7 @@ type statfs = {
   f_files : int64;  (* total file nodes in file system *)
   f_ffree : int64;  (* free file nodes in fs *)
   f_fsid : unit;  (* See note in statfs(2) *)
-  f_fnamelen : int; (* maximum length of filenames, maximum Sys.max_string_length *)
+  f_fnamelen : int64; (* maximum length of filenames, maximum Sys.max_string_length *)
   f_basetype : string; (* type of filesystem - Solaris, (-1) on other systems, use f_type there *)
   f_frsize : int64;  (* Fundamental file system block size, (-1) if not provided by system *)
 }
@@ -1719,7 +1719,7 @@ let bavail dir =
 
 let fnamelen dir =
   try
-    Some (min (statfs dir).f_fnamelen Sys.max_string_length)
+    Some (min (Int64.to_int (statfs dir).f_fnamelen) Sys.max_string_length)
   with e -> None
 
 let disktotal dir =
