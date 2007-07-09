@@ -481,6 +481,10 @@ let decode_az_style s =
       | "A~" -> Brand_ares
       | "AX" -> Brand_bitpump
       | "DE" -> Brand_deluge
+      | "TT" -> Brand_tuotu
+      | "XL" -> Brand_xunlei
+      | "FT" -> Brand_foxtorrent
+      | "BF" -> Brand_bitflu
       | _ -> Brand_unknown
     in
     if brand = Brand_unknown then None else
@@ -490,6 +494,7 @@ let decode_az_style s =
           | Brand_bitpump
           | Brand_bitcomet -> (String.sub s 4 1) ^ "." ^ (String.sub s 5 2)
           (* 3.45 *)
+          | Brand_tuotu
           | Brand_utorrent -> (String.sub s 3 1) ^ "." ^ (String.sub s 4 1) ^ "." ^ (String.sub s 5 1)
           (* 34.56 *)
           | Brand_ctorrent
@@ -506,6 +511,8 @@ let decode_az_style s =
           | Brand_bitrocket -> (String.sub s 3 1) ^ "." ^ (String.sub s 4 1) ^ "(" ^ (String.sub s 5 2) ^ ")"
           (* v 3456 *)
           | Brand_xtorrent -> "v" ^ (strip_leading_zeroes (String.sub s 3 4))
+          (* BitFlu is too complicated YMDD (Y+M -> HEX) eg. 7224 is 2007.02.24 *)
+          | Brand_bitflu -> ""
           (* 3.4.5.6 *)
           | _ -> (dot_string (String.sub s 3 4)) 
       in

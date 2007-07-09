@@ -120,6 +120,10 @@ type brand =
 | Brand_bitpump
 | Brand_deluge
 | Brand_btuga
+| Brand_tuotu
+| Brand_xunlei
+| Brand_foxtorrent
+| Brand_bitflu
 
 let brand_list = [ 
    ( Brand_unknown          , "unknown"                , "unk" ) ;
@@ -195,6 +199,10 @@ let brand_list = [
    ( Brand_bitpump          , "BitPump"                , "bpu" ) ;
    ( Brand_deluge           , "Deluge"                 , "del" ) ;
    ( Brand_btuga            , "BTuga Revolution"       , "btr" ) ;
+   ( Brand_tuotu            , "Tuotu"                  , "tuo" ) ;
+   ( Brand_xunlei           , "XunLei"                 , "xun" ) ;
+   ( Brand_foxtorrent       , "FoxTorrent"             , "fox" ) ;
+   ( Brand_bitflu           , "BitFlu"                 , "flu" ) ;
   ] 
 
 let brand_count = List.length brand_list
