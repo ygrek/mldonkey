@@ -1019,9 +1019,11 @@ let web_infos = define_option current_section ["web_infos"]
   EXAMPLE:
     web_infos = [
     (\"server.met\", 0, \"http://www.gruk.org/server.met.gz\");
+    (\"hublist\", 0, \"http://dchublist.com/hublist.config.bz2\");
     (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/level1.gz\");
     (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
     (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
+    (\"geoip.dat\", 168, \"http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz\");
     ]
   "
     (list_option (tuple3_option (string_option, int_option, string_option)))
@@ -1036,6 +1038,8 @@ let web_infos = define_option current_section ["web_infos"]
         "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
       ("nodes.gzip", 0,
         "http://update.kceasy.com/update/fasttrack/nodes.gzip");
+      ("hublist", 0,
+        "http://dchublist.com/hublist.config.bz2");
 (*
     ("slsk_boot", 0,
       "http://www.slsknet.org/slskinfo2");
@@ -1602,7 +1606,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 let options_version = define_expert_option current_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 17
+    int_option 18
 
 let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
   "Maximum number of comments per file"
@@ -2172,5 +2176,9 @@ let rec update_options () =
   | 16 ->
       if !!download_sample_size = 10 then download_sample_size =:= 100;
       update 17
+
+  | 17 ->
+      web_infos_add "hublist" 0 "http://dchublist.com/hublist.config.bz2";
+      update 18
 
   | _ -> ()

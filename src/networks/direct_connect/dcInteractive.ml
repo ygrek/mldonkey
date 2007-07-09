@@ -617,13 +617,9 @@ let commands = [
         \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
         Value=\\\"DC Info\\\"\\>\\</td\\>\\</form\\>";
       Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"hublistshow\\\" name=\\\"hublistshow\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dchublist show'\\\"\\>
+        action=\\\"javascript:parent.output.location.href='submit?q=dchublist'\\\"\\>
         \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
         Value=\\\"Show hublist\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"hublistload\\\" name=\\\"hublistload\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dchublist load'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Load hublist\\\"\\>\\</td\\>\\</form\\>";
       Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"filelists\\\" name=\\\"filelists\\\"
         action=\\\"javascript:parent.output.location.href='submit?q=dcfilelists'\\\"\\>
         \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
@@ -692,85 +688,70 @@ let commands = [
   (* 'dchubs [args]' - Show dchub list with optional filters args (max 5) *)
   "dchublist", Arg_multiple (fun args o ->
     let buf = o.conn_buf in
-    let failtxt = "dchublist show [filtertext] | load - bad arguments" in
+    let filter = ref [] in
+    let print_hublist () =
+      if use_html_mods o then
+        begin
+          html_mods_table_one_row buf "serversTable" "servers" [
+            (empty_string, "srh", Printf.sprintf "Showing hublist"); ];
+          Printf.bprintf buf "\\</table\\>\\</div\\>"
+        end
+      else
+        Printf.bprintf buf "Showing hublist";
+      html_mods_cntr_init ();
+      let nb_hubs = ref 0 in
+      if use_html_mods o then dc_hublist_print_html_header buf empty_string;
+      let show_all = if (!filter = []) then true else false in
+      List.iter (fun h ->
+        let hub_has_string searched =
+          if String2.contains (Ip.string_of_addr h.dc_ip) searched ||
+            String2.contains (string_of_int h.dc_port) searched ||
+            String2.contains h.dc_info searched ||
+            String2.contains h.dc_name searched then true
+          else false in
+        let print_hub () =
+          (try
+            hublist_print h !nb_hubs o;
+            incr nb_hubs;
+           with e ->
+             if !verbose_msg_servers then
+               lprintf_nl "Exception %s in hub_print\n" (Printexc2.to_string e))
+        in
+        if show_all then
+          print_hub ()
+        else
+          begin
+            let print = ref false in
+            let finished = ref false in
+            let counter = ref 0 in
+            let filters_length = List.length !filter in
+            while (!print = false) && (!finished = false) do
+              if (!counter = filters_length) || (!counter > 5) then
+                finished := true
+              else
+                if (hub_has_string (List.nth !filter !counter)) then print := true;
+              incr counter
+            done;
+            if (!print = true) then print_hub ()
+          end
+      ) !dc_hublist;
+      let txt = if show_all then "(showing all hubs from hublist)" else "(filtered)" in
+      if use_html_mods o then
+        begin
+          Printf.bprintf buf "\\</table\\>\\</div\\>";
+          html_mods_table_one_row buf "serversTable" "servers" [
+            (empty_string, "srh", Printf.sprintf "Hubs: %d known %s" !nb_hubs txt); ]
+        end
+      else
+        Printf.bprintf buf "Hubs: %d known %s" !nb_hubs txt
+    in
     (match args with
-    | cmd :: rest_args ->
-        (match cmd with 
-        | "load" ->
-          let url =
-            if (!!servers_list_url = empty_string) then failwith "No valid url" 
-            else
-              { url = !!servers_list_url;
-                kind = "";
-                period = 0;
-                state = None;
-              }
-          in
-          CommonWeb.mldonkey_wget url (fun _ -> () );
-          Printf.bprintf buf "Trying to load %s\n" url.url;
-        | "show" ->
-            let filename = Filename.concat "web_infos" (Filename.basename !!servers_list_url) in
-            if !verbose_msg_servers then lprintf_nl "Loading hublist with filename (%s) " filename;   
-            let hublist =
-              (try
-                (match Filename2.last_extension filename with
-                | ".bz2" -> DcServers.make_hublist_from_file (Misc2.bz2_extract filename)
-                | _ -> DcServers.make_hublist_from_file filename )
-              with e -> 
-                if !verbose_msg_servers then lprintf_nl "(%s) in loading/parsing serverlist" (Printexc2.to_string e);
-                raise Not_found ) 
-            in
-            if use_html_mods o then begin
-              html_mods_table_one_row buf "serversTable" "servers" [
-                (empty_string, "srh", Printf.sprintf "Showing hublist %s" !!servers_list_url); ];
-              Printf.bprintf buf "\\</table\\>\\</div\\>";
-            end else Printf.bprintf buf "Showing hublist %s" !!servers_list_url;
-
-            html_mods_cntr_init ();
-            let nb_hubs = ref 0 in 
-            if use_html_mods o then dc_hublist_print_html_header buf empty_string;
-            let show_all = if (rest_args = []) then true else false in
-            List.iter (fun h ->
-              let hub_has_string searched = 
-                if String2.contains (Ip.string_of_addr h.dc_ip) searched ||
-                  String2.contains (string_of_int h.dc_port) searched ||
-                  String2.contains h.dc_info searched || 
-                  String2.contains h.dc_name searched then true
-                else false in
-              let print_hub () =
-                (try
-                  hublist_print h !nb_hubs o;
-                  incr nb_hubs;
-                with e -> 
-                    if !verbose_msg_servers then 
-                      lprintf_nl "Exception %s in hub_print\n" (Printexc2.to_string e) )
-              in
-              if show_all then print_hub ()
-              else begin 
-                let print = ref false in
-                let finished = ref false in
-                let counter = ref 0 in
-                let filters_length = List.length rest_args in
-                while (!print = false) && (!finished = false) do
-                  if (!counter = filters_length) || (!counter > 5) then finished := true 
-                  else if (hub_has_string (List.nth rest_args !counter)) then print := true;
-                  incr counter
-                done;    
-                if (!print = true) then print_hub ();
-              end;
-            ) hublist;
-            let txt =
-              if show_all then "(showing all hubs from hublist)" else "(filtered)"
-            in
-            if use_html_mods o then begin
-              Printf.bprintf buf "\\</table\\>\\</div\\>";
-              html_mods_table_one_row buf "serversTable" "servers" [
-                (empty_string, "srh", Printf.sprintf "Hubs: %d known %s" !nb_hubs txt); ]
-            end else Printf.bprintf buf "Hubs: %d known %s" !nb_hubs txt;
-        | _ -> failwith failtxt )
-    | _ -> failwith failtxt );
+    | [] -> ()
+    | rest_args -> filter := rest_args
+    );
+    print_hublist ();
     empty_string
-  ), "<show [filtertext] | load>\rFor example: dchublist show fin - filters hubs with text fin\rdchublist load - loads hublist from address in options";
+  ), "[filtertext]: dchublist fin - filters hubs with text fin";
 
   (* 'dcuserip name' query user-ip from hub  *)
   "dcuserip", Arg_multiple (fun args o ->
@@ -1570,10 +1551,33 @@ let _ =
     file_ops.op_file_resume <- (fun _ -> ());
     file_ops.op_file_set_format <- (fun _ _ -> ());
     file_ops.op_file_check <- (fun _ -> ());
-    file_ops.op_file_recover <- (fun _ -> ());
+    file_ops.op_file_recover <- (fun _ -> ())
     (*file_ops.op_file_print_html <- (fun _ _ -> lprintf_nl "Received (op_file_print_html)"; ());*)
     (*file_ops.op_file_print_sources_html <- (fun _ _ -> lprintf_nl "Received (op_file_print_sources_html)"; ())*)
 (*    mutable op_file_files : ('a -> 'a file_impl -> file list);
     mutable op_file_debug : ('a -> string);
     mutable op_file_proposed_filenames : ('a -> string list);
 *)
+
+let _ =
+  CommonWeb.add_web_kind "hublist" "DirectConnect hublist"
+    (fun url filename ->
+      if !!enable_directconnect then
+        begin
+          try
+            dc_hublist := (
+              match Filename2.last_extension filename with
+              | ".bz2" -> DcServers.make_hublist_from_file (Misc2.bz2_extract filename)
+              | _ -> DcServers.make_hublist_from_file filename);
+            lprintf_nl "loaded dc++ hublist, %d entries" (List.length !dc_hublist)
+          with e -> 
+            if !verbose_msg_servers then
+              lprintf_nl "(%s) in loading/parsing serverlist" (Printexc2.to_string e);
+            raise Not_found
+        end
+      else
+        begin
+          lprintf_nl "DirectConnect module is disabled, ignoring...";
+          raise Not_found
+        end
+    )
