@@ -275,23 +275,20 @@ let decode_torrent s =
   assert (!file_name <> "");
   assert (!file_piece_size <> zero);
   assert (!file_pieces <> "");
-
   assert (!file_info = Bencode.decode (Bencode.encode !file_info));
 
   let file_id = Sha1.string (Bencode.encode !file_info) in
-  let npieces =
-    1+ Int64.to_int ((!length -- one) // !file_piece_size)
-  in
-(*            lprintf "npieces %d length %Ld piece %Ld %d\n"
-              npieces !length !file_piece_size (String.length !file_pieces); *)
+  let npieces = 1 + Int64.to_int ((!length -- one) // !file_piece_size) in
   let pieces = Array.init npieces (fun i ->
         let s = String.sub !file_pieces (i*20) 20 in
         Sha1.direct_of_string s
     ) in
 
-(*  if !file_files <> [] && not (String2.check_suffix !file_name ".torrent") then
-    file_name := !file_name ^ ".torrent";*)
-  file_files := List.rev !file_files;
+  (match List.length !file_files with
+  | 0 -> ()
+  | 1 -> file_name := (fst (List.hd !file_files));
+         file_files := []
+  | _ -> file_files := List.rev !file_files);
 
   file_id, {
     torrent_name = !file_name;
