@@ -180,7 +180,7 @@ let op_file_print file o =
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
     ("Filename", "sr br", "Filename");
-    ("", "sr", (Charset.safe_convert file.file_encoding file.file_name)) ];
+    ("", "sr", file.file_name) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
@@ -216,7 +216,7 @@ let op_file_print file o =
 
   html_mods_td buf [
     ("Torrent Filename", "sr br", "Torrent Fname");
-    ("", "sr", (Charset.safe_convert file.file_encoding file.file_torrent_diskname)) ];
+    ("", "sr", file.file_torrent_diskname) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
@@ -224,14 +224,14 @@ let op_file_print file o =
     ("Comment", "sr br", "Comment");
     ("", "sr", match file.file_comment with
         "" -> "-"
-      | _ -> (Charset.safe_convert file.file_encoding file.file_comment)) ];
+      | _ -> file.file_comment) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
     ("Created by", "sr br", "Created by");
     ("", "sr", match file.file_created_by with
         "" -> "-"
-      | _ -> (Charset.safe_convert file.file_encoding file.file_created_by)) ];
+      | _ -> file.file_created_by) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
@@ -243,7 +243,7 @@ let op_file_print file o =
     ("Modified by", "sr br", "Modified by");
     ("", "sr", match file.file_modified_by with
         "" -> "-"
-      | _ -> (Charset.safe_convert file.file_encoding file.file_modified_by)) ];
+      | _ -> file.file_modified_by) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
@@ -372,16 +372,13 @@ let op_file_print file o =
         Printf.bprintf buf "%s, disabled (try %d): %s\n" tracker.tracker_url i s
     | _ -> Printf.bprintf buf "%s\n" tracker.tracker_url
   ) file.file_trackers;
-  let s = Charset.safe_convert file.file_encoding file.file_torrent_diskname in
-  if s <> "" then Printf.bprintf buf "Torrent diskname: %s\n" s;
-  let s = Charset.safe_convert file.file_encoding file.file_comment in
-  if s <> "" then Printf.bprintf buf "Comment: %s\n" s;
-  let s = Charset.safe_convert file.file_encoding file.file_created_by in
-  if s <> "" then Printf.bprintf buf "Created by %s\n" s;
+  if file.file_torrent_diskname <> "" then
+    Printf.bprintf buf "Torrent diskname: %s\n" file.file_torrent_diskname;
+  if file.file_comment <> "" then Printf.bprintf buf "Comment: %s\n" file.file_comment;
+  if file.file_created_by <> "" then Printf.bprintf buf "Created by %s\n" file.file_created_by;
   let s = Date.to_string (Int64.to_float file.file_creation_date) in
   if s <> "" then Printf.bprintf buf "Creation date: %s\n" s;
-  let s = Charset.safe_convert file.file_encoding file.file_modified_by in
-  if s <> "" then Printf.bprintf buf "Modified by %s\n" s;
+  if file.file_modified_by <> "" then Printf.bprintf buf "Modified by %s\n" file.file_modified_by;
   if file.file_encoding <> "" then Printf.bprintf buf "Encoding: %s\n" file.file_encoding;
   if file.file_files <> [] then Printf.bprintf buf "Subfiles: %d\n" (List.length file.file_files);
   let cntr = ref 0 in
@@ -634,6 +631,7 @@ let op_ft_info ft =
 
 
 let load_torrent_string s user =
+  if !verbose then lprintf_nl "load_torrent_string";
   let file_id, torrent = BTTorrent.decode_torrent s in
 
   (* Save the torrent, because we later want to put

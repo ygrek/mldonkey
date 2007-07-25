@@ -70,7 +70,7 @@ let decode_torrent s =
   let file_info = ref (List []) in
   let file_name = ref "" in
   let file_torrent_filename = ref "" in
-  let file_name_utf8 = ref "" in
+  let file_name_utf8 = ref None in
   let file_piece_size = ref zero in
   let file_pieces = ref "" in
   let file_comment = ref "" in
@@ -204,7 +204,7 @@ let decode_torrent s =
                       file_created_by := !file_created_by ^ " @ " ^ publisher_url
 
                     | String "name.utf-8", String name_utf8 ->
-                        file_name_utf8 := name_utf8
+                        file_name_utf8 := Some name_utf8
 
                     | String "publisher.utf-8", String publisher_utf8 -> ()
                     | String "publisher-url.utf-8", String publisher_url_utf8 -> ()
@@ -271,8 +271,13 @@ let decode_torrent s =
     | _ -> assert false
   end;
 
+  let real_file_name =
+    match !file_name_utf8 with
+    | None -> Charset.safe_convert !file_encoding !file_name
+    | Some name -> name
+  in
   assert (!announce <> "");
-  assert (!file_name <> "");
+  assert (real_file_name <> "");
   assert (!file_piece_size <> zero);
   assert (!file_pieces <> "");
   assert (!file_info = Bencode.decode (Bencode.encode !file_info));
@@ -291,19 +296,19 @@ let decode_torrent s =
   | _ -> file_files := List.rev !file_files);
 
   file_id, {
-    torrent_name = !file_name;
+    torrent_name = real_file_name;
     torrent_filename = !file_torrent_filename;
-    torrent_name_utf8 = !file_name_utf8;
+    torrent_name_utf8 = real_file_name;
     torrent_length = !length;
     torrent_announce = !announce;
     torrent_announce_list = !announce_list;
     torrent_piece_size = !file_piece_size;
     torrent_files = !file_files;
     torrent_pieces = pieces;
-    torrent_comment = !file_comment;
-    torrent_created_by = !file_created_by;
+    torrent_comment = Charset.safe_convert !file_encoding !file_comment;
+    torrent_created_by = Charset.safe_convert !file_encoding !file_created_by;
     torrent_creation_date = !file_creation_date;
-    torrent_modified_by = !file_modified_by;
+    torrent_modified_by = Charset.safe_convert !file_encoding !file_modified_by;
     torrent_encoding = !file_encoding;
     torrent_private = !file_is_private;
 

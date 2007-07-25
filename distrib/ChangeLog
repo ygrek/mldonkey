@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/07/25
+6085: BT: Improve UTF8 support
+- parse field "encoding"
+- use field "name.utf8" instead of "name", if available
+
 2007/07/10
 5996: BT: Recognize more client types (orbit)
 6065: DirectConnect: Support dc++ hublist in web_infos

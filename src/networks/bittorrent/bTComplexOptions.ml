@@ -114,7 +114,6 @@ let value_to_file file_size file_state assocs =
     with _ ->
 
         let file_name = get_value "file_name" value_to_string in
-        let file_name_utf8 = Charset.to_utf8 file_name in
         let file_comment = try get_value "file_comment" value_to_string with Not_found -> "" in
         let file_id =
           try
@@ -151,7 +150,7 @@ let value_to_file file_size file_state assocs =
         let torrent = {
             torrent_name = file_name;
             torrent_filename = "";
-            torrent_name_utf8 = file_name_utf8;
+            torrent_name_utf8 = file_name;
             torrent_comment = file_comment;
             torrent_pieces = file_chunks;
             torrent_piece_size = file_piece_size;
