@@ -1497,7 +1497,7 @@ let dc_upload c bytes =
   (match c.client_sock with 
   | Connection sock ->
       (try
-        if (bytes > 0) && CommonUploads.can_write_len sock bytes then begin
+        if (bytes > 0) && can_write_len sock bytes then begin
           (* update upload rate from len bytes *)
           (*Rate.update c.client_upload_rate  (float_of_int len);*)
           (* update stats *)

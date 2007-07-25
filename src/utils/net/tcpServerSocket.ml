@@ -73,7 +73,7 @@ let tcp_handler t sock event =
     begin
      try
       let s,id = Unix.accept (fd sock) in
-      if !verbose_bandwidth > 1 then lprintf "[BW2 %6d] accept on %s\n" (last_time ()) t.name;
+      if !verbose_bandwidth > 1 then lprintf_nl "[BW2 %6d] accept on %s" (last_time ()) t.name;
       (match t.accept_control with
           None -> () | Some cc -> 
             cc.nconnections_last_second <- cc.nconnections_last_second + 1);
@@ -135,10 +135,12 @@ let _ =
       
       if !verbose_bandwidth > 0 then begin
           if !nconnections_last_second > 0 then
-            lprintf "[BW1 %6d] %d incoming connections last second:\n" (last_time ())  !nconnections_last_second;
+            lprintf_nl "[BW1 %6d] %d incoming connections last second:"
+              (last_time ())  !nconnections_last_second;
           List.iter (fun cc ->
               if cc.nconnections_last_second > 0 then
-                lprintf "[BW1 %6d]     %20s: %d incoming connections\n" (last_time ()) cc.cc_name cc.nconnections_last_second
+                lprintf_nl "[BW1 %6d]     %20s: %d incoming connections"
+                  (last_time ()) cc.cc_name cc.nconnections_last_second
           ) !connections_controlers
         end;
       

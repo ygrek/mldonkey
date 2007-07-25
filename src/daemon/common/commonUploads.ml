@@ -751,19 +751,6 @@ let streaming_amount () =
 let streaming_left = ref (streaming_amount ())
 let streaming_time = (ref None : float option ref)
 
-let can_write_len sock len =
-  let bool1 = can_write_len sock len in
-(* changed 2.5.24: Don't put in a socket more than 10 seconds of upload. *)
-(* ...since the socket shares available bandwidth with others, 
-   that test has no physical meaning. Should it simply be removed ? *)
-  let bool2 = not_buffer_more sock (int_of_float !CommonGlobals.payload_bandwidth * 10) in
-(*  lprintf "can_write_len %b %b\n" bool1 bool2; *)
-  let b = bool1 && bool2 in
-(*  if not b then
-      lprintf "bool1 %b len %d bool2 %b upload %d\n" 
-        bool1 len bool2 upload_rate; *)
-  b
-
 let next_uploads () =
 
   let rec next_uploads_aux () =

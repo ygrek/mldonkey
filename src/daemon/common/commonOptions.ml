@@ -1092,10 +1092,6 @@ let mtu_packet_size = define_expert_option current_section ["mtu_packet_size"]
   "The size of the MTU of a TCP/IP packet on your connection"
     int_option 1500
 
-let packet_frame_size = define_expert_option current_section ["packet_frame_size"]
-  "The size of the frame packet on your network (on my cable link, it is 250)"
-    int_option 250
-
 let minimal_packet_size = define_expert_option current_section ["minimal_packet_size"]
   "The size of the minimal packet you want mldonkey to send when data is
   available on the connection"
@@ -1387,10 +1383,6 @@ let current_section = other_section
 let save_results = define_option current_section ["save_results"]
   "(experimental)" 
     int_option 0
-
-let use_result_history = define_expert_option current_section ["use_file_history"]
-  "keep seen files in history to allow local search (can be expensive in memory)"
-    bool_option false
 
 let buffer_writes = define_option current_section ["buffer_writes"]
   "Buffer writes and flush after buffer_writes_delay seconds (experimental)"
@@ -1806,9 +1798,6 @@ let _ =
   );
   option_hook minimal_packet_size (fun _ ->
       TcpBufferedSocket.minimal_packet_size := !!minimal_packet_size
-  );
-  option_hook packet_frame_size (fun _ ->
-      TcpBufferedSocket.packet_frame_size := !!packet_frame_size
   );
   option_hook minor_heap_size (fun _ ->
       let gc_control = Gc.get () in

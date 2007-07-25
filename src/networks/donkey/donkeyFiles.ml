@@ -125,7 +125,7 @@ module NewUpload = struct
     
     let rec send_client_block c sock per_client =
 (*      lprintf "send_client_block\n"; *)
-      if per_client > 0 && CommonUploads.can_write_len sock max_msg_size then
+      if per_client > 0 && can_write_len sock max_msg_size then
         match c.client_upload with
         | Some ({ up_chunks = current_chunk :: chunks } as up)  ->
             if up.up_file.file_shared = None then begin

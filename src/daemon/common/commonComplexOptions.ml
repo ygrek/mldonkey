@@ -129,7 +129,7 @@ module FileOption = struct
 	  let file_group =
 	    let dgroup = user2_print_user_default_group file_user in
 	    try
-	      match (get_value "file_group" stringvalue_to_option) with
+	      match (get_value "file_group" value_to_stringoption) with
 		None -> None
 	      | Some g ->
 		  begin
@@ -188,7 +188,7 @@ module FileOption = struct
         ("file_age", IntValue (Int64.of_int impl.impl_file_age)) ::
         ("file_release", bool_to_value impl.impl_file_release) ::
         ("file_owner", string_to_value (file_owner file).user_name) ::
-        ("file_group", option_to_stringvalue (match file_group file with Some g -> Some g.group_name | None -> None)) ::
+        ("file_group", stringoption_to_value (match file_group file with Some g -> Some g.group_name | None -> None)) ::
           (file_to_option file)
         )
           

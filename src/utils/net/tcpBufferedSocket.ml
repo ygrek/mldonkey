@@ -229,17 +229,21 @@ let used_token token = token.token_used
 let unlimited_connection_manager = create_connection_manager "Unlimited"
 
 let reset_connection_scheduler _ =
-  if !verbose_bandwidth > 0 then begin
-      lprintf "[BW1 %6d] Connections opened this second : %d/%d total %d/%d\n"
-      (last_time ()) !opened_connections_this_second (!max_connections_per_second ()) !opened_connections (!max_opened_connections ());
-    end;
+  if !verbose_bandwidth > 0 then
+    lprintf_nl "[BW1 %6d] Connections opened this second : %d/%d total %d/%d"
+      (last_time ())
+      !opened_connections_this_second
+      (!max_connections_per_second ())
+      !opened_connections
+      (!max_opened_connections ());
+
   List.iter (fun cm ->
       if !verbose_bandwidth > 0 then begin
           if cm.nconnections_last_second > 0 then
-            lprintf "[BW1 %6d]    %s opened %d connections last second\n"
+            lprintf_nl "[BW1 %6d]    %s opened %d connections last second"
               (last_time ()) cm.cm_name cm.nconnections_last_second;
           if cm.nwaiting_connections > 0 then
-            lprintf "[BW1 %6d]    %s still waits for %d connections\n"
+            lprintf_nl "[BW1 %6d]    %s still waits for %d connections"
               (last_time ()) cm.cm_name cm.nwaiting_connections;
        end;
       cm.nconnections_last_second <- 0;
@@ -539,11 +543,9 @@ let write t s pos1 len =
           let fd = fd t.sock_out in
 (*       lprintf "WRITE [%s]\n" (String.escaped (String.sub s pos1 len)); *)
           let nw = MlUnix.write fd s pos1 len in
-          if !verbose_bandwidth > 1 then begin
-              lprintf "[BW2 %6d] immediate write %d/%d on %s:%d\n" (last_time ())
-              nw len
-                t.name (sock_num t.sock_out);
-            end;
+          if !verbose_bandwidth > 1 then
+            lprintf_nl "[BW2 %6d] immediate write %d/%d on %s:%d"
+              (last_time ()) nw len t.name (sock_num t.sock_out);
 
           register_upload t len;
           forecast_download t 0;
@@ -670,17 +672,15 @@ let can_read_handler t sock max_len =
       end;
 *)
 
-    if !verbose_bandwidth > 1 then begin
-        lprintf "[BW2 %6d] %sread %d/%d/%d on %s:%d\n" (last_time ())
+    if !verbose_bandwidth > 1 then
+      lprintf_nl "[BW2 %6d] %sread %d/%d/%d on %s:%d" (last_time ())
         (if old_len > 0 then "completing " else "") nread can_read max_len
           t.name (sock_num t.sock_in);
-      end;
 
 
-    if !copy_read_buffer then begin
-(*        lprintf "Copying %d bytes\n" nread; *)
+    if !copy_read_buffer then
         buf_add t b big_buffer 0 nread
-      end else
+    else
       b.len <- b.len + nread;
 (*    lprintf " %d\n" nread; *)
     b.min_buf_size <- min b.max_buf_size (
@@ -743,10 +743,10 @@ let can_write_handler t sock max_len =
 (*            lprintf "WRITE [%s]\n" (String.escaped
               (String.sub b.buf b.pos max_len)); *)
             let nw = MlUnix.write fd b.buf b.pos max_len in
-            if !verbose_bandwidth > 1 then begin
-                lprintf "[BW2 %6d] postponed %swrite %d/%d/%d on %s:%d\n" (last_time ()) (if max_len < b.len then "partial " else "") nw max_len b.len
-                  t.name (sock_num t.sock_out);
-              end;
+            if !verbose_bandwidth > 1 then
+              lprintf_nl "[BW2 %6d] postponed %swrite %d/%d/%d on %s:%d"
+                  (last_time ()) (if max_len < b.len then "partial " else "")
+                  nw max_len b.len t.name (sock_num t.sock_out);
 
 (*            if t.monitored then
 (lprintf "written %d\n" nw; ); *)
@@ -920,10 +920,10 @@ let reset_bandwidth_controlers _ =
       bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
       bc.remaining_bytes <- bc.total_bytes - bc.forecast_bytes;
       if !verbose_bandwidth > 0 && bc.ndone_last_second > 0 then
-        lprintf "[BW1 %6d] %s read %d/%d last second\n" (last_time ())
+        lprintf_nl "[BW1 %6d] %s read %d/%d last second" (last_time ())
           bc.bc_name bc.ndone_last_second bc.total_bytes;
       if !verbose_bandwidth > 0 && bc.forecast_bytes > 0 then
-        lprintf "[BW1 %6d] %s forecast read %d bytes for next second\n" (last_time ())
+        lprintf_nl "[BW1 %6d] %s forecast read %d bytes for next second" (last_time ())
           bc.bc_name bc.forecast_bytes;
       bc.forecast_bytes <- 0;
       bc.ndone_last_second <- 0;
@@ -934,10 +934,10 @@ let reset_bandwidth_controlers _ =
       bc.remaining_bytes_user bc.total_bytes bc.remaining_bytes;
       bc.remaining_bytes <- bc.total_bytes - bc.forecast_bytes;
       if !verbose_bandwidth > 0 && bc.ndone_last_second > 0 then
-        lprintf "[BW1 %6d] %s wrote %d/%d last second\n" (last_time ())
+        lprintf_nl "[BW1 %6d] %s wrote %d/%d last second" (last_time ())
           bc.bc_name bc.ndone_last_second bc.total_bytes;
       if !verbose_bandwidth > 0 && bc.forecast_bytes > 0 then
-        lprintf "[BW1 %6d] %s forecast write %d bytes for next second\n" (last_time ())
+        lprintf_nl "[BW1 %6d] %s forecast write %d bytes for next second" (last_time ())
           bc.bc_name bc.forecast_bytes;
       bc.forecast_bytes <- 0;
       bc.ndone_last_second <- 0;
@@ -1337,9 +1337,8 @@ let connect token name host port handler =
       end;
     let t = create token name s handler in
 
-    if !verbose_bandwidth > 1 then begin
-        lprintf "[BW2 %6d] connect on %s:%d\n" (last_time ()) t.name (sock_num t.sock_out);
-      end;
+    if !verbose_bandwidth > 1 then
+      lprintf_nl "[BW2 %6d] connect on %s:%d" (last_time ()) t.name (sock_num t.sock_out);
 
     token.connection_manager.nconnections_last_second <-
       token.connection_manager.nconnections_last_second + 1;
@@ -1619,13 +1618,13 @@ let _ =
           let old_value = !(bc.allow_io) in
           bc.allow_io := (bc.total_bytes = 0 || bc.remaining_bytes > 0);
           if !verbose_bandwidth > 2 && (old_value <> !(bc.allow_io)) then
-            lprintf "[BW3 %6d] %20s: stop reading\n" (last_time ()) bc.bc_name
+            lprintf_nl "[BW3 %6d] %20s: stop reading" (last_time ()) bc.bc_name
       ) !read_bandwidth_controlers;
       List.iter (fun bc ->
           let old_value = !(bc.allow_io) in
           bc.allow_io := (bc.total_bytes = 0 || bc.remaining_bytes > 0);
           if !verbose_bandwidth > 2 && (old_value <> !(bc.allow_io)) then
-            lprintf "[BW3 %6d] %20s: stop writting\n" (last_time ()) bc.bc_name
+            lprintf_nl "[BW3 %6d] %20s: stop writing" (last_time ()) bc.bc_name
       ) !write_bandwidth_controlers;
   );
 
@@ -1667,9 +1666,9 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
               ) bc.connections;
 
               if !verbose_bandwidth > 2 && bc.nconnections > 0 then begin
-                  lprintf "[BW3 %6d] %d read-waiting connections for %d allowed\n" (last_time ()) bc.nconnections bc.remaining_bytes;
+                  lprintf_nl "[BW3 %6d] %d read-waiting connections for %d allowed" (last_time ()) bc.nconnections bc.remaining_bytes;
                   List.iter (fun t ->
-                      lprintf "[BW3 %6d]   %s:%d [buffered %d]\n" (last_time ()) t.name (sock_num t.sock_in) ((buf t).len);
+                      lprintf_nl "[BW3 %6d]   %s:%d [buffered %d]" (last_time ()) t.name (sock_num t.sock_in) ((buf t).len);
                   ) bc.connections;
                 end;
 
@@ -1689,10 +1688,9 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
                     );
                     bc.nconnections <- bc.nconnections - t.read_power
                   else
-                  if !verbose_bandwidth > 2 then begin
-                      lprintf "[BW3 %6d]    %s:%d could not read\n" (last_time ())
+                    if !verbose_bandwidth > 2 then
+                      lprintf_nl "[BW3 %6d]    %s:%d could not read" (last_time ())
                         t.name (sock_num t.sock_out)
-                    end
               ) bc.connections;
 (*              if bc.remaining_bytes > 0 then bc.allow_io := false; *)
             end;
@@ -1700,10 +1698,11 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
           if !verbose_bandwidth > 2 then begin
 
               if bc.remaining_bytes > 0 then
-                lprintf "[BW3 %6d] still %d bytes to read\n" (last_time ()) bc.remaining_bytes;
+                lprintf_nl "[BW3 %6d] still %d bytes to read" (last_time ()) bc.remaining_bytes;
 
               if bc.nconnections > 0 then
-                lprintf "[BW3 %6d] still %d read-waiting connections after loop\n" (last_time ()) bc.nconnections;
+                lprintf_nl "[BW3 %6d] still %d read-waiting connections after loop"
+                  (last_time ()) bc.nconnections;
             end;
 
 
@@ -1720,9 +1719,11 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
               ) bc.connections;
 
               if !verbose_bandwidth > 2 && bc.nconnections > 0 then begin
-                  lprintf "[BW3 %6d] %d write-waiting connections for %d allowed\n" (last_time ()) bc.nconnections bc.remaining_bytes;
+                  lprintf_nl "[BW3 %6d] %d write-waiting connections for %d allowed"
+                    (last_time ()) bc.nconnections bc.remaining_bytes;
                   List.iter (fun t ->
-                      lprintf "[BW3 %6d]   %s:%d [buffered %d]\n" (last_time ()) t.name (sock_num t.sock_out) (remaining_to_write t);
+                      lprintf_nl "[BW3 %6d]   %s:%d [buffered %d]"
+                        (last_time ()) t.name (sock_num t.sock_out) (remaining_to_write t);
                   ) bc.connections;
                 end;
               List.iter (fun t ->
@@ -1740,27 +1741,28 @@ to an option 'packet_unit' (default 250). Ask Simon if it makes sense.
                     t.nwrite + old_nwrite;
                     bc.nconnections <- bc.nconnections - t.write_power;
                   else
-                  if !verbose_bandwidth > 2 then begin
-                      lprintf "[BW3 %6d]    %s:%d could not write buffered %d bytes\n" (last_time ())
-                        t.name (sock_num t.sock_out) (remaining_to_write t)
-                    end
+                  if !verbose_bandwidth > 2 then
+                    lprintf_nl "[BW3 %6d]    %s:%d could not write buffered %d bytes"
+                      (last_time ()) t.name (sock_num t.sock_out) (remaining_to_write t)
               ) bc.connections;
 (*            if bc.remaining_bytes > 0 then bc.allow_io := false; *)
             end;
           if !verbose_bandwidth > 2 then begin
 
               if bc.remaining_bytes > 0 then begin
-                  lprintf "[BW3 %6d] still %d bytes to write\n" (last_time ()) bc.remaining_bytes;
+                  lprintf_nl "[BW3 %6d] still %d bytes to write"
+                    (last_time ()) bc.remaining_bytes;
                   List.iter (fun t ->
                       let len = remaining_to_write t in
                       if len > 0 then
-                        lprintf "[BW3 %6d]    %s:%d could write %d\n" (last_time ())
+                        lprintf_nl "[BW3 %6d]    %s:%d could write %d" (last_time ())
                           t.name (sock_num t.sock_out) len
                   ) bc.connections
                 end;
 
               if bc.nconnections > 0 then
-                lprintf "[BW3 %6d] still %d write-waiting connections after loop\n" (last_time ()) bc.nconnections;
+                lprintf_nl "[BW3 %6d] still %d write-waiting connections after loop"
+                  (last_time ()) bc.nconnections;
             end;
           bc.connections <- [];
           bc.nconnections <- 0;
@@ -1774,60 +1776,9 @@ let prevent_close t =
 let must_write t bool = must_write t.sock_out bool
 let output_buffered t = t.wbuf.len
 
-let net_stats = Hashtbl.create 13
-
-let join_stats titles values =
-  let titles = String2.split_simplify titles ' ' in
-  let values = String2.split_simplify values ' ' in
-  match titles, values with
-    title :: fields_titles, _ :: fields_values ->
-      List.iter2 (fun field_title field_value ->
-          let title = title ^ field_title in
-          let value = Int64.of_string field_value in
-          try
-            let old_value = Hashtbl.find net_stats title in
-            if !verbose_bandwidth > 0 && !old_value <> value then begin
-                lprintf "[BWS] %s: %Ld -> %Ld = %Ld/s\n"
-                  title !old_value value (value -- !old_value);
-              end;
-            old_value := value
-          with _ ->
-              Hashtbl.add net_stats title (ref value);
-              if !verbose_bandwidth > 0 then begin
-                  lprintf "[BWS] INIT %s: %Ld\n"
-                    title value
-              end;
-      ) fields_titles fields_values
-  | _ -> assert false
-
-let load_stats filename =
-  try
-    Unix2.tryopen_read filename (fun ic ->
-      try
-	let rec iter_first ic =
-	  let titles = input_line ic in
-	  iter_second ic titles
-	and iter_second ic titles =
-	  let values = input_line ic in
-	  join_stats titles values;
-	  iter_first ic in
-	iter_first ic
-      with End_of_file -> ())
-  with e ->
-    lprintf "[BWS] Error %s opening %s\n" (Printexc2.to_string e) filename;
-    proc_net_fs := false
-
-let proc_net_timer _ =
-  if !proc_net_fs && !verbose_bandwidth > 0 then begin
-      load_stats "/proc/net/netstat";
-      load_stats "/proc/net/snmp";
-    end
-
-
 let _ =
   Heap.add_memstat "tcpBufferedSocket" (fun level buf ->
       Printf.bprintf buf "  %d latencies\n" (Hashtbl.length latencies);
-      Printf.bprintf buf "  %d entries in net_stats\n" (Hashtbl.length net_stats);
       Printf.bprintf buf "  String.length big_buffer: %d\n" (String.length big_buffer);
       Printf.bprintf buf "  connection_managers: %d\n" (List.length !connection_managers);
       Printf.bprintf buf "  read_bandwidth_controlers: %d\n" (List.length !read_bandwidth_controlers);
@@ -1836,7 +1787,4 @@ let _ =
       Printf.bprintf buf "  max_opened_connections: %d\n" (!max_opened_connections ());
       Printf.bprintf buf "  max_connections_per_second: %d\n" (!max_connections_per_second ());
       Printf.bprintf buf "  max_buffer_size: %d\n" (!max_buffer_size);
-  );
-  add_infinite_timer 1.0 proc_net_timer
-
-let packet_frame_size = ref 250
+  )

@@ -200,7 +200,7 @@ module UserOption = struct
           in
           let udgroup =
 	    try
-              match get_value "user_default_group" stringvalue_to_option with
+              match get_value "user_default_group" value_to_stringoption with
 		None -> None
 	      | Some udg ->
 		  begin try
@@ -233,7 +233,7 @@ module UserOption = struct
         "user_name", string_to_value user.user_name;
         "user_pass", string_to_value (Md4.to_string user.user_pass);
 	"user_groups", list_to_value (fun v -> string_to_value v.group_name) user.user_groups;
-        "user_default_group", option_to_stringvalue (match user.user_default_group with Some g -> Some g.group_name | None -> None);
+        "user_default_group", stringoption_to_value (match user.user_default_group with Some g -> Some g.group_name | None -> None);
         "user_mail", string_to_value user.user_mail;
         "user_commit_dir", string_to_value user.user_commit_dir;
         "user_max_concurrent_downloads", int_to_value user.user_max_concurrent_downloads;

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/07/25
+6087: Fix logging of verbosity "bw", remove obsolete options
 6085: BT: Improve UTF8 support
 - parse field "encoding"
 - use field "name.utf8" instead of "name", if available

@@ -1569,7 +1569,7 @@ let client_can_upload c allowed =
       | _ :: tail ->
     let new_allowed_to_write =
       c.client_allowed_to_write ++ (Int64.of_int allowed) in
-      if allowed > 0 && CommonUploads.can_write_len sock
+      if allowed > 0 && can_write_len sock
             (Int64.to_int new_allowed_to_write)
       then begin
         CommonUploads.consume_bandwidth allowed;
