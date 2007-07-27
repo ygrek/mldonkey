@@ -14,6 +14,16 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/07/27
+6118: Configure: Update defaults
+- enable DirectConnect by default 
+- disable Gnutella & Gnutella2 by default
+  - MLDonkey does not support UDP host cache and contains
+    non-working GWebCache URLs
+  - Gnutella/G2 code has not been updated for several years,
+    its officially unmaintained for now
+  - remove non-existing GWebCache URLs
+
 2007/07/25
 6087: Fix logging of verbosity "bw", remove obsolete options
 6085: BT: Improve UTF8 support

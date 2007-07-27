@@ -303,11 +303,11 @@ OPENFT=no
 
 DONKEY=yes
 BITTORRENT=yes
-GNUTELLA=yes
-GNUTELLA2=yes
+GNUTELLA=no
+GNUTELLA2=no
 FASTTRACK=yes
 FILETP=yes
-DIRECT_CONNECT=no
+DIRECT_CONNECT=yes
 
 # **********   predefined configure variations
 
@@ -1490,16 +1490,16 @@ fi
 
 echo -n " - Gnutella          "
 if test "$GNUTELLA" = "yes"; then
-  echo "enabled"
+  echo "enabled (warning: default hostcache URLs out-of-date)"
 else
-  echo "        disabled"
+  echo "        disabled - unmaintained"
 fi
 
 echo -n " - Gnutella2         "
 if test "$GNUTELLA2" = "yes"; then
-  echo "enabled"
+  echo "enabled (warning: default hostcache URLs out-of-date)"
 else
-  echo "        disabled"
+  echo "        disabled - unmaintained"
 fi
 
 echo -n " - Direct Connect    "
