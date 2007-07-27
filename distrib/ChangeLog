@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2007/07/27
+2007/07/27: version 2.9.0 = tag release-2-9-0
 6118: Configure: Update defaults
 - enable DirectConnect by default 
 - disable Gnutella & Gnutella2 by default
