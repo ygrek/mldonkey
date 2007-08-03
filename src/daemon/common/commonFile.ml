@@ -746,7 +746,7 @@ parent.fstatus.location.href='submit?q=chown+'+v+'+%d';
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       if user2_allow_file_admin file o.conn_user.ui_user &&
-         o.conn_user.ui_user.user_groups <> [] then
+         (file_owner file).user_groups <> [] then begin
         let optionlist =
           if (file_group file) = None then
             ref ""
@@ -777,6 +777,7 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
    ^ Printf.sprintf "\\<option value=\\\"%s\\\" selected\\>%s\\</option\\>\n" (user2_print_group (file_group file)) (user2_print_group (file_group file))
    ^ !optionlist ^ "\\</select\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>"
   ) ];
+        end
 
       else
         html_mods_td buf [("File group", "sr br", "Group");

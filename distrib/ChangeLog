@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2007/08/04
+6132: HTML: Fix group display in vd <num> for admin users
+      view of other users files
 6130: Change API for network_parse_url, support user group
 6127: HTML: Display file_chunk_sizes/file_piece_size in vd <num>
 6135: BT: Fix high CPU load when share_scan_interval = 0
