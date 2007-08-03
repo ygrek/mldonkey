@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/08/04
+6128: New default for option messages_filter (unease)
 6132: HTML: Fix group display in vd <num> for admin users
       view of other users files
 6130: Change API for network_parse_url, support user group

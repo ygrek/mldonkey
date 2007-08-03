@@ -1363,7 +1363,7 @@ let allow_browse_share = define_option current_section ["allow_browse_share"]
 
 let messages_filter = define_option current_section ["messages_filter"]
   "Regexp of messages to filter out, example: string1|string2|string3"
-    string_option "DI-Emule|ZamBoR|Ketamine|eMule FX|AUTOMATED MESSAGE"
+    string_option "DI-Emule|ZamBoR|Ketamine|eMule FX|AUTOMATED MESSAGE|Hi Honey!|Do you live in my area|download HyperMule"
 
 let comments_filter = define_option current_section ["comments_filter"]
   "Regexp of comments to filter out, example: string1|string2|string3"
@@ -1598,7 +1598,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 let options_version = define_expert_option current_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 18
+    int_option 19
 
 let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
   "Maximum number of comments per file"
@@ -2169,5 +2169,10 @@ let rec update_options () =
   | 17 ->
       web_infos_add "hublist" 0 "http://dchublist.com/hublist.config.bz2";
       update 18
+
+  | 18 ->
+      if !!messages_filter = "DI-Emule|ZamBoR|Ketamine|eMule FX|AUTOMATED MESSAGE" then
+        messages_filter =:= "DI-Emule|ZamBoR|Ketamine|eMule FX|AUTOMATED MESSAGE|Hi Honey!|Do you live in my area|download HyperMule";
+      update 19
 
   | _ -> ()
