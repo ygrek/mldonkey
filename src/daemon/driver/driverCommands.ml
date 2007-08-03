@@ -1682,7 +1682,7 @@ let _ =
 	  begin
 	    let r = List.hd !forceable_download in
 	      CommonNetwork.networks_iter (fun n ->
-	        ignore (network_download n r o.conn_user.ui_user));
+	        ignore (network_download n r o.conn_user.ui_user o.conn_user.ui_user.user_default_group));
 
             let output = (if o.conn_output = HTML then begin
                 let buf = Buffer.create 100 in

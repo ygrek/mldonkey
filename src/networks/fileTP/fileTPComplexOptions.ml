@@ -69,7 +69,7 @@ let value_to_int32pair v =
   | _ ->
       failwith "Options: Not an int32 pair"
 
-let value_to_file file_size file_state assocs =
+let value_to_file file_size file_state user group assocs =
   let get_value name conv = conv (List.assoc name assocs) in
 
   let file_name = get_value "file_filename" value_to_string in
@@ -78,7 +78,7 @@ let value_to_file file_size file_state assocs =
       Md4.of_string (get_value "file_id" value_to_string)
     with _ -> failwith "Bad file_id"
   in
-  let file = new_file file_id file_name file_size (CommonUserDb.admin_user ()) in
+  let file = new_file file_id file_name file_size user group in
 
   (match file.file_swarmer with
       None -> ()

@@ -522,14 +522,14 @@ and network = {
     mutable op_network_add_server : 
       (Ip.addr -> int -> server);
     mutable op_network_file_of_option : 
-      int64 -> file_state -> ((string * Options.option_value) list -> file);
+      int64 -> file_state -> userdb -> groupdb option -> ((string * Options.option_value) list -> file);
     mutable op_network_client_of_option : 
       bool -> ((string * Options.option_value) list -> client);
     mutable op_network_recover_temp : (unit -> unit);
     mutable op_network_share : (
       string -> string -> int64 -> unit);
     mutable op_network_private_message : (string -> string -> unit);
-    mutable op_network_parse_url : (string -> userdb -> string * bool);
+    mutable op_network_parse_url : (string -> userdb -> groupdb option -> string * bool);
     mutable op_network_connect_servers : (unit -> unit);
     
     mutable op_network_search : (search -> Buffer.t -> unit);
@@ -543,7 +543,7 @@ and network = {
     mutable op_network_connected : (unit -> bool);
     mutable op_network_gui_message : (string -> userdb -> unit);
     
-    mutable op_network_download : (result_info -> userdb -> file);
+    mutable op_network_download : (result_info -> userdb -> groupdb option -> file);
     mutable op_network_display_stats : (ui_conn -> unit);
     mutable op_network_stat_info_list : unit -> (string * int * (network_stat_info list)) list;
     mutable op_network_clean_exit : (unit -> bool);

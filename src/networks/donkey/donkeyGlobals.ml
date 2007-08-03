@@ -327,8 +327,7 @@ let update_best_name file =
           set_file_best_name file best_name "" 0
     with Not_found -> ()
 
-let new_file file_diskname file_state md4 file_size filename writable user =
-
+let new_file file_diskname file_state md4 file_size filename writable user group =
   try
       let file = find_file md4 in
       if file.file_diskname <> file_diskname then
@@ -423,7 +422,7 @@ let new_file file_diskname file_state md4 file_size filename writable user =
       and file_impl = {
           dummy_file_impl with
           impl_file_owner = user;
-          impl_file_group = user.user_default_group;
+          impl_file_group = group;
           impl_file_val = file;
           impl_file_ops = file_ops;
           impl_file_age = last_time ();

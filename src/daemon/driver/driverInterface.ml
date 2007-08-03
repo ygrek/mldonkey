@@ -743,7 +743,11 @@ let gui_reader (gui: gui_record) t _ =
                 if not (networks_iter_until_true
                     (fun n ->
                        try
-                         let s,r = network_parse_url n url gui.gui_conn.conn_user.ui_user in r
+                         let s,r =
+                            network_parse_url n url
+                              gui.gui_conn.conn_user.ui_user
+                              gui.gui_conn.conn_user.ui_user.user_default_group
+                         in r
                        with e ->
                          lprintf "Exception %s for network %s\n"
                            (Printexc2.to_string e) (n.network_name);

@@ -102,7 +102,7 @@ let value_to_int32pair v =
   | _ -> 
       failwith "Options: Not an int32 pair"
 
-let value_to_file file_size file_state assocs =
+let value_to_file file_size file_state user group assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let file_name = get_value "file_name" value_to_string in
   let file_temp = 
@@ -130,7 +130,7 @@ let value_to_file file_size file_state assocs =
       file_uids := hash :: !file_uids;
     with _ -> ());
   
-  let file = new_file file_temp file_name file_size !file_uids (CommonUserDb.admin_user ()) in
+  let file = new_file file_temp file_name file_size !file_uids user group in
   
   (try
       file.file_ttr <- Some (get_value "file_ttr" (value_to_array 

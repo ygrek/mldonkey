@@ -148,7 +148,7 @@ let result_download rs names force user =
   CommonNetwork.networks_iter (fun n ->
       (* Temporarily download results only from the network that returned the result *)
       if (n.network_num = r.result_source_network) then
-      files := (CommonNetwork.network_download n r user) :: !files
+      files := (CommonNetwork.network_download n r user user.user_default_group) :: !files
   );
   !files  
     

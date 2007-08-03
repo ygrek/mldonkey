@@ -2231,11 +2231,11 @@ let dllink_print_result html url header results =
   if html then Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
   Buffer.contents buf
 
-let dllink_query_networks html url user =
+let dllink_query_networks html url user group =
   let result = ref [] in
   if not (networks_iter_until_true (fun n ->
     try
-      let s,r = network_parse_url n url user in
+      let s,r = network_parse_url n url user group in
         if s = "" then
           r
         else
@@ -2287,14 +2287,14 @@ let dllink_parse html url user =
       let concat_headers =
         (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
       in
-      ignore (dllink_query_networks html concat_headers user)
+      ignore (dllink_query_networks html concat_headers user user.user_default_group)
     );
     dllink_print_result html url "Parsing HTTP url" [])
   else
     if (String2.starts_with url "ftp") then
-      dllink_query_networks html (Printf.sprintf "Location: %s" url) user
+      dllink_query_networks html (Printf.sprintf "Location: %s" url) user user.user_default_group
     else
-      dllink_query_networks html url user
+      dllink_query_networks html url user user.user_default_group
 
 module UnionFind = struct
   type t = int array

@@ -94,7 +94,7 @@ module ClientOption = struct
 
   end
 
-let value_to_file file_size file_state assocs =
+let value_to_file file_size file_state user group assocs =
   let get_value name conv = conv (List.assoc name assocs) in
   let file_trackers =
     try
@@ -183,7 +183,7 @@ let value_to_file file_size file_state assocs =
         file_temp
   in
   let file = new_file file_id torrent torrent_diskname
-	       file_temp file_state (CommonUserDb.admin_user ()) in
+	       file_temp file_state user group in
     
   let file_uploaded = try
       value_to_int64 (List.assoc "file_uploaded" assocs)

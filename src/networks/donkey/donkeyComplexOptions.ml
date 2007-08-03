@@ -226,7 +226,7 @@ let value_to_int32pair v =
   | _ -> 
       failwith "Options: Not an int32 pair"
 
-let value_to_file file_size file_state assocs =
+let value_to_file file_size file_state user group assocs =
   let get_value name conv = conv (List.assoc name assocs) in
 
   let file_md4 = 
@@ -272,7 +272,7 @@ let value_to_file file_size file_state assocs =
   in
 
   let file = DonkeyGlobals.new_file file_diskname file_state
-    (Md4.of_string file_md4) file_size "" true (CommonUserDb.admin_user ()) in
+    (Md4.of_string file_md4) file_size "" true user group in
 
   (try
       set_file_best_name (as_file file)

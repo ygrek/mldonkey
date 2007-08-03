@@ -129,8 +129,8 @@ val network_server_of_option :
     @return the created file *)
 val network_file_of_option :
   CommonTypes.network ->
-  int64 -> CommonTypes.file_state -> (string * Options.option_value) list -> 
-  CommonTypes.file
+  int64 -> CommonTypes.file_state -> CommonTypes.userdb -> CommonTypes.groupdb option ->
+  (string * Options.option_value) list -> CommonTypes.file
 
 (** call the op_network_client_of_option method of a network.
     @param network instance
@@ -197,7 +197,7 @@ val network_clean_servers : CommonTypes.network -> unit
     @return status message
     @return true if successful *)
 val network_parse_url : 
-  CommonTypes.network -> string -> CommonTypes.userdb -> string * bool
+  CommonTypes.network -> string -> CommonTypes.userdb -> CommonTypes.groupdb option -> string * bool
 
 (** call the op_network_download method of a network.
     Start a download from the result of a search.
@@ -206,7 +206,7 @@ val network_parse_url :
     @param user to start the download for
     @return the newly started download *)
 val network_download :
-  CommonTypes.network -> CommonTypes.result_info -> CommonTypes.userdb -> 
+  CommonTypes.network -> CommonTypes.result_info -> CommonTypes.userdb -> CommonTypes.groupdb option -> 
   CommonTypes.file
 
 (** call the op_network_display_stats method of a network.

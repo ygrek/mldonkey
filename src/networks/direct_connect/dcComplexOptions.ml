@@ -153,7 +153,7 @@ let server_to_value h =
   
 
 (* parse options for files *)
-let value_to_file file_size file_state assocs =
+let value_to_file file_size file_state user group assocs =
   let get_value name conv = conv (List.assoc name assocs) in
 (*  let get_value_nil name conv = 
     try conv (List.assoc name assocs) with _ -> []

@@ -260,7 +260,7 @@ let rec set_trackers file file_trackers =
 	  file.file_trackers <-  t :: file.file_trackers;
 	set_trackers file q
 
-let new_file file_id t torrent_diskname file_temp file_state user =
+let new_file file_id t torrent_diskname file_temp file_state user group =
   try
     Hashtbl.find files_by_uid file_id
   with Not_found ->
@@ -290,7 +290,7 @@ let new_file file_id t torrent_diskname file_temp file_state user =
         } and file_impl =  {
           dummy_file_impl with
           impl_file_owner = user;
-          impl_file_group = user.user_default_group;
+          impl_file_group = group;
           impl_file_fd = Some file_fd;
           impl_file_size = t.torrent_length;
           impl_file_downloaded = Int64.zero;

@@ -92,22 +92,6 @@ module FileOption = struct
             with _ -> Int64.zero
           in
           
-          let file = network_file_of_option network file_size 
-              file_state assocs in
-          let priority = try get_value "file_priority" value_to_int 
-            with _ -> 0 in
-          
-          let impl = as_file_impl file in
-          (try
-              impl.impl_file_age <- 
-                normalize_time (get_value "file_age" value_to_int)
-            with _ -> ());
-
-          (try
-              impl.impl_file_release <- 
-                get_value "file_release" value_to_bool
-            with _ -> ());
-
 	  let file_user =
 	    try
 	      let u = get_value "file_owner" value_to_string in
@@ -124,7 +108,6 @@ module FileOption = struct
 		  filename (admin_user ()).user_name;
 		admin_user ()
 	  in
-	  set_file_owner file file_user;
 
 	  let file_group =
 	    let dgroup = user2_print_user_default_group file_user in
@@ -153,7 +136,20 @@ module FileOption = struct
 		  filename dgroup file_user.user_name;
 		file_user.user_default_group
 	  in
-	  set_file_group file file_group;
+
+          let file = network_file_of_option network file_size 
+              file_state file_user file_group assocs in
+          
+          let impl = as_file_impl file in
+          (try
+              impl.impl_file_age <- 
+                normalize_time (get_value "file_age" value_to_int)
+            with _ -> ());
+
+          (try
+              impl.impl_file_release <- 
+                get_value "file_release" value_to_bool
+            with _ -> ());
 
           set_file_state file file_state;       
 
@@ -166,6 +162,8 @@ module FileOption = struct
 	      (get_value_nil "file_filenames" (value_to_list value_to_string))
             with _ -> ());
 
+          let priority = try get_value "file_priority" value_to_int 
+            with _ -> 0 in
           set_file_priority file priority;
 
           if !verbose && !CommonGlobals.is_startup_phase then

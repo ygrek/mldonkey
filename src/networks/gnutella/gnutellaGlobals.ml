@@ -320,7 +320,7 @@ List.iter iter_uid other_uids;
 let megabyte = Int64.of_int (1024 * 1024)
 let megabytes10 = Int64.of_int (10 * 1024 * 1024)
       
-let new_file file_temporary file_name file_size file_uids user =
+let new_file file_temporary file_name file_size file_uids user group =
   let file_temp = Filename.concat !!temp_directory file_temporary in
   let t = Unix32.create_rw file_temp in
   let rec file = {
@@ -340,7 +340,7 @@ let new_file file_temporary file_name file_size file_uids user =
       impl_file_size = file_size;
       impl_file_downloaded = Int64.zero;
       impl_file_owner = user;
-      impl_file_group = user.user_default_group;
+      impl_file_group = group;
       impl_file_val = file;
       impl_file_ops = file_ops;
       impl_file_age = last_time ();          
@@ -349,7 +349,7 @@ let new_file file_temporary file_name file_size file_uids user =
     } 
   in
   if !verbose then
-    lprintf_nl "SET SIZE : %Ld\n" file_size;
+    lprintf_nl "SET SIZE : %Ld" file_size;
   let kernel = CommonSwarming.create_swarmer file_temp file_size in
   let swarmer = CommonSwarming.create kernel (as_file file) megabyte in
   CommonSwarming.set_verifier swarmer ForceVerification;
@@ -369,7 +369,7 @@ let new_file file_temporary file_name file_size file_uids user =
 
 exception FileFound of file
   
-let new_file file_id file_name file_size file_uids user =
+let new_file file_id file_name file_size file_uids user group =
 (*  if file_uids = [] then 
     try Hashtbl.find files_by_key (file_name, file_size) with
       _ -> 
@@ -382,7 +382,7 @@ let new_file file_id file_name file_size file_uids user =
         try  raise (FileFound (Hashtbl.find files_by_uid uid))
         with Not_found -> ()
     ) file_uids;
-    let file = new_file file_id file_name file_size file_uids user in
+    let file = new_file file_id file_name file_size file_uids user group in
     List.iter (fun uid -> 
         if !verbose then
           lprintf "Adding file %s\n" (Uid.to_string uid);

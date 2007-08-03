@@ -229,7 +229,7 @@ let no_download_to_force = Failure (Printf.sprintf (_b "No forceable download fo
 exception Already_downloading of string
 exception Already_shared of string
 
-let really_query_download filename size md4 location old_file absents user =
+let really_query_download filename size md4 location old_file absents user group =
 
   begin
     try
@@ -267,7 +267,7 @@ let really_query_download filename size md4 location old_file absents user =
   end;
 
 (* TODO RESULT  let other_names = DonkeyIndexer.find_names md4 in *)
-  let file = new_file file_diskname FileDownloading md4 size filename true user in
+  let file = new_file file_diskname FileDownloading md4 size filename true user group in
   begin
     match absents with
       None -> ()
@@ -337,7 +337,7 @@ with _ -> ()
   );
   as_file file
 
-let query_download filename size md4 location old_file absents force user =
+let query_download filename size md4 location old_file absents force user group =
   if force then
     if !forceable_download = [] then
       raise no_download_to_force
@@ -345,7 +345,7 @@ let query_download filename size md4 location old_file absents force user =
       begin
         let f = List.hd !forceable_download in
 	  forceable_download := [];
-	  really_query_download (List.hd f.result_names) f.result_size md4 None None None user
+	  really_query_download (List.hd f.result_names) f.result_size md4 None None None user group
       end
   else
     begin
@@ -381,19 +381,19 @@ let query_download filename size md4 location old_file absents force user =
         else
           begin
             forceable_download := [];
-            really_query_download filename size md4 location old_file absents user
+            really_query_download filename size md4 location old_file absents user group
           end
         end
     end
 
-let result_download r filenames force user =
+let result_download r filenames force user group =
   let rec iter uids =
     match uids with
       [] -> raise IgnoreNetwork
     | uid :: tail ->
         match Uid.to_uid uid with
           Ed2k md4 ->
-            query_download (List.hd filenames) r.result_size md4 None None None force user
+            query_download (List.hd filenames) r.result_size md4 None None None force user group
         | _  -> iter tail
   in
   iter r.result_uids
@@ -412,6 +412,7 @@ let load_prefs filename =
 let import_temp temp_dir =
   let list = Unix2.list_directory temp_dir in
   let module P = DonkeyImport.Part in
+  let user = CommonUserDb.admin_user () in
   List.iter (fun filename ->
       try
         if Filename2.last_extension filename = ".part" then
@@ -438,7 +439,7 @@ let import_temp temp_dir =
 		(match !filename_met with
 		   None -> filename
 		| Some s -> s) !size f.P.md4 None
-              (Some filename) (Some (List.rev f.P.absents)) (CommonUserDb.admin_user ()));
+              (Some filename) (Some (List.rev f.P.absents)) user user.user_default_group);
       with _ -> ()
   ) list
 
@@ -555,7 +556,7 @@ let recover_md4s md4 =
 
 
 
-let parse_donkey_url url user =
+let parse_donkey_url url user group =
   let url = Str.global_replace (Str.regexp "|sources,") "|sources|" url in
   match String2.split url '|' with
 (* TODO RESULT *)
@@ -584,7 +585,7 @@ let parse_donkey_url url user =
           begin
 	    try
               let file = query_download name (Int64.of_string size)
-                (Md4.of_string md4) None None None false user in
+                (Md4.of_string md4) None None None false user group in
 	      let new_file = find_file (Md4.of_string md4) in
 	      CommonInteractive.start_download file;
 	      if !new_sources <> [] then
@@ -618,7 +619,7 @@ let parse_donkey_url url user =
 	in
           begin try
             let file = query_download name (Int64.of_string size)
-              (Md4.of_string md4) None None None false user;
+              (Md4.of_string md4) None None None false user group;
             in
             CommonInteractive.start_download file;
             "", true
@@ -976,7 +977,7 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
 (* TODO RESULT *)
     "dd", Arg_two(fun size md4 o ->
         let file = query_download md4 (Int64.of_string size)
-          (Md4.of_string md4) None None None false o.conn_user.ui_user in
+          (Md4.of_string md4) None None None false o.conn_user.ui_user o.conn_user.ui_user.user_default_group in
         CommonInteractive.start_download file;
         "download started"
     ), "<size> <md4> :\t\t\tdownload from size and md4";
@@ -1076,8 +1077,8 @@ file.---------> to be done urgently
       with
         Not_found -> ()
   );
-  network.op_network_download <- (fun r user ->
-      result_download r r.result_names r.result_force user
+  network.op_network_download <- (fun r user group ->
+      result_download r r.result_names r.result_force user group
   )
 
 module P = GuiTypes
@@ -1591,11 +1592,12 @@ let try_recover_temp_file filename md4 =
   try
     ignore (Hashtbl.find files_by_md4 md4)
   with Not_found ->
+      let user = CommonUserDb.admin_user () in
       let file_diskname = Filename.concat !!temp_directory filename in
       let size = Unix32.getsize file_diskname in
       if size <> zero then
 	begin
-	  ignore (really_query_download (Md4.to_string md4) size md4 None (Some file_diskname) None (CommonUserDb.admin_user ()));
+	  ignore (really_query_download (Md4.to_string md4) size md4 None (Some file_diskname) None user user.user_default_group);
 	  recover_md4s md4
 	end
 

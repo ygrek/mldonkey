@@ -77,8 +77,8 @@ let recover_file file =
       if file_state file = FileDownloading then
         GnutellaServers.really_recover_file file        
 
-let download_file r user =
-  let file = GnutellaServers.really_download_file r user in
+let download_file r user group =
+  let file = GnutellaServers.really_download_file r user group in
   recover_file file;
   as_file file
 
@@ -387,7 +387,7 @@ let _ =
       List2.tail_map (fun s -> as_server s.server_server)
       !connected_servers
   );
-  network.op_network_parse_url <- (fun url user ->
+  network.op_network_parse_url <- (fun url user group ->
       match String2.split (String.escaped url) '|' with
       | "gnut://" :: "server" :: ip :: port :: _ ->  
           let ip = Ip.addr_of_string ip in
@@ -419,7 +419,7 @@ let _ =
               (* Start a download for this file *)
               let rs = new_result name size [] uids [] in
               let r = IndexedResults.get_result rs in
-              let file = download_file r user in
+              let file = download_file r user group in
               CommonInteractive.start_download file;
               "started Gnutella download", true
             end

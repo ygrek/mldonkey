@@ -215,8 +215,8 @@ let _ =
   network.op_network_connected <- (fun _ ->
     !connected_servers <> []
   );
-  network.op_network_parse_url <- (fun _ _ -> empty_string, false );
-  network.op_network_download <- (fun r _ -> DcInteractive.start_result_download r );
+  network.op_network_parse_url <- (fun _ _ _ -> empty_string, false);
+  network.op_network_download <- (fun r _ _ -> DcInteractive.start_result_download r);
   network.op_network_ports <- (fun _ ->
     [
     !!dc_port, "client_port TCP+UDP";
