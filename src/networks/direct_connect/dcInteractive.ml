@@ -1439,6 +1439,7 @@ let _ =
         P.file_sources = None;
         P.file_download_rate = file_download_rate file.file_file;
         P.file_chunks = None;
+        P.file_chunk_size = None;
         P.file_availability = [network.network_num, "0"];
         P.file_format = FormatUnknown;
         P.file_chunks_age = [|0|];

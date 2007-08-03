@@ -52,6 +52,7 @@ which fields it is interesting in (why send the availability when the
         mutable file_nclients: bool;
         mutable file_state : bool;
         mutable file_chunks : bool;
+        mutable file_chunk_size : bool;
         mutable file_availability : bool;
         mutable file_sources : bool;
         mutable file_download_rate : bool;
@@ -75,6 +76,7 @@ which fields it is interesting in (why send the availability when the
         file_nclients= true;
         file_state = true;
         file_chunks = true;
+        file_chunk_size = true;
         file_availability = true;
         file_sources = true;
         file_download_rate = true;
@@ -126,6 +128,7 @@ type file_info = {
     mutable file_all_sources : int;
     mutable file_state : file_state;
     mutable file_chunks : VerificationBitmap.t option;
+    mutable file_chunk_size : int64 list option;
     mutable file_availability : (int * string) list; (* MANY CHANGES *)
     mutable file_sources : int list option;
     mutable file_download_rate : float; (* LOT OF CHANGES *)
@@ -353,6 +356,7 @@ let file_info_test =
     file_sources = None;
     file_download_rate = 2.2;
     file_chunks = Some (VerificationBitmap.of_string "1010100");
+    file_chunk_size = None;
     file_downloaded = Int64.of_string "68758764";
     file_availability = [0,""];
     file_format = FormatUnknown;

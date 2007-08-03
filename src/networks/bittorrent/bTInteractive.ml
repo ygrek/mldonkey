@@ -252,6 +252,11 @@ let op_file_print file o =
         "" -> "-"
       | _ -> file.file_encoding) ];
 
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [
+    ("Piece size", "sr br", "Piece size");
+    ("", "sr", Int64.to_string file.file_piece_size) ];
+
   let rec print_first_tracker l =
     match l with
       | [] -> ()
@@ -579,6 +584,9 @@ let op_file_info file =
     P.file_chunks = (match file.file_swarmer with
     | None -> None 
     | Some swarmer -> Some (CommonSwarming.chunks_verified_bitmap swarmer));
+    P.file_chunk_size = (match file.file_swarmer with
+    | None -> None 
+    | Some t -> Some (List.map (fun t -> t.CommonSwarming.t_chunk_size) t.CommonSwarming.t_s.CommonSwarming.s_networks));
     P.file_availability =
     [network.network_num,(match file.file_swarmer with
           None -> "" | Some swarmer ->
@@ -613,6 +621,7 @@ let op_ft_info ft =
     P.file_sources = None;
     P.file_download_rate = 0.;
     P.file_chunks = None;
+    P.file_chunk_size = None;
     P.file_availability =  [network.network_num, ""];
     P.file_format = FormatNotComputed 0;
     P.file_chunks_age = [| last_time () |];

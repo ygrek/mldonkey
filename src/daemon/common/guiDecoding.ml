@@ -635,6 +635,7 @@ let get_file proto s pos =
       if chunks <> "" then 
 	Some (VerificationBitmap.of_string chunks)
       else None;
+    file_chunk_size = None;
     file_availability = availability;
     file_download_rate = rate;
     file_chunks_age = chunks_age;

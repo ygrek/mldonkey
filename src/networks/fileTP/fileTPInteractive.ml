@@ -97,6 +97,10 @@ let _ =
         | None -> None 
 	| Some swarmer ->
             Some (CommonSwarming.chunks_verified_bitmap swarmer));
+        P.file_chunk_size = (match file.file_swarmer with
+        | None -> None 
+	| Some t ->
+            Some (List.map (fun t -> t.CommonSwarming.t_chunk_size) t.CommonSwarming.t_s.CommonSwarming.s_networks));
         P.file_availability =
         [network.network_num,(match file.file_swarmer with
           None -> "" | Some swarmer ->

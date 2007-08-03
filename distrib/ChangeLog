@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/08/04
+6127: HTML: Display file_chunk_sizes/file_piece_size in vd <num>
 6135: BT: Fix high CPU load when share_scan_interval = 0
       due to buggy patch #6049 (thx to darkman)
 -------------------------------------------------------------------------------

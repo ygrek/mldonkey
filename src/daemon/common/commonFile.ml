@@ -826,6 +826,13 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
             ) ]
       );
 
+      Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+      html_mods_td buf [
+        ("Chunk size", "sr br", "Chunk size");
+        ("", "sr", (match info.G.file_chunk_size with
+          Some v -> String.concat " " (List.map (fun v -> Printf.sprintf "%Ld" v) v)
+        | None -> "unknown"))];
+
       (match file_magic file with
         Some magic ->
 	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
@@ -1232,6 +1239,7 @@ let impl_file_info impl =
     T.file_active_sources = 0;
     T.file_sources = None;
     T.file_chunks = None;
+    T.file_chunk_size = None;
     T.file_availability = [];
     T.file_format = FormatNotComputed 0;
     T.file_chunks_age = [||];
