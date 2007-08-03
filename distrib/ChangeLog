@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/08/04
+6135: BT: Fix high CPU load when share_scan_interval = 0
+      due to buggy patch #6049 (thx to darkman)
+-------------------------------------------------------------------------------
 2007/07/27: version 2.9.0 = tag release-2-9-0
 6118: Configure: Update defaults
 - enable DirectConnect by default 
