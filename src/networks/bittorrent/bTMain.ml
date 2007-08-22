@@ -77,7 +77,7 @@ let enable () =
             lprintf "Exception in BTTracker.start_tracker: %s\n"
               (Printexc2.to_string e));
     if !!share_scan_interval <> 0 then
-    add_session_timer enabler ((float_of_int !!share_scan_interval) *. 60.)
+    add_session_timer enabler (float_of_int (max 300 (!!share_scan_interval * 60)))
       (fun _ -> BTInteractive.share_files ();
     );
     if !!import_new_torrents_interval <> 0. then
