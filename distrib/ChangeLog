@@ -15,6 +15,13 @@ ChangeLog
 =========
 
 2007/08/31
+6175: Yet another patch for share_scan_interval
+- new default 30 minutes for newly created ini files
+- still use 0 to disable
+- hard-coded global minimum of 5 minutes, this updates old default 1 to 5
+- automated options update, if update is needed (options_version <= 19) and
+  share_scan_interval = 5 (because of new hard-coded minimum, which is
+  processed earlier) its changed to new default of 30
 6145: EDK: Update options description of max_connected_servers (Schlumpf)
 6172: EDK: properly advertise and honour noviewshared tag (TripleM)
 

@@ -1282,9 +1282,9 @@ let temp_directory = define_option current_section ["temp_directory"]
 let share_scan_interval = define_option current_section ["share_scan_interval"]
   ~restart: true
   "How often (in minutes) should MLDonkey scan all shared directories for new/removed files.
-  0 to disable scanning of shared directories. Use command reshare to manually scan shares.
-  When core starts all shared directories are scanned once, independent of this option."
-    int_option 1
+  Minimum 5, 0 to disable. Use command reshare to manually scan shares.
+  When core starts, shared directories are scanned once, independent of this option."
+    int_option 30
 
 let create_file_mode = define_option current_section ["create_file_mode"]
   "New download files are created with these rights (in octal)"
@@ -1598,7 +1598,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 let options_version = define_expert_option current_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 19
+    int_option 20
 
 let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
   "Maximum number of comments per file"
@@ -1732,7 +1732,7 @@ let _ =
     if !!min_reask_delay < 600 then min_reask_delay =:= 600
   );
   option_hook share_scan_interval (fun _ ->
-    if !!share_scan_interval < 0 then share_scan_interval =:= 1
+    if !!share_scan_interval < 5 && !!share_scan_interval <> 0 then share_scan_interval =:= 5
   );
   option_hook global_login (fun _ ->
       let len = String.length !!global_login in
@@ -2174,5 +2174,9 @@ let rec update_options () =
       if !!messages_filter = "DI-Emule|ZamBoR|Ketamine|eMule FX|AUTOMATED MESSAGE" then
         messages_filter =:= "DI-Emule|ZamBoR|Ketamine|eMule FX|AUTOMATED MESSAGE|Hi Honey!|Do you live in my area|download HyperMule";
       update 19
+
+  | 19 ->
+      if !!share_scan_interval = 5 then share_scan_interval =:= 30;
+      update 20
 
   | _ -> ()
