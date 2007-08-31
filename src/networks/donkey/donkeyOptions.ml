@@ -43,7 +43,7 @@ let client_timeout = define_expert_option donkey_section ["client_timeout"]
     float_option 40.
 
 let max_connected_servers = define_option donkey_section ["max_connected_servers"]
-  "The number of servers you want to stay connected to"
+  "The number of servers you want to stay connected to, maximum allowable = 3"
     int_option 3
 
 let max_allowed_connected_servers () =

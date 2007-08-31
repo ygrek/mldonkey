@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/08/31
+6145: EDK: Update options description of max_connected_servers (Schlumpf)
 6172: EDK: properly advertise and honour noviewshared tag (TripleM)
 
 2007/08/23
