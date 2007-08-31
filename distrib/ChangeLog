@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/08/31
+6172: EDK: properly advertise and honour noviewshared tag (TripleM)
+
 2007/08/23
 6160: BT: Another fix for share_scan_interval
 - Old hard-coded default was 300s, now with share_scan_interval its

@@ -835,7 +835,7 @@ let shared_of_file file =
 let query_view_files c =
   if CommonClient.is_must_browse (as_client c) then begin
     CommonClient.set_not_must_browse (as_client c);
-    client_send c (
+    if c.client_emule_proto.emule_noviewshared <> 1 then client_send c (
       let module M = DonkeyProtoClient in
       let module C = M.ViewFiles in
       M.ViewFilesReq C.t);

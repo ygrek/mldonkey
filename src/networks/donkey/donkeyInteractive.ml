@@ -1694,13 +1694,13 @@ let _ =
   client_ops.op_client_browse <- (fun c immediate ->
       if !verbose then lprintf_nl "connecting friend %s" (full_client_identifier c);
       match c.client_source.DonkeySources.source_sock with
-      | Connection sock ->
+      | Connection sock when c.client_emule_proto.emule_noviewshared <> 1 ->
 	  if !verbose then lprintf_nl "retrieving filelist from friend %s" (full_client_identifier c);
           client_send c (
             let module M = DonkeyProtoClient in
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);
-      | NoConnection ->
+      | NoConnection when c.client_emule_proto.emule_noviewshared <> 1 ->
 	  if !verbose then lprintf_nl "re-connecting friend %s"
 	    (full_client_identifier c);
 	  set_must_browse (as_client c);

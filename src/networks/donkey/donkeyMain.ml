@@ -132,6 +132,13 @@ let reset_tags () =
     m.emule_secident <- secident;
     m.emule_features <- secident;
 
+  let advertise_browse =
+    match !!allow_browse_share with
+        1 | 2 -> 0
+      | _ -> 1
+  in
+   m.emule_noviewshared <- advertise_browse;
+  
   let emule_miscoptions1 = D.emule_miscoptions1 m in
   let emule_miscoptions2 = D.emule_miscoptions2 m in
   let emule_compatoptions = D.emule_compatoptions m in
@@ -320,6 +327,7 @@ be useful when users want to share files that they had already previously
       Options.option_hook global_login reset_tags;
       Options.option_hook login reset_tags;
       Options.option_hook enable_sui reset_tags;
+      Options.option_hook allow_browse_share reset_tags;
 				
 (**** START TIMERS ****)
       add_session_option_timer enabler check_client_connections_delay 
