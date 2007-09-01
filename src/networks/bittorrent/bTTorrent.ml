@@ -78,12 +78,14 @@ let decode_torrent s =
   let file_creation_date = ref zero in
   let file_modified_by = ref "" in
   let file_encoding = ref "" in
+  let file_codepage = ref zero in
   let file_ed2k_hash = ref "" in
   let file_is_private = ref zero in
   let file_aps = ref (List []) in
   let file_dht_backup_enable = ref zero in
   let length = ref zero in
   let file_files = ref [] in
+  let file_files_utf8 = ref [] in
 
   let parse_files files =
     let current_pos = ref zero in
@@ -91,6 +93,7 @@ let decode_torrent s =
         match v with
           Dictionary list ->
             let current_file = ref "" in
+            let current_file_utf8 = ref "" in
             let current_length = ref zero in
             let length_set = ref false in
 
@@ -108,13 +111,11 @@ let decode_torrent s =
             List.iter (fun (key, value) ->
                 match key, value with
                   String "path", List path ->
-                    if !current_file = "" then begin
-                      current_file := path_list_to_string path;
-                      if !verbose_msg_servers then
-                        lprintf_nl "[BT] Parsed a new path: [%s]" !current_file
-                    end   
+                    current_file := path_list_to_string path;
+                    if !verbose_msg_servers then
+                      lprintf_nl "[BT] Parsed a new path: [%s]" !current_file
                 | String "path.utf-8", List path_utf8 -> 
-                    current_file := path_list_to_string path_utf8;
+                    current_file_utf8 := path_list_to_string path_utf8;
                     if !verbose_msg_servers then
                       lprintf_nl "[BT] Parsed path.utf-8: [%s]" !current_file
                 | String "length", Int n ->
@@ -129,8 +130,10 @@ let decode_torrent s =
             ) list;
 
             assert (!length_set);
-            assert (!current_file <> "");
+            assert (!current_file <> "" || !current_file_utf8 <> "");
             file_files := (!current_file, !current_length) :: !file_files;
+            if !current_file_utf8 <> "" then
+              file_files_utf8 := (!current_file_utf8, !current_length) :: !file_files_utf8;
             current_pos := !current_pos ++ !current_length
 
         | _ -> assert false
@@ -239,6 +242,8 @@ let decode_torrent s =
               file_modified_by := modified_by
             | String "encoding", String encoding ->
               file_encoding := encoding
+            | String "codepage", Int codepage ->
+              file_codepage := codepage
             | String "torrent filename", String torrent_filename ->
               file_torrent_filename := torrent_filename
             | String "nodes", nodes -> ()
@@ -271,6 +276,10 @@ let decode_torrent s =
     | _ -> assert false
   end;
 
+(* Convert codepage number to Charset name, for example: 936 -> CP936 *)
+  if !file_codepage <> 0L && !file_encoding = "" then
+    file_encoding := "CP" ^ (Int64.to_string !file_codepage);
+
   let real_file_name =
     match !file_name_utf8 with
     | None -> Charset.safe_convert !file_encoding !file_name
@@ -288,6 +297,21 @@ let decode_torrent s =
         let s = String.sub !file_pieces (i*20) 20 in
         Sha1.direct_of_string s
     ) in
+
+(* Only at this point we know if the torrent contains an "encoding" field
+   If UTF8 filenames were found, use them. If not and we have a charset
+   value used for encoding, convert non-UTF8 filenames to UTF8 ones. *)
+  if !file_files_utf8 <> [] then
+    file_files := !file_files_utf8
+  else
+    if !file_encoding <> "" then
+      begin
+        let file_files_encoded = ref [] in
+        List.iter (fun (name, length) ->
+          file_files_encoded := [(Charset.safe_convert !file_encoding name), length] @ !file_files_encoded
+        ) !file_files;
+        file_files := !file_files_encoded
+      end;
 
   (match List.length !file_files with
   | 0 -> ()
