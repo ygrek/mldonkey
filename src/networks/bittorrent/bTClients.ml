@@ -104,7 +104,7 @@ let connect_trackers file event f =
         let local_downloaded = CommonSwarming.downloaded swarmer in
         let left = file_size file -- local_downloaded in
         match event with
-          | "completed" -> [("event", "completed")],false,zero,zero
+        | "completed" -> [("event", "completed")],false,local_downloaded,zero
         | "started" -> [("event", "started")],true,local_downloaded, left
         | "stopped" -> [("event", "stopped")],false,local_downloaded, left
         | _ -> [],true,local_downloaded, left

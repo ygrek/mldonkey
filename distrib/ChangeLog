@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/09/01
+6179: BT: Send correct downloaded amount to tracker when download completed
 6174: BT: Encode non-UTF8 filenames using "encoding" or "codepage" data
       from .torrent if present
 
