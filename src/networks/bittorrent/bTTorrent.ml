@@ -308,7 +308,7 @@ let decode_torrent s =
       begin
         let file_files_encoded = ref [] in
         List.iter (fun (name, length) ->
-          file_files_encoded := [(Charset.safe_convert !file_encoding name), length] @ !file_files_encoded
+          file_files_encoded := !file_files_encoded @ [(Charset.safe_convert !file_encoding name), length]
         ) !file_files;
         file_files := !file_files_encoded
       end;

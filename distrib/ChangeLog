@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/09/05
+6187: BT: Fix wrong file order of multifile torrents due to patch #6174
+
 2007/09/01
 6179: BT: Send correct downloaded amount to tracker when download completed
 6174: BT: Encode non-UTF8 filenames using "encoding" or "codepage" data
