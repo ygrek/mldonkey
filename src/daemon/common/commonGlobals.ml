@@ -877,6 +877,7 @@ let discover_ip force =
                       set_client_ip =:=
                         Ip.of_string (String.sub line (String.length search_string)
                           ((String.length line) - (String.length search_string)));
+                      last_high_id := !!set_client_ip;
                       if !verbose then lprintf_nl "discovered IP %s" (Ip.to_string !!set_client_ip)
                     end
                 with e -> lprintf_nl "IP discovery parse error: %s" (Printexc2.to_string e)

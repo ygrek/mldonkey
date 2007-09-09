@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/09/09
+6192: EDK: Use discovered client_ip when lowid
+
 2007/09/05
 6187: BT: Fix wrong file order of multifile torrents due to patch #6174
 

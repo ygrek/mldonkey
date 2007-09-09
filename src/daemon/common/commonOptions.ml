@@ -1666,7 +1666,7 @@ let client_ip sock =
   else
     if !last_high_id <> Ip.null then
       begin
-        if !last_high_id <> Ip.localhost && !!set_client_ip <> !last_high_id then
+        if Ip.usable_ip !last_high_id && !!set_client_ip <> !last_high_id then
           set_client_ip =:= !last_high_id;
         !last_high_id
       end
@@ -1675,8 +1675,8 @@ let client_ip sock =
         None -> !!set_client_ip
       | Some sock ->
           let ip = TcpBufferedSocket.my_ip sock in
-          if ip <> Ip.localhost && !!set_client_ip <> ip then
-          set_client_ip =:= ip;
+          if Ip.usable ip && !!set_client_ip <> ip then
+            set_client_ip =:= ip;
           ip
 
 let start_running_plugins = ref false
