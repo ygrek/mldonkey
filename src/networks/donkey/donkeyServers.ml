@@ -342,7 +342,7 @@ let client_to_server s t sock =
             M.QueryServerListReq Q.t
           );
 
-          if not (low_id t.M.SetID.ip) && !last_high_id <> t.M.SetID.ip && !!use_server_ip then begin
+          if not (low_id t.M.SetID.ip) && !last_high_id <> t.M.SetID.ip && !!use_server_ip then
             last_high_id := t.M.SetID.ip;
 
           (* nice and ugly, but it doesn't require any new fields *)

@@ -1666,7 +1666,7 @@ let client_ip sock =
   else
     if !last_high_id <> Ip.null then
       begin
-        if Ip.usable_ip !last_high_id && !!set_client_ip <> !last_high_id then
+        if Ip.usable !last_high_id && !!set_client_ip <> !last_high_id then
           set_client_ip =:= !last_high_id;
         !last_high_id
       end
