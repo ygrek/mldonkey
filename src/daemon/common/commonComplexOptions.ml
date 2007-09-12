@@ -1135,7 +1135,9 @@ let backup_tar archive files =
 	    let stat = Unix.stat arg in
 	    let size = stat.Unix.st_size in
 	    if size > Sys.max_string_length then
-	      failwith (Printf.sprintf "Tar: file %s too big, limit %d byte" arg Sys.max_string_length);
+	      failwith (Printf.sprintf
+                  "Tar: file %s too big, system limit %d byte, use .zip to avoid this limit"
+                    arg Sys.max_string_length);
 	    let header = 
 	      { Tar.t_name = arg;
 	      t_mode = stat.Unix.st_perm;
@@ -1165,11 +1167,13 @@ let backup_tar archive files =
             lprintf_nl "Tar: Windows specific pseudo error %s in %s" (Printexc2.to_string e) arg
       | e ->
 	  failed_files := arg :: !failed_files;
-	  lprintf_nl "Tar: error %s in %s" (Printexc2.to_string e) arg
-    ) files));
-    if !failed_files <> [] then
-      failwith (Printf.sprintf "Tar: error backing up %s"
-	(String.concat " " (List.rev !failed_files)))
+	  lprintf_nl "Tar: skipping %s, error %s" arg (Printexc2.to_string e)
+      ) files
+    )
+  );
+  if !failed_files <> [] then
+    failwith (Printf.sprintf "Tar: skipped %s due to backup errors"
+      (String.concat " " (List.rev !failed_files)))
 
 let backup_options () =
   let counter = ref 1 in
@@ -1195,17 +1199,21 @@ let backup_options () =
   in
   begin
     try
-    let archive = Filename.concat "old_config" (backup_prefix ^ Date.reverse (Unix.time ()) ^ format) in
-      let files = List.sort (fun o -> compare o) (List.filter (fun o ->
+      let archive =
+        Filename.concat "old_config" (backup_prefix ^ Date.reverse (Unix.time ()) ^ format)
+      in
+      let files =
+        List.sort (fun o -> compare o) (List.filter (fun o ->
 	  String.lowercase (Filename2.last_extension o) = ".ini"
-	  && o <> "file_sources.ini") 
-	    (Unix2.list_directory file_basedir)) in
+	  && o <> "file_sources.ini")
+	    (Unix2.list_directory file_basedir))
+      in
       begin
         match (Filename2.last_extension archive) with
           ".zip" -> backup_zip archive files
         | _ -> backup_tar archive files
       end
-    with e -> lprintf_nl "Exception %s while options backup" (Printexc2.to_string e); raise e
+    with e -> lprintf_nl "Exception %s while options backup" (Printexc2.to_string e)
   end;
   lprintf_nl (_b "Options backup as %s correctly saved") format
              
