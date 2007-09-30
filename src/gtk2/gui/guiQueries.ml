@@ -362,7 +362,7 @@ let display_results (notebook : GPack.notebook) (qr : g_query) =
        true
       )
   ));
-  notebook#append_page ~tab_label:hbox#coerce main_evbox#coerce
+  ignore (notebook#append_page ~tab_label:hbox#coerce main_evbox#coerce)
 
 (*************************************************************************)
 (*                                                                       *)

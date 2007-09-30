@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/09/30
+6220: GTK2 GUI: Fix compile bug due to changed API in lablgtk-2.10.0
+- GTK2 GUI still compiles with older versions of lablgtk2
+
 2007/09/13
 6197: Options backup: Better log messages, remove useless exception
 -------------------------------------------------------------------------------

@@ -918,9 +918,9 @@ let rec iter (notebook : GPack.notebook) h_label subsections =
         begin
           let w = add_groups h_label groups in
           let markup = subsection_to_label sub in
-          notebook#append_page 
+          ignore (notebook#append_page 
             ~tab_label:((GMisc.label ~use_underline:true ~markup ())#coerce)
-            w;
+            w);
           iter notebook h_label tail
         end
 
@@ -1294,9 +1294,9 @@ let panel ~(structure: (string * ('a, 'b, 'c) preference list) list)
          ~row_spacings:6 ~col_spacings:6 ~border_width:6
          ~packing:scrolled_box#add_with_viewport ()
     in
-    notebook#append_page 
+    ignore (notebook#append_page 
       ~tab_label:((GMisc.label ~use_underline:true ~markup ())#coerce)
-      scrolled_box#coerce;
+      scrolled_box#coerce);
     List.iter (fun p->
       add_pref ~table ~p ~top:!top ~advanced_mode ();
       incr top

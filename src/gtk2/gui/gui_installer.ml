@@ -127,7 +127,7 @@ class tab (notebook : GPack.notebook) label =
     method vbox = main_vbox
     
     initializer
-      notebook#append_page  ~tab_label: tab_label#coerce vbox#coerce ;
+      (ignore notebook#append_page  ~tab_label: tab_label#coerce vbox#coerce);
       ignore (next_slide#connect#clicked
           (fun () ->  notebook#next_page ()));
       ignore (previous_slide#connect#clicked

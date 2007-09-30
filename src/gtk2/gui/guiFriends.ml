@@ -520,7 +520,7 @@ let add_chat (notebook : GPack.notebook) (s : source_info) (chat : GuiTemplates.
        true
       )
   ));
-  notebook#append_page ~tab_label:hbox#coerce main_evbox#coerce
+  ignore (notebook#append_page ~tab_label:hbox#coerce main_evbox#coerce)
 
 (*************************************************************************)
 (*                                                                       *)
