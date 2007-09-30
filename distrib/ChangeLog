@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/09/30
+6221: Configure: Remove unneeded checks
 6220: GTK2 GUI: Fix compile bug due to changed API in lablgtk-2.10.0
 - GTK2 GUI still compiles with older versions of lablgtk2
 

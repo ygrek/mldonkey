@@ -700,18 +700,9 @@ ifelse(AC_ACVERSION, [2.13], [],
 
 ])
 
-# Sizes of various common basic types
-AC_CHECK_SIZEOF(int)
-AC_CHECK_SIZEOF(long)
-AC_CHECK_SIZEOF(void *)
-AC_CHECK_SIZEOF(char)
-AC_CHECK_SIZEOF(short)
-AC_CHECK_SIZEOF(float)
-AC_CHECK_SIZEOF(double)
+# various header files
 AC_CHECK_FUNCS(setrlimit getrlimit strerror_r strerror)
 AC_CHECK_HEADERS(byteswap.h,,)
-
-# various header files
 AC_CHECK_HEADERS([sys/utsname.h])
 AC_CHECK_HEADERS(arpa/inet.h,,)
 AC_CHECK_HEADERS([sys/types.h sys/time.h sys/resource.h netinet/in_systm.h netinet/in.h netinet/ip.h],,,

@@ -294,7 +294,6 @@ void add_bit(char *data, unsigned long *bit_pos, unsigned char bit_value)
 {
  if(((*bit_pos)&7)==0)  /* starting a new byte ? */
  {
-  unsigned char v=0;
   //data=g_byte_array_append(data,&v,1);
     data[(*bit_pos)/8]|= 0;
  }
@@ -379,7 +378,6 @@ char *encode_he3_data(char *str, int len, int* final_len)
   HUFNODE *root_huf=NULL;
   int nb_val=0;
   unsigned long bit_pos;
-  int j;
   char *pos;
   
   if((str==NULL)||(len==0)) {
