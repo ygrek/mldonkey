@@ -86,15 +86,16 @@ is compiled.
     ~/tmp/lablgtk-1.2.7> make opt
     ~/tmp/lablgtk-1.2.7> make install
 
- 1.2.2) LablGTK-2.6.0 for GTK2
+ 1.2.2) LablGTK-2.10.0 for GTK2
       (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
 
-    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-2.6.0.tar.gz
-    ~/tmp> tar zxf lablgtk-2.6.0.tar.gz
-    ~/tmp> cd lablgtk-2.6.0
-    ~/tmp/lablgtk-2.6.0> ./configure
-    ~/tmp/lablgtk-2.6.0> make world
-    ~/tmp/lablgtk-2.6.0> make install
+    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-2.10.0.tar.gz
+    ~/tmp> tar zxf lablgtk-2.10.0.tar.gz
+    ~/tmp> cd lablgtk-2.10.0
+    ~/tmp> patch -p0 -i ../mldonkey/patches/lablgtk-2.10.0.patch
+    ~/tmp/lablgtk-2.10.0> ./configure
+    ~/tmp/lablgtk-2.10.0> make world
+    ~/tmp/lablgtk-2.10.0> make install
 
 2) Compiling mldonkey with GUI:
 

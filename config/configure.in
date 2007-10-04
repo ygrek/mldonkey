@@ -1176,7 +1176,7 @@ if test ! "$GUI" = "no"; then
         AC_MSG_CHECKING(for librsvg - version >= $REQUIRED_RSVG)
         if pkg-config --atleast-version $REQUIRED_RSVG $PKG_RSVG; then
           GTK_CONFIG="pkg-config $PKG_GTK $PKG_RSVG"
-          REQUIRED_LABLGTK=2.6.0
+          REQUIRED_LABLGTK=2.10.0
           LABLGTK_NAME=lablgtk2
           AC_MSG_RESULT(yes)
         else
@@ -1267,9 +1267,13 @@ else
 
          mkdir -p $BUILD_DIR
          cd $BUILD_DIR
-        echo Uncompressing ...
+         echo Uncompressing ...
          gzip -cd $PATCH_DIR/lablgtk-"$REQUIRED_LABLGTK".tar.gz | tar xf -
          (cd lablgtk-"$REQUIRED_LABLGTK"
+          if test -f $PATCH_DIR/lablgtk-"$REQUIRED_LABLGTK".patch; then
+            echo Patching ...
+            patch -p0 < $PATCH_DIR/lablgtk-"$REQUIRED_LABLGTK".patch
+          fi
           PATH=$OCAML_PATH:$PATH
           export PATH
           echo $PATH

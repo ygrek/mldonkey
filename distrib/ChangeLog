@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/10/04
+6223: GTK2 GUI: Compile with lablgtk-2.10.0 by default
+- this patch changes the lablgtk2 version used by ./configure
+- self-compiled lablgtk-2.10.0 must be patched with patches/lablgtk-2.10.0.patch
+
 2007/09/30
 6221: Configure: Remove unneeded checks
 6220: GTK2 GUI: Fix compile bug due to changed API in lablgtk-2.10.0
