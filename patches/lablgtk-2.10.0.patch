@@ -1,0 +1,10 @@
+--- ./src/gtkMain.ml	2007-08-17 05:24:07.000000000 +0200
++++ ./src/gtkMain.ml	2007-10-03 21:59:06.000000000 +0200
+@@ -43,6 +43,7 @@
+       with Error err ->
+         raise (Error ("GtkMain.init: initialization failed\n" ^ err))
+     in
++    if setlocale then ignore (Glib.Main.setlocale `NUMERIC (Some "C"));
+     Array.blit ~src:argv ~dst:Sys.argv ~len:(Array.length argv)
+       ~src_pos:0 ~dst_pos:0;
+     Obj.truncate (Obj.repr Sys.argv) (Array.length argv);
