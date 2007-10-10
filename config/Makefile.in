@@ -249,9 +249,9 @@ COMMON_CLIENT_SRCS= \
   $(COMMON)/commonRoom.ml \
   $(COMMON)/commonSearch.ml \
   $(COMMON)/commonMultimedia.ml \
+  $(COMMON)/commonSwarming.ml \
   $(COMMON)/commonInteractive.ml \
   $(COMMON)/commonChunks.ml \
-  $(COMMON)/commonSwarming.ml \
   $(COMMON)/commonDownloads.ml \
   $(COMMON)/commonUploads.ml \
   $(COMMON)/commonSources.ml \

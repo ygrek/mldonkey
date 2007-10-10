@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/10/10
+6231: Swarming: Propagate chunks of finished file before commit (pango)
+      to other downloading files
+
 2007/10/04
 6223: GTK2 GUI: Compile with lablgtk-2.10.0 by default
 - this patch changes the lablgtk2 version used by ./configure

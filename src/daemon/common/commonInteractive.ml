@@ -385,6 +385,7 @@ let file_completed (file : file) =
   try
     let impl = as_file_impl file in
     if impl.impl_file_state = FileDownloading then begin
+        CommonSwarming.duplicate_chunks ();
         files =:= List2.removeq file !!files;
         done_files =:= file :: !!done_files;
         update_file_state impl FileDownloaded;
