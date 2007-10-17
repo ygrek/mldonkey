@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2007/10/17
+6239: Update GNU config.guess and config.sub to version 2007/07
 Updated Mozilla protocol handler to version 2.2
 - original source from http://www.informatik.uni-oldenburg.de/~dyna/mldonkey
 6238: Fix statvfs code on alpha platform (Alexander Kotelnikov)
