@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/10/17
+6237: EDK: Load server.met files from archives even if unpack fails
+- http://www.gruk.org/server.met.gz is not a gz archive at the moment...
+
 2007/10/10
 6231: Swarming: Propagate chunks of finished file before commit (pango)
       to other downloading files

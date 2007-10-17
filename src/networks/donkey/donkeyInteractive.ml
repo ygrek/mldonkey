@@ -187,7 +187,9 @@ let unpack_server_met filename url =
 		(Printexc2.to_string e) url;
 	      raise e);
 	    result
-	  with e ->
+	  with
+          | Zip.Error _ -> filename
+          | e ->
             lprintf_nl "Exception %s while opening %s"
 	      (Printexc2.to_string e) url;
             raise Not_found)
@@ -196,7 +198,9 @@ let unpack_server_met filename url =
 	  if ext = ".bz2" || ext = ".met.bz2" then "bz2" else "gz" in 
 	try
           Misc.archive_extract filename filetype
-	with e ->
+	with
+        | Gzip.Error _ -> filename
+        | e ->
           lprintf_nl "Exception %s while extracting from %s"
 	    (Printexc2.to_string e) url;
           raise Not_found)
