@@ -54,7 +54,7 @@ let create_gui_params () =
       ~f: (fun s -> GO.login =:= s)
       "Login:" !!GO.login
   in
-  let gui_password = string
+  let gui_password = password
       ~help: (gettext M.h_gui_password)
       ~f: (fun s -> GO.password =:= s)
       (gettext M.o_password) !!GO.password
