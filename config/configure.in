@@ -725,6 +725,7 @@ AC_CHECK_HEADERS(sys/poll.h,,)
 AC_CHECK_FUNCS(poll,,)
 
 AC_CHECK_HEADERS(sys/vfs.h,,)
+AC_CHECK_HEADERS(sys/statvfs.h,,)
 AC_CHECK_HEADERS([sys/param.h sys/mount.h],,,
 [#if HAVE_SYS_PARAM_H
 #include <sys/param.h>
