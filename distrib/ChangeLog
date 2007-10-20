@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2007/10/20
+2007/10/20: version 2.9.2 = tag release-2-9-2
 6242: Allow deactivation of [telnet|gui|gift]_port by setting it to 0
 
 2007/10/17
