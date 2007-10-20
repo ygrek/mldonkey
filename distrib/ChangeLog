@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2007/10/20
+6242: Allow deactivation of [telnet|gui|gift]_port by setting it to 0
+
 2007/10/17
 6240: GTK1 oldgui: Hide password in server settings
 6239: Update GNU config.guess and config.sub to version 2007/07

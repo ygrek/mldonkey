@@ -108,14 +108,32 @@ let start_interfaces () =
             (Printexc2.to_string e);
     end;
 
-  ignore (find_port  "telnet server" !!telnet_bind_addr
-      telnet_port DriverControlers.telnet_handler);
+  if !!telnet_port <> 0 then begin 
+      try
+        ignore (find_port "telnet server" !!telnet_bind_addr
+          telnet_port DriverControlers.telnet_handler);
+      with e ->
+          lprintf_nl (_b "Exception %s while starting Telnet interface")
+            (Printexc2.to_string e);
+    end;
 
-  gui_server_sock := find_port "gui server"  !!gui_bind_addr
-    gui_port gui_handler;
-  if !!gift_port <> 0 then
-    ignore (find_port "gift server"  !!gui_bind_addr
-        gift_port gift_handler);
+  if !!gui_port <> 0 then begin 
+      try
+        ignore (find_port "gui server" !!gui_bind_addr
+          gui_port gui_handler);
+      with e ->
+          lprintf_nl (_b "Exception %s while starting GUI interface")
+            (Printexc2.to_string e);
+    end;
+
+  if !!gift_port <> 0 then begin
+      try
+        ignore (find_port "gift server" !!gui_bind_addr
+          gift_port gift_handler);
+      with e ->
+          lprintf_nl (_b "Exception %s while starting GUI interface")
+            (Printexc2.to_string e);
+    end;
 
   add_infinite_option_timer update_gui_delay DriverInterface.update_gui_info;
   add_infinite_timer 1. second_timer
@@ -516,14 +534,16 @@ or getting a binary compiled with glibc %s.\n\n")
   Options.prune_file downloads_ini;
   Options.prune_file users_ini;
   add_timer 1. (fun _ -> try CommonWeb.load_web_infos true false with _ -> ());
-  lprintf_nl  (_b "To command: telnet %s %d")
+  if !!telnet_port <> 0 then lprintf_nl  (_b "To command: telnet %s %d")
 	(if !!telnet_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!telnet_bind_addr)  !!telnet_port;
-  lprintf_nl  (_b "Or with browser: http://%s:%d")
+  if !!http_port <> 0 then begin
+    lprintf_nl  (_b "Or with browser: http://%s:%d")
 	(if !!http_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!http_bind_addr)  !!http_port;
-  lprintf_nl  (_b "For a GUI check out http://sancho-gui.sourceforge.net");
-  lprintf_nl  (_b "Connect to IP %s, port %d")
+    lprintf_nl  (_b "For a GUI check out http://sancho-gui.sourceforge.net")
+  end;
+  if !!gui_port <> 0 then lprintf_nl  (_b "Connect to IP %s, port %d")
 	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
 		else Ip.to_string !!gui_bind_addr)  !!gui_port;
   lprintf_nl  (_b "If you connect from a remote machine adjust allowed_ips");

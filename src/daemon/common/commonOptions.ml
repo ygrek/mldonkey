@@ -478,7 +478,7 @@ let _ =
 let gui_port = define_option current_section ["gui_port"]
   ~desc: "The port to connect the GUI"
   ~restart: true
-  "port for Graphical Interfaces"
+  "port for Graphical Interfaces, 0 to deactivate GUI interface"
     port_option 4001
 
 let gift_port = define_option current_section ["gift_port"]
@@ -492,13 +492,13 @@ let http_port = define_option current_section ["http_port"]
   ~desc: "The port to connect via HTTP"
   ~public: true
   ~restart: true
-  "The port used to connect to your client with a WEB browser"
+  "The port used to connect to your client with a web browser, 0 to deactivate web interface"
     port_option 4080
 
 let telnet_port = define_option current_section ["telnet_port"]
   ~desc: "The port to connect via telnet"
   ~restart: true
-  "port for user interaction"
+  "port for user interaction, 0 to deactivate telnet interface"
     port_option 4000
 
 let http_bind_addr = define_expert_option current_section ["http_bind_addr"]

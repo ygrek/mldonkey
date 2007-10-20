@@ -246,8 +246,6 @@ let udp_write_controler = UdpSocket.new_bandwidth_controler upload_control
 
 let udp_read_controler = UdpSocket.new_bandwidth_controler download_control
 
-let gui_server_sock = ref (None : TcpServerSocket.t option)
-
 let pid = Unix.getpid ()
 
 let do_at_exit f =
