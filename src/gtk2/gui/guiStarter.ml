@@ -42,7 +42,7 @@ let main () =
   in
   ignore (window#connect#destroy ~callback:GMain.Main.quit);
   let vbox_2 = GPack.vbox ~homogeneous:false ~packing: window#add ()in
-  let wl_3 =
+  let _wl_3 =
     GMisc.label ~text:(_s "\n     Start the GTK gui ?     \n\nChange the 'ask_for_gui' option to false to remove this message.\n\n") ~justify:`CENTER ~line_wrap:true
       ~xalign:0.5 ~yalign:0.5
       ~packing:(vbox_2#pack ~expand:true ~fill:true) ()
@@ -54,14 +54,14 @@ let main () =
   let wb_5 =
     GButton.button ~packing:(hbox_4#pack ~expand:true ~fill:true) ()
   in
-  let wl_7 =
+  let _wl_7 =
     GMisc.label ~text:(_s "YES") ~justify:`CENTER ~line_wrap:true ~xalign:0.5
       ~yalign:0.5 ~packing:(wb_5#add) ()
   in
   let wb_6 =
     GButton.button ~packing:(hbox_4#pack ~expand:true ~fill:true) ()
   in
-  let wl_8 =
+  let _wl_8 =
     GMisc.label ~text:(_s "NO") ~justify:`CENTER ~line_wrap:true ~xalign:0.5
       ~yalign:0.5 ~packing:(wb_6#add) ()
   in

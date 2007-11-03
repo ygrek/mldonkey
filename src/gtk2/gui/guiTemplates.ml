@@ -885,7 +885,7 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
  * used for convenience.It should remain empty.
  *)
   let cols = new GTree.column_list in
-  let col = cols#add Gobject.Data.boolean in
+  let _col = cols#add Gobject.Data.boolean in
   let store = GTree.list_store cols in
   let view = GTree.view ~model:store () in
   object (self)

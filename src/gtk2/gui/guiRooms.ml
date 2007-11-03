@@ -563,7 +563,7 @@ let remove_room_user room_num user_num =
   (if !!verbose then lprintf' "Removing user to room %d\n" room_num);
   try
     let ro = Hashtbl.find G.rooms room_num in
-    let row = roomstore#find_row (room_key room_num) in
+    let _row = roomstore#find_row (room_key room_num) in
     (if List.mem user_num ro.room_users
       then ro.room_users <- List.filter (fun n -> n <> user_num) ro.room_users);
     let _ =
@@ -571,7 +571,7 @@ let remove_room_user room_num user_num =
           (Some n, RoomOpened) when n = room_num ->
              begin
                try
-                 let u = Hashtbl.find G.users user_num in
+                 let _u = Hashtbl.find G.users user_num in
                  userstore#remove_item (GuiUsers.user_key user_num);
                  update_users_label ();
                with _ -> ()
@@ -589,7 +589,7 @@ let add_room_user room_num user_num =
   (if !!verbose then lprintf' "Adding user to room %d\n" room_num);
   try
     let ro = Hashtbl.find G.rooms room_num in
-    let row = roomstore#find_row (room_key room_num) in
+    let _row = roomstore#find_row (room_key room_num) in
     (if not (List.mem user_num ro.room_users)
       then ro.room_users <- user_num :: ro.room_users);
     match (!current_room, ro.room_state) with
@@ -695,7 +695,7 @@ let rooms_box gui =
   in
   chat_evbox#misc#modify_bg [(`NORMAL, (`NAME "#AFAFF4"))];
   let markup = GuiTools.create_default_bold_markup !M.rT_lb_chat in
-  let chat_label =
+  let _chat_label =
     GMisc.label ~xalign:0. ~yalign:0. ~markup
       ~xpad:3 ~ypad:3 ~packing:chat_evbox#add ()
   in

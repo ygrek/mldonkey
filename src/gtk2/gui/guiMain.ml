@@ -665,8 +665,8 @@ let splash_timerID = ref (GMain.Timeout.add ~ms:2000 ~callback:(fun _ -> true))
 
 let splash_screen_window gui =
   let scrwidth = Gdk.Screen.width () in
-  let colormap = Gdk.Color.get_system_colormap () in
-  let size = scrwidth / 3 in
+  let _colormap = Gdk.Color.get_system_colormap () in
+  let _size = scrwidth / 3 in
   let splash_screen_pb = A.get_icon ~icon:M.icon_splash_screen ~size:A.LARGE () in
   let width = GdkPixbuf.get_width splash_screen_pb in
   let height = GdkPixbuf.get_height splash_screen_pb in
@@ -701,7 +701,7 @@ let splash_screen_window gui =
   in
   status#set_use_markup true;
 
-  let label =
+  let _label =
     GMisc.label ~text:(Printf.sprintf "v. %s" Autoconf.current_version)
       ~xpad:10 ~ypad:10 ~xalign:0. ~yalign:1.
       ~packing:(vbox#pack ~fill:true ~expand:false) ()

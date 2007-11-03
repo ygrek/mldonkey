@@ -95,7 +95,7 @@ module GraphOption = struct
       | _ -> l
 
     let value_to_graph v =
-      let t = last_time () in
+      let _t = last_time () in
       match v with
         Options.Module assocs ->
           let get_value name conv = conv (List.assoc name assocs) in
@@ -439,7 +439,7 @@ let save_record rate (graph_type : graph_record) =
                      begin
                        try
                          let suid = string_of_uid file_uid in
-                         let uid = uid_of_string suid in
+                         let _uid = uid_of_string suid in
                          (if !!verbose then lprintf'
                             "In save_record / Downloads : Adding file %s\n" suid);
                          files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
@@ -464,7 +464,7 @@ let save_record rate (graph_type : graph_record) =
                      begin
                        try
                          let suid = string_of_uid file_uid in
-                         let uid = uid_of_string suid in
+                         let _uid = uid_of_string suid in
                          (if !!verbose then lprintf'
                             "In save_record / Downloads : Adding file %s\n" suid);
                          files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
@@ -511,7 +511,7 @@ let add_file file_uid =
     then begin
       try
         let suid = string_of_uid file_uid in
-        let uid = uid_of_string suid in
+        let _uid = uid_of_string suid in
         (if !!verbose then lprintf' "In add_file : Adding file %s\n" suid);
         files_graph =:= (file_uid, (dummy_graph (), dummy_graph ())) :: !!files_graph;
         let q = Queue.create () in

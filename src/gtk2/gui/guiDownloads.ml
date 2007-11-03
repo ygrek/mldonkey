@@ -990,7 +990,7 @@ let add_razorback_stats stat (png_box : GPack.box) (table : GPack.table) pos =
   try
     let filename = stat.stats_file_history in
     let pixb = GdkPixbuf.from_file filename in
-    let razorback_history =
+    let _razorback_history =
       GMisc.image ~pixbuf:pixb ~packing:(png_box#pack ~expand:false ~fill:true) ()
     in
     let label_razorback =

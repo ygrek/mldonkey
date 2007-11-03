@@ -197,7 +197,7 @@ let display_network (table : GPack.table) n left top =
   in
   let name = Mi.network_full_name n.net_num in
   let markup = create_bold_markup name in
-  let label =
+  let _label =
     GMisc.label ~markup ~xalign:0.
       ~packing:(vbox#pack ~expand:false ~fill:true) ()
   in

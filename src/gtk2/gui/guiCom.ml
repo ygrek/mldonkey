@@ -226,7 +226,7 @@ let scan_ports () =
             scan_port next (i+1) max);
         let proto = ref 0 in
         let nets = ref [] in
-        let console = ref "" in
+        let _console = ref "" in
         TcpBufferedSocket.set_reader sock (fun sock nread ->
             GuiDecoding.gui_cut_messages
               (fun opcode s ->

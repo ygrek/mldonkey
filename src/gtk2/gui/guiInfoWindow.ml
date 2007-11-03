@@ -215,7 +215,7 @@ let add_item (table : GPack.table) item top =
     GPack.hbox ~homogeneous:false
       ~packing:(hbox#pack ~expand:true ~fill:true) ()
   in
-  let label =
+  let _label =
     GMisc.label ~xalign:0. ~yalign:0. ~markup ~line_wrap:true
       ~packing:(vbox#pack ~expand:true ~fill:true) ()
   in
@@ -235,7 +235,7 @@ let add_item (table : GPack.table) item top =
 let add_group (table : GPack.table) s top =
   let hbox = GPack.hbox ~homogeneous:false () in
   let markup = GuiTools.create_bold_markup s in
-  let label =
+  let _label =
     GMisc.label ~xalign:0. ~markup
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
@@ -407,7 +407,7 @@ let add_file_names (table : GPack.table) f top =
 let add_files_requested (table : GPack.table) s top =
   let context = table#misc#pango_context in
   let pixels = !wwidth * 3 / 4 in
-  let list = ref [] in
+  let _list = ref [] in
   match s.source_files_requested with
       [] -> insert_data table [] top
     | files ->
@@ -438,7 +438,7 @@ let insert_item_details (table : GPack.table) item =
           let v_pos = add_group table !M.fW_lb_avail_info v_pos in
           let v_pos = add_avail_info table f v_pos in
           let v_pos = add_group table !M.fW_lb_file_names v_pos in
-          let v_pos = add_file_names table f v_pos in
+          let _v_pos = add_file_names table f v_pos in
           ()
         end
   | Source (s, _) ->
@@ -449,7 +449,7 @@ let insert_item_details (table : GPack.table) item =
           let v_pos = add_group table !M.fW_lb_transfer_info v_pos in
           let v_pos = add_transfer_info table item v_pos in
           let v_pos = add_group table !M.fW_lb_files_requested v_pos in
-          let v_pos = add_files_requested table s v_pos in
+          let _v_pos = add_files_requested table s v_pos in
           ()
         end
 
@@ -500,7 +500,7 @@ let create_window item =
        ~row_spacings:6 ~col_spacings:6 ~border_width:6
        ~packing:scroll_table_box#add_with_viewport ()
   in
-  let separator =
+  let _separator =
     GMisc.separator `HORIZONTAL
     ~packing:(vbox#pack ~expand:false ~fill:true) ()
   in

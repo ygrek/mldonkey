@@ -195,7 +195,7 @@ let add_password_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label op
   let label = GMisc.label ~xalign:0. ~markup:(U.simple_utf8_of p.pref_label) () in
   let hbox = GPack.hbox ~homogeneous:false ~spacing:6 () in
   let pixbuf = A.get_icon ~icon:M.icon_stock_password ~size:A.SMALL () in
-  let image = GMisc.image ~pixbuf ~packing:(hbox#pack ~expand:false ~fill:true) () in
+  let _image = GMisc.image ~pixbuf ~packing:(hbox#pack ~expand:false ~fill:true) () in
   let edit =
     GEdit.entry ~text:(U.simple_utf8_of p.pref_new_value) ~editable:true ~visibility:false
       ~packing:(hbox#pack ~expand:true ~fill:true) ()
@@ -255,7 +255,7 @@ let add_int_param ~p ~f ~top ~(table : GPack.table) ?(h_label : GMisc.label opti
       ~snap_to_ticks:true ~update_policy:`IF_VALID ~value ~wrap:true
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
-  let a_box =
+  let _a_box =
     GPack.hbox ~homogeneous:false
       ~packing:(hbox#pack ~expand:true ~fill:true) ()
   in
@@ -286,7 +286,7 @@ let add_float_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label optio
       ~snap_to_ticks:true ~update_policy:`IF_VALID ~value ~wrap:true
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
-  let a_box =
+  let _a_box =
     GPack.hbox ~homogeneous:false
       ~packing:(hbox#pack ~expand:true ~fill:true) ()
   in
@@ -382,7 +382,7 @@ let add_color_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label optio
     ~cont:((<:>) box)
     ~style:`ICONS
     ~icon:(A.get_icon ~icon:M.icon_stock_color ~size:A.SMALL ()) ();
-  let separator =
+  let _separator =
     GMisc.separator `VERTICAL
     ~packing:(box#pack ~expand:false ~fill:true) ()
   in
@@ -408,12 +408,12 @@ let add_color_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label optio
   in
   let col = GDraw.color (`NAME p.pref_new_value) in
   set_color (string_of_int_of_col col);    
-  let sample = GuiTools.add_pixbuf ~cont:((<:>) box) ~pixbuf in
-  let separator =
+  let _sample = GuiTools.add_pixbuf ~cont:((<:>) box) ~pixbuf in
+  let _separator =
     GMisc.separator `VERTICAL
     ~packing:(box#pack ~expand:false ~fill:true) ()
   in
-  let a_box =
+  let _a_box =
     GPack.hbox ~homogeneous:false
       ~packing:(hbox#pack ~expand:true ~fill:true) ()
   in
@@ -466,7 +466,7 @@ let add_font_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label option
     ~cont:((<:>) box)
     ~style:`ICONS
     ~icon:(A.get_icon ~icon:M.icon_stock_font ~size:A.SMALL ()) ();
-  let separator =
+  let _separator =
     GMisc.separator `VERTICAL
     ~packing:(box#pack ~expand:false ~fill:true) ()
   in
@@ -481,11 +481,11 @@ let add_font_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label option
     fontv := font
   in
   set_font p.pref_new_value;
-  let separator =
+  let _separator =
     GMisc.separator `VERTICAL
     ~packing:(box#pack ~expand:false ~fill:true) ()
   in
-  let a_box =
+  let _a_box =
     GPack.hbox ~homogeneous:false
       ~packing:(hbox#pack ~expand:true ~fill:true) ()
   in
@@ -622,7 +622,7 @@ let add_time_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label option
       ~snap_to_ticks:true ~update_policy:`IF_VALID ~wrap:true
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
-  let label_day =
+  let _label_day =
     GMisc.label ~xalign:0. ~markup:!M.cW_lb_day
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
@@ -632,7 +632,7 @@ let add_time_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label option
       ~snap_to_ticks:true ~update_policy:`IF_VALID ~wrap:true
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
-  let label_hour =
+  let _label_hour =
     GMisc.label ~xalign:0. ~markup:!M.cW_lb_hour
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
@@ -642,7 +642,7 @@ let add_time_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label option
       ~snap_to_ticks:true ~update_policy:`IF_VALID ~wrap:true
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
-  let label_minute =
+  let _label_minute =
     GMisc.label ~xalign:0. ~markup:!M.cW_lb_minute
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
@@ -652,11 +652,11 @@ let add_time_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label option
       ~snap_to_ticks:true ~update_policy:`IF_VALID ~wrap:true
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
-  let label_second =
+  let _label_second =
     GMisc.label ~xalign:0. ~markup:!M.cW_lb_second
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
-  let a_box =
+  let _a_box =
     GPack.hbox ~homogeneous:false
       ~packing:(hbox#pack ~expand:true ~fill:true) ()
   in
@@ -856,7 +856,7 @@ let add_group_name ~grp ~(table : GPack.table) ~top =
         Printf.sprintf "<span foreground=\"%s\" weight=\"bold\">%s</span>" 
           !!O.gtk_color_default s
       in
-      let label =
+      let _label =
         GMisc.label ~xalign:0. ~markup
           ~packing:(hbox#pack ~expand:false ~fill:true) ()
       in
@@ -1017,7 +1017,7 @@ let insert_options (menu : GList.liste) (opt_box : GPack.box) =
     GPack.hbox ~homogeneous:false ~spacing:6
       ~border_width:3 ~packing:frame#add ()
   in
-  let icon_h =
+  let _icon_h =
     GMisc.image ~pixbuf:h_pb 
       ~packing:(h_hbox#pack ~expand:false ~fill:true) ()
   in
@@ -1133,7 +1133,7 @@ let create_config_window on_ok =
     GList.liste ~selection_mode:`SINGLE
       ~packing:scroll_menu_box#add_with_viewport ()
   in
-  let separator =
+  let _separator =
     GMisc.separator `HORIZONTAL
     ~packing:(vbox#pack ~expand:false ~fill:true) ()
   in
@@ -1237,7 +1237,7 @@ let panel ~(structure: (string * ('a, 'b, 'c) preference list) list)
     GPack.notebook ~homogeneous_tabs:true ~scrollable:true
       ~packing:(vbox#pack ~expand:true ~fill:true) ()
   in
-  let separator =
+  let _separator =
     GMisc.separator `HORIZONTAL
     ~packing:(vbox#pack ~expand:false ~fill:true) ()
   in
@@ -1338,7 +1338,7 @@ let simple_panel ~(prefs: (('a, 'b, 'c) preference) list)
        ~row_spacings:6 ~col_spacings:6 ~border_width:6
        ~packing:vbox#add ()
   in
-  let separator =
+  let _separator =
     GMisc.separator `HORIZONTAL
     ~packing:(vbox#pack ~expand:false ~fill:true) ()
   in
@@ -1420,7 +1420,7 @@ let input_window ~(pref: ('a, 'b, 'c) preference)
        ~row_spacings:6 ~col_spacings:6 ~border_width:6
        ~packing:vbox#add ()
   in
-  let separator =
+  let _separator =
     GMisc.separator `HORIZONTAL
     ~packing:(vbox#pack ~expand:false ~fill:true) ()
   in

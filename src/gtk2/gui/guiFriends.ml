@@ -497,7 +497,7 @@ let add_chat (notebook : GPack.notebook) (s : source_info) (chat : GuiTemplates.
   let main_evbox = GBin.event_box () in
   main_evbox#add chat#coerce;
   let hbox = GPack.hbox ~homogeneous:false ~spacing:3 () in
-  let wl =
+  let _wl =
     GMisc.label ~text:(U.utf8_of s.source_name)
       ~packing:(hbox#pack ~expand:true ~fill:true) ()
   in
@@ -942,7 +942,7 @@ let friends_box gui =
   in
   folders_evbox#misc#modify_bg [(`NORMAL, (`NAME "#AFAFF4"))];
   let markup = GuiTools.create_default_bold_markup !M.qT_lb_directories in
-  let folders_label =
+  let _folders_label =
     GMisc.label ~xalign:0. ~yalign:0. ~markup
       ~xpad:3 ~ypad:3 ~packing:folders_evbox#add ()
   in
@@ -959,7 +959,7 @@ let friends_box gui =
   in
   messages_evbox#misc#modify_bg [(`NORMAL, (`NAME "#AFAFF4"))];
   let markup = GuiTools.create_default_bold_markup !M.fT_lb_messages in
-  let messages_label =
+  let _messages_label =
     GMisc.label ~xalign:0. ~yalign:0. ~markup
       ~xpad:3 ~ypad:3 ~packing:messages_evbox#add ()
   in

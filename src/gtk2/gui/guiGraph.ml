@@ -482,7 +482,7 @@ let hbox =
 (*************************************************************************)
 
 let _ =
-  let label =
+  let _label =
     GMisc.label ~text:!M.gT_lb_time_range
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in

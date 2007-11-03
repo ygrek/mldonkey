@@ -521,7 +521,7 @@ let save_gui_options list pv =
       (set_simple_option O.gui_ini name v; raise Exit)
     with Exit ->
       (List.iter (fun opt_section ->
-         let section = Options.section_name opt_section in
+         let _section = Options.section_name opt_section in
          try
            List.iter (fun o ->
              if o.option_name = name then
@@ -653,7 +653,7 @@ let rec iter items =
 let config_window gui value_reader f =
   let use_icons = !!O.gtk_look_use_icons in
   let use_avail_bars = !!O.gtk_look_graphical_availability in
-  let language = !!O.gtk_client_lang in
+  let _language = !!O.gtk_client_lang in
   let saturation = !!O.gtk_look_icon_saturation in
   let small_icon = !!O.gtk_look_lists_icon_size in
   let medium_icon = !!O.gtk_look_toolbars_icon_size in

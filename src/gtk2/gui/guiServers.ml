@@ -734,7 +734,7 @@ let h_server_busy server_num nusers nfiles =
 let h_server_update_users server_num user =
   try
     let s = Hashtbl.find G.servers server_num in
-    let row = serverstore#find_row (server_key server_num) in
+    let _row = serverstore#find_row (server_key server_num) in
     match s.server_users with
         None ->
           begin
@@ -865,12 +865,12 @@ let add_server_box (table : GPack.table) =
       ~spacing:6 ~border_width:6 ()
   in
   let pixbuf = A.get_icon ~icon:M.icon_stock_add_server ~size:A.SMALL () in
-  let img =
+  let _img =
     GMisc.image ~pixbuf ~xalign:0.
       ~packing:(hbox_add_s#pack ~expand:false ~fill:true) ()
   in
   let markup = create_bold_markup !M.sT_lb_add_server in
-  let label =
+  let _label =
     GMisc.label ~markup ~xalign:0.
       ~packing:(hbox_add_s#pack ~expand:false ~fill:true) ()
   in
@@ -1003,12 +1003,12 @@ let servers_box gui =
     A.get_icon ~size:A.MEDIUM
       ~icon:(M.icon_stock_all_servers) ()
   in
-  let img =
+  let _img =
     GMisc.image ~pixbuf ~xalign:0.
       ~packing:(box#pack ~expand:false ~fill:true) ()
   in
   let markup = create_markup !M.sT_lb_display_all_servers in
-  let label =
+  let _label =
     GMisc.label ~markup ~xalign:0. ~use_underline:true
       ~mnemonic_widget:t_button#coerce
       ~packing:(box#pack ~expand:false ~fill:true) ()

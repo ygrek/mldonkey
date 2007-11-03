@@ -494,18 +494,18 @@ let warning_box
       ~packing:(vbox#pack ~expand:false ~fill:true) ()
   in
   let pixbuf = A.get_icon ~icon:M.icon_stock_warning ~size:A.LARGE () in
-  let image =
+  let _image =
     GMisc.image ~pixbuf ~xalign:0. ~yalign:0.
       ~packing:(hbox#pack ~expand:false ~fill:true) ()
   in
   let markup = create_default_bold_markup warning_message in
-  let w_label =
+  let _w_label =
     GMisc.label ~xalign:0.5 ~yalign:0.5 ~markup
       ~packing:(hbox#pack ~expand:true ~fill:true) ()
   in
   if List.length text > 0
     then begin
-      let separator =
+      let _separator =
         GMisc.separator `HORIZONTAL
         ~packing:(vbox#pack ~expand:false ~fill:true) ()
       in
@@ -532,7 +532,7 @@ let warning_box
         incr pos
       ) text
     end;
-  let separator =
+  let _separator =
     GMisc.separator `HORIZONTAL
     ~packing:(vbox#pack ~expand:false ~fill:true) ()
   in

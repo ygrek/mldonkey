@@ -1128,7 +1128,7 @@ let uploads_box gui =
     show_pending := not !show_pending;
     uploaderstore#refresh_filter ()
   in
-  let bShow_pending = wtool#add_button
+  let _bShow_pending = wtool#add_button
       ~style:`BOTH_HORIZ
       ~markup
       ~icon:(A.get_icon ~icon:M.icon_stock_pending_slots ~size:A.SMALL ())

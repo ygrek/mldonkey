@@ -560,7 +560,7 @@ let client_handler sock event =
          print_client_error sock "Event: BUFFER_OVERFLOW";
        close sock Closed_for_overflow
    (*| READ_DONE _ -> lprintf_nl "  Event: READ_DONE";*)
-   | BASIC_EVENT CLOSED reason -> 
+   | BASIC_EVENT (CLOSED reason) -> 
        (match find_sockets_client sock with
        | Some c ->
            if !verbose_msg_clients then
@@ -712,8 +712,8 @@ let rec client_reader c t sock =
       (*if !verbose_msg_clients then lprintf_nl "Received $Direction (%s)" (clients_username c);*)
       (match c.client_state with
       | DcDownloadListConnecting (our_level,_,_)             (* We are downloading filelist *)
-      | DcConnectionStyle ClientActive Upload our_level      (* We are in passive mode *)
-      | DcConnectionStyle MeActive Upload our_level ->       (* We are in active mode, client needs to upload) *)
+      | DcConnectionStyle (ClientActive (Upload our_level))  (* We are in passive mode *)
+      | DcConnectionStyle (MeActive (Upload our_level)) ->   (* We are in active mode, client needs to upload) *)
            (match t.Direction.direction with
            | Download _ ->
                if !verbose_msg_clients then 
@@ -747,9 +747,9 @@ let rec client_reader c t sock =
                      nc.client_state <- DcDownloadListWaiting );
                                                               (* we change our direction *)
                  (match c.client_state with                   (* check which one is the case *)
-                 | DcConnectionStyle ClientActive Upload _ -> (* if client was initiating *)
+                 | DcConnectionStyle (ClientActive (Upload _)) -> (* if client was initiating *)
                      c.client_state <- DcConnectionStyle (ClientActive (Download 65535)) (* 65535 means to KeyReq that *)
-                 | DcConnectionStyle MeActive Upload _                                   (* direction is changed    *)
+                 | DcConnectionStyle (MeActive (Upload _))    (* direction is changed    *)
                  | DcDownloadListConnecting _ ->              (* if we were initiating *)
                      c.client_state <- DcConnectionStyle (MeActive (Download 65535))
                  | _ -> () );
@@ -762,8 +762,8 @@ let rec client_reader c t sock =
                    lprintf_nl "  Stalemate (levels are equal), closing";
                  close sock (Closed_for_error "Negotiation download: Stalemate" )
            | _ -> () ) (* Upload *)
-      | DcConnectionStyle MeActive Download our_level
-      | DcConnectionStyle ClientActive Download our_level -> (* connection is ready for uploading             *)
+      | DcConnectionStyle (MeActive (Download our_level))
+      | DcConnectionStyle (ClientActive (Download our_level)) -> (* connection is ready for uploading             *)
           (match t.Direction.direction with
           | Upload level ->                          (* Active mode and client wants to upload too ?? *)
              if !verbose_msg_clients then lprintf_nl "We have a conflict, both want to upload...";

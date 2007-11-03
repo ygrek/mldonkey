@@ -336,7 +336,7 @@ let display_results (notebook : GPack.notebook) (qr : g_query) =
   in
   let evbox = GBin.event_box ~packing:(hbox#pack ~expand:false ~fill:false) () in
   let pixbuf = A.get_icon ~icon:M.icon_stock_close_overlay ~size:A.SMALL () in
-  let img = GMisc.image ~pixbuf ~xalign:1.0 ~yalign:0. ~packing:evbox#add () in
+  let _img = GMisc.image ~pixbuf ~xalign:1.0 ~yalign:0. ~packing:evbox#add () in
   evbox#misc#set_state `ACTIVE;
   qr.g_query_label <- Some label;
   qr.g_query_waiting_label <- Some query_status;
@@ -504,11 +504,11 @@ let make_separator ?text () =
         begin
           let hbox = GPack.hbox ~homogeneous:false ~spacing:3 () in
           let markup = GuiTools.create_bold_markup s in
-          let label = 
+          let _label = 
             GMisc.label ~markup ~xalign:0. ~yalign:0.5
               ~packing:(hbox#pack ~expand:false ~fill:true) ()
           in
-          let sep =
+          let _sep =
             GMisc.separator `HORIZONTAL
               ~packing:(hbox#pack ~expand:true ~fill:true) ()
           in
