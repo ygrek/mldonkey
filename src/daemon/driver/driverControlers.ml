@@ -860,7 +860,7 @@ let html_open_page buf t r open_body =
       let this_page = "dheader.html" in
       Buffer.add_string buf
         (
-                if !!html_mods_theme != "" && theme_page_exists this_page then
+                if !!html_mods_theme <> "" && theme_page_exists this_page then
                         read_theme_page this_page else
                         if !!html_mods then !!CommonMessages.download_html_header_mods0
                         else !!CommonMessages.download_html_header_old);
@@ -871,7 +871,7 @@ let html_open_page buf t r open_body =
    
         let this_page = "header.html" in
     Buffer.add_string buf (
-                if !!html_mods_theme != "" && theme_page_exists this_page then
+                if !!html_mods_theme <> "" && theme_page_exists this_page then
                         read_theme_page this_page else
                         if !!html_mods then !!CommonMessages.html_header_mods0
                         else !!CommonMessages.html_header_old);
@@ -1037,7 +1037,7 @@ let http_handler o t r =
             html_open_page buf t r true;
             let this_page = "commands.html" in
             Buffer.add_string buf (
-              if !!html_mods_theme != "" && theme_page_exists this_page then
+              if !!html_mods_theme <> "" && theme_page_exists this_page then
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.web_common_header_mods0
               else !!CommonMessages.web_common_header_old)
@@ -1045,14 +1045,14 @@ let http_handler o t r =
             html_open_page buf t r true;
             let this_page = "multidllink.html" in
             Buffer.add_string buf (
-              if !!html_mods_theme != "" && theme_page_exists this_page then
+              if !!html_mods_theme <> "" && theme_page_exists this_page then
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.multidllink_mods0
               else !!CommonMessages.multidllink_old)
         | "" | "index.html" ->
                 html_open_page buf t r false;
                 let this_page = "frames.html" in
-                if !!html_mods_theme != "" && theme_page_exists this_page then
+                if !!html_mods_theme <> "" && theme_page_exists this_page then
                   Buffer.add_string buf (read_theme_page this_page) else
                 if !!html_mods then
                   (if !!html_frame_border then
@@ -1467,7 +1467,7 @@ let http_handler o t r =
             http_add_text_header r CSS;
             let this_page = "h.css" in
             Buffer.add_string buf (
-              if !!html_mods_theme != "" && theme_page_exists this_page then
+              if !!html_mods_theme <> "" && theme_page_exists this_page then
                 read_theme_page this_page else
               if !!html_mods then !CommonMessages.html_css_mods
               else !!CommonMessages.html_css_old)
@@ -1477,7 +1477,7 @@ let http_handler o t r =
             http_add_text_header r CSS;
             let this_page = "dh.css" in
             Buffer.add_string buf (
-              if !!html_mods_theme != "" && theme_page_exists this_page then
+              if !!html_mods_theme <> "" && theme_page_exists this_page then
                 read_theme_page this_page else
               if !!html_mods then !CommonMessages.download_html_css_mods
               else !!CommonMessages.download_html_css_old)
@@ -1487,7 +1487,7 @@ let http_handler o t r =
             http_add_text_header r JAVASCRIPT;
             let this_page = "i.js" in
             Buffer.add_string buf (
-              if !!html_mods_theme != "" && theme_page_exists this_page then
+              if !!html_mods_theme <> "" && theme_page_exists this_page then
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.html_js_mods0
               else !!CommonMessages.html_js_old)
@@ -1497,7 +1497,7 @@ let http_handler o t r =
             http_add_text_header r JAVASCRIPT;
             let this_page = "di.js" in
             Buffer.add_string buf (
-              if !!html_mods_theme != "" && theme_page_exists this_page then
+              if !!html_mods_theme <> "" && theme_page_exists this_page then
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.download_html_js_mods0
               else !!CommonMessages.download_html_js_old)
