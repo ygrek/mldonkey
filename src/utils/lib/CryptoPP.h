@@ -375,10 +375,10 @@ NAMESPACE_END
 #include <string>
 #include <exception>
 #include <typeinfo>
+#include <string.h>
 
 
 #ifdef _MSC_VER
-#include <string.h>	// CodeWarrior doesn't have memory.h
 #include <algorithm>
 #include <map>
 #include <vector>
