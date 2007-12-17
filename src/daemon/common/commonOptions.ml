@@ -1215,12 +1215,27 @@ let file_completed_cmd = define_option current_section ["file_completed_cmd"]
     $INCOMING  - directory used for commit
     $NETWORK   - network used for downloading
     $ED2K_HASH - ed2k hash if MD4 is known
+    $FILE_OWNER - user who started the download
+    $FILE_GROUP - group the file belongs to
+    $USER_MAIL - mail address of file_owner
   "
     string_option ""
 
 let file_started_cmd = define_option current_section ["file_started_cmd"]
   "The command which is called when a download is started. Arguments
-  are '-file <num>'"
+  are '-file <num>'
+  Also these environment variables can be used (prefered way):
+    $TEMPNAME  - temp file name, including path
+    $FILEID    - same as $1
+    $FILESIZE  - same as $2
+    $FILENAME  - same as $3
+    $FILEHASH  - internal hash
+    $NETWORK   - network used for downloading
+    $ED2K_HASH - ed2k hash if MD4 is known
+    $FILE_OWNER - user who started the download
+    $FILE_GROUP - group the file belongs to
+    $USER_MAIL - mail address of file_owner
+  "
     string_option ""
 
 

@@ -525,12 +525,53 @@ let display_bw_stats = ref false
 let start_download file =
   if !!pause_new_downloads then file_pause file (admin_user ());
   if !!file_started_cmd <> "" then
+    begin
+      let info = file_info file in
+      let temp_name = file_disk_name file in
+      let file_id = Filename.basename temp_name in
+      let size = Int64.to_string (file_size file) in
+      let network = network_find_by_num info.G.file_network in
+      let filename = file_best_name file in
+      let file_group_info =
+        match file_group file with
+        | None -> 0, []
+        | Some _ ->
+          let users = ref [] in
+          let counter = ref 0 in
+          user2_users_iter (fun u ->
+            if file_owner file <> u &&
+              user2_can_view_file u (file_owner file) (file_group file) then
+                begin
+                  incr counter;
+                  users :=  (Printf.sprintf "FILE_GROUP_USER_%d" !counter, u.user_name) ::
+                            (Printf.sprintf "FILE_GROUP_DIR_%d" !counter, u.user_commit_dir) :: !users
+                end);
+          !counter, !users
+      in
       MlUnix.fork_and_exec  !!file_started_cmd
       [|
       !!file_started_cmd;
         "-file";
         string_of_int (CommonFile.file_num file);
       |]
+     ~vars:([("TEMPNAME",  temp_name);
+	    ("FILEID",    file_id);
+	    ("FILESIZE",  size);
+	    ("FILENAME",  filename);
+	    ("FILEHASH",  string_of_uids info.G.file_uids);
+	    ("DLFILES",   string_of_int (List.length !!files)); 
+	    ("NETWORK",   network.network_name);
+	    ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4));
+	    ("FILE_OWNER",(file_owner file).user_name);
+	    ("FILE_GROUP",user2_print_group (file_group file));
+	    ("USER_MAIL", ( if (file_owner file).user_mail <> "" then
+                              (file_owner file).user_mail
+                            else
+                              if !!mail <> "" then !!mail else ""));
+	    ("FILE_GROUP_CNT", string_of_int (fst (file_group_info)));
+	    ]
+            @ snd (file_group_info))
+    end
 
 let download_file o arg =
   let user = o.conn_user in
