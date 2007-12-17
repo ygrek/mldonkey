@@ -625,7 +625,6 @@ let print_connected_servers o =
           List.mem NetworkHasSupernodes r.network_flags
         then begin
            if use_html_mods o then begin
-               Printf.bprintf buf "\\<div class=servers\\>";
                html_mods_table_one_row buf "serversTable" "servers" [
                  ("", "srh", Printf.sprintf (_b "--- Connected to %d servers on the %s network ---\n")
                    (List.length list) r.network_name); ]
@@ -633,7 +632,6 @@ let print_connected_servers o =
            else
              Printf.bprintf buf (_b "--- Connected to %d servers on the %s network ---\n")
                (List.length list) r.network_name;
-           if use_html_mods o then Printf.bprintf buf "\\</div\\>";
           end;
          if use_html_mods o && List.length list > 0 then server_print_html_header buf "C";
 

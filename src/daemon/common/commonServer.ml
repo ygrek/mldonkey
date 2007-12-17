@@ -427,7 +427,7 @@ let server_print s o =
     Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\""
     (html_mods_cntr ());
 
-    (if !!html_mods_use_js_tooltips then
+    if !!html_mods_use_js_tooltips then
        Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s %s<br>%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
         info.G.server_name ip_port_string 
 	(match info.G.server_features with
@@ -435,10 +435,10 @@ let server_print s o =
 	| Some f -> "server features: " ^ f)
        !!html_mods_js_tooltips_wait
        !!html_mods_js_tooltips_timeout
-       !!html_mods_js_tooltips_wait);
+       !!html_mods_js_tooltips_wait
+    else Printf.bprintf buf "\\>";
 
-    Printf.bprintf buf 
-" \\<td class=\\\"srb\\\" %s \\>%d\\</td\\> %s %s %s"
+    Printf.bprintf buf " \\<td class=\\\"srb\\\" %s \\>%d\\</td\\> %s %s %s"
     (match impl.impl_server_state with
         Connected _ -> 
             Printf.sprintf "title=\\\"Server Banner\\\"
