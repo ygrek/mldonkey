@@ -486,7 +486,7 @@ if [ test -z "$OCAMLC" ] || [ test -z "$CAMLP4" ] || [ test "$REQUIRED_OCAML" = 
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
   case "$OCAMLVERSION" in
-    "$REQUIRED_OCAML"*|3.09.*|3.08.4*|3.08.3*) ;;
+    "$REQUIRED_OCAML"*|3.10.1*|3.09.*|3.08.4*|3.08.3*) ;;
     *)
         echo "Need build"
         BUILD_OCAML=yes
