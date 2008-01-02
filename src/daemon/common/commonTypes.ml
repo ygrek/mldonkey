@@ -818,7 +818,7 @@ and event =
 | File_remove_source_event of file * client
 | Server_new_user_event of server * user
 | Search_new_result_event of gui_result_handler * gui_events * int * result
-
+| Root_console_message_event of string
 | Console_message_event of string
   
 exception FormatFound of format

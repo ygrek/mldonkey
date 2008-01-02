@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2008/01/02
+6361: GUI: Send console messages to admin users after unsharing a file
 6349: DirectConnect: Correctly report total shared filesize to server (LuCasn)
 6360: BT: New command print_torrent <file_num>,
       new link in HTML, upstats to display .torrent details

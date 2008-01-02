@@ -237,6 +237,9 @@ let send_event gui ev =
   | Console_message_event msg ->
       gui_send gui (P.Console msg)
 
+  | Root_console_message_event msg ->
+      if user2_is_admin gui.gui_conn.conn_user.ui_user then gui_send gui (P.Console msg)
+
   | Network_info_event n ->
       gui_send gui (P.Network_info (network_info n))
 
@@ -1352,7 +1355,7 @@ let rec update_events list =
               update_result_info r;
               gui.gui_new_events <- event :: gui.gui_new_events
               
-          | Console_message_event msg ->  
+          | Console_message_event msg | Root_console_message_event msg ->
               Fifo.put console_messages event;
               if Fifo.length console_messages > !!gui_log_size then
                   ignore (Fifo.take console_messages);

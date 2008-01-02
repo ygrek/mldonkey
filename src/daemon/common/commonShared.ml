@@ -179,7 +179,8 @@ let shared_codedname s =
 let shared_unshare s =
   let impl = as_shared_impl s in
   shared_remove impl;
-  try impl.impl_shared_ops.op_shared_unshare impl.impl_shared_val with _ -> ()
+  (try impl.impl_shared_ops.op_shared_unshare impl.impl_shared_val with _ -> ());
+  CommonEvent.add_event (Root_console_message_event (Printf.sprintf "INFO: unshared %s\n" impl.impl_shared_fullname))
 
 let shared_state s o =
   let impl = as_shared_impl s in
