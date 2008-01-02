@@ -1091,6 +1091,35 @@ let commands =
         _s ""
     ), _s ":\t\t\t\tprint all .torrent files on this server";
 
+    "print_torrent", "Network/Bittorrent", Arg_one (fun arg o ->
+      if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
+      let file =
+        try
+          Some (as_file_impl (file_find (int_of_string arg)))
+        with _ -> None
+      in
+      match file with
+      | None -> Printf.sprintf "file %s not found" arg
+      | Some file ->
+        (
+        if use_html_mods o then begin
+          html_mods_cntr_init ();
+          html_mods_table_header o.conn_buf "sourcesInfo" "sourcesInfo" [
+            ( "0", "srh br", "File Info", "Info" ) ;
+            ( "0", "srh", "Value", "Value" ) ]
+        end;
+        op_file_print file.impl_file_val o;
+        if use_html_mods o then begin
+          Printf.bprintf o.conn_buf "\\</tr\\>\\</table\\>\\</div\\>";
+          Printf.bprintf o.conn_buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\<br\\>"
+        end
+        );
+      ""
+      end else
+      begin print_command_result o "You are not allowed to use print_torrent";
+      "" end
+    ), _s "<num> :\t\t\tshow internal data of .torrent file";
+
     "seeded_torrents", "Network/Bittorrent", Arg_none (fun o ->
       if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
       List.iter (fun file ->
@@ -1330,7 +1359,10 @@ let _ =
   CommonNetwork.register_commands commands;
 
   shared_ops.op_shared_state <- (fun file o ->
-      "no BT data"
+    if o.conn_output = HTML then
+      Printf.sprintf "\\<a href=\\\"submit?q=print_torrent+%d\\\"\\>Details\\</a\\>"
+        (file_num file)
+    else Printf.sprintf "Shared using %s" file.file_torrent_diskname
   );
   shared_ops.op_shared_unshare <- (fun file ->
       (if !verbose_share then lprintf_file_nl (as_file file) "unshare file");

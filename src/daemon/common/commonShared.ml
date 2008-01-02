@@ -50,7 +50,7 @@ type 'a shared_impl = {
 and 'a shared_ops = {
     mutable op_shared_info : ('a -> GuiTypes.shared_info);
     mutable op_shared_unshare : ('a -> unit);
-    mutable op_shared_state : (CommonTypes.file -> CommonTypes.ui_conn -> string);
+    mutable op_shared_state : ('a -> CommonTypes.ui_conn -> string);
   }
   
 let as_shared  (shared : 'a shared_impl) =
@@ -186,7 +186,7 @@ let shared_state s o =
   try
     match impl.impl_shared_file with
     | None -> ""
-    | Some f -> impl.impl_shared_ops.op_shared_state f o
+    | Some f -> impl.impl_shared_ops.op_shared_state impl.impl_shared_val o
   with _ -> ""
 
 let shared_dir = function

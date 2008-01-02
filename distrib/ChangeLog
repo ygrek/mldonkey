@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/01/02
+6360: BT: New command print_torrent <file_num>,
+      new link in HTML, upstats to display .torrent details
+
 2007/12/19
 6351: Allow compilation with upcoming Ocaml 3.10.1
 

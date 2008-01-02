@@ -1888,9 +1888,9 @@ let _ =
 
 let _ =
   shared_ops.op_shared_state <- (fun f o ->
-    match CommonFile.file_state f with
+    match file_state f with
     | FileShared ->
-      (match file_shared f with
+      (match file_shared (as_file f) with
       | None -> "no file_shared info"
       | Some f ->
             let pre_share1_dir =
