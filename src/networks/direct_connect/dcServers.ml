@@ -151,7 +151,7 @@ let create_myinfo s = (* every server is sent its own info (nick) (uptime) *)
      conn_speed = !!client_speed;
      flag = time_flag;
      email = "";
-     sharesize = !nshared_bytes;
+     sharesize = DcShared.dc_updatesharesize ();
      bwlimit = !!max_hard_upload_rate;
    }
 

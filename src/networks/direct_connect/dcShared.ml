@@ -314,6 +314,11 @@ let dc_check_hashed_files () =
                 (Printexc2.to_string e) dcsh.dc_shared_fullname ) )
   end
 
+let dc_updatesharesize () =
+  let dc_sharesize = ref Int64.zero in
+  Hashtbl.iter (fun _ dcsh ->
+    dc_sharesize := !dc_sharesize ++ dcsh.dc_shared_size) dc_shared_files_by_codedname;
+  !dc_sharesize
 
 let _ = 
   network.op_network_share <- (fun fullname codedname size -> (* this is called once/60s with all shared files *)
