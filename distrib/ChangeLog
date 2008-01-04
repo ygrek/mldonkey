@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/01/04
+6362: Small Geoip updates
+- new countries + flags: Saint Barthelemy, Saint Martin
+- updates flags: Georgia, Democratic Republic of the Congo, Western Sahara, Lesotho
+
 2008/01/02
 6361: GUI: Send console messages to admin users after unsharing a file
 6349: DirectConnect: Correctly report total shared filesize to server (LuCasn)

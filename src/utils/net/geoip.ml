@@ -106,7 +106,8 @@ let country_code_array = [|
   "SK";"SL";"SM";"SN";"SO";"SR";"ST";"SV";"SY";"SZ";"TC";"TD";"TF";"TG";
   "TH";"TJ";"TK";"TM";"TN";"TO";"TL";"TR";"TT";"TV";"TW";"TZ";"UA";"UG";
   "UM";"US";"UY";"UZ";"VA";"VC";"VE";"VG";"VI";"VN";"VU";"WF";"WS";"YE";
-  "YT";"RS";"ZA";"ZM";"ME";"ZW";"A1";"A2";"O1";"AX";"GG";"IM";"JE";
+  "YT";"RS";"ZA";"ZM";"ME";"ZW";"A1";"A2";"O1";"AX";"GG";"IM";"JE";"BL";
+  "MF"
 |]
 
 let country_name_array = [|
@@ -160,6 +161,7 @@ let country_name_array = [|
   "Vanuatu";"Wallis and Futuna";"Samoa";"Yemen";"Mayotte";"Serbia";
   "South Africa";"Zambia";"Montenegro";"Zimbabwe";"Anonymous Proxy";
   "Satellite Provider";"Other";"Aland Islands";"Guernsey";"Isle of Man";"Jersey";
+  "Saint Barthelemy";"Saint Martin"
 |]
 
 let country_continent_code_array = [| "--";
@@ -188,6 +190,7 @@ let country_continent_code_array = [| "--";
   "AF";"EU";"AF";"OC";"NA";"SA";"AS";"EU";"SA";"SA";
   "SA";"SA";"AS";"OC";"OC";"OC";"AS";"AF";"EU";"AF";
   "AF";"EU";"AF";"--";"--";"--";"EU";"EU";"EU";"EU";
+  "SA";"SA"
 |]
 
 let country_continent_name_array =
