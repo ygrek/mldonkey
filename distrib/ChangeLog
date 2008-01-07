@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2008/01/07
+6364: MinGW: Fix broken share priorities (thx to vbnuy6)
 6365: HTML: Use option max_name_len in upstats for unhashed files
 
 2008/01/04

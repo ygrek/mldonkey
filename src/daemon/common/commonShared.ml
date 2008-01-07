@@ -195,10 +195,8 @@ let shared_dir = function
   | Some sh	-> 
     try
       let impl = as_shared_impl sh in
-      let codedname = impl.impl_shared_codedname in
-      let idx = String.index codedname '/' in
-      String.sub codedname 0 idx
-    with Not_found -> ""
+      Filename.dirname impl.impl_shared_codedname
+    with _ -> ""
 		    
 let shared_prio impl =
   try
