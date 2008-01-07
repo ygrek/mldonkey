@@ -2511,7 +2511,7 @@ let print_upstats o list server =
 	  ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
 	  ("", "sr", Printf.sprintf "\\<a href=\\\"preview_upload?q=%d\\\"\\>P\\</a\\>" impl.impl_shared_num);
 	  ("", "sr", (if impl.impl_shared_id = Md4.null then
-		        (Filename.basename impl.impl_shared_codedname)
+		        (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)
 		      else
 			Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
 			  ed2k (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)));

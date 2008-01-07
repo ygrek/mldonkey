@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/01/07
+6365: HTML: Use option max_name_len in upstats for unhashed files
+
 2008/01/04
 6362: Small Geoip updates
 - new countries + flags: Saint Barthelemy, Saint Martin
