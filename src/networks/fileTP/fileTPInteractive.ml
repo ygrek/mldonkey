@@ -276,7 +276,7 @@ let get_regexp_int text r =
   ignore (Str.search_forward r text 0);
   let a = Str.group_beginning 1 in
   let b = Str.group_end 1 in
-  int_of_string (String.sub text a (b - a))
+  Int64.of_string (String.sub text a (b - a))
 
 let get_regexp_string text r =
   ignore (Str.search_forward r text 0);
@@ -297,7 +297,7 @@ let op_network_parse_url url user group =
     if (String2.check_prefix real_url "http://") then (
       let length_regexp = "Content-Length: \\(.*\\)" in
        try let length = get_regexp_int url (Str.regexp length_regexp) in
-         if (length > 0) then begin
+         if (length > 0L) then begin
            download_file real_url "" user group; "started FileTP download", true
          end
          else "can not parse Content-Length", false

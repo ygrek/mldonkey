@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/01/08
+6367: FileTP: Fix bug when starting downloads > 4GB via dllink
+
 2008/01/07
 6364: MinGW: Fix broken share priorities (thx to vbnuy6)
 6365: HTML: Use option max_name_len in upstats for unhashed files
