@@ -2779,12 +2779,12 @@ let received up file_begin str string_begin string_len =
     | FileCancelled 
     | FileShared
     | FileNew
+    | FileQueued
     | FileDownloaded -> 
 	if !verbose then
 	  lprintf_nl "received: wrong file state %s for %s" (string_of_state (file_state t.t_file)) s.s_filename;
 	()
-    | FileDownloading
-    | FileQueued ->
+    | FileDownloading ->
 	try
 	  List.iter (fun (_,_,r) ->
     (* was: r.range_begin < file_end && r.range_end > file_begin *)

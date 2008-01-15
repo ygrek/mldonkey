@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/01/15
+6373: Swarmer: Ignore received data when file is queued
+
 2008/01/08
 6367: FileTP: Fix bug when starting downloads > 4GB via dllink
 
