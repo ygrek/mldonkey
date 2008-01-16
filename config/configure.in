@@ -279,9 +279,9 @@ if test ! -z "$SUB_VERSION3"; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION3
 fi
 
-REQUIRED_OCAML=3.10.0
+REQUIRED_OCAML=3.10.1
 DOWNLOAD_OCAML_MAJOR=3.10
-DOWNLOAD_OCAML=3.10.0
+DOWNLOAD_OCAML=3.10.1
 
 REQUIRED_LABLGTK=1.2.7
 
@@ -486,7 +486,7 @@ if [ test -z "$OCAMLC" ] || [ test -z "$CAMLP4" ] || [ test "$REQUIRED_OCAML" = 
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
   case "$OCAMLVERSION" in
-    "$REQUIRED_OCAML"*|3.10.1*|3.09.*|3.08.4*|3.08.3*) ;;
+    "$REQUIRED_OCAML"*|3.10.0*|3.09.*|3.08.4*|3.08.3*) ;;
     *)
         echo "Need build"
         BUILD_OCAML=yes
@@ -1486,14 +1486,14 @@ fi
 
 echo -n " - Gnutella          "
 if test "$GNUTELLA" = "yes"; then
-  echo "enabled (warning: default hostcache URLs out-of-date)"
+  echo "enabled (warning: this network module is unmaintained)"
 else
   echo "        disabled - unmaintained"
 fi
 
 echo -n " - Gnutella2         "
 if test "$GNUTELLA2" = "yes"; then
-  echo "enabled (warning: default hostcache URLs out-of-date)"
+  echo "enabled (warning: this network module is unmaintained)"
 else
   echo "        disabled - unmaintained"
 fi

@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/01/16
+6377: Configure: Make Ocaml 3.10.1 the default compiler
+- Ocaml 3.10.1 fixes crashes in MLDonkeys eDonkey module when compiled with
+  Ocaml 3.10.0 on 64bit systems
+
 2008/01/15
 6373: Swarmer: Ignore received data when file is queued
 
