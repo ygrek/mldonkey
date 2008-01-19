@@ -1083,7 +1083,7 @@ let simple_print_file_list finished buf files format =
       ) files)
 
 let print_bw_stats buf =
-  Printf.bprintf buf "Down: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s | Uploaded: %s"
+  Printf.bprintf buf "Down: %.1f KB/s ( %d + %d ) | Up: %.1f KB/s ( %d + %d ) | Shared: %d/%s | Downloaded: %s | Uploaded: %s"
        (( (float_of_int !udp_download_rate) +. (float_of_int !control_download_rate)) /. 1024.0)
          !udp_download_rate
          !control_download_rate
@@ -1092,6 +1092,7 @@ let print_bw_stats buf =
          !control_upload_rate
          !nshared_files
   (size_of_int64 !nshared_bytes)
+  (size_of_int64 !download_counter)
   (size_of_int64 !upload_counter)
 
 let console_topic () =

@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2008/01/16
+6379: bwstats: Show downloaded bytes (pango)
+
+2008/01/16
 6377: Configure: Make Ocaml 3.10.1 the default compiler
 - Ocaml 3.10.1 fixes crashes in MLDonkeys eDonkey module when compiled with
   Ocaml 3.10.0 on 64bit systems
