@@ -2450,7 +2450,7 @@ let _ =
      ), "debug command";
 
     "shares", Arg_none (fun o ->
-
+	if user2_is_admin o.conn_user.ui_user then begin
         let buf = o.conn_buf in
 
         if use_html_mods o then begin
@@ -2559,9 +2559,13 @@ let _ =
 
           end;
         ""
+	  end
+        else
+	  _s "You are not allowed to list shared directories"
     ), ":\t\t\t\tprint shared directories";
 
     "share", Arg_multiple (fun args o ->
+	if user2_is_admin o.conn_user.ui_user then begin
         let (prio, arg, strategy) = match args with
           | [prio; arg; strategy] -> int_of_string prio, arg, strategy
           | [prio; arg] -> int_of_string prio, arg, "only_directory"
@@ -2595,6 +2599,9 @@ let _ =
 	  end
         else
           "no such directory"
+	  end
+        else
+	  _s "You are not allowed to share directories"
     ), "<priority> <dir> [<strategy>] :\tshare directory <dir> with <priority> [and sharing strategy <strategy>]";
 
     "unshare", Arg_one (fun arg o ->

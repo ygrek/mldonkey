@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/01/24
+6381: Multiuser: Block commands "shares" and "share" for non-admin users
+-------------------------------------------------------------------------------
 2008/01/16: version 2.9.3 = tag release-2-9-3
 6379: bwstats: Show downloaded bytes (pango)
 
