@@ -1146,6 +1146,9 @@ onClick=\"parent.frames[_getFrameByName('output')].location.href='http://mldonke
 <TD class=\"bu bbig\" title=\"View core log\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','log')\">Log</TD>
+<TD class=\"bu bbig\" title=\"Logout interface\"
+onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
+onClick=\"mSub('output','logout')\">Logout</TD>
 <TD class=\"bu bbig\" title=\"Kill core\"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','kill')\">Kill core</TD>

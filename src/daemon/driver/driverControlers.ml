@@ -950,7 +950,7 @@ let http_handler o t r =
 	 if Buffer.contents b <> "" then Printf.sprintf "(%s)" (Buffer.contents b) else "");
 
   let user = if r.options.login = "" then (admin_user ()).CommonTypes.user_name else r.options.login in
-  if not (valid_password user r.options.passwd) then begin
+  if not (valid_password user r.options.passwd) || (r.get_url.Url.short_file = "logout") then begin
       clear_page buf;
       http_file_type := HTM;
       let _, error_text_long, header = Http_server.error_page "401" "" ""

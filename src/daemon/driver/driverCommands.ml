@@ -328,6 +328,27 @@ let _ =
     "q", Arg_none (fun o ->
         raise CommonTypes.CommandCloseSocket
     ), ":\t\t\t\t\t$bclose telnet$n";
+    
+    "logout", Arg_none (fun o ->
+        let buf = o.conn_buf in
+        if o.conn_output = HTML then begin
+          if has_empty_password o.conn_user.ui_user then
+            print_command_result o "logout not required, your password is empty!"
+          else begin
+            if use_html_mods o then begin
+              html_mods_table_header buf "helpTable" "results" [];
+              Buffer.add_string buf "\\<tr class=\\\"dl-1\\\"\\>";
+              html_mods_td buf [("", "sr", "Are you sure?"); ];
+              Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+              html_mods_td buf [("", "sr", "\\<div align=\\\"center\\\"\\>\\<a href=\\\"logout\\\" target=\\\"_parent\\\"\\>yes\\</a\\>\\</div\\>"); ];
+              Buffer.add_string buf "\\</tr\\>\\</table\\>\\</div\\>";
+            end else
+              Printf.bprintf buf "Are you sure? \\<a href=\\\"logout\\\" target=\\\"_parent\\\"\\>yes\\</a\\>"
+          end
+        end else
+          raise CommonTypes.CommandCloseSocket;
+      ""
+    ), ":\t\t\tlogout interface";      
 
     "kill", Arg_none (fun o ->
         if user2_is_admin o.conn_user.ui_user then
