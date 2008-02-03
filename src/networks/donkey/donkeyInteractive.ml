@@ -284,8 +284,8 @@ let really_query_download filename size md4 location old_file absents user group
             CommonSwarming.set_absent swarmer absents
   end;
 
-  if !verbose then lprintf_nl (_b "Started new download, file %s, size %Ld, md4 %s")
-    (file_best_name file) size (Md4.to_string md4);
+  if !verbose then lprintf_nl (_b "Started new download, file %s, size %Ld, md4 %s, user:group %s:%s")
+    (file_best_name file) size (Md4.to_string md4) user.CommonTypes.user_name (CommonUserDb.user2_print_group group);
 
   DonkeyProtoOvernet.Overnet.recover_file file;
   DonkeyProtoKademlia.Kademlia.recover_file file;

@@ -167,7 +167,10 @@ module FileOption = struct
           set_file_priority file priority;
 
           if !verbose && !CommonGlobals.is_startup_phase then
-            lprintf_nl "Started download of %s" (file_best_name file);
+            lprintf_nl "Started download of %s, user:group %s:%s"
+              (file_best_name file)
+              file_user.user_name
+              (user2_print_group file_group);
 
           file
       | _ -> assert false
