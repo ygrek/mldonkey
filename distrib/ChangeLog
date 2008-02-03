@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2008/02/04
+6401: Swarmer: Correctly update file_downloaded during recover_temp (pango)
 6400: EDK: Correctly update filename after recover_temp
 6396: Log: Print user:group when starting a download
 6395: Makefile: Do not strip shared linked binaries on Mac OS X, clean Makefile

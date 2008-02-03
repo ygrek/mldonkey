@@ -1327,7 +1327,7 @@ let set_frontend_state_missing t j =
 let set_frontend_state_complete t j =
   match VB.get t.t_converted_verified_bitmap j with
   | VB.State_missing | VB.State_partial ->
-      if !verbose_swarming || !verbose then
+      if (not !CommonGlobals.is_startup_phase) && (!verbose_swarming || !verbose) then
 	lprintf_nl "Completed block %d/%d of %s"
           (j + 1) t.t_nchunks (file_best_name t.t_file);
       let s = t.t_s in
@@ -1444,7 +1444,12 @@ let verify_all_chunks t =
   let s = t.t_s in
   VB.iteri (fun i state -> 
     match state with
-    | VB.State_missing | VB.State_verified ->
+    | VB.State_verified ->
+	must_verify_block s i
+    | VB.State_missing ->
+	let block_begin = compute_block_begin s i in
+	let block_end = compute_block_end s i in
+	add_file_downloaded None s (block_end -- block_begin);
 	must_verify_block s i
     | VB.State_partial | VB.State_complete -> ()
   ) s.s_verified_bitmap
