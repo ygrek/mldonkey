@@ -1456,6 +1456,7 @@ other one for unlimited sockets.  *)
           client_has_file c file;
 	  add_file_filenames (as_file file) t.Q.name;
 
+          update_best_name file;
           if file_size file <= block_size then begin
               client_is_useful c file (Bitv.create 1 true)
             end else begin
