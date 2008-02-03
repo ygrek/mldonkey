@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/02/04
+6395: Makefile: Do not strip shared linked binaries on Mac OS X, clean Makefile
+
 2008/01/24
 6381: Multiuser: Block commands "shares" and "share" for non-admin users
 -------------------------------------------------------------------------------

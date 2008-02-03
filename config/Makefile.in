@@ -572,171 +572,8 @@ mlnet+gui_SRCS=$(MAIN_SRCS)
 #######################################################################
 
 
-CONTESTER_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  src/contest/pass.c src/contest/contester.ml
-
-SAFEEXEC_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  src/contest/pass.c src/contest/safeexec.ml
-
-MLPIC_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  src/pic/picTypes.ml \
-  src/pic/picOptions.ml \
-  src/pic/picGlobals.ml \
-  src/pic/picDB.ml \
-  src/pic/picGenerator.ml \
-  src/pic/picThemeFrames.ml \
-  src/pic/picThemeFilm.ml \
-  src/pic/picThemeEditor.ml \
-  src/pic/picThemeAlbum.ml \
-  src/pic/picHttp.ml \
-  src/pic/picMain.ml
-
-ifeq ("$(TMK)" , "yes")
-TMK_SRCS= \
-  src/spider/tmk/ml_curses.c \
-  src/spider/tmk/curses.mlcpp \
-  \
-  src/spider/tmk/tmkStruct.ml \
-  src/spider/tmk/tmkArea.ml \
-  src/spider/tmk/tmkStyle.ml \
-  src/spider/tmk/tmkStyle_p.mly \
-  src/spider/tmk/tmkStyle_l.mll \
-  src/spider/tmk/tmkSignal.ml \
-  src/spider/tmk/tmkTerminal.ml \
-  src/spider/tmk/tmkMain.ml \
-  src/spider/tmk/tmkWidget.ml \
-  src/spider/tmk/tmkContainer.ml \
-  src/spider/tmk/tmkPacking.ml \
-  src/spider/tmk/tmkMisc.ml \
-  src/spider/tmk/tmkButton.ml \
-  src/spider/tmk/tmkList.ml \
-  src/spider/tmk/tmkEntry.ml \
-  src/spider/tmk/tmkFrame.ml \
-
-DISASM_SRCS= \
-  $(TMK_SRCS) \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  src/spider/disasm/ansi.c \
-  src/spider/disasm/asmserv.c \
-  src/spider/disasm/assembl.c \
-  src/spider/disasm/disasm.c \
-  src/spider/disasm/mldisasm_c.c \
-  src/spider/disasm/mldisasm.ml \
-  src/spider/disasm/aSMmain.ml \
-  
-
-endif
-
-
-SPIDER_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) \
-  \
-  src/spider/ecrawler/spiderTypes.ml \
-  src/spider/ecrawler/spiderOptions.ml \
-  $(SRC_DONKEY)/donkeyTypes.ml \
-  $(SRC_DONKEY)/donkeyMftp.ml \
-  $(SRC_DONKEY)/donkeyImport.ml \
-  $(SRC_DONKEY)/donkeyOpenProtocol.ml \
-  $(SRC_DONKEY)/donkeyProtoClient.ml \
-  $(SRC_DONKEY)/donkeyProtoServer.ml  \
-  $(SRC_DONKEY)/donkeyProtoUdp.ml  \
-  \
-  src/spider/ecrawler/spiderGlobals.ml \
-  src/spider/ecrawler/spiderArgs.ml \
-  src/spider/ecrawler/spiderProtoCom.ml  \
- \
-  src/spider/ecrawler/spiderComplexOptions.ml \
-  src/spider/ecrawler/spiderSupernode.ml \
-  src/spider/ecrawler/spiderIndexer.ml \
-  src/spider/ecrawler/spiderShare.ml \
-  src/spider/ecrawler/spiderReliability.ml \
-  src/spider/ecrawler/spiderOneFile.ml \
-  src/spider/ecrawler/spiderClient.ml \
-  \
-  src/spider/ecrawler/spiderTrap.ml \
-  src/spider/ecrawler/spiderOvernet.ml \
-  src/spider/ecrawler/spiderServers.ml \
-  src/spider/ecrawler/spiderSearch.ml \
-  src/spider/ecrawler/spiderInteractive.ml \
-  \
-  src/spider/ecrawler/spiderMain.ml \
-  src/daemon/common/commonMain.ml
-
 TESTRSS_SRCS= \
   $(CDK_SRCS) $(LIB_SRCS) tools/testrss.ml
-
-CLUSTER_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  src/cluster/clusterMain.ml
-
-ANALYSER1_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) $(CHAT_SRCS) $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) \
-  \
-  src/spider/ecrawler/spiderTypes.ml \
-  src/spider/ecrawler/spiderOptions.ml \
-  $(SRC_DONKEY)/donkeyTypes.ml \
-  $(SRC_DONKEY)/donkeyMftp.ml \
-  $(SRC_DONKEY)/donkeyImport.ml \
-  $(SRC_DONKEY)/donkeyOpenProtocol.ml \
-  $(SRC_DONKEY)/donkeyProtoClient.ml \
-  $(SRC_DONKEY)/donkeyProtoServer.ml  \
-  $(SRC_DONKEY)/donkeyProtoUdp.ml  \
-  \
-  src/spider/ecrawler/spiderGlobals.ml \
-  src/spider/ecrawler/spiderArgs.ml \
-  src/spider/ecrawler/spiderProtoCom.ml  \
- \
-  src/spider/ecrawler/spiderComplexOptions.ml \
-  src/spider/ecrawler/spiderSupernode.ml \
-  src/spider/ecrawler/spiderIndexer.ml \
-  src/spider/ecrawler/spiderShare.ml \
-  src/spider/ecrawler/spiderReliability.ml \
-  src/spider/ecrawler/spiderOneFile.ml \
-  \
-  src/spider/analyser1/spiderDependencies.ml \
-  src/spider/analyser1/spiderUtils.ml \
-  src/spider/analyser1/spiderFiles.ml \
-  src/spider/analyser1/spiderGenTables.ml \
-  src/spider/analyser1/spiderTables.ml \
-  src/spider/analyser1/spiderChunks.ml \
-  src/spider/analyser1/spiderCommands.ml \
-  src/spider/analyser1/spiderClustering.ml \
-  src/spider/analyser1/spiderCorruption.ml \
-  src/spider/analyser1/spiderRoutes.ml \
-  src/spider/analyser1/spiderStats.ml \
-  \
-  src/spider/analyser1/analyser1Main.ml \
-  src/daemon/common/commonMain.ml
-
-BTVIEW_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
-  $(MP3TAG_SRCS) \
-  \
-  $(COMMON)/commonTypes.ml \
-  $(COMMON)/commonOptions.ml \
-  $(COMMON)/commonMessages.ml \
-  $(COMMON)/commonUserDb.ml \
-  $(COMMON)/commonGlobals.ml \
-  $(COMMON)/commonWeb.ml \
-  $(COMMON)/commonHasher.ml \
-  $(COMMON)/commonSwarming.ml \
-  $(COMMON)/commonHasher_c.c \
-  \
-  $(SRC_BITTORRENT)/bencode.ml \
-  $(SRC_BITTORRENT)/bTProtocol.ml \
-  src/btview/btviewTypes.ml \
-  src/btview/btviewGlobals.ml \
-  src/btview/btviewOptions.ml \
-  src/btview/btviewClients.ml \
-  src/btview/btviewInteractive.ml \
-  \
-  src/btview/btviewMain.ml \
-  src/daemon/common/commonMain.ml
 
 
 #######################################################################
@@ -1704,18 +1541,15 @@ release.shared: opt
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
 	for i in $(RELEASE_TARGETS); do \
-	   cp -f $$i $(DISDIR)/$$i && strip  $(DISDIR)/$$i; \
+	   cp -f $$i $(DISDIR)/$$i && \
+	   if [ "$(SYSTEM)" != "macos" ]; then \
+	     strip $(DISDIR)/$$i; \
+	   fi \
 	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
-
-upload.shared: release.shared
-	scp mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
-
-upload.shared.rcp: release.shared
-	rcp mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
 
 release.static: static opt
 	rm -rf mldonkey-*
@@ -1749,8 +1583,12 @@ release.mlnet.byte.static: mlnet.byte.static
 release.mlnet.distri: mlnet mlnet.static
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
-	cp mlnet $(DISDIR)/mlnet && strip $(DISDIR)/mlnet
-	cp mlnet.static $(DISDIR)/mlnet.static && strip $(DISDIR)/mlnet.static
+	for i in "mlnet mlnet.static"; do \
+	   cp -f $$i $(DISDIR)/$$i && \
+	   if [ "$(SYSTEM)" != "macos" ]; then \
+	     strip $(DISDIR)/$$i; \
+	   fi \
+	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
@@ -1759,8 +1597,12 @@ release.mlnet.distri: mlnet mlnet.static
 release.utils.shared: mld_hash make_torrent
 	rm -rf mldonkey-*
 	mkdir -p $(DISDIR)
-	cp -f mld_hash $(DISDIR)/mld_hash && strip  $(DISDIR)/mld_hash
-	cp -f make_torrent $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
+	for i in "mld_hash make_torrent"; do \
+	   cp -f $$i $(DISDIR)/$$i && \
+	   if [ "$(SYSTEM)" != "macos" ]; then \
+	     strip $(DISDIR)/$$i; \
+	   fi \
+	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
 	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
@@ -1776,20 +1618,10 @@ release.utils.static: mld_hash.static make_torrent.static
 	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 
-upload.static: release.static
-	scp mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
-
-upload.static.rcp: release.static
-	rcp mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar.$(COMPRESS_EXT) lachesis:devel/mldonkey-release/
-
-
 release.sources: 
 	rm -rf **/CVS
 	rm -f config/Makefile.config
 	cd ..; tar zcf mldonkey-$(CURRENT_VERSION).sources.tar.gz mldonkey
-
-upload.sources: release.sources
-	scp ../mldonkey-$(CURRENT_VERSION).sources.tar.gz lachesis:devel/mldonkey-release/
 
 distrib: $(DISDIR)
 
@@ -1803,17 +1635,6 @@ $(DISDIR):  static distrib/Readme.txt
 	tar cf $(DISDIR).tar $(DISDIR)
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
 	bzip2 mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
-
-macosx:  opt distrib/Readme.txt
-	rm -rf mldonkey-*
-	cp -R distrib $(DISDIR)
-	rm -rf $(DISDIR)/CVS
-	for i in $(RELEASE_TARGETS); do \
-	   cp $$i $(DISDIR)/$$i && strip  $(DISDIR)/$$i; \
-	done
-	tar cf $(DISDIR).tar $(DISDIR)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).shared.ppc-MacOS-X.tar
-	gzip mldonkey-$(CURRENT_VERSION).shared.ppc-MacOS-X.tar
 
 SHADIR=mldonkey-shared
 
