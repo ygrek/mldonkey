@@ -1806,7 +1806,7 @@ let _ =
                   (if !!enable_overnet then "is enabled" else "is DISABLED"));
               ("", "srh", Printf.sprintf "%s Connectivity: %s%s" (command_prefix_to_net)
                    (if (!connected_peers + !pre_connected_peers) > 20 then "Got enough online peers" else "NOT enough online peers")
-                   (if (abs(!global_last_recv - !global_last_send)) > 60 then " ,there maybe a problem with incoming upd packets" else "" ));
+                   (if (abs(!global_last_recv - !global_last_send)) > 60 then " ,there maybe a problem with incoming udp packets" else "" ));
 
             ];
             Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
@@ -1836,7 +1836,7 @@ let _ =
                (if !!enable_overnet then "is enabled" else "is DISABLED");
             Printf.bprintf buf "%s Connectivity: %s%s\n" (command_prefix_to_net)
                    (if (!connected_peers + !pre_connected_peers) > 20 then "Got enough online peers" else "NOT enough online peers")
-                   (if (abs(!global_last_recv - !global_last_send)) > 60 then " ,there maybe a problem with incoming upd packets" else "");
+                   (if (abs(!global_last_recv - !global_last_send)) > 60 then " ,there maybe a problem with incoming udp packets" else "");
             Printf.bprintf buf "%s statistics:\n"
 	    (command_prefix_to_net);
             Printf.bprintf buf "  Search hits: %d\n" !search_hits;
