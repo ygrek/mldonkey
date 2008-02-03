@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2008/02/04
+6077: bw_toggle: support new option "max_opened_connections_2" (Schlumpf)
 6401: Swarmer: Correctly update file_downloaded during recover_temp (pango)
 6400: EDK: Correctly update filename after recover_temp
 6396: Log: Print user:group when starting a download

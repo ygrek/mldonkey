@@ -603,6 +603,10 @@ let max_hard_download_rate_2 = define_option current_section ["max_hard_download
 let max_opened_connections = define_option current_section ["max_opened_connections"]
   "Maximal number of opened connections"
     int_option 200
+    
+let max_opened_connections_2 = define_option current_section ["max_opened_connections_2"]
+  "Second maximal number of opened connections for easy toggling (use bw_toggle)"
+    int_option 100
 
 let max_indirect_connections = define_option current_section ["max_indirect_connections"]
   "Amount of indirect connections in percent (min 30, max 70) of max_opened_connections"

@@ -1117,18 +1117,21 @@ let _ =
 	if user2_is_admin o.conn_user.ui_user then begin
 	let ul_bkp = !!max_hard_upload_rate_2 in
 	let dl_bkp = !!max_hard_download_rate_2 in
+	let max_conn = !!max_opened_connections_2 in
 	max_hard_upload_rate_2 =:= !!max_hard_upload_rate;
 	max_hard_download_rate_2 =:= !!max_hard_download_rate;
+	max_opened_connections_2 =:= !!max_opened_connections;
 	max_hard_upload_rate =:= ul_bkp;
 	max_hard_download_rate =:=  dl_bkp;
+	max_opened_connections =:= max_conn;
 	print_command_result o (Printf.sprintf
-	  "new upload rate: %d | new download rate: %d"
-	    !!max_hard_upload_rate !!max_hard_download_rate)
+	  "new upload rate: %d | new download rate: %d | new max opened connections: %d"
+	    !!max_hard_upload_rate !!max_hard_download_rate !!max_opened_connections)
 	end
 	else
 	  print_command_result o "You are not allowed to toggle bandwidth";
 	""
-    ), ":\t\t\t\ttoggle between the two rate sets";
+    ), ":\t\t\t\ttoggle between the two rate and opened connection sets";
 
     "costats", Arg_multiple (fun args o ->
         let filter cs =
@@ -1933,9 +1936,10 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 			strings_of_option dynamic_slots;
 			strings_of_option max_hard_upload_rate;
 			strings_of_option max_hard_download_rate;
+			strings_of_option max_opened_connections;
 			strings_of_option max_hard_upload_rate_2;
 			strings_of_option max_hard_download_rate_2;
-			strings_of_option max_opened_connections;
+			strings_of_option max_opened_connections_2;
 			strings_of_option max_indirect_connections;
 			strings_of_option max_connections_per_second;
 			strings_of_option max_concurrent_downloads;
