@@ -617,7 +617,8 @@ let max_upload_slots = define_option current_section ["max_upload_slots"]
     int_option 5
 
 let max_release_slots = define_option current_section ["max_release_slots"]
-  "How many percent of upload slots can be used for downloading files tagged as release"
+  "How many percent of upload slots can be used for downloading files
+  tagged as release, maximum 75%"
     percent_option 20
 
 let friends_upload_slot = define_option current_section ["friends_upload_slot"]
@@ -1180,6 +1181,10 @@ let auto_commit = define_option current_section ["auto_commit"]
 let pause_new_downloads = define_option current_section ["pause_new_downloads"]
   "Set to true if you want all new downloads be paused immediatly
   will be set to false on core start."
+    bool_option false
+
+let release_new_downloads = define_option current_section ["release_new_downloads"]
+  "Set to true if you want to activate the release slot feature for all new downloads."
     bool_option false
 
 (*  emulate_sparsefiles does not work, temporarily disabled
@@ -1746,6 +1751,9 @@ let _ =
       else if !!max_indirect_connections < 30 then max_indirect_connections =:= 30
     end;
     calc_real_max_indirect_connections ()
+  );
+  option_hook max_release_slots (fun _ ->
+    if !!max_release_slots > 75 then max_release_slots =:= 75
   );
   option_hook min_reask_delay (fun _ ->
     if !!min_reask_delay < 600 then min_reask_delay =:= 600

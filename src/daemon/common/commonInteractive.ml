@@ -524,6 +524,7 @@ let display_bw_stats = ref false
 
 let start_download file =
   if !!pause_new_downloads then file_pause file (admin_user ());
+  if !!release_new_downloads then set_file_release file true (admin_user ());
   if !!file_started_cmd <> "" then
     begin
       let info = file_info file in

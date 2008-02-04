@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/02/05
+6404: New option release_new_downloads
+- set to true to activate release slot feature for all newly started downloads
+
 2008/02/04
 6080: HTTP interface: new command/button "logout" (Schlumpf)
 6077: bw_toggle: support new option "max_opened_connections_2" (Schlumpf)
