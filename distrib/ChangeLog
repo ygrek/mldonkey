@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2008/02/06
+6407: New options run_as_group/run_as_groupgid
+- works the same way as options run_as_user/run_as_useruid
+- display system user:group running MLDonkey core in runinfo
 6406: Mail: Fix bug in rfc2047 encoding
 
 2008/02/05

@@ -565,6 +565,28 @@ or getting a binary compiled with glibc %s.\n\n")
             );
   );
 
+  if !!run_as_group <> "" then begin
+      try
+        let new_gr = Unix.getgrnam !!run_as_group in
+        MlUnix.setgid new_gr.Unix.gr_gid;
+        let gr = Unix.getgrgid (Unix.getgid()) in
+        lprintf_nl (_b "mldonkey is now running as group %s") gr.Unix.gr_name;
+      with e ->
+          lprintf_nl (_b "Exception %s trying to set group_gid [%s]")
+          (Printexc2.to_string e) !!run_as_group;
+          exit 67
+    end;
+
+  if !!run_as_groupgid <> 0 then begin
+      try
+        MlUnix.setgid !!run_as_groupgid;
+        lprintf_nl (_b "mldonkey is now running as gid %d")  !!run_as_groupgid;
+      with e ->
+          lprintf_nl (_b "Exception %s trying to set group_gid [%d]")
+          (Printexc2.to_string e) !!run_as_groupgid;
+          exit 67
+    end;
+
   if !!run_as_user <> "" then begin
       try
         let new_pw = Unix.getpwnam !!run_as_user in

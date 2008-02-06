@@ -65,6 +65,7 @@ let fork_and_exec cmd args =
 *)
 
 let setuid uid = ()
+let setgid gid = ()
 let set_close_on_exec fd = ()
 let set_signal signal f = Sys.set_signal signal f
   

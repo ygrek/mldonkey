@@ -1260,15 +1260,25 @@ let current_section = startup_section
 let run_as_user = define_option current_section ["run_as_user"]
   ~restart: true
   "The login of the user you want mldonkey to run as, after the ports
-  have been bound (can be use not to run with root priviledges when
+  have been bound (can be used not to run with root privileges when
   a port < 1024 is needed)"
     string_option ""
 
 let run_as_useruid = define_option current_section ["run_as_useruid"]
   ~restart: true
   "The UID of the user (0=disabled) you want mldonkey to run as, after the ports
-  have been bound (can be use not to run with root priviledges when
+  have been bound (can be used not to run with root privileges when
   a port < 1024 is needed)"
+    int_option 0
+
+let run_as_group = define_option current_section ["run_as_group"]
+  ~restart: true
+  "The group of run_as_user user to be used"
+    string_option ""
+
+let run_as_groupgid = define_option current_section ["run_as_groupgid"]
+  ~restart: true
+  "The group of run_as_user user to be used"
     int_option 0
 
 let ask_for_gui = define_option current_section ["ask_for_gui"]

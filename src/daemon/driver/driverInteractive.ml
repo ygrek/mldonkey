@@ -1970,12 +1970,21 @@ let runinfo html buf o =
   let list = ref [] in
   tack list
     (
-      "User:\t\t", 
-      Printf.sprintf "%s (%s) - uptime: %s" 
+      "MLDonkey user:\t\t", 
+      Printf.sprintf "%s (%s) - uptime: %s%s"
 	o.conn_user.ui_user.user_name
 	(if has_empty_password o.conn_user.ui_user then "Warning: empty Password"
 	else "PW Protected")
 	(Date.time_to_string (last_time () - start_time) "verbose")
+        (
+        let user_group =
+          (try Some (Unix.getpwuid (Unix.getuid())).Unix.pw_name with _ -> None),
+          (try Some (Unix.getgrgid (Unix.getgid())).Unix.gr_name with _ -> None)
+        in
+        match user_group with
+        | (Some g, Some u) -> Printf.sprintf " - running as %s:%s" u g
+        | _ -> ""
+        )
     );
   tack list
     (

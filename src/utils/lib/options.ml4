@@ -1179,7 +1179,7 @@ let simple_args prefix opfile =
        "-" ^ oi.M.option_name,
        Arg.String
          (fun s ->
-            lprintf "Setting option %s\n" oi.M.option_name;
+            lprintf_nl "Setting option %s" oi.M.option_name;
             set_simple_option opfile oi.M.option_name s),
        Printf.sprintf "<string> : \t%s (current: %s)"
          oi.M.option_help oi.M.option_value)

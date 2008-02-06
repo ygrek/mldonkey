@@ -94,6 +94,7 @@ let fork_and_exec cmd ?vars args =
   | id -> ignore (snd(Unix.waitpid [] id))
       
 let setuid = Unix.setuid
+let setgid = Unix.setgid
 let set_close_on_exec = Unix.set_close_on_exec
 let set_signal signal f = Sys.set_signal signal f
   
