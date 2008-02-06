@@ -64,7 +64,6 @@ let rfc2047_encode h encoding s =
           Buffer.add_char buf s.[i]; incr pos
       | ' ' -> Buffer.add_char buf '_'; incr pos 
       | c ->
-          if l < !pos + 2 then newline ();
           Buffer.add_char buf '=';
           Buffer.add_char buf (hexa_digit (Char.code c / 16));
           Buffer.add_char buf (hexa_digit (Char.code c mod 16));
