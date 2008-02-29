@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/02/29
+6439: Configure: Make Ocaml 3.10.2 the default compiler
+
 2008/02/06
 6407: New options run_as_group/run_as_groupgid
 - works the same way as options run_as_user/run_as_useruid

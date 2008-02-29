@@ -63,17 +63,17 @@ Note: At least 70 M of free disk space is required on the partition where mldonk
 is compiled.
 
 ------------------------------------------------------------------------
-1) Installing required tools: Objective-Caml 3.10.1 and LablGTK
+1) Installing required tools: Objective-Caml 3.10.2 and LablGTK
 
- 1.1) Objective-Caml 3.10.1 (from http://caml.inria.fr/pub/distrib/ocaml-3.10)
+ 1.1) Objective-Caml 3.10.2 (from http://caml.inria.fr/pub/distrib/ocaml-3.10)
 
-    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.10/ocaml-3.10.1.tar.gz
-    ~/tmp> tar zxf ocaml-3.10.1.tar.gz
-    ~/tmp> cd ocaml-3.10.1
+    ~/tmp> wget http://caml.inria.fr/distrib/ocaml-3.10/ocaml-3.10.2.tar.gz
+    ~/tmp> tar zxf ocaml-3.10.2.tar.gz
+    ~/tmp> cd ocaml-3.10.2
 
-    ~/tmp/ocaml-3.10.1> ./configure
-    ~/tmp/ocaml-3.10.1> make world.opt
-    ~/tmp/ocaml-3.10.1> make install
+    ~/tmp/ocaml-3.10.2> ./configure
+    ~/tmp/ocaml-3.10.2> make world.opt
+    ~/tmp/ocaml-3.10.2> make install
 
  1.2.1) LablGTK 1.2.7 for GTK1
       (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
