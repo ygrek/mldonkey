@@ -76,9 +76,9 @@ is compiled.
     ~/tmp/ocaml-3.10.2> make install
 
  1.2.1) LablGTK 1.2.7 for GTK1
-      (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
+      (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgtk.html)
 
-    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-1.2.7.tar.gz
+    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgtk-1.2.7.tar.gz
     ~/tmp> tar zxf lablgtk-1.2.7.tar.gz
     ~/tmp> cd lablgtk-1.2.7
     ~/tmp/lablgtk-1.2.7> make configure
@@ -86,16 +86,15 @@ is compiled.
     ~/tmp/lablgtk-1.2.7> make opt
     ~/tmp/lablgtk-1.2.7> make install
 
- 1.2.2) LablGTK-2.10.0 for GTK2
-      (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/lablgtk.html)
+ 1.2.2) LablGTK-2.10.1 for GTK2
+      (from http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/lablgtk.html)
 
-    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/olabl/dist/lablgtk-2.10.0.tar.gz
-    ~/tmp> tar zxf lablgtk-2.10.0.tar.gz
-    ~/tmp> cd lablgtk-2.10.0
-    ~/tmp> patch -p0 -i ../mldonkey/patches/lablgtk-2.10.0.patch
-    ~/tmp/lablgtk-2.10.0> ./configure
-    ~/tmp/lablgtk-2.10.0> make world
-    ~/tmp/lablgtk-2.10.0> make install
+    ~/tmp> wget http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgtk-2.10.1.tar.gz
+    ~/tmp> tar zxf lablgtk-2.10.1.tar.gz
+    ~/tmp> cd lablgtk-2.10.1
+    ~/tmp/lablgtk-2.10.1> ./configure
+    ~/tmp/lablgtk-2.10.1> make world
+    ~/tmp/lablgtk-2.10.1> make install
 
 2) Compiling mldonkey with GUI:
 
@@ -103,7 +102,7 @@ is compiled.
     To build GTK1 oldgui: ./configure --enable-gui=oldgui
       - note: oldgui does not compile with Ocaml >= 3.10
     To build GTK2 GUI:    ./configure --enable-gui[=newgui2]
-    lablgtk-1.2.7 and lablgtk-2.6.0 can both be installed at the same time.
+    lablgtk-1.2.7 and lablgtk-2.10.1 can both be installed at the same time.
 
     ~/tmp/mldonkey> make
 

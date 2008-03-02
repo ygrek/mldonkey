@@ -15,7 +15,7 @@ ChangeLog
 =========
 
 2008/03/02
-6223: GTK2 GUI: Compile with lablgtk-2.10.1 by default
+6440: GTK2 GUI: Compile with lablgtk-2.10.1 by default
 - lablgtk-2.10.0 does not compile with Ocaml 3.10.2
 
 2008/02/29
