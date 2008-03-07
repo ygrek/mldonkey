@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/03/07
+6451: BT: Implement minimum of 3 (like max_upload_slots)
+      for option max_bt_uploaders
+-------------------------------------------------------------------------------
 2008/03/02: version 2.9.4 = tag release-2-9-4
 6440: GTK2 GUI: Compile with lablgtk-2.10.1 by default
 - lablgtk-2.10.0 does not compile with Ocaml 3.10.2

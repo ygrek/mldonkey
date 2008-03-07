@@ -90,7 +90,7 @@ let max_uploaders_per_torrent = define_option bittorrent_section ["max_uploaders
 
 let max_bt_uploaders = define_option bittorrent_section ["max_bt_uploaders"]
   "Maximum number of uploaders for bittorrent"
-    int_option 5
+    int_option 3
 
 (* numwant: Optional. Number of peers that the client would like to receive from the tracker.
 This value is permitted to be zero. If omitted, typically defaults to 50 peers.   *)
@@ -119,7 +119,7 @@ let _ =
         if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= 5);
     option_hook max_bt_uploaders
       (fun _ ->
-        if !!max_bt_uploaders < 0 then max_bt_uploaders =:= 5;
+        if !!max_bt_uploaders < 3 then max_bt_uploaders =:= 3;
 	check_bt_uploaders ()
         );
     (* adds another hook to this common option here, to work around 
