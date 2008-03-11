@@ -226,7 +226,7 @@ let filesystem_compliant name fs namemax =
     | _ -> sys_checked_name in
 
   let length_checked_name =
-    if namemax = 0 || String.length sys_checked_name < namemax then
+    if namemax < 1 || String.length sys_checked_name < namemax then
       fs_checked_name
     else
       let ext = extension fs_checked_name in

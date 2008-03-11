@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/03/11
+6458: Fix commit bug when filesystem reports negative values
+      for maximum filename length
+
 2008/03/07
 6451: BT: Implement minimum of 3 (like max_upload_slots)
       for option max_bt_uploaders
