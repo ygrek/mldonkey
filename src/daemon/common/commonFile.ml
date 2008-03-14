@@ -714,7 +714,7 @@ let file_print file o =
         ("", "sr", Printf.sprintf "%d" (file_priority file)) ];
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-      if user2_allow_file_admin file o.conn_user.ui_user then
+      if user2_is_admin o.conn_user.ui_user then
         let optionlist = ref "" in
         user2_users_iter (fun user ->
 	  if user <> (file_owner file) then

@@ -3782,7 +3782,7 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
 	    begin
 	      try
 	        let u = user2_user_find user in
-		if user2_allow_file_admin file o.conn_user.ui_user then
+		if user2_is_admin o.conn_user.ui_user then
 		  begin
 		    set_file_owner file u;
                     match file_group file with
