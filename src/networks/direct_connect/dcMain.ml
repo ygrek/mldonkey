@@ -241,6 +241,7 @@ let _ =
 (*  network.op_network_clean_exit <- (fun _ -> lprintf_nl "Received (op_network_clean_exit)"; ()); *)
   network.op_network_reset <- (fun _ -> ());
   network.op_network_porttest_result <- (fun _ -> PorttestNotAvailable);
+  network.op_network_check_upload_slots <- (fun _ -> ());
 
   CommonInteractive.register_gui_options_panel "DC" gui_dc_options_panel; 
   

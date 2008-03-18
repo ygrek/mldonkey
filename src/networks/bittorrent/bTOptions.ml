@@ -122,10 +122,6 @@ let _ =
         if !!max_bt_uploaders < 3 then max_bt_uploaders =:= 3;
 	check_bt_uploaders ()
         );
-    (* adds another hook to this common option here, to work around 
-       cross-referencing problem *)
-    option_hook max_upload_slots
-      (fun _ -> check_bt_uploaders ());
     option_hook max_tracker_redirect   (** #4541 [egs] **)
       (fun _ ->
         if !!max_tracker_redirect < 0 then max_tracker_redirect =:= 0

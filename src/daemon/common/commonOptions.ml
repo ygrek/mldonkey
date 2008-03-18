@@ -1805,9 +1805,6 @@ let _ =
           close_log ()
         end
   );
-  option_hook max_upload_slots (fun _ ->
-      if !!max_upload_slots < 3 then
-        max_upload_slots =:= 3);
   option_hook buffer_writes_threshold (fun _ ->
       Unix32.max_buffered := Int64.of_int (1024 * !!buffer_writes_threshold));
   option_hook log_size (fun _ ->

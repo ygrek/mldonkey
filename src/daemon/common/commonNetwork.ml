@@ -112,6 +112,8 @@ let check_network_implementations () =
         lprintf_nl "op_network_porttest_start";
       if c.op_network_porttest_result == cc.op_network_porttest_result then 
         lprintf_nl "op_network_porttest_result";
+      if c.op_network_check_upload_slots == cc.op_network_check_upload_slots then 
+        lprintf_nl "op_network_check_upload_slots";
   ) !networks_ops;
   lprint_newline ()
 
@@ -138,6 +140,7 @@ let network_reset n = try n.op_network_reset () with _ -> ()
 let network_ports n = n.op_network_ports ()
 let network_porttest_start n = n.op_network_porttest_start ()
 let network_porttest_result n = n.op_network_porttest_result ()
+let network_check_upload_slots n = n.op_network_check_upload_slots ()
 
 let networks_iter f =
   List.iter (fun r ->
@@ -297,6 +300,7 @@ let new_network shortname name ?comment flags =
       op_network_ports = (fun _ -> ni_ok name "ports"; []);
       op_network_porttest_start = (fun _ -> ni_ok name "porttest_start");
       op_network_porttest_result = (fun _ -> fni name "porttest_result");
+      op_network_check_upload_slots = (fun _ -> ni_ok name "check_upload_slots");
     }
   in
   (* attempt: what is this cast for ? *)

@@ -1653,6 +1653,7 @@ let _ =
   network.op_network_reset <- (fun _ -> ());
 
   network.op_network_close_search <- (fun s -> ());
+  network.op_network_check_upload_slots <- (fun _ -> ());
   network.op_network_porttest_start <- (fun _ ->
     porttest_result := PorttestInProgress (last_time ());
     let module H = Http_client in

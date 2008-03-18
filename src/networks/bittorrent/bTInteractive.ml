@@ -1346,6 +1346,7 @@ let _ =
 	porttest_result := PorttestResult (last_time (), result)
       )
   );
+  network.op_network_check_upload_slots <- (fun _ -> check_bt_uploaders ());
   client_ops.op_client_info <- op_client_info;
   client_ops.op_client_connect <- op_client_connect;
   client_ops.op_client_disconnect <- op_client_disconnect;

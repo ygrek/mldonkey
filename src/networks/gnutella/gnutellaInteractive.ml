@@ -220,6 +220,7 @@ that we can reuse queries *)
     !!client_port, "client_port TCP+UDP";
     ]);
   network.op_network_porttest_result <- (fun _ -> PorttestNotAvailable);
+  network.op_network_check_upload_slots <- (fun _ -> ());
   network.op_network_share <- (fun fullname codedname size ->
       (*
       lprintf "*************** op_network_share %s\n

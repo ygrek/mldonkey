@@ -551,6 +551,7 @@ and network = {
     mutable op_network_ports : (unit -> (int * string) list);
     mutable op_network_porttest_start : (unit -> unit);
     mutable op_network_porttest_result : (unit -> network_porttest);
+    mutable op_network_check_upload_slots : (unit -> unit);
   }
 
 and ui_user = {

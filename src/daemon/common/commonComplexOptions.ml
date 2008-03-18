@@ -1244,6 +1244,12 @@ let _ =
     shorten_all_file_filenames !!max_filenames
   );
 
+  option_hook max_upload_slots (fun _ ->
+      if !!max_upload_slots < 3 then
+        max_upload_slots =:= 3;
+      networks_iter (fun n -> network_check_upload_slots n)
+    );
+
   let max_opened_connections_pass = ref 0 in
   option_hook max_opened_connections (fun _ ->
 

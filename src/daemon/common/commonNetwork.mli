@@ -254,6 +254,12 @@ val network_porttest_start : CommonTypes.network -> unit
     @return port test result *)
 val network_porttest_result : CommonTypes.network -> CommonTypes.network_porttest
 
+(** call the op_network_check_upload_slots method of a network.
+    To be used in option_hook max_upload_slots to avoid an
+    indefinite loop when having more than one of this option_hook
+    @param network instance *)
+val network_check_upload_slots : CommonTypes.network -> unit
+
 (** {6 Iterators} *)
 
 (** Call a function for each enabled network 
