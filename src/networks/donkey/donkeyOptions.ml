@@ -47,7 +47,7 @@ let max_connected_servers = define_option donkey_section ["max_connected_servers
     int_option 3
 
 let max_allowed_connected_servers () =
-  min (int_of_string ((strings_of_option max_connected_servers).option_default))
+  min (int_of_string (strings_of_option max_connected_servers).option_default)
       !!max_connected_servers
 
 let reliable_sources = define_option donkey_section ["reliable_sources"]

@@ -119,7 +119,8 @@ let _ =
         if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= 5);
     option_hook max_bt_uploaders
       (fun _ ->
-        if !!max_bt_uploaders < 3 then max_bt_uploaders =:= 3;
+        let v = int_of_string (strings_of_option max_upload_slots).option_default in
+        if !!max_bt_uploaders < v then max_bt_uploaders =:= v;
 	check_bt_uploaders ()
         );
     option_hook max_tracker_redirect   (** #4541 [egs] **)
