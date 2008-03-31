@@ -1273,6 +1273,8 @@ let _ =
   ft_ops.op_file_cancel <- op_ft_cancel;
   ft_ops.op_file_commit <- op_ft_commit;
   ft_ops.op_file_info <- op_ft_info;
+  ft_ops.op_file_active_sources <- (fun _ -> []);
+  ft_ops.op_file_all_sources <- (fun _ -> []);
 
   file_ops.op_file_all_sources <- op_file_all_sources;
   file_ops.op_file_files <- op_file_files;
