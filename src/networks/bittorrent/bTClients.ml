@@ -105,7 +105,7 @@ let connect_trackers file event f =
         let left = file_size file -- local_downloaded in
         match event with
         | "completed" -> [("event", "completed")],false,local_downloaded,zero
-        | "started" -> [("event", "started")],true,local_downloaded, left
+        | "started" -> [("event", "started")],true,zero, left
         | "stopped" -> [("event", "stopped")],false,local_downloaded, left
         | _ -> [],true,local_downloaded, left
   in
