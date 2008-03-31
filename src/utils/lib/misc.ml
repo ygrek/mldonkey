@@ -93,7 +93,7 @@ let gz_extract filename =
   let file = ref "" in
   try
     let buffer = String.create 4096 in
-    let file_out = Filename.temp_file "arch_" ".tmp" in
+    let file_out = Filename2.temp_file "arch_" ".tmp" in
     file := file_out;
     Unix2.tryopen_read_gzip filename (fun ic ->
       Unix2.tryopen_write_bin file_out (fun oc ->

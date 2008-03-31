@@ -1135,7 +1135,7 @@ let rec parse magic s =
       if !CommonOptions.verbose_unknown_messages then begin
           lprintf_nl "Unknown message From server: %s (magic %d)"
             (Printexc2.to_string e) magic;
-          let tmp_file = Filename.temp_file "comp" "pak" in
+          let tmp_file = Filename2.temp_file "comp" "pak" in
           File.from_string tmp_file s;
           lprintf_nl "Saved unknown packet %s" tmp_file;
           dump s;

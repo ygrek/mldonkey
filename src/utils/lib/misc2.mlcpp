@@ -27,7 +27,7 @@ let bz2_extract filename =
     let file = ref "" in
     try
       let buffer = String.create 4096 in
-      let file_out = Filename.temp_file "arch_" ".tmp" in
+      let file_out = Filename2.temp_file "arch_" ".tmp" in
       file := file_out;
       let ic = Bzip2.open_in filename
       in

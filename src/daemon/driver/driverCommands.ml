@@ -1396,7 +1396,7 @@ let _ =
           [arg] ->
 	    (try
             let cmd = List.assoc arg !!allowed_commands in
-            let tmp = Filename.temp_file "com" ".out" in
+            let tmp = Filename2.temp_file "com" ".out" in
             let ret = Sys.command (Printf.sprintf "%s > %s"
                   cmd tmp) in
             let output = File.to_string tmp in

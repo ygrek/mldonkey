@@ -68,4 +68,19 @@ val basename : string -> string
    trim filename length to allowed limit on filesystem *)
 val filesystem_compliant : string -> string -> int -> string
 
-val temp_directory : unit -> string
+(** [temp_file prefix suffix] returns the name of a
+   fresh temporary file in the temporary directory.
+   The base name of the temporary file is formed by concatenating
+   [prefix], then a suitably chosen integer number, then [suffix].
+   The temporary file is created empty, with permissions [0o600]
+   (readable and writable only by the file owner).  The file is
+   guaranteed to be different from any other file that existed when
+   [temp_file] was called.
+*)
+val temp_file : string -> string -> string
+
+(** The name of the temporary directory:
+    The value of the [MLDONKEY_TEMP] environment variable is used,
+    or "mlnet_tmp" if the variable is not set.
+*)
+val temp_dir_name : unit -> string

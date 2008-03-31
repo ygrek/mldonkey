@@ -2137,6 +2137,7 @@ let diskinfo html buf =
   let list = ref [] in
   ignore (search_incoming_files ());
   ignore (search_incoming_directories ());
+  list := (Filename2.temp_dir_name (), "$MLDONKEY_TEMP") :: !list;
   List.iter (fun dir ->
      list := (dir.shdir_dirname, (Printf.sprintf "shared (%s)" dir.shdir_strategy))
      :: !list) !!shared_directories;

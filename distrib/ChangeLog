@@ -15,6 +15,11 @@ ChangeLog
 =========
 
 2008/03/31
+6477: Use $MLDONKEY_DIR/mlnet_tmp instead of /tmp
+- This patch fixes problems with hash checking of multifile BT
+  downloads when /tmp is too small.
+- To override $MLDONKEY_DIR/mlnet_tmp use variable $MLDONKEY_TEMP.
+  This patch has nothing to do with option temp_directory.
 6472: Multiuser: Count only files in download queue for user/group statistics
 6471: Clean logfile
 6470: BT: Use default of max_upload_slots as minimum for BT-max_bt_uploaders

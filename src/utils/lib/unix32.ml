@@ -539,7 +539,7 @@ module MultiFile = struct
         let fd = FDCache.local_force_fd file.fd in
         f fd (chunk_begin -- file_begin)
       else
-	let temp_file = Filename.temp_file "chunk" ".tmp" in
+	let temp_file = Filename2.temp_file "chunk" ".tmp" in
 	let file_out = FDCache.create temp_file true in
 
 	try
@@ -846,7 +846,7 @@ module SparseFile = struct
       
       else
       
-	let temp_file = Filename.temp_file "chunk" ".tmp" in
+	let temp_file = Filename2.temp_file "chunk" ".tmp" in
 	let file_out = FDCache.create temp_file t.writable in
       
 	let rec iter pos index chunk_begin chunk_len =
@@ -1587,7 +1587,7 @@ The following functions have to be rewritten:
               iter tail
       
     and make_temp_file list = 
-      let temp_file = Filename.temp_file "chunk" ".tmp" in
+      let temp_file = Filename2.temp_file "chunk" ".tmp" in
       let file_out = create_rw temp_file in
         
       let rec fill pos chunk_begin chunk_len list =

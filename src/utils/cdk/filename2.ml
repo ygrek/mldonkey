@@ -237,13 +237,39 @@ let filesystem_compliant name fs namemax =
   in
   length_checked_name
 
-let temp_directory () =
+let temp_dir_name () =
+  try
+    Sys.getenv "MLDONKEY_TEMP"
+  with Not_found ->
+(* kept for compatability with Filename.temp_dir_name, this code
+   is never reached because $MLDONKEY_TEMP is filled in commonOptions.ml *)
   match Sys.os_type with
-    "Unix" | "Cygwin" ->
+    | "Unix" | "Cygwin" ->
       (try Sys.getenv "TMPDIR" with Not_found -> "/tmp")
-  | "Win32" ->
+    | _ ->
       (try Sys.getenv "TEMP" with Not_found -> ".")
-  | _ -> "."
+
+(* this code is copied from Ocaml stdlib/filename.ml but
+   extended to respect runtime changes to $MLDONKEY_TEMP,
+   Ocaml uses variable $TMPDIR/$TEMP instead *)
+external open_desc: string -> open_flag list -> int -> int = "caml_sys_open"
+external close_desc: int -> unit = "caml_sys_close"
+
+let prng = Random.State.make_self_init ();;
+
+let temp_file_name prefix suffix =
+  let rnd = (Random.State.bits prng) land 0xFFFFFF in
+  Filename.concat (temp_dir_name ()) (Printf.sprintf "%s%06x%s" prefix rnd suffix)
+
+let temp_file prefix suffix =
+  let rec try_name counter =
+    let name = temp_file_name prefix suffix in
+    try
+      close_desc (open_desc name [Open_wronly; Open_creat; Open_excl] 0o600);
+      name
+    with Sys_error _ as e ->
+      if counter >= 1000 then raise e else try_name (counter + 1)
+  in try_name 0
   
 let _ = (* some assertions on these functions *)
   assert (basename "c:\\Program Files\\Toto history.exe" = "Toto history.exe");

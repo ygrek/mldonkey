@@ -211,7 +211,13 @@ let _ =
   let conv_filename = Charset.to_locale filename in
   if filename <> conv_filename then Charset.conversion_enabled := false;
 
-  Unix2.can_write_to_directory (Filename2.temp_directory ());
+  (try
+     ignore (Sys.getenv "MLDONKEY_TEMP")
+   with Not_found ->
+     Unix.putenv "MLDONKEY_TEMP" ((Filename.basename Sys.argv.(0)) ^ "_tmp")
+  );
+
+  Unix2.can_write_to_directory (Filename2.temp_dir_name ());
 
   if (String2.starts_with (Filename.basename Sys.argv.(0)) "mlnet") then begin
     if Sys.file_exists pid_filename then begin

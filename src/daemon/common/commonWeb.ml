@@ -195,7 +195,7 @@ let mldonkey_wget_url w f =
 let mldonkey_wget_shell w f =
   let command_urlencoded = Str.string_after w.url 8 in
   let command = Url.decode command_urlencoded in
-  let filename = Filename.temp_file "wget_" ".tmp" in
+  let filename = Filename2.temp_file "wget_" ".tmp" in
     ignore (Sys.command (Printf.sprintf "%s > %s" command filename));
     (f filename : unit)
       
