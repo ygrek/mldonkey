@@ -283,14 +283,28 @@ let user2_filter_files files gui_user =
     (fun file -> user2_can_view_file gui_user (file_owner file) (file_group file)) files in
   newlist
 
+let file_state file =
+  let impl = as_file_impl file in
+  impl.impl_file_state
+
 let user2_num_user_dls user =
+  let file_is_in_download_queue file =
+    match file_state file with
+    | FileNew | FileDownloading | FileQueued | FilePaused | FileDownloaded -> true
+    | FileShared | FileCancelled | FileAborted _ -> false
+  in
   let n = ref 0 in
-  H.iter (fun f -> if file_owner f = user then incr n) files_by_num;
+  H.iter (fun f -> if file_owner f = user && file_is_in_download_queue f then incr n) files_by_num;
   !n
 
 let user2_num_group_dls group =
+  let file_is_in_download_queue file =
+    match file_state file with
+    | FileNew | FileDownloading | FileQueued | FilePaused | FileDownloaded -> true
+    | FileShared | FileCancelled | FileAborted _ -> false
+  in
   let n = ref 0 in
-  H.iter (fun f -> if file_group f = Some group then incr n) files_by_num;
+  H.iter (fun f -> if file_group f = Some group && file_is_in_download_queue f then incr n) files_by_num;
   !n
 
 let set_file_state file state =
@@ -444,10 +458,6 @@ let file_find num =
   H.find files_by_num (as_file {
     dummy_file_impl   with impl_file_num = num
   })
-
-let file_state file =
-  let impl = as_file_impl file in
-  impl.impl_file_state
 
 let file_add_source (file : file) c =
   client_must_update c;

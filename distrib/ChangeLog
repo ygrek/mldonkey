@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2008/03/31
+6472: Multiuser: Count only files in download queue for user/group statistics
 6471: Clean logfile
 6470: BT: Use default of max_upload_slots as minimum for BT-max_bt_uploaders
       instead of hard-coded value
