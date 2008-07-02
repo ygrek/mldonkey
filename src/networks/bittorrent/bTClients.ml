@@ -106,7 +106,7 @@ let connect_trackers file event f =
         match event with
         | "completed" -> [("event", "completed")],false,local_downloaded,zero
         | "started" -> [("event", "started")],true,zero, left
-        | "stopped" -> [("event", "stopped")],false,local_downloaded, left
+        | "stopped" -> [("event", "stopped")],false,zero, left
         | _ -> [],true,local_downloaded, left
   in
 

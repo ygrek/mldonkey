@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/07/02
+6557: BT: Send correct downloaded value when download is stopped to tracker
+      (Fox Mulder)
+-------------------------------------------------------------------------------
 2008/05/02: version 2.9.5 = tag release-2-9-5
 6503: Remove release status when download is finished
 
