@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2008/07/02
+6558: Fix text relocation warnings on hardened distributions (Davide Pesavento)
 6557: BT: Send correct downloaded value when download is stopped to tracker
       (Fox Mulder)
 -------------------------------------------------------------------------------
