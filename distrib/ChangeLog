@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/07/17
+6571: Runinfo: Include DirectConnect in list of enabled nets
+
 2008/07/02
 6558: Fix text relocation warnings on hardened distributions (Davide Pesavento)
 6557: BT: Send correct downloaded value when download is stopped to tracker

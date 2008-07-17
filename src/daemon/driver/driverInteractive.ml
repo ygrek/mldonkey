@@ -1995,6 +1995,7 @@ let runinfo html buf o =
 	 (Autoconf.donkey = "yes" && !!enable_overnet, "Overnet");
 	 (Autoconf.donkey = "yes" && !!enable_kademlia, "Kademlia");
 	 (Autoconf.bittorrent = "yes" && !!enable_bittorrent, "BitTorrent");
+	 (Autoconf.direct_connect = "yes" && !!enable_directconnect, "DirectConnect");
 	 (Autoconf.fasttrack = "yes" && !!enable_fasttrack, "Fasttrack");
 	 (Autoconf.gnutella = "yes" && !!enable_gnutella, "Gnutella");
 	 (Autoconf.gnutella2 = "yes" && !!enable_gnutella2, "G2");
