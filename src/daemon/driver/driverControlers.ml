@@ -952,7 +952,7 @@ let http_handler o t r =
   let user = if r.options.login = "" then (admin_user ()).CommonTypes.user_name else r.options.login in
   if not (valid_password user r.options.passwd) || (r.get_url.Url.short_file = "logout") then begin
       clear_page buf;
-      http_file_type := HTM;
+      http_file_type := TXT;
       let _, error_text_long, header = Http_server.error_page "401" "" ""
 	(Ip.to_string (TcpBufferedSocket.my_ip r.sock))
 	(string_of_int !!http_port) None in
