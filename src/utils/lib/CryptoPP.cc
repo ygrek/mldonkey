@@ -9494,11 +9494,7 @@ inline void PokeUInt8(void* p, uint8_t nVal)
 
 inline void RawPokeUInt32(void* p, uint32_t nVal) 
 {
-#ifndef __sparc__
-  *((uint32_t*)p) = nVal;
-#else
   memcpy( p, &nVal, sizeof(uint32_t) );
-#endif
 }
 
 

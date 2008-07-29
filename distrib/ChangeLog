@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2008/07/29
+6593: CryptoPP performance fix for ARM (Marc Pignat)
 6592: HTML: Fix invalid html respond when login is invalid
 
 2008/07/17
