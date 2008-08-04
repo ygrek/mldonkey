@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/08/04
+6599: Allow values lower than max_upload_slots for BT-max_bt_uploaders
+
 2008/07/29
 6593: CryptoPP performance fix for ARM (Marc Pignat)
 6592: HTML: Fix invalid html respond when login is invalid
