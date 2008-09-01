@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2008/09/01
+6629: Mail: Move hostname from subject to body (eydaimon)
 Updated Mozilla protocol handler to version 2.5
 - original source from http://www.informatik.uni-oldenburg.de/~dyna/mldonkey
 6628: IP discover: Use http://whatismyip.org, old URL is not working anymore

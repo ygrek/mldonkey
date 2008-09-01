@@ -343,9 +343,9 @@ let mail_for_completed_file file =
     in
 
     let subject = if !!filename_in_subject then
-        Printf.sprintf "[mldonkey@%s] file received - %s" (Unix.gethostname ()) (file_best_name file)
+        Printf.sprintf "mldonkey - %s complete" (file_best_name file)
       else
-        Printf.sprintf "mldonkey@%s, file received" (Unix.gethostname ())
+        Printf.sprintf "mldonkey - download complete"
     in
 
 (* TODO: This information can be wrong *)
@@ -365,15 +365,19 @@ let mail_for_completed_file file =
     in
 
     let line6 =
-      Printf.sprintf "\r\nUser/Group: %s:%s\r\n" (file_owner file).user_name (user2_print_group (file_group file))
+      Printf.sprintf "\r\nUser/Group: %s:%s" (file_owner file).user_name (user2_print_group (file_group file))
     in
-      
+
+    let line7 =
+      Printf.sprintf "\r\nHost: %s\r\n" (Unix.gethostname ())
+    in
+
     let send_mail address admin =
       let mail = {
         M.mail_to = address;
         M.mail_from = address;
         M.mail_subject = subject;
-        M.mail_body = line1 ^ line2 ^ line3 ^ line4 ^ line5 ^ (if admin then line6 else "");
+        M.mail_body = line1 ^ line2 ^ line3 ^ line4 ^ line5 ^ (if admin then line6 else "") ^ line7;
       } in
         M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
     in
