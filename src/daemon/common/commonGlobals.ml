@@ -857,7 +857,7 @@ let discover_ip force =
       if !verbose then lprintf_nl "started IP discovery";
       let module H = Http_client in
       let r = { H.basic_request with
-        H.req_url = Url.of_string "http://ip.discoveryvip.com/ip.asp";
+        H.req_url = Url.of_string "http://whatismyip.org/";
         H.req_proxy = !CommonOptions.http_proxy;
         H.req_max_retry = 10;
         H.req_user_agent = get_user_agent () }
@@ -868,16 +868,13 @@ let discover_ip force =
           try
             while true do
               let line = input_line cin in
-              let search_string = "Your Ip address is  " in
                 try
-                  if Str.string_match (Str.regexp ("^" ^ search_string)) line 0 then
-                    begin
-                      set_client_ip =:=
-                        Ip.of_string (String.sub line (String.length search_string)
-                          ((String.length line) - (String.length search_string)));
-                      last_high_id := !!set_client_ip;
-                      if !verbose then lprintf_nl "discovered IP %s" (Ip.to_string !!set_client_ip)
-                    end
+                  let ip = Ip.of_string line in
+                  begin
+                    set_client_ip =:= ip;
+                    last_high_id := !!set_client_ip;
+                    if !verbose then lprintf_nl "discovered IP %s" (Ip.to_string !!set_client_ip)
+                  end
                 with e -> lprintf_nl "IP discovery parse error: %s" (Printexc2.to_string e)
             done
           with End_of_file -> ())
