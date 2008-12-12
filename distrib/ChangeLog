@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2008/12/13
+6689: Allow compilation with Ocaml 3.11.0
+
 2008/09/01
 6629: Mail: Move hostname from subject to body (eydaimon)
 Updated Mozilla protocol handler to version 2.5
