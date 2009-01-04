@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2009/01/04
+6713: GeoIP: New web_infos URL for country list (thx to Choby)
+- old URLs are updated to:
+  http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz
+
 2008/12/13
 6689: Allow compilation with Ocaml 3.11.0
 

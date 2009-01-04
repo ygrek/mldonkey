@@ -1034,7 +1034,7 @@ let web_infos = define_option current_section ["web_infos"]
     (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/level1.gz\");
     (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
     (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
-    (\"geoip.dat\", 168, \"http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz\");
+    (\"geoip.dat\", 168, \"http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz\");
     ]
   "
     (list_option (tuple3_option (string_option, int_option, string_option)))
@@ -1046,7 +1046,7 @@ let web_infos = define_option current_section ["web_infos"]
       ("contact.dat", 168,
         "http://download.overnet.org/contact.dat");
       ("geoip.dat", 0,
-        "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz");
+        "http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz");
       ("nodes.gzip", 0,
         "http://update.kceasy.com/update/fasttrack/nodes.gzip");
       ("hublist", 0,
@@ -1638,7 +1638,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 let options_version = define_expert_option current_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 20
+    int_option 21
 
 let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
   "Maximum number of comments per file"
@@ -2218,5 +2218,10 @@ let rec update_options () =
   | 19 ->
       if !!share_scan_interval = 5 then share_scan_interval =:= 30;
       update 20
+
+  | 20 ->
+      web_infos_remove "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz";
+      web_infos_add "geoip.dat" 0 "http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz";
+      update 21
 
   | _ -> ()
