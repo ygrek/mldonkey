@@ -619,7 +619,7 @@ let max_indirect_connections = define_option current_section ["max_indirect_conn
     int_option 30
 
 let max_upload_slots = define_option current_section ["max_upload_slots"]
-  "How many slots can be used for upload"
+  "How many slots can be used for upload, minimum 3"
     int_option 5
 
 let max_release_slots = define_option current_section ["max_release_slots"]

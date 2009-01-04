@@ -85,11 +85,11 @@ let send_key = define_option bittorrent_section ["send_key"]
     bool_option true
 
 let max_uploaders_per_torrent = define_option bittorrent_section ["max_uploaders_per_torrent"]
-  "Maximum number of uploaders for one torrent"
-    int_option 5
+  "Maximum number of uploaders for one torrent, can not be higher than max_bt_uploaders"
+    int_option 3
 
 let max_bt_uploaders = define_option bittorrent_section ["max_bt_uploaders"]
-  "Maximum number of uploaders for bittorrent"
+  "Maximum number of uploaders for bittorrent, can not be higher than max_upload_slots"
     int_option 3
 
 (* numwant: Optional. Number of peers that the client would like to receive from the tracker.
@@ -110,19 +110,22 @@ let tracker_retries = define_option bittorrent_section ["tracker_retries"]
 
 let check_bt_uploaders () =
   if !!max_bt_uploaders > !!max_upload_slots then
-    max_bt_uploaders =:= !!max_upload_slots
+    max_bt_uploaders =:= !!max_upload_slots;
+  if !!max_uploaders_per_torrent > !!max_bt_uploaders then
+    max_uploaders_per_torrent =:= !!max_bt_uploaders
 
 let _ =
   begin
     option_hook max_uploaders_per_torrent
       (fun _ ->
         let v = int_of_string (strings_of_option max_uploaders_per_torrent).option_default in
-        if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= v);
+        if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= v;
+	check_bt_uploaders ()
+        );
     option_hook max_bt_uploaders
       (fun _ ->
-        let v1 = int_of_string (strings_of_option max_upload_slots).option_default in
-        let v2 = int_of_string (strings_of_option max_bt_uploaders).option_default in
-        if !!max_bt_uploaders < 1 || !!max_bt_uploaders > v1 then max_bt_uploaders =:= v2;
+        if !!max_bt_uploaders < 1 then
+            max_bt_uploaders =:= int_of_string (strings_of_option max_bt_uploaders).option_default;
 	check_bt_uploaders ()
         );
     option_hook max_tracker_redirect   (** #4541 [egs] **)

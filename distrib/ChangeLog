@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2009/01/04
+6714: BT: Fix bug when computing limits for max_bt_uploaders
 6713: GeoIP: New web_infos URL for country list (thx to Choby)
 - old URLs are updated to:
   http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz
