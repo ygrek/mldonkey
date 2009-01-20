@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2009/01/20
+6727: Web_infos: Replace old GeoIP URL with new one
+- old code added the new URL, even if GeoIP was not present in web_infos
+
 2009/01/04
 6714: BT: Fix bug when computing limits for max_bt_uploaders
 6713: GeoIP: New web_infos URL for country list (thx to Choby)

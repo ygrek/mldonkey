@@ -2093,6 +2093,11 @@ let web_infos_add kind period url =
       state = None;
     }
 
+let web_infos_replace old_url new_url =
+  Hashtbl.iter (fun key w -> 
+    if w.url = old_url then w.url <- new_url
+  ) web_infos_table
+
 let _ =
 (* convert list option web_infos to a hashtable for better usage *)
   set_after_load_hook downloads_ini (fun _ ->
@@ -2220,8 +2225,9 @@ let rec update_options () =
       update 20
 
   | 20 ->
-      web_infos_remove "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz";
-      web_infos_add "geoip.dat" 0 "http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz";
+      web_infos_replace
+        "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz"
+        "http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz";
       update 21
 
   | _ -> ()

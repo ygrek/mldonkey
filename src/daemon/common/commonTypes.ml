@@ -994,7 +994,7 @@ type web_infos_state =
 type web_infos = {
   kind : string;
   period : int;
-  url : string;
+  mutable url : string;
   mutable state : web_infos_state option;
 }
 
