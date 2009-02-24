@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2009/02/24
+2009/02/24: version 3.0.0 = tag release-3-0-0
 6754: Fix local file access bug in internal http server
 - this is an urgent security related bug-fix and effects
   all MLDonkey versions >= 2.8.4
