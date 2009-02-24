@@ -816,16 +816,23 @@ let http_send_bin r buf filename =
     else
       try
         File.to_string filename
-      with _ ->
-        try
-          Hashtbl.find CommonPictures.files filename
-        with Not_found ->
-          try
-            if String.sub filename 0 4 = "flag" then
-              Hashtbl.find CommonPictures.files "flag_--.png"
-            else
-              raise Not_found
-          with _ -> raise Not_found
+      with _ -> raise Not_found
+  in
+  let ext = extension_to_file_ext (Filename2.last_extension2 filename) in
+  http_add_bin_header r ext (String.length file_to_send);
+  Buffer.add_string buf file_to_send
+
+let http_send_bin_pictures r buf filename =
+  let file_to_send =
+    try
+      Hashtbl.find CommonPictures.files filename
+    with Not_found ->
+      try
+        if String.sub filename 0 4 = "flag" then
+          Hashtbl.find CommonPictures.files "flag_--.png"
+        else
+          raise Not_found
+    with _ -> raise Not_found
   in
   let ext = extension_to_file_ext (Filename2.last_extension2 filename) in
   http_add_bin_header r ext (String.length file_to_send);
@@ -1501,7 +1508,7 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.download_html_js_mods0
               else !!CommonMessages.download_html_js_old)
-        | s ->  http_send_bin r buf (String.lowercase s)
+        | s ->  http_send_bin_pictures r buf (String.lowercase s)
       with
       | Not_found ->
 	  let _, error_text_long, header = Http_server.error_page "404" "" ""
