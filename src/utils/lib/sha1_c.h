@@ -45,7 +45,7 @@
 
     You should have received a copy of the GNU General Public License
     along with mldonkey; if not, write to the Free Software
-    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
 /*swap order of arguments in sha1_hash and sha1_end to 'fit' mldonkey*/
