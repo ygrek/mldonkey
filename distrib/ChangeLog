@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2009/02/24
+6754: Fix local file access bug in internal http server
+- this is an urgent security related bug-fix and effects
+  all MLDonkey versions >= 2.8.4
 6752: Optimized implementation of the ip_set module (cbah)
 6736: Add/fix some copyright texts
 -------------------------------------------------------------------------------

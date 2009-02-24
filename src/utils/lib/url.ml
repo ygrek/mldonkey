@@ -175,6 +175,19 @@ let put_args s args =
   Buffer.contents res  
   
 let of_string ?(args=[]) s =
+  let remove_leading_slashes s =
+    let len = String.length s in
+    let left =
+      let rec aux i =
+        if i < len && s.[i] = '/' then aux (i+1) else i in
+      aux 0 in
+    if left = 0 then s
+    else
+      String.sub s left (len - left) in
+
+  (* redefine s to remove all leading slashes *)
+  let s = remove_leading_slashes s in
+
   let s = put_args s args in
   let url =
     let get_two init_pos =
