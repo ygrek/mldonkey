@@ -1,5 +1,5 @@
-(* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA *)
-(*
+/* Copyright 2001, 2002 b8_bavard, b8_fee_carabine, INRIA */
+/*
     This file is part of mldonkey.
 
     mldonkey is free software; you can redistribute it and/or modify
@@ -15,7 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with mldonkey; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
-*)
+*/
 
 #include "../../../config/config.h"
 
