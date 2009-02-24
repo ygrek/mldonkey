@@ -36,6 +36,9 @@ let to_ints t =
   t.hi lsr 8, t.hi land 0xff,
   t.lo lsr 8, t.lo land 0xff
 
+let get_hi16 t = t.hi
+let get_lo16 t = t.lo
+
 external ints_of_string : string -> (int*int*int*int)  = "ml_ints_of_string"
 
 let of_string s =

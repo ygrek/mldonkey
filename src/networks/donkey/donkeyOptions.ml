@@ -63,7 +63,7 @@ let server_black_list = define_option donkey_section ["server_black_list"]
   Servers on this list can't be added, and will eventually be removed"
     CommonOptions.ip_range_list_option []
 
-let server_black_list_set = ref Ip_set.BL_Empty
+let server_black_list_set = ref Ip_set.bl_empty
 
 let () =
   option_hook server_black_list (fun _ ->

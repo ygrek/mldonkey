@@ -585,7 +585,7 @@ let telnet_handler t event =
             conn_info = Some (TELNET, (from_ip, from_port));
           } in
 	(match Ip_set.match_ip !allowed_ips_set from_ip with
-	| Some br -> 
+	| true -> 
         TcpBufferedSocket.prevent_close sock;
         TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (user_reader o telnet);
@@ -604,7 +604,7 @@ let telnet_handler t event =
 
         after_telnet_output o sock
 
-	| None ->
+	| false ->
         before_telnet_output o sock;
 	let reject_message =
 	  Printf.sprintf "Telnet connection from %s rejected (see allowed_ips setting)\n"

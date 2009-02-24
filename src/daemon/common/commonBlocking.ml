@@ -37,7 +37,7 @@ let country_blocking_list =
 let country_blocking_string_list_copy = ref []
 
 let ip_set_hit bl ip =
-  match Ip_set.match_ip bl ip with
+  match Ip_set.match_blocking_range bl ip with
     | None -> None
     | Some br -> Some br.Ip_set.blocking_description
 

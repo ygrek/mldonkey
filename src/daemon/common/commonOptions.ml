@@ -452,7 +452,7 @@ let allowed_ips = define_option current_section ["allowed_ips"]
   or 192.168.0.0-192.168.0.255 for 192.168.0.*"
     ip_range_list_option [ Ip.RangeSingleIp Ip.localhost ]
 
-let allowed_ips_set = ref Ip_set.BL_Empty
+let allowed_ips_set = ref Ip_set.bl_empty
 
 let _ =
   option_hook allowed_ips (fun _ ->

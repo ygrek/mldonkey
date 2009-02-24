@@ -1,6 +1,5 @@
 
 open Printf2
-open Ip
 open Gettext
 
 let _s x = _s "Ip_set" x
@@ -47,172 +46,340 @@ type blocking_range = {
   blocking_description: string;
   blocking_begin: Ip.t;
   blocking_end: Ip.t;
-  mutable blocking_hits: int
+  blocking_hits: int
 }
 
+type short_entry = {
+    short_begin_high: int; (* 31..3 bits of IP address *)
+    sort_end_high: int; (* 31..3 bits of IP address *)    
+    mutable short_low_hits: int; (* 0..2 -> 0..2 bits of start address, 3..5 -> 0..2 bits of end address, 6..30 -> 0..24 bits of counter *)
+    short_description: string;    
+  }
+
 let dummy_range = {
-  blocking_description = unknown_description;
-  blocking_begin = Ip.null;
-  blocking_end = Ip.null;
-  blocking_hits = 0 }
+  short_description = unknown_description;
+  short_begin_high = 0;
+  sort_end_high = 0;
+  short_low_hits = 0 }
 
 let store_blocking_descriptions = ref true
 
-(* Red-Black tree *)
-type blocking_list =
-    BL_Empty
-  | BL_Range of bool * blocking_list * blocking_range * blocking_list
+module Array2 = struct
+  type 'a t = {
+      mutable len: int;
+      mutable prev_len: int;
+      mutable a: 'a array
+    }
+  let length a = a.len
+  let set a n x = 
+    if n < a.len then a.a.(n) <- x
+    else invalid_arg "Array2.set"
 
-let bl_empty = BL_Empty
+  let get a n = 
+    if n < a.len then a.a.(n) 
+    else invalid_arg "Array2.get"
 
-let ip_mini x y = if Ip.compare x y < 0 then x else y
+  let rec append a x = 
+    if a.len < Array.length a.a then begin
+      a.a.(a.len) <- x;
+      a.len <- a.len + 1;
+    end else begin
+      let new_len = a.len + a.prev_len 
+      and b = a.a.(0) in
+      (* lprintf_nl (_b "append resize[0] %d to %d") a.len new_len; *)
 
-let ip_maxi x y = if Ip.compare x y > 0 then x else y
+      let t = Array.init new_len (fun n -> if n < a.len then a.a.(n) else b) in
+      a.prev_len <- a.len;
+      a.a <- t;
+      append a x;
+    end
 
-let rec add_range bl br =
-  blacken_root (ins bl br)
+  let iter f a =
+    Array.iteri (fun n b -> if n < a.len then f b) a.a
 
-and ins bl br =
+  let empty x = {len= 0 ; prev_len=1; a = Array.make 0 x}
+
+  let make n x = {len = n ; prev_len = n+1; a = Array.make (n+2) x} 
+
+  let init n f  = {len = n ; prev_len = n+1; a = Array.init n f}
+
+  let copy a = {len = a.len; prev_len = a.prev_len; a = Array.copy a.a}
+
+  let sort cmp a = 
+    if Array.length a.a != a.len then  a.a <- Array.init a.len (Array.get a.a);
+    Array.sort cmp a.a
+
+    
+
+end
+
+
+
+type compact = {
+    (* 
+       Instead of storing array of records, keep record of arrays. 
+       This way it eleminates need of boxing, so each entry occupies 3 words (if no description needed, the desc array isn't allocated).
+       Also on lookup only first array is accesed, unless hit is detected (better cache locality) and when hit detected, 
+       dara updated only in single array. 
+     *)
+    compact_begin_high: int array;
+    compact_end_high: int array; 
+    compact_low_hits: int array;
+    compact_desc: string array;
+  }
+
+(* either simple array or compact (non boxed) representation *)
+type blocking_list = 
+    Short of short_entry Array2.t
+  | Compact of compact
+ 
+
+let bl_empty  = Short (Array2.make 0 dummy_range)
+
+let bl_length bl = match bl with
+  Short  a -> Array2.length a
+| Compact  a -> Array.length a.compact_begin_high
+
+let ip_split_hi ip =  (* msb 30 bits *)
+  ((Ip.get_hi16 ip) lsl 14) lor ((Ip.get_lo16 ip) lsr 2) 
+
+let ip_split_lo ip = (* lsb 2 bits *)
+  (Ip.get_lo16 ip) land 0x3 
+
+let ip_combine hi lo = 
+  Ip.of_ints ( (hi lsr 22), ((hi lsr 14) land 0xFF), ((hi lsr 6) land 0xFF), (((hi land 0x3F) lsl 2) lor lo))
+
+let init_low_bits begin_lo end_lo hits =
+  begin_lo lor (end_lo lsl 2) lor (hits lsl 4)
+
+let begin_low_bits n = 
+  n land 0x3
+
+let end_low_bits n = 
+  (n lsr 2) land 0x3 
+
+let get_hits n  =
+    n lsr 4
+  
+let succ_hits n = 
+  let count = (get_hits n) + 1 in
+  (n land 0xF) lor (count lsl 4)
+
+let make_br ip_begin ip_end desc = 
+  let begin_hi = ip_split_hi ip_begin
+  and begin_lo = ip_split_lo ip_begin
+  and end_hi = ip_split_hi ip_end
+  and end_lo = ip_split_lo ip_end in
+  {short_begin_high=begin_hi; 
+   sort_end_high=end_hi;
+   short_low_hits= init_low_bits begin_lo end_lo 0;
+   short_description=desc}
+
+
+let compare_split a_hi a_low b_hi b_low  = 
+  let hicompare = Pervasives.compare a_hi b_hi in
+  if hicompare <> 0 then 
+    hicompare
+  else
+    Pervasives.compare a_low b_low
+
+(* increment and then compare *)
+let compare_split_next a_hi a_low b_hi b_low  = 
+  if b_low < 3 then compare_split a_hi a_low b_hi (b_low + 1)
+  else compare_split a_hi a_low (b_hi+1) 0
+
+
+
+let match_ip_aux bl ip = 
+  let ip_hi = ip_split_hi ip 
+  and ip_lo = ip_split_lo ip in
   match bl with
-      BL_Empty -> BL_Range (true, BL_Empty, br, BL_Empty)
-    | BL_Range (red, left, br2, right) ->
-	if Ip.compare br.blocking_end br2.blocking_begin < 0 then
-	  fixup (BL_Range (red, (ins left br), br2, right))
-	else if Ip.compare br.blocking_begin br2.blocking_end > 0 then
-	  fixup (BL_Range (red, left, br2, (ins right br)))
-(* optimizer requires that ranges are sorted in increasing starting
-   addresses *)
-	else if Ip.compare br.blocking_begin br2.blocking_begin < 0 then 
-	  fixup (BL_Range (red, (ins left br), br2, right))
-	else
-(* Be lazy. The optimizer will deal with it. *)
-	  fixup (BL_Range (red, left, br2, (ins right br)))
-(*	  let newr = {
-	    blocking_description = br.blocking_description;
-	    blocking_begin = ip_mini br.blocking_begin br2.blocking_begin;
-	    blocking_end = ip_maxi br.blocking_end br2.blocking_end;
-	    blocking_hits = br.blocking_hits + br2.blocking_hits } in
-	  BL_Range (red, left, newr, right) *)
+    Short a ->
+      let rec short_march_aux a ip_hi ip_lo n =
+	if n < Array2.length a then 
+	  let br = Array2.get a n in
+	  if (compare_split ip_hi ip_lo br.short_begin_high (begin_low_bits br.short_low_hits) >= 0) &
+	    (compare_split ip_hi ip_lo br.sort_end_high (end_low_bits br.short_low_hits) <= 0) then begin
+	      br.short_low_hits <- succ_hits br.short_low_hits;
+	      n
+	    end else short_march_aux a ip_hi ip_lo (n+1)
+	else -1 in
+      short_march_aux a ip_hi ip_lo 0
+  | Compact a ->      
+      let compare_begin a ip_hi ip_lo n =
+	let cmp_hi = Pervasives.compare ip_hi (Array.get a.compact_begin_high n) in
+	if cmp_hi <> 0 then cmp_hi
+	else Pervasives.compare ip_lo (begin_low_bits (Array.get a.compact_low_hits n))
+      and compare_end a ip_hi ip_lo n =
+	let cmp_hi = Pervasives.compare ip_hi (Array.get a.compact_end_high n) in
+	if cmp_hi <> 0 then cmp_hi
+	else Pervasives.compare ip_lo (end_low_bits (Array.get a.compact_low_hits n)) 
+      and mark_entry a n =
+	Array.set a.compact_low_hits n (succ_hits (Array.get a.compact_low_hits n));
+	n in
 
-and fixup bl =
-  match bl with
-      BL_Range (false, a, x, BL_Range(true, b, y, BL_Range(true, c, z, d)))
-    | BL_Range (false, BL_Range(true, a, x, BL_Range(true, b, y, c)), z, d)
-    | BL_Range (false, BL_Range(true, BL_Range(true, a, x, b), y, c), z, d)
-    | BL_Range (false, a, x, BL_Range(true, BL_Range(true, b, y, c), z, d))
-      -> BL_Range(true, BL_Range(false, a, x, b), y, BL_Range(false, c, z, d))
-    | _ -> bl
+      let rec binary_search_aux a ip_hi ip_lo lo hi =
+	if lo <= hi then 
+	  let n = (lo + hi) / 2 in
+	  let cmp = compare_begin a ip_hi ip_lo n in
+	  if cmp < 0 then
+	    binary_search_aux a ip_hi ip_lo lo (n-1)
+	  else if cmp > 0 then
+	    binary_search_aux a ip_hi ip_lo (n+1) hi
+	  else mark_entry a n	  
+	else begin
+	  (* Printf.printf "%d %d\n" lo hi; *)
+	  if hi >= 0 && hi < Array.length a.compact_begin_high then begin
+	    let cmp = compare_begin a ip_hi ip_lo hi in
+	    if cmp > 0 then
+	      if (compare_end a ip_hi ip_lo hi) <= 0 then mark_entry a hi
+	      else -1
+	    else if cmp < 0 then -1
+	    else mark_entry a hi
+	  end else -1
+	end in
+      binary_search_aux a ip_hi ip_lo 0 ((Array.length a.compact_begin_high) - 1)
 
-and blacken_root bl =
-  match bl with
-      BL_Empty -> BL_Empty
-    | BL_Range(_, left, v, right) -> BL_Range(false, left, v, right)
+let make_range desc begin_high end_high low_hits = {
+   blocking_description = desc;
+   blocking_begin = ip_combine begin_high (begin_low_bits low_hits);
+   blocking_end = ip_combine end_high (end_low_bits low_hits);
+   blocking_hits = get_hits low_hits; } 
 
-let rec match_ip_aux bl ip =
-  match bl with
-      BL_Empty -> None
-    | BL_Range (red, left, br, right) ->
-	if Ip.compare ip br.blocking_begin < 0 then
-	  match_ip_aux left ip
-	else if Ip.compare ip br.blocking_end > 0 then
-	  match_ip_aux right ip
-	else
-	  Some br
+let compact_get_desc a n = 
+  if Array.length a.compact_desc > n then Array.get a.compact_desc n else unknown_description
+
+let match_blocking_range bl ip =
+  let n = match_ip_aux bl ip in
+  if n >= 0 then Some (
+    match bl with
+      Short a -> 
+	let br = Array2.get a n in
+	make_range br.short_description br.short_begin_high br.sort_end_high br.short_low_hits
+    | Compact a ->
+	make_range (compact_get_desc a n) (Array.get a.compact_begin_high n) (Array.get a.compact_end_high n) (Array.get a.compact_low_hits n))
+  else None
+	  
+	
+
+
 
 let match_ip bl ip =
-  let m = match_ip_aux bl ip in
-  (match m with
-      Some br ->
-	br.blocking_hits <- br.blocking_hits + 1
-    | None -> ());
-  m
+  match_ip_aux bl ip >= 0
 
-let rec bl_fold_left f acc bl =
+let append_range bl br =
   match bl with
-      BL_Empty -> acc
-    | BL_Range (_, left, br, right) ->
-	bl_fold_left f (f br (bl_fold_left f acc left)) right
+    Short a ->
+      Array2.append a br
+  | Compact _ ->
+      assert(false)
 
-let bl_optimize bl =
-  let compact br (new_bl, pending_br) =
-    match pending_br with
-(* first range *)
-	None -> (new_bl, Some br)
-      | Some pbr ->
-(* next range doesn't merge with pending one, commit pending range and
-   go on with the next one *)
-	  if Ip.compare br.blocking_begin (Ip.succ pbr.blocking_end) > 0 then
-	    (add_range new_bl pbr, Some br)
-	  else 
-	    let hits_sum = br.blocking_hits + pbr.blocking_hits in
-(* next range merge with pending one, does it extend it ? *)
-	    if Ip.compare br.blocking_end pbr.blocking_end > 0 then
-	    (new_bl, Some { pbr with blocking_end = br.blocking_end;
-			    blocking_hits = hits_sum })
-	  else 
-(* no, it doesn't *)
-	    (new_bl, Some { pbr with blocking_hits = hits_sum })
-  in
+let copy_range bl = 
+  match bl with
+    Short a ->
+      let b = Array2.copy a in
+      Short b
+  | Compact c ->
+      let b = Array2.init (Array.length c.compact_begin_high)
+	  (fun n -> 
+	    {
+	     short_begin_high = Array.get c.compact_begin_high n;
+	     sort_end_high = Array.get c.compact_end_high n;
+	     short_low_hits = Array.get c.compact_low_hits n;
+	     short_description = if Array.length c.compact_desc > n then Array.get c.compact_desc n  else unknown_description
+	   }) in
+      Short b
 
-(* start with no current range *)
-  let new_bl, pending_br = bl_fold_left compact (bl_empty, None) bl in
-(* finally, add the pending range *)
-  match pending_br with
-      None -> new_bl
-    | Some pbr -> add_range new_bl pbr
+let add_range bl ip_begin ip_end desc =
+  let bl = copy_range bl 
+  and br = make_br ip_begin ip_end desc in
+  append_range bl br
 
-let bl_length bl =
-  bl_fold_left (fun br acc -> acc+1) 0 bl
+let br_compare r1 r2 = 
+  let cmp_begin = compare_split
+      r1.short_begin_high  (begin_low_bits r1.short_low_hits) 
+      r2.short_begin_high (begin_low_bits r2.short_low_hits) in
+  if cmp_begin <> 0 then 
+    cmp_begin
+  else    
+    compare_split 
+      r1.sort_end_high  (end_low_bits r1.short_low_hits) 
+      r2.sort_end_high (end_low_bits  r2.short_low_hits)
 
-let bl_optimizedp bl =
-  let last_ip = ref None in
-  let check br () =
-    (match !last_ip with
-	Some ip ->
-	  assert(Ip.compare br.blocking_begin ip > 0)
-      | None -> ());
-    last_ip := Some (Ip.succ br.blocking_end)
-  in bl_fold_left check () bl
+  let bl_optimize a = 
+  match a with
+    Short a ->     
+      (* lprintf_nl (_b "sort %d") (Array2.length a); *)
+      Array2.sort br_compare a;
+      let rec bl_optimize_aux a rd wr last_hi last_lo  =
+	if rd < Array2.length a then
+	  let br = Array2.get a rd
+	  and rd = rd + 1 in
+	  if (compare_split br.sort_end_high (end_low_bits br.short_low_hits) last_hi last_lo) > 0 then begin (* new record is going further then last *)
+  	    if wr >= 0 && (compare_split_next br.short_begin_high (begin_low_bits br.short_low_hits) last_hi  last_lo) <= 0 then begin (* but it starts inside previous block, so concatenate them *)
+	      let last_hi = br.sort_end_high
+	      and last_lo = (end_low_bits br.short_low_hits) in
+	      let prev = Array2.get a wr  in
+	      Array2.set a wr {short_begin_high = prev.short_begin_high;
+			       sort_end_high = last_hi;
+			       short_low_hits = init_low_bits  (begin_low_bits prev.short_low_hits)  last_lo
+				 ((get_hits prev.short_low_hits) + (get_hits br.short_low_hits));
+			       short_description = prev.short_description};
+	      bl_optimize_aux a rd wr last_hi last_lo
+	    end else begin (* there is nothing to optimize *)
+	      let wr = wr+1 in
+	      Array2.set a wr br;
+	      bl_optimize_aux a rd wr br.sort_end_high (end_low_bits br.short_low_hits)
+	    end 
+	  end else (* just ignore current record *)
+	    bl_optimize_aux a rd wr last_hi last_lo
+	else
+	  wr+1 in
+      let len = bl_optimize_aux a 0 (-1) 0 0 in	
+      (* lprintf_nl (_b "copy %d") (Array2.length a); *)
+      Compact {
+      compact_begin_high = Array.init len (fun n -> (Array2.get a n).short_begin_high);
+      compact_end_high = Array.init len (fun n -> (Array2.get a n).sort_end_high);
+      compact_low_hits  = Array.init len (fun n -> (Array2.get a n).short_low_hits);
+      compact_desc = 
+      if !store_blocking_descriptions then
+	Array.init len (fun n -> (Array2.get a n).short_description)
+      else Array.make 0 unknown_description      
+    }
+  | Compact _ -> a
+  
+	
 
 let load_merge bl filename remove =
   let guardian_regexp = Str.regexp "^\\(.*\\): *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)-\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\)" in
   let ipfilter_regexp = Str.regexp "^\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *- *\\([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+\\) *, *[0-9]+ *, *\\(.*\\)$" in
 
-  let bl = ref bl in
+  let bl = copy_range bl in
   let nranges = ref 0 in
   let error = ref false in
   Unix2.tryopen_read filename (fun cin ->
   let nlines = ref 0 in
+  let append line ip_begin ip_end desc = 
+    let ip_begin = Ip.of_string (Str.matched_group ip_begin line) 
+    and ip_end = Ip.of_string (Str.matched_group ip_end line)
+    and desc = 
+      if !store_blocking_descriptions then 
+	shared_description (Str.matched_group desc line) 
+      else 
+	unknown_description in
+    append_range bl (make_br ip_begin ip_end desc);
+    incr nranges in  
   try
     while true do
       let line = input_line cin in
         incr nlines;
 	try
-	  if Str.string_match ipfilter_regexp line 0 then begin
-	    let br = {
-	      blocking_description = if !store_blocking_descriptions then 
-		shared_description (Str.matched_group 3 line) 
-	      else 
-		unknown_description;
-	      blocking_begin = Ip.of_string (Str.matched_group 1 line);
-	      blocking_end = Ip.of_string (Str.matched_group 2 line);
-	      blocking_hits = 0 } in
-	    bl := add_range !bl br;
-	    incr nranges
-	  end else 
-	    if Str.string_match guardian_regexp line 0 then begin
-	      let br = {
-	        blocking_description = if !store_blocking_descriptions then 
-		  shared_description (Str.matched_group 1 line) 
-		else 
-		  unknown_description;
-	        blocking_begin = Ip.of_string (Str.matched_group 2 line);
-	        blocking_end = Ip.of_string (Str.matched_group 3 line);
-	        blocking_hits = 0 } in
-	      bl := add_range !bl br;
-	      incr nranges
-	    end else 
-	      raise Not_found
+	  if Str.string_match ipfilter_regexp line 0 then
+	    append line 1 2 3
+	  else if Str.string_match guardian_regexp line 0 then 
+	    append line 2 3 1
+	  else 
+	    raise Not_found
 	with _ ->
 	  if not !error then
 	    begin
@@ -224,16 +391,8 @@ let load_merge bl filename remove =
   with End_of_file -> ());
   if !error then lprint_newline ();
   if remove then (try Sys.remove filename with _ -> ());
-  let optimized_bl = bl_optimize !bl in
+  let optimized_bl = bl_optimize bl in
   lprintf_nl (_b "%d ranges loaded - optimized to %d") !nranges (bl_length optimized_bl);
-(*    bl_optimizedp optimized_bl;
-    for i=0 to 999999 do
-      let random_ip = Ip.of_ints (Random.int 256, Random.int 256, Random.int 256, Random.int 256) in
-      match match_ip !bl random_ip, match_ip optimized_bl random_ip with
-	  None, None 
-	| Some _, Some _ -> ()
-	| _ -> assert false
-    done; *)
   optimized_bl
 
 let load filename =
@@ -303,44 +462,55 @@ let load filename =
     end
 
 let of_list l =
-  bl_optimize (
-  List.fold_left (fun acc r ->
+  let bl = copy_range  bl_empty in
+  List.iter (fun r ->
     let range =
       match r with
-      | Ip.RangeSingleIp ip -> {
-	  dummy_range with
-	  blocking_begin = ip;
-	  blocking_end = ip }
-      | Ip.RangeRange (ip1, ip2) -> {
-	  dummy_range with
-	  blocking_begin = ip1;
-	  blocking_end = ip2 }
+      | Ip.RangeSingleIp ip -> 
+	  make_br ip ip unknown_description
+      | Ip.RangeRange (ip1, ip2) -> 
+	  make_br ip1 ip2 unknown_description
       | Ip.RangeCIDR (ip, shift) ->
 	let mask = Ip.mask_of_shift shift in
-	{ dummy_range with
-	  blocking_begin = Ip.network_address ip mask;
-	  blocking_end = Ip.broadcast_address ip mask }
+	make_br (Ip.network_address ip mask) (Ip.broadcast_address ip mask) unknown_description
     in 
-    add_range acc range
-  ) BL_Empty l)
+    append_range bl range
+  ) l;
+  bl_optimize bl
+
+let bl_fold_left f a bl = 
+  let a' = ref a in
+  let f desc begin_high end_high low_hits = 
+    a' := f !a' (make_range desc begin_high end_high low_hits) in
+
+  (match bl with
+    Short a ->   
+      Array2.iter (fun br -> 	
+	if  get_hits br.short_low_hits > 0 then 
+	  f br.short_description br.short_begin_high br.sort_end_high br.short_low_hits;
+		  ) a
+  | Compact a ->
+      Array.iteri (fun n low_hits ->
+	if  get_hits low_hits > 0 then
+	  f (compact_get_desc a n)
+	    (Array.get a.compact_begin_high n) (Array.get a.compact_end_high n) low_hits
+		  ) a.compact_low_hits);
+  !a'
+
 
 let print_list buf bl =
-  let rec print_list_aux bl =
-    match bl with
-        BL_Empty -> 0
-      | BL_Range (red, left, br, right) ->
-          let nleft = print_list_aux left in
-          if br.blocking_hits > 0 then
-            Printf.bprintf buf "%s (%d hits): %s - %s\n" 
-              br.blocking_description
-              br.blocking_hits
-              (Ip.to_string br.blocking_begin)
-              (Ip.to_string br.blocking_end);
-          let nright = print_list_aux right in
-          nleft + 1 + nright in
-
-  let nranges = print_list_aux bl in
+  let print_entry () br = 
+    Printf.bprintf buf "%s (%d hits): %s - %s\n" 
+      br.blocking_description
+      br.blocking_hits
+      (Ip.to_string br.blocking_begin)
+      (Ip.to_string br.blocking_end) in
+  bl_fold_left print_entry () bl;
+  let nranges = bl_length bl in
   Printf.bprintf buf "%d ranges\n" nranges
+	
+
+      
 
 (*
 open Benchmark
@@ -368,3 +538,4 @@ let _ =
       let counter = ref 0 in
       H.iter (fun _ -> incr counter) descriptions;
       Printf.bprintf buf "  descriptions: %d\n" !counter)
+

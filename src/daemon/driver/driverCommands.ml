@@ -4108,9 +4108,8 @@ let _ =
 	    ( "0", "srh ac br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
 	    ( "0", "srh ac br", "Hits", "Hits") ;
 	    ( "0", "srh ac", "Range", "Range")];
-          let nhits, nranges = 
-	    Ip_set.bl_fold_left (fun br (nhits, nranges) ->
-	      if br.Ip_set.blocking_hits > 0 then begin
+          let nhits = 
+	    Ip_set.bl_fold_left (fun nhits br ->
 		Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
 		  (html_mods_cntr ());
 		html_mods_td buf [
@@ -4120,9 +4119,9 @@ let _ =
 		    (Ip.to_string br.Ip_set.blocking_begin)
 		    (Ip.to_string br.Ip_set.blocking_end))];
 		Printf.bprintf buf "\\</tr\\>";
-	      end;
-	      (nhits + br.Ip_set.blocking_hits, nranges + 1)
-	    ) (0, 0) l in
+	      (nhits + br.Ip_set.blocking_hits)
+	    ) 0 l 
+	  and nranges = Ip_set.bl_length l in
 	  Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
 	    (html_mods_cntr ());
 	  if nranges > 0 then

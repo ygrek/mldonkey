@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2009/02/24
+6752: Optimized implementation of the ip_set module (cbah)
 6736: Add/fix some copyright texts
 -------------------------------------------------------------------------------
 2009/01/20: version 2.9.7 = tag release-2-9-7

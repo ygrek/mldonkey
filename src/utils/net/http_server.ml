@@ -828,9 +828,7 @@ let handler config t event =
     (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
       let ip_is_allowed from_ip =
-	match Ip_set.match_ip config.addrs from_ip with
-	| Some br -> true
-	| None -> false
+	Ip_set.match_ip config.addrs from_ip
       in
       let ip_is_blocked from_ip =
 	if config.use_ip_block_list then
