@@ -4106,7 +4106,7 @@ let _ =
 	  html_mods_cntr_init ();
 	  html_mods_table_header buf ~total:"1" tablename "servers" [
 	    ( "0", "srh ac br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
-	    ( "0", "srh ac br", "Hits", "Hits") ;
+	    ( "1", "srh ar", "Hits", "Hits") ;
 	    ( "0", "srh ac", "Range", "Range")];
           let nhits = 
 	    Ip_set.bl_fold_left (fun nhits br ->
