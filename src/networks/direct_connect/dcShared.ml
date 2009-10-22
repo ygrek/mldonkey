@@ -86,6 +86,9 @@ let make_xml_mylist () =
       if dirname = "" then ntabs else begin
         buf_tabs buf ntabs;
         let dir = dirname in
+        (* Escape some special XML characters that may appear in the dirname *)
+        let dir = Str.global_replace (Str.regexp "'") "&apos;" dir in
+        let dir = Str.global_replace (Str.regexp "&") "&amp;" dir in
         Printf.bprintf buf "<Directory Name=\"%s\">\r\n" dir;
         ntabs+1
       end
@@ -93,6 +96,9 @@ let make_xml_mylist () =
     List.iter (fun dcsh ->
       buf_tabs buf ntabs;
       let fname = Filename2.basename dcsh.dc_shared_codedname in
+      (* Escape some special XML characters that may appear in the filename *)
+      let fname = Str.global_replace (Str.regexp "'") "&apos;" fname in
+      let fname = Str.global_replace (Str.regexp "&") "&amp;" fname in
       Printf.bprintf buf "<File Name=\"%s\" Size=\"%Ld\" TTH=\"%s\"/>\r\n" fname 
         dcsh.dc_shared_size dcsh.dc_shared_tiger_root
     ) node.shared_files;
