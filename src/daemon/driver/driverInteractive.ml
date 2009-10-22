@@ -1295,10 +1295,10 @@ let old_print_search buf o results =
                 match r.result_names with
                   [] -> ()
                 | name :: names ->
-                    Printf.bprintf buf "%s\n" (shorten name !!max_name_len);
+                    Printf.bprintf buf "%s\n" (shorten name !!max_result_name_len);
                     List.iter (fun s ->
                         if use_html_mods o then Printf.bprintf buf "\\<BR\\>";
-                        Printf.bprintf buf "       %s\n" (shorten s !!max_name_len)
+                        Printf.bprintf buf "       %s\n" (shorten s !!max_result_name_len)
                     ) names;
               end;
               if r.result_done then
@@ -1630,7 +1630,7 @@ let print_results stime buf o results =
                           if o.conn_output = HTML then Buffer.add_string buf "\\</table\\>\n";
 
                           Buffer.contents buf
-                    ) !!max_name_len)
+                    ) !!max_result_name_len)
                   (if o.conn_output = HTML then
                       begin
                         if !!html_mods then "\\</a\\>\\</td\\>"

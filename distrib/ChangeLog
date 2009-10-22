@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2009/10/22
+6772: New option max_result_name_len, shortens strings in
+      HTML/Telnet search results
 6958: EDK: Fix server connects on Solaris due to missing SO_KEEPALIVE
 6957: Configure: Make Ocaml 3.11.1 the default compiler
 6956; BT: Fix download of torrent files with no 'announce' field (Hose Bag)
