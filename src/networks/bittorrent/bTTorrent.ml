@@ -285,7 +285,6 @@ let decode_torrent s =
     | None -> Charset.safe_convert !file_encoding !file_name
     | Some name -> name
   in
-  assert (!announce <> "");
   assert (real_file_name <> "");
   assert (!file_piece_size <> zero);
   assert (!file_pieces <> "");

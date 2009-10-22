@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2009/10/22
+6956; BT: Fix download of torrent files with no 'announce' field (Hose Bag)
+
 2009/02/28
 6759: HTML: Properly sort column hits in Options, IP blocking
 -------------------------------------------------------------------------------
