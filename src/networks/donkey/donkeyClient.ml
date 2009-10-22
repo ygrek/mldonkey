@@ -1941,9 +1941,11 @@ end else *)
           try
             
             match c.client_source.DonkeySources.source_sock with
-              Connection sock -> Ip.to_string (peer_ip sock)
+              Connection sock ->
+                (Ip.to_string (peer_ip sock) ^ ":" ^ string_of_int (peer_port sock))
             | _ -> (match c.client_kind with 
-                    Direct_address (ip,port) -> Ip.to_string ip
+                    Direct_address (ip,port) ->
+                      ((Ip.to_string ip) ^ ":" ^ string_of_int port)
                   | Indirect_address _ | Invalid_address _ -> "Indirect"
                 )
           
@@ -1951,7 +1953,8 @@ end else *)
               
               try 
                 match c.client_kind with 
-                  Direct_address (ip,port) -> Ip.to_string ip
+                  Direct_address (ip,port) ->
+                    ((Ip.to_string ip) ^ ":" ^ string_of_int port)
                 | Indirect_address _ | Invalid_address _ -> "Indirect"
               with _ -> ""
         ) 
