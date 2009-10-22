@@ -339,7 +339,7 @@ let create_blocking name fd handler =
 
 let create name fd handler =
   MlUnix.set_nonblock fd;
-  if not Autoconf.windows then setsockopt fd SO_KEEPALIVE !socket_keepalive;
+  if not (Autoconf.windows || Autoconf.system="solaris") then setsockopt fd SO_KEEPALIVE !socket_keepalive;
   create_blocking name fd handler
 
 
