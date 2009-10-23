@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2009/10/23
+2009/10/23: version 3.0.1 = tag release-3-0-1
 6961: BT: Fix torrent parsing when announce-list is empty
 
 2009/10/22
