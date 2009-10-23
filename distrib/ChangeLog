@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2009/10/23
+6961: BT: Fix torrent parsing when announce-list is empty
+
 2009/10/22
 6959: DC: Fix invalid XML (lucasn)
 6804: EDK: Log incoming chat messages with ip:port info (Dennis Nezic)

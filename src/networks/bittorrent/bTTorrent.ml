@@ -169,7 +169,7 @@ let decode_torrent s =
                             announce_list := !next_urls @ !announce_list
                           end
                         else
-                          announce_list := List.hd !next_urls :: !announce_list
+                          announce_list := (try List.hd !next_urls with _ -> "") :: !announce_list
                     | _ ->
                         lprintf_nl "[BT] unknown field in announce list"
                     ) list;
