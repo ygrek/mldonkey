@@ -74,6 +74,74 @@ let http11_ok = "HTTP/1.1 200 OK"
 let next_uploaders = ref ([] : BTTypes.client list)
 let current_uploaders = ref ([] : BTTypes.client list)
 
+module Q = struct
+open UdpTracker
+open Unix
+
+(** FIXME should use UdpSocket *)
+let interact host port args file t =
+  try
+  let sock = socket PF_INET SOCK_DGRAM 0 in
+  let resolve host = try (gethostbyname host).h_addr_list.(0) with exn -> failwith ("failed to resolve " ^ host) in
+  let addr = ADDR_INET (resolve host, port) in
+  connect sock addr;
+  let send s = let n = send sock s 0 (String.length s) [] in assert (n = String.length s) in
+  let recv () = let s = String.create 1024 in let n = recv sock s 0 (String.length s) [] in 
+    lprintf_nl "recv %d" n; String.sub s 0 n in
+  let txn = Random.int32 Int32.max_int in
+  lprintf_nl "txn %ld" txn;
+  send (connect_request txn);
+  let conn = connect_response (recv ()) txn in
+  lprintf_nl "connection_id %Ld" conn;
+  let txn = Random.int32 Int32.max_int in
+  lprintf_nl "txn %ld" txn;
+  let int s = Int64.of_string (List.assoc s args) in
+  send (announce_request conn txn
+    ~info_hash:(List.assoc "info_hash" args) 
+    ~peer_id:(List.assoc "peer_id" args)
+    (int "downloaded",int "left",int "uploaded") 
+    (match List.assoc "event" args with
+     | "completed" -> 1l
+     | "started" -> 2l
+     | "stopped" -> 3l
+     | s -> lprintf_nl "event? %s" s; 0l)
+    (int_of_string (List.assoc "port" args)));
+  let (interval,clients) = announce_response (recv ()) txn in
+  lprintf_nl "interval %ld clients %d" interval (List.length clients);
+  if interval > 0l then
+  begin
+    t.tracker_interval <- Int32.to_int interval;
+    if t.tracker_min_interval > t.tracker_interval then
+      t.tracker_min_interval <- t.tracker_interval
+  end;
+  t.tracker_last_conn <- last_time ();
+  file.file_tracker_connected <- true;
+  List.iter (fun (ip,port) -> let ip = Ip.of_int64 (Int64.of_int32 ip) in 
+    lprintf_nl "%s:%d" (Ip.to_string ip) port;
+                        (* Only record valid clients *)
+                        let cc = Geoip.get_country_code_option ip in
+                        if ip != Ip.null &&
+                           port <> 0 &&
+                          (match !Ip.banned (ip, cc) with
+                              None -> true
+                            | Some reason ->
+                                if !verbose_connect then
+                                  lprintf_file_nl (as_file file) "%s:%d blocked: %s"
+                                    (Ip.to_string ip) port reason;
+                                false)
+                        then
+                          ignore (new_client file Sha1.null (ip,port) cc);
+                          if !verbose_sources > 1 then
+                            lprintf_file_nl (as_file file) "Received %s:%d"
+                              (Ip.to_string ip) port;
+                          ()
+    ) clients;
+    lprintf_nl "interact done"
+  with
+  exn -> lprintf_nl "interact exn %s" (Printexc2.to_string exn)
+
+end
+open Q
 
 (**
   In this function we connect to a tracker.
@@ -191,20 +259,20 @@ let connect_trackers file event need_sources f =
           end
           (* Send request to tracker *)
           else 
+            let args = if String.length t.tracker_id > 0 then
+                ("trackerid", t.tracker_id) :: args else args
+            in
+            let args = if String.length t.tracker_key > 0 then
+                ("key", t.tracker_key) :: args else args
+            in
+            if !verbose_msg_servers then
+              lprintf_nl "connect_trackers: connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
+                (string_of_bool file.file_tracker_connected)
+                t.tracker_id t.tracker_key t.tracker_last_clients_num
+                (t.tracker_last_conn - last_time()) file.file_name;
+
             match t.tracker_url with
             | `Http url ->
-              let args = if String.length t.tracker_id > 0 then
-                  ("trackerid", t.tracker_id) :: args else args
-              in
-              let args = if String.length t.tracker_key > 0 then
-                  ("key", t.tracker_key) :: args else args
-              in
-              if !verbose_msg_servers then
-                lprintf_nl "connect_trackers: connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
-                  (string_of_bool file.file_tracker_connected)
-                  t.tracker_id t.tracker_key t.tracker_last_clients_num
-                  (t.tracker_last_conn - last_time()) file.file_name;
-
               let module H = Http_client in
               let r = {
                   H.basic_request with
@@ -224,7 +292,7 @@ let connect_trackers file event need_sources f =
                   file.file_tracker_connected <- true;
                   f t fileres)
             | `Other url -> assert false (* should have been disabled *)
-            | `Udp (host,port) -> failwith "FIXME"
+            | `Udp (host,port) -> interact host port args file t
         end
 
       else

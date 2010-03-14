@@ -245,7 +245,8 @@ let show_tracker_url : tracker_url -> string = function
 
 let can_handle_tracker = function
   | `Http _ -> true
-  | `Udp _ | `Other _ -> false
+  | `Udp _ -> true
+  | `Other _ -> false
 
 let rec set_trackers file file_trackers =
   match file_trackers with
