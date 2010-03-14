@@ -637,3 +637,85 @@ let send_init client_uid file_id sock =
   Buffer.add_string buf (Sha1.direct_to_string client_uid);
   let s = Buffer.contents buf in
   write_string sock s
+
+(** UDP trackers
+  http://www.bittorrent.org/beps/bep_0015.html *)
+module UdpTracker = struct
+
+open Bitstring
+
+let of_bits = string_of_bitstring
+let bits = bitstring_of_string
+
+(*
+Choose a random transaction ID.
+Fill the connect request structure.
+Send the packet.
+*)
+let connect_request txn =
+  of_bits ( BITSTRING { 0x41727101980L : 64 ; 0l : 32 ; txn : 32 } )
+
+(*
+Receive the packet.
+Check whether the packet is at least 16 bytes.
+Check whether the transaction ID is equal to the one you chose.
+Check whether the action is connect.
+Store the connection ID for future use.
+*)
+let connect_response exp_txn s =
+  bitmatch bits s with
+  | { 0l : 32 ; txn : 32 ; conn_id : 64 } when txn = exp_txn -> Some conn_id
+  | { _ } -> None
+
+(*
+Choose a random transaction ID.
+Fill the announce request structure.
+Send the packet.
+*)
+let announce_request conn txn ~info_hash ~peer_id (downloaded,left,uploaded) event port =
+  of_bits (BITSTRING {
+    conn : 64 ;
+    1l : 32 ;
+    txn : 32 ;
+    info_hash : 20 * 8 : string;
+    peer_id : 20 * 8 : string;
+    downloaded : 64 ;
+    left : 64 ;
+    uploaded : 64 ;
+    event : 32 ;
+    0l : 32 ; (* ip *)
+    0l : 32 ; (* key *)
+    -1l : 32 ; (* key *)
+    port : 16 })
+
+(*
+Receive the packet.
+Check whether the packet is at least 20 bytes.
+Check whether the transaction ID is equal to the one you chose.
+Check whether the action is announce.
+Do not announce again until interval seconds have passed or an event has occurred.
+*)
+let announce_response s exp_txn =
+  let rec clients rest l =
+    bitmatch rest with
+    | { ip : 32 ; port : 16 ; rest : -1 : bitstring } -> clients rest ((ip,port)::l)
+    | { _ } -> l
+  in
+  bitmatch bits s with
+  | { 1l : 32 ; txn : 32 ; interval : 32 ; leechers : 32 ; seeders : 32 ;
+      rest : -1 : bitstring } -> Some (txn,interval,clients rest)
+  | { _ } -> None
+
+(*
+If the tracker encounters an error, it might send an error packet.
+Receive the packet.
+Check whether the packet is at least 8 bytes.
+Check whether the transaction ID is equal to the one you chose.
+*)
+let error_response s = 
+  bitmatch bits s with
+  | { 3l : 32 ; txn : 32 ; msg : -1 : string } -> Some (txn, msg)
+  | { _ } -> None
+
+end
+
