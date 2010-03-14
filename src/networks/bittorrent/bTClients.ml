@@ -18,7 +18,8 @@
 *)
 
 
-(** Functions used in client<->client communication
+(** Functions used in client<->client communication 
+    and also client<->tracker
 *)
 
 (** A peer (or client) is always a remote peer in this file.
@@ -185,11 +186,13 @@ let connect_trackers file event need_sources f =
           if file.file_tracker_connected && t.tracker_last_clients_num = 0 && t.tracker_last_conn < 1 then 
           begin
             if !verbose_msg_servers then
-              lprintf_nl "Request error from tracker: disabling %s" t.tracker_url;
+              lprintf_nl "Request error from tracker: disabling %s" (show_tracker_url t.tracker_url);
             t.tracker_status <- Disabled (intern "MLDonkey: Request error from tracker")
           end
           (* Send request to tracker *)
-          else begin
+          else 
+            match t.tracker_url with
+            | `Http url ->
               let args = if String.length t.tracker_id > 0 then
                   ("trackerid", t.tracker_id) :: args else args
               in
@@ -197,13 +200,12 @@ let connect_trackers file event need_sources f =
                   ("key", t.tracker_key) :: args else args
               in
               if !verbose_msg_servers then
-                lprintf_nl "connect_trackers: tracker_connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
+                lprintf_nl "connect_trackers: connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
                   (string_of_bool file.file_tracker_connected)
                   t.tracker_id t.tracker_key t.tracker_last_clients_num
                   (t.tracker_last_conn - last_time()) file.file_name;
 
               let module H = Http_client in
-              let url = t.tracker_url in
               let r = {
                   H.basic_request with
                   H.req_url = Url.of_string ~args: args url;
@@ -215,19 +217,20 @@ let connect_trackers file event need_sources f =
 
               if !verbose_msg_servers then
                   lprintf_nl "Request sent to tracker %s for file: %s"
-                    t.tracker_url file.file_name;
+                    url file.file_name;
               H.wget r
                 (fun fileres ->
                   t.tracker_last_conn <- last_time ();
                   file.file_tracker_connected <- true;
                   f t fileres)
-          end
+            | `Other url -> assert false (* should have been disabled *)
+            | `Udp (host,port) -> failwith "FIXME"
         end
 
       else
         if !verbose_msg_servers then
           lprintf_nl "Request NOT sent to tracker %s - next request in %ds for file: %s"
-            t.tracker_url (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
+            (show_tracker_url t.tracker_url) (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
   ) enabled_trackers
 
 let start_upload c =
@@ -1322,11 +1325,11 @@ let resume_clients file =
 let chk_keyval key n url name =
   let int_n = (Int64.to_int n) in
   if !verbose_msg_clients then
-    lprintf_nl "Reply from %s in file: %s has %s: %d" url name key int_n;
+    lprintf_nl "Reply from %s in file: %s has %s: %d" (show_tracker_url url) name key int_n;
   if int_n > -1 then
     int_n
   else begin
-     lprintf_nl "Reply from %s in file: %s has an invalid %s value: %d" url name key int_n;
+     lprintf_nl "Reply from %s in file: %s has an invalid %s value: %d" (show_tracker_url url) name key int_n;
      0
    end
 
@@ -1357,6 +1360,7 @@ let exn_catch f x = try `Ok (f x) with exn -> `Exn exn
 let talk_to_tracker file need_sources =
   (* This is the function which will be called by the http client for parsing the response *)
   let f t filename =
+    let tracker_url = show_tracker_url t.tracker_url in
     let tracker_failed reason =
       (* On failure, disable the tracker and count attempts (@see is_tracker_enabled) *)
       let num = match t.tracker_status with | Disabled_failure (i,_) -> i + 1 | _ -> 1 in
@@ -1364,7 +1368,7 @@ let talk_to_tracker file need_sources =
       lprintf_file_nl (as_file file) "Failure no. %d%s from Tracker %s for file: %s Reason: %s"
         num
         (if !!tracker_retries = 0 then "" else Printf.sprintf "/%d" !!tracker_retries)
-        t.tracker_url file.file_name (Charset.Locale.to_utf8 reason)
+        tracker_url file.file_name (Charset.Locale.to_utf8 reason)
     in
     match exn_catch File.to_string filename with
     | `Exn _ | `Ok "" -> tracker_failed "empty reply"
@@ -1391,7 +1395,7 @@ let talk_to_tracker file need_sources =
             | "failure reason", String failure -> tracker_failed failure
             | "warning message", String warning ->
                 lprintf_file_nl (as_file file) "Warning from Tracker %s in file: %s Reason: %s" 
-                  t.tracker_url file.file_name warning
+                  tracker_url file.file_name warning
             | "interval", Int n ->
                 t.tracker_interval <- chk_keyval key n;
                 (* in case we don't receive "min interval" *)
@@ -1422,11 +1426,11 @@ let talk_to_tracker file need_sources =
             | "key", String n ->
                 t.tracker_key <- n;
                 if !verbose_msg_clients then
-                  lprintf_file_nl (as_file file) "%s in file: %s has key: %s" t.tracker_url file.file_name n
+                  lprintf_file_nl (as_file file) "%s in file: %s has key: %s" tracker_url file.file_name n
             | "tracker id", String n ->
                 t.tracker_id <- n;
                 if !verbose_msg_clients then
-                  lprintf_file_nl (as_file file) "%s in file: %s has tracker id %s" t.tracker_url file.file_name n
+                  lprintf_file_nl (as_file file) "%s in file: %s has tracker id %s" tracker_url file.file_name n
 
             | "peers", List list ->
                 if need_sources then

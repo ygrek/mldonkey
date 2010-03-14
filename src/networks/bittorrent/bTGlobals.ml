@@ -230,16 +230,29 @@ let create_temp_file file_temp file_files file_state =
         file_temp);
   file_fd
 
-let can_handle_tracker t =
-  String2.check_prefix (String.lowercase t.tracker_url) "http://"
+let make_tracker_url url =
+  let url = String.lowercase url in
+  if String2.check_prefix url "http://" then 
+    `Http url
+  else
+    try Scanf.sscanf url "udp://%s@:%d" (fun host port -> `Udp (host,port))
+    with _ -> `Other url
+
+(** invariant: [make_tracker_url (show_tracker_url url) = url] *)
+let show_tracker_url : tracker_url -> string = function
+  | `Http url | `Other url -> url
+  | `Udp (host,port) -> Printf.sprintf "udp://%s:%d" host port
+
+let can_handle_tracker = function
+  | `Http _ -> true
+  | `Udp _ | `Other _ -> false
 
 let rec set_trackers file file_trackers =
   match file_trackers with
   | [] -> ()
   | url :: q ->
-        if not (List.exists (fun tracker -> 
-                               tracker.tracker_url = url
-                            ) file.file_trackers) then 
+        let url = make_tracker_url url in
+        if not (List.exists (fun tracker -> tracker.tracker_url = url) file.file_trackers) then 
           let t = {
             tracker_url = url;
             tracker_interval = 600;
@@ -253,12 +266,11 @@ let rec set_trackers file file_trackers =
             tracker_torrent_last_dl_req = 0;
             tracker_id = "";
             tracker_key = "";
-                  tracker_status = Enabled
-          } in
-          if not (can_handle_tracker t) then
-            t.tracker_status <- Disabled_mld (intern "Tracker type not supported");
-          file.file_trackers <-  t :: file.file_trackers;
-          set_trackers file q
+            tracker_status = if can_handle_tracker url then Enabled 
+                             else Disabled_mld (intern "Tracker type not supported")
+        } in
+    	  file.file_trackers <-  t :: file.file_trackers;
+      	set_trackers file q
 
 let new_file file_id t torrent_diskname file_temp file_state user group =
   try
@@ -878,7 +890,7 @@ let remove_client c =
 let remove_tracker url file =
   if !verbose_msg_servers then
     List.iter (fun tracker ->
-      lprintf_nl "Old tracker list :%s" tracker.tracker_url
+      lprintf_nl "Old tracker list: %s" (show_tracker_url tracker.tracker_url)
     ) file.file_trackers;
   List.iter (fun bad_tracker ->
     if bad_tracker.tracker_url = url then
@@ -886,7 +898,7 @@ let remove_tracker url file =
   ) file.file_trackers;
   if !verbose_msg_servers then
     List.iter (fun tracker ->
-      lprintf_nl "New tracker list :%s" tracker.tracker_url
+      lprintf_nl "New tracker list: %s" (show_tracker_url tracker.tracker_url)
     ) file.file_trackers
 
 let tracker_is_enabled t =

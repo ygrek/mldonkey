@@ -219,7 +219,7 @@ let file_to_value file =
         "file_uploaded", int64_to_value  (file.file_uploaded);
         "file_id", string_to_value (Sha1.to_string file.file_id);
         "file_trackers", (list_to_value string_to_value)
-        (List.map (fun t -> t.tracker_url) file.file_trackers);
+        (List.map (fun t -> show_tracker_url t.tracker_url) file.file_trackers);
 (* OK, but I still don't like the idea of forgetting all the clients.
 We should have a better strategy, ie rating the clients and connecting
 to them depending on the results of our last connections. And then,

@@ -202,14 +202,15 @@ let op_file_print file o =
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   let tracker_header_printed = ref false in
   List.iter (fun tracker ->
+    let tracker_url = show_tracker_url tracker.tracker_url in
     let tracker_text =
       match tracker.tracker_status with
         | Disabled s | Disabled_mld s ->
-            Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s\\</font\\>" tracker.tracker_url s
+            Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s\\</font\\>" tracker_url s
         | Disabled_failure (i,s) -> 
-            Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s (try %d)\\</font\\>" tracker.tracker_url s i
+            Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s (try %d)\\</font\\>" tracker_url s i
         | _ ->
-            Printf.sprintf "enabled: %s" tracker.tracker_url
+            Printf.sprintf "enabled: %s" tracker_url
 
     in
     html_mods_td buf [
@@ -218,7 +219,7 @@ let op_file_print file o =
        else
         ("", "sr br", "")
       );
-      (tracker.tracker_url, "sr", tracker_text)];
+      (tracker_url, "sr", tracker_text)];
     Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
     tracker_header_printed := true;
   ) file.file_trackers;
@@ -389,12 +390,13 @@ let op_file_print file o =
 
   Printf.bprintf buf "Trackers:\n";
   List.iter (fun tracker ->
+    let tracker_url = show_tracker_url tracker.tracker_url in
     match tracker.tracker_status with
     | Disabled s | Disabled_mld s ->
-        Printf.bprintf buf "%s, disabled: %s\n" tracker.tracker_url s
+        Printf.bprintf buf "%s, disabled: %s\n" tracker_url s
     | Disabled_failure (i,s) -> 
-        Printf.bprintf buf "%s, disabled (try %d): %s\n" tracker.tracker_url i s
-    | _ -> Printf.bprintf buf "%s\n" tracker.tracker_url
+        Printf.bprintf buf "%s, disabled (try %d): %s\n" tracker_url i s
+    | _ -> Printf.bprintf buf "%s\n" tracker_url
   ) file.file_trackers;
   if file.file_torrent_diskname <> "" then
     Printf.bprintf buf "Torrent diskname: %s\n" file.file_torrent_diskname;
@@ -665,9 +667,7 @@ let load_torrent_string s user group =
   (* Save the torrent, because we later want to put
      it in the seeded directory. *)
   let torrent_is_usable = ref false in
-  let can_handle_tracker url =
-    String2.check_prefix url "http://" in
-  List.iter (fun url -> if can_handle_tracker url then torrent_is_usable := true)
+  List.iter (fun url -> if can_handle_tracker (make_tracker_url url) then torrent_is_usable := true)
     (if torrent.torrent_announce_list <> [] then torrent.torrent_announce_list else [torrent.torrent_announce]);
   if not !torrent_is_usable then raise (Torrent_can_not_be_used torrent.torrent_name);
 
