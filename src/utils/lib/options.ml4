@@ -256,10 +256,10 @@ let really_load filename sections =
   let temp_file = filename ^ ".tmp" in
   if Sys.file_exists temp_file then
     begin
-      Printf.eprintf "File %s exists\n" temp_file;
-      Printf.eprintf "An error may have occurred during previous configuration save.\n";
-      Printf.eprintf "Please, check your configurations files, and rename/remove this file\n";
-      Printf.eprintf "before restarting\n";
+      lprintf "File %s exists\n" temp_file;
+      lprintf "An error may have occurred during previous configuration save.\n";
+      lprintf "Please, check your configurations files, and rename/remove this file\n";
+      lprintf "before restarting\n";
       exit 70
     end;
   Unix2.tryopen_read filename (fun ic ->
@@ -271,10 +271,10 @@ let really_load filename sections =
         try 
 	  parse_gwmlrc stream 
 	with e ->
-          Printf.eprintf "Syntax error while parsing file %s at pos %d:(%s)\n"
+          lprintf "Syntax error while parsing file %s at pos %d:(%s)\n"
             filename (Stream.count s) (Printexc2.to_string e);
-          Printf.eprintf "it seems that %s is corrupt,\n" filename;
-          Printf.eprintf "try to use a backup from %s\n"
+          lprintf "it seems that %s is corrupt,\n" filename;
+          lprintf "try to use a backup from %s\n"
             (Filename.concat (Sys.getcwd ()) "old_config");
           exit 70 in
       Hashtbl.clear once_values;
