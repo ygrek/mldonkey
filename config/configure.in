@@ -704,7 +704,7 @@ ifelse(AC_ACVERSION, [2.13], [],
 ])
 
 # various header files
-AC_CHECK_FUNCS(setrlimit getrlimit strerror_r strerror)
+AC_CHECK_FUNCS(setrlimit getrlimit strerror_r strerror posix_fallocate)
 AC_CHECK_HEADERS(byteswap.h,,)
 AC_CHECK_HEADERS([sys/utsname.h])
 AC_CHECK_HEADERS(arpa/inet.h,,)

@@ -1335,7 +1335,7 @@ let create_dir_mode = define_option current_section ["create_dir_mode"]
     string_option "755"
 
 let create_file_sparse = define_option current_section ["create_file_sparse"]
-  "Create new files as sparse, only valid on MinGW for files on NTFS drives"
+  "Create new files as sparse (not supported on FAT volumes)"
     bool_option true
 
 let hdd_temp_minfree = define_option current_section ["hdd_temp_minfree"]

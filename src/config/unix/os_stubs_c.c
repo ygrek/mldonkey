@@ -64,13 +64,17 @@ ssize_t os_read(OS_FD fd, char *buf, size_t len)
 
 *******************************************************************/
 
-/* TODO: write whole file if sparse disabled */
 void os_ftruncate(OS_FD fd, OFF_T len, /* bool */ int sparse)
 {
   int64 cursize;
   if(!fd) failwith("ftruncate32: file is closed");
   
   cursize = os_getfdsize(fd);
+#ifdef HAVE_POSIX_FALLOCATE 
+  if (!sparse)
+    if (posix_fallocate(fd,cursize,len-cursize) == 0)
+      return;
+#endif
   if(cursize < len){
     int zero = 0;
     OFF_T result = lseek(fd, len-1, SEEK_SET);
