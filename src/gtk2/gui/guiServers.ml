@@ -356,7 +356,7 @@ class g_server () =
              (fun path ->
                 try
                   let iter = self#get_iter path in
-                  let k = self#find_key iter in
+                  let k = self#find_model_key iter in
                   let s = server_of_key k in
                   GuiCom.send (ServerSetPreferred (server_num k, not s.server_preferred));
                   let row = self#convert_iter_to_child_iter iter in
