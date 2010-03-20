@@ -1124,13 +1124,14 @@ let commands =
       if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
       List.iter (fun file ->
           if file_state file = FileShared then
-              Printf.bprintf o.conn_buf "%s [%s]\n" file.file_name (Int64.to_string file.file_uploaded)
+              Printf.bprintf o.conn_buf "%s [U %Ld u/d %Ld/%Ld]\n" 
+                file.file_name file.file_uploaded file.file_session_uploaded file.file_session_downloaded
       ) !current_files;
       _s "done"
       end else
       begin print_command_result o "You are not allowed to use seeded_torrents";
       "" end
-    ), _s ":\t\t\tprint all seeded .torrent files on this server";
+    ), _s ":\t\t\tprint all seeded .torrent files on this server (output: name, total upload, session upload, session download)";
 
     "reshare_torrents", "Network/Bittorrent", Arg_none (fun o ->
       share_files ();

@@ -315,6 +315,9 @@ and file = {
     mutable file_tracker_connected : bool;
     mutable file_completed_hook : (file -> unit);
     mutable file_shared : file CommonShared.shared_impl option;
+    (** session uploaded and downloaded bytes, for statistics reporting *)
+    mutable file_session_uploaded : int64;
+    mutable file_session_downloaded : int64;
   }
 
 and ft = {

@@ -287,6 +287,8 @@ let new_file file_id t torrent_diskname file_temp file_state user group =
           file_torrent_diskname = torrent_diskname;
           file_completed_hook = (fun _ -> ());
           file_shared = None;
+          file_session_uploaded = Int64.zero;
+          file_session_downloaded = Int64.zero;
         } and file_impl =  {
           dummy_file_impl with
           impl_file_owner = user;

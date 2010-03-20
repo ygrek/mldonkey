@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/03/20
+7128: BT: Fix ratio reporting (ygrek)
 7127: Configure: Use Ocaml 3.11.2 as default compiler
 7076: Support preallocating files on Unix systems (drwho)
       Recent Linux kernels support fast preallocation when the filesystem is

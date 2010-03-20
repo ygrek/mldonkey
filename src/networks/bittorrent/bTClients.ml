@@ -89,25 +89,32 @@ let current_uploaders = ref ([] : BTTypes.client list)
 *)
 let connect_trackers file event f =
 
-  let args,must_check_delay, downloaded, left =
+  (* reset session statistics when sending 'started' event *)
+  if event = "started" then
+  begin
+    file.file_session_uploaded <- Int64.zero;
+    file.file_session_downloaded <- Int64.zero;
+  end;
+
+  let args,must_check_delay, left =
 
     match file.file_swarmer with
       None ->
         begin
           match event with
-          | "started" -> [("event", "started")],true,zero,zero
-          | "stopped" -> [("event", "stopped")],false,zero,zero
-          | _ -> [],true, zero, zero
+          | "started" -> [("event", "started")],true,zero
+          | "stopped" -> [("event", "stopped")],false,zero
+          | _ -> [],true,zero
         end
 
     | Some swarmer ->
         let local_downloaded = CommonSwarming.downloaded swarmer in
         let left = file_size file -- local_downloaded in
         match event with
-        | "completed" -> [("event", "completed")],false,local_downloaded,zero
-        | "started" -> [("event", "started")],true,zero, left
-        | "stopped" -> [("event", "stopped")],false,zero, left
-        | _ -> [],true,local_downloaded, left
+        | "completed" -> [("event", "completed")],false,zero
+        | "started" -> [("event", "started")],true,left
+        | "stopped" -> [("event", "stopped")],false,left
+        | _ -> [],true,left
   in
 
   let args = ("no_peer_id", "1") :: ("compact", "1") :: args in
@@ -124,12 +131,11 @@ let connect_trackers file event f =
     ("info_hash", Sha1.direct_to_string file.file_id) ::
     ("peer_id", Sha1.direct_to_string !!client_uid) ::
     ("port", string_of_int !!client_port) ::
-    ("uploaded", Int64.to_string file.file_uploaded) ::
-    ("downloaded", Int64.to_string downloaded) ::
+    ("uploaded", Int64.to_string file.file_session_uploaded) ::
+    ("downloaded", Int64.to_string file.file_session_downloaded) ::
     ("left", Int64.to_string left) ::
     args
   in
-  
 
   let enabled_trackers =
     let enabled_trackers = List.filter (fun t -> tracker_is_enabled t) file.file_trackers in
@@ -860,6 +866,8 @@ and client_to_client c sock msg =
             count_download c (new_downloaded -- old_downloaded);
             (* use len here with max_dr quickfix *)
             Rate.update c.client_downloaded_rate ~amount:len;
+            (* count bytes downloaded from network for this file *)
+            file.file_session_downloaded <- file.file_session_downloaded ++ (Int64.of_int len);
             if !verbose_msg_clients then
               (match c.client_ranges_sent with
                   [] -> lprintf_file_nl (as_file file) "EMPTY Ranges !!!"
@@ -1531,6 +1539,7 @@ let rec iter_upload sock c =
           Rate.update c.client_upload_rate  ~amount:len;
           Rate.update c.client_downloaded_rate;
           file.file_uploaded <- file.file_uploaded ++ (Int64.of_int len);
+          file.file_session_uploaded <- file.file_session_uploaded ++ (Int64.of_int len);
           let _ =
             (* update stats *)
             count_filerequest c;
@@ -1581,8 +1590,8 @@ let client_can_upload c allowed =
 let file_resume file =
   List.iter (fun t ->
     match t.tracker_status with
-      Enabled -> ()
-    | _ -> t.tracker_status <- Enabled
+    | Enabled | Disabled_mld _ -> ()
+    | Disabled_failure _ | Disabled _ -> t.tracker_status <- Enabled
   ) file.file_trackers;
   (try get_sources_from_tracker file  with _ -> ())
 
