@@ -88,65 +88,69 @@ let maybe_new_client file id ip port =
            false)
   then
     ignore (new_client file id (ip,port) cc);
-    if !verbose_sources > 1 then
-      lprintf_file_nl (as_file file) "Received %s:%d" (Ip.to_string ip) port;
-    ()
+  if !verbose_sources > 1 then
+    lprintf_file_nl (as_file file) "Received %s:%d" (Ip.to_string ip) port
 
 module Q = struct
 open UdpTracker
 open UdpSocket
 
-(** FIXME should use UdpSocket *)
 let interact host port args file t =
   try
+    lprintf_nl "udpt start with %s:%d" host port;
     let addr = try (Unix.gethostbyname host).Unix.h_addr_list.(0) with exn -> failwith ("failed to resolve " ^ host) in
     let ip = Ip.of_inet_addr addr in
-    let _ = create addr port (fun sock event ->
+    lprintf_nl "udpt resolved to ip %s" (Ip.to_string ip);
+    let sock = create Unix.inet_addr_any 0 (fun sock event ->
+      lprintf_nl "udpt got unexpected event for %s" host)
+(*       close sock (Closed_for_error "unexpected event") *)
+    in
+    let txn = Random.int32 Int32.max_int in
+    lprintf_nl "udpt txn %ld for %s" txn host;
+    write sock false (connect_request txn) ip port;
+    set_reader sock (fun _ ->
+      let p = read sock in
+      let conn = connect_response p.udp_content txn in
+      lprintf_nl "udpt connection_id %Ld for %s" conn host;
       let txn = Random.int32 Int32.max_int in
-      lprintf_nl "txn %ld for host %s" txn host;
-      write sock false (connect_request txn) ip port;
-      set_handler sock READ_DONE (fun _ ->
+      lprintf_nl "udpt txn' %ld for host %s" txn host;
+      let int s = Int64.of_string (List.assoc s args) in
+      let req = announce_request conn txn
+        ~info_hash:(List.assoc "info_hash" args) 
+        ~peer_id:(List.assoc "peer_id" args)
+        (int "downloaded",int "left",int "uploaded")
+        (match List.assoc "event" args with
+         | "completed" -> 1l
+         | "started" -> 2l
+         | "stopped" -> 3l
+         | "" -> 0l
+         | s -> lprintf_nl "udpt event %s? for %s" s host; 0l)
+        ~numwant:(try Int32.of_string (List.assoc "numwant" args) with _ -> -1l)
+        (int_of_string (List.assoc "port" args))
+      in
+      write sock false req ip port;
+      set_reader sock (fun _ ->
         let p = read sock in
-        let conn = connect_response p.udp_content txn in
-        lprintf_nl "connection_id %Ld for host %s" conn host;
-        let txn = Random.int32 Int32.max_int in
-        lprintf_nl "txn' %ld for host %s" txn host;
-        let int s = Int64.of_string (List.assoc s args) in
-        let req = announce_request conn txn
-          ~info_hash:(List.assoc "info_hash" args) 
-          ~peer_id:(List.assoc "peer_id" args)
-          (int "downloaded",int "left",int "uploaded")
-          (match List.assoc "event" args with
-           | "completed" -> 1l
-           | "started" -> 2l
-           | "stopped" -> 3l
-           | "" -> 0l
-           | s -> lprintf_nl "event? %s" s; 0l)
-          (int_of_string (List.assoc "port" args))
-        in
-        write sock false req ip port;
-        set_handler sock READ_DONE (fun _ ->
-            let p = read sock in
-            let (interval,clients) = announce_response p.udp_content txn in
-            lprintf_nl "interval %ld clients %d for host %s" interval (List.length clients) host;
-            if interval > 0l then
-            begin
-              t.tracker_interval <- Int32.to_int interval;
-              if t.tracker_min_interval > t.tracker_interval then
-                t.tracker_min_interval <- t.tracker_interval
-            end;
-            t.tracker_last_conn <- last_time ();
-            file.file_tracker_connected <- true;
-            List.iter (fun (ip,port) -> 
-              let ip = Ip.of_int64 (Int64.of_int32 ip) in 
-              maybe_new_client file Sha1.null ip port
-            ) clients;
-            close sock Closed_by_user;
-            lprintf_nl "interact done for %s" host))) in
-    ()
+        let (interval,clients) = announce_response p.udp_content txn in
+        lprintf_nl "udpt got interval %ld clients %d for host %s" interval (List.length clients) host;
+        if interval > 0l then
+        begin
+          t.tracker_interval <- Int32.to_int interval;
+          if t.tracker_min_interval > t.tracker_interval then
+            t.tracker_min_interval <- t.tracker_interval
+        end;
+        t.tracker_last_conn <- last_time ();
+        file.file_tracker_connected <- true;
+        List.iter (fun (ip',port) ->
+          let ip = Ip.of_int64 (Int64.logand 0xFFFFFFFFL (Int64.of_int32 ip')) in 
+          lprintf_nl "udpt got %s:%d (%ld %Ld)" (Ip.to_string ip) port ip' (Ip.to_int64 ip);
+          maybe_new_client file Sha1.null ip port
+        ) clients;
+        close sock Closed_by_user;
+        lprintf_nl "udpt interact done for %s" host))
   with
   exn -> 
-    lprintf_nl "interact exn %s" (Printexc2.to_string exn)
+    lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn)
 
 end
 open Q

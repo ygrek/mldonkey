@@ -677,7 +677,7 @@ Choose a random transaction ID.
 Fill the announce request structure.
 Send the packet.
 *)
-let announce_request conn txn ~info_hash ~peer_id (downloaded,left,uploaded) event port =
+let announce_request conn txn ~info_hash ~peer_id (downloaded,left,uploaded) event ?(key=0l) ~numwant port =
   of_bits (BITSTRING {
     conn : 64 ;
     1l : 32 ;
@@ -689,8 +689,8 @@ let announce_request conn txn ~info_hash ~peer_id (downloaded,left,uploaded) eve
     uploaded : 64 ;
     event : 32 ;
     0l : 32 ; (* ip *)
-    0l : 32 ; (* key *)
-    -1l : 32 ; (* key *)
+    key : 32 ; (* key *)
+    numwant : 32 ; (* key *)
     port : 16 })
 
 (*
