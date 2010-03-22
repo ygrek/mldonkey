@@ -114,8 +114,14 @@ let interact host port args file t =
     let ip = Ip.of_inet_addr addr in
     lprintf_nl "udpt resolved to ip %s" (Ip.to_string ip);
     let sock = create Unix.inet_addr_any 0 (fun sock event ->
-      lprintf_nl "udpt got unexpected event %s for %s" (string_of_event event) host)
-(*       close sock (Closed_for_error "unexpected event") *)
+(*       lprintf_nl "udpt got event %s for %s" (string_of_event event) host *)
+      match event with
+      | WRITE_DONE | CAN_REFILL -> ()
+      | READ_DONE -> assert false (* set_reader prevents this *)
+      | BASIC_EVENT x -> match x with
+        | CLOSED _ -> ()
+        | CAN_READ | CAN_WRITE -> assert false (* udpSocket implementation prevents this *)
+        | LTIMEOUT | WTIMEOUT | RTIMEOUT -> close sock (Closed_for_error "udpt timeout"))
     in
     let txn = Random.int32 Int32.max_int in
     lprintf_nl "udpt txn %ld for %s" txn host;
@@ -155,7 +161,7 @@ let interact host port args file t =
         file.file_tracker_connected <- true;
         List.iter (fun (ip',port) ->
           let ip = Ip.of_int64 (Int64.logand 0xFFFFFFFFL (Int64.of_int32 ip')) in 
-          lprintf_nl "udpt got %s:%d (%ld %Ld)" (Ip.to_string ip) port ip' (Ip.to_int64 ip);
+          lprintf_nl "udpt got %s:%d" (Ip.to_string ip) port;
           maybe_new_client file Sha1.null ip port
         ) clients;
         close sock Closed_by_user;
