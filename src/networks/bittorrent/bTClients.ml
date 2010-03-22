@@ -95,6 +95,18 @@ module Q = struct
 open UdpTracker
 open UdpSocket
 
+let string_of_event = function
+  | READ_DONE -> "READ_DONE"
+  | WRITE_DONE -> "WRITE_DONE"
+  | CAN_REFILL -> "CAN_REFILL"
+  | BASIC_EVENT e -> match e with
+    | CLOSED reason -> "CLOSED " ^ (string_of_reason reason)
+    | RTIMEOUT -> "RTIMEOUT"
+    | WTIMEOUT -> "WTIMEOUT"
+    | LTIMEOUT -> "LTIMEOUT"
+    | CAN_READ -> "CAN_READ"
+    | CAN_WRITE -> "CAN_WRITE"
+
 let interact host port args file t =
   try
     lprintf_nl "udpt start with %s:%d" host port;
@@ -102,7 +114,7 @@ let interact host port args file t =
     let ip = Ip.of_inet_addr addr in
     lprintf_nl "udpt resolved to ip %s" (Ip.to_string ip);
     let sock = create Unix.inet_addr_any 0 (fun sock event ->
-      lprintf_nl "udpt got unexpected event for %s" host)
+      lprintf_nl "udpt got unexpected event %s for %s" (string_of_event event) host)
 (*       close sock (Closed_for_error "unexpected event") *)
     in
     let txn = Random.int32 Int32.max_int in
@@ -278,10 +290,10 @@ let connect_trackers file event need_sources f =
                 ("key", t.tracker_key) :: args else args
             in
             if !verbose_msg_servers then
-              lprintf_nl "connect_trackers: connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
+              lprintf_nl "connect_trackers: connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i numwant:%s file: %s"
                 (string_of_bool file.file_tracker_connected)
                 t.tracker_id t.tracker_key t.tracker_last_clients_num
-                (t.tracker_last_conn - last_time()) file.file_name;
+                (t.tracker_last_conn - last_time()) (try List.assoc "numwant" args with _ -> "_") file.file_name;
 
             match t.tracker_url with
             | `Http url ->
@@ -1458,6 +1470,7 @@ let talk_to_tracker file need_sources =
     | `Ok (Dictionary list) ->
         t.tracker_interval <- 600;
         t.tracker_min_interval <- 600;
+        t.tracker_last_clients_num <- 0;
         if need_sources then t.tracker_last_clients_num <- 0;
         let chk_keyval key n = chk_keyval key n t.tracker_url file.file_name in
         if not (List.mem_assoc "failure reason" list) then
