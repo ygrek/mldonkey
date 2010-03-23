@@ -181,6 +181,7 @@ let talk_to_udp_tracker host port args file t need_sources =
         List.iter (fun (ip',port) ->
           let ip = Ip.of_int64 (Int64.logand 0xFFFFFFFFL (Int64.of_int32 ip')) in 
           lprintf_nl "udpt got %s:%d" (Ip.to_string ip) port;
+          t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
           maybe_new_client file Sha1.null ip port
         ) clients;
         close socket Closed_by_user;
@@ -301,6 +302,7 @@ let connect_trackers file event need_sources f =
       then
         begin
           (* if we already tried to connect but failed, disable tracker, but allow re-enabling *)
+          (* FIXME t.tracker_last_conn < 1 only at first connect, so later failures will stay undetected! *)
           if file.file_tracker_connected && t.tracker_last_clients_num = 0 && t.tracker_last_conn < 1 then 
           begin
             if !verbose_msg_servers then
