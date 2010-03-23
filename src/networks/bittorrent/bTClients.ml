@@ -91,7 +91,12 @@ let maybe_new_client file id ip port =
   if !verbose_sources > 1 then
     lprintf_file_nl (as_file file) "Received %s:%d" (Ip.to_string ip) port
 
-module Q = struct
+
+let resume_clients_hook = ref (fun _ -> assert false)
+
+include struct
+
+(* open modules locally *)
 open UdpTracker
 open UdpSocket
 
@@ -107,7 +112,10 @@ let string_of_event = function
     | CAN_READ -> "CAN_READ"
     | CAN_WRITE -> "CAN_WRITE"
 
-let interact host port args file t =
+(** talk to udp tracker and parse response
+  except of parsing should perform everything that 
+  talk_to_tracker's inner function does FIXME refactor both *)
+let interact host port args file t need_sources =
   try
     lprintf_nl "udpt start with %s:%d" host port;
     let addr = try (Unix.gethostbyname host).Unix.h_addr_list.(0) with exn -> failwith ("failed to resolve " ^ host) in
@@ -149,6 +157,13 @@ let interact host port args file t =
       write sock false req ip port;
       set_reader sock (fun _ ->
         let p = read sock in
+
+        t.tracker_last_conn <- last_time ();
+        file.file_tracker_connected <- true;
+        t.tracker_interval <- 600;
+        t.tracker_min_interval <- 600;
+        if need_sources then t.tracker_last_clients_num <- 0;
+
         let (interval,clients) = announce_response p.udp_content txn in
         lprintf_nl "udpt got interval %ld clients %d for host %s" interval (List.length clients) host;
         if interval > 0l then
@@ -157,21 +172,20 @@ let interact host port args file t =
           if t.tracker_min_interval > t.tracker_interval then
             t.tracker_min_interval <- t.tracker_interval
         end;
-        t.tracker_last_conn <- last_time ();
-        file.file_tracker_connected <- true;
         List.iter (fun (ip',port) ->
           let ip = Ip.of_int64 (Int64.logand 0xFFFFFFFFL (Int64.of_int32 ip')) in 
           lprintf_nl "udpt got %s:%d" (Ip.to_string ip) port;
           maybe_new_client file Sha1.null ip port
         ) clients;
         close sock Closed_by_user;
-        lprintf_nl "udpt interact done for %s" host))
+        lprintf_nl "udpt interact done for %s" host;
+        if need_sources then !resume_clients_hook file
+        ))
   with
   exn -> 
     lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn)
 
-end
-open Q
+end (* include *)
 
 (**
   In this function we connect to a tracker.
@@ -322,7 +336,7 @@ let connect_trackers file event need_sources f =
                   file.file_tracker_connected <- true;
                   f t fileres)
             | `Other url -> assert false (* should have been disabled *)
-            | `Udp (host,port) -> interact host port args file t
+            | `Udp (host,port) -> interact host port args file t need_sources
         end
 
       else
@@ -1413,6 +1427,9 @@ let resume_clients file =
           if !verbose_connect then
             lprintf_file_nl (as_file file) "Exception %s in resume_clients"   (Printexc2.to_string e)
   ) file.file_clients
+
+let () =
+  resume_clients_hook := resume_clients
 
 (** Check if the value replied by the tracker is correct.
   @param key the name of the key
