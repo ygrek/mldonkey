@@ -114,14 +114,18 @@ let string_of_event = function
 
 (** talk to udp tracker and parse response
   except of parsing should perform everything that 
-  talk_to_tracker's inner function does FIXME refactor both *)
-let interact host port args file t need_sources =
+  talk_to_tracker's inner function does FIXME refactor both 
+
+  Better create single global udp socket and use it for all 
+  tracker requests and distinguish trackers by txn? FIXME?
+  *)
+let talk_to_udp_tracker host port args file t need_sources =
   try
     lprintf_nl "udpt start with %s:%d" host port;
     let addr = try (Unix.gethostbyname host).Unix.h_addr_list.(0) with exn -> failwith ("failed to resolve " ^ host) in
     let ip = Ip.of_inet_addr addr in
     lprintf_nl "udpt resolved to ip %s" (Ip.to_string ip);
-    let sock = create Unix.inet_addr_any 0 (fun sock event ->
+    let socket = create Unix.inet_addr_any 0 (fun sock event ->
 (*       lprintf_nl "udpt got event %s for %s" (string_of_event event) host *)
       match event with
       | WRITE_DONE | CAN_REFILL -> ()
@@ -131,11 +135,13 @@ let interact host port args file t need_sources =
         | CAN_READ | CAN_WRITE -> assert false (* udpSocket implementation prevents this *)
         | LTIMEOUT | WTIMEOUT | RTIMEOUT -> close sock (Closed_for_error "udpt timeout"))
     in
+    BasicSocket.set_wtimeout (sock socket) 120.;
+    BasicSocket.set_rtimeout (sock socket) 120.;
     let txn = Random.int32 Int32.max_int in
     lprintf_nl "udpt txn %ld for %s" txn host;
-    write sock false (connect_request txn) ip port;
-    set_reader sock (fun _ ->
-      let p = read sock in
+    write socket false (connect_request txn) ip port;
+    set_reader socket (fun _ ->
+      let p = read socket in
       let conn = connect_response p.udp_content txn in
       lprintf_nl "udpt connection_id %Ld for %s" conn host;
       let txn = Random.int32 Int32.max_int in
@@ -154,9 +160,9 @@ let interact host port args file t need_sources =
         ~numwant:(try Int32.of_string (List.assoc "numwant" args) with _ -> -1l)
         (int_of_string (List.assoc "port" args))
       in
-      write sock false req ip port;
-      set_reader sock (fun _ ->
-        let p = read sock in
+      write socket false req ip port;
+      set_reader socket (fun _ ->
+        let p = read socket in
 
         t.tracker_last_conn <- last_time ();
         file.file_tracker_connected <- true;
@@ -177,7 +183,7 @@ let interact host port args file t need_sources =
           lprintf_nl "udpt got %s:%d" (Ip.to_string ip) port;
           maybe_new_client file Sha1.null ip port
         ) clients;
-        close sock Closed_by_user;
+        close socket Closed_by_user;
         lprintf_nl "udpt interact done for %s" host;
         if need_sources then !resume_clients_hook file
         ))
@@ -336,7 +342,7 @@ let connect_trackers file event need_sources f =
                   file.file_tracker_connected <- true;
                   f t fileres)
             | `Other url -> assert false (* should have been disabled *)
-            | `Udp (host,port) -> interact host port args file t need_sources
+            | `Udp (host,port) -> talk_to_udp_tracker host port args file t need_sources
         end
 
       else
