@@ -97,7 +97,7 @@ let resume_clients_hook = ref (fun _ -> assert false)
 include struct
 
 (* open modules locally *)
-open UdpTracker
+open BTUdpTracker
 open UdpSocket
 
 let string_of_event = function
