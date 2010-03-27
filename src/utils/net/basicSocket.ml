@@ -494,7 +494,7 @@ let rec exec_timers = function
       (
         if (not t.applied) && t.next_time <= !current_time then begin
             t.applied <- true;
-            exn_log "time_handler" t.time_handler t
+            begin try t.time_handler t with _ -> () end (* exn_log -> many Fifo.empty *)
           end
       );
       exec_timers tail
