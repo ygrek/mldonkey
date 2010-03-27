@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/03/27
+7142: BT: max_uploaders_per_torrent option not restored from .ini files (xboct)
 7140: MinGW: Fix linking with Ocaml 3.11.2
 7139: BT: Some improvements and fixes (ygrek)
 - Don't request sources from tracker (set numwant=0) if we don't need them e.g.

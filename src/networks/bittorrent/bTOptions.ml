@@ -84,12 +84,12 @@ let send_key = define_option bittorrent_section ["send_key"]
   "Send client key to trackers"
     bool_option true
 
-let max_uploaders_per_torrent = define_option bittorrent_section ["max_uploaders_per_torrent"]
-  "Maximum number of uploaders for one torrent, can not be higher than max_bt_uploaders"
-    int_option 3
-
 let max_bt_uploaders = define_option bittorrent_section ["max_bt_uploaders"]
   "Maximum number of uploaders for bittorrent, can not be higher than max_upload_slots"
+    int_option 3
+
+let max_uploaders_per_torrent = define_option bittorrent_section ["max_uploaders_per_torrent"]
+  "Maximum number of uploaders for one torrent, can not be higher than max_bt_uploaders"
     int_option 3
 
 (* numwant: Optional. Number of peers that the client would like to receive from the tracker.
