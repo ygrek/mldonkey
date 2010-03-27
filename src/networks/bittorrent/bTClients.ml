@@ -84,10 +84,14 @@ let current_uploaders = ref ([] : BTTypes.client list)
    Everything else will be ok for a second connection to the tracker.
    Be careful to the spelling of this event
   @param f The function used to parse the result of the connection.
-   The function will get a file as an argument (@see
-   get_sources_from_tracker for an example)
+   The function will get a file as an argument (@see talk_to_tracker 
+   for an example)
+
+  If we have less than !!ask_tracker_threshold sources
+  and if we respect the file_tracker_interval then
+  we really ask sources to the tracker
 *)
-let connect_trackers file event f =
+let connect_trackers file event need_sources f =
 
   (* reset session statistics when sending 'started' event *)
   if event = "started" then
@@ -118,8 +122,13 @@ let connect_trackers file event f =
   in
 
   let args = ("no_peer_id", "1") :: ("compact", "1") :: args in
-  let args = if !!numwant > -1 then
-      ("numwant", string_of_int !!numwant) :: args else args
+  let args = 
+    if not need_sources then
+      ("numwant", "0") :: args
+    else if !!numwant > -1 then
+      ("numwant", string_of_int !!numwant) :: args 
+    else 
+      args
   in
   let args = if !!send_key then
       ("key", Sha1.to_hexa !!client_uid) :: args else args
@@ -143,18 +152,18 @@ let connect_trackers file event f =
     else begin
       (* if there is no tracker left, do something ? *)
       if !verbose_msg_servers then
-	lprintf_nl "No trackers left for %s, reenabling all of them..." (file_best_name (as_file file));
+        lprintf_nl "No trackers left for %s, reenabling all of them..." (file_best_name (as_file file));
       List.iter (fun t ->
-	match t.tracker_status with
-      (* only re-enable after normal error *)
+        match t.tracker_status with
+        (* only re-enable after normal error *)
         | Disabled _ -> t.tracker_status <- Enabled
-	| _ -> ()) file.file_trackers;
+        | _ -> ()) file.file_trackers;
       let enabled_trackers = List.filter (fun t -> tracker_is_enabled t) file.file_trackers in
       if enabled_trackers = [] && (file_state file) <> FilePaused then
-	begin
-	  file_pause (as_file file) (CommonUserDb.admin_user ());
-	  lprintf_file_nl (as_file file) "Paused %s, no usable trackers left" (file_best_name (as_file file))
-	end;
+      begin
+        file_pause (as_file file) (CommonUserDb.admin_user ());
+        lprintf_file_nl (as_file file) "Paused %s, no usable trackers left" (file_best_name (as_file file))
+      end;
       enabled_trackers
     end in
 
@@ -173,12 +182,12 @@ let connect_trackers file event f =
       then
         begin
           (* if we already tried to connect but failed, disable tracker, but allow re-enabling *)
-          if file.file_tracker_connected && t.tracker_last_clients_num = 0 &&
-            t.tracker_last_conn < 1 then begin
-              if !verbose_msg_servers then
-                lprintf_nl "Request error from tracker: disabling %s" t.tracker_url;
-	      t.tracker_status <- Disabled (intern "MLDonkey: Request error from tracker")
-            end
+          if file.file_tracker_connected && t.tracker_last_clients_num = 0 && t.tracker_last_conn < 1 then 
+          begin
+            if !verbose_msg_servers then
+              lprintf_nl "Request error from tracker: disabling %s" t.tracker_url;
+            t.tracker_status <- Disabled (intern "MLDonkey: Request error from tracker")
+          end
           (* Send request to tracker *)
           else begin
               let args = if String.length t.tracker_id > 0 then
@@ -188,7 +197,7 @@ let connect_trackers file event f =
                   ("key", t.tracker_key) :: args else args
               in
               if !verbose_msg_servers then
-                lprintf_nl "get_sources_from_tracker: tracker_connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
+                lprintf_nl "connect_trackers: tracker_connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
                   (string_of_bool file.file_tracker_connected)
                   t.tracker_id t.tracker_key t.tracker_last_clients_num
                   (t.tracker_last_conn - last_time()) file.file_name;
@@ -354,7 +363,7 @@ let disconnect_clients file =
 let download_finished file =
     if List.memq file !current_files then
       begin
-        connect_trackers file "completed" (fun _ _ -> ()); (*must be called before swarmer gets removed from file*)
+        connect_trackers file "completed" false (fun _ _ -> ()); (*must be called before swarmer gets removed from file*)
         (*CommonComplexOptions.file_completed*)
         file_completed (as_file file);
         (* Remove the swarmer for this file as it is not useful anymore... *)
@@ -1321,16 +1330,29 @@ let chk_keyval key n url name =
      0
    end
 
+(** Check that client is valid and record it *)
+let maybe_new_client file id ip port =
+  let cc = Geoip.get_country_code_option ip in
+  if id <> !!client_uid
+     && ip != Ip.null
+     && port <> 0
+     && (match !Ip.banned (ip, cc) with
+         | None -> true
+         | Some reason ->
+           if !verbose_connect then
+             lprintf_file_nl (as_file file) "%s:%d blocked: %s" (Ip.to_string ip) port reason;
+           false)
+  then
+    ignore (new_client file id (ip,port) cc);
+    if !verbose_sources > 1 then
+      lprintf_file_nl (as_file file) "Received %s:%d" (Ip.to_string ip) port;
+    ()
 
-(** In this function we initiate a connection to the file tracker
-  to get sources.
+(** In this function we interact with the tracker
   @param file The file for which we want some sources
-  @param url Url of the tracker
-  If we have less than !!ask_tracker_threshold sources
-  and if we respect the file_tracker_interval then
-  we really ask sources to the tracker
+  @param need_sources whether we need any sources
 *)
-let get_sources_from_tracker file =
+let talk_to_tracker file need_sources =
   let f t filename =
     (*This is the function which will be called by the http client
       for parsing the response
@@ -1350,7 +1372,7 @@ let get_sources_from_tracker file =
     in
     t.tracker_interval <- 600;
     t.tracker_min_interval <- 600;
-    t.tracker_last_clients_num <- 0;
+    if need_sources then t.tracker_last_clients_num <- 0;
     match v with
       Dictionary list ->
         List.iter (fun (key,value) ->
@@ -1367,7 +1389,7 @@ let get_sources_from_tracker file =
             match (key, value) with
             | String "failure reason", String failure ->
                 (* On failure, disable the tracker, count the attempts and forbid re-enabling *)
-		t.tracker_status <- (match t.tracker_status with
+                t.tracker_status <- (match t.tracker_status with
                   | Disabled_failure (i,_) -> Disabled_failure (i + 1, intern failure)
                   | _ -> Disabled_failure (1, intern failure));
                 lprintf_file_nl (as_file file) "Failure no. %d%s from Tracker %s in file: %s Reason: %s"
@@ -1413,11 +1435,10 @@ let get_sources_from_tracker file =
                   lprintf_file_nl (as_file file) "%s in file: %s has tracker id %s" t.tracker_url file.file_name n
 
             | String "peers", List list ->
+                if need_sources then
                 List.iter (fun v ->
                     match v with
-                      Dictionary list ->
-                        t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
-
+                    | Dictionary list ->
                         let peer_id = ref Sha1.null in
                         let peer_ip = ref Ip.null in
                         let port = ref 0 in
@@ -1433,25 +1454,9 @@ let get_sources_from_tracker file =
                             | _ -> ()
                         ) list;
 
-                        (* Only record valid clients *)
-                        let cc = Geoip.get_country_code_option !peer_ip in
-                        if !peer_id != Sha1.null &&
-                          !peer_id <> !!client_uid &&
-                          !peer_ip != Ip.null &&
-                          !port <> 0 &&
-                          (match !Ip.banned (!peer_ip, cc) with
-                              None -> true
-                            | Some reason ->
-                                if !verbose_connect then
-                                  lprintf_file_nl (as_file file) "%s:%d blocked: %s"
-                                    (Ip.to_string !peer_ip) !port reason;
-                                false)
-                        then
-                          ignore (new_client file !peer_id (!peer_ip,!port) cc);
-                          if !verbose_sources > 1 then
-                            lprintf_file_nl (as_file file) "Received %s:%d"
-                              (Ip.to_string !peer_ip) !port;
-                          ()
+                        t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
+                        maybe_new_client file !peer_id !peer_ip !port
+
                     | _ -> assert false
                 ) list
             | String "peers", String p ->
@@ -1461,12 +1466,13 @@ let get_sources_from_tracker file =
                         get_uint8 s (pos+2),get_uint8 s (pos+3))
                     and port = get_int16 s (pos+4)
                     in
-                    ignore (new_client file Sha1.null (ip,port) None);
                     t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
+                    maybe_new_client file Sha1.null ip port;
 
                     iter_comp s (pos+6) l
                 in
-                iter_comp p 0 (String.length p)
+                if need_sources then 
+                  iter_comp p 0 (String.length p)
             | String "private", Int n -> ()
               (* TODO: if set to 1, disable peer exchange *)
 
@@ -1475,9 +1481,9 @@ let get_sources_from_tracker file =
        (*Now, that we have added new clients to a file, it's time
          to connect to them*)
         if !verbose_sources > 0 then
-          lprintf_file_nl (as_file file) "get_sources_from_tracker: got %i source(s) for file %s"
+          lprintf_file_nl (as_file file) "talk_to_tracker: got %i source(s) for file %s"
             t.tracker_last_clients_num file.file_name;
-        resume_clients file
+        if need_sources then resume_clients file
 
     | _ -> assert false
   in
@@ -1485,13 +1491,15 @@ let get_sources_from_tracker file =
     if file.file_tracker_connected then ""
     else "started"
   in
-  connect_trackers file event f
+  connect_trackers file event need_sources f
 
 
 (** Check to see if file is finished, if not
   try to get sources for it
 *)
 let recover_files () =
+  if !verbose_share then
+    lprintf_nl "recover_files";
   List.iter (fun file ->
       match file.file_swarmer with
         None -> ()
@@ -1499,12 +1507,15 @@ let recover_files () =
           (try check_finished swarmer file with e -> ());
           match file_state file with
             FileDownloading ->
-              (try get_sources_from_tracker file with _ -> ())
+              if !verbose_share then
+                lprintf_file_nl (as_file file) "recover downloading";
+              (try talk_to_tracker file true with _ -> ())
           | FileShared ->
-              (try
-                  connect_trackers file "" (fun _ _ -> ()) with _ -> ())
+              if !verbose_share then
+                lprintf_file_nl (as_file file) "recover shared";
+              (try talk_to_tracker file false with _ -> ())
           | FilePaused -> () (*when we are paused we do nothing, not even logging this vvvv*)
-          | s -> lprintf_file_nl (as_file file) "Other state %s!!" (string_of_state s)
+          | s -> lprintf_file_nl (as_file file) "recover: Other state %s!!" (string_of_state s)
       ) !current_files
 
 let upload_buffer = String.create 100000
@@ -1593,7 +1604,7 @@ let file_resume file =
     | Enabled | Disabled_mld _ -> ()
     | Disabled_failure _ | Disabled _ -> t.tracker_status <- Enabled
   ) file.file_trackers;
-  (try get_sources_from_tracker file  with _ -> ())
+  (try talk_to_tracker file true with _ -> ())
 
 
 
@@ -1604,7 +1615,7 @@ let file_resume file =
 let file_stop file =
     if file.file_tracker_connected then
     begin
-      connect_trackers file "stopped" (fun _ _ ->
+      connect_trackers file "stopped" false (fun _ _ ->
           lprintf_file_nl (as_file file) "Tracker return: stopped %s" file.file_name;
           file.file_tracker_connected <- false)
     end

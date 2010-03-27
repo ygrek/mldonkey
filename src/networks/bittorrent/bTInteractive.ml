@@ -184,6 +184,11 @@ let op_file_print file o =
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
+    ("Torrent metadata hash", "sr", "Hash");
+    ("", "sr", Sha1.to_hexa file.file_id) ];
+
+  Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  html_mods_td buf [
     ("Search for other possible Torrent Files", "sr br", "Torrent Srch");
     ("", "sr", Printf.sprintf "\\<a target=\\\"_blank\\\" href=\\\"http://isohunt.com/%s\\\"\\>IsoHunt\\</a\\>"
          (file.file_name)
@@ -673,7 +678,7 @@ let load_torrent_string s user group =
     lprintf_nl "Starting torrent download with diskname: %s"
         torrent_diskname;
   let file = new_download file_id torrent torrent_diskname user group in
-  BTClients.get_sources_from_tracker file;
+  BTClients.talk_to_tracker file true;
   CommonInteractive.start_download (file_find (file_num file));
   file
 
@@ -688,6 +693,7 @@ let load_torrent_file filename user group =
     Sys.remove filename;
   ignore (load_torrent_string s user group)
 
+(*
 let parse_tracker_reply file t filename =
 (*This is the function which will be called by the http client
 for parsing the response*)
@@ -723,6 +729,7 @@ for parsing the response*)
           | _ -> ()
       ) list;
   | _ -> assert false
+*)
 
 let try_share_file torrent_diskname =
   if !verbose_share then lprintf_nl "try_share_file: %s" torrent_diskname;
@@ -754,9 +761,10 @@ let try_share_file torrent_diskname =
     let user = CommonUserDb.admin_user () in
     let file = new_file file_id torrent torrent_diskname
         filename FileShared user user.user_default_group in
-    if !verbose_share then lprintf_file_nl (as_file file) "Sharing file %s" filename;
-    BTClients.connect_trackers file "started"
-      (parse_tracker_reply file)
+
+    if !verbose_share then 
+      lprintf_file_nl (as_file file) "Sharing file %s" filename;
+    BTClients.talk_to_tracker file false
   with
   | Not_found ->
       (* if the torrent is still there while the file is gone, remove the torrent *)

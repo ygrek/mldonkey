@@ -15,6 +15,13 @@ ChangeLog
 =========
 
 2010/03/27
+7139: BT: Some improvements and fixes (ygrek)
+- Don't request sources from tracker (set numwant=0) if we don't need them e.g.
+  'stopped' event or when sharing
+- Prevent client from repeatedly sending 'started' events for shared files
+- Check that peer addresses, returned from tracker in compact format, are valid
+  and not blocked (same check as for non-compact format)
+- Show torrent info_hash in html ui
 7138: BT: Recognize more client brands (ygrek)
 7137: Fix error in calculating average upload speed for client (ygrek)
 7136: GTK2 GUI: start downloads from search results items

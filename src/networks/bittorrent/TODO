@@ -1,0 +1,2 @@
+* filter out duplicate trackers in metainfo (NB no port equals to :80 for http)
+* file_tracker_connected should be the property of tracker

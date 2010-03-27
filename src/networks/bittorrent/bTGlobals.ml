@@ -235,8 +235,8 @@ let can_handle_tracker t =
 
 let rec set_trackers file file_trackers =
   match file_trackers with
-    | [] -> ()
-    | url :: q ->
+  | [] -> ()
+  | url :: q ->
 	if not (List.exists (fun tracker -> 
 			       tracker.tracker_url = url
 			    ) file.file_trackers) then 
@@ -253,12 +253,12 @@ let rec set_trackers file file_trackers =
             tracker_torrent_last_dl_req = 0;
             tracker_id = "";
             tracker_key = "";
-	    tracker_status = Enabled
+      	    tracker_status = Enabled
           } in
 	  if not (can_handle_tracker t) then
 	    t.tracker_status <- Disabled_mld (intern "Tracker type not supported");
 	  file.file_trackers <-  t :: file.file_trackers;
-	set_trackers file q
+  	set_trackers file q
 
 let new_file file_id t torrent_diskname file_temp file_state user group =
   try
@@ -327,7 +327,7 @@ let new_file file_id t torrent_diskname file_temp file_state user group =
                           if not (Bitv.get bitmap num) then
                             send_client c (Have (Int64.of_int num));
                           check_if_interesting file c
-                    end       
+                    end
               ) file.file_clients
 
           );
