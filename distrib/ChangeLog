@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/03/27
+7136: GTK2 GUI: start downloads from search results items
+      by double-click (soulcatcher)
+
 2010/03/20
 7128: BT: Fix ratio reporting (ygrek)
 7127: Configure: Use Ocaml 3.11.2 as default compiler

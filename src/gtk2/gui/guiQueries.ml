@@ -294,6 +294,8 @@ let display_results (notebook : GPack.notebook) (qr : g_query) =
   view_context := Some resultview#view#misc#pango_context;
   resultview#set_model qr.g_query_result#gmodel;
   resultview#set_menu GuiResults.result_menu;
+  resultview#set_on_double_click GuiResults.result_on_double_click;
+
   let hbox_b =
     GPack.hbox ~homogeneous:false
       ~packing:(vbox#pack ~fill:true ~expand:false) ()
