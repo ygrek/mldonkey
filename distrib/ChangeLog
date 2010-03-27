@@ -15,6 +15,8 @@ ChangeLog
 =========
 
 2010/03/27
+7140: Do not use $PTHREAD_CFLAGS when linking
+      this fixes compile problems with Ocaml 3.11.2 on MinGW
 7139: BT: Some improvements and fixes (ygrek)
 - Don't request sources from tracker (set numwant=0) if we don't need them e.g.
   'stopped' event or when sharing

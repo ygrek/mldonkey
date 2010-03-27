@@ -152,7 +152,7 @@ CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(LIB)/syslog.ml $(CDK)/printf2.ml \
   
 ifneq ("$(PTHREAD_CFLAGS)" , "")
   CFLAGS += $(PTHREAD_CFLAGS)
-  LIBS_flags += -ccopt "$(PTHREAD_CFLAGS)"
+#  LIBS_flags += -ccopt "$(PTHREAD_CFLAGS)"
 #  LIBS_byte += -ccopt "$(PTHREAD_CFLAGS)"
 endif
 
