@@ -126,7 +126,7 @@ let talk_to_udp_tracker host port args file t need_sources =
     let ip = Ip.of_inet_addr addr in
     lprintf_nl "udpt resolved to ip %s" (Ip.to_string ip);
     let socket = create Unix.inet_addr_any 0 (fun sock event ->
-(*       lprintf_nl "udpt got event %s for %s" (string_of_event event) host *)
+      lprintf_nl "udpt got event %s for %s" (string_of_event event) host
       match event with
       | WRITE_DONE | CAN_REFILL -> ()
       | READ_DONE -> assert false (* set_reader prevents this *)
@@ -135,8 +135,8 @@ let talk_to_udp_tracker host port args file t need_sources =
         | CAN_READ | CAN_WRITE -> assert false (* udpSocket implementation prevents this *)
         | LTIMEOUT | WTIMEOUT | RTIMEOUT -> close sock (Closed_for_error "udpt timeout"))
     in
-    BasicSocket.set_wtimeout (sock socket) 120.;
-    BasicSocket.set_rtimeout (sock socket) 120.;
+    BasicSocket.set_wtimeout (sock socket) 5.;
+    BasicSocket.set_rtimeout (sock socket) 5.;
     let txn = Random.int32 Int32.max_int in
     lprintf_nl "udpt txn %ld for %s" txn host;
     write socket false (connect_request txn) ip port;
