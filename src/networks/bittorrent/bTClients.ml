@@ -126,7 +126,7 @@ let talk_to_udp_tracker host port args file t need_sources =
     let ip = Ip.of_inet_addr addr in
     lprintf_nl "udpt resolved to ip %s" (Ip.to_string ip);
     let socket = create Unix.inet_addr_any 0 (fun sock event ->
-      lprintf_nl "udpt got event %s for %s" (string_of_event event) host
+      lprintf_nl "udpt got event %s for %s" (string_of_event event) host;
       match event with
       | WRITE_DONE | CAN_REFILL -> ()
       | READ_DONE -> assert false (* set_reader prevents this *)
@@ -135,12 +135,19 @@ let talk_to_udp_tracker host port args file t need_sources =
         | CAN_READ | CAN_WRITE -> assert false (* udpSocket implementation prevents this *)
         | LTIMEOUT | WTIMEOUT | RTIMEOUT -> close sock (Closed_for_error "udpt timeout"))
     in
+    let set_reader f =
+      set_reader socket begin fun _ -> 
+        try f () with exn ->
+          lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn);
+          close socket (Closed_for_exception exn)
+      end
+    in
     BasicSocket.set_wtimeout (sock socket) 5.;
     BasicSocket.set_rtimeout (sock socket) 5.;
     let txn = Random.int32 Int32.max_int in
     lprintf_nl "udpt txn %ld for %s" txn host;
     write socket false (connect_request txn) ip port;
-    set_reader socket (fun _ ->
+    set_reader (fun () ->
       let p = read socket in
       let conn = connect_response p.udp_content txn in
       lprintf_nl "udpt connection_id %Ld for %s" conn host;
@@ -151,7 +158,7 @@ let talk_to_udp_tracker host port args file t need_sources =
         ~info_hash:(List.assoc "info_hash" args) 
         ~peer_id:(List.assoc "peer_id" args)
         (int "downloaded",int "left",int "uploaded")
-        (match List.assoc "event" args with
+        (match try List.assoc "event" args with Not_found -> "" with
          | "completed" -> 1l
          | "started" -> 2l
          | "stopped" -> 3l
@@ -161,7 +168,7 @@ let talk_to_udp_tracker host port args file t need_sources =
         (int_of_string (List.assoc "port" args))
       in
       write socket false req ip port;
-      set_reader socket (fun _ ->
+      set_reader (fun () ->
         let p = read socket in
 
         t.tracker_last_conn <- last_time ();
