@@ -467,6 +467,7 @@ let decode_az_style s =
       | "ZT" -> Brand_ziptorrent
       | "bk" -> Brand_bitkitten
       | "MP" -> Brand_moopolice
+      | "UM" -> Brand_utorrent_mac
       | "UT" -> Brand_utorrent
       | "KT" -> Brand_ktorrent
       | "LP" -> Brand_lphant
@@ -484,9 +485,15 @@ let decode_az_style s =
       | "AX" -> Brand_bitpump
       | "DE" -> Brand_deluge
       | "TT" -> Brand_tuotu
+      | "SD" (* Thunder (aka XùnLéi) *)
       | "XL" -> Brand_xunlei
       | "FT" -> Brand_foxtorrent
       | "BF" -> Brand_bitflu
+      | "OS" -> Brand_oneswarm
+      | "LW" -> Brand_limewire
+      | "HL" -> Brand_halite
+      | "MR" -> Brand_miro
+      | "PD" -> Brand_pando
       | _ -> Brand_unknown
     in
     if brand = Brand_unknown then None else
@@ -495,12 +502,15 @@ let decode_az_style s =
           (* 4.56 *)
           | Brand_bitpump
           | Brand_bitcomet -> (String.sub s 4 1) ^ "." ^ (String.sub s 5 2)
-          (* 3.45 *)
+          (* 3.4.5 *)
           | Brand_tuotu
+          | Brand_utorrent_mac
+          | Brand_oneswarm
           | Brand_utorrent -> (String.sub s 3 1) ^ "." ^ (String.sub s 4 1) ^ "." ^ (String.sub s 5 1)
+          (* 3.45 *)
+          | Brand_transmission -> (String.sub s 3 1) ^ "." ^ (String.sub s 4 2)
           (* 34.56 *)
-          | Brand_ctorrent
-          | Brand_transmission -> (strip_leading_zeroes (String.sub s 3 2)) ^ "." ^ (strip_leading_zeroes(String.sub s 5 2))
+          | Brand_ctorrent -> (strip_leading_zeroes (String.sub s 3 2)) ^ "." ^ (strip_leading_zeroes(String.sub s 5 2))
           (* 3.4.5->[R=RC.6|D=Dev|''] *)
           | Brand_ktorrent -> 
               let x = match s.[5] with 
@@ -596,6 +606,7 @@ let decode_simple_style s =
       (0,  "btpd",              Brand_btpd,            (dot_string(String.sub s 5 3)));
       (0,  "XBT",               Brand_xbt,             (dot_string(String.sub s 3 3)));
       (0,  "-FG",               Brand_flashget,        (dot_string(String.sub s 4 3)));
+      (0,  "-SP",               Brand_bitspirit,       (dot_string(String.sub s 3 3)));
     ]
   in
   let len = List.length !simple_list in

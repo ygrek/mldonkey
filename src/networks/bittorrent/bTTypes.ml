@@ -92,6 +92,7 @@ type brand =
 | Brand_xbt
 | Brand_ziptorrent
 | Brand_moopolice
+| Brand_utorrent_mac
 | Brand_utorrent
 | Brand_opera
 | Brand_torrenttopia
@@ -124,6 +125,10 @@ type brand =
 | Brand_xunlei
 | Brand_foxtorrent
 | Brand_bitflu
+| Brand_oneswarm
+| Brand_halite
+| Brand_miro
+| Brand_pando
 
 let brand_list = [ 
    ( Brand_unknown          , "unknown"                , "unk" ) ;
@@ -171,6 +176,7 @@ let brand_list = [
    ( Brand_xbt              , "XBT"                    , "xbt" ) ;
    ( Brand_ziptorrent       , "ZipTorrent"             , "zit" ) ;
    ( Brand_moopolice        , "MooPolice"              , "moo" ) ;
+   ( Brand_utorrent_mac     , "uTorrent for Mac"       , "uTm" ) ;
    ( Brand_utorrent         , "uTorrent"               , "uTo" ) ;
    ( Brand_opera            , "Opera"                  , "opr" ) ;
    ( Brand_torrenttopia     , "TorrentTopia"           , "tt" ) ;
@@ -203,6 +209,10 @@ let brand_list = [
    ( Brand_xunlei           , "XunLei"                 , "xun" ) ;
    ( Brand_foxtorrent       , "FoxTorrent"             , "fox" ) ;
    ( Brand_bitflu           , "BitFlu"                 , "flu" ) ;
+   ( Brand_oneswarm         , "OneSwarm"               , "osw" ) ;
+   ( Brand_halite           , "Halite"                 , "hal" ) ;
+   ( Brand_miro             , "Miro"                   , "mir" ) ;
+   ( Brand_pando            , "Pando"                  , "pan" ) ;
   ] 
 
 let brand_count = List.length brand_list
