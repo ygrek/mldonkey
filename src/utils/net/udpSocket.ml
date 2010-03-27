@@ -31,6 +31,12 @@ let lprintf_nl fmt =
 let lprintf_n fmt =
   lprintf2 log_prefix fmt
 
+let exn_log name f x = 
+  try 
+    f x
+  with e -> 
+    lprintf_nl "%s : unexpected exn %s" name (Printexc2.to_string e)
+
 type event = 
   WRITE_DONE
 | CAN_REFILL
@@ -65,7 +71,6 @@ let declare_ping ip =
       Fifo.put pings_fifo (ping.ping_die_time, ping)
   
 let declare_pong ip = 
-  try
     let ping = Hashtbl.find pings_hashtbl ip in
     if ping.ping_obsolete_time > last_time () then begin
         ping.ping_die_time <- 0;
@@ -82,7 +87,8 @@ let declare_pong ip =
         with _ -> 
             Hashtbl.add latencies ip (ref delay, ref 1)            
       end
-  with _ -> ()
+
+let declare_pong = exn_log "declare_pong" declare_pong
 
 type udp_packet = {
     udp_ping : bool;
@@ -171,13 +177,13 @@ let set_handler t event handler =
 let set_refill t f =
   set_handler t CAN_REFILL f;
   if PacketSet.is_empty t.wlist then
-   (try f t with _ -> ())
-    
+    exn_log "immediate refill" f t
+
 let set_reader t f =
   set_handler t READ_DONE f;
   match t.rlist with
     [] -> ()
-  | _ -> (try f t with _ -> ())
+  | _ -> exn_log "immediate read" f t
 
 let sock t = t.sock
 let closed t = closed t.sock
@@ -440,9 +446,7 @@ let can_write t =
   PacketSet.is_empty t.wlist
 
 let read_packets t f =
-  List.iter (fun p ->
-      try f p with _ -> ()
-  ) t.rlist;
+  List.iter (exn_log "read_packets" f) t.rlist;
   t.rlist <- []
   
 let set_write_controler s c =  
