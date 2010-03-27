@@ -156,6 +156,10 @@ ifneq ("$(PTHREAD_CFLAGS)" , "")
 #  LIBS_byte += -ccopt "$(PTHREAD_CFLAGS)"
 endif
 
+ifneq ("$(PTHREAD_MINGW_CFLAGS)" , "")
+  CFLAGS += $(PTHREAD_MINGW_CFLAGS)
+endif
+
 ifneq ("$(PTHREAD_LIBS)" , "")
   LIBS_flags += -cclib "$(PTHREAD_LIBS)"
 #  LIBS_byte += -cclib "$(PTHREAD_LIBS)"

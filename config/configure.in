@@ -49,7 +49,7 @@ case $host in
     OS_FILES=mingw
     OS_FILES2=mingw
     PTHREAD_LIBS="-lpthreadGC2 -lwsock32"
-    PTHREAD_CFLAGS="-DPTW32_STATIC_LIB"
+    PTHREAD_MINGW_CFLAGS="-DPTW32_STATIC_LIB"
     AC_MSG_CHECKING(for mingw-runtime version)
       
 cat >mingw_rt_ver.c <<'END'
