@@ -2779,8 +2779,8 @@ let _ =
                         onMouseOut=\\\"mOut(this);\\\"
                         onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
                             (html_mods_cntr ()) (client_num c)
-                          ( float_of_int (Int64.to_int i.client_session_uploaded / 1024) /.
-                              float_of_int (max 1 ((last_time ()) - i.client_connect_time)) )
+                          (Int64.to_float i.client_session_uploaded /. 1024. /.
+                              float_of_int (max 1 ((last_time ()) - i.client_connect_time)))
                           (client_num c);
 
                           html_mods_td buf [

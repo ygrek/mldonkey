@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/03/27
+7137: Fix error in calculating average upload speed for client (ygrek)
 7136: GTK2 GUI: start downloads from search results items
       by double-click (soulcatcher)
 
