@@ -486,7 +486,9 @@ let disconnect_clients file =
 let download_finished file =
     if List.memq file !current_files then
       begin
-        connect_trackers file "completed" false (fun _ _ -> ()); (*must be called before swarmer gets removed from file*)
+        connect_trackers file "completed" false (fun _ _ -> 
+          lprintf_file_nl (as_file file) "Tracker return: completed %s" file.file_name;
+        ); (*must be called before swarmer gets removed from file*)
         (*CommonComplexOptions.file_completed*)
         file_completed (as_file file);
         (* Remove the swarmer for this file as it is not useful anymore... *)
