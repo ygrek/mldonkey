@@ -1,0 +1,1 @@
+ocamlopt -annot -I ../../../build/ str.cmxa unix.cmxa cdk.cmxa -I lib -I net kademlia.ml -o kad
