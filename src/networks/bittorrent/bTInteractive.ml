@@ -1032,8 +1032,9 @@ let compute_torrent filename announce comment =
   let torrent = Filename.concat seeded_directory
     (Printf.sprintf "%s.torrent" basename) in
   let is_private = 0 in
-  BTTorrent.generate_torrent announce torrent comment (Int64.of_int is_private) filename;
-  try_share_file torrent
+  let file_id = BTTorrent.generate_torrent announce torrent comment (Int64.of_int is_private) filename in
+  try_share_file torrent;
+  ignore (BTTracker.new_tracker file_id)
 
 let commands =
 
@@ -1056,12 +1057,20 @@ let commands =
         else
           Printf.bprintf buf ".torrent file generated\n";
       ""
-      with Not_found ->
+      with 
+      | Not_found ->
           if o.conn_output = HTML then
             (* TODO: really htmlize it *)
             Printf.bprintf buf "Not enough parameters"
           else
             Printf.bprintf buf "Not enough parameters\n";
+      ""
+      | exn ->
+        if o.conn_output = HTML then
+            (* TODO: really htmlize it *)
+            Printf.bprintf buf "Error: %s" (Printexc2.to_string exn)
+          else
+            Printf.bprintf buf "Error: %s\n" (Printexc2.to_string exn);
       ""
     ), _s "<filename> <comment> :\tgenerate the corresponding <filename> .torrent file with <comment> in torrents/tracked/.\n\t\t\t\t\tThe file is automatically tracked, and seeded if in incoming/";
 

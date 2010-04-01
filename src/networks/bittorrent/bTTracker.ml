@@ -148,37 +148,38 @@ let void_message = Bencode.encode (
       String "peers", List []
     ])
 
+let new_tracker info_hash =
+  if !ntracked_files < !!max_tracked_files then
+    let tracker = {
+        tracker_id = info_hash;
+        tracker_table = Hashtbl.create 13;
+        tracker_peers = Fifo.create ();
+        tracker_message_time = 0;
+        tracker_message_content = "";
+        tracker_downloaded = 0;
+        tracker_complete = 0;
+        tracker_incomplete = 0;
+        tracker_last = (int_of_float (Unix.gettimeofday ()));
+      } in
+    incr ntracked_files;
+    Hashtbl.add tracked_files info_hash tracker;
+    tracker
+  else
+    failwith "[BT] Too many tracked files"
+
 let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left peer_event numwant no_peer_id  =
 
-  let tracker_ok = ref true in
   if !verbose_msg_servers then
     lprintf_nl "tracker contacted for [%s]" (Sha1.to_hexa info_hash);
   let tracker = try
       Hashtbl.find tracked_files info_hash
     with Not_found ->
         if !!tracker_force_local_torrents then begin
-            tracker_ok := false;
             lprintf_nl "Tracker rejected announce request for torrent [%s]\n" (Sha1.to_hexa info_hash);
             failwith "Unknown torrent"
           end;
         lprintf_nl "[BT] Need new tracker";
-        if !ntracked_files < !!max_tracked_files && !tracker_ok then
-          let tracker = {
-              tracker_id = info_hash;
-              tracker_table = Hashtbl.create 13;
-              tracker_peers = Fifo.create ();
-              tracker_message_time = 0;
-              tracker_message_content = "";
-              tracker_downloaded = 0;
-              tracker_complete = 0;
-              tracker_incomplete = 0;
-              tracker_last = (int_of_float (Unix.gettimeofday ()));
-            } in
-          incr ntracked_files;
-          Hashtbl.add tracked_files info_hash tracker;
-          tracker
-        else
-          failwith "[BT] Too many tracked files"
+        new_tracker info_hash
   in
 
   let _ =

@@ -469,4 +469,6 @@ let generate_torrent announce torrent_filename torrent_comment torrent_private f
   let torrent = make_torrent announce filename torrent_comment torrent_private in
   let file_id, encoded = encode_torrent torrent in
   let encoded = Bencode.encode encoded in
-  File.from_string torrent_filename encoded
+  File.from_string torrent_filename encoded;
+  file_id
+

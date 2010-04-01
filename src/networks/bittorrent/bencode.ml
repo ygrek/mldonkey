@@ -130,7 +130,7 @@ let encode v =
        Buffer.add_char buf 'e'
     | Dictionary list ->
        Buffer.add_char buf 'd';
-       List.iter (fun (key,v) -> encode key; encode v) list;
+       List.iter (fun (key,v) -> encode key; encode v) (List.sort (fun (String s1, _) (String s2, _) -> compare s1 s2) list);
        Buffer.add_char buf 'e'
   in
   encode v;
