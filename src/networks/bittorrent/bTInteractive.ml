@@ -173,6 +173,10 @@ let op_file_commit file new_name =
 	end
     end 
 
+let auto_links =
+  let re = Str.regexp_case_fold "\\(https?://[a-zA-Z0-9_.!~*'();/?:@&=+$,%-]+\\)" in
+  fun s -> Str.global_replace re "\\<a href=\\\"\\1\\\"\\>\\1\\</a\\>" s
+
 let op_file_print file o =
 
   let buf = o.conn_buf in
@@ -229,14 +233,14 @@ let op_file_print file o =
     ("Comment", "sr br", "Comment");
     ("", "sr", match file.file_comment with
         "" -> "-"
-      | _ -> file.file_comment) ];
+      | s -> auto_links s) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
     ("Created by", "sr br", "Created by");
     ("", "sr", match file.file_created_by with
         "" -> "-"
-      | _ -> file.file_created_by) ];
+      | s -> auto_links s) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
@@ -248,7 +252,7 @@ let op_file_print file o =
     ("Modified by", "sr br", "Modified by");
     ("", "sr", match file.file_modified_by with
         "" -> "-"
-      | _ -> file.file_modified_by) ];
+      | s -> auto_links s) ];
 
   Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
   html_mods_td buf [
@@ -270,18 +274,27 @@ let op_file_print file o =
 	  else begin
 	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 	    html_mods_td buf [
-              ("Last Connect", "sr br", "Last Connect");
+              ("Last Tracker Announce", "sr br", "Last Announce");
               ("", "sr", string_of_date t.tracker_last_conn) ];
 
-	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-	    html_mods_td buf [
-              ("Connect Interval", "sr br", "Con Interval");
-              ("", "sr", Printf.sprintf "%d" t.tracker_interval) ];
+      if t.tracker_last_conn > 1 then
+      begin
+  	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+  	    html_mods_td buf [
+              ("Next Tracker Announce (planned)", "sr br", "Next Announce");
+              ("", "sr", string_of_date (t.tracker_last_conn + t.tracker_interval)) ];
+      end;
 
 	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 	    html_mods_td buf [
-              ("Connect Min Interval", "sr br", "Con Min Interval");
-              ("", "sr", Printf.sprintf "%d" t.tracker_min_interval) ];
+              ("Tracker Announce Interval", "sr br", "Announce Interval");
+              ("", "sr", Printf.sprintf "%d seconds" t.tracker_interval) ];
+
+	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+	    html_mods_td buf [
+              ("Minimum Tracker Announce Interval", "sr br", "Min Announce Interval");
+              ("", "sr", Printf.sprintf "%d seconds" t.tracker_min_interval) ];
+
 	    (* show only interesting answers*)
 	    if t.tracker_torrent_downloaded > 0 then begin
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
@@ -371,7 +384,8 @@ let op_file_print file o =
     ];
     incr cntr;
   ) file.file_files
-  end else begin
+  end (* use_html_mods *)
+  else begin
 
   Printf.bprintf buf "Trackers:\n";
   List.iter (fun tracker ->

@@ -1515,7 +1515,8 @@ let recover_files () =
                 lprintf_file_nl (as_file file) "recover shared";
               (try talk_to_tracker file false with _ -> ())
           | FilePaused -> () (*when we are paused we do nothing, not even logging this vvvv*)
-          | s -> lprintf_file_nl (as_file file) "recover: Other state %s!!" (string_of_state s)
+          | FileQueued -> ()
+          | s -> if !verbose then lprintf_file_nl (as_file file) "recover: Other state %s!!" (string_of_state s)
       ) !current_files
 
 let upload_buffer = String.create 100000
