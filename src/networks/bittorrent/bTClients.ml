@@ -120,12 +120,8 @@ let string_of_event = function
   tracker requests and distinguish trackers by txn? FIXME?
   *)
 let talk_to_udp_tracker host port args file t need_sources =
-  try
-    lprintf_nl "udpt start with %s:%d" host port;
-    let addr = try (Unix.gethostbyname host).Unix.h_addr_list.(0) with exn -> failwith ("failed to resolve " ^ host) in
-    let ip = Ip.of_inet_addr addr in
-    lprintf_nl "udpt resolved to ip %s" (Ip.to_string ip);
-    let socket = create Unix.inet_addr_any 0 (fun sock event ->
+  let interact ip =
+    let socket = create (Ip.to_inet_addr !!client_bind_addr) 0 (fun sock event ->
       lprintf_nl "udpt got event %s for %s" (string_of_event event) host;
       match event with
       | WRITE_DONE | CAN_REFILL -> ()
@@ -147,7 +143,7 @@ let talk_to_udp_tracker host port args file t need_sources =
     let txn = Random.int32 Int32.max_int in
     lprintf_nl "udpt txn %ld for %s" txn host;
     write socket false (connect_request txn) ip port;
-    set_reader (fun () ->
+    set_reader begin fun () ->
       let p = read socket in
       let conn = connect_response p.udp_content txn in
       lprintf_nl "udpt connection_id %Ld for %s" conn host;
@@ -194,10 +190,17 @@ let talk_to_udp_tracker host port args file t need_sources =
         close socket Closed_by_user;
         lprintf_nl "udpt interact done for %s" host;
         if need_sources then !resume_clients_hook file
-        ))
+        ) end
+  in
+  try 
+    lprintf_nl "udpt start with %s:%d" host port;
+    Ip.async_ip host (fun ip ->
+      lprintf_nl "udpt resolved %s to ip %s" host (Ip.to_string ip);
+      try interact ip with exn -> lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn))
+      (fun n -> lprintf_nl "udpt failed to resolve %s (%d)" host n)
   with
   exn -> 
-    lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn)
+    lprintf_nl "udpt start exn %s" (Printexc2.to_string exn)
 
 end (* include *)
 
