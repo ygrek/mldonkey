@@ -1,2 +1,3 @@
-cd ../../.. && ocamlopt -annot -I build str.cmxa unix.cmxa cdk.cmxa -I src/utils/lib -I src/utils/net src/networks/bittorrent/kademlia.ml -o src/networks/bittorrent/kad
-cd src/networks/bittorrent
+DIR=src/networks/bittorrent
+cd ../../.. && ocamlopt -annot -I build str.cmxa unix.cmxa cdk.cmxa -I src/utils/cdk -I src/utils/lib -I src/utils/net -I $DIR $DIR/bencode.ml $DIR/kademlia.ml $DIR/dht.ml -o $DIR/kad
+cd $DIR
