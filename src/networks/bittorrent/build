@@ -1,1 +1,2 @@
-ocamlopt -annot -I ../../../build/ str.cmxa unix.cmxa cdk.cmxa -I lib -I net kademlia.ml -o kad
+cd ../../.. && ocamlopt -annot -I build str.cmxa unix.cmxa cdk.cmxa -I src/utils/lib -I src/utils/net src/networks/bittorrent/kademlia.ml -o src/networks/bittorrent/kad
+cd src/networks/bittorrent
