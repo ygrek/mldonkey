@@ -110,23 +110,21 @@ let decode_torrent s =
 
             List.iter (fun (key, value) ->
                 match key, value with
-                  String "path", List path ->
+                | "path", List path ->
                     current_file := path_list_to_string path;
                     if !verbose_msg_servers then
                       lprintf_nl "[BT] Parsed a new path: [%s]" !current_file
-                | String "path.utf-8", List path_utf8 -> 
+                | "path.utf-8", List path_utf8 -> 
                     current_file_utf8 := path_list_to_string path_utf8;
                     if !verbose_msg_servers then
                       lprintf_nl "[BT] Parsed path.utf-8: [%s]" !current_file
-                | String "length", Int n ->
+                | "length", Int n ->
                     length := !length ++ n;
                     current_length := n;
                     length_set := true
 
-                | String key, _ ->
+                | key, _ ->
                     if !verbose_msg_servers then lprintf_nl "[BT] other field [%s] with value [%s] in files" key (Bencode.print value)
-                | _ ->
-                    lprintf_nl "[BT] other field in files"
             ) list;
 
             assert (!length_set);
@@ -145,11 +143,11 @@ let decode_torrent s =
       Dictionary list ->
         List.iter (fun (key, value) ->
             match key, value with
-              String "announce", String tracker_url ->
+            | "announce", String tracker_url ->
                if !verbose_msg_servers then
                  lprintf_nl "[BT] New tracker added :%s" tracker_url;
                 announce := tracker_url
-            | String "announce-list", List list ->
+            | "announce-list", List list ->
                 List.iter (fun url_list ->
                     let next_urls = ref [] in
                     match url_list with
@@ -178,100 +176,94 @@ let decode_torrent s =
                       List.iter (fun url ->
                         lprintf_nl "[BT] New tracker added :%s" url
                         ) !announce_list
-            | String "info", ((Dictionary list) as info) ->
+            | "info", ((Dictionary list) as info) ->
 
                 file_info := info;
                 List.iter (fun (key, value) ->
                     match key, value with
-                    | String "files", List files ->
+                    | "files", List files ->
                         parse_files files
-                    | String "length", Int n ->
+                    | "length", Int n ->
                         length := n
-                    | String "name", String name ->
+                    | "name", String name ->
                         file_name := name
-                    | String "piece length", Int n ->
+                    | "piece length", Int n ->
                         file_piece_size := n
-                    | String "pieces", String pieces ->
+                    | "pieces", String pieces ->
                         file_pieces := pieces
-                    | String "ed2k", String string_ed2k ->
+                    | "ed2k", String string_ed2k ->
                         if !!enable_donkey then
                           file_ed2k_hash := string_ed2k;
                       (* TODO: Add new ed2k download if ed2k hash is available,
                                then merge it with current download *)
-                    | String "sha1", String string_sha1 -> ()
+                    | "sha1", String string_sha1 -> ()
                       (* TODO: Parse sha1 hash *)
 
-                    | String "publisher", String created_by ->
+                    | "publisher", String created_by ->
                       file_created_by := created_by
-                    | String "publisher-url", String publisher_url ->
+                    | "publisher-url", String publisher_url ->
                       file_created_by := !file_created_by ^ " @ " ^ publisher_url
 
-                    | String "name.utf-8", String name_utf8 ->
+                    | "name.utf-8", String name_utf8 ->
                         file_name_utf8 := Some name_utf8
 
-                    | String "publisher.utf-8", String publisher_utf8 -> ()
-                    | String "publisher-url.utf-8", String publisher_url_utf8 -> ()
+                    | "publisher.utf-8", String publisher_utf8 -> ()
+                    | "publisher-url.utf-8", String publisher_url_utf8 -> ()
 
-                    | String "private", Int n ->
+                    | "private", Int n ->
                         (* TODO: if set to 1, only accept peers from tracker *)
                         file_is_private := n;
                         if !verbose_msg_servers &&
                           Int64.to_int !file_is_private = 1 then
                             lprintf_nl "[BT] torrent is private"
-                    | String key, _ ->
+                    | key, _ ->
                         if !verbose_msg_servers then
                           lprintf_nl "[BT] found other field [%s] with value [%s] in info" key (Bencode.print value)
-                    | _ ->
-                        lprintf_nl "[BT] other field in info"
                 ) list
 
-            | String "comment", String comment
-            | String "comment.utf-8", String comment ->
+            | "comment", String comment
+            | "comment.utf-8", String comment ->
               file_comment := comment
             (* Next 2 strings are after info sometimes  *)
-            | String "publisher", String created_by ->
+            | "publisher", String created_by ->
               file_created_by := created_by
-            | String "publisher-url", String publisher_url ->
+            | "publisher-url", String publisher_url ->
               file_created_by := !file_created_by ^ " @ " ^ publisher_url
 
-            | String "created by", String created_by ->
+            | "created by", String created_by ->
               file_created_by := created_by
-            | String "creation date", Int creation_date ->
+            | "creation date", Int creation_date ->
               file_creation_date := creation_date
-            | String "modified-by", String modified_by ->
+            | "modified-by", String modified_by ->
               file_modified_by := modified_by
-            | String "encoding", String encoding ->
+            | "encoding", String encoding ->
               file_encoding := encoding
-            | String "codepage", Int codepage ->
+            | "codepage", Int codepage ->
               file_codepage := codepage
-            | String "torrent filename", String torrent_filename ->
+            | "torrent filename", String torrent_filename ->
               file_torrent_filename := torrent_filename
-            | String "nodes", nodes -> ()
+            | "nodes", nodes -> ()
               (* TODO : nodes is a list of DHT Network nodes ,parse and use them *)
 
 (*
               file_nodes := nodes
 *)
 
-            | String "azureus_properties", ((Dictionary list) as azureus_properties) ->
+            | "azureus_properties", ((Dictionary list) as azureus_properties) ->
                 file_aps := azureus_properties;
                 List.iter (fun (key, value) ->
                     match key, value with
-                    | String "dht_backup_enable", Int n ->
+                    | "dht_backup_enable", Int n ->
                         file_dht_backup_enable := n;
                         if !verbose_msg_servers &&
                           Int64.to_int !file_dht_backup_enable = 1 then
                             lprintf_nl "[BT] azureus properties : Torrent has dht backup"
-                    | String key, _ ->
+                    | key, _ ->
                         if !verbose_msg_servers then
                           lprintf_nl "[BT] found other field [%s] with value [%s] in azureus properties" key (Bencode.print value)
-                    | _ ->
-                        lprintf_nl "[BT] other field in azureus properties"
                 ) list
-            | String key, _ ->
+            | key, _ ->
                 if !verbose_msg_servers then lprintf_nl "[BT] found other field [%s] with value [%s] after info" key (Bencode.print value)
-            | _ ->
-                lprintf_nl "[BT] other field after info"
         ) list
     | _ -> assert false
   end;
@@ -351,8 +343,8 @@ let encode_torrent torrent =
 
   let encode_file (filename, size) =
     Dictionary [
-      String "length", Int size;
-      String "path", List (List.map
+      "length", Int size;
+      "path", List (List.map
           (fun s -> String s)(Filepath.string_to_path '/' filename));
     ]
   in
@@ -360,20 +352,20 @@ let encode_torrent torrent =
   let files =
     match torrent.torrent_files with
       [] ->
-        String "length", Int torrent.torrent_length
+        "length", Int torrent.torrent_length
     | _ ->
-        String "files",
+        "files",
         List (List.map encode_file torrent.torrent_files)
   in
 
   let info =
     Dictionary [
       files;
-      String "name", String torrent.torrent_name;
-      String "name.utf-8", String torrent.torrent_name_utf8;
-      String "piece length", Int torrent.torrent_piece_size;
-      String "pieces", String pieces;
-      String "private", Int torrent.torrent_private;
+      "name", String torrent.torrent_name;
+      "name.utf-8", String torrent.torrent_name_utf8;
+      "piece length", Int torrent.torrent_piece_size;
+      "pieces", String pieces;
+      "private", Int torrent.torrent_private;
     ]
   in
 
@@ -381,13 +373,13 @@ let encode_torrent torrent =
   let file_id = Sha1.string info_encoded in
   file_id,
   Dictionary [
-    String "announce", String torrent.torrent_announce;
-    String "comment", String torrent.torrent_comment;
-    String "created by", String torrent.torrent_created_by;
-    String "creation date", Int torrent.torrent_creation_date;
-    String "encoding", String torrent.torrent_encoding;
-    String "info", info;
-    String "modified-by", String torrent.torrent_modified_by;
+    "announce", String torrent.torrent_announce;
+    "comment", String torrent.torrent_comment;
+    "created by", String torrent.torrent_created_by;
+    "creation date", Int torrent.torrent_creation_date;
+    "encoding", String torrent.torrent_encoding;
+    "info", info;
+    "modified-by", String torrent.torrent_modified_by;
 (*
     String "nodes", String torrent.torrent_nodes;
 *)

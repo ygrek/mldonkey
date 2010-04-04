@@ -1348,93 +1348,87 @@ let maybe_new_client file id ip port =
       lprintf_file_nl (as_file file) "Received %s:%d" (Ip.to_string ip) port;
     ()
 
+let exn_catch f x = try `Ok (f x) with exn -> `Exn exn
+
 (** In this function we interact with the tracker
   @param file The file for which we want some sources
   @param need_sources whether we need any sources
 *)
 let talk_to_tracker file need_sources =
+  (* This is the function which will be called by the http client for parsing the response *)
   let f t filename =
-    (*This is the function which will be called by the http client
-      for parsing the response
-     *)
-    let tracker_reply =
-      try
-        File.to_string filename
-      with e -> lprintf_file_nl (as_file file) "Empty reply from tracker"; ""
+    let tracker_failed reason =
+      (* On failure, disable the tracker and count attempts (@see is_tracker_enabled) *)
+      let num = match t.tracker_status with | Disabled_failure (i,_) -> i + 1 | _ -> 1 in
+      t.tracker_status <- Disabled_failure (num, intern reason);
+      lprintf_file_nl (as_file file) "Failure no. %d%s from Tracker %s for file: %s Reason: %s"
+        num
+        (if !!tracker_retries = 0 then "" else Printf.sprintf "/%d" !!tracker_retries)
+        t.tracker_url file.file_name (Charset.to_utf8 reason)
     in
-    let v =
-       match tracker_reply with
-       | "" ->
-        if !verbose_connect then
-          lprintf_file_nl (as_file file) "Empty reply from tracker";
-        Bencode.decode ""
-       | _ -> Bencode.decode tracker_reply
-    in
+    match exn_catch File.to_string filename with
+    | `Exn _ | `Ok "" -> tracker_failed "empty reply"
+    | `Ok s ->
+    match exn_catch Bencode.decode s with
+    | `Exn exn -> tracker_failed (Printf.sprintf "wrong reply (%s)" (Printexc2.to_string exn))
+    | `Ok (Dictionary list) ->
     t.tracker_interval <- 600;
     t.tracker_min_interval <- 600;
     if need_sources then t.tracker_last_clients_num <- 0;
-    match v with
-      Dictionary list ->
-        List.iter (fun (key,value) ->
-            (match (key, value) with
-            | String "failure reason", _ -> ()
-            | _ -> (match t.tracker_status with
+        let chk_keyval key n = chk_keyval key n t.tracker_url file.file_name in
+        if not (List.mem_assoc "failure reason" list) then
+        begin
+          begin match t.tracker_status with
                    | Disabled_failure (i, _) ->
-                        lprintf_file_nl (as_file file) "Received good message from Tracker %s in file: %s after %d bad attempts"
-                          t.tracker_url file.file_name i
-                   | _ -> ());
+              lprintf_file_nl (as_file file) "Received good message from Tracker %s after %d bad attempts" 
+                t.tracker_url i
+          | _ -> () end;
                    (* Received good message from tracker after failures, re-enable tracker *)
-                   t.tracker_status <- Enabled);
-
+          t.tracker_status <- Enabled;
+        end;
+        List.iter (fun (key,value) ->
             match (key, value) with
-            | String "failure reason", String failure ->
-                (* On failure, disable the tracker, count the attempts and forbid re-enabling *)
-                t.tracker_status <- (match t.tracker_status with
-                  | Disabled_failure (i,_) -> Disabled_failure (i + 1, intern failure)
-                  | _ -> Disabled_failure (1, intern failure));
-                lprintf_file_nl (as_file file) "Failure no. %d%s from Tracker %s in file: %s Reason: %s"
-                  (match t.tracker_status with | Disabled_failure (i,_) -> i | _ -> 1)
-                  (if !!tracker_retries = 0 then "" else Printf.sprintf "/%d" !!tracker_retries)
-                  t.tracker_url file.file_name (Charset.to_utf8 failure)
-            | String "warning message", String warning ->
-                lprintf_file_nl (as_file file) "Warning from Tracker %s in file: %s Reason: %s" t.tracker_url file.file_name warning
-            | String "interval", Int n ->
-                t.tracker_interval <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name;
+            | "failure reason", String failure -> tracker_failed failure
+            | "warning message", String warning ->
+                lprintf_file_nl (as_file file) "Warning from Tracker %s in file: %s Reason: %s" 
+                  t.tracker_url file.file_name warning
+            | "interval", Int n ->
+                t.tracker_interval <- chk_keyval key n;
                 (* in case we don't receive "min interval" *)
                 if t.tracker_min_interval > t.tracker_interval then
                   t.tracker_min_interval <- t.tracker_interval
-            | String "min interval", Int n ->
-                t.tracker_min_interval <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name;
+            | "min interval", Int n ->
+                t.tracker_min_interval <- chk_keyval key n;
                 (* make sure "min interval" is always < or equal to "interval" *)
                 if t.tracker_min_interval > t.tracker_interval then
                   t.tracker_min_interval <- t.tracker_interval
-            | String "downloaded", Int n ->
-                t.tracker_torrent_downloaded <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name
-            | String "complete", Int n
-            | String "done peers", Int n ->
-                t.tracker_torrent_complete <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name
-            | String "incomplete", Int n ->
-                t.tracker_torrent_incomplete <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name;
+            | "downloaded", Int n ->
+                t.tracker_torrent_downloaded <- chk_keyval key n
+            | "complete", Int n
+            | "done peers", Int n ->
+                t.tracker_torrent_complete <- chk_keyval key n
+            | "incomplete", Int n ->
+                t.tracker_torrent_incomplete <- chk_keyval key n;
                 (* if complete > 0 and we receive incomplete we probably won't receive num_peers so we simulate it below *)
                 if t.tracker_torrent_complete > 0 then
                   t.tracker_torrent_total_clients_count <- (t.tracker_torrent_complete + t.tracker_torrent_incomplete);
-            | String "num peers", Int n ->
-                t.tracker_torrent_total_clients_count <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name;
+            | "num peers", Int n ->
+                t.tracker_torrent_total_clients_count <- chk_keyval key n;
                 (* if complete > 0 and we receive num_peers we probably won't receive incomplete so we simulate it below *)
                 if t.tracker_torrent_complete > 0 then
                   t.tracker_torrent_incomplete <- (t.tracker_torrent_total_clients_count - t.tracker_torrent_complete);
-            | String "last", Int n ->
-                t.tracker_torrent_last_dl_req <- chk_keyval (Bencode.print key) n t.tracker_url file.file_name
-            | String "key", String n ->
+            | "last", Int n ->
+                t.tracker_torrent_last_dl_req <- chk_keyval key n
+            | "key", String n ->
                 t.tracker_key <- n;
                 if !verbose_msg_clients then
                   lprintf_file_nl (as_file file) "%s in file: %s has key: %s" t.tracker_url file.file_name n
-            | String "tracker id", String n ->
+            | "tracker id", String n ->
                 t.tracker_id <- n;
                 if !verbose_msg_clients then
                   lprintf_file_nl (as_file file) "%s in file: %s has tracker id %s" t.tracker_url file.file_name n
 
-            | String "peers", List list ->
+            | "peers", List list ->
                 if need_sources then
                 List.iter (fun v ->
                     match v with
@@ -1445,11 +1439,11 @@ let talk_to_tracker file need_sources =
 
                         List.iter (fun v ->
                             match v with
-                              String "peer id", String id ->
+                              "peer id", String id ->
                                 peer_id := Sha1.direct_of_string id;
-                            | String "ip", String ip ->
+                            | "ip", String ip ->
                                 peer_ip := Ip.of_string ip
-                            | String "port", Int p ->
+                            | "port", Int p ->
                                 port := Int64.to_int p
                             | _ -> ()
                         ) list;
@@ -1459,7 +1453,7 @@ let talk_to_tracker file need_sources =
 
                     | _ -> assert false
                 ) list
-            | String "peers", String p ->
+            | "peers", String p ->
                 let rec iter_comp s pos l =
                   if pos < l then
                     let ip = Ip.of_ints (get_uint8 s pos,get_uint8 s (pos+1),
@@ -1473,10 +1467,10 @@ let talk_to_tracker file need_sources =
                 in
                 if need_sources then 
                   iter_comp p 0 (String.length p)
-            | String "private", Int n -> ()
+            | "private", Int n -> ()
               (* TODO: if set to 1, disable peer exchange *)
 
-            | _ -> lprintf_file_nl (as_file file) "received unknown entry in answer from tracker: %s : %s" (Bencode.print key) (Bencode.print value)
+            | key, _ -> lprintf_file_nl (as_file file) "received unknown entry in answer from tracker: %s : %s" key (Bencode.print value)
         ) list;
        (*Now, that we have added new clients to a file, it's time
          to connect to them*)
@@ -1485,7 +1479,7 @@ let talk_to_tracker file need_sources =
             t.tracker_last_clients_num file.file_name;
         if need_sources then resume_clients file
 
-    | _ -> assert false
+    | _ -> tracker_failed "wrong reply (value)" 
   in
   let event =
     if file.file_tracker_connected then ""
@@ -1566,8 +1560,9 @@ let rec iter_upload sock c =
 (*          lprintf "sending piece\n"; *)
           send_client c (Piece (num, pos, upload_buffer, 0, len));
           iter_upload sock c
-  with e -> if !verbose then lprintf_nl
-		    "Exception %s in iter_upload" (Printexc2.to_string e)
+        with e -> 
+          if !verbose then 
+            lprintf_nl "Exception %s in iter_upload" (Printexc2.to_string e)
         end else
         begin
 (*          lprintf "client is waiting for another piece\n"; *)

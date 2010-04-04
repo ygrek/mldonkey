@@ -62,11 +62,11 @@ let interpret_azureus_porttest s =
     match value with
     | Dictionary alist ->
 	(try
-	   match List.assoc (String "result") alist with
+           match List.assoc "result" alist with
 	   | Int 1L -> "Port test OK!"
 	   | Int 0L ->
 	       (try
-		  match List.assoc (String "reason") alist with
+                  match List.assoc "reason" alist with
 		  | String reason -> failure_message "%s" reason
 		  | _ -> raise Not_found
 		with Not_found ->

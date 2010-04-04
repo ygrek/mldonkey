@@ -60,10 +60,10 @@ open Printf2
 
 *)
 type value =
-  String of string
+  | String of string
   | Int of int64
   | List of value list
-  | Dictionary of (value * value) list
+  | Dictionary of (string * value) list
 
 let decode s =
   let len = String.length s in
@@ -108,21 +108,25 @@ let decode s =
           match s.[pos] with
             | 'e' -> Dictionary (List.rev list), (pos+1)
 	    | _ ->
-	       let key, pos = decode s pos len in
+              match decode s pos len with
+              | (String key,pos) ->
 	       let v, pos = decode s pos len in
 	       iter s pos len ((key,v) :: list)
+              | _ -> assert false 
 	in
 	iter s (pos+1) len []
    | _ -> assert false
   in
+  assert (len > 0);
   let (v,pos) = decode s 0 len in
   v
 
 let encode v =
   let buf = Buffer.create 100 in
+  let encode_string s = Printf.bprintf buf "%d:%s" (String.length s) s in
   let rec encode v =
     match v with
-    | String s -> Printf.bprintf buf "%d:%s" (String.length s) s
+    | String s -> encode_string s
     | Int i -> Printf.bprintf buf "i%Lde" i
     | List list ->
        Buffer.add_char buf 'l';
@@ -130,7 +134,7 @@ let encode v =
        Buffer.add_char buf 'e'
     | Dictionary list ->
        Buffer.add_char buf 'd';
-       List.iter (fun (key,v) -> encode key; encode v) (List.sort (fun (String s1, _) (String s2, _) -> compare s1 s2) list);
+       List.iter (fun (key,v) -> encode_string key; encode v) (List.sort (fun (s1, _) (s2, _) -> compare s1 s2) list);
        Buffer.add_char buf 'e'
   in
   encode v;
@@ -138,13 +142,15 @@ let encode v =
 
 let print b =
   let buf = Buffer.create 100 in
-  let rec print v =
-    match v with
-    | String s ->
+  let print_string s =
        if String.length s > 200 then
           Printf.bprintf buf " \"%s...\"" (String.escaped (String.sub s 0 200))
        else
           Printf.bprintf buf "\"%s\"" (String.escaped s)
+  in
+  let rec print v =
+    match v with
+    | String s -> print_string s
     | Int i -> Printf.bprintf buf " %Ld" i
     | List list ->
        Printf.bprintf buf " [\n";
@@ -152,8 +158,9 @@ let print b =
        Printf.bprintf buf " ]\n";
     | Dictionary list ->
        Printf.bprintf buf " {\n";
-       List.iter (fun (key,v) -> print key; Buffer.add_string buf " = "; print v; Printf.bprintf buf ";\n")  list;
+       List.iter (fun (key,v) -> print_string key; Buffer.add_string buf " = "; print v; Printf.bprintf buf ";\n")  list;
        Printf.bprintf buf " }\n";
   in
   print b;
   Buffer.contents buf
+

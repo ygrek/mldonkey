@@ -144,8 +144,8 @@ let int_of_string v =
 
 let void_message = Bencode.encode (
     Dictionary [
-      String "interval", Int 600L;
-      String "peers", List []
+      "interval", Int 600L;
+      "peers", List []
     ])
 
 let new_tracker info_hash =
@@ -263,27 +263,27 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
 
           let message =
             Dictionary [
-              String "interval", Int 600L;
-              String "min interval", Int 600L;
-              String "peers", List
+              "interval", Int 600L;
+              "min interval", Int 600L;
+              "peers", List
                 (List.map (fun p ->
                     if no_peer_id = 1 then
                       Dictionary [
-                        String "ip", String (Ip.to_string p.peer_ip);
-                        String "port", Int (Int64.of_int p.peer_port);
+                        "ip", String (Ip.to_string p.peer_ip);
+                        "port", Int (Int64.of_int p.peer_port);
                       ]
                     else
                       Dictionary [
-                        String "peer id", String
+                        "peer id", String
                           (Sha1.direct_to_string p.peer_id);
-                        String "ip", String (Ip.to_string p.peer_ip);
-                        String "port", Int (Int64.of_int p.peer_port);
+                        "ip", String (Ip.to_string p.peer_ip);
+                        "port", Int (Int64.of_int p.peer_port);
                       ]
                 ) !list);
-              String "downloaded", Int (Int64.of_int tracker.tracker_downloaded);
-              String "complete", Int (Int64.of_int tracker.tracker_complete);
-              String "incomplete", Int (Int64.of_int tracker.tracker_incomplete);
-              String "last", Int (Int64.of_int ((int_of_float (Unix.gettimeofday ())) - tracker.tracker_last));
+              "downloaded", Int (Int64.of_int tracker.tracker_downloaded);
+              "complete", Int (Int64.of_int tracker.tracker_complete);
+              "incomplete", Int (Int64.of_int tracker.tracker_incomplete);
+              "last", Int (Int64.of_int ((int_of_float (Unix.gettimeofday ())) - tracker.tracker_last));
             ]
           in
           let m = Bencode.encode message in
@@ -389,11 +389,11 @@ let http_handler t r =
         Hashtbl.iter (fun info_hash tracker ->
             files_tracked :=
                 (Dictionary [
-                   String (Sha1.direct_to_string info_hash),
+                   (Sha1.direct_to_string info_hash),
                      Dictionary [
-                       String "complete", Int (Int64.of_int tracker.tracker_complete);
-                       String "downloaded", Int (Int64.of_int tracker.tracker_downloaded);
-                       String "incomplete", Int (Int64.of_int tracker.tracker_incomplete);
+                       "complete", Int (Int64.of_int tracker.tracker_complete);
+                       "downloaded", Int (Int64.of_int tracker.tracker_downloaded);
+                       "incomplete", Int (Int64.of_int tracker.tracker_incomplete);
                      ];
                  ]) :: !files_tracked;
             if !verbose_msg_servers then begin
@@ -409,7 +409,7 @@ let http_handler t r =
             lprintf_nl "f: (file hash) d: (downloaded) c: (complete) i: (incomplete)";
             lprint_string !log_tracked_files;
           end;
-        let message = Dictionary [ String "files", List !files_tracked ] in
+        let message = Dictionary [ "files", List !files_tracked ] in
         let m = Bencode.encode message in
         r.reply_content <- m
 
@@ -462,7 +462,7 @@ in sub-directories in former versions. *)
       | _ ->
           let message =
             Dictionary [
-              String "failure reason", String (Printexc2.to_string e);
+              "failure reason", String (Printexc2.to_string e);
             ]
           in
           let m = Bencode.encode message in

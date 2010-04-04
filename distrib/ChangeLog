@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/04/04
+7153: BT: correctly handle failed tracker requests (ygrek)
 7155: DC: understand hublist.xml (ygrek)
 
 2010/04/02
