@@ -559,6 +559,40 @@ let make_hublist_from_file f =
   if !verbose_msg_servers then lprintf_nl "Found %d valid servers from hublist" !counter;
   !hublist
 
+let xml_tag name = let name = String.lowercase name in fun x -> String.lowercase (Xml.tag x) = name
+
+let rec xml_select names xs =
+  match names with
+  | [] -> xs
+  | [name] -> List.filter (xml_tag name) xs
+  | name::t ->
+    let l = List.filter (xml_tag name) xs in
+    xml_select t (List.concat (List.map Xml.children l))
+
+let parse_address s =
+  try Scanf.sscanf s "dchub://%s@:%u" (fun s n -> s,n)
+  with _ -> try Scanf.sscanf s "%s@:%u" (fun s n -> s,n) with _ -> s,411
+
+let make_hublist_from_xml x =
+  let make_hub x =
+    let name = Charset.to_utf8 (Xml.attrib x "Name") in
+    let (address,port) = parse_address (Xml.attrib x "Address") in
+    let info = Charset.to_utf8 (Xml.attrib x "Description") in
+    let nusers = int_of_string (Xml.attrib x "Users") in
+    {
+      dc_name = name;
+      dc_ip = Ip.addr_of_string address;
+      dc_port = port;
+      dc_info = info;
+      dc_nusers = nusers;
+    }
+  in
+  let l = xml_select ["hublist";"hubs";"hub"] [x] in
+  let l' = List.fold_left (fun acc x -> try make_hub x :: acc with _ -> acc) [] l in
+  if !verbose_msg_servers then
+    lprintf_nl "Found %u valid (of %u total) servers in hublist" (List.length l') (List.length l);
+  l'
+
 (* Connect to all autoconnect servers once *)  
 let autoconnect_to_servers () =
   Hashtbl.iter (fun _ s ->

@@ -1567,8 +1567,10 @@ let _ =
         begin
           try
             dc_hublist := (
-              match Filename2.last_extension filename with
-              | ".bz2" -> DcServers.make_hublist_from_file (Misc2.bz2_extract filename)
+              match List.rev (String2.split filename '.') with
+              | "bz2"::"xml"::_ -> DcServers.make_hublist_from_xml (Xml.parse_file (Misc2.bz2_extract filename))
+              | "xml"::_ -> DcServers.make_hublist_from_xml (Xml.parse_file filename)
+              | "bz2"::_ -> DcServers.make_hublist_from_file (Misc2.bz2_extract filename)
               | _ -> DcServers.make_hublist_from_file filename);
             lprintf_nl "loaded dc++ hublist, %d entries" (List.length !dc_hublist)
           with e -> 

@@ -38,14 +38,6 @@ let dc_open_slots = define_option directconnect_section ["dc_open_slots"]
 let login = define_option directconnect_section ["login"]
     "Your login on DC (no spaces !!!)" string_option ""
 
-(*let load_hublist = define_option directconnect_section ["load_hublist"]
-    "Download a list of servers"
-    bool_option true *)
-  
-let servers_list_url = define_option directconnect_section ["servers_list_url"]
-    "The URL from which the first server list is downloaded"
-    string_option  "http://dchublist.com/hublist.config.bz2"
-  
 let hubs_passwords = define_option directconnect_section ["hubs_passwords"]
     "Define here a list of address/passwords/nick triples for hubs in form:
     [ (\"hubserver.ip.com\", \"nick1\", \"pass1\");
@@ -122,7 +114,6 @@ let gui_dc_options_panel =
   [
     "Login (nothing for global one)", shortname login, "T";
     "Port", shortname dc_port, "T";
-    "Hub List URL", shortname servers_list_url, "T";
     "Search Timeout", shortname search_timeout, "T";
     "Firewalled", shortname firewalled, "B";
     "Connection Type", shortname client_speed, "T";

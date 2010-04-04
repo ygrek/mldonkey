@@ -1023,6 +1023,7 @@ let web_infos = define_option current_section ["web_infos"]
   'ocl' for file in the ocl format containing overnet peers, or
   'contact.dat' for an contact.dat file containing overnet peers,
   'nodes.gzip' for a fasttrack nodes.gzip,
+  'hublist' for DirectConnect hubs list,
   and period is the period between updates (in hours),
   a period of zero means the file is only loaded once on startup,
   and url is the url of the file to download.
@@ -1030,7 +1031,7 @@ let web_infos = define_option current_section ["web_infos"]
   EXAMPLE:
     web_infos = [
     (\"server.met\", 0, \"http://www.gruk.org/server.met.gz\");
-    (\"hublist\", 0, \"http://dchublist.com/hublist.config.bz2\");
+    (\"hublist\", 0, \"http://dchublist.com/hublist.xml.bz2\");
     (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/level1.gz\");
     (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
     (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
