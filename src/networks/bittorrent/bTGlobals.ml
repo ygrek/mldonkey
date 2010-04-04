@@ -194,7 +194,7 @@ let check_if_interesting file c =
       (match c.client_chunk with
       | None -> true
       | Some (chunk, blocks) ->
-	  List.for_all (fun b ->
+          List.for_all (fun b ->
             let chunk_num = CommonSwarming.block_chunk_num swarmer b.up_block in
             let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
             VB.get bitmap chunk_num <> VB.State_verified) blocks)
@@ -237,10 +237,10 @@ let rec set_trackers file file_trackers =
   match file_trackers with
   | [] -> ()
   | url :: q ->
-	if not (List.exists (fun tracker -> 
-			       tracker.tracker_url = url
-			    ) file.file_trackers) then 
-	  let t = {
+        if not (List.exists (fun tracker -> 
+                               tracker.tracker_url = url
+                            ) file.file_trackers) then 
+          let t = {
             tracker_url = url;
             tracker_interval = 600;
             tracker_min_interval = 600;
@@ -253,12 +253,12 @@ let rec set_trackers file file_trackers =
             tracker_torrent_last_dl_req = 0;
             tracker_id = "";
             tracker_key = "";
-      	    tracker_status = Enabled
+                  tracker_status = Enabled
           } in
-	  if not (can_handle_tracker t) then
-	    t.tracker_status <- Disabled_mld (intern "Tracker type not supported");
-	  file.file_trackers <-  t :: file.file_trackers;
-  	set_trackers file q
+          if not (can_handle_tracker t) then
+            t.tracker_status <- Disabled_mld (intern "Tracker type not supported");
+          file.file_trackers <-  t :: file.file_trackers;
+          set_trackers file q
 
 let new_file file_id t torrent_diskname file_temp file_state user group =
   try
@@ -412,9 +412,9 @@ let dot_string_of_string s =
   String.iter (fun s ->
     match s with
     | '0' .. '9' ->
-	if !found_non_int then Buffer.add_char buf '.';
-	found_non_int := false;
-	Buffer.add_char buf s
+        if !found_non_int then Buffer.add_char buf '.';
+        found_non_int := false;
+        Buffer.add_char buf s
     | _ -> found_non_int := true
   ) s;
   Buffer.contents buf

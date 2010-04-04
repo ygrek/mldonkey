@@ -61,23 +61,23 @@ let interpret_azureus_porttest s =
     let value = decode s in 
     match value with
     | Dictionary alist ->
-	(try
+        (try
            match List.assoc "result" alist with
-	   | Int 1L -> "Port test OK!"
-	   | Int 0L ->
-	       (try
+           | Int 1L -> "Port test OK!"
+           | Int 0L ->
+               (try
                   match List.assoc "reason" alist with
-		  | String reason -> failure_message "%s" reason
-		  | _ -> raise Not_found
-		with Not_found ->
-		  failure_message "%s" "no reason given")
-	   | Int status ->
-	       failure_message "unknown status code (%Ld)" status
-	   | _ -> raise Not_found
-	 with Not_found ->
-	   failure_message "%s" "no status given")
+                  | String reason -> failure_message "%s" reason
+                  | _ -> raise Not_found
+                with Not_found ->
+                  failure_message "%s" "no reason given")
+           | Int status ->
+               failure_message "unknown status code (%Ld)" status
+           | _ -> raise Not_found
+         with Not_found ->
+           failure_message "%s" "no status given")
     | _ ->
-	failure_message "unexpected value type %s" (Bencode.print value)
+        failure_message "unexpected value type %s" (Bencode.print value)
   with _ ->
     failure_message "%s" "broken bencoded value"
 
@@ -153,24 +153,24 @@ let op_file_commit file new_name =
       match file.file_shared with
       | None -> ()
       | Some old_impl ->
-	begin
-	  let impl = {
-	    impl_shared_update = 1;
-	    impl_shared_fullname = file_disk_name file;
-	    impl_shared_codedname = old_impl.impl_shared_codedname;
-	    impl_shared_size = file_size file;
-	    impl_shared_id = Md4.null;
-	    impl_shared_num = 0;
-	    impl_shared_uploaded = old_impl.impl_shared_uploaded;
-	    impl_shared_ops = shared_ops;
-	    impl_shared_val = file;
-	    impl_shared_requests = old_impl.impl_shared_requests;
-	    impl_shared_file = Some (as_file file);
-	    impl_shared_servers = [];
-	  } in
-	  file.file_shared <- Some impl;
+        begin
+          let impl = {
+            impl_shared_update = 1;
+            impl_shared_fullname = file_disk_name file;
+            impl_shared_codedname = old_impl.impl_shared_codedname;
+            impl_shared_size = file_size file;
+            impl_shared_id = Md4.null;
+            impl_shared_num = 0;
+            impl_shared_uploaded = old_impl.impl_shared_uploaded;
+            impl_shared_ops = shared_ops;
+            impl_shared_val = file;
+            impl_shared_requests = old_impl.impl_shared_requests;
+            impl_shared_file = Some (as_file file);
+            impl_shared_servers = [];
+          } in
+          file.file_shared <- Some impl;
           replace_shared old_impl impl;
-	end
+        end
     end 
 
 let auto_links =
@@ -270,75 +270,75 @@ let op_file_print file o =
     match l with
       | [] -> ()
       | t :: q ->
-	  if not (tracker_is_enabled t) then print_first_tracker q
-	  else begin
-	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-	    html_mods_td buf [
+          if not (tracker_is_enabled t) then print_first_tracker q
+          else begin
+            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+            html_mods_td buf [
               ("Last Tracker Announce", "sr br", "Last Announce");
               ("", "sr", string_of_date t.tracker_last_conn) ];
 
-      if t.tracker_last_conn > 1 then
-      begin
-  	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-  	    html_mods_td buf [
+            if t.tracker_last_conn > 1 then
+            begin
+              Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+              html_mods_td buf [
               ("Next Tracker Announce (planned)", "sr br", "Next Announce");
               ("", "sr", string_of_date (t.tracker_last_conn + t.tracker_interval)) ];
-      end;
+            end;
 
-	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-	    html_mods_td buf [
+            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+            html_mods_td buf [
               ("Tracker Announce Interval", "sr br", "Announce Interval");
               ("", "sr", Printf.sprintf "%d seconds" t.tracker_interval) ];
 
-	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-	    html_mods_td buf [
+            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+            html_mods_td buf [
               ("Minimum Tracker Announce Interval", "sr br", "Min Announce Interval");
               ("", "sr", Printf.sprintf "%d seconds" t.tracker_min_interval) ];
 
-	    (* show only interesting answers*)
-	    if t.tracker_torrent_downloaded > 0 then begin
+            (* show only interesting answers*)
+            if t.tracker_torrent_downloaded > 0 then begin
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
-		("Downloaded", "sr br", "Downloaded");
-		("", "sr", Printf.sprintf "%d" t.tracker_torrent_downloaded) ]
+                ("Downloaded", "sr br", "Downloaded");
+                ("", "sr", Printf.sprintf "%d" t.tracker_torrent_downloaded) ]
             end;
-	    if t.tracker_torrent_complete > 0 then begin
+            if t.tracker_torrent_complete > 0 then begin
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
-		("Complete (seeds)", "sr br", "Complete");
-		("", "sr", Printf.sprintf "%d" t.tracker_torrent_complete) ]
+                ("Complete (seeds)", "sr br", "Complete");
+                ("", "sr", Printf.sprintf "%d" t.tracker_torrent_complete) ]
             end;
-	    if t.tracker_torrent_incomplete > 0 then begin
+            if t.tracker_torrent_incomplete > 0 then begin
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
-		("Incomplete (peers)", "sr br", "Incomplete");
-		("", "sr", Printf.sprintf "%d" t.tracker_torrent_incomplete) ]
+                ("Incomplete (peers)", "sr br", "Incomplete");
+                ("", "sr", Printf.sprintf "%d" t.tracker_torrent_incomplete) ]
             end;
-	    if t.tracker_torrent_total_clients_count > 0 then begin
+            if t.tracker_torrent_total_clients_count > 0 then begin
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
-		("Total client count", "sr br", "All clients");
-		("", "sr", Printf.sprintf "%d" t.tracker_torrent_total_clients_count) ]
+                ("Total client count", "sr br", "All clients");
+                ("", "sr", Printf.sprintf "%d" t.tracker_torrent_total_clients_count) ]
             end;
-	    if t.tracker_torrent_last_dl_req > 0 then begin
+            if t.tracker_torrent_last_dl_req > 0 then begin
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
-		("Latest torrent request", "sr br", "Latest request");
-		("", "sr", Printf.sprintf "%ds" t.tracker_torrent_last_dl_req) ]
+                ("Latest torrent request", "sr br", "Latest request");
+                ("", "sr", Printf.sprintf "%ds" t.tracker_torrent_last_dl_req) ]
             end;
-	    if String.length t.tracker_id > 0 then begin
+            if String.length t.tracker_id > 0 then begin
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
-		("Tracker id", "sr br", "Tracker id");
-		("", "sr", t.tracker_id) ]
+                ("Tracker id", "sr br", "Tracker id");
+                ("", "sr", t.tracker_id) ]
             end;
-	    if String.length t.tracker_key > 0 then begin
+            if String.length t.tracker_key > 0 then begin
               Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
-		("Tracker key", "sr br", "Tracker key");
-		("", "sr", t.tracker_key) ]
-	    end 
-	  end in
+                ("Tracker key", "sr br", "Tracker key");
+                ("", "sr", t.tracker_key) ]
+            end 
+          end in
   print_first_tracker file.file_trackers;
 
   (* This is bad.  Magic info should be automatically filled in when 
@@ -410,7 +410,7 @@ let op_file_print file o =
     incr cntr;
     let magic_string =
       match magic with 
-	None -> ""
+        None -> ""
       | Some m -> Printf.sprintf " / %s" m;
     in
     Printf.bprintf buf "File %d: %s (%Ld bytes)%s\n" !cntr filename size magic_string
@@ -427,9 +427,9 @@ let op_file_print_sources file o =
     else
       (* List *)
       List.iter (fun (t,c,d)  ->
-	  (* Title Class Value *)
-	  Printf.bprintf buf "%s "
-	  d;
+          (* Title Class Value *)
+          Printf.bprintf buf "%s "
+          d;
       ) l
   in
   let html_mods_table_header buf n c l =
@@ -437,13 +437,13 @@ let op_file_print_sources file o =
       html_mods_table_header buf n c l
     else
       if List.length l > 0 then begin
-	Printf.bprintf buf "\n";
-	List.iter (fun (w,x,y,z)  ->
-	  (* Sort Class Title Value *)
-	  Printf.bprintf buf "%s "
-	  z;
-	) l;
-	Printf.bprintf buf "\n"
+        Printf.bprintf buf "\n";
+        List.iter (fun (w,x,y,z)  ->
+          (* Sort Class Title Value *)
+          Printf.bprintf buf "%s "
+          z;
+        ) l;
+        Printf.bprintf buf "\n"
     end
   in
 
@@ -487,19 +487,19 @@ let op_file_print_sources file o =
 *)
         ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
           (match file.file_swarmer with
-	  | None -> 0
-	  | Some swarmer ->
-	      let bitmap = 
-		CommonSwarming.chunks_verified_bitmap swarmer in
-	      VB.fold_lefti (fun acc _ s ->
-		if s = VB.State_verified then acc + 1 else acc)	0 bitmap)))
+          | None -> 0
+          | Some swarmer ->
+              let bitmap = 
+                CommonSwarming.chunks_verified_bitmap swarmer in
+              VB.fold_lefti (fun acc _ s ->
+                if s = VB.State_verified then acc + 1 else acc)        0 bitmap)))
       ] in
 
       html_mods_table_header buf "sourcesTable" "sources al" header_list;
 
       Hashtbl.iter (fun _ c ->
           let cinfo = client_info (as_client c) in
-	  if use_html_mods o then
+          if use_html_mods o then
           Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr());
 
           let btos b = if b then "T" else "F" in
@@ -552,7 +552,7 @@ let op_file_print_sources file o =
 
           html_mods_td buf td_list;
           if use_html_mods o then Printf.bprintf buf "\\</tr\\>"
-	  else Printf.bprintf buf "\n";
+          else Printf.bprintf buf "\n";
 
       ) file.file_clients;
 
@@ -835,12 +835,12 @@ let scan_new_torrents_directory () =
       (try Sys.remove file with _ -> ())
     with 
       Torrent_can_not_be_used _ ->
-	Unix2.rename file (Filename.concat old_directory file_basename);
-	lprintf_nl "Torrent %s does not have valid tracker URLs, moved to torrents/old ..." file_basename
+        Unix2.rename file (Filename.concat old_directory file_basename);
+        lprintf_nl "Torrent %s does not have valid tracker URLs, moved to torrents/old ..." file_basename
     | e ->
-	Unix2.rename file (Filename.concat old_directory file_basename);
-	lprintf_nl "Error %s in scan_new_torrents_directory for %s, moved to torrents/old ..."
-	  (Printexc2.to_string e) file_basename
+        Unix2.rename file (Filename.concat old_directory file_basename);
+        lprintf_nl "Error %s in scan_new_torrents_directory for %s, moved to torrents/old ..."
+          (Printexc2.to_string e) file_basename
   ) filenames
 
 let retry_all_ft () =
@@ -898,7 +898,7 @@ let op_network_parse_url url user group =
                   ) "" cookies
                 ) ]
             with Not_found -> []);
-	  H.req_max_retry = 10;
+          H.req_max_retry = 10;
           } in
 
         let file_diskname = Filename.basename u.Url.short_file in
@@ -918,12 +918,12 @@ let op_network_parse_url url user group =
             load_torrent_file url user group;
             "", true
           with
-	    Torrent_already_exists _ -> "A torrent with this name is already in the download queue", false
-	  | Torrent_can_not_be_used _ -> "This torrent does not have valid tracker URLs", false
+            Torrent_already_exists _ -> "A torrent with this name is already in the download queue", false
+          | Torrent_can_not_be_used _ -> "This torrent does not have valid tracker URLs", false
         with e ->
           lprintf_nl "Exception %s while 2nd loading" (Printexc2.to_string e);
-	  let s = Printf.sprintf "Can not load load torrent file: %s"
-	    (Printexc2.to_string e) in
+          let s = Printf.sprintf "Can not load load torrent file: %s"
+            (Printexc2.to_string e) in
           s, false
       else
         begin
@@ -933,7 +933,7 @@ let op_network_parse_url url user group =
     | e ->
        lprintf_nl "Exception %s while loading" (Printexc2.to_string e);
        let s = Printf.sprintf "Can not load load torrent file: %s"
-	 (Printexc2.to_string e) in
+         (Printexc2.to_string e) in
        s, false
 
 let op_client_info c =
@@ -1197,15 +1197,15 @@ let commands =
       let buf = o.conn_buf in
       if Sys.file_exists url then
         begin
-	  load_torrent_file url o.conn_user.ui_user o.conn_user.ui_user.user_default_group;
+          load_torrent_file url o.conn_user.ui_user o.conn_user.ui_user.user_default_group;
           Printf.bprintf buf "loaded file %s\n" url
-	end
+        end
       else
         begin
           let url = "Location: " ^ url ^ "\nContent-Type: application/x-bittorrent" in
-	  let result = fst (op_network_parse_url url o.conn_user.ui_user o.conn_user.ui_user.user_default_group) in
+          let result = fst (op_network_parse_url url o.conn_user.ui_user o.conn_user.ui_user.user_default_group) in
           Printf.bprintf buf "%s\n" result
-	end;
+        end;
       _s ""
      ),  "<url|file> :\t\t\tstart BT download";
 
@@ -1287,10 +1287,10 @@ let op_gui_message s user =
         let file = load_torrent_string text user user.user_default_group in
         raise (Torrent_started file.file_name)
       with e -> (match e with
-	| Torrent_can_not_be_used s -> lprintf_nl "Loading torrent from GUI: torrent %s can not be used" s
-	| Torrent_already_exists s -> lprintf_nl "Loading torrent from GUI: torrent %s is already in download queue" s
-	| _ -> ());
-	raise e)
+        | Torrent_can_not_be_used s -> lprintf_nl "Loading torrent from GUI: torrent %s can not be used" s
+        | Torrent_already_exists s -> lprintf_nl "Loading torrent from GUI: torrent %s is already in download queue" s
+        | _ -> ());
+        raise e)
   | 1 -> (* 34+ *)
       let n = get_int s 2 in
       let a, pos = get_string s 6 in
@@ -1369,15 +1369,15 @@ let _ =
       let r = {
           H.basic_request with
           H.req_url =
-	    Url.of_string (Printf.sprintf
-	      "http://azureus.aelitis.com/natcheck.php?port=%d&check=azureus_rand_%d"
-		!!client_port !azureus_porttest_random);
+            Url.of_string (Printf.sprintf
+              "http://azureus.aelitis.com/natcheck.php?port=%d&check=azureus_rand_%d"
+                !!client_port !azureus_porttest_random);
           H.req_proxy = !CommonOptions.http_proxy;
           H.req_user_agent = get_user_agent ();
         } in
       H.wget r (fun file ->
-	let result = interpret_azureus_porttest (File.to_string file) in
-	porttest_result := PorttestResult (last_time (), result)
+        let result = interpret_azureus_porttest (File.to_string file) in
+        porttest_result := PorttestResult (last_time (), result)
       )
   );
   network.op_network_check_upload_slots <- (fun _ -> check_bt_uploaders ());

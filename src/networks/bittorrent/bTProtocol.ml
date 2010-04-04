@@ -541,7 +541,7 @@ let handlers info gconn =
                  peer_id is not fetched here because
                  it might be late or not present
                  *)
-(*	      let proto = String.sub b.buf (b.pos+1) slen in *)
+(*              let proto = String.sub b.buf (b.pos+1) slen in *)
               let file_id = Sha1.direct_of_string
                 (String.sub b.buf (b.pos+9+slen) 20) in
               let proto,pos = get_string8 b.buf b.pos in
@@ -550,8 +550,8 @@ let handlers info gconn =
               h gconn sock (proto, rbits, file_id);
             end
           else
-	    if (String.sub b.buf b.pos (min b.len 100)) = "NATCHECK_HANDSHAKE" then
-		write_string sock (Printf.sprintf "azureus_rand_%d" !azureus_porttest_random)
+            if (String.sub b.buf b.pos (min b.len 100)) = "NATCHECK_HANDSHAKE" then
+                write_string sock (Printf.sprintf "azureus_rand_%d" !azureus_porttest_random)
           else if (TcpBufferedSocket.closed sock) then
               let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
               lprintf_nl "bt-handshake: closed sock from %s:%d  b.len:%i slen:%i"

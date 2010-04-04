@@ -69,7 +69,7 @@ let enable () =
         lprint_newline();
         lprintf_nl "BT-client_port and BT-tracker_port can not be the same.";
         lprintf_nl "Change one of the settings and restart MLDonkey, exiting...\n";
-	Pervasives.exit 69
+        Pervasives.exit 69
       end;
     if !!BTTracker.tracker_port > 0 then (
         try BTTracker.start_tracker ()
@@ -105,8 +105,8 @@ let enable () =
 
   CommonGlobals.do_at_exit ( fun _ ->
     List.iter (fun file ->
-		 BTClients.file_stop file
-	      ) !current_files;
+                 BTClients.file_stop file
+              ) !current_files;
   );
 
   BTClients.listen ();

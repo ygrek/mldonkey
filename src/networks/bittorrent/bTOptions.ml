@@ -120,13 +120,13 @@ let _ =
       (fun _ ->
         let v = int_of_string (strings_of_option max_uploaders_per_torrent).option_default in
         if !!max_uploaders_per_torrent < 1 then max_uploaders_per_torrent =:= v;
-	check_bt_uploaders ()
+        check_bt_uploaders ()
         );
     option_hook max_bt_uploaders
       (fun _ ->
         if !!max_bt_uploaders < 1 then
             max_bt_uploaders =:= int_of_string (strings_of_option max_bt_uploaders).option_default;
-	check_bt_uploaders ()
+        check_bt_uploaders ()
         );
     option_hook max_tracker_redirect   (** #4541 [egs] **)
       (fun _ ->

@@ -166,8 +166,8 @@ let value_to_file file_size file_state user group assocs =
 *)
             torrent_announce =
             (match file_trackers with
-	      | h::q -> h
-	      | [] -> "");
+              | h::q -> h
+              | [] -> "");
             torrent_announce_list = file_trackers;
           } in
         let torrent_diskname = Filename.concat downloads_directory
@@ -183,7 +183,7 @@ let value_to_file file_size file_state user group assocs =
         file_temp
   in
   let file = new_file file_id torrent torrent_diskname
-	       file_temp file_state user group in
+               file_temp file_state user group in
     
   let file_uploaded = try
       value_to_int64 (List.assoc "file_uploaded" assocs)

@@ -420,25 +420,25 @@ let send_bitfield c =
       (
       match c.client_file.file_swarmer with
       | None ->
-	  (* This must be a seeded file... *)
-	  if !verbose_download then 
-	    lprintf_nl "Sending completed verified bitmap";
-	  let nchunks = Array.length c.client_file.file_chunks in
-	  let len = (nchunks+7)/8 in
-	  let s = String.make len '\000' in
-	  for i = 0 to nchunks - 1 do
-	    set_bit s i
-	  done;
-	  s
+          (* This must be a seeded file... *)
+          if !verbose_download then 
+            lprintf_nl "Sending completed verified bitmap";
+          let nchunks = Array.length c.client_file.file_chunks in
+          let len = (nchunks+7)/8 in
+          let s = String.make len '\000' in
+          for i = 0 to nchunks - 1 do
+            set_bit s i
+          done;
+          s
       | Some swarmer ->
-	  let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
-	  if !verbose_download then 
-	    lprintf_nl "Sending verified bitmap: [%s]" (VB.to_string bitmap);
-	  let len = (VB.length bitmap + 7)/8 in
-	  let s = String.make len '\000' in
-	  VB.iteri (fun i c ->
+          let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
+          if !verbose_download then 
+            lprintf_nl "Sending verified bitmap: [%s]" (VB.to_string bitmap);
+          let len = (VB.length bitmap + 7)/8 in
+          let s = String.make len '\000' in
+          VB.iteri (fun i c ->
             if c = VB.State_verified then set_bit s i) bitmap;
-	  s
+          s
     ))
 
 let counter = ref 0
@@ -688,7 +688,7 @@ and get_from_client sock (c: client) =
         match c.client_chunk with
         | None -> lprintf "none"
         | Some (chunk, blocks) -> List.iter (fun b -> 
-	    CommonSwarming.print_block b.up_block) blocks;
+            CommonSwarming.print_block b.up_block) blocks;
 
         lprint_newline ();
       
@@ -714,10 +714,10 @@ and get_from_client sock (c: client) =
               let chunk, blocks = CommonSwarming.find_blocks up in
               if !verbose_swarming then begin 
                 lprintf_n "Blocks Found: "; List.iter (fun b ->
-		  CommonSwarming.print_block b.up_block) blocks;
+                  CommonSwarming.print_block b.up_block) blocks;
                 lprint_newline ()
               end;
-	      c.client_chunk <- Some (chunk, blocks);
+              c.client_chunk <- Some (chunk, blocks);
 
              (*We put the found block in client_block to
                request range in this block. (Useful for
@@ -730,7 +730,7 @@ and get_from_client sock (c: client) =
 
               if !verbose_swarming then begin
                 lprintf_n "Current Blocks: "; List.iter (fun b ->
-		  CommonSwarming.print_block b.up_block) blocks;
+                  CommonSwarming.print_block b.up_block) blocks;
                 lprint_newline ()
               end;
 
@@ -738,7 +738,7 @@ and get_from_client sock (c: client) =
                 (*Given a block find a range inside*)
                 let (x,y,r) =
                   match c.client_range_waiting with
-		  | Some (x,y,r) ->
+                  | Some (x,y,r) ->
                         c.client_range_waiting <- None;
                         (x,y,r)
                   | None -> 
@@ -773,7 +773,7 @@ and get_from_client sock (c: client) =
                     lprintf_nl "Could not find range in current block";
 (*                  c.client_blocks <- List2.removeq b c.client_blocks; *)
 
-		  c.client_chunk <- None;
+                  c.client_chunk <- None;
 
                   iter ()
         in
@@ -942,9 +942,9 @@ and client_to_client c sock msg =
                   if is_bit_set p i then begin
                     c.client_new_chunks <- i :: c.client_new_chunks;
                     match VB.get bitmap i with
-		    | VB.State_missing | VB.State_partial ->
+                    | VB.State_missing | VB.State_partial ->
                       c.client_interesting <- true
-		    | VB.State_complete | VB.State_verified -> ()
+                    | VB.State_complete | VB.State_verified -> ()
                   end 
                 done;
 
@@ -976,13 +976,13 @@ and client_to_client c sock msg =
               let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
               (* lprintf_nl "verified: %c;" (VB.state_to_char (VB.get bitmap n)); *)
               (* if the peer has a chunk we don't, tell him we're interested and update his bitmap *)
-	      match VB.get bitmap n with
-	      | VB.State_missing | VB.State_partial ->
+              match VB.get bitmap n with
+              | VB.State_missing | VB.State_partial ->
                   c.client_interesting <- true;
                   send_interested c;
                   c.client_new_chunks <- n :: c.client_new_chunks;
                   update_client_bitmap c;
-	      | VB.State_complete | VB.State_verified -> ()
+              | VB.State_complete | VB.State_verified -> ()
 
 (*        begin
           match c.client_bitmap, c.client_uploader with
@@ -1372,22 +1372,22 @@ let talk_to_tracker file need_sources =
     match exn_catch Bencode.decode s with
     | `Exn exn -> tracker_failed (Printf.sprintf "wrong reply (%s)" (Printexc2.to_string exn))
     | `Ok (Dictionary list) ->
-    t.tracker_interval <- 600;
-    t.tracker_min_interval <- 600;
-    if need_sources then t.tracker_last_clients_num <- 0;
+        t.tracker_interval <- 600;
+        t.tracker_min_interval <- 600;
+        if need_sources then t.tracker_last_clients_num <- 0;
         let chk_keyval key n = chk_keyval key n t.tracker_url file.file_name in
         if not (List.mem_assoc "failure reason" list) then
         begin
           begin match t.tracker_status with
-                   | Disabled_failure (i, _) ->
+          | Disabled_failure (i, _) ->
               lprintf_file_nl (as_file file) "Received good message from Tracker %s after %d bad attempts" 
                 t.tracker_url i
           | _ -> () end;
-                   (* Received good message from tracker after failures, re-enable tracker *)
+          (* Received good message from tracker after failures, re-enable tracker *)
           t.tracker_status <- Enabled;
         end;
         List.iter (fun (key,value) ->
-            match (key, value) with
+            match (key,value) with
             | "failure reason", String failure -> tracker_failed failure
             | "warning message", String warning ->
                 lprintf_file_nl (as_file file) "Warning from Tracker %s in file: %s Reason: %s" 
