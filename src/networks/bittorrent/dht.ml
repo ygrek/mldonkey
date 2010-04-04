@@ -10,7 +10,7 @@ type msg =
   | Response of dict
   | Error of int64 * string
 
-let encode txn msg =
+let encode (txn,msg) =
   let module B = Bencode in
   let x = match msg with
   | Query (name,args) -> ["y", B.String "q"; "q", B.String name; "a", B.Dictionary args]
@@ -19,6 +19,22 @@ let encode txn msg =
   in
   let x = ("t", B.String txn) :: x in
   B.encode (B.Dictionary x)
+
+let str = function Bencode.String s -> s | _ -> failwith "str"
+let int = function Bencode.Int s -> s | _ -> failwith "int"
+let dict = function Bencode.Dictionary s -> s | _ -> failwith "dict"
+let list = function Bencode.List l -> l | _ -> failwith "list"
+
+let decode_exn s =
+  let module B = Bencode in
+  let module Array = struct let get x k = match x with B.Dictionary l -> List.assoc k l | _ -> failwith "decode get" end in
+  let x = B.decode s in
+  let v = match str x.("y") with
+  | "q" -> Query (str x.("q"), dict x.("a"))
+  | "r" -> Response (dict x.("r"))
+  | "e" -> begin match list x with B.Int n :: B.String s :: _ -> Error (n, s) | _ -> failwith "decode e" end
+  | _ -> failwith "decode"
+  in (str x.("t"), v)
 
 open BasicSocket
 open UdpSocket
@@ -29,7 +45,6 @@ let udp_set_reader socket f =
       lprintf_nl "udp interact exn %s" (Printexc2.to_string exn);
       close socket (Closed_for_exception exn)
   end
-
 
 let create () =
   let socket = create Unix.inet_addr_any 0 (fun sock event ->
@@ -47,11 +62,22 @@ let create () =
   let h = Hashtbl.create 13 in
   udp_set_reader socket (fun () ->
     let p = read socket in
+    
     ());
   (socket,h)
 
-let write (socket,_) msg ip port =
-  write socket false msg ip port
+let write (socket,h) msg ip port k =
+  let l = try Hashtbl.find h (ip,port) with Not_found -> [] in
+  let rec loop () =
+    let txn = Random.int max_int in
+    match List.mem_assoc txn l with
+    | true -> loop ()
+    | false -> txn
+  in
+  let txn = loop () in
+  Hashtbl.add h (ip,port) ((txn,k) :: l);
+  let s = encode (txn,msg) in
+  write socket false s ip port
 
 end
 
