@@ -160,7 +160,8 @@ let talk_to_udp_tracker host port args file t need_sources =
          | "stopped" -> 3l
          | "" -> 0l
          | s -> lprintf_nl "udpt event %s? for %s" s host; 0l)
-        ~numwant:(try Int32.of_string (List.assoc "numwant" args) with _ -> -1l)
+        ~ip:(if !!force_client_ip then (Int64.to_int32 (Ip.to_int64 !!set_client_ip)) else 0l)
+        ~numwant:(if need_sources then try Int32.of_string (List.assoc "numwant" args) with _ -> -1l else 0l)
         (int_of_string (List.assoc "port" args))
       in
       write socket false req ip port;
@@ -181,6 +182,7 @@ let talk_to_udp_tracker host port args file t need_sources =
           if t.tracker_min_interval > t.tracker_interval then
             t.tracker_min_interval <- t.tracker_interval
         end;
+        if need_sources then
         List.iter (fun (ip',port) ->
           let ip = Ip.of_int64 (Int64.logand 0xFFFFFFFFL (Int64.of_int32 ip')) in 
           lprintf_nl "udpt got %s:%d" (Ip.to_string ip) port;
@@ -192,7 +194,7 @@ let talk_to_udp_tracker host port args file t need_sources =
         if need_sources then !resume_clients_hook file
         ) end
   in
-  try 
+  try
     lprintf_nl "udpt start with %s:%d" host port;
     Ip.async_ip host (fun ip ->
       lprintf_nl "udpt resolved %s to ip %s" host (Ip.to_string ip);
@@ -314,11 +316,11 @@ let connect_trackers file event need_sources f =
           (* if we already tried to connect but failed, disable tracker, but allow re-enabling *)
           (* FIXME t.tracker_last_conn < 1 only at first connect, so later failures will stay undetected! *)
           if file.file_tracker_connected && t.tracker_last_clients_num = 0 && t.tracker_last_conn < 1 then 
-          begin
-            if !verbose_msg_servers then
-              lprintf_nl "Request error from tracker: disabling %s" (show_tracker_url t.tracker_url);
-            t.tracker_status <- Disabled (intern "MLDonkey: Request error from tracker")
-          end
+            begin
+              if !verbose_msg_servers then
+                lprintf_nl "Request error from tracker: disabling %s" (show_tracker_url t.tracker_url);
+              t.tracker_status <- Disabled (intern "MLDonkey: Request error from tracker")
+            end
           (* Send request to tracker *)
           else 
             let args = if String.length t.tracker_id > 0 then
@@ -498,7 +500,7 @@ let download_finished file =
       begin
         connect_trackers file "completed" false (fun _ _ -> 
           lprintf_file_nl (as_file file) "Tracker return: completed %s" file.file_name;
-        ); (*must be called before swarmer gets removed from file*)
+          ()); (*must be called before swarmer gets removed from file*)
         (*CommonComplexOptions.file_completed*)
         file_completed (as_file file);
         (* Remove the swarmer for this file as it is not useful anymore... *)
@@ -1468,24 +1470,6 @@ let chk_keyval key n url name =
      0
    end
 
-(** Check that client is valid and record it *)
-let maybe_new_client file id ip port =
-  let cc = Geoip.get_country_code_option ip in
-  if id <> !!client_uid
-     && ip != Ip.null
-     && port <> 0
-     && (match !Ip.banned (ip, cc) with
-         | None -> true
-         | Some reason ->
-           if !verbose_connect then
-             lprintf_file_nl (as_file file) "%s:%d blocked: %s" (Ip.to_string ip) port reason;
-           false)
-  then
-    ignore (new_client file id (ip,port) cc);
-    if !verbose_sources > 1 then
-      lprintf_file_nl (as_file file) "Received %s:%d" (Ip.to_string ip) port;
-    ()
-
 let exn_catch f x = try `Ok (f x) with exn -> `Exn exn
 
 (** In this function we interact with the tracker
@@ -1513,7 +1497,6 @@ let talk_to_tracker file need_sources =
     | `Ok (Dictionary list) ->
         t.tracker_interval <- 600;
         t.tracker_min_interval <- 600;
-        t.tracker_last_clients_num <- 0;
         if need_sources then t.tracker_last_clients_num <- 0;
         let chk_keyval key n = chk_keyval key n t.tracker_url file.file_name in
         if not (List.mem_assoc "failure reason" list) then
@@ -1521,7 +1504,7 @@ let talk_to_tracker file need_sources =
           begin match t.tracker_status with
           | Disabled_failure (i, _) ->
               lprintf_file_nl (as_file file) "Received good message from Tracker %s after %d bad attempts" 
-                t.tracker_url i
+                tracker_url i
           | _ -> () end;
           (* Received good message from tracker after failures, re-enable tracker *)
           t.tracker_status <- Enabled;

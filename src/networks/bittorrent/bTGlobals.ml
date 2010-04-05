@@ -231,11 +231,10 @@ let create_temp_file file_temp file_files file_state =
   file_fd
 
 let make_tracker_url url =
-  let url = String.lowercase url in
-  if String2.check_prefix url "http://" then 
-    `Http url
+  if String2.check_prefix (String.lowercase url) "http://" then 
+    `Http url (* do not change the case of the url *)
   else
-    try Scanf.sscanf url "udp://%s@:%d" (fun host port -> `Udp (host,port))
+    try Scanf.sscanf (String.lowercase url) "udp://%s@:%d" (fun host port -> `Udp (host,port))
     with _ -> `Other url
 
 (** invariant: [make_tracker_url (show_tracker_url url) = url] *)
@@ -248,12 +247,10 @@ let can_handle_tracker = function
   | `Udp _ -> true
   | `Other _ -> false
 
-let rec set_trackers file file_trackers =
-  match file_trackers with
-  | [] -> ()
-  | url :: q ->
+let set_trackers file file_trackers =
+  List.iter (fun url ->
         let url = make_tracker_url url in
-        if not (List.exists (fun tracker -> tracker.tracker_url = url) file.file_trackers) then 
+        if not (List.exists (fun tracker -> tracker.tracker_url = url) file.file_trackers) then
           let t = {
             tracker_url = url;
             tracker_interval = 600;
@@ -269,9 +266,9 @@ let rec set_trackers file file_trackers =
             tracker_key = "";
             tracker_status = if can_handle_tracker url then Enabled 
                              else Disabled_mld (intern "Tracker type not supported")
-        } in
-    	  file.file_trackers <-  t :: file.file_trackers;
-      	set_trackers file q
+          } in
+          file.file_trackers <-  t :: file.file_trackers)
+  file_trackers
 
 let new_file file_id t torrent_diskname file_temp file_state user group =
   try
