@@ -41,12 +41,12 @@ open UdpSocket
 
 let udp_set_reader socket f =
   set_reader socket begin fun _ ->
-    try f () with exn -> 
-      lprintf_nl "udp interact exn %s" (Printexc2.to_string exn);
+    try read_packets socket f with exn -> 
+      lprintf_nl "udp reader exn %s" (Printexc2.to_string exn);
       close socket (Closed_for_exception exn)
   end
 
-let create () =
+let create answer =
   let socket = create Unix.inet_addr_any 0 (fun sock event ->
 (*       lprintf_nl "udpt got event %s for %s" (string_of_event event) host; *)
       match event with
@@ -60,16 +60,22 @@ let create () =
   set_wtimeout (sock socket) 5.;
   set_rtimeout (sock socket) 5.;
   let h = Hashtbl.create 13 in
-  udp_set_reader socket (fun () ->
-    let p = read socket in
-    
-    ());
+  let handle p =
+    let (txn,v) = decode_exn p.udp_content in
+    let (ip,port) = match p.udp_addr with Unix.ADDR_INET (inet,port) -> Ip.of_inet_addr inet, port | _ -> failwith "inet_addr" in
+    match v with
+    | Query (name,args) -> let ret = answer name args in ()
+    | Error (code,msg) -> lprintf_nl "dht error %Ld : %S from %s:%u" code msg (Ip.to_string ip) port
+    | Response ret -> ()
+  in
+  let handle p = try handle p with exn -> lprintf_nl "dht handle packet : exn %s" (Printexc2.to_string exn) in
+  udp_set_reader socket handle;
   (socket,h)
 
 let write (socket,h) msg ip port k =
   let l = try Hashtbl.find h (ip,port) with Not_found -> [] in
   let rec loop () =
-    let txn = Random.int max_int in
+    let txn = string_of_int (Random.int max_int) in
     match List.mem_assoc txn l with
     | true -> loop ()
     | false -> txn
