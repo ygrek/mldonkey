@@ -15,6 +15,12 @@ ChangeLog
 =========
 
 2010/04/08
+7161: bw_toggle: Add options "high" and "low"
+- bw_toggle without options works as before
+- if "high" is added, the *_2 option set is used if max_opened_connections_2
+  is higher than max_opened_connections, otherwise the option values are kept
+- if "low" is added, the *_2 option set is used if max_opened_connections_2
+  is lower than max_opened_connections, otherwise the option values are kept
 6959: DC: Fix invalid XML (ygrek)
 - enhanced patch (use Xml.escape and properly escape attributes in Xml.to_string)
 

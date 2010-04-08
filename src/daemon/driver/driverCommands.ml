@@ -1134,25 +1134,37 @@ let _ =
         ""
     ), ":\t\t\t\tprint current bandwidth stats";
 
-    "bw_toggle", Arg_none (fun o ->
+    "bw_toggle", Arg_multiple (fun args o ->
+	let change_bw () =
+		let ul_bkp = !!max_hard_upload_rate_2 in
+		let dl_bkp = !!max_hard_download_rate_2 in
+		let max_conn = !!max_opened_connections_2 in
+		max_hard_upload_rate_2 =:= !!max_hard_upload_rate;
+		max_hard_download_rate_2 =:= !!max_hard_download_rate;
+		max_opened_connections_2 =:= !!max_opened_connections;
+		max_hard_upload_rate =:= ul_bkp;
+		max_hard_download_rate =:=  dl_bkp;
+		max_opened_connections =:= max_conn;
+	in
 	if user2_is_admin o.conn_user.ui_user then begin
-	let ul_bkp = !!max_hard_upload_rate_2 in
-	let dl_bkp = !!max_hard_download_rate_2 in
-	let max_conn = !!max_opened_connections_2 in
-	max_hard_upload_rate_2 =:= !!max_hard_upload_rate;
-	max_hard_download_rate_2 =:= !!max_hard_download_rate;
-	max_opened_connections_2 =:= !!max_opened_connections;
-	max_hard_upload_rate =:= ul_bkp;
-	max_hard_download_rate =:=  dl_bkp;
-	max_opened_connections =:= max_conn;
-	print_command_result o (Printf.sprintf
-	  "new upload rate: %d | new download rate: %d | new max opened connections: %d"
-	    !!max_hard_upload_rate !!max_hard_download_rate !!max_opened_connections)
-	end
+	(
+		match (List.map String.lowercase args) with
+		| ["high"] ->
+			if !!max_opened_connections < !!max_opened_connections_2 then
+				change_bw ()
+		| ["low"] ->
+			if !!max_opened_connections > !!max_opened_connections_2 then
+				change_bw ()
+		| _ -> change_bw ()
+		);
+		print_command_result o (Printf.sprintf
+		  "new upload rate: %d | new download rate: %d | new max opened connections: %d"
+		    !!max_hard_upload_rate !!max_hard_download_rate !!max_opened_connections)
+		end
 	else
 	  print_command_result o "You are not allowed to toggle bandwidth";
 	""
-    ), ":\t\t\t\ttoggle between the two rate and opened connection sets";
+    ), "[<high|low>]:\t\t\ttoggle between the two rate and opened connection sets, high/low depend on option max_open_connections*";
 
     "costats", Arg_multiple (fun args o ->
         let filter cs =
