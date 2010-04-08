@@ -144,6 +144,9 @@ val fold : ('a -> xml -> 'a) -> 'a -> xml -> 'a
  any user-readable formating ). *)
 val to_string : xml -> string
 
+(** Escape string as xml pcdata *)
+val escape : string -> string
+
 (** Print the xml data structure into an user-readable string with
  tabs and lines break between different nodes. *)
 val to_string_fmt : xml -> string

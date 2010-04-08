@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/04/08
+6959: DC: Fix invalid XML (ygrek)
+- enhanced patch (use Xml.escape and properly escape attributes in Xml.to_string)
+
 2010/04/04
 7153: BT: correctly handle failed tracker requests (ygrek)
 7155: DC: understand hublist.xml (ygrek)

@@ -125,35 +125,34 @@ let fold f v = function
 	| Element (_,_,clist) -> List.fold_left f v clist
 	| x -> raise (Not_element x)
 
-let tmp = Buffer.create 200
-
-let buffer_pcdata text =
+let buffer_escape b text =
   let l = String.length text in
   for p = 0 to l-1 do 
     match text.[p] with
-    | '>' -> Buffer.add_string tmp "&gt;"
-    | '<' -> Buffer.add_string tmp "&lt;"
-    | '&' ->
-        if p < l-1 && text.[p+1] = '#' then
-          Buffer.add_char tmp '&'
-        else
-          Buffer.add_string tmp "&amp;"
-    | '\'' -> Buffer.add_string tmp "&apos;"
-    | '"' -> Buffer.add_string tmp "&quot;"
-    | c -> Buffer.add_char tmp c
+    | '>' -> Buffer.add_string b "&gt;"
+    | '<' -> Buffer.add_string b "&lt;"
+    | '&' -> Buffer.add_string b "&amp;"
+    | '\'' -> Buffer.add_string b "&apos;"
+    | '"' -> Buffer.add_string b "&quot;"
+    | '\x0A' -> Buffer.add_string b "&#x0A;"
+    | '\x0D' -> Buffer.add_string b "&#x0D;"
+    | c -> Buffer.add_char b c
   done
-  
+
+let escape s =
+  let b = Buffer.create (String.length s) in
+  buffer_escape b s;
+  Buffer.contents b
+
+let tmp = Buffer.create 200
+
+let buffer_pcdata = buffer_escape tmp
+
 let buffer_attr (n,v) =
 	Buffer.add_char tmp ' ';
 	Buffer.add_string tmp n;
 	Buffer.add_string tmp "=\"";
-	let l = String.length v in
-	for p = 0 to l-1 do
-		match v.[p] with
-		| '\\' -> Buffer.add_string tmp "\\\\"
-		| '"' -> Buffer.add_string tmp "\\\""
-		| c -> Buffer.add_char tmp c
-	done;
+	buffer_pcdata v;
 	Buffer.add_char tmp '"'
 
 let to_string x = 
@@ -238,8 +237,8 @@ let _ =
 (* local cast : Xml.error_pos -> error_pos *)
         (Obj.magic (pos p))));
   Xml_dtd._raises (fun f -> File_not_found f)
-  
+
 let xml_of xml = match xml with
     Element (a,b,c) -> a,b,c
   | _ -> failwith "Xml.xml_of: bad XML type"
-      
+

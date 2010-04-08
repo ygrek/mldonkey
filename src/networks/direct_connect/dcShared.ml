@@ -79,28 +79,22 @@ let make_mylist () =
 let make_xml_mylist () = 
   let buf = Buffer.create 1000 in
   Printf.bprintf buf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>\r\n";
-  Printf.bprintf buf "<FileListing Version=\"1\" CID=\"1,0,2,3,4,5,6\" Base=\"/\" Generator=\"MLDC-%s\">\r\n" Autoconf.current_version;
+  Printf.bprintf buf "<FileListing Version=\"1\" CID=\"1,0,2,3,4,5,6\" Base=\"/\" Generator=\"MLDC-%s\">\r\n" (Xml.escape Autoconf.current_version);
   let rec iter ntabs node =
     let dirname = node.shared_dirname in
     let ntabs =
       if dirname = "" then ntabs else begin
         buf_tabs buf ntabs;
         let dir = dirname in
-        (* Escape some special XML characters that may appear in the dirname *)
-        let dir = Str.global_replace (Str.regexp "'") "&apos;" dir in
-        let dir = Str.global_replace (Str.regexp "&") "&amp;" dir in
-        Printf.bprintf buf "<Directory Name=\"%s\">\r\n" dir;
+        Printf.bprintf buf "<Directory Name=\"%s\">\r\n" (Xml.escape dir);
         ntabs+1
       end
     in
     List.iter (fun dcsh ->
       buf_tabs buf ntabs;
       let fname = Filename2.basename dcsh.dc_shared_codedname in
-      (* Escape some special XML characters that may appear in the filename *)
-      let fname = Str.global_replace (Str.regexp "'") "&apos;" fname in
-      let fname = Str.global_replace (Str.regexp "&") "&amp;" fname in
-      Printf.bprintf buf "<File Name=\"%s\" Size=\"%Ld\" TTH=\"%s\"/>\r\n" fname 
-        dcsh.dc_shared_size dcsh.dc_shared_tiger_root
+      Printf.bprintf buf "<File Name=\"%s\" Size=\"%Ld\" TTH=\"%s\"/>\r\n" (Xml.escape fname)
+        dcsh.dc_shared_size (Xml.escape dcsh.dc_shared_tiger_root)
     ) node.shared_files;
     List.iter (fun (_, node) ->
         iter ntabs node;
