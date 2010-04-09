@@ -1,3 +1,4 @@
 DIR=src/networks/bittorrent
-cd ../../.. && ocamlopt -annot -I build str.cmxa unix.cmxa cdk.cmxa -I src/utils/cdk -I src/utils/lib -I src/utils/net -I $DIR $DIR/bencode.ml $DIR/kademlia.ml $DIR/dht.ml -o $DIR/kad
-cd $DIR
+cd ../../.. && ocamlopt -annot -I build str.cmxa unix.cmxa cdk.cmxa -I src/utils/cdk -I src/utils/lib -I src/utils/net -I $DIR $DIR/bencode.ml $DIR/kademlia.ml $DIR/dht.ml -o $DIR/kad 2>&1 | sed "s|$DIR/||"
+#ocamlopt -verbose -annot -I ../../../ -I ../../../build str.cmxa unix.cmxa cdk.cmxa -I ../../utils/cdk -I ../../utils/lib -I ../../utils/net bencode.ml kademlia.ml dht.ml -o kad
+#cd $DIR

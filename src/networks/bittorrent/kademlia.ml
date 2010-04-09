@@ -18,12 +18,15 @@ let () =
 
 type id = H.t
 let show_id = H.to_hexa
+type addr = Ip.t * int
 
 type time = float
 type status = | Good | Bad | Unknown | Pinged
-type node = { id : id; ip : Ip.t; port : int; mutable last : time; mutable status : status; }
+type node = { id : id; addr : addr; mutable last : time; mutable status : status; }
 type bucket = { lo : id; hi : id; mutable last_change : time; nodes : node array; }
 type table = bucket array
+
+let show_addr (ip,port) = Printf.sprintf "%s:%u" (Ip.to_string ip) port
 
 let show_status = function
   | Good -> "good"
@@ -32,8 +35,8 @@ let show_status = function
   | Pinged -> "ping"
 
 let show_node n =
-  pr " id : %s inet %s:%d last : %f status : %s" 
-    (H.to_hexa n.id) (Ip.to_string n.ip) n.port n.last (show_status n.status)
+  pr " id : %s inet %s last : %f status : %s" 
+    (H.to_hexa n.id) (show_addr n.addr) n.last (show_status n.status)
 
 let show_bucket b = 
   pr "lo : %s hi : %s changed : %f" (H.to_hexa b.lo) (H.to_hexa b.hi) b.last_change;
