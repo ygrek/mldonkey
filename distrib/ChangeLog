@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/04/10
+7162: filter longhelp output (ygrek)
+- longhelp (or ??) with parameters will output only those commands that
+  contain all of the specified parameters as substring
+
 2010/04/08
 7161: bw_toggle: Add options "high" and "low"
 - bw_toggle without options works as before

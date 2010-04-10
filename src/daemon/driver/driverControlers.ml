@@ -112,8 +112,9 @@ let eval auth cmd o =
     else cmd in
   let l = String2.tokens cmd in
   match l with
-    [] -> ()
-  | ["longhelp"] | ["??"] ->
+  | [] -> ()
+  | "longhelp"::subs | "??"::subs ->
+      let filter cmd = List.for_all (String2.contains cmd) subs in
       let module M = CommonMessages in
       if o.conn_output = HTML then begin
           Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>";
@@ -125,8 +126,8 @@ let eval auth cmd o =
             ("", "srh", ""); ];
           Buffer.add_string buf "\\</tr\\>";
           html_mods_cntr_init ();
-          List.iter (fun (cmd, _, _, help) ->
-              let ncmd = ref cmd in
+          let show (cmd, _, _, help) =
+              let ncmd = ref cmd in (* why? *)
               let nhelp = ref help in
               Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
@@ -136,9 +137,10 @@ let eval auth cmd o =
                 ("", "sr", "\\<a href=\\\"http://mldonkey.sourceforge.net/" ^ (String2.upp_initial !ncmd) ^
                   "\\\"\\>wiki\\</a\\>"); ];
               Printf.bprintf buf "\\</tr\\>\n";
-          )
-          (List.sort (fun (c1,_, _,_) (c2,_, _,_) -> compare c1 c2)
-            !CommonNetwork.network_commands);
+          in
+          List.iter show 
+            (List.sort (fun (c1,_, _,_) (c2,_, _,_) -> compare c1 c2)
+              (List.filter (fun (c,_,_,_) -> filter c) !CommonNetwork.network_commands));
           Printf.bprintf buf "\\</table\\>\\</div\\>";
           html_mods_table_header buf "helpTable" "results" [];
           Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
@@ -153,11 +155,11 @@ let eval auth cmd o =
           let list = Hashtbl2.to_list2 commands_by_kind in
           let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) list in
           List.iter (fun (s,list) ->
-              Printf.bprintf buf "\n   $b%s$n:\n" s;
-              let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) !list in
-              List.iter (fun (cmd, help) ->
-                  Printf.bprintf buf "$r%s$n %s\n" cmd help;
-              ) list
+              match List.sort (fun (s1,_) (s2,_) -> compare s1 s2) (List.filter (fun (s,_) -> filter s) !list) with
+              | [] -> ()
+              | list ->
+                Printf.bprintf buf "\n   $b%s$n:\n" s;
+                List.iter (fun (cmd, help) -> Printf.bprintf buf "$r%s$n %s\n" cmd help) list
           ) list;
         end
 
@@ -251,7 +253,7 @@ let eval auth cmd o =
                html_mods_td buf [
                  ("", "sr", "Use '$r\\<a href=\\\"submit?q=longhelp\\\"\\>" ^
                    "longhelp\\</a\\>$n' or '$r\\<a href=\\\"submit?q=longhelp\\\"\\>" ^
-                   "??\\</a\\>$n' for all commands."); ];
+                   "??\\</a\\>$n' for all commands. Specify substring to filter."); ];
                Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
                html_mods_td buf [
                  ("", "sr", "Use '$rhelp command$n' or '$r? command$n' for help on a command."); ];
@@ -283,6 +285,7 @@ $bGeneral:$n
           $rq$n : quit this interface
 
 Use '$rlonghelp$n' or '$r??$n' for all commands.
+Use '$rlonghelp str$n' or '$r?? str$n' for all commands that contain specified substring.
 Use '$rhelp command$n' or '$r? command$n' for help on a command.
             ";
     | "?" :: args | "help" :: args | "man" :: args ->
