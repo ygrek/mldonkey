@@ -144,6 +144,9 @@ val fold : ('a -> xml -> 'a) -> 'a -> xml -> 'a
  any user-readable formating ). *)
 val to_string : xml -> string
 
+(** Append string escaped as xml pcdata to buffer *)
+val buffer_escape : Buffer.t -> string -> unit
+
 (** Escape string as xml pcdata *)
 val escape : string -> string
 

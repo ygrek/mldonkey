@@ -778,7 +778,8 @@ let try_share_file torrent_diskname =
 
     if !verbose_share then 
       lprintf_file_nl (as_file file) "Sharing file %s" filename;
-    BTClients.talk_to_tracker file false
+    BTClients.talk_to_tracker file false;
+    Some filename
   with
   | Not_found ->
       (* if the torrent is still there while the file is gone, remove the torrent *)
@@ -789,19 +790,21 @@ let try_share_file torrent_diskname =
       in
       (try
           Unix2.rename torrent_diskname new_torrent_diskname;
+          Some new_torrent_diskname
         with _ ->
-          (lprintf_nl "Failed to rename %s to %s"
-              torrent_diskname new_torrent_diskname));
+          (lprintf_nl "Failed to rename %s to %s" torrent_diskname new_torrent_diskname);
+           None
+          )
   | e ->
-      lprintf_nl "Cannot share torrent %s for %s"
-        torrent_diskname (Printexc2.to_string e)
+      lprintf_nl "Cannot share torrent %s for %s" torrent_diskname (Printexc2.to_string e);
+      None
 
 (* Call one minute after start, and then every 20 minutes. Should
   automatically contact the tracker. *)
 let share_files _ =
   if !verbose_share then lprintf_nl "share_files";
   List.iter (fun file ->
-    try_share_file (Filename.concat seeded_directory file)
+    ignore (try_share_file (Filename.concat seeded_directory file))
   ) (Unix2.list_directory seeded_directory);
   let shared_files_copy = !current_files in
  (* if the torrent is gone while the file is still shared, remove the share *)
@@ -1029,33 +1032,64 @@ let op_client_dprint_html c o file str =
 
 let op_network_connected _ = true
 
-
-let get_default_tracker () = 
-  if !!BTTracker.default_tracker = "" then
-     Printf.sprintf "http://%s:%d/announce"
-      (Ip.to_string (CommonOptions.client_ip None))
-      !!BTTracker.tracker_port 
-   else
-     !!BTTracker.default_tracker
-
 let compute_torrent filename announce comment = 
-  let announce = if announce = "" then get_default_tracker () else announce in
+  let announce = if announce = "" then BTTracker.get_default_tracker () else announce in
   if !verbose then lprintf_nl "compute_torrent: [%s] [%s] [%s]"
    filename announce comment;
-  let basename = Filename.basename filename in
-  let torrent = Filename.concat seeded_directory
-    (Printf.sprintf "%s.torrent" basename) in
+  let basename = Printf.sprintf "%s.torrent" (Filename.basename filename) in
+  let torrent = Filename.concat seeded_directory basename in
   let is_private = 0 in
   let file_id = BTTorrent.generate_torrent announce torrent comment (Int64.of_int is_private) filename in
-  try_share_file torrent;
-  ignore (BTTracker.new_tracker file_id)
+  match try_share_file torrent with 
+  | None -> failwith "Cannot share file"
+  | Some path -> 
+    Filename.concat (Sys.getcwd ()) path,
+    try `Ok (BTTracker.track_torrent basename file_id) with exn -> `Exn (Printexc2.to_string exn)
+
+let text fmt = Printf.ksprintf (fun s -> `Text s) fmt
+let link name url = `Link (name,url)
+
+let output buf typ elements =
+  let f = match typ with
+  | HTML | XHTML | XML ->
+    begin function 
+    | `Text s -> Xml.buffer_escape buf s
+    | `Link (name,url) -> 
+        Printf.bprintf buf "<a href=\"%s\">%s</a>" 
+          (Xml.escape url) (Xml.escape (match name with "" -> url | s -> s))
+    | `Break -> Buffer.add_string buf "<br/>"
+    end
+  | TEXT | ANSI ->
+    begin function
+    | `Text s -> Buffer.add_string buf s
+    | `Link ("",url) -> Printf.bprintf buf "%s" url
+    | `Link (name,url) -> Printf.bprintf buf "%s <%s>" name url
+    | `Break -> Buffer.add_string buf "\n"
+    end
+  in
+  List.iter f elements
+
+(* dirty hack *)
+let output o l =
+  match o.conn_output with
+  | ANSI | TEXT -> output o.conn_buf o.conn_output l
+  | HTML | XHTML | XML ->
+    let buf = Buffer.create 1024 in
+    output buf o.conn_output l;
+    let s = Buffer.contents buf in
+    for i = 0 to String.length s - 1 do
+      begin match s.[i] with
+      | '<' | '>' | '\\' | '"' | '&' -> Buffer.add_char o.conn_buf '\\'
+      | _ -> () end;
+      Buffer.add_char o.conn_buf s.[i]
+    done
 
 let commands =
 
     [
     "compute_torrent", "Network/Bittorrent", Arg_multiple (fun args o ->
-      let buf = o.conn_buf in
-      try
+      output o
+      begin try
         let filename = ref "" in
         let comment = ref "" in
         (match args with
@@ -1063,62 +1097,39 @@ let commands =
         | [fname] -> filename := fname
         | _ -> raise Not_found);
 
-        compute_torrent !filename "" !comment;
-
-        if o.conn_output = HTML then
-          (* TODO: really htmlize it *)
-          Printf.bprintf buf ".torrent file generated"
-        else
-          Printf.bprintf buf ".torrent file generated\n";
-      ""
+        let (path,url) = compute_torrent !filename "" !comment in
+        [
+          text "Torrent file generated : %s" path;
+          `Break;
+          (match url with
+          | `Ok url -> link "Download" url
+          | `Exn s -> text "Not tracked : %s" s);
+          `Break
+        ]
       with 
-      | Not_found ->
-          if o.conn_output = HTML then
-            (* TODO: really htmlize it *)
-            Printf.bprintf buf "Not enough parameters"
-          else
-            Printf.bprintf buf "Not enough parameters\n";
-      ""
-      | exn ->
-        if o.conn_output = HTML then
-            (* TODO: really htmlize it *)
-            Printf.bprintf buf "Error: %s" (Printexc2.to_string exn)
-          else
-            Printf.bprintf buf "Error: %s\n" (Printexc2.to_string exn);
+      | Not_found -> [text "Not enough parameters"; `Break]
+      | exn -> [text "Error: %s" (Printexc2.to_string exn); `Break]
+      end;
       ""
     ), _s "<filename> <comment> :\tgenerate the corresponding <filename> .torrent file with <comment> in torrents/tracked/.\n\t\t\t\t\tThe file is automatically tracked, and seeded if in incoming/";
 
     "torrents", "Network/Bittorrent", Arg_none (fun o ->
-      let buf = o.conn_buf in
-      if !!BTTracker.tracker_port <> 0 then begin
-          Printf.bprintf o.conn_buf (_b ".torrent files available:\n");
+      output o 
+        begin try
+          BTTracker.check_tracker ();
           let files_tracked = Unix2.list_directory tracked_directory in
           let files_downloading = Unix2.list_directory downloads_directory in
           let files_seeded = Unix2.list_directory seeded_directory in
-          let all_torrents_files = files_tracked @ files_downloading @ files_seeded in
+          let files_old = Unix2.list_directory old_directory in
+          let all_torrents_files = files_tracked @ files_downloading @ files_seeded @ files_old in
 
-          if o.conn_output = HTML then
-            (* TODO: really htmlize it *)
-            List.iter (fun file ->
-                Printf.bprintf buf "http://%s:%d/%s "
-                  (Ip.to_string (CommonOptions.client_ip None))
-                !!BTTracker.tracker_port
-                  file
-            ) all_torrents_files
-          else
-            List.iter (fun file ->
-                Printf.bprintf buf "http://%s:%d/%s\n"
-                  (Ip.to_string (CommonOptions.client_ip None))
-                !!BTTracker.tracker_port
-                  file
-            ) all_torrents_files;
-        end
-      else
-          if o.conn_output = HTML then
-            (* TODO: really htmlize it *)
-            Printf.bprintf buf "Tracker not activated (tracker_port = 0)"
-          else
-            Printf.bprintf buf "Tracker not activated (tracker_port = 0)\n";
+          let l = List.map (fun file -> [link file (BTTracker.tracker_url file); `Break]) all_torrents_files in
+
+          (`Text (_s ".torrent files available:")) :: `Break :: List.flatten l
+        with
+          exn ->
+          [`Text (Printexc2.to_string exn); `Break]
+        end;
         _s ""
     ), _s ":\t\t\t\tprint all .torrent files on this server";
 
@@ -1297,7 +1308,7 @@ let op_gui_message s user =
       let c, pos = get_string s pos in
       let sf = CommonShared.shared_find n in
       let f = shared_fullname sf in
-      compute_torrent f a c;
+      ignore (compute_torrent f a c)
   | opcode -> failwith (Printf.sprintf "[BT] Unknown message opcode %d" opcode)
 
 let _ =

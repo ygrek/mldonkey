@@ -15,6 +15,12 @@ ChangeLog
 =========
 
 2010/04/11
+7164: BT: more user-friendly tracker (ygrek)
+- `compute_torrent` shows full path and url to generated torrent file
+- `torrents` output htmlized
+- corrected server header
+- improved comments for tracker options
+- search torrents in old directory too
 7163: Fix not sending UDP packets when max_hard_upload_rate = 0 (ygrek)
 
 2010/04/10

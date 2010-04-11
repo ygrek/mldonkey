@@ -251,7 +251,7 @@ let error_page code from_ip from_port my_ip my_port reason =
     Autoconf.current_version my_ip my_port
   in
   Printf.sprintf
-"HTTP/1.1 %s %s\nMLDonkey/%s\nConnection: close
+"HTTP/1.1 %s %s\nServer: MLDonkey/%s\nConnection: close
 Content-Type: text/html; charset=iso-8859-1\nContent-length: %d\r\n"
     code error_text Autoconf.current_version (String.length reject_message), reject_message,
   Printf.sprintf "%s %s" code error_text

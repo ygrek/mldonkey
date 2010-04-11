@@ -97,7 +97,7 @@ let ntracked_files = ref 0
 
 let tracker_port = define_option bittorrent_section ["tracker_port"]
   ~restart: true
-  "The port to bind the tracker to"
+  "The port to bind the tracker to (0 to disable)"
     port_option 6881
 
 let max_tracked_files = define_option bittorrent_section ["max_tracked_files"]
@@ -117,11 +117,11 @@ let tracker_use_key = define_option bittorrent_section ["tracker_use_key"]
     bool_option true
 
 let default_tracker = define_option bittorrent_section ["default_tracker"]
-    "Let you define a default tracker for creating torrents (leave empty for mlnet tracker)"
+    "Default tracker for creating torrents (leave empty for builtin tracker)"
     string_option ""
 
 let default_comment = define_option bittorrent_section ["default_comment"]
-    "Let you define a default comment for creating torrents"
+    "Default comment for creating torrents"
     string_option ""
 
 
@@ -165,7 +165,30 @@ let new_tracker info_hash =
     Hashtbl.add tracked_files info_hash tracker;
     tracker
   else
-    failwith "[BT] Too many tracked files"
+    failwith (Printf.sprintf "[BT] Too many tracked files (%d)" !ntracked_files)
+
+let is_tracker_running () = !tracker_sock <> None
+
+let check_tracker () =
+  if not (is_tracker_running ()) then
+    failwith "Tracker is not running (either BT-tracker_port is 0 or stopped)"
+
+let tracker_url suffix =
+  check_tracker ();
+  Printf.sprintf "http://%s:%d/%s"
+    (Ip.to_string (CommonOptions.client_ip None))
+    !!tracker_port
+    (Url.encode suffix)
+
+let track_torrent filename info_hash =
+  check_tracker ();
+  if not (Hashtbl.mem tracked_files info_hash) then ignore (new_tracker info_hash);
+  tracker_url filename
+
+let get_default_tracker () =
+  match !!default_tracker with
+  | "" -> tracker_url "announce"
+  | s -> s
 
 let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left peer_event numwant no_peer_id  =
 
@@ -233,8 +256,10 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
        In fact, we should only return peers if this peer is behind a firewall.
      *)
 
-        if tracker.tracker_message_time < last_time () then
-
+        (* use cache *)
+        if tracker.tracker_message_time >= last_time () then
+          tracker.tracker_message_content
+        else
           let list = ref [] in
           lprintf_nl "Tracker collecting peers:";
           (try
@@ -258,8 +283,6 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
                 (Ip.to_string p.peer_ip) p.peer_port;
               Fifo.put tracker.tracker_peers p
           ) !list;
-
-(* reply by sending [head] *)
 
           let message =
             Dictionary [
@@ -294,15 +317,13 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
               tracker.tracker_message_content <- m;
             end;
           m
-        else
-          tracker.tracker_message_content
   in
 
   r.reply_content <- message
 
 let http_handler t r =
   try
-    add_reply_header r "Server" "MLdonkey";
+    add_reply_header r "Server" (Printf.sprintf "MLdonkey/%s" Autoconf.current_version);
     add_reply_header r "Connection" "close";
 
     match r.get_url.Url.short_file with
@@ -422,6 +443,7 @@ let http_handler t r =
     | filename ->
         if !verbose_msg_servers then
           lprintf_nl "Tracker received a request for .torrent: [%s]" filename;
+        let filename = Url.decode filename in
         if (Filename2.last_extension filename <> ".torrent") then
           failwith "Incorrect filename 1";
         for i = 1 to String.length filename - 1 do
@@ -444,6 +466,9 @@ in sub-directories in former versions. *)
 (*          lprintf " xx [%s]/[%s]\n" file_name filename; *)
           if Sys.file_exists file_name then file_name else
           let file_name = Filename.concat seeded_directory filename in
+(*          lprintf " xx [%s]/[%s]\n" file_name filename; *)
+          if Sys.file_exists file_name then file_name else
+          let file_name = Filename.concat old_directory filename in
 (*          lprintf " xx [%s]/[%s]\n" file_name filename; *)
           if Sys.file_exists file_name then file_name else
             failwith
