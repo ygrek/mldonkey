@@ -461,7 +461,7 @@ let new_bandwidth_controler tcp_bc =
 (*    udp_bc.remaining_bytes <- udp_bc.remaining_bytes + n; *)
     if total <> 0 && udp_bc.remaining_bytes > total then
       udp_bc.remaining_bytes <- total;
-    udp_bc.allow_io := udp_bc.remaining_bytes > 0;
+    udp_bc.allow_io := total = 0 || udp_bc.remaining_bytes > 0;
     if !verbose_bandwidth > 0 then
       lprintf_nl "udp_bc count:%d total_bytes:%d remaining_bytes:%d" 
       udp_bc.count udp_bc.total_bytes udp_bc.remaining_bytes;
