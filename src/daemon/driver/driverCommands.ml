@@ -2938,6 +2938,20 @@ let _ =
 (*************************************************************************)
 
 let _ =
+  let resume_alias s = s, Arg_multiple (fun args o ->
+        if args = ["all"] && user2_is_admin o.conn_user.ui_user then
+          List.iter (fun file ->
+              file_resume file (admin_user ())
+          ) !!files
+        else
+          List.iter (fun num ->
+              let num = int_of_string num in
+              List.iter (fun file ->
+                  if (as_file_impl file).impl_file_num = num then
+                      file_resume file o.conn_user.ui_user
+              ) !!files) args; ""
+    ), "<num|all> :\t\t\tresume a paused download (use arg 'all' for all files)" 
+  in
   register_commands "Driver/Downloads"
     [
 
@@ -3104,19 +3118,9 @@ let _ =
               ) !!files) args; ""
     ), "<num|all> :\t\t\tpause a download (use arg 'all' for all files)";
 
-    "resume", Arg_multiple (fun args o ->
-        if args = ["all"] && user2_is_admin o.conn_user.ui_user then
-          List.iter (fun file ->
-              file_resume file (admin_user ())
-          ) !!files
-        else
-          List.iter (fun num ->
-              let num = int_of_string num in
-              List.iter (fun file ->
-                  if (as_file_impl file).impl_file_num = num then
-                      file_resume file o.conn_user.ui_user
-              ) !!files) args; ""
-    ), "<num|all> :\t\t\tresume a paused download (use arg 'all' for all files)";
+    resume_alias "resume";
+    resume_alias "unpause";
+    resume_alias "continue";
 
     "release", Arg_one (fun arg o ->
 	let num = int_of_string arg in
