@@ -770,7 +770,7 @@ let read_theme_page page =
     s)
 
 let http_add_gen_header r =
-  add_reply_header r "Server" "MLdonkey";
+  add_reply_header r "Server" ("MLdonkey/"^Autoconf.current_version);
   add_reply_header r "Connection" "close"
 
 let add_gzip_headers r =
@@ -796,6 +796,7 @@ let http_add_text_header r ext =
 let http_add_bin_info_header r clen =
   add_reply_header r "Accept-Ranges" "bytes";
   add_reply_header r "Content-Length" (Printf.sprintf "%d" clen)
+  (* FIXME Content-Length is duplicated *)
 
 let http_add_bin_header r ext clen =
   http_file_type := ext_to_file_type ext;
@@ -823,6 +824,8 @@ let http_send_bin r buf filename =
   in
   let ext = extension_to_file_ext (Filename2.last_extension2 filename) in
   http_add_bin_header r ext (String.length file_to_send);
+  add_reply_header r "Cache-Control" "no-cache";
+  add_reply_header r "Pragma" "no-cache";
   Buffer.add_string buf file_to_send
 
 let http_send_bin_pictures r buf filename =

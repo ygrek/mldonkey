@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/04/25
+7169: Equal scales for graphical up/down stats (ygrek)
 7167: Improve add_mail_brackets option description,
       change default according to RFC (ygrek)
 
