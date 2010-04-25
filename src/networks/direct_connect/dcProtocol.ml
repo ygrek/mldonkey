@@ -870,8 +870,8 @@ module Supports = struct (* Extended DC++ *)
         getcid = (support_exists l x_getcid);
       } )
       
-  let print t = lprintf_nl "$Supports %s" (create_supports_string t) 
-  let write buf t = Printf.bprintf buf "$Supports %s" (create_supports_string t) 
+  let print t = lprintf_nl "$Supports%s" (create_supports_string t) 
+  let write buf t = Printf.bprintf buf "$Supports%s" (create_supports_string t) 
   end
   
 module To = struct
