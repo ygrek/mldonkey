@@ -1158,8 +1158,8 @@ let mail = define_option current_section ["mail"]
     string_option ""
 
 let add_mail_brackets = define_option current_section ["add_mail_brackets"]
-  "Does your mail-server need <...> around addresses"
-    bool_option false
+  "Set to false if your mail server cannot handle angle-brackets around addresses (RFC 5321)"
+    bool_option true
 
 let filename_in_subject = define_option current_section ["filename_in_subject"]
   "Send filename in mail subject"

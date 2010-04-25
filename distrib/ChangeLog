@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/04/25
+7167: Improve add_mail_brackets option description,
+      change default according to RFC (ygrek)
+
 2010/04/11
 7164: BT: more user-friendly tracker (ygrek)
 - `compute_torrent` shows full path and url to generated torrent file
