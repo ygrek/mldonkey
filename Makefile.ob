@@ -1,0 +1,9 @@
+
+.PHONY: obyte onative
+
+obyte:
+	ocamlbuild -j 0 src/mlnet.byte
+	
+onative:
+	ocamlbuild -j 0 src/mlnet.native
+

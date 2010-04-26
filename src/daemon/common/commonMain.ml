@@ -20,7 +20,7 @@
 open Printf2
 open CommonGlobals
   
-let _ =
+let loop () =
   List.iter (fun f ->
       try
         f ()

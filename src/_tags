@@ -1,0 +1,7 @@
+true: debug, annot
+"daemon/driver" or "utils/lib" or "utils/cdk" or "utils/net" or "daemon/common": include
+"utils/mp3tagui" or "utils/ocamlrss" or "utils/xml-light": include
+"config/unix": include
+"networks/bittorrent" or "networks/direct_connect": include
+<*.{byte,native}>: use_str, use_unix, use_bigarray, use_os
+<mlnet.{byte,native}>: use_bittorrent, use_direct_connect
