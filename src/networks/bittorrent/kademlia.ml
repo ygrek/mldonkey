@@ -80,6 +80,29 @@ let middle' =
 let last =
   H.direct_of_string (String.make 20 (Char.chr 0xFF))
 
+open Big_int
+
+let big_int_of_hash h =
+  let s = H.direct_to_string h in
+  let n = ref zero_big_int in
+  for i = 0 to pred (String.length s) do
+    n := add_int_big_int (Char.code s.[i]) (mult_int_big_int 256 !n)
+  done;
+  !n
+
+let () =
+  let p n = pr "%s" (string_of_big_int n) in
+  let n = big_int_of_hash middle in
+  let n' = div_big_int (add_big_int (big_int_of_hash last) (big_int_of_hash H.null)) (big_int_of_int 2) in
+  p n;
+  p n';
+  assert (compare_big_int (big_int_of_hash H.null) zero_big_int = 0);
+  assert (compare_big_int n n' = 0)
+
+let split lo hi =
+  assert (cmp lo hi = LT);
+  ()
+
 let () =
   print_endline (show_id H.null);
   print_endline (show_id middle);
