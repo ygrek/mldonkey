@@ -87,6 +87,7 @@ module Empty2 = functor(M: sig val msg : string end) ->  struct
     end
 
 (* DC uses 1-byte encodings *)
+(* Probably better convert to/from utf at transport layer!? *)
 
 let utf_to_dc s =
   (* FIXME need hub-specific encodings *)
@@ -397,22 +398,20 @@ module Message = struct
             let from = String2.replace from char60 empty_string in
             let from = String2.replace from char62 empty_string in
             let m = dc_decode_chat m in
-            let m = dc_to_utf m in
-            { from = from; message = m }
+            { from = dc_to_utf from; message = dc_to_utf m }
         | _ -> raise Not_found )
       end else begin
         let m = dc_decode_chat m in
-        let m = dc_to_utf m in
-        { from = "-"; message = m } 
+        { from = "-"; message = dc_to_utf m } 
       end
     end
   let print t = lprintf_nl "<Message> (%s) (%s)" t.from t.message
   let write buf t =
     let m = utf_to_dc t.message in
     let m = dc_encode_chat m in
-    Printf.bprintf buf "<%s> %s" t.from m
+    Printf.bprintf buf "<%s> %s" (utf_to_dc t.from) m
 end
-      
+
 module MyINFO = struct
   let return_no_tags dest nick tag email share = 
     { (* basic info record to return as result... *)
