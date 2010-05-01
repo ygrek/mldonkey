@@ -483,9 +483,9 @@ DIRECT_CONNECT_SRCS= \
   $(SRC_DIRECTCONNECT)/che3.ml \
   $(SRC_DIRECTCONNECT)/dcGlobals.ml \
   $(SRC_DIRECTCONNECT)/dcComplexOptions.ml \
+  $(SRC_DIRECTCONNECT)/dcProtocol.ml \
   $(SRC_DIRECTCONNECT)/dcShared.ml \
   $(SRC_DIRECTCONNECT)/dcKey.ml \
-  $(SRC_DIRECTCONNECT)/dcProtocol.ml \
   $(SRC_DIRECTCONNECT)/dcClients.ml \
   $(SRC_DIRECTCONNECT)/dcServers.ml \
   $(SRC_DIRECTCONNECT)/dcInteractive.ml \
