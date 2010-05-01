@@ -23,6 +23,7 @@ open CommonGlobals
 open DcTypes
 open DcGlobals
 open TcpBufferedSocket
+open Options
 (*open AnyEndian*)
 
 let log_prefix = "[dcPro]"
@@ -90,10 +91,16 @@ module Empty2 = functor(M: sig val msg : string end) ->  struct
 let utf_to_dc s =
   (* FIXME need hub-specific encodings *)
 (*   Charset.convert Charset.UTF_8 Charset.CP1252 s *)
-  Charset.Locale.to_locale s
+  try
+    Charset.convert Charset.UTF_8 (Charset.charset_from_string !!DcOptions.default_encoding) s
+  with
+    _ -> Charset.Locale.to_locale s
 
 let dc_to_utf s =
-  Charset.Locale.to_utf8 s
+  try
+    Charset.convert (Charset.charset_from_string !!DcOptions.default_encoding) Charset.UTF_8 s
+  with
+    _ -> Charset.Locale.to_utf8 s
 
 module SimpleCmd(M: sig val msg : string end) = struct
   type t = string
@@ -472,6 +479,7 @@ module MyINFO = struct
                   let l = String.length str in
                   if (l > 2) then    
                     (match str.[0] with
+                    | 'v' (* GreylinkDC++ *)
                     | 'V' -> (try version := String2.after str 2 with _ -> () ) 
                     | 'M' -> if (str.[2] = 'P') then mode := 'P'
                     | 'H' ->   

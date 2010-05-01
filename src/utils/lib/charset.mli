@@ -138,6 +138,11 @@ type charset =
 | I_869 | CP_GR | CP869 | IBM869 | CSIBM869
 | CP1125
 
+(** @return ASCII if nothing matches *)
+val charset_from_string : string -> charset
+
+val charset_to_string : charset -> string
+
 (** [convert ~from_charset ~to_charset s]
     @raise CharsetError if the string s is not entirely convertible. *)
 val convert : from_charset : charset -> to_charset : charset -> string -> string

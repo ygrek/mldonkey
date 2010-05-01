@@ -47,6 +47,10 @@ let hubs_passwords = define_option directconnect_section ["hubs_passwords"]
     (list_option (tuple3_option (string_option, string_option, string_option)))
     []
 
+let default_encoding = define_option directconnect_section ["default_encoding"]
+    "Default encoding to use for communications with hubs (CP1251,UTF-8,ISO-8859-1,etc)"
+    string_option "CP1252"
+
 let search_timeout = define_option directconnect_section
     ["search_timeout"]
     "The time a search is active"
