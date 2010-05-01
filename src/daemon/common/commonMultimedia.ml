@@ -626,7 +626,7 @@ let search_info_mp3 filename =
 let get_info file =
   let file =
     if Autoconf.windows then
-      Charset.to_locale (file)
+      Charset.Locale.to_locale (file)
     else
       file
   in

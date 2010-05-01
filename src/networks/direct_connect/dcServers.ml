@@ -171,7 +171,8 @@ let client_to_server s m sock =
   (match m with
   
   | BadPassReq ->
-      if !verbose_msg_servers then lprintf_nl "Bad password for server: %s" (Ip.string_of_addr s.server_addr);
+      if !verbose_msg_servers then 
+        lprintf_nl "Bad password for %S on %s" s.server_last_nick (Ip.string_of_addr s.server_addr);
       s.server_hub_state <- User
 
   | ConnectToMeReq t ->  (* client is unknown at this moment until $MyNick is received *)
@@ -189,7 +190,8 @@ let client_to_server s m sock =
           if !verbose_unexpected_messages then lprintf_nl "%s in ConnectToMe sending" (Printexc2.to_string e) )
   
   | ForceMoveReq t ->
-       disconnect_server s (Closed_for_error "Forcemove command received");
+      lprintf_nl "Received ForceMove(%S) from %s" t (Ip.string_of_addr s.server_addr);
+      disconnect_server s (Closed_for_error "Forcemove command received")
       
   | GetPassReq -> (* After password request from hub ... *)
       let addr = Ip.string_of_addr s.server_addr in
@@ -545,10 +547,10 @@ let make_hublist_from_file f =
             end;
             incr counter;
             let r = {
-              dc_name = Charset.to_utf8 server_name;  
+              dc_name = Charset.Locale.to_utf8 server_name;
               dc_ip = Ip.addr_of_string !addr;
               dc_port = !port;
-              dc_info = Charset.to_utf8 server_info;
+              dc_info = Charset.Locale.to_utf8 server_info;
               dc_nusers = !nusers;
             } in
             hublist := r :: !hublist
@@ -575,9 +577,9 @@ let parse_address s =
 
 let make_hublist_from_xml x =
   let make_hub x =
-    let name = Charset.to_utf8 (Xml.attrib x "Name") in
+    let name = Charset.Locale.to_utf8 (Xml.attrib x "Name") in
     let (address,port) = parse_address (Xml.attrib x "Address") in
-    let info = Charset.to_utf8 (Xml.attrib x "Description") in
+    let info = Charset.Locale.to_utf8 (Xml.attrib x "Description") in
     let nusers = int_of_string (Xml.attrib x "Users") in
     {
       dc_name = name;

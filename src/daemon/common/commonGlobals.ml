@@ -111,7 +111,7 @@ let find_other_port = ref false
 let shorten str limit =
   (* TODO: we should change all strings to utf8 when
      they come into the core instead. *)
-  let name = Charset.to_utf8 (* String.escaped *) str in
+  let name = Charset.Locale.to_utf8 (* String.escaped *) str in
   let slen = String.length str in
   let len =
     try

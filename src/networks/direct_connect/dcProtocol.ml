@@ -85,20 +85,23 @@ module Empty2 = functor(M: sig val msg : string end) ->  struct
       let write buf t = Printf.bprintf buf "$%s" M.msg
     end
 
-module SimpleNick = functor(M: sig val msg : string end) -> struct
+(* DC uses 1-byte encodings *)
+
+let utf_to_dc s =
+  (* FIXME need hub-specific encodings *)
+(*   Charset.convert Charset.UTF_8 Charset.CP1252 s *)
+  Charset.Locale.to_locale s
+
+let dc_to_utf s =
+  Charset.Locale.to_utf8 s
+
+module SimpleCmd(M: sig val msg : string end) = struct
   type t = string
-  let parse nick = Charset.to_utf8 nick 
+  let parse nick = dc_to_utf nick
   let print t = lprintf_nl "%s (%s)" M.msg t
-  let write buf t = Printf.bprintf buf " %s" (Charset.convert Charset.UTF_8 Charset.CP1252 t)
+  let write buf t = Printf.bprintf buf "$%s %s" M.msg (utf_to_dc t)
 end
 
-module SimpleNick2 = functor(M: sig val msg : string end) -> struct
-    type t = string
-  let parse nick = Charset.to_utf8 nick 
-  let print t = lprintf_nl "%s (%s)" M.msg t
-  let write buf t = Printf.bprintf buf "$%s %s" M.msg (Charset.convert Charset.UTF_8 Charset.CP1252 t)
-end
-      
 (*module NickAndAddr (M: sig val msg : string end) = struct
   type t = {
     nick : string;
@@ -115,12 +118,12 @@ end
   let print t = lprintf_nl "%s %s %s:%d" M.msg t.nick (Ip.to_string t.ip) t.port
   let write buf t = Printf.bprintf  buf "$%s %s %s:%d" M.msg t.nick (Ip.to_string t.ip) t.port;
 end *)
-      
+
 module SimpleNickList = functor (M: sig val cmd : string end) -> struct
   type t = string list
   let parse t =
     let list = String2.split_simplify t '$' in
-    let list = List.rev_map (fun nick -> Charset.to_utf8 nick) list in
+    let list = List.rev_map (fun nick -> dc_to_utf nick) list in
     list
       let print t = 
     lprintf "%s list ( " M.cmd;
@@ -128,10 +131,9 @@ module SimpleNickList = functor (M: sig val cmd : string end) -> struct
     lprintf_nl " )"
       let write buf t = 
     Buffer.add_char buf ' ';
-    List.iter (fun nick -> Printf.bprintf buf "%s %s$$" M.cmd (Charset.convert Charset.UTF_8 Charset.CP1252 nick)) t
+    List.iter (fun nick -> Printf.bprintf buf "%s %s$$" M.cmd (utf_to_dc nick)) t
   end
 
-      
 (* Command modules *)
 
 module Adc = functor (A: sig val command : string end) -> struct
@@ -270,13 +272,13 @@ module ConnectToMe = struct
       | _ -> raise Not_found  
     in 
     let (ip,port) = String2.cut_at senderip ':' in {
-      nick = Charset.to_utf8 snick;
+      nick = dc_to_utf snick;
       ip = Ip.of_string ip;
       port = int_of_string port;
     }
   let print t = lprintf_nl "$ConnectToMe %s %s:%d" t.nick (Ip.to_string t.ip) t.port
     let write buf t = 
-     Printf.bprintf buf " %s %s:%d" (Charset.convert Charset.UTF_8 Charset.CP1252 t.nick) (Ip.to_string t.ip) t.port;
+     Printf.bprintf buf " %s %s:%d" (utf_to_dc t.nick) (Ip.to_string t.ip) t.port;
      if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf);
   end
   
@@ -311,43 +313,37 @@ module Direction = struct
          | Upload _ -> txt_upload)
         t.level
 end
-    
+
 module FileLength = struct
   type t = int64
   let parse s = Int64.of_string s
-  let print t = lprintf_nl "FileLength %Ld" t      
+  let print t = lprintf_nl "FileLength %Ld" t
   let write buf t = Printf.bprintf buf "$FileLength %Ld" t
   end
-  
-module ForceMove = SimpleNick(struct let msg = "ForceMove" end)
+
+module ForceMove = SimpleCmd(struct let msg = "ForceMove" end)
 
 module Get = struct
-    type t = {
+  type t = {
     filename : string;
-        pos : int64;
-      }
-    let parse s = 
-      let len = String.length s in
+    pos : int64;
+    }
+  let parse s = 
+    let len = String.length s in
     let pos = String.rindex s '$' in {
-      filename = Charset.to_utf8 (String.sub s 0 pos);
-        pos = Int64.of_string (String.sub s (pos+1) (len-pos-1));
-      }
+      filename = dc_to_utf (String.sub s 0 pos);
+      pos = Int64.of_string (String.sub s (pos+1) (len-pos-1));
+    }
   let print t = lprintf_nl "Get [%s] %Ld" t.filename t.pos
-    let write buf t = 
-    Printf.bprintf buf "$Get %s$%Ld" (Charset.convert Charset.UTF_8 Charset.CP1252 t.filename) t.pos;
+  let write buf t = 
+    Printf.bprintf buf "$Get %s$%Ld" (utf_to_dc t.filename) t.pos;
     if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf)
   end
-  
+
 module GetListLen = Empty2(struct let msg = "GetListLen" end)
-      
-module Hello = SimpleNick (struct let msg = "Hello" end)
-    
-module HubName = struct
-  type t =  string
-  let parse name = Charset.to_utf8 name 
-  let print t = lprintf_nl "Hub name (%s)" t
-  let write buf t = Printf.bprintf buf " %s" (Charset.convert Charset.UTF_8 Charset.CP1252 t)
-  end
+
+module Hello = SimpleCmd(struct let msg = "Hello" end)
+module HubName = SimpleCmd(struct let msg = "HubName" end)
 
 module Key = struct
     type t = {
@@ -394,18 +390,18 @@ module Message = struct
             let from = String2.replace from char60 empty_string in
             let from = String2.replace from char62 empty_string in
             let m = dc_decode_chat m in
-            let m = Charset.to_utf8 m in
+            let m = dc_to_utf m in
             { from = from; message = m }
         | _ -> raise Not_found )
       end else begin
         let m = dc_decode_chat m in
-        let m = Charset.to_utf8 m in
+        let m = dc_to_utf m in
         { from = "-"; message = m } 
       end
     end
   let print t = lprintf_nl "<Message> (%s) (%s)" t.from t.message
   let write buf t =
-    let m = Charset.convert Charset.UTF_8 Charset.CP1252 t.message in
+    let m = utf_to_dc t.message in
     let m = dc_encode_chat m in
     Printf.bprintf buf "<%s> %s" t.from m
 end
@@ -494,7 +490,7 @@ module MyINFO = struct
                 ) (String2.split tags ','); 
                 {                                   (* pass this info record as result.. *) 
                   dest = dest;
-                  nick = Charset.to_utf8 nick;
+                  nick = dc_to_utf nick;
                   description = tagline;
                   client_brand = client;
                   version = !version;
@@ -527,14 +523,11 @@ module MyINFO = struct
       (char_of_int t.flag) t.email t.sharesize
 end
 
-module MyNick = SimpleNick2 (struct let msg = "MyNick" end)
+module MyNick = SimpleCmd(struct let msg = "MyNick" end)
+module Quit = SimpleCmd(struct let msg = "Quit" end)
+module NickList = SimpleNickList(struct let cmd = "NickList" end)
+module OpList = SimpleNickList(struct let cmd = "OpList" end)
 
-module NickList = SimpleNickList (struct let cmd = "NickList" end)
-    
-module OpList = SimpleNickList (struct let cmd = "OpList" end)
-
-module Quit = SimpleNick(struct let msg = "Quit" end)
-    
 module RevConnectToMe = struct
   type t = {
     dest : string;
@@ -542,12 +535,12 @@ module RevConnectToMe = struct
   }
   let parse s = 
     let (orig , dest) = String2.cut_at s ' ' in {
-      dest = Charset.to_utf8 dest;
-      orig = Charset.to_utf8 orig;
+      dest = dc_to_utf dest;
+      orig = dc_to_utf orig;
     }
   let print t = lprintf_nl "$RevConnectToMe %s %s" t.orig t.dest
-  let write buf t = Printf.bprintf buf "$RevConnectToMe %s %s" 
-    (Charset.convert Charset.UTF_8 Charset.CP1252 t.orig) (Charset.convert Charset.UTF_8 Charset.CP1252 t.dest);
+  let write buf t = 
+    Printf.bprintf buf "$RevConnectToMe %s %s" (utf_to_dc t.orig) (utf_to_dc t.dest);
     if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf)
   end
 
@@ -603,7 +596,7 @@ module Search = struct
       let passive , nick , ip , port =
         (match String2.splitn orig ':' 1 with 
         | ["Hub" ; nick] ->
-            true, Charset.to_utf8 nick, empty_string, empty_string
+            true, dc_to_utf nick, empty_string, empty_string
         | [ip ; port] -> 
             false, empty_string, ip, port
         | _ -> raise Not_found )
@@ -620,8 +613,8 @@ module Search = struct
               String.lowercase !s 
             end
           in 
-          let words = Charset.to_utf8 words in 
-            let size = 
+          let words = dc_to_utf words in 
+          let size = 
             (match has_size, size_kind with
             | "T", "T" -> AtMost (Int64.of_float (float_of_string size))
               |  "T", "F" -> AtLeast (Int64.of_float (float_of_string size))
@@ -631,7 +624,7 @@ module Search = struct
             nick = nick;
             ip = ip;
             port = port;
-              sizelimit = size;
+            sizelimit = size;
             filetype = filetype;
             words_or_tth = words;
             } 
@@ -639,16 +632,15 @@ module Search = struct
     with _ ->
       if !verbose_msg_clients then lprintf_nl "Search parsing error: (%s)" s;
       raise Not_found )
-      
+
   let print t = lprintf_nl "$Search %s %s %d %s" t.nick t.ip t.filetype t.words_or_tth 
-    let write buf t = 
+  let write buf t = 
       Printf.bprintf buf " %s %c?%c?%s?%d?%s"
-      (if t.passive then "Hub:" ^ (Charset.convert Charset.UTF_8 Charset.CP1252 t.nick) else
-       t.ip ^ ":" ^ t.port )  
-        (if t.sizelimit = NoLimit then 'F' else 'T')
+      (if t.passive then "Hub:" ^ (utf_to_dc t.nick) else t.ip ^ ":" ^ t.port )
+      (if t.sizelimit = NoLimit then 'F' else 'T')
       (match t.sizelimit with
        | AtMost _ -> 'T'
-       | _ -> 'F' )  
+       | _ -> 'F' )
       (match t.sizelimit with
        | AtMost n -> Int64.to_string n
         | AtLeast n -> Int64.to_string n
@@ -660,14 +652,14 @@ module Search = struct
            let s = ref (String.copy t.words_or_tth) in    (* otherwise send search words *) 
            String2.replace_char !s char32 '$';
            !s
-  end
+         end
        in
-       Charset.convert Charset.UTF_8 Charset.CP1252 words );
+       utf_to_dc words);
     (*if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf)*)
   end
 
 module Send = Empty2 (struct let msg = "Send" end)
-  
+
 module SR = struct
     type t = {
         owner : string;
@@ -704,8 +696,8 @@ module SR = struct
             else begin   
               (try
                 let pos = String.rindex filename_with_dir char92 in
-                Charset.to_utf8 (String.sub filename_with_dir 0 pos) ,
-                Charset.to_utf8 (String2.after filename_with_dir (pos+1))
+                dc_to_utf (String.sub filename_with_dir 0 pos) ,
+                dc_to_utf (String2.after filename_with_dir (pos+1))
                with _ -> "" , filename_with_dir )
             end
           in
@@ -716,7 +708,7 @@ module SR = struct
                   let get_server_and_tth str =           (* function for separation of TTH and servername     *)
                     (match String2.splitn str ':' 1 with (* the <server_name> is replaced with TTH:<tth_hash> *)
                     | ["TTH" ; tiger_root] -> tiger_root, "" 
-                    | [server_name] -> "", (Charset.to_utf8 server_name)
+                    | [server_name] -> "", (dc_to_utf server_name)
                     | _ -> "","" )
                   in
                   let server_name, tth, ip, port =
@@ -739,7 +731,7 @@ module SR = struct
                       server_name, tth, "", "" )
       in
                               {
-                    owner = Charset.to_utf8 owner;
+                    owner = dc_to_utf owner;
                     directory = directory;
                                 filename = filename;
                     filesize = ( try Int64.of_string size with _ -> Int64.of_int 0 );
@@ -763,13 +755,13 @@ module SR = struct
       (* opendchub-0.6.7/src/commands.c: * $SR fromnick filename\5filesize openslots/totalslots\5hubname (hubip:hubport)\5tonick| */ *)
     let write buf t = 
     Printf.bprintf buf " %s %s\\%s%c%s %d/%d%cTTH:%s (%s:%s)" 
-      (Charset.convert Charset.UTF_8 Charset.CP1252 t.owner)
-      (Charset.convert Charset.UTF_8 Charset.CP1252 t.directory)
-      (Charset.convert Charset.UTF_8 Charset.CP1252 t.filename) char5 (Int64.to_string t.filesize)
+      (utf_to_dc t.owner)
+      (utf_to_dc t.directory)
+      (utf_to_dc t.filename) char5 (Int64.to_string t.filesize)
       t.open_slots t.all_slots char5 t.tth t.server_ip t.server_port;
     (match t.to_nick with
     | None -> ()
-    | Some nick -> Printf.bprintf buf "%c%s" char5 (Charset.convert Charset.UTF_8 Charset.CP1252 nick) );
+    | Some nick -> Printf.bprintf buf "%c%s" char5 (utf_to_dc nick) );
     (*if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf)*)
 end
 
@@ -891,19 +883,19 @@ module To = struct
             let m = dc_decode_chat message in
             m
           in {
-            dest = Charset.to_utf8 dest;
-            from = Charset.to_utf8 from;
-            message = Charset.to_utf8 m;
+            dest = dc_to_utf dest;
+            from = dc_to_utf from;
+            message = dc_to_utf m;
                     }
       | _ -> raise Not_found )
               end
   let print t = lprintf_nl "$To (%s) (%s) (%s)" t.dest t.from t.message
     let write buf t = 
     let m = dc_encode_chat t.message in
-    let from = Charset.convert Charset.UTF_8 Charset.CP1252 t.from in
+    let from = utf_to_dc t.from in
     Printf.bprintf buf " %s From: %s $<%s> %s" 
-      (Charset.convert Charset.UTF_8 Charset.CP1252 t.dest) from from 
-      (Charset.convert Charset.UTF_8 Charset.CP1252 m)
+      (utf_to_dc t.dest) from from 
+      (utf_to_dc m)
   end
 
 module UGetBlock = struct
@@ -915,10 +907,7 @@ module UGetBlock = struct
     let parse s = 
     (match String2.splitn s ' ' 2 with
     | [pos; bytes; filename ] ->
-        let filename =
-          if Charset.is_utf8 filename then filename
-          else Charset.to_utf8 filename 
-        in
+        let filename = dc_to_utf filename in
       {
           ufilename = filename;
           ubytes = Int64.of_string bytes;
@@ -961,9 +950,9 @@ type t =
   | ErrorReq of string
   | FailedReq of string
   | FileLengthReq of FileLength.t
-| ForceMoveReq of ForceMove.t
+  | ForceMoveReq of ForceMove.t
   | GetListLenReq
-| GetNickListReq
+  | GetNickListReq
   | GetPassReq
   | GetReq of Get.t
   | HelloReq of Hello.t
@@ -980,12 +969,12 @@ type t =
   | MyInfoReq of DcTypes.dc_myinfo
   | MyNickReq of MyNick.t
   | MyPassReq of string
-| NickListReq of NickList.t
-| OpListReq of OpList.t
+  | NickListReq of NickList.t
+  | OpListReq of OpList.t
   | QuitReq of Quit.t
-| RevConnectToMeReq of RevConnectToMe.t
+  | RevConnectToMeReq of RevConnectToMe.t
   | SearchReq of Search.t
-| SendReq
+  | SendReq
   | SRReq of SR.t
   | SupportsReq of DcTypes.dc_supports
   | ToReq of To.t
@@ -1021,18 +1010,18 @@ let dc_parse source s =
           | "$GetNickList" -> GetNickListReq
           | "$Hello" -> HelloReq (Hello.parse args)
           | "$HubName" -> HubNameReq (HubName.parse args)
-          | "$HubTopic" -> HubTopicReq (Charset.to_utf8 args)
-            | "$Key" -> KeyReq (Key.parse args)
+          | "$HubTopic" -> HubTopicReq (dc_to_utf args)
+          | "$Key" -> KeyReq (Key.parse args)
           | "$Lock" -> LockReq (Lock.parse args)
           | "$LogedIn" -> LogedInReq args
           (*| "$MultiConnectToMe" -> MultiConnectToMeReq (MultiConnectToMe.parse args)*)
           (*| "$MultiSearch" -> MultiSearchReq (Search.parse args)*)
           | "$MyINFO" -> MyInfoReq (MyINFO.parse args)
-            | "$MyNick" -> MyNickReq (MyNick.parse args)
-            | "$NickList" -> NickListReq (NickList.parse args)
-            | "$OpList" -> OpListReq (OpList.parse args)
-            | "$Quit" -> QuitReq (Quit.parse args)
-            | "$RevConnectToMe" -> RevConnectToMeReq (RevConnectToMe.parse args)
+          | "$MyNick" -> MyNickReq (MyNick.parse args)
+          | "$NickList" -> NickListReq (NickList.parse args)
+          | "$OpList" -> OpListReq (OpList.parse args)
+          | "$Quit" -> QuitReq (Quit.parse args)
+          | "$RevConnectToMe" -> RevConnectToMeReq (RevConnectToMe.parse args)
           | "$Search" -> SearchReq (Search.parse args)
           | "$SR" -> SRReq (SR.parse args)
           | "$Supports" -> SupportsReq (Supports.parse source args) (* here we need the info about source type*)
@@ -1070,17 +1059,17 @@ let dc_write buf m =
   | CanceledReq -> Canceled.write buf ()
   | ConnectToMeReq t -> Buffer.add_string buf "$ConnectToMe"; ConnectToMe.write buf t
   | DirectionReq t -> Direction.write buf t
-  | ErrorReq s -> Printf.bprintf buf "$Error <%s>" (Charset.convert Charset.UTF_8 Charset.CP1252 s) 
+  | ErrorReq s -> Printf.bprintf buf "$Error <%s>" (utf_to_dc s) 
   | FailedReq s -> Printf.bprintf buf "$Failed <%s>" s (*UTF8*)
   | FileLengthReq t -> FileLength.write buf t
-  | ForceMoveReq t -> Buffer.add_string buf "$ForceMove"; ForceMove.write buf t
+  | ForceMoveReq t -> ForceMove.write buf t
   | GetListLenReq -> GetListLen.write buf ()
   | GetNickListReq -> Buffer.add_string buf "$GetNickList"
   | GetPassReq -> ()
   | GetReq t -> Get.write buf t
-  | HelloReq t -> Buffer.add_string buf "$Hello"; Hello.write buf t
+  | HelloReq t -> Hello.write buf t
   | HubIsFullReq -> ()
-  | HubNameReq t -> Buffer.add_string buf "$HubName"; HubName.write buf t
+  | HubNameReq t -> HubName.write buf t
   | HubTopicReq s -> ()
   | LockReq t -> Buffer.add_string buf "$Lock"; Lock.write buf t
   | LogedInReq s -> ()
@@ -1094,7 +1083,7 @@ let dc_write buf m =
   | MyPassReq s -> Printf.bprintf buf "$MyPass %s" s
   | NickListReq t -> NickList.write buf t
   | OpListReq t -> OpList.write buf t
-  | QuitReq t -> Buffer.add_string buf "$Quit"; Quit.write buf t
+  | QuitReq t -> Quit.write buf t
   | RevConnectToMeReq t -> RevConnectToMe.write buf t
   | SearchReq t -> Buffer.add_string buf "$Search"; Search.write buf t
   | SendReq -> Send.write buf ()
@@ -1125,7 +1114,7 @@ let dc_print m =
   | GetNickListReq -> lprintf_nl "$GetNickList"
   | GetPassReq -> lprintf_nl "$GetPass"
   | GetReq t -> Get.print t
-    | HelloReq t -> Hello.print t
+  | HelloReq t -> Hello.print t
   | HubIsFullReq -> lprintf_nl "$HubIsFull"
   | HubNameReq t -> HubName.print t
   | HubTopicReq _ -> lprintf_nl "$HubTopic"
@@ -1138,16 +1127,16 @@ let dc_print m =
   (*| MultiSearchReq t -> lprintf "MULTI "; Search.print t*)
   | MyPassReq s -> lprintf_nl "$MyPass %s" s
   | MyInfoReq t -> MyINFO.print t
-    | MyNickReq t -> MyNick.print t
-    | NickListReq t -> NickList.print t
-    | OpListReq t -> OpList.print t
+  | MyNickReq t -> MyNick.print t
+  | NickListReq t -> NickList.print t
+  | OpListReq t -> OpList.print t
   | QuitReq t -> Quit.print t
-    | RevConnectToMeReq t -> RevConnectToMe.print t
-    | SearchReq t -> Search.print t
+  | RevConnectToMeReq t -> RevConnectToMe.print t
+  | SearchReq t -> Search.print t
   | SendReq -> Send.print ()
   | SRReq t -> SR.print t
   | SupportsReq t -> Supports.print t
-    | ToReq t -> To.print t
+  | ToReq t -> To.print t
   | UGetBlockReq t -> UGetBlock.print t
   | UnknownReq s -> lprintf_nl "UnknownReq: (%s)..." s
   | UserCommandReq -> lprintf_nl "UserCommand"

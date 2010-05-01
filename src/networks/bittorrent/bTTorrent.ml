@@ -434,7 +434,7 @@ let make_torrent announce filename comment is_private =
   {
     torrent_name = basename;
     torrent_filename = "";
-    torrent_name_utf8 = Charset.to_utf8 basename;
+    torrent_name_utf8 = Charset.Locale.to_utf8 basename;
     torrent_length = length;
     torrent_announce = announce;
     torrent_announce_list = announce_list;
