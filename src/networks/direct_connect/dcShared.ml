@@ -134,7 +134,7 @@ let file_to_che3_to_string filename =
 (* Compress string to Che3 and write to file *)
 let string_to_che3_to_file str filename =
   (try
-    let s = Che3.compress (Charset.convert Charset.UTF_8 Charset.CP1252 str) in
+    let s = Che3.compress (DcProtocol.utf_to_dc str) in
     let wlen = 4096 in
     (*let str = String.create slen in*)
     let slen = String.length s in
