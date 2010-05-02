@@ -1564,7 +1564,30 @@ let _ =
     file_ops.op_file_resume <- (fun _ -> ());
     file_ops.op_file_set_format <- (fun _ _ -> ());
     file_ops.op_file_check <- (fun _ -> ());
-    file_ops.op_file_recover <- (fun _ -> ())
+    file_ops.op_file_recover <- (fun _ -> ());
+    file_ops.op_file_print <- (fun file o ->
+      let buf = o.conn_buf in
+      if use_html_mods o then 
+      begin
+        let td l =
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf l
+        in
+        td [
+          ("Directory", "sr br", "Directory");
+          ("", "sr", file.file_directory) ];
+        td [
+          ("Filename", "sr br", "Filename");
+          ("", "sr", file.file_name) ];
+        td [
+          ("Tiger tree hash", "sr", "TTH");
+          ("", "sr", file.file_unchecked_tiger_root) ];
+        td [
+          ("Automatic TTH searches performed", "sr", "Autosearches");
+          ("", "sr", string_of_int file.file_autosearch_count) ];
+      end
+      else
+        ())
     (*file_ops.op_file_print_html <- (fun _ _ -> lprintf_nl "Received (op_file_print_html)"; ());*)
     (*file_ops.op_file_print_sources_html <- (fun _ _ -> lprintf_nl "Received (op_file_print_sources_html)"; ())*)
 (*    mutable op_file_files : ('a -> 'a file_impl -> file list);
