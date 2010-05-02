@@ -166,6 +166,9 @@ val utf8_get : string -> int -> uchar
     returns the number of Unicode characters contained in s *)
 val utf8_length : string -> int
 
+(** [utf8_nth s n] @return index of [n]-th utf-8 character in [s] (must be valid utf-8 string). O(n) *)
+val utf8_nth : string -> int -> int
+
 (** [add_uchar buf u]
     add one Unicode character to the buffer. *)
 val add_uchar : Buffer.t -> uchar -> unit

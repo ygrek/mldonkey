@@ -243,9 +243,9 @@ let rec nth_aux s i n =
   if n = 0 then i else
   nth_aux s (utf8_next s i) (n - 1)
 
-let nth s n = nth_aux s 0 n
+let utf8_nth s n = nth_aux s 0 n
 
-let utf8_get s n = utf8_look s (nth s n)
+let utf8_get s n = utf8_look s (utf8_nth s n)
 
 (**********************************************************************************)
 (*                                                                                *)

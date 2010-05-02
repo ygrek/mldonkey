@@ -283,13 +283,15 @@ let find_sockets_client sock =
   | Found_client c -> Some c
   | _ -> None )
 
-(* set our nick for hubs from .ini or global *)              
+(* set our nick for hubs from .ini or global *)
 let local_login () =
   if !!login = "" then !!CommonOptions.global_login else !!login
-    
+
 (* Shorten string to some maximum length *)
 let shorten_string s length =
-  if (String.length s > length) then String.sub s 0 (length-1)
+  if length < String.length s then
+    let n = Charset.utf8_nth s length in
+    if n < String.length s then String.sub s 0 n else s
   else s 
 
 (* Replace one string to another string from string *)
