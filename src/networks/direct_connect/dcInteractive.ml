@@ -603,48 +603,36 @@ let dc_info_print info data line o =
     Printf.bprintf buf "%s:  %s\n" info data
   end
 
-  
+let show_dc_buttons o =
+  let buf = o.conn_buf in
+  let button id ?(cmd="dc"^id) ?(txt=String.capitalize id) () =
+    Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"%s\\\" name=\\\"%s\\\"
+      action=\\\"javascript:parent.output.location.href='submit?q=%s'\\\"\\>
+      \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
+      Value=\\\"%s\\\"\\>\\</td\\>\\</form\\>" id id cmd txt
+  in
+  if use_html_mods o then 
+  begin
+    Printf.bprintf buf "\\<table\\>\\<tr\\>";
+    button "users" ~cmd:"dcusers+all" ();
+    button "clients" ~cmd:"dcclients" ();
+    button "hubs" ();
+    button "shared" ();
+    button "files" ();
+    button "info" ~txt:"DC Info" ();
+    button "hublistshow" ~cmd:"dchublist" ~txt:"Show hublist" ();
+    button "filelists" ();
+    Printf.bprintf buf "\\</tr\\>\\</table\\>";
+  end
+
 (* List of commands to register *)
 let commands = [
-    
+
   "dc", Arg_none (fun o ->
-    let buf = o.conn_buf in
-    if use_html_mods o then begin
-      Printf.bprintf buf "\\<table\\>\\<tr\\>\\<form style=\\\"margin: 0px;\\\" id=\\\"users\\\" name=\\\"users\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcusers+all'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Users\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"clients\\\" name=\\\"clients\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcclients'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Clients\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"hubs\\\" name=\\\"hubs\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dchubs'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Hubs\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"shared\\\" name=\\\"shared\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcshared'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Shared\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"files\\\" name=\\\"files\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcfiles'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Files\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"info\\\" name=\\\"info\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcinfo'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"DC Info\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"hublistshow\\\" name=\\\"hublistshow\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dchublist'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Show hublist\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"filelists\\\" name=\\\"filelists\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcfilelists'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Filelists\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\</tr\\>\\</table\\>";
-    end else
-      Printf.bprintf buf "Received command dc\n";
+    if use_html_mods o then
+      show_dc_buttons o
+    else
+      Printf.bprintf buf "Try `?? dc` for more commands\n";
     empty_string
   ), ": Show direct connect buttons";
 
@@ -666,11 +654,12 @@ let commands = [
   ), "<ip> [<port>] : Add a server. Default port number is 411";
 
   (* List connected hubs for chatting *)
-  "dchubs", Arg_none (fun o -> dc_list o G_hubs "hubs" 
+  "dchubs", Arg_none (fun o -> show_dc_buttons o; dc_list o G_hubs "hubs" 
   ), ": Show connected DC hubs"; 
 
   (* List all DC users *)
   "dcusers", Arg_one (fun args o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     (match args with
     | "all" -> dc_list o G_users "users"
@@ -692,19 +681,20 @@ let commands = [
   ), "<all>|<ip> :Show DC users"; 
 
   (* List all DC clients *)
-  "dcclients", Arg_none (fun o -> dc_list o G_clients "clients"
+  "dcclients", Arg_none (fun o -> show_dc_buttons o; dc_list o G_clients "clients"
   ), ": Show all DC clients"; 
 
   (* List all DC files *)
-  "dcfiles", Arg_none (fun o -> dc_list o G_files "files"
+  "dcfiles", Arg_none (fun o -> show_dc_buttons o; dc_list o G_files "files"
   ), ": Show all DC files";
 
   (* List all DC shared files *)
-  "dcshared", Arg_none (fun o -> dc_list o G_shared "shared"
+  "dcshared", Arg_none (fun o -> show_dc_buttons o; dc_list o G_shared "shared"
   ), ": Show all DC shared files. All/Hashed ";
 
-  (* 'dchubs [args]' - Show dchub list with optional filters args (max 5) *)
+  (* 'dchublist [args]' - Show dchub list with optional filters args (max 5) *)
   "dchublist", Arg_multiple (fun args o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     let filter = ref [] in
     let print_hublist () =
@@ -860,6 +850,7 @@ let commands = [
   ), "<refresh> <user> | <refresh> <serverip> <serverport>";
 
   "dcmessages", Arg_multiple (fun args o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     let s,u =
       (match args with
@@ -1069,6 +1060,7 @@ msgWindow.location.reload();
   ), "<name> : Download filelist from user";
 
   "dcfilelists", Arg_none (fun o -> 
+    show_dc_buttons o;
     let buf = o.conn_buf in
     html_mods_cntr_init ();
     let line = ref 1 in
@@ -1148,6 +1140,7 @@ msgWindow.location.reload();
   ), ": Find new source for a file";
 
   "dcinfo", Arg_none (fun o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     let server_list =
       let lst = ref [] in
@@ -1188,6 +1181,7 @@ msgWindow.location.reload();
 
   (* load filelist from user *)
   "dcshowfilelist", Arg_one (fun args o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     (match args with
     | filename -> 
@@ -1369,10 +1363,10 @@ msgWindow.location.reload();
   ), "<true/false> <ip> : Set/unset the server autoconnection state";
 
   ] (* end of   let commands = *)
-  
+
 module P = GuiTypes
 
-(* register user operations *)   
+(* register user operations *)
 let _ = 
   register_commands commands;
 
