@@ -55,13 +55,13 @@ let lprintf_nl fmt =
 
 (* Start new dowload from result *)
 let start_new_download u tth fdir fname fsize =
-    (try
+    try
       ignore (Hashtbl.find dc_shared_files_by_hash tth);
       if !verbose_download then lprintf_nl "Shared file with same hash exists (%s) (%s)" fname tth;
       None 
     with _ ->
         let f = new_file tth fdir fname fsize in   (* ...create new file *)
-        (match (file_state f) with
+        match (file_state f) with
         | FileDownloaded | FileShared -> if !verbose_download then lprintf_nl "File already downloaded"; None
         | FileDownloading -> if !verbose_download then lprintf_nl "File being downloaded"; None
         | FilePaused -> if !verbose_download then lprintf_nl "File paused"; None
@@ -69,20 +69,23 @@ let start_new_download u tth fdir fname fsize =
             if !verbose_download then lprintf_nl "File state invalid"; None
         | FileNew -> 
             file_add f.file_file FileDownloading;
-            let c = new_client_to_user_with_file u f in
-            c.client_state <- DcDownloadWaiting f;
-            if (can_user_start_downloading u) then begin
-              u.user_state <- TryingToSendFirstContact;
-              c.client_state <- DcDownloadConnecting (f,current_time ());
-              ignore (DcClients.try_connect_client c)
-            end;
-            Some f ) )
+            match u with
+            | None -> Some f
+            | Some user ->
+              let c = new_client_to_user_with_file user f in
+              c.client_state <- DcDownloadWaiting f;
+              if (can_user_start_downloading user) then begin
+                user.user_state <- TryingToSendFirstContact;
+                c.client_state <- DcDownloadConnecting (f,current_time ());
+                ignore (DcClients.try_connect_client c)
+              end;
+              Some f
 
 (* Start downloading of a file by user selection from resultlist *) 
 let start_result_download r =
   let filename = List.hd r.result_names in
   let rinfo = Hashtbl.find dc_result_info r.result_num in
-  let newfile = start_new_download rinfo.user rinfo.tth rinfo.directory filename r.result_size in
+  let newfile = start_new_download (Some rinfo.user) rinfo.tth rinfo.directory filename r.result_size in
   (match newfile with 
   | Some f -> as_file f.file_file (* return CommonFile.file *) 
   | _ -> raise Not_found )
@@ -98,8 +101,9 @@ let parse_url url user group =
       lprintf_nl "Got magnet url %s" url;
     match filter_map (fun x -> match Uid.to_uid x with TigerTree tth -> Some tth | _ -> None) (Uid.expand uids) with
     | [] -> failwith "No TTH found in magnet url"
-    | tths ->
-      ""
+    | tth::_ ->
+      let _ = start_new_download None (TigerTree.to_string tth) "" name 0L in
+      Printf.sprintf "New download : %S" name
 
 (* register DC commands *)
 let register_commands list =
@@ -1028,7 +1032,7 @@ msgWindow.location.reload();
         Printf.bprintf buf "Trying to download file: %s from user: %s\n" !sname uname;
         (try 
           let u = search_user_by_name uname in
-          ignore (start_new_download u tth !sdir !sname (Int64.of_string fsize))
+          ignore (start_new_download (Some u) tth !sdir !sname (Int64.of_string fsize))
         with _ -> if !verbose_download then lprintf_nl "dcloadfile: No user found" )
     | _ ->
         if !verbose_unexpected_messages then
