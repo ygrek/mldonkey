@@ -8,14 +8,14 @@ let pr fmt = Printf.ksprintf print_endline fmt
 
 let () =
   let hash = H.random () in
-  pr "%d" H.length;
-  pr "%x %x %x" (H.up hash) (H.up2 hash) (H.up3 hash);
-  print_endline (H.to_string hash);
-  print_endline (H.direct_to_string hash);
-  print_endline (H.to_hexa hash);
-  print_endline (H.to_bits hash);
-  print_endline (H.to_base32 hash);
+  pr "len: %d up: %x %x %x" H.length (H.up hash) (H.up2 hash) (H.up3 hash);
+  pr "string: %s" (H.to_string hash);
+  pr "direct: %S" (H.direct_to_string hash);
+  pr "hexa: %s" (H.to_hexa hash);
+  pr "bits: %s" (H.to_bits hash);
+  pr "base32: %s" (H.to_base32 hash);
 
+(** node ID type *)
 type id = H.t
 let show_id = H.to_hexa
 type addr = Ip.t * int
@@ -73,7 +73,7 @@ let middle =
   H.direct_of_string s
 
 let middle' =
-  let s = String.make 21 (Char.chr 0x00) in
+  let s = String.make 20 (Char.chr 0x00) in
   s.[0] <- Char.chr 0x80;
   H.direct_of_string s
 
@@ -84,24 +84,35 @@ open Big_int
 
 let big_int_of_hash h =
   let s = H.direct_to_string h in
+  assert (String.length s = H.length);
   let n = ref zero_big_int in
-  for i = 0 to pred (String.length s) do
+  for i = 0 to String.length s - 1 do
     n := add_int_big_int (Char.code s.[i]) (mult_int_big_int 256 !n)
   done;
   !n
 
-let () =
-  let p n = pr "%s" (string_of_big_int n) in
-  let n = big_int_of_hash middle in
-  let n' = div_big_int (add_big_int (big_int_of_hash last) (big_int_of_hash H.null)) (big_int_of_int 2) in
-  p n;
-  p n';
-  assert (compare_big_int (big_int_of_hash H.null) zero_big_int = 0);
-  assert (compare_big_int n n' = 0)
+let hash_of_big_int n =
+  let s = String.create H.length in
+  let n = ref n in
+  let div = big_int_of_int 256 in
+  for i = String.length s - 1 downto 0 do
+    let (d,m) = quomod_big_int !n div in
+    s.[i] <- Char.chr (int_of_big_int m);
+    n := d
+  done;
+  assert (eq_big_int zero_big_int !n);
+  H.direct_of_string s
+
+(* hash <-> number *)
+let h2n = big_int_of_hash
+let n2h = hash_of_big_int
 
 let split lo hi =
   assert (cmp lo hi = LT);
-  ()
+  let mid = div_big_int (add_big_int (h2n lo) (h2n hi)) (big_int_of_int 2) in
+  n2h mid 
+
+let distance h1 h2 = abs_big_int (sub_big_int (h2n h1) (h2n h2))
 
 let () =
   print_endline (show_id H.null);
@@ -116,7 +127,15 @@ let () =
   assert (GT = cmp last middle);
   assert (EQ = cmp H.null H.null);
   assert (EQ = cmp middle middle);
-  assert (EQ = cmp last last)
+  assert (EQ = cmp last last);
+  assert (n2h (h2n middle) = middle);
+  assert (n2h (h2n middle') = middle');
+  assert (n2h (h2n last) = last);
+  assert (n2h (h2n H.null) = H.null);
+  assert (compare_big_int (h2n H.null) zero_big_int = 0);
+  assert (cmp (split H.null last) middle = EQ);
+  assert (eq_big_int (distance middle' middle) unit_big_int);
+  ()
 
 let now = Unix.gettimeofday ()
 
