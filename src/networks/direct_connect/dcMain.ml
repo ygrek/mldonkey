@@ -215,7 +215,7 @@ let _ =
   network.op_network_connected <- (fun _ ->
     !connected_servers <> []
   );
-  network.op_network_parse_url <- (fun url user group -> DcInteractive.parse_url url user group, false);
+  network.op_network_parse_url <- (fun url user group -> DcInteractive.parse_url url user group);
   network.op_network_download <- (fun r _ _ -> DcInteractive.start_result_download r);
   network.op_network_ports <- (fun _ ->
     [

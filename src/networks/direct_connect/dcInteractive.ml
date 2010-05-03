@@ -91,19 +91,21 @@ let start_result_download r =
   | _ -> raise Not_found )
 
 let exn_catch f x = try `Ok (f x) with exn -> `Exn exn
+let opt_default default = function None -> default | Some v -> v
 let filter_map f l = List.fold_left (fun acc x -> match f x with Some y -> y :: acc | None -> acc) [] l
 
 let parse_url url user group =
-  match exn_catch parse_magnet url with
-  | `Exn _ -> ""
-  | `Ok (name,uids) ->
+  match exn_catch parse_magnet_url url with
+  | `Exn _ -> "Not a magnet url", false
+  | `Ok magnet ->
     if !verbose then
-      lprintf_nl "Got magnet url %s" url;
-    match filter_map (fun x -> match Uid.to_uid x with TigerTree tth -> Some tth | _ -> None) (Uid.expand uids) with
-    | [] -> failwith "No TTH found in magnet url"
+      lprintf_nl "Got magnet url %S" url;
+    (* TODO multiple TTHs, multiple xt, automatic merge of downloads from different networks (?!) *) 
+    match filter_map (function TigerTree tth -> Some tth | _ -> None) magnet#uids with
+    | [] -> "No TTH found in magnet url", false
     | tth::_ ->
-      let _ = start_new_download None (TigerTree.to_string tth) "" name 0L in
-      Printf.sprintf "New download : %S" name
+      let _ = start_new_download None (TigerTree.to_string tth) "" magnet#name (opt_default 0L magnet#size) in
+      magnet#name, true
 
 (* register DC commands *)
 let register_commands list =

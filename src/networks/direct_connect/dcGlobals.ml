@@ -499,6 +499,17 @@ let new_upfile dcsh fd =
   } in
   file
 
+(* FIXME review *)
+let safe_filename s =
+  let s = String.copy s in
+  for i = 0 to String.length s - 1 do
+    match s.[i] with
+    | c when Char.code c < 32 -> s.[i] <- '_'
+    | '.' | '/' | '\\' | ':' -> s.[i] <- '_'
+    | _ -> ()
+  done;
+  s
+
 (* Return existing file or create new one *)     
 let new_file tiger_root (directory:string) (filename:string) (file_size:int64) =
   (try
@@ -513,13 +524,10 @@ let new_file tiger_root (directory:string) (filename:string) (file_size:int64) =
       if !verbose_download then lprintf_nl "File exists: (%s) (%s)" f.file_directory f.file_name;
       f 
   with _ ->
-      let temp_filename =
+      let temp_filename = safe_filename
         (match tiger_root with
-        | "" ->
-          let dname = ref (String.copy directory) in
-          String2.replace_char !dname '/' '_';  
-          Printf.sprintf "DC_%s_%s" !dname filename  
-        | _ -> Printf.sprintf "DC_%s" tiger_root )
+        | "" -> Printf.sprintf "DC_%s_%s" directory filename
+        | _ -> Printf.sprintf "DC_%s" tiger_root)
       in 
       let fullname = Filename.concat !!temp_directory temp_filename in
       let temp_file = Unix32.create_rw fullname in
