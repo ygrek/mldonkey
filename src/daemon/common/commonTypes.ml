@@ -58,9 +58,7 @@ and file_uid_id =
 let string_of_uid_sep uid sep =
   match uid with
     Bitprint (sha1,ttr) ->
-      "urn" ^ sep ^ "bitprint" ^ sep ^
-        (Sha1.to_string sha1) ^ "." ^
-          (TigerTree.to_string ttr)
+      "urn" ^ sep ^ "bitprint" ^ sep ^ (Sha1.to_string sha1) ^ "." ^ (TigerTree.to_string ttr)
   | Sha1 sha1 ->
       "urn" ^ sep ^ "sha1" ^ sep ^ (Sha1.to_string sha1)
   | Ed2k ed2k ->
@@ -68,12 +66,11 @@ let string_of_uid_sep uid sep =
   | Md5 md5 ->
       "urn" ^ sep ^ "md5" ^ sep ^ (Md5.to_string md5)
   | TigerTree ttr -> 
-      "urn" ^ sep ^ "ttr" ^ sep ^ (TigerTree.to_string ttr)
+      "urn" ^ sep ^ "tree" ^ sep ^ "tiger" ^ sep ^ (TigerTree.to_string ttr)
   | Md5Ext md5 ->
-      "urn" ^ sep ^ "sig2dat" ^ sep ^
-        (Md5Ext.to_base32 md5)
+      "urn" ^ sep ^ "sig2dat" ^ sep ^ (Md5Ext.to_base32 md5)
   | BTUrl url ->
-      "urn" ^ sep ^ "bt" ^ sep ^ (Sha1.to_string url)
+      "urn" ^ sep ^ "btih" ^ sep ^ (Sha1.to_string url)
   | FileTP file ->
       "urn" ^ sep ^ "filetp" ^ sep ^ (Md4.to_string file)
   | NoUid -> ""
@@ -105,6 +102,7 @@ let uid_of_string s =
   let (sign, rem) = String2.cut_at rem !sep in
   match sign with
   | "ed2k" -> Ed2k (Md4.of_string rem)
+(*   | "aich" -> ??? *)
   | "bitprint" | "bp" -> 
       let (sha1, ttr) = String2.cut_at rem '.' in
       let sha1 = Sha1.of_string sha1 in
@@ -119,7 +117,7 @@ let uid_of_string s =
   | "ttr" -> TigerTree (TigerTree.of_string rem)
   | "md5" ->  Md5 (Md5.of_string rem)
   | "sig2dat" -> Md5Ext (Md5Ext.of_base32 rem)
-  | "bt" | "bittorrent" -> 
+  | "bt" | "bittorrent" | "btih" -> 
       BTUrl (Sha1.of_string rem)
   | "filetp" -> FileTP (Md4.of_string rem)
   | _ -> raise (Illegal_urn (s ^ " at " ^ sign ^ " is not known"))
@@ -136,27 +134,27 @@ module Uid : sig
     val derive : t -> t list
     val expand : t list -> t list
     val option : t option_class
-      
+
     val compare : t -> t -> int
     val no : t
-      
+
   end = struct
-    
+
     type t = {
         mutable uid_string : string;
         mutable uid_type : uid_type;
       }
-    
+
     let no = {
         uid_type = NoUid;
         uid_string = "";
       }
-    
+
     let create uid = {
         uid_string = string_of_uid uid ;
         uid_type = uid;
       }
-    
+
     let of_string s = 
       let uid = uid_of_string s in
       let s = string_of_uid uid in
@@ -164,48 +162,87 @@ module Uid : sig
         uid_string = s;
         uid_type = uid;
         }
-        
+
     let to_string t = t.uid_string
-    
+
     let to_file_string t =
       file_string_of_uid t.uid_type
-    
+
     let to_uid t = t.uid_type
-    
+
     let derive uid =
       match uid.uid_type with
          (Bitprint (sha1, tiger)) ->
           [create (Sha1 (sha1)); create (TigerTree(tiger))]
       | _ -> []
-        
+
     let compare u1 u2 =
       compare (to_string u1) (to_string u2)
-    
+
     let rec mem uid list =
       match list with
         [] -> false
       | t :: tail ->
           compare t uid = 0 || mem uid tail
-          
+
     let add uid list =
       if not (mem uid list) then
         uid :: list
       else 
         list
-    
+
     let rec expand_rec list uids =
       match list with
         [] -> uids
       | t :: tail ->
           let list = derive t in
           expand_rec (list@tail) (add t uids)
-    
-    let expand uids = expand_rec uids []      
+
+    let expand uids = expand_rec uids []
 
     let option = define_option_class "Uid"
         (fun v -> of_string (value_to_string v))
       (fun uid -> string_to_value (to_string uid))
   end
+
+(* TODO group settings: xt.1 xt.2 .. *)
+let parse_magnet_url url =
+  let url = Url.of_string url in
+  if url.Url.short_file = "magnet:" then
+    let uids = ref [] in
+    let name = ref "" in
+    let size = ref None in
+    let each k v =
+      match String2.split k '.' with
+      | "xt"::_ -> uids := Uid.of_string v :: !uids
+      | "xl"::_ -> size := Some (Int64.of_string v) (* exact length *)
+      | "dn"::_ -> name := Url.decode v
+      | "as"::_ -> () (* acceptable source *)
+      | "xs"::_ -> () (* eXtra source *)
+      | "mt"::_ -> () (* manifest topic: url or urn, see http://rakjar.de/gnuticles/MAGMA-Specsv22.txt *)
+      | "kt"::_ -> () (* keywords topic *)
+      | "tr"::_ -> () (* BT tracker *)
+      | "x"::_ -> () (* extensions *)
+(*
+      | _ when v = "" ->
+(* This is an error in the magnet, where a & has been kept instead of being
+  url-encoded *)
+          name := Printf.sprintf "%s&%s" !name k
+*)
+      | _ -> lprintf_nl "MAGNET: unused field %S=%S" k v
+    in
+    List.iter (fun (k, v) ->
+      try each k v
+      with exn -> lprintf_nl "MAGNET: field %S=%S, exn %s" k v (Printexc2.to_string exn)
+    ) url.Url.args;
+    object method name = !name method size = !size method uids = List.map Uid.to_uid (Uid.expand !uids) end
+  else 
+    raise Not_found
+
+(* compatibility, used in G2 module *)
+let parse_magnet url =
+  let magnet = parse_magnet_url url in
+  magnet#name, (List.map Uid.create magnet#uids)
 
 let string_of_uids list =
   match list with

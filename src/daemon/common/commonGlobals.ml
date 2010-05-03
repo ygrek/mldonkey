@@ -682,29 +682,6 @@ let partial_chunk c =
   | VerificationBitmap.State_complete | VerificationBitmap.State_verified -> 
       false
 
-let parse_magnet url =
-  let url = Url.of_string url in
-  if url.Url.short_file = "magnet:" then
-    let uids = ref [] in
-    let name = ref "" in
-    List.iter (fun (value, arg) ->
-        if String2.starts_with value "xt" then
-          uids := Uid.expand (Uid.of_string arg :: !uids)
-        else
-        if String2.starts_with value "dn" then
-          name := Url.decode arg
-        else
-        if arg = "" then
-(* This is an error in the magnet, where a & has been kept instead of being
-  url-encoded *)
-          name := Printf.sprintf "%s&%s" !name value
-        else
-          lprintf_nl "MAGNET: unused field %s = %s"
-            value arg
-    ) url.Url.args;
-    !name, !uids
-  else raise Not_found
-
     (*
 module CanBeCompressed = struct
 
