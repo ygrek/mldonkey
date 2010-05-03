@@ -239,6 +239,11 @@ let parse_magnet_url url =
   else 
     raise Not_found
 
+let show_magnet_url x =
+  let args = ("dn", x#name) :: List.map (fun uid -> "xt", string_of_uid uid) x#uids in
+  let args = match x#size with Some n -> ("xl", Int64.to_string n) :: args | None -> args in
+  Url.put_args "magnet:" args
+
 (* compatibility, used in G2 module *)
 let parse_magnet url =
   let magnet = parse_magnet_url url in
@@ -248,7 +253,7 @@ let string_of_uids list =
   match list with
     [] -> "<unknown>"
   | uid :: _ -> Uid.to_string uid
-    
+
 type file_state =
   FileDownloading
 | FileQueued

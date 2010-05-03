@@ -392,12 +392,30 @@ let dc_file_print_html_header buf =
                 ( "1", "srh", "File number", "#" );
                 ( "1", "srh", "File name/path", "File" );
                 ( "1", "srh", "File size", "Size" );
-                ( "1", "srh", "TTH Hash", "Hash" ); 
+                ( "1", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" ); 
                 ( "1", "srh", "Files clients number (sources)", "Clients" );
                 ( "1", "srh", "Autosearches done", "Searches" );
                 ( "1", "srh", "Find new source by tth", "Find TTH" );
                 ( "1", "srh", "Find new source by similar name context", "Find similar" );  ];
     ()  
+
+let html_show_tth file size tth =
+  begin match exn_catch TigerTree.of_string tth with
+  | `Exn _ -> ""
+  | `Ok hash ->
+    let magnet = object 
+      method name = Filename.basename file
+      method size = match size with 0L -> None | _ -> Some size (* do not report size if not available *)
+      method uids = [TigerTree hash]
+    end in
+    Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>" (show_magnet_url magnet) tth
+  end
+
+let html_show_shared dcsh =
+  html_show_tth dcsh.dc_shared_fullname dcsh.dc_shared_size dcsh.dc_shared_tiger_root
+
+let html_show_file file =
+  html_show_tth file.file_name file.file_file.impl_file_size file.file_unchecked_tiger_root
 
 (* print in html or txt list of files *)
 let file_print file num o =
@@ -418,7 +436,7 @@ let file_print file num o =
     %s
     %s\\</tr\\>\n"
     (html_mods_cntr ()) num file.file_name file.file_file.impl_file_size 
-    (file.file_unchecked_tiger_root) (List.length file.file_clients) file.file_autosearch_count
+    (html_show_file file) (List.length file.file_clients) file.file_autosearch_count
     (Printf.sprintf
      "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
      onMouseOut=\\\"mOut(this);\\\" title=\\\"Find new client for this file by TTH\\\"
@@ -437,9 +455,9 @@ let file_print file num o =
 let dc_shared_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
                 ( "1", "srh", "File number", "#" );
-                ( "1", "srh", "Shared file codedname", "Codedname" );
+                ( "1", "srh", "Shared file name", "Name" );
                 ( "1", "srh", "Shared file size", "Size" );
-                ( "1", "srh", "TTH Hash", "Hash" );
+                ( "1", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" );
                 (*( "1", "srh", "Shared files Tiger tree array length", "TTree #" );*) ];
     ()
 
@@ -455,11 +473,10 @@ let shared_print dcsh num o =
     \\<td class=\\\"srb\\\" \\>%Ld\\</td\\>
     \\<td class=\\\"srb\\\" \\>%s\\</td\\>\\</tr\\>\n"
     (html_mods_cntr ()) num dcsh.dc_shared_codedname dcsh.dc_shared_size
-    dcsh.dc_shared_tiger_root (*(Array.length dcsh.dc_shared_tiger_array)*)
+    (html_show_shared dcsh)
   end else
     Printf.bprintf buf "[%5d] %40s %-15Ld %24s\n"
       num dcsh.dc_shared_codedname dcsh.dc_shared_size dcsh.dc_shared_tiger_root 
-     (*(Array.length dcsh.dc_shared_tiger_array)*)
 
 type dc_int_groups = G_users|G_hubs|G_clients|G_files|G_shared
 
@@ -470,7 +487,7 @@ let dc_list o group_type group_name =
     html_mods_cntr_init ();
     if use_html_mods o then begin 
       (try 
-        (match group_type with
+         match group_type with
          | G_users -> 
              let new_messages_list = ref [] in       (* lets order users with unread messages to the top *)
              let others_list = ref [] in
@@ -499,10 +516,8 @@ let dc_list o group_type group_name =
              dc_shared_print_html_header buf;
              Hashtbl.iter (fun _ dcsh -> shared_print dcsh !num o; incr num) dc_shared_files_by_codedname;
              Printf.bprintf buf "\\</table\\>\\</div\\>";
-             num := 1;
-             dc_shared_print_html_header buf;
-             Hashtbl.iter (fun _ dcsh -> shared_print dcsh !num o; incr num) dc_shared_files_by_hash; )
-      with e -> lprintf_nl "Exception %s in printing %s" (Printexc2.to_string e) group_name );
+      with e -> 
+        lprintf_nl "Exception %s in printing %s" (Printexc2.to_string e) group_name );
       Printf.bprintf buf "\\</table\\>\\</div\\>";
     end;
     empty_string
@@ -633,8 +648,8 @@ let commands = [
       show_dc_buttons o
     else
       Printf.bprintf buf "Try `?? dc` for more commands\n";
-    empty_string
-  ), ": Show direct connect buttons";
+    dc_list o G_hubs "hubs"
+  ), ": Show Direct Connect buttons";
 
   (* 'dcn address [port]'  Add a new DC server with optional port (default 411) *)
   "dcn", Arg_multiple (fun args o ->
@@ -655,7 +670,7 @@ let commands = [
 
   (* List connected hubs for chatting *)
   "dchubs", Arg_none (fun o -> show_dc_buttons o; dc_list o G_hubs "hubs" 
-  ), ": Show connected DC hubs"; 
+  ), ": Show connected DC hubs";
 
   (* List all DC users *)
   "dcusers", Arg_one (fun args o ->
@@ -1580,8 +1595,8 @@ let _ =
           ("Filename", "sr br", "Filename");
           ("", "sr", file.file_name) ];
         td [
-          ("Tiger tree hash", "sr", "TTH");
-          ("", "sr", file.file_unchecked_tiger_root) ];
+          ("Tiger tree hash and magnet url", "sr", "TTH and magnet");
+          ("", "sr", html_show_file file) ];
         td [
           ("Automatic TTH searches performed", "sr", "Autosearches");
           ("", "sr", string_of_int file.file_autosearch_count) ];
