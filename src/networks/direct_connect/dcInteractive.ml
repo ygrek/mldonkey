@@ -124,10 +124,8 @@ let dc_hublist_print_html_header buf ext =
 (* print in html or txt list of hubs *)
 let hublist_print h hnum o =
   let buf = o.conn_buf in
-  let hname = if (String.length h.dc_name > 50) then String.sub h.dc_name 0 49
-       else h.dc_name in
-  let hinfo = if (String.length h.dc_info > 50) then String.sub h.dc_info 0 49
-       else h.dc_info in
+  let hname = shorten_string h.dc_name 50 in
+  let hinfo = shorten_string h.dc_info 50 in
   if use_html_mods o then begin
     Printf.bprintf buf "
     \\<tr class=\\\"dl-%d\\\"\\>
@@ -155,7 +153,7 @@ let hublist_print h hnum o =
       h.dc_nusers
       hinfo
                   end
-                  
+
 (* Print DC users header *)
 let dc_user_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
@@ -811,7 +809,7 @@ let commands = [
             in
             s.server_read_messages <- List.length s.server_messages;      (* messages are set as read before   *) 
             s.server_messages,                                            (* they are actually printed to user *)
-            (if (String.length s.server_name > 50) then String.sub s.server_name 0 49 else s.server_name),
+            (shorten_string s.server_name 50),
             topic
           with _ ->
               if !verbose_unexpected_messages then lprintf_nl "dcmsglog: No server with address found";
@@ -1163,8 +1161,7 @@ msgWindow.location.reload();
       let lst = ref [] in
         List.iter (fun s ->
           let data = 
-            String.sub s.server_name 0 (if (String.length s.server_name > 20) then 20 else
-              String.length s.server_name) ^ "  (nick = " ^ s.server_last_nick ^ ")  (uptime = " ^
+            shorten_string s.server_name 20 ^ "  (nick = " ^ s.server_last_nick ^ ")  (uptime = " ^
               (Date.time_to_string (int_of_float (current_time ()) -
                 int_of_float (s.server_connection_time)) "verbose") ^
                 (string_of_int (List.length s.server_users)) ^ ")"
