@@ -290,8 +290,11 @@ let local_login () =
 (* Shorten string to some maximum length *)
 let shorten_string s length =
   if length < String.length s then
-    let n = Charset.utf8_nth s length in
-    if n < String.length s then String.sub s 0 n else s
+    try
+      let n = Charset.utf8_nth s length in
+      String.sub s 0 n
+    with
+      _ -> s (* relies on bounds checking! FIXME? *)
   else s 
 
 (* Replace one string to another string from string *)
