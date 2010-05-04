@@ -158,21 +158,21 @@ let hublist_print h hnum o =
 let dc_user_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
                 ( "1", "srh", "User number", "#" );
-                ( "1", "srh", "User name", "Name" );
-                ( "1", "srh", "User type", "Type" );
+                ( "0", "srh", "User name", "Name" );
+                ( "0", "srh", "User type", "Type" );
                 ( "1", "srh", "Users slots (all/free)", "Slots" );
                 ( "1", "srh", "Users connected hubs (Normal/Vipped/Opped)", "Hubs" );
-                ( "1", "srh", "Users mode", "Mode" );
+                ( "0", "srh", "Users mode", "Mode" );
                 ( "1", "srh", "Users shared size", "Shared" );
-                ( "1", "srh", "User state", "State" );
-                ( "1", "srh", "User description field", "Description" );
+                ( "0", "srh", "User state", "State" );
+                ( "0", "srh", "User description field", "Description" );
                 ( "1", "srh", "User clients number", "Clients" );
                 ( "1", "srh", "Users servers number", "Servers" );
                 ( "0", "srh", "Download this clients filelist", "Filelist" );
                 ( "0", "srh", "Open chat window with this user. Blinking tells there are new unread messages", "Chat");
                 ( "1", "srh", "User total uploaded bytes", "Up" );
                 ( "1", "srh", "User total downloaded bytes", "Down" );
-                ( "1", "srh", "User client supports", "Supports" ); ];
+                ( "0", "srh", "User client supports", "Supports" ); ];
     ()
 
 (* print in html or txt list of users *)
@@ -317,15 +317,15 @@ let hub_print s num o =
 let dc_client_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
                 ( "1", "srh", "Client number", "#" );
-                ( "1", "srh", "Remove Client", "Rem" );
-                ( "1", "srh", "Clientname", "Name" );
-                ( "1", "srh", "Client ip/port", "Ip:Port" );
-                ( "1", "srh", "Client state", "State" );
-                ( "1", "srh", "Client connection", "Conn" );
-                ( "1", "srh", "Client last error/count", "Error" );
-                ( "1", "srh", "Client file", "File" ); ];
+                ( "0", "srh", "Remove Client", "Rem" );
+                ( "0", "srh", "Client name", "Name" );
+                ( "0", "srh", "Client ip/port", "Ip:Port" );
+                ( "0", "srh", "Client state", "State" );
+                ( "0", "srh", "Client connection", "Conn" );
+                ( "0", "srh", "Client last error/count", "Error" );
+                ( "0", "srh", "Client file", "File" ); ];
             ()
-      
+
 (* print in html or txt list of clients *)
 let client_print name client num o =
   let buf = o.conn_buf in
@@ -390,13 +390,13 @@ let client_print name client num o =
 let dc_file_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
                 ( "1", "srh", "File number", "#" );
-                ( "1", "srh", "File name/path", "File" );
+                ( "0", "srh", "File name/path", "File" );
                 ( "1", "srh", "File size", "Size" );
-                ( "1", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" ); 
+                ( "0", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" ); 
                 ( "1", "srh", "Files clients number (sources)", "Clients" );
                 ( "1", "srh", "Autosearches done", "Searches" );
-                ( "1", "srh", "Find new source by tth", "Find TTH" );
-                ( "1", "srh", "Find new source by similar name context", "Find similar" );  ];
+                ( "0", "srh", "Find new source by tth", "Find TTH" );
+                ( "0", "srh", "Find new source by similar name context", "Find similar" );  ];
     ()  
 
 let html_show_tth file size tth =
@@ -455,9 +455,9 @@ let file_print file num o =
 let dc_shared_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
                 ( "1", "srh", "File number", "#" );
-                ( "1", "srh", "Shared file name", "Name" );
+                ( "0", "srh", "Shared file name", "Name" );
                 ( "1", "srh", "Shared file size", "Size" );
-                ( "1", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" );
+                ( "0", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" );
                 (*( "1", "srh", "Shared files Tiger tree array length", "TTree #" );*) ];
     ()
 
@@ -551,8 +551,8 @@ let filelist_print fname line o =
 let dc_filelist_files_print_html_header buf =
     html_mods_table_header buf "serversTable" (Printf.sprintf "servers") [
                 ( "1", "srh", "Number", "#" );
-                ( "0", "srh", "File/Firectory name", "File/Directory name" );
-                ( "0", "srh", "File Size", "Size" );
+                ( "0", "srh", "File/Directory name", "File/Directory name" );
+                ( "1", "srh", "File Size", "Size" );
                 ( "0", "srh", "Files TTH", "TTH" ) ]
 
 (* Print one line from filelist file *)  
