@@ -478,50 +478,6 @@ let shared_print dcsh num o =
     Printf.bprintf buf "[%5d] %40s %-15Ld %24s\n"
       num dcsh.dc_shared_codedname dcsh.dc_shared_size dcsh.dc_shared_tiger_root 
 
-type dc_int_groups = G_users|G_hubs|G_clients|G_files|G_shared
-
-(* register users,clients,files *)
-let dc_list o group_type group_name =
-    let buf = o.conn_buf in
-    let num = ref 1 in
-    html_mods_cntr_init ();
-    if use_html_mods o then begin 
-      (try 
-         match group_type with
-         | G_users -> 
-             let new_messages_list = ref [] in       (* lets order users with unread messages to the top *)
-             let others_list = ref [] in
-             Hashtbl.iter (fun _ user ->
-               if user_has_new_messages user then new_messages_list := user :: !new_messages_list
-               else others_list := user :: !others_list
-             ) users_by_name;
-             dc_user_print_html_header buf;
-             List.iter (fun user -> user_print user !num o; incr num) !new_messages_list;
-             List.iter (fun user -> user_print user !num o; incr num) !others_list;
-         | G_hubs ->
-             dc_hub_print_html_header buf;
-             Hashtbl.iter (fun _ s -> hub_print s !num o; incr num) servers_by_ip
-             (*List.iter (fun s -> hub_print s !num o; incr num) !connected_servers*)
-         | G_clients ->
-             dc_client_print_html_header buf;
-             List.iter (fun c ->
-               (match c.client_name with
-                 | Some n -> client_print n c !num o; incr num
-                 | None -> () )
-             ) !clients_list
-         | G_files ->
-             dc_file_print_html_header buf;
-             List.iter (fun file -> file_print file !num o; incr num) !current_files;
-         | G_shared ->
-             dc_shared_print_html_header buf;
-             Hashtbl.iter (fun _ dcsh -> shared_print dcsh !num o; incr num) dc_shared_files_by_codedname;
-             Printf.bprintf buf "\\</table\\>\\</div\\>";
-      with e -> 
-        lprintf_nl "Exception %s in printing %s" (Printexc2.to_string e) group_name );
-      Printf.bprintf buf "\\</table\\>\\</div\\>";
-    end;
-    empty_string
-
 (* Print DC filelist header *)
 let dc_filelist_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
@@ -547,6 +503,55 @@ let filelist_print fname line o =
     Printf.bprintf buf "[%5d] %s\n" line fname
   end
 
+type dc_int_groups = G_users|G_hubs|G_clients|G_files|G_shared|G_filelists
+
+(* register users,clients,files *)
+let dc_list o group_type group_name =
+    let buf = o.conn_buf in
+    let num = ref 1 in
+    html_mods_cntr_init ();
+    let html f = if use_html_mods o then f buf else () in
+    begin try
+         begin match group_type with
+         | G_users -> 
+             let new_messages_list = ref [] in       (* lets order users with unread messages to the top *)
+             let others_list = ref [] in
+             Hashtbl.iter (fun _ user ->
+               if user_has_new_messages user then new_messages_list := user :: !new_messages_list
+               else others_list := user :: !others_list
+             ) users_by_name;
+             html dc_user_print_html_header;
+             List.iter (fun user -> user_print user !num o; incr num) !new_messages_list;
+             List.iter (fun user -> user_print user !num o; incr num) !others_list;
+         | G_hubs ->
+             html dc_hub_print_html_header;
+             Hashtbl.iter (fun _ s -> hub_print s !num o; incr num) servers_by_ip
+             (*List.iter (fun s -> hub_print s !num o; incr num) !connected_servers*)
+         | G_clients ->
+             html dc_client_print_html_header;
+             List.iter (fun c ->
+               (match c.client_name with
+                 | Some n -> client_print n c !num o; incr num
+                 | None -> () )
+             ) !clients_list
+         | G_files ->
+             html dc_file_print_html_header;
+             List.iter (fun file -> file_print file !num o; incr num) !current_files;
+         | G_shared ->
+             html dc_shared_print_html_header;
+             Hashtbl.iter (fun _ dcsh -> shared_print dcsh !num o; incr num) dc_shared_files_by_codedname
+         | G_filelists ->
+             html dc_filelist_print_html_header;
+             let filelist = Unix2.list_directory filelist_directory in
+             List.iter (fun fname -> filelist_print fname !num o; incr num) filelist;
+         end;
+         if use_html_mods o then 
+           Printf.bprintf buf "\\</table\\>\\</div\\>";
+      with e -> 
+        lprintf_nl "Exception %s in printing %s" (Printexc2.to_string e) group_name
+    end;
+    empty_string
+
 (* Print DC filelist files header *)
 let dc_filelist_files_print_html_header buf =
     html_mods_table_header buf "serversTable" (Printf.sprintf "servers") [
@@ -555,7 +560,7 @@ let dc_filelist_files_print_html_header buf =
                 ( "1", "srh", "File Size", "Size" );
                 ( "0", "srh", "Files TTH", "TTH" ) ]
 
-(* Print one line from filelist file *)  
+(* Print one line from filelist file *)
 let filelist_file_print is_file spaces username dir fname fsize ftth line o =
   (* is_file  = if true, make the whole filename a link with submit command to load a file 
      spaces
@@ -1074,19 +1079,7 @@ msgWindow.location.reload();
     empty_string
   ), "<name> : Download filelist from user";
 
-  "dcfilelists", Arg_none (fun o -> 
-    show_dc_buttons o;
-    let buf = o.conn_buf in
-    html_mods_cntr_init ();
-    let line = ref 1 in
-    if use_html_mods o then dc_filelist_print_html_header buf;
-    let filelist = Unix2.list_directory filelist_directory in
-    List.iter (fun fname ->
-      filelist_print fname !line o;
-      incr line
-    ) filelist;
-    if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
-    empty_string
+  "dcfilelists", Arg_none (fun o -> show_dc_buttons o; dc_list o G_filelists "filelists"
   ), ": List all filelists on disk";
 
   "dcremclient", Arg_one (fun args o ->
