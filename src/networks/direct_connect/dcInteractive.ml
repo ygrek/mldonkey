@@ -111,6 +111,16 @@ let parse_url url user group =
 let register_commands list =
   register_commands (List2.tail_map (fun (n,f,h) -> (n, "Direct Connect", f,h)) list)
 
+let td_command text title ?(blink=false) ?(target=`Output) cmd =
+  Printf.sprintf
+     "\\<td class=\\\"srb\\\" %sonMouseOver=\\\"mOvr(this);\\\"
+     onMouseOut=\\\"mOut(this);\\\" title=\\\"%s\\\"
+     onClick=\\\"parent.%s.location.href='submit?q=%s'\\\"\\>%s\\</td\\>"
+     (if blink then "style=\\\"text-decoration:blink\\\" " else "")
+     title (match target with `Output -> "output" | `Status -> "fstatus") 
+     (String.concat "+" cmd) (* Url.encode ? *)
+     text
+
 (* Print DC hubs header *)
 let dc_hublist_print_html_header buf ext =
     html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) [
@@ -137,11 +147,8 @@ let hublist_print h hnum o =
     \\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
     (html_mods_cntr ())
     hnum
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Add\\\"
-     onClick=\\\"parent.fstatus.location.href='submit?q=dcn+%s+%d'\\\"\\>Add\\</td\\>"
-     (Ip.string_of_addr h.dc_ip) h.dc_port)
+    (td_command "Add" "Add" ~target:`Status
+      ["dcn"; Ip.string_of_addr h.dc_ip; string_of_int h.dc_port])
     hname
     (Ip.string_of_addr h.dc_ip) h.dc_port
     h.dc_nusers hinfo
@@ -231,10 +238,7 @@ let user_print user num o =
     (html_mods_cntr ()) num user.user_nick utype user.user_myinfo.slots hubs user.user_myinfo.mode
     (size_of_int64 user.user_myinfo.sharesize) state user.user_myinfo.description clients servers
     (if not hasmynick && (servers > 0) then  (* is connected to any servers with us *)
-       (Printf.sprintf "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-       onMouseOut=\\\"mOut(this);\\\" title=\\\"Download user filelist\\\"
-       onClick=\\\"parent.fstatus.location.href='submit?q=dcloadfilelist+%s'\\\"\\>Get List\\</td\\>"
-       user.user_nick )
+       td_command "Get List" "Download user filelist" ~target:`Status ["dcloadfilelist"; user.user_nick]
      else begin
        let txt =
          if hasmynick then "Me"
@@ -243,11 +247,9 @@ let user_print user num o =
        Printf.sprintf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" txt
      end ) 
     (if not hasmynick then (* not me  *)
-       (Printf.sprintf "\\<td class=\\\"srb\\\" %sonMouseOver=\\\"mOvr(this);\\\"
-       onMouseOut=\\\"mOut(this);\\\" title=\\\"Open message window to this user\\\"
-       onClick=\\\"parent.output.location.href='submit?q=dcmessages+%s'\\\"\\>Open chat\\</td\\>"
-       (if messages then "style=\\\"text-decoration:blink\\\" " else "") user.user_nick ) 
-     else "\\<td class=\\\"sr\\\"\\>\\</td\\>" )
+       td_command "Open chat" "Open message window to this user" ~blink:messages ["dcmessages"; user.user_nick]
+     else 
+       "\\<td class=\\\"sr\\\"\\>\\</td\\>" )
      (size_of_int64 user.user_uploaded) (size_of_int64 user.user_downloaded) supports
   end else 
     Printf.bprintf buf "[%5d] %-20s %8s %20s\n" num user.user_nick utype state
@@ -287,23 +289,14 @@ let hub_print s num o =
     %s\\</tr\\>\n"
     (html_mods_cntr ())
     num
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Set this server/hub autoconnection state\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcautoconnect+%s+%s'\\\"\\>%s\\</td\\>"
-     (if s.server_autoconnect then "false" else "true") sip (if s.server_autoconnect then "UnSet" else "Set") )
+    (td_command 
+      (if s.server_autoconnect then "UnSet" else "Set") 
+      "Set this server/hub autoconnection state"
+      ["dcautoconnect"; (if s.server_autoconnect then "false" else "true"); sip] )
     sname sip sport sstate 
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Click to show users for this hub only\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcusers+%s'\\\"\\>%d\\</td\\>"
-     sip susers )
+    (td_command (string_of_int susers) "Show users for this hub only" ["dcusers";sip] )
     sinfo
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" %sonMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Open this hubs chat windows\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcmessages+%s+%d'\\\"\\>Open chat\\</td\\>"
-     (if smessages then "style=\\\"text-decoration:blink\\\" " else "") sip sport)
+    (td_command "Open chat" "Open this hubs chat windows" ~blink:smessages ["dcmessages";sip;string_of_int sport])
   end else begin
     Printf.bprintf buf "[%5d] %20s %25s:%-10d Users:%-8d %20s\n"
       num
@@ -376,11 +369,8 @@ let client_print name client num o =
     \\<td class=\\\"sr\\\" \\>%s\\</td\\>
     \\<td class=\\\"sr\\\" \\>%s\\</td\\>\\</tr\\>\n"
     (html_mods_cntr ()) num
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Remove client\\\"
-     onClick=\\\"parent.fstatus.location.href='submit?q=dcremclient+%d'\\\"\\>Rem\\</td\\>"
-     (client_num (as_client client.client_client)) )
+    (td_command "Rem" "Remove client" ~target:`Status 
+      ["dcremclient"; string_of_int (client_num (as_client client.client_client))] )
     name ip port state conn error fil
   end else 
     Printf.bprintf buf "[%5d] %25s %25s:%-10d S:%15s C:%15s F:%15s\n" 
@@ -437,16 +427,8 @@ let file_print file num o =
     %s\\</tr\\>\n"
     (html_mods_cntr ()) num file.file_name file.file_file.impl_file_size 
     (html_show_file file) (List.length file.file_clients) file.file_autosearch_count
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Find new client for this file by TTH\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcfindsource+%s'\\\"\\>Find TTH\\</td\\>"
-     file.file_unchecked_tiger_root )
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Find new client for this file by similar name\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcfindsource+%s'\\\"\\>Find similar\\</td\\>"
-     !fname )
+    (td_command "Find TTH" "Find new client for this file by TTH" ["dcfindsource"; file.file_unchecked_tiger_root])
+    (td_command "Find similar" "Find new client for this file by similar name" ["dcfindsource"; !fname])
   end else
     Printf.bprintf buf "[%5d] %40s %-15Ld %5d\n"
       num file.file_name file.file_file.impl_file_size (List.length file.file_clients)
@@ -491,14 +473,11 @@ let filelist_print fname line o =
     Printf.bprintf buf "
     \\<tr class=\\\"dl-%d\\\"\\>
     \\<td class=\\\"srb\\\" \\>%d\\</td\\>
-    %s"
+    %s
+    \\</tr\\>\n"
     (html_mods_cntr ())
     line
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Click to open filelist\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcshowfilelist+%s'\\\"\\>%s\\</td\\>\\</tr\\>\n"
-       fname fname);
+    (td_command fname "Open filelist" ["dcshowfilelist"; fname])
   end else begin
     Printf.bprintf buf "[%5d] %s\n" line fname
   end
@@ -590,14 +569,11 @@ let filelist_file_print is_file spaces username dir fname fsize ftth line o =
     (html_mods_cntr ())
     line
     (if is_file then
-      (Printf.sprintf
-       "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-       onMouseOut=\\\"mOut(this);\\\" title=\\\"Click to start loading \\\"
-       onClick=\\\"parent.fstatus.location.href='submit?q=dcloadfile+%s+%s+%s+%s+%s'\\\"\\>%s%s\\</td\\>"
-          username ftth !sdir !sname fsize spaces fname )
-                else
-       (Printf.sprintf "\\<td class=\\\"srb\\\" \\>\\<b\\>%s%s\\</b\\>\\</td\\>" spaces fname)
-  )
+       td_command (spaces^fname) "Start downloading" ~target:`Status
+         ["dcloadfile"; username; ftth; !sdir; !sname; fsize]
+     else
+       Printf.sprintf "\\<td class=\\\"srb\\\" \\>\\<b\\>%s%s\\</b\\>\\</td\\>" spaces fname
+    )
     fsize
     ftth
   end else begin
