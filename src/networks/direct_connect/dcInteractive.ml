@@ -834,7 +834,7 @@ let commands = [
           html_mods_td buf [
             (empty_string, "sr", Date.simple (BasicSocket.date_of_int t));
             (empty_string, "sr", f);
-            (empty_string, "srw", msg) ];
+            (empty_string, "srw", String2.replace msg '\r' "\\<br/\\>") ];
           Printf.bprintf buf "\\</tr\\>"
       end else begin
         Printf.bprintf buf "\n%s [%s] : %s\n" (Date.simple (BasicSocket.date_of_int t)) f msg
