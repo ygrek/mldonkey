@@ -881,7 +881,7 @@ module To = struct
     message : string;
       }
     let parse s = 
-    if ((String.length s) > 1000) then begin
+    if ((String.length s) > 2048) then begin
       lprintf_nl "Overlength $To: (%s)" (shorten_string s 50);
           raise Not_found
     end else begin
