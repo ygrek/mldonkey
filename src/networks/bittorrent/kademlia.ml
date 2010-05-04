@@ -44,10 +44,15 @@ let show_bucket b =
 
 let show_table = Array.iter show_bucket 
 
+let h2s h =
+  let s = H.direct_to_string h in
+  assert (String.length s = H.length);
+  s
+
 type cmp = LT | EQ | GT
 
 let cmp id1 id2 = 
-  match String.compare (H.direct_to_string id1) (H.direct_to_string id2) with
+  match String.compare (h2s id1) (h2s id2) with
   | -1 -> LT
   | 0 -> EQ
   | 1 -> GT
@@ -83,8 +88,7 @@ let last =
 open Big_int
 
 let big_int_of_hash h =
-  let s = H.direct_to_string h in
-  assert (String.length s = H.length);
+  let s = h2s h in
   let n = ref zero_big_int in
   for i = 0 to String.length s - 1 do
     n := add_int_big_int (Char.code s.[i]) (mult_int_big_int 256 !n)
@@ -112,7 +116,14 @@ let split lo hi =
   let mid = div_big_int (add_big_int (h2n lo) (h2n hi)) (big_int_of_int 2) in
   n2h mid 
 
-let distance h1 h2 = abs_big_int (sub_big_int (h2n h1) (h2n h2))
+let distance h1 h2 =
+  let s1 = h2s h1 and s2 = h2s h2 in
+  let d = ref zero_big_int in
+  for i = 0 to H.length - 1 do
+    let x = Char.code s1.[i] lxor Char.code s2.[i] in
+    d := add_int_big_int x (mult_int_big_int 256 !d)
+  done;
+  !d
 
 let () =
   print_endline (show_id H.null);
@@ -134,7 +145,8 @@ let () =
   assert (n2h (h2n H.null) = H.null);
   assert (compare_big_int (h2n H.null) zero_big_int = 0);
   assert (cmp (split H.null last) middle = EQ);
-  assert (eq_big_int (distance middle' middle) unit_big_int);
+  assert (eq_big_int (distance H.null last) (pred_big_int (power_int_positive_int 2 160)));
+  assert (eq_big_int (distance middle' middle) (pred_big_int (power_int_positive_int 2 160)));
   ()
 
 let now = Unix.gettimeofday ()
