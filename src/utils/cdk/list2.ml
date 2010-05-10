@@ -116,3 +116,7 @@ let shuffle list =
     a.(p) <- tmp;
   done;
   Array.to_list a
+
+let filter_map f =
+  List.fold_left (fun acc x -> match f x with Some y -> y :: acc | None -> acc) []
+

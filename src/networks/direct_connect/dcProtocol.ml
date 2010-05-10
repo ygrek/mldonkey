@@ -133,11 +133,11 @@ module SimpleNickList = functor (M: sig val cmd : string end) -> struct
     let list = String2.split_simplify t '$' in
     let list = List.rev_map (fun nick -> dc_to_utf nick) list in
     list
-      let print t = 
+  let print t = 
     lprintf "%s list ( " M.cmd;
     List.iter (fun s -> lprintf "%s " s) t;
     lprintf_nl " )"
-      let write buf t = 
+  let write buf t = 
     Buffer.add_char buf ' ';
     List.iter (fun nick -> Printf.bprintf buf "%s %s$$" M.cmd (utf_to_dc nick)) t
   end
@@ -926,27 +926,28 @@ module UGetBlock = struct
     Printf.bprintf buf "$Get %Ld$ %Ld %s" t.upos t.ubytes t.ufilename; (*UTF8*)
     if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf)
   end
-    
-module UserIP = struct (* TODO *)
+
+module UserIP = struct
   type t = string list
-  let parse s = String2.split_simplify s '$' 
+
+  let parse s = String2.split_simplify s '$'
+
+  let parse_nameip =
+    List2.filter_map (fun s ->
+      match String2.split s ' ' with
+      | [name;addr] -> Some (dc_to_utf name, Ip.addr_of_string addr)
+      | _ -> None)
+
   let print st = 
-    lprintf "UserIP list ("; 
-    List.iter (fun s -> lprintf "%s " s) st;
-    lprintf_nl " )" 
-  let write buf st = 
-    lprintf_nl "UserIP:";
-    Buffer.add_char buf ' ';
-    let rec iter s =
-      ( match s with
-      | [] -> lprintf_nl "UserIP: ()"
-      | hd :: [] -> lprintf_nl "UserIP: hd :: []  hd=%s" hd; Buffer.add_string buf hd
-      | hd :: tl ->  lprintf_nl "UserIP: hd :: tl  hd=%s" hd; Printf.bprintf buf "%s$$" hd; iter tl )
-    in 
-    iter st
+    lprintf "UserIP list (";
+    List.iter (fun s -> lprintf "%s " (dc_to_utf s)) st;
+    lprintf_nl ")"
+
+  let write buf st =
+    Printf.bprintf buf "$UserIP %s" (String.concat "$$" (List.map utf_to_dc st))
   end
 
-(* Message type definitions and basic parsing *)  
+(* Message type definitions and basic parsing *)
 type t =
   | AdcGetReq of AdcGet.t
   | AdcSndReq of AdcSnd.t
@@ -1100,7 +1101,7 @@ let dc_write buf m =
   | UnknownReq t -> Buffer.add_string buf t
   | UGetBlockReq t -> UGetBlock.write buf t
   | UserCommandReq -> ()
-  | UserIPReq t -> Buffer.add_string buf "$UserIP"; UserIP.write buf t      
+  | UserIPReq t -> UserIP.write buf t
   | ValidateNickReq s -> Printf.bprintf buf "$ValidateNick %s" s
   | ValidateDenideReq s -> Buffer.add_string buf s
   | VersionReq s -> Printf.bprintf buf "$Version %s" s )
