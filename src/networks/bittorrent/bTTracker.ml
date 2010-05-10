@@ -210,7 +210,7 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
         new_tracker info_hash
   in
 
-  let _ =
+  let peer =
     try
       let peer =
         Hashtbl.find tracker.tracker_table peer_id
@@ -250,6 +250,8 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
         void_message
     (* Reply with clients that could not connect to this tracker otherwise *)
     | "stopped" ->
+        Hashtbl.remove tracker.tracker_table peer_id;
+        Fifo.remove tracker.tracker_peers peer;
         if peer_left > 0 then
           tracker.tracker_incomplete <- tracker.tracker_incomplete - 1
         else
