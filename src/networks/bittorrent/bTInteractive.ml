@@ -779,7 +779,7 @@ let try_share_file torrent_diskname =
     if !verbose_share then 
       lprintf_file_nl (as_file file) "Sharing file %s" filename;
     BTClients.talk_to_tracker file false;
-    Some filename
+    `Ok torrent_diskname
   with
   | Not_found ->
       (* if the torrent is still there while the file is gone, remove the torrent *)
@@ -788,16 +788,18 @@ let try_share_file torrent_diskname =
         Filename.concat old_directory
           (Filename.basename torrent_diskname)
       in
-      (try
+      begin try
           Unix2.rename torrent_diskname new_torrent_diskname;
-          Some new_torrent_diskname
-        with _ ->
-          (lprintf_nl "Failed to rename %s to %s" torrent_diskname new_torrent_diskname);
-           None
-          )
+          `Ok new_torrent_diskname
+      with _ ->
+          let msg = Printf.sprintf "Failed to rename %S to %S" torrent_diskname new_torrent_diskname in
+          lprintf_nl "%s" msg;
+          `Err msg
+      end
   | e ->
-      lprintf_nl "Cannot share torrent %s for %s" torrent_diskname (Printexc2.to_string e);
-      None
+      let msg = Printf.sprintf "Cannot share %S - exn %s" torrent_diskname (Printexc2.to_string e) in
+      lprintf_nl "%s" msg;
+      `Err msg
 
 (* Call one minute after start, and then every 20 minutes. Should
   automatically contact the tracker. *)
@@ -1041,10 +1043,10 @@ let compute_torrent filename announce comment =
   let is_private = 0 in
   let file_id = BTTorrent.generate_torrent announce torrent comment (Int64.of_int is_private) filename in
   match try_share_file torrent with 
-  | None -> failwith "Cannot share file"
-  | Some path -> 
-    Filename.concat (Sys.getcwd ()) path,
-    try `Ok (BTTracker.track_torrent basename file_id) with exn -> `Exn (Printexc2.to_string exn)
+  | `Err msg -> failwith msg
+  | `Ok torrent_path ->
+    Filename.concat (Sys.getcwd ()) torrent_path,
+    try `Ok (BTTracker.track_torrent basename file_id) with exn -> `Err (Printexc2.to_string exn)
 
 let text fmt = Printf.ksprintf (fun s -> `Text s) fmt
 let link name url = `Link (name,url)
@@ -1103,7 +1105,7 @@ let commands =
           `Break;
           (match url with
           | `Ok url -> link "Download" url
-          | `Exn s -> text "Not tracked : %s" s);
+          | `Err s -> text "Not tracked : %s" s);
           `Break
         ]
       with 
