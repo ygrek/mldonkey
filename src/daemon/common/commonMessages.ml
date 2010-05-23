@@ -449,6 +449,17 @@ function _rObj (s,ar) {
  this.s = s;
  this.ar = ar;
 }
+// http://slayeroffice.com/code/functions/so_getText.html
+function so_getText(obj) {
+	if(obj.textContent) return obj.textContent;
+	if (obj.nodeType == 3) return obj.data;
+	var txt = new Array(), i=0;
+	while(obj.childNodes[i]) {
+		txt[txt.length] = so_getText(obj.childNodes[i]);
+		i++;
+	}
+  return txt.join(\"\");
+}
 function _tabCreateArray(obj,st,total){
 	var tb=obj.parentNode.parentNode;
 	var rw=obj.parentNode.parentNode.rows;
@@ -456,10 +467,10 @@ function _tabCreateArray(obj,st,total){
 	var _tabS=new Array(_nRows-1);
 	var _nCells = rw.item(0).cells.length;
 	for(var i=1;i<_nRows;i++){
-	var _raw = rw.item(i).cells.item(obj.cellIndex).innerHTML;
+	var _raw = so_getText(rw.item(i).cells.item(obj.cellIndex)); //.innerHTML;
 	if (st==1) {
             var _regexp = /[TGMk]$/;
-            _raw = _raw.replace(/\\(/gi, \"\");	  
+            _raw = _raw.replace(/\\(/gi, \"\");
             if (_raw.indexOf(\":\") != -1) { _raw = _raw.substring(2,99); }
             if (_regexp.test(_raw)) {
               switch (_raw.charAt(_raw.search(_regexp))) {
