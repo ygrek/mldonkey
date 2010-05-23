@@ -289,7 +289,12 @@ let local_login () =
     
 (* Shorten string to some maximum length *)
 let shorten_string s length =
-  if (String.length s > length) then String.sub s 0 (length-1)
+  if length < String.length s then
+    try
+      let n = Charset.utf8_nth s length in
+      String.sub s 0 n
+    with
+      _ -> s (* relies on bounds checking! FIXME? *)
   else s 
 
 (* Replace one string to another string from string *)
@@ -497,6 +502,17 @@ let new_upfile dcsh fd =
   } in
   file
 
+(* FIXME review *)
+let safe_filename s =
+  let s = String.copy s in
+  for i = 0 to String.length s - 1 do
+    match s.[i] with
+    | c when Char.code c < 32 -> s.[i] <- '_'
+    | '.' | '/' | '\\' | ':' -> s.[i] <- '_'
+    | _ -> ()
+  done;
+  s
+
 (* Return existing file or create new one *)     
 let new_file tiger_root (directory:string) (filename:string) (file_size:int64) =
   (try
@@ -511,12 +527,9 @@ let new_file tiger_root (directory:string) (filename:string) (file_size:int64) =
       if !verbose_download then lprintf_nl "File exists: (%s) (%s)" f.file_directory f.file_name;
       f 
   with _ ->
-      let temp_filename =
+      let temp_filename = safe_filename
         (match tiger_root with
-        | "" ->
-          let dname = ref (String.copy directory) in
-          String2.replace_char !dname '/' '_';  
-          Printf.sprintf "DC_%s_%s" !dname filename  
+        | "" -> Printf.sprintf "DC_%s_%s" directory filename
         | _ -> Printf.sprintf "DC_%s" tiger_root )
       in 
       let fullname = Filename.concat !!temp_directory temp_filename in

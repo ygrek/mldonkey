@@ -55,13 +55,13 @@ let lprintf_nl fmt =
     
 (* Start new dowload from result *)
 let start_new_download u tth fdir fname fsize =
-    (try
+    try
       ignore (Hashtbl.find dc_shared_files_by_hash tth);
       if !verbose_download then lprintf_nl "Shared file with same hash exists (%s) (%s)" fname tth;
       None 
     with _ ->
         let f = new_file tth fdir fname fsize in   (* ...create new file *)
-        (match (file_state f) with
+        match (file_state f) with
         | FileDownloaded | FileShared -> if !verbose_download then lprintf_nl "File already downloaded"; None
         | FileDownloading -> if !verbose_download then lprintf_nl "File being downloaded"; None
         | FilePaused -> if !verbose_download then lprintf_nl "File paused"; None
@@ -69,27 +69,57 @@ let start_new_download u tth fdir fname fsize =
             if !verbose_download then lprintf_nl "File state invalid"; None
         | FileNew -> 
             file_add f.file_file FileDownloading;
-            let c = new_client_to_user_with_file u f in
+            match u with
+            | None -> Some f
+            | Some user ->
+              let c = new_client_to_user_with_file user f in
             c.client_state <- DcDownloadWaiting f;
-            if (can_user_start_downloading u) then begin
-              u.user_state <- TryingToSendFirstContact;
+              if (can_user_start_downloading user) then begin
+                user.user_state <- TryingToSendFirstContact;
               c.client_state <- DcDownloadConnecting (f,current_time ());
               ignore (DcClients.try_connect_client c)
             end;
-            Some f ) )
+              Some f
                     
 (* Start downloading of a file by user selection from resultlist *) 
 let start_result_download r =
   let filename = List.hd r.result_names in
   let rinfo = Hashtbl.find dc_result_info r.result_num in
-  let newfile = start_new_download rinfo.user rinfo.tth rinfo.directory filename r.result_size in
+  let newfile = start_new_download (Some rinfo.user) rinfo.tth rinfo.directory filename r.result_size in
   (match newfile with 
   | Some f -> as_file f.file_file (* return CommonFile.file *) 
   | _ -> raise Not_found )
 
+let exn_catch f x = try `Ok (f x) with exn -> `Exn exn
+let opt_default default = function None -> default | Some v -> v
+let filter_map f l = List.fold_left (fun acc x -> match f x with Some y -> y :: acc | None -> acc) [] l
+
+let parse_url url user group =
+  match exn_catch parse_magnet_url url with
+  | `Exn _ -> "Not a magnet url", false
+  | `Ok magnet ->
+    if !verbose then
+      lprintf_nl "Got magnet url %S" url;
+    (* TODO multiple TTHs, multiple xt, automatic merge of downloads from different networks (?!) *) 
+    match filter_map (function TigerTree tth -> Some tth | _ -> None) magnet#uids with
+    | [] -> "No TTH found in magnet url", false
+    | tth::_ ->
+      let _ = start_new_download None (TigerTree.to_string tth) "" magnet#name (opt_default 0L magnet#size) in
+      magnet#name, true
+
 (* register DC commands *)
 let register_commands list =
   register_commands (List2.tail_map (fun (n,f,h) -> (n, "Direct Connect", f,h)) list)
+
+let td_command text title ?(blink=false) ?(target=`Output) cmd =
+  Printf.sprintf
+     "\\<td class=\\\"srb\\\" %sonMouseOver=\\\"mOvr(this);\\\"
+     onMouseOut=\\\"mOut(this);\\\" title=\\\"%s\\\"
+     onClick=\\\"parent.%s.location.href='submit?q=%s'\\\"\\>%s\\</td\\>"
+     (if blink then "style=\\\"text-decoration:blink\\\" " else "")
+     title (match target with `Output -> "output" | `Status -> "fstatus") 
+     (String.concat "+" cmd) (* Url.encode ? *)
+     text
 
 (* Print DC hubs header *)
 let dc_hublist_print_html_header buf ext =
@@ -104,10 +134,8 @@ let dc_hublist_print_html_header buf ext =
 (* print in html or txt list of hubs *)
 let hublist_print h hnum o =
   let buf = o.conn_buf in
-  let hname = if (String.length h.dc_name > 50) then String.sub h.dc_name 0 49
-       else h.dc_name in
-  let hinfo = if (String.length h.dc_info > 50) then String.sub h.dc_info 0 49
-       else h.dc_info in
+  let hname = shorten_string h.dc_name 50 in
+  let hinfo = shorten_string h.dc_info 50 in
   if use_html_mods o then begin
     Printf.bprintf buf "
     \\<tr class=\\\"dl-%d\\\"\\>
@@ -119,11 +147,8 @@ let hublist_print h hnum o =
     \\<td width=\\\"100%%\\\" class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>\n"
     (html_mods_cntr ())
     hnum
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Add\\\"
-     onClick=\\\"parent.fstatus.location.href='submit?q=dcn+%s+%d'\\\"\\>Add\\</td\\>"
-     (Ip.string_of_addr h.dc_ip) h.dc_port)
+    (td_command "Add" "Add" ~target:`Status
+      ["dcn"; Ip.string_of_addr h.dc_ip; string_of_int h.dc_port])
     hname
     (Ip.string_of_addr h.dc_ip) h.dc_port
     h.dc_nusers hinfo
@@ -140,21 +165,21 @@ let hublist_print h hnum o =
 let dc_user_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
                 ( "1", "srh", "User number", "#" );
-                ( "1", "srh", "User name", "Name" );
-                ( "1", "srh", "User type", "Type" );
+                ( "0", "srh", "User name", "Name" );
+                ( "0", "srh", "User type", "Type" );
                 ( "1", "srh", "Users slots (all/free)", "Slots" );
                 ( "1", "srh", "Users connected hubs (Normal/Vipped/Opped)", "Hubs" );
-                ( "1", "srh", "Users mode", "Mode" );
+                ( "0", "srh", "Users mode", "Mode" );
                 ( "1", "srh", "Users shared size", "Shared" );
-                ( "1", "srh", "User state", "State" );
-                ( "1", "srh", "User description field", "Description" );
+                ( "0", "srh", "User state", "State" );
+                ( "0", "srh", "User description field", "Description" );
                 ( "1", "srh", "User clients number", "Clients" );
                 ( "1", "srh", "Users servers number", "Servers" );
                 ( "0", "srh", "Download this clients filelist", "Filelist" );
                 ( "0", "srh", "Open chat window with this user. Blinking tells there are new unread messages", "Chat");
                 ( "1", "srh", "User total uploaded bytes", "Up" );
                 ( "1", "srh", "User total downloaded bytes", "Down" );
-                ( "1", "srh", "User client supports", "Supports" ); ];
+                ( "0", "srh", "User client supports", "Supports" ); ];
     ()
 
 (* print in html or txt list of users *)
@@ -213,10 +238,7 @@ let user_print user num o =
     (html_mods_cntr ()) num user.user_nick utype user.user_myinfo.slots hubs user.user_myinfo.mode
     (size_of_int64 user.user_myinfo.sharesize) state user.user_myinfo.description clients servers
     (if not hasmynick && (servers > 0) then  (* is connected to any servers with us *)
-       (Printf.sprintf "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-       onMouseOut=\\\"mOut(this);\\\" title=\\\"Download user filelist\\\"
-       onClick=\\\"parent.fstatus.location.href='submit?q=dcloadfilelist+%s'\\\"\\>Get List\\</td\\>"
-       user.user_nick )
+       td_command "Get List" "Download user filelist" ~target:`Status ["dcloadfilelist"; user.user_nick]
      else begin
        let txt =
          if hasmynick then "Me"
@@ -225,11 +247,9 @@ let user_print user num o =
        Printf.sprintf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>" txt
      end ) 
     (if not hasmynick then (* not me  *)
-       (Printf.sprintf "\\<td class=\\\"srb\\\" %sonMouseOver=\\\"mOvr(this);\\\"
-       onMouseOut=\\\"mOut(this);\\\" title=\\\"Open message window to this user\\\"
-       onClick=\\\"parent.output.location.href='submit?q=dcmessages+%s'\\\"\\>Open chat\\</td\\>"
-       (if messages then "style=\\\"text-decoration:blink\\\" " else "") user.user_nick ) 
-     else "\\<td class=\\\"sr\\\"\\>\\</td\\>" )
+       td_command "Open chat" "Open message window to this user" ~blink:messages ["dcmessages"; user.user_nick]
+     else 
+       "\\<td class=\\\"sr\\\"\\>\\</td\\>" )
      (size_of_int64 user.user_uploaded) (size_of_int64 user.user_downloaded) supports
   end else 
     Printf.bprintf buf "[%5d] %-20s %8s %20s\n" num user.user_nick utype state
@@ -269,23 +289,14 @@ let hub_print s num o =
     %s\\</tr\\>\n"
     (html_mods_cntr ())
     num
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Set this server/hub autoconnection state\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcautoconnect+%s+%s'\\\"\\>%s\\</td\\>"
-     (if s.server_autoconnect then "false" else "true") sip (if s.server_autoconnect then "UnSet" else "Set") )
+    (td_command 
+      (if s.server_autoconnect then "UnSet" else "Set") 
+      "Set this server/hub autoconnection state"
+      ["dcautoconnect"; (if s.server_autoconnect then "false" else "true"); sip] )
     sname sip sport sstate 
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Click to show users for this hub only\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcusers+%s'\\\"\\>%d\\</td\\>"
-     sip susers )
+    (td_command (string_of_int susers) "Show users for this hub only" ["dcusers";sip] )
     sinfo
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" %sonMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Open this hubs chat windows\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcmessages+%s+%d'\\\"\\>Open chat\\</td\\>"
-     (if smessages then "style=\\\"text-decoration:blink\\\" " else "") sip sport)
+    (td_command "Open chat" "Open this hubs chat windows" ~blink:smessages ["dcmessages";sip;string_of_int sport])
   end else begin
     Printf.bprintf buf "[%5d] %20s %25s:%-10d Users:%-8d %20s\n"
       num
@@ -299,13 +310,13 @@ let hub_print s num o =
 let dc_client_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
                 ( "1", "srh", "Client number", "#" );
-                ( "1", "srh", "Remove Client", "Rem" );
-                ( "1", "srh", "Clientname", "Name" );
-                ( "1", "srh", "Client ip/port", "Ip:Port" );
-                ( "1", "srh", "Client state", "State" );
-                ( "1", "srh", "Client connection", "Conn" );
-                ( "1", "srh", "Client last error/count", "Error" );
-                ( "1", "srh", "Client file", "File" ); ];
+                ( "0", "srh", "Remove Client", "Rem" );
+                ( "0", "srh", "Client name", "Name" );
+                ( "0", "srh", "Client ip/port", "Ip:Port" );
+                ( "0", "srh", "Client state", "State" );
+                ( "0", "srh", "Client connection", "Conn" );
+                ( "0", "srh", "Client last error/count", "Error" );
+                ( "0", "srh", "Client file", "File" ); ];
             ()
       
 (* print in html or txt list of clients *)
@@ -358,11 +369,8 @@ let client_print name client num o =
     \\<td class=\\\"sr\\\" \\>%s\\</td\\>
     \\<td class=\\\"sr\\\" \\>%s\\</td\\>\\</tr\\>\n"
     (html_mods_cntr ()) num
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Remove client\\\"
-     onClick=\\\"parent.fstatus.location.href='submit?q=dcremclient+%d'\\\"\\>Rem\\</td\\>"
-     (client_num (as_client client.client_client)) )
+    (td_command "Rem" "Remove client" ~target:`Status 
+      ["dcremclient"; string_of_int (client_num (as_client client.client_client))] )
     name ip port state conn error fil
   end else 
     Printf.bprintf buf "[%5d] %25s %25s:%-10d S:%15s C:%15s F:%15s\n" 
@@ -372,14 +380,32 @@ let client_print name client num o =
 let dc_file_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
                 ( "1", "srh", "File number", "#" );
-                ( "1", "srh", "File name/path", "File" );
+                ( "0", "srh", "File name/path", "File" );
                 ( "1", "srh", "File size", "Size" );
-                ( "1", "srh", "TTH Hash", "Hash" ); 
+                ( "0", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" ); 
                 ( "1", "srh", "Files clients number (sources)", "Clients" );
                 ( "1", "srh", "Autosearches done", "Searches" );
-                ( "1", "srh", "Find new source by tth", "Find TTH" );
-                ( "1", "srh", "Find new source by similar name context", "Find similar" );  ];
+                ( "0", "srh", "Find new source by tth", "Find TTH" );
+                ( "0", "srh", "Find new source by similar name context", "Find similar" );  ];
     ()  
+
+let html_show_tth file size tth =
+  begin match exn_catch TigerTree.of_string tth with
+  | `Exn _ -> ""
+  | `Ok hash ->
+    let magnet = object 
+      method name = Filename.basename file
+      method size = match size with 0L -> None | _ -> Some size (* do not report size if not available *)
+      method uids = [TigerTree hash]
+    end in
+    Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>" (show_magnet_url magnet) tth
+  end
+
+let html_show_shared dcsh =
+  html_show_tth dcsh.dc_shared_fullname dcsh.dc_shared_size dcsh.dc_shared_tiger_root
+
+let html_show_file file =
+  html_show_tth file.file_name file.file_file.impl_file_size file.file_unchecked_tiger_root
 
 (* print in html or txt list of files *)
 let file_print file num o =
@@ -400,17 +426,9 @@ let file_print file num o =
     %s
     %s\\</tr\\>\n"
     (html_mods_cntr ()) num file.file_name file.file_file.impl_file_size 
-    (file.file_unchecked_tiger_root) (List.length file.file_clients) file.file_autosearch_count
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Find new client for this file by TTH\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcfindsource+%s'\\\"\\>Find TTH\\</td\\>"
-     file.file_unchecked_tiger_root )
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Find new client for this file by similar name\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcfindsource+%s'\\\"\\>Find similar\\</td\\>"
-     !fname )
+    (html_show_file file) (List.length file.file_clients) file.file_autosearch_count
+    (td_command "Find TTH" "Find new client for this file by TTH" ["dcfindsource"; file.file_unchecked_tiger_root])
+    (td_command "Find similar" "Find new client for this file by similar name" ["dcfindsource"; !fname])
   end else
     Printf.bprintf buf "[%5d] %40s %-15Ld %5d\n"
       num file.file_name file.file_file.impl_file_size (List.length file.file_clients)
@@ -419,9 +437,9 @@ let file_print file num o =
 let dc_shared_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
                 ( "1", "srh", "File number", "#" );
-                ( "1", "srh", "Shared file codedname", "Codedname" );
+                ( "0", "srh", "Shared file name", "Name" );
                 ( "1", "srh", "Shared file size", "Size" );
-                ( "1", "srh", "TTH Hash", "Hash" );
+                ( "0", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" );
                 (*( "1", "srh", "Shared files Tiger tree array length", "TTree #" );*) ];
     ()
 
@@ -437,57 +455,10 @@ let shared_print dcsh num o =
     \\<td class=\\\"srb\\\" \\>%Ld\\</td\\>
     \\<td class=\\\"srb\\\" \\>%s\\</td\\>\\</tr\\>\n"
     (html_mods_cntr ()) num dcsh.dc_shared_codedname dcsh.dc_shared_size
-    dcsh.dc_shared_tiger_root (*(Array.length dcsh.dc_shared_tiger_array)*)
+    (html_show_shared dcsh)
   end else
     Printf.bprintf buf "[%5d] %40s %-15Ld %24s\n"
       num dcsh.dc_shared_codedname dcsh.dc_shared_size dcsh.dc_shared_tiger_root 
-     (*(Array.length dcsh.dc_shared_tiger_array)*)
-
-type dc_int_groups = G_users|G_hubs|G_clients|G_files|G_shared
-
-(* register users,clients,files *)
-let dc_list o group_type group_name =
-    let buf = o.conn_buf in
-    let num = ref 1 in
-    html_mods_cntr_init ();
-    if use_html_mods o then begin 
-      (try 
-        (match group_type with
-         | G_users -> 
-             let new_messages_list = ref [] in       (* lets order users with unread messages to the top *)
-             let others_list = ref [] in
-             Hashtbl.iter (fun _ user ->
-               if user_has_new_messages user then new_messages_list := user :: !new_messages_list
-               else others_list := user :: !others_list
-             ) users_by_name;
-             dc_user_print_html_header buf;
-             List.iter (fun user -> user_print user !num o; incr num) !new_messages_list;
-             List.iter (fun user -> user_print user !num o; incr num) !others_list;
-         | G_hubs ->
-             dc_hub_print_html_header buf;
-             Hashtbl.iter (fun _ s -> hub_print s !num o; incr num) servers_by_ip
-             (*List.iter (fun s -> hub_print s !num o; incr num) !connected_servers*)
-         | G_clients ->
-             dc_client_print_html_header buf;
-             List.iter (fun c ->
-               (match c.client_name with
-                 | Some n -> client_print n c !num o; incr num
-                 | None -> () )
-             ) !clients_list
-         | G_files ->
-             dc_file_print_html_header buf;
-             List.iter (fun file -> file_print file !num o; incr num) !current_files;
-         | G_shared ->
-             dc_shared_print_html_header buf;
-             Hashtbl.iter (fun _ dcsh -> shared_print dcsh !num o; incr num) dc_shared_files_by_codedname;
-             Printf.bprintf buf "\\</table\\>\\</div\\>";
-             num := 1;
-             dc_shared_print_html_header buf;
-             Hashtbl.iter (fun _ dcsh -> shared_print dcsh !num o; incr num) dc_shared_files_by_hash; )
-      with e -> lprintf_nl "Exception %s in printing %s" (Printexc2.to_string e) group_name );
-      Printf.bprintf buf "\\</table\\>\\</div\\>";
-    end;
-    empty_string
 
 (* Print DC filelist header *)
 let dc_filelist_print_html_header buf =
@@ -502,24 +473,70 @@ let filelist_print fname line o =
     Printf.bprintf buf "
     \\<tr class=\\\"dl-%d\\\"\\>
     \\<td class=\\\"srb\\\" \\>%d\\</td\\>
-    %s"
+    %s
+    \\</tr\\>\n"
     (html_mods_cntr ())
     line
-    (Printf.sprintf
-     "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-     onMouseOut=\\\"mOut(this);\\\" title=\\\"Click to open filelist\\\"
-     onClick=\\\"parent.output.location.href='submit?q=dcshowfilelist+%s'\\\"\\>%s\\</td\\>\\</tr\\>\n"
-       fname fname);
+    (td_command fname "Open filelist" ["dcshowfilelist"; fname])
   end else begin
     Printf.bprintf buf "[%5d] %s\n" line fname
   end
+
+type dc_int_groups = G_users|G_hubs|G_clients|G_files|G_shared|G_filelists
+
+(* register users,clients,files *)
+let dc_list o group_type group_name =
+    let buf = o.conn_buf in
+    let num = ref 1 in
+    html_mods_cntr_init ();
+    let html f = if use_html_mods o then f buf else () in
+    begin try
+         begin match group_type with
+         | G_users -> 
+             let new_messages_list = ref [] in       (* lets order users with unread messages to the top *)
+             let others_list = ref [] in
+             Hashtbl.iter (fun _ user ->
+               if user_has_new_messages user then new_messages_list := user :: !new_messages_list
+               else others_list := user :: !others_list
+             ) users_by_name;
+             html dc_user_print_html_header;
+             List.iter (fun user -> user_print user !num o; incr num) !new_messages_list;
+             List.iter (fun user -> user_print user !num o; incr num) !others_list;
+         | G_hubs ->
+             html dc_hub_print_html_header;
+             Hashtbl.iter (fun _ s -> hub_print s !num o; incr num) servers_by_ip
+             (*List.iter (fun s -> hub_print s !num o; incr num) !connected_servers*)
+         | G_clients ->
+             html dc_client_print_html_header;
+             List.iter (fun c ->
+               (match c.client_name with
+                 | Some n -> client_print n c !num o; incr num
+                 | None -> () )
+             ) !clients_list
+         | G_files ->
+             html dc_file_print_html_header;
+             List.iter (fun file -> file_print file !num o; incr num) !current_files;
+         | G_shared ->
+             html dc_shared_print_html_header;
+             Hashtbl.iter (fun _ dcsh -> shared_print dcsh !num o; incr num) dc_shared_files_by_codedname
+         | G_filelists ->
+             html dc_filelist_print_html_header;
+             let filelist = Unix2.list_directory filelist_directory in
+             List.iter (fun fname -> filelist_print fname !num o; incr num) filelist;
+         end;
+         if use_html_mods o then 
+      Printf.bprintf buf "\\</table\\>\\</div\\>";
+      with e -> 
+        lprintf_nl "Exception %s in printing %s" (Printexc2.to_string e) group_name
+    end;
+    empty_string
 
 (* Print DC filelist files header *)
 let dc_filelist_files_print_html_header buf =
     html_mods_table_header buf "serversTable" (Printf.sprintf "servers") [
                 ( "1", "srh", "Number", "#" );
-                ( "0", "srh", "File/Firectory name", "File/Directory name" );
-                ( "0", "srh", "File Size", "Size" );
+                ( "0", "srh", "File/Directory name", "File/Directory name" );
+                ( "1", "srh", "File Size", "Size" );
                 ( "0", "srh", "Files TTH", "TTH" ) ]
 
 (* Print one line from filelist file *)  
@@ -552,13 +569,10 @@ let filelist_file_print is_file spaces username dir fname fsize ftth line o =
     (html_mods_cntr ())
     line
     (if is_file then
-      (Printf.sprintf
-       "\\<td class=\\\"srb\\\" onMouseOver=\\\"mOvr(this);\\\"
-       onMouseOut=\\\"mOut(this);\\\" title=\\\"Click to start loading \\\"
-       onClick=\\\"parent.fstatus.location.href='submit?q=dcloadfile+%s+%s+%s+%s+%s'\\\"\\>%s%s\\</td\\>"
-          username ftth !sdir !sname fsize spaces fname )
+       td_command (spaces^fname) "Start downloading" ~target:`Status
+         ["dcloadfile"; username; ftth; !sdir; !sname; fsize]
                 else
-       (Printf.sprintf "\\<td class=\\\"srb\\\" \\>\\<b\\>%s%s\\</b\\>\\</td\\>" spaces fname)
+       Printf.sprintf "\\<td class=\\\"srb\\\" \\>\\<b\\>%s%s\\</b\\>\\</td\\>" spaces fname
   )
     fsize
     ftth
@@ -585,50 +599,38 @@ let dc_info_print info data line o =
     Printf.bprintf buf "%s:  %s\n" info data
   end
 
+let show_dc_buttons o =
+  let buf = o.conn_buf in
+  let button id ?(cmd="dc"^id) ?(txt=String.capitalize id) () =
+    Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"%s\\\" name=\\\"%s\\\"
+      action=\\\"javascript:parent.output.location.href='submit?q=%s'\\\"\\>
+      \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
+      Value=\\\"%s\\\"\\>\\</td\\>\\</form\\>" id id cmd txt
+  in
+  if use_html_mods o then 
+  begin
+    Printf.bprintf buf "\\<table\\>\\<tr\\>";
+    button "users" ~cmd:"dcusers+all" ();
+    button "clients" ~cmd:"dcclients" ();
+    button "hubs" ();
+    button "shared" ();
+    button "files" ();
+    button "info" ~txt:"DC Info" ();
+    button "hublistshow" ~cmd:"dchublist" ~txt:"Show hublist" ();
+    button "filelists" ();
+    Printf.bprintf buf "\\</tr\\>\\</table\\>";
+  end
   
 (* List of commands to register *)
 let commands = [
     
   "dc", Arg_none (fun o ->
-    let buf = o.conn_buf in
-    if use_html_mods o then begin
-      Printf.bprintf buf "\\<table\\>\\<tr\\>\\<form style=\\\"margin: 0px;\\\" id=\\\"users\\\" name=\\\"users\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcusers+all'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Users\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"clients\\\" name=\\\"clients\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcclients'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Clients\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"hubs\\\" name=\\\"hubs\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dchubs'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Hubs\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"shared\\\" name=\\\"shared\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcshared'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Shared\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"files\\\" name=\\\"files\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcfiles'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Files\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"info\\\" name=\\\"info\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcinfo'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"DC Info\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"hublistshow\\\" name=\\\"hublistshow\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dchublist'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Show hublist\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"filelists\\\" name=\\\"filelists\\\"
-        action=\\\"javascript:parent.output.location.href='submit?q=dcfilelists'\\\"\\>
-        \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-        Value=\\\"Filelists\\\"\\>\\</td\\>\\</form\\>";
-      Printf.bprintf buf "\\</tr\\>\\</table\\>";
-    end else
-      Printf.bprintf buf "Received command dc\n";
-    empty_string
-  ), ": Show direct connect buttons";
+    if use_html_mods o then
+      show_dc_buttons o
+    else
+      Printf.bprintf buf "Try `?? dc` for more commands\n";
+    dc_list o G_hubs "hubs"
+  ), ": Show Direct Connect buttons";
 
   (* 'dcn address [port]'  Add a new DC server with optional port (default 411) *)
   "dcn", Arg_multiple (fun args o ->
@@ -648,11 +650,12 @@ let commands = [
   ), "<ip> [<port>] : Add a server. Default port number is 411";
 
   (* List connected hubs for chatting *)
-  "dchubs", Arg_none (fun o -> dc_list o G_hubs "hubs" 
+  "dchubs", Arg_none (fun o -> show_dc_buttons o; dc_list o G_hubs "hubs" 
   ), ": Show connected DC hubs"; 
 
   (* List all DC users *)
   "dcusers", Arg_one (fun args o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     (match args with
     | "all" -> dc_list o G_users "users"
@@ -674,19 +677,20 @@ let commands = [
   ), "<all>|<ip> :Show DC users"; 
 
   (* List all DC clients *)
-  "dcclients", Arg_none (fun o -> dc_list o G_clients "clients"
+  "dcclients", Arg_none (fun o -> show_dc_buttons o; dc_list o G_clients "clients"
   ), ": Show all DC clients"; 
 
   (* List all DC files *)
-  "dcfiles", Arg_none (fun o -> dc_list o G_files "files"
+  "dcfiles", Arg_none (fun o -> show_dc_buttons o; dc_list o G_files "files"
   ), ": Show all DC files";
 
   (* List all DC shared files *)
-  "dcshared", Arg_none (fun o -> dc_list o G_shared "shared"
+  "dcshared", Arg_none (fun o -> show_dc_buttons o; dc_list o G_shared "shared"
   ), ": Show all DC shared files. All/Hashed ";
 
-  (* 'dchubs [args]' - Show dchub list with optional filters args (max 5) *)
+  (* 'dchublist [args]' - Show dchub list with optional filters args (max 5) *)
   "dchublist", Arg_multiple (fun args o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     let filter = ref [] in
     let print_hublist () =
@@ -786,7 +790,7 @@ let commands = [
             in
             s.server_read_messages <- List.length s.server_messages;      (* messages are set as read before   *) 
             s.server_messages,                                            (* they are actually printed to user *)
-            (if (String.length s.server_name > 50) then String.sub s.server_name 0 49 else s.server_name),
+            (shorten_string s.server_name 50),
             topic
           with _ ->
               if !verbose_unexpected_messages then lprintf_nl "dcmsglog: No server with address found";
@@ -830,7 +834,7 @@ let commands = [
           html_mods_td buf [
             (empty_string, "sr", Date.simple (BasicSocket.date_of_int t));
             (empty_string, "sr", f);
-            (empty_string, "srw", msg) ];
+            (empty_string, "srw", String2.replace msg '\r' "\\<br/\\>") ];
           Printf.bprintf buf "\\</tr\\>"
       end else begin
         Printf.bprintf buf "\n%s [%s] : %s\n" (Date.simple (BasicSocket.date_of_int t)) f msg
@@ -842,6 +846,7 @@ let commands = [
   ), "<refresh> <user> | <refresh> <serverip> <serverport>";
 
   "dcmessages", Arg_multiple (fun args o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     let s,u =
       (match args with
@@ -1014,7 +1019,7 @@ msgWindow.location.reload();
         Printf.bprintf buf "Trying to download file: %s from user: %s\n" !sname uname;
         (try 
           let u = search_user_by_name uname in
-          ignore (start_new_download u tth !sdir !sname (Int64.of_string fsize))
+          ignore (start_new_download (Some u) tth !sdir !sname (Int64.of_string fsize))
         with _ -> if !verbose_download then lprintf_nl "dcloadfile: No user found" )
     | _ ->
         if !verbose_unexpected_messages then
@@ -1050,18 +1055,7 @@ msgWindow.location.reload();
     empty_string
   ), "<name> : Download filelist from user";
 
-  "dcfilelists", Arg_none (fun o -> 
-    let buf = o.conn_buf in
-    html_mods_cntr_init ();
-    let line = ref 1 in
-    if use_html_mods o then dc_filelist_print_html_header buf;
-    let filelist = Unix2.list_directory filelist_directory in
-    List.iter (fun fname ->
-      filelist_print fname !line o;
-      incr line
-    ) filelist;
-    if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
-    empty_string
+  "dcfilelists", Arg_none (fun o -> show_dc_buttons o; dc_list o G_filelists "filelists"
   ), ": List all filelists on disk";
 
   "dcremclient", Arg_one (fun args o ->
@@ -1130,13 +1124,13 @@ msgWindow.location.reload();
   ), ": Find new source for a file";
 
   "dcinfo", Arg_none (fun o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     let server_list =
       let lst = ref [] in
         List.iter (fun s ->
           let data = 
-            String.sub s.server_name 0 (if (String.length s.server_name > 20) then 20 else
-              String.length s.server_name) ^ "  (nick = " ^ s.server_last_nick ^ ")  (uptime = " ^
+            shorten_string s.server_name 20 ^ "  (nick = " ^ s.server_last_nick ^ ")  (uptime = " ^
               (Date.time_to_string (int_of_float (current_time ()) -
                 int_of_float (s.server_connection_time)) "verbose") ^
                 (string_of_int (List.length s.server_users)) ^ ")"
@@ -1170,6 +1164,7 @@ msgWindow.location.reload();
 
   (* load filelist from user *)
   "dcshowfilelist", Arg_one (fun args o ->
+    show_dc_buttons o;
     let buf = o.conn_buf in
     (match args with
     | filename -> 
@@ -1553,7 +1548,30 @@ let _ =
     file_ops.op_file_resume <- (fun _ -> ());
     file_ops.op_file_set_format <- (fun _ _ -> ());
     file_ops.op_file_check <- (fun _ -> ());
-    file_ops.op_file_recover <- (fun _ -> ())
+    file_ops.op_file_recover <- (fun _ -> ());
+    file_ops.op_file_print <- (fun file o ->
+      let buf = o.conn_buf in
+      if use_html_mods o then 
+      begin
+        let td l =
+          Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+          html_mods_td buf l
+        in
+        td [
+          ("Directory", "sr br", "Directory");
+          ("", "sr", file.file_directory) ];
+        td [
+          ("Filename", "sr br", "Filename");
+          ("", "sr", file.file_name) ];
+        td [
+          ("Tiger tree hash and magnet url", "sr", "TTH and magnet");
+          ("", "sr", html_show_file file) ];
+        td [
+          ("Automatic TTH searches performed", "sr", "Autosearches");
+          ("", "sr", string_of_int file.file_autosearch_count) ];
+      end
+      else
+        ())
     (*file_ops.op_file_print_html <- (fun _ _ -> lprintf_nl "Received (op_file_print_html)"; ());*)
     (*file_ops.op_file_print_sources_html <- (fun _ _ -> lprintf_nl "Received (op_file_print_sources_html)"; ())*)
 (*    mutable op_file_files : ('a -> 'a file_impl -> file list);
