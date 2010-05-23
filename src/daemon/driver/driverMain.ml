@@ -418,7 +418,7 @@ or getting a binary compiled with glibc %s.\n\n")
 	end
       end
   );
-  if not !Charset.conversion_enabled then
+  if not !Charset.Locale.conversion_enabled then
     lprintf_nl (_b "Self-test failed, charset conversion disabled.");
 
   load_config ();

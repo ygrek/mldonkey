@@ -131,11 +131,11 @@ let windows_sleep seconds =
 let min_reserved_fds = 50
 let min_connections = 50
 
-let _ =
+let () =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
   let ulof_old = Unix2.c_getdtablesize () in
   lprintf_nl "Language %s, locale %s, ulimit for open files %d"
-    Charset.default_language Charset.locstr ulof_old;
+    Charset.Locale.default_language Charset.Locale.locale_string ulof_old;
 
   let nofile = Unix2.ml_getrlimit Unix2.RLIMIT_NOFILE in
     if nofile.Unix2.rlim_max > 0 && nofile.Unix2.rlim_max > nofile.Unix2.rlim_cur then
@@ -208,8 +208,8 @@ let _ =
 
   (* Charset conversion self-test *)
   let filename = "abcdefghijklmnopqrstuvwxyz" in
-  let conv_filename = Charset.to_locale filename in
-  if filename <> conv_filename then Charset.conversion_enabled := false;
+  let conv_filename = Charset.Locale.to_locale filename in
+  if filename <> conv_filename then Charset.Locale.conversion_enabled := false;
 
   (try
      ignore (Sys.getenv "MLDONKEY_TEMP")

@@ -138,9 +138,18 @@ type charset =
 | I_869 | CP_GR | CP869 | IBM869 | CSIBM869
 | CP1125
 
+(** @return ASCII if nothing matches *)
+val charset_from_string : string -> charset
+
+val charset_to_string : charset -> string
+
 (** [convert ~from_charset ~to_charset s]
-    raise CharsetError if the string s is not entirely convertible. *)
+    @raise CharsetError if the string s is not entirely convertible. *)
 val convert : from_charset : charset -> to_charset : charset -> string -> string
+
+(** [safe_convert enc s] convert [s] from encoding [enc] to UTF-8.
+  Return unmodified string if conversion fails.
+  *)
 val safe_convert: string -> string -> string
 
 (** [is_utf8 s]
@@ -148,14 +157,6 @@ val safe_convert: string -> string -> string
     Other functions assume strings are valid UTF-8, so it is prudent
     to test their validity for strings from untrusted origins. *)
 val is_utf8 : string -> bool
-
-(** [to_utf8 s]
-    Converts the input string to UTF-8. *)
-val to_utf8 : string -> string
-
-(** [to_locale s]
-    Converts the input string to the encoding of the current locale. *)
-val to_locale : string -> string
 
 (** [utf8_get s n]
     returns [n]-th Unicode character of [s].
@@ -170,6 +171,20 @@ val utf8_length : string -> int
     add one Unicode character to the buffer. *)
 val add_uchar : Buffer.t -> uchar -> unit
 
+(** Locale dependent conversions *)
+module Locale : sig
+
+(** [to_utf8 s]
+    Converts the input string to UTF-8. *)
+val to_utf8 : string -> string
+
+(** [to_locale s]
+    Converts the input string to the encoding of the current locale. *)
+val to_locale : string -> string
+
 val default_language : string
-val locstr : string
+val locale_string : string
 val conversion_enabled : bool ref
+
+end
+

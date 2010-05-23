@@ -388,7 +388,7 @@ let set_strings_file filename =
   let filename =
     let extension = try
         Unix.getenv "LANG"
-      with _ -> (Charset.default_language ^ "_" ^ Charset.locstr)
+      with _ -> (Charset.Locale.default_language ^ "_" ^ Charset.Locale.locale_string)
     in
     Printf.sprintf "%s.%s" filename extension
   in

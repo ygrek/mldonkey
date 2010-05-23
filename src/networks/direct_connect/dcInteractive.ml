@@ -1198,7 +1198,8 @@ msgWindow.location.reload();
         if (extension = mylist_ext) then begin               (* parse MyList.DcLst *)
           (try 
             let s = file_to_che3_to_string (Filename.concat filelist_directory filename) in
-            let s = Charset.to_utf8 s in
+            if not (Charset.is_utf8 s) then lprintf_nl "not utf8 : %S" s;
+            let s = Charset.Locale.to_utf8 s in (* really needed? *)
             (try
               String2.replace_char s char13 '\n';
               let lines = String2.split_simplify s '\n' in

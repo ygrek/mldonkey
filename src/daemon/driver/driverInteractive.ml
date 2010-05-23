@@ -76,7 +76,7 @@ let real_startup_message () =
   let s =
   !startup_message ^ (verify_user_admin ()) ^ (check_supported_os ()) 
   ^ (if not !dns_works then "DNS resolution does not work\n" else "")
-  ^ (if not !Charset.conversion_enabled then "Charset conversion does not work, disabled\n" else "")
+  ^ (if not !Charset.Locale.conversion_enabled then "Charset conversion does not work, disabled\n" else "")
   ^ (match !created_new_base_directory with
        None -> ""
      | Some dir -> (Printf.sprintf "MLDonkey created a new home directory in %s\n" dir))
@@ -718,7 +718,7 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
           (if !!html_mods_use_js_tooltips then
                         Printf.sprintf "
                                 onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%sFile#: %d<br>Network: %s<br>User%s %s%s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
-                        (Http_server.html_real_escaped (Charset.to_utf8 file.file_name))
+                        (Http_server.html_real_escaped (Charset.Locale.to_utf8 file.file_name))
 			(match file_magic (file_find file.file_num) with
 			   None -> ""
 			 | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
@@ -739,7 +739,7 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
 	     else
 	       file.file_comments
 	   in
-           List.iter (fun (_,_,_,s) -> Printf.bprintf buf1 "%s<br>" (Http_server.html_real_escaped (Charset.to_utf8 s))) comments;
+           List.iter (fun (_,_,_,s) -> Printf.bprintf buf1 "%s<br>" (Http_server.html_real_escaped (Charset.Locale.to_utf8 s))) comments;
 			      Buffer.contents buf1
 			    end)
 
@@ -1932,7 +1932,7 @@ let buildinfo html buf =
 	    " gd(jpg)"
 	| _, false, false ->
 	    " gd(neither jpg nor png ?)") ^
-      (match Autoconf.has_iconv, !Charset.conversion_enabled with
+      (match Autoconf.has_iconv, !Charset.Locale.conversion_enabled with
        | true, true -> " iconv(active)"
        | true, false -> " iconv(inactive)"
        | false, _ -> " no-iconv") ^
@@ -2047,8 +2047,8 @@ let runinfo html buf o =
     ( 
       "",
       Printf.sprintf "\t\t language: %s - locale: %s - UTC offset: %s"
-	Charset.default_language
-	Charset.locstr
+	Charset.Locale.default_language
+	Charset.Locale.locale_string
 	(Rss_date.mk_timezone (Unix.time ()))
     );
   tack list
@@ -2492,7 +2492,7 @@ let print_upstats o list server =
 	Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"" (html_mods_cntr ());
 	(if !!html_mods_use_js_tooltips then
 	   Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
-	    (Http_server.html_real_escaped (Filename.basename (Charset.to_utf8 impl.impl_shared_codedname)))
+	    (Http_server.html_real_escaped (Filename.basename (Charset.Locale.to_utf8 impl.impl_shared_codedname)))
 	    (match impl.impl_shared_file with
 	       None -> "no file info"
 	     | Some file -> match file_magic file with | None -> "no magic"

@@ -67,7 +67,7 @@ let check_forbidden_chars (uc : Charset.uchar) =
 
 let canonize_basename name =
   let buf = Buffer.create 100 in
-  let uname = Charset.to_utf8 name in
+  let uname = Charset.Locale.to_utf8 name in
   for i = 0 to Charset.utf8_length uname - 1 do
     (* replace chars on users request *)
     let uc = Charset.utf8_get uname i in
@@ -85,7 +85,7 @@ let canonize_basename name =
       end
   done;
   if not Autoconf.windows then
-    Charset.to_locale (Buffer.contents buf)
+    Charset.Locale.to_locale (Buffer.contents buf)
   else
     Buffer.contents buf (* Windows uses patched Ocaml which always uses Unicode chars *)
 

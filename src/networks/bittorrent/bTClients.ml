@@ -1364,7 +1364,7 @@ let talk_to_tracker file need_sources =
       lprintf_file_nl (as_file file) "Failure no. %d%s from Tracker %s for file: %s Reason: %s"
         num
         (if !!tracker_retries = 0 then "" else Printf.sprintf "/%d" !!tracker_retries)
-        t.tracker_url file.file_name (Charset.to_utf8 reason)
+        t.tracker_url file.file_name (Charset.Locale.to_utf8 reason)
     in
     match exn_catch File.to_string filename with
     | `Exn _ | `Ok "" -> tracker_failed "empty reply"

@@ -1646,21 +1646,42 @@ let western_european =
    [I_863; CP863; IBM863; CSIBM863];
   ]
 
+let convert ~from_charset ~to_charset s =
+  if s <> "" then begin
+    let t = charset_to_string to_charset in
+    let f = charset_to_string from_charset in
+    convert_string s t f
+  end else s
+
+let safe_convert enc s =
+  match enc with
+  | "" -> s
+  | enc ->
+  try
+      convert
+        ~from_charset: (charset_from_string enc)
+        ~to_charset:UTF_8
+        s
+    with _ -> s
+
+(* Locale specific conversions *)
+module Locale = struct
+
+(* FIXME move away! *)
+let () =
+  (* block signals until core started correctly *)
+  (MlUnix.set_signal  Sys.sigint
+    (Sys.Signal_handle (fun _ -> ())));
+  (MlUnix.set_signal  Sys.sigterm
+    (Sys.Signal_handle (fun _ -> ())))
+
 let locale =
   try
     let cs = get_charset () in
     charset_from_string cs
   with _ -> ASCII
 
-let locstr =
-  (* block signals until core started correctly *)
-  (MlUnix.set_signal  Sys.sigint
-    (Sys.Signal_handle (fun _ -> ())));
-  (MlUnix.set_signal  Sys.sigterm
-    (Sys.Signal_handle (fun _ -> ())));
-
-  let s = charset_to_string locale in
-  s
+let locale_string = charset_to_string locale
 
 let (enc_list : string list ref) = ref []
 let nenc = ref 0
@@ -1698,12 +1719,6 @@ let all_regions =
    western_european;
   ]
 *)
-
-(**********************************************************************************)
-(*                                                                                *)
-(*                          charset_list_from_language                            *)
-(*                                                                                *)
-(**********************************************************************************)
 
 (* See http://www.gnu.org/software/gettext/manual/html_chapter/gettext_15.html#SEC221
  * The strategy is not perfect. Any comment to improve it, is highly appreciated.
@@ -1788,12 +1803,6 @@ let charset_list_from_language lang =
   in
   List.flatten !li
 
-(**********************************************************************************)
-(*                                                                                *)
-(*                          set_default_charset_list                              *)
-(*                                                                                *)
-(**********************************************************************************)
-
 let set_default_charset_list (lang : string) =
   (* Let's get rid of charset aliases *)
   let l = List.map (fun li -> List.hd li) (charset_list_from_language lang) in
@@ -1804,37 +1813,7 @@ let set_default_charset_list (lang : string) =
   ) !enc_list; *)
   nenc := List.length !enc_list
 
-(**********************************************************************************)
-(*                                                                                *)
-(*                          convert                                               *)
-(*                                                                                *)
-(**********************************************************************************)
-
 let conversion_enabled = ref true
-
-let convert ~from_charset ~to_charset s =
-  if s <> "" then begin
-    let t = charset_to_string to_charset in
-    let f = charset_to_string from_charset in
-    convert_string s t f
-  end else s
-
-let safe_convert enc s =
-  match enc with
-    "" -> s
-  | enc ->
-    try
-      convert
-        ~from_charset: (charset_from_string enc)
-        ~to_charset: (charset_from_string "UTF-8")
-        s
-    with _ -> s
-
-(**********************************************************************************)
-(*                                                                                *)
-(*                          slow_encode_from_utf8                                 *)
-(*                                                                                *)
-(**********************************************************************************)
 
 let slow_encode_from_utf8 s to_codeset =
   let us = ref "" in
@@ -1853,12 +1832,6 @@ let slow_encode_from_utf8 s to_codeset =
   done;
   !us
 
-(**********************************************************************************)
-(*                                                                                *)
-(*                          slow_encode                                           *)
-(*                                                                                *)
-(**********************************************************************************)
-
 let slow_encode s to_codeset =
   if is_utf8 s
   then slow_encode_from_utf8 s to_codeset
@@ -1867,18 +1840,12 @@ let slow_encode s to_codeset =
     let slen = String.length s in
     for i = 0 to (slen - 1) do
       try
-        us := !us ^ (convert_string (String.sub s i 1) to_codeset locstr)
+        us := !us ^ (convert_string (String.sub s i 1) to_codeset locale_string)
       with _ ->
         us := !us ^ char_const
     done;
     !us
   end
-
-(**********************************************************************************)
-(*                                                                                *)
-(*                          fast_encode                                           *)
-(*                                                                                *)
-(**********************************************************************************)
 
 let fast_encode s to_codeset =
   let rec iter i n =
@@ -1891,24 +1858,12 @@ let fast_encode s to_codeset =
          with _ -> iter (i + 1) !nenc
   in iter 0 !nenc
 
-(**********************************************************************************)
-(*                                                                                *)
-(*                          to_utf8                                               *)
-(*                                                                                *)
-(**********************************************************************************)
-
 let to_utf8 s =
   if s = ""
   then s
   else if is_utf8 s
   then s
   else fast_encode s "UTF-8"
-
-(**********************************************************************************)
-(*                                                                                *)
-(*                          to_locale                                             *)
-(*                                                                                *)
-(**********************************************************************************)
 
 let to_locale s =
   if s = "" || not !conversion_enabled
@@ -1920,11 +1875,14 @@ let to_locale s =
       | _ ->
 	  begin
             try
-              convert_string s locstr "UTF-8"
+              convert_string s locale_string "UTF-8"
             with _ ->
-              slow_encode_from_utf8 s locstr
+              slow_encode_from_utf8 s locale_string
           end
   end
 
-let _ =
+let () =
   set_default_charset_list default_language
+
+end (* Locale *)
+

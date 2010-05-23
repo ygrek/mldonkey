@@ -77,7 +77,7 @@ let buf_array buf f list =
 
 let buf_string buf s =
   (* charset conversion could generate longer strings *)
-  let s = Charset.to_utf8 s in
+  let s = Charset.Locale.to_utf8 s in
   let len = String.length s in
   if len < 0xffff then begin
       buf_int16 buf len;
