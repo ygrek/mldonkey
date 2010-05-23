@@ -486,7 +486,7 @@ if [ test -z "$OCAMLC" ] || [ test -z "$CAMLP4" ] || [ test "$REQUIRED_OCAML" = 
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
   case "$OCAMLVERSION" in
-    "$REQUIRED_OCAML"*|3.11.*|3.10.*|3.09.*|3.08.4*|3.08.3*) ;;
+    "$REQUIRED_OCAML"*|3.12.*|3.11.*|3.10.*|3.09.*|3.08.4*|3.08.3*) ;;
     *)
         echo "Need build"
         BUILD_OCAML=yes
@@ -640,7 +640,7 @@ OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 OCAMLLIB=`$OCAMLC -where`
 REBUILD_OCAML=no
 case "$OCAMLVERSION" in
-    3.10*|3.11*)
+    3.10*|3.11*|3.12*)
       if test "$GUI" = "oldgui"; then
         OLDGUI_NO_310=yes
         GUI=no

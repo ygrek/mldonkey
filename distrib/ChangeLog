@@ -14,6 +14,8 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+7200: Allow compilation with upcoming Ocaml 3.12
+-------------------------------------------------------------------------------
 2010/04/25: version 3.0.2 = tag release-3-0-2
 7175: DC: PtokaX compatibility (ygrek)
 7169: Equal scales for graphical up/down stats (ygrek)
