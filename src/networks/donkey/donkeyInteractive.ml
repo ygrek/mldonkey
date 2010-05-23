@@ -1336,7 +1336,7 @@ let _ =
 	List.iter (fun (ip, n, r, c) ->
 	  incr cntr;
 	  Printf.bprintf buf
-	    "Comment %d: Rating(%d): %s (%s/%s)\n" !cntr r (Charset.to_utf8 c) n (Ip.to_string ip)) file.file_comments
+	    "Comment %d: Rating(%d): %s (%s/%s)\n" !cntr r (Charset.Locale.to_utf8 c) n (Ip.to_string ip)) file.file_comments
      end else begin
      let tr () =
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ())
@@ -1355,7 +1355,7 @@ let _ =
         tr ();
         html_mods_td buf [
           ("Comment", "sr br", Printf.sprintf "Comment %d" !cntr);
-          ("User rating and comment", "sr", Printf.sprintf "Rating(%d): %s (%s/%s)" r (Charset.to_utf8 c) n (Ip.to_string ip));
+          ("User rating and comment", "sr", Printf.sprintf "Rating(%d): %s (%s/%s)" r (Charset.Locale.to_utf8 c) n (Ip.to_string ip));
         ];
       ) file.file_comments;
 
