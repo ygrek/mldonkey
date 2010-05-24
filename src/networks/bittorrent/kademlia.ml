@@ -24,7 +24,7 @@ type time = float
 type status = | Good | Bad | Unknown | Pinged
 type node = { id : id; addr : addr; mutable last : time; mutable status : status; }
 type bucket = { lo : id; hi : id; mutable last_change : time; nodes : node array; }
-type table = bucket array
+type table = L of bucket | N of table * table
 
 let show_addr (ip,port) = Printf.sprintf "%s:%u" (Ip.to_string ip) port
 
@@ -42,7 +42,9 @@ let show_bucket b =
   pr "lo : %s hi : %s changed : %f" (H.to_hexa b.lo) (H.to_hexa b.hi) b.last_change;
   Array.iter show_node b.nodes
 
-let show_table = Array.iter show_bucket 
+let rec show_table = function 
+  | N (l,r) -> show_table l; show_table r
+  | L b -> show_bucket b
 
 let h2s h =
   let s = H.direct_to_string h in
@@ -149,13 +151,12 @@ let () =
   assert (eq_big_int (distance middle' middle) (pred_big_int (power_int_positive_int 2 160)));
   ()
 
-let now = Unix.gettimeofday ()
+let now = Unix.gettimeofday
 
-let create_table () =
-  Array.init 2 (function 
-    | 0 -> { lo = H.null; hi = middle; last_change = now; nodes = [||]; }
-    | _ -> { lo = middle'; hi = last; last_change = now; nodes = [||]; })
+let empty () = L { lo = H.null; hi = middle; last_change = now (); nodes = [||]; }
+
+let table = ref (empty ())
 
 let () =
-  show_table (create_table ())
+  show_table !table
 
