@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/05/24
+7201: DC: Whitespace fixes (ygrek)
 7202: BT: Improve internal tracker (ygrek)
 - continue tracking files even if there are no requests
 - better logging and error reporting

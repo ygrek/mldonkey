@@ -52,7 +52,7 @@ let log_prefix = "[dcInt]"
 
 let lprintf_nl fmt =
   lprintf_nl2 log_prefix fmt
-    
+
 (* Start new dowload from result *)
 let start_new_download u tth fdir fname fsize =
     try
@@ -73,14 +73,14 @@ let start_new_download u tth fdir fname fsize =
             | None -> Some f
             | Some user ->
               let c = new_client_to_user_with_file user f in
-            c.client_state <- DcDownloadWaiting f;
+              c.client_state <- DcDownloadWaiting f;
               if (can_user_start_downloading user) then begin
                 user.user_state <- TryingToSendFirstContact;
-              c.client_state <- DcDownloadConnecting (f,current_time ());
-              ignore (DcClients.try_connect_client c)
-            end;
+                c.client_state <- DcDownloadConnecting (f,current_time ());
+                ignore (DcClients.try_connect_client c)
+              end;
               Some f
-                    
+
 (* Start downloading of a file by user selection from resultlist *) 
 let start_result_download r =
   let filename = List.hd r.result_names in
@@ -160,7 +160,7 @@ let hublist_print h hnum o =
       h.dc_nusers
       hinfo
                   end
-                  
+
 (* Print DC users header *)
 let dc_user_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
@@ -318,7 +318,7 @@ let dc_client_print_html_header buf =
                 ( "0", "srh", "Client last error/count", "Error" );
                 ( "0", "srh", "Client file", "File" ); ];
             ()
-      
+
 (* print in html or txt list of clients *)
 let client_print name client num o =
   let buf = o.conn_buf in
@@ -525,7 +525,7 @@ let dc_list o group_type group_name =
              List.iter (fun fname -> filelist_print fname !num o; incr num) filelist;
          end;
          if use_html_mods o then 
-      Printf.bprintf buf "\\</table\\>\\</div\\>";
+           Printf.bprintf buf "\\</table\\>\\</div\\>";
       with e -> 
         lprintf_nl "Exception %s in printing %s" (Printexc2.to_string e) group_name
     end;
@@ -539,7 +539,7 @@ let dc_filelist_files_print_html_header buf =
                 ( "1", "srh", "File Size", "Size" );
                 ( "0", "srh", "Files TTH", "TTH" ) ]
 
-(* Print one line from filelist file *)  
+(* Print one line from filelist file *)
 let filelist_file_print is_file spaces username dir fname fsize ftth line o =
   (* is_file  = if true, make the whole filename a link with submit command to load a file 
      spaces
@@ -571,9 +571,9 @@ let filelist_file_print is_file spaces username dir fname fsize ftth line o =
     (if is_file then
        td_command (spaces^fname) "Start downloading" ~target:`Status
          ["dcloadfile"; username; ftth; !sdir; !sname; fsize]
-                else
+     else
        Printf.sprintf "\\<td class=\\\"srb\\\" \\>\\<b\\>%s%s\\</b\\>\\</td\\>" spaces fname
-  )
+    )
     fsize
     ftth
   end else begin
@@ -620,10 +620,10 @@ let show_dc_buttons o =
     button "filelists" ();
     Printf.bprintf buf "\\</tr\\>\\</table\\>";
   end
-  
+
 (* List of commands to register *)
 let commands = [
-    
+
   "dc", Arg_none (fun o ->
     if use_html_mods o then
       show_dc_buttons o
@@ -651,7 +651,7 @@ let commands = [
 
   (* List connected hubs for chatting *)
   "dchubs", Arg_none (fun o -> show_dc_buttons o; dc_list o G_hubs "hubs" 
-  ), ": Show connected DC hubs"; 
+  ), ": Show connected DC hubs";
 
   (* List all DC users *)
   "dcusers", Arg_one (fun args o ->
@@ -1347,10 +1347,10 @@ msgWindow.location.reload();
   ), "<true/false> <ip> : Set/unset the server autoconnection state";
 
   ] (* end of   let commands = *)
-  
+
 module P = GuiTypes
 
-(* register user operations *)   
+(* register user operations *)
 let _ = 
   register_commands commands;
 

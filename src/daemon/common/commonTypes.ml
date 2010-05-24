@@ -134,27 +134,27 @@ module Uid : sig
     val derive : t -> t list
     val expand : t list -> t list
     val option : t option_class
-      
+
     val compare : t -> t -> int
     val no : t
-      
+
   end = struct
-    
+
     type t = {
         mutable uid_string : string;
         mutable uid_type : uid_type;
       }
-    
+
     let no = {
         uid_type = NoUid;
         uid_string = "";
       }
-    
+
     let create uid = {
         uid_string = string_of_uid uid ;
         uid_type = uid;
       }
-    
+
     let of_string s = 
       let uid = uid_of_string s in
       let s = string_of_uid uid in
@@ -162,43 +162,43 @@ module Uid : sig
         uid_string = s;
         uid_type = uid;
         }
-        
+
     let to_string t = t.uid_string
-    
+
     let to_file_string t =
       file_string_of_uid t.uid_type
-    
+
     let to_uid t = t.uid_type
-    
+
     let derive uid =
       match uid.uid_type with
          (Bitprint (sha1, tiger)) ->
           [create (Sha1 (sha1)); create (TigerTree(tiger))]
       | _ -> []
-        
+
     let compare u1 u2 =
       compare (to_string u1) (to_string u2)
-    
+
     let rec mem uid list =
       match list with
         [] -> false
       | t :: tail ->
           compare t uid = 0 || mem uid tail
-          
+
     let add uid list =
       if not (mem uid list) then
         uid :: list
       else 
         list
-    
+
     let rec expand_rec list uids =
       match list with
         [] -> uids
       | t :: tail ->
           let list = derive t in
           expand_rec (list@tail) (add t uids)
-    
-    let expand uids = expand_rec uids []      
+
+    let expand uids = expand_rec uids []
 
     let option = define_option_class "Uid"
         (fun v -> of_string (value_to_string v))
@@ -253,7 +253,7 @@ let string_of_uids list =
   match list with
     [] -> "<unknown>"
   | uid :: _ -> Uid.to_string uid
-    
+
 type file_state =
   FileDownloading
 | FileQueued
