@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2010/05/24
+7202: BT: Improve internal tracker (ygrek)
+- continue tracking files even if there are no requests
+- better logging and error reporting
+- remove peer from peers list when it sends 'stopped' event
 7203: Fix linking with binutils-gold
 
 2010/05/23
