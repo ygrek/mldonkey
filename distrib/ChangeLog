@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/05/24
+7203: Fix linking with binutils-gold
+
+2010/05/23
 7183: DC: magnet links and html ui usability tweaks (ygrek)
 7180: DC: better encoding handling (ygrek)
 - new option default_encoding for communications with hubs, default CP1252
