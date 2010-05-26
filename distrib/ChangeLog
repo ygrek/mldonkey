@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/05/26
+7206: MinGW: Fix diskinfo on large partitions
+
 2010/05/24
 7201: DC: Whitespace fixes (ygrek)
 7202: BT: Improve internal tracker (ygrek)
