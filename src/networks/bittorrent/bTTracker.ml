@@ -162,6 +162,8 @@ let new_tracker info_hash =
         tracker_last = (int_of_float (Unix.gettimeofday ()));
       } in
     incr ntracked_files;
+    if !verbose_msg_servers then
+      lprintf_nl "Start tracking torrent [%s]" (Sha1.to_hexa info_hash);
     Hashtbl.add tracked_files info_hash tracker;
     tracker
   else
@@ -182,7 +184,10 @@ let tracker_url suffix =
 
 let track_torrent filename info_hash =
   check_tracker ();
-  if not (Hashtbl.mem tracked_files info_hash) then ignore (new_tracker info_hash);
+  if (Hashtbl.mem tracked_files info_hash) then
+    (if !verbose_msg_servers then lprintf_nl "Torrent [%s] is already tracked" (Sha1.to_hexa info_hash))
+  else
+    ignore (new_tracker info_hash);
   tracker_url filename
 
 let get_default_tracker () =
@@ -193,19 +198,19 @@ let get_default_tracker () =
 let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left peer_event numwant no_peer_id  =
 
   if !verbose_msg_servers then
-    lprintf_nl "tracker contacted for [%s]" (Sha1.to_hexa info_hash);
+    lprintf_nl "Tracker contacted for [%s]" (Sha1.to_hexa info_hash);
   let tracker = try
       Hashtbl.find tracked_files info_hash
     with Not_found ->
         if !!tracker_force_local_torrents then begin
-            lprintf_nl "Tracker rejected announce request for torrent [%s]\n" (Sha1.to_hexa info_hash);
+            lprintf_nl "Tracker rejected announce request for torrent [%s]" (Sha1.to_hexa info_hash);
             failwith "Unknown torrent"
           end;
         lprintf_nl "[BT] Need new tracker";
         new_tracker info_hash
   in
 
-  let _ =
+  let peer =
     try
       let peer =
         Hashtbl.find tracker.tracker_table peer_id
@@ -245,6 +250,8 @@ let reply_has_tracker r info_hash peer_id peer_ip peer_port peer_key peer_left p
         void_message
     (* Reply with clients that could not connect to this tracker otherwise *)
     | "stopped" ->
+        Hashtbl.remove tracker.tracker_table peer_id;
+        Fifo.remove tracker.tracker_peers peer;
         if peer_left > 0 then
           tracker.tracker_incomplete <- tracker.tracker_incomplete - 1
         else
@@ -618,35 +625,27 @@ let stop_tracker () =
 (* Every 600 seconds, refresh the peers list *)
 let clean_tracker_timer () =
   let time_threshold = last_time () - 3600 in
-  let trackers = ref [] in
 
-  if !verbose_msg_servers then lprintf_nl "clean_tracker_timer";
+  if !verbose_msg_servers then 
+    lprintf_nl "clean_tracker_timer - purging old peers";
   Hashtbl.iter (fun _ tracker ->
-      let list = ref [] in
       let old_peers = ref [] in
       Hashtbl.iter (fun _ peer ->
           if peer.peer_active < time_threshold then
             old_peers := peer :: !old_peers
-          else
+          (*else
           if Ip.usable peer.peer_ip then
-            list := peer :: !list)
+            list := peer :: !list*))
       tracker.tracker_table;
       List.iter (fun p ->
           Hashtbl.remove tracker.tracker_table p.peer_id
       ) !old_peers;
       Fifo.clear tracker.tracker_peers;
-      if !list <> [] then begin
-          List.iter (fun p -> Fifo.put tracker.tracker_peers p) !list;
-          trackers := tracker :: !trackers;
-        end;
-  ) tracked_files;
+      (* sync peers list *)
+      Hashtbl.iter (fun _ peer -> Fifo.put tracker.tracker_peers peer) tracker.tracker_table;
+  ) tracked_files
 
-  Hashtbl.clear tracked_files;
-  List.iter (fun t ->
-      Hashtbl.add tracked_files t.tracker_id t
-  ) !trackers
-
-let _ =
+let () =
   add_infinite_timer 600. clean_tracker_timer
 
 

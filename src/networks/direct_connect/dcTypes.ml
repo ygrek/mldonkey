@@ -19,7 +19,7 @@
 
 open Md4
 open CommonTypes
-  
+
 (* TODO
 - directory download...
 - remove download list is not working
@@ -82,23 +82,23 @@ verbose_msg_servers
   unexp : debug unexpected messages
 
 *)
-  
+
 type server = {
-    server_server: server CommonServer.server_impl;
+  server_server: server CommonServer.server_impl;
   server_connection_control : CommonTypes.connection_control;
   mutable server_connection_time: float;
-    mutable server_name : string;
-    mutable server_addr : Ip.addr;
+  mutable server_name : string;
+  mutable server_addr : Ip.addr;
   mutable server_ip : Ip.t;
   mutable server_port : int;
   mutable server_supports : dc_hub_supports option;
   mutable server_hub_state: dc_hub_state;
-    mutable server_info : string;
-    mutable server_sock : tcp_connection;
+  mutable server_info : string;
+  mutable server_sock : tcp_connection;
   mutable server_autoconnect : bool;
-    mutable server_last_nick : string;
-    mutable server_search : search option;
-    mutable server_search_timeout : int;
+  mutable server_last_nick : string;
+  mutable server_search : search option;
+  mutable server_search_timeout : int;
   mutable server_users : user list;
   mutable server_topic : string;
   mutable server_messages : (int * string * room_message) list;
@@ -113,18 +113,18 @@ and result = {
     mutable result_sources : (user * string) list;
   }
 *)
-  
+
 and user = {
-    user_user : user CommonUser.user_impl; 
+  user_user : user CommonUser.user_impl;
   mutable user_nick : string;
   mutable user_ip : Ip.addr; (* $IpUser *)
-    mutable user_servers : server list;
+  mutable user_servers : server list;
   mutable user_clients : client list;
-    mutable user_link : string;
+  mutable user_link : string;
   mutable user_uploaded : int64;
   mutable user_downloaded : int64;
   mutable user_myinfo : dc_myinfo;
-    mutable user_data : float;
+  mutable user_data : float;
   mutable user_type : dc_usertype;
   mutable user_state : dc_userstate;
   mutable user_messages : (int * string * room_message) list;
@@ -132,12 +132,12 @@ and user = {
   }
 
 and file = {
-    file_file : file CommonFile.file_impl;
+  file_file : file CommonFile.file_impl;
   mutable file_unchecked_tiger_root : string;
   mutable file_directory : string;
   mutable file_name : string;
   (*mutable file_tiger_array : TigerTree.t array;*)
-    mutable file_clients : client list;
+  mutable file_clients : client list;
   mutable file_search : (CommonTypes.search * float) option; (* search , time *)
   mutable file_autosearch_count : int;
   }
@@ -155,10 +155,10 @@ and dc_shared_file = {
 }
 
 and client = {  (* remember DcGlobals.copy_client if add anything *)
-    client_client : client CommonClient.client_impl;
+  client_client : client CommonClient.client_impl;
   mutable client_name : string option;
-    mutable client_addr : (Ip.t * int) option;
-    mutable client_sock : tcp_connection;
+  mutable client_addr : (Ip.t * int) option;
+  mutable client_sock : tcp_connection;
   mutable client_supports : dc_client_supports option;
   mutable client_lock : string;
   mutable client_file : file option;
@@ -166,13 +166,13 @@ and client = {  (* remember DcGlobals.copy_client if add anything *)
   mutable client_error : dc_client_error; (* last error message  *)
   mutable client_error_count : int;       (* error message count *)
   mutable client_preread_bytes_left : int;
-    mutable client_pos : int64;
+  mutable client_pos : int64;
   mutable client_endpos : int64;
-    mutable client_receiving : int64;
+  mutable client_receiving : int64;
   mutable client_user : user option;
-    mutable client_connection_control : connection_control;
+  mutable client_connection_control : connection_control;
   }
-  
+
 and dc_result = { (* rst of the info (filename & size) are on Commonresults.result_info *)
   user : user;
   tth : string; 
@@ -183,14 +183,14 @@ and dc_direction = Upload of int | Download of int
 
 and dc_connection_style = (* dc_direction is what client wants/needs to do *)
   | ClientActive of dc_direction 
-  | MeActive of dc_direction  
+  | MeActive of dc_direction
 
 (* Client to client procedure:    S=Server M=Me C=Client
 Me in Active mode - Client in Active/Passive mode: Me want to download
 FROM______________________________________TO__USER_STATE________________CLIENT_STATE______________
                                               UserIdle                  (No client yet)
-                                              UserActiveMeInitiating    DcDownloadWaiting file          
-M  ConnectToMe                        ->  S   .                         .            
+                                              UserActiveMeInitiating    DcDownloadWaiting file
+M  ConnectToMe                        ->  S   .                         .
 C  MyNick                             ->  M   UserIdle                  DcConnectionStyle MeActive Upload 0
 C        |Lock                        ->  M   .                         .
 M  MyNick|Lock|Supports|Direction|Key ->  C   .                         .
@@ -200,8 +200,8 @@ C                       | Key         ->  M   .                         If direc
                                                                           Wait client commands for uploading
                                                                         else
                                                                           DcDownload file
-M  Get/AdcGet                         ->  C   .                               
-C  Filelength/AdcSnd                  ->  M   .                         
+M  Get/AdcGet                         ->  C   .
+C  Filelength/AdcSnd                  ->  M   .
 M  Send (if not ADC)                  ->  C   .
 
 Me in Passive mode - Client in Active: Me want to download
@@ -209,7 +209,7 @@ FROM______________________________________TO__USER_STATE________________CLIENT_S
                                               UserIdle                  (No client yet)
                                               UserActiveUserInitiating  DcDownloadWaiting file
 M  RevConnectToMe                     ->  S   .                         .
-S  ConnectToMe                        ->  M   .                         DcConnectionStyle ClientActive Upload 0    
+S  ConnectToMe                        ->  M   .                         DcConnectionStyle ClientActive Upload 0
 M  MyNick|Lock                        ->  C   .                         .
 C  MyNick                             ->  M   UserIdle                  DcConnectionStyle ClientActive Upload 0
 C        |Lock|Supports|Direction     ->  M   .                         If direction conflict loss
@@ -217,7 +217,7 @@ C        |Lock|Supports|Direction     ->  M   .                         If direc
 C                                |Key ->  M   .                         If direction conflict loss
                                                                           Wait client commands for uploading
 M  Supports                           ->  C   .                         DcConnectionStyle ClientActive Upload level
-M          |Direction|Key             ->  C   .                         DcDownload file                               
+M          |Direction|Key             ->  C   .                         DcDownload file
 M                        |Get/AdcGet  ->  C   .
 C  Filelength/AdcSnd                  ->  M   .
 M  Send ((if not ADC)                 ->  C   .
@@ -234,7 +234,7 @@ M  Supports                           ->  C   .                         DcConnec
 M          |Direction|Key             ->  C   .                         .
 C  Get/AdcGet                         ->  M   .                         If filelist loading
                                                                           DcUploadListStarting
-                                                                        else  
+                                                                        else
                                                                           DcUploadStarting
 M  Filelength/AdcSnd                  ->  C   .                         .
 C  Send (if not ADC)                  ->  M   .                         DcUpload/DcUploadList
@@ -262,12 +262,12 @@ C  Send (if not ADC)                  ->  M   .                         DcUpload
 and dc_clientstate =
 | DcIdle                                      (* client is doing nothing *)
 | DcDownloadWaiting of file                   (* client is waiting for downloading slot *)
-| DcDownloadConnecting of (file * float)      (* client has passed from waiting state to initializing state *)	
+| DcDownloadConnecting of (file * float)      (* client has passed from waiting state to initializing state *)
 | DcDownloadListWaiting                       (* client is waiting a slot for list downloading *)
 | DcDownloadListConnecting of (int * bool * float)(* client has passed waiting state to initializing state,     *)
                                                   (* int = $Direction level , bool = firewalled state , timeout *)
 | DcConnectionStyle of (dc_connection_style)  (* how the initialization is processed with clients *)
-| DcDownload of file		              (* we are downloading a file from client, switched on $Get *)
+| DcDownload of file                              (* we are downloading a file from client, switched on $Get *)
 | DcDownloadList of Unix32.t                  (* we are downloading a file list from client *) 
 | DcUploadStarting of (dc_shared_file * int64 * int64)    (* we are starting to upload file to client *) 
 | DcUpload of (dc_shared_file * Unix32.t * int64 * int64) (* we are uploading a file to client *)
@@ -300,7 +300,7 @@ and dc_hub = {
   mutable dc_info : string;
   mutable dc_nusers : int;
 }
-  
+
 and sizelimit = 
 | AtLeast of int64
 | AtMost of int64
@@ -308,8 +308,8 @@ and sizelimit =
 
 (* Type for $Supports usage with hubs *)
 and dc_hub_supports = {
-  nogetinfo : bool;   
-  nohello : bool;     
+  nogetinfo : bool;
+  nohello : bool;
   userip2 : bool;
   usercommand : bool;
   tthsearch : bool;
@@ -341,7 +341,7 @@ and dc_supports =
 
 and dc_hub_state =
    | Waiting 
-   | User    
+   | User
    | Vipped
    | Opped
 

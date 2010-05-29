@@ -1657,7 +1657,7 @@ let safe_convert enc s =
   match enc with
   | "" -> s
   | enc ->
-  try
+    try
       convert
         ~from_charset: (charset_from_string enc)
         ~to_charset:UTF_8

@@ -14,6 +14,18 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/05/26
+7206: MinGW: Fix diskinfo on large partitions
+
+2010/05/24
+7201: DC: Whitespace fixes (ygrek)
+7202: BT: Improve internal tracker (ygrek)
+- continue tracking files even if there are no requests
+- better logging and error reporting
+- remove peer from peers list when it sends 'stopped' event
+7203: Fix linking with binutils-gold
+
+2010/05/23
 7183: DC: magnet links and html ui usability tweaks (ygrek)
 7180: DC: better encoding handling (ygrek)
 - new option default_encoding for communications with hubs, default CP1252

@@ -104,12 +104,12 @@ let dc_to_utf s =
     _ -> Charset.Locale.to_utf8 s
 
 module SimpleCmd(M: sig val msg : string end) = struct
-    type t = string
+  type t = string
   let parse nick = dc_to_utf nick
   let print t = lprintf_nl "%s (%s)" M.msg t
   let write buf t = Printf.bprintf buf "$%s %s" M.msg (utf_to_dc t)
 end
-      
+
 (*module NickAndAddr (M: sig val msg : string end) = struct
   type t = {
     nick : string;
@@ -126,7 +126,7 @@ end
   let print t = lprintf_nl "%s %s %s:%d" M.msg t.nick (Ip.to_string t.ip) t.port
   let write buf t = Printf.bprintf  buf "$%s %s %s:%d" M.msg t.nick (Ip.to_string t.ip) t.port;
 end *)
-      
+
 module SimpleNickList = functor (M: sig val cmd : string end) -> struct
   type t = string list
   let parse t =
@@ -321,35 +321,35 @@ module Direction = struct
          | Upload _ -> txt_upload)
         t.level
 end
-    
+
 module FileLength = struct
   type t = int64
   let parse s = Int64.of_string s
-  let print t = lprintf_nl "FileLength %Ld" t      
+  let print t = lprintf_nl "FileLength %Ld" t
   let write buf t = Printf.bprintf buf "$FileLength %Ld" t
   end
-  
+
 module ForceMove = SimpleCmd(struct let msg = "ForceMove" end)
 
 module Get = struct
-    type t = {
+  type t = {
     filename : string;
-        pos : int64;
-      }
-    let parse s = 
-      let len = String.length s in
+    pos : int64;
+    }
+  let parse s =
+    let len = String.length s in
     let pos = String.rindex s '$' in {
       filename = dc_to_utf (String.sub s 0 pos);
-        pos = Int64.of_string (String.sub s (pos+1) (len-pos-1));
-      }
+      pos = Int64.of_string (String.sub s (pos+1) (len-pos-1));
+    }
   let print t = lprintf_nl "Get [%s] %Ld" t.filename t.pos
-    let write buf t = 
+  let write buf t =
     Printf.bprintf buf "$Get %s$%Ld" (utf_to_dc t.filename) t.pos;
     if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf)
   end
-  
+
 module GetListLen = Empty2(struct let msg = "GetListLen" end)
-      
+
 module Hello = SimpleCmd(struct let msg = "Hello" end)
 module HubName = SimpleCmd(struct let msg = "HubName" end)
 
@@ -411,7 +411,7 @@ module Message = struct
     let m = dc_encode_chat m in
     Printf.bprintf buf "<%s> %s" (utf_to_dc t.from) m
 end
-      
+
 module MyINFO = struct
   let return_no_tags dest nick tag email share = 
     { (* basic info record to return as result... *)
@@ -532,8 +532,8 @@ end
 
 module MyNick = SimpleCmd(struct let msg = "MyNick" end)
 module Quit = SimpleCmd(struct let msg = "Quit" end)
-module NickList = SimpleNickList (struct let cmd = "NickList" end)
-module OpList = SimpleNickList (struct let cmd = "OpList" end)
+module NickList = SimpleNickList(struct let cmd = "NickList" end)
+module OpList = SimpleNickList(struct let cmd = "OpList" end)
 
 module RevConnectToMe = struct
   type t = {
@@ -621,7 +621,7 @@ module Search = struct
             end
           in 
           let words = dc_to_utf words in 
-            let size = 
+          let size =
             (match has_size, size_kind with
             | "T", "T" -> AtMost (Int64.of_float (float_of_string size))
               |  "T", "F" -> AtLeast (Int64.of_float (float_of_string size))
@@ -631,7 +631,7 @@ module Search = struct
             nick = nick;
             ip = ip;
             port = port;
-              sizelimit = size;
+            sizelimit = size;
             filetype = filetype;
             words_or_tth = words;
             } 
@@ -639,15 +639,15 @@ module Search = struct
     with _ ->
       if !verbose_msg_clients then lprintf_nl "Search parsing error: (%s)" s;
       raise Not_found )
-      
+
   let print t = lprintf_nl "$Search %s %s %d %s" t.nick t.ip t.filetype t.words_or_tth 
-    let write buf t = 
+  let write buf t =
       Printf.bprintf buf " %s %c?%c?%s?%d?%s"
       (if t.passive then "Hub:" ^ (utf_to_dc t.nick) else t.ip ^ ":" ^ t.port )
-        (if t.sizelimit = NoLimit then 'F' else 'T')
+      (if t.sizelimit = NoLimit then 'F' else 'T')
       (match t.sizelimit with
        | AtMost _ -> 'T'
-       | _ -> 'F' )  
+       | _ -> 'F' )
       (match t.sizelimit with
        | AtMost n -> Int64.to_string n
         | AtLeast n -> Int64.to_string n
@@ -659,14 +659,14 @@ module Search = struct
            let s = ref (String.copy t.words_or_tth) in    (* otherwise send search words *) 
            String2.replace_char !s char32 '$';
            !s
-  end
+         end
        in
        utf_to_dc words);
     (*if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf)*)
   end
 
 module Send = Empty2 (struct let msg = "Send" end)
-  
+
 module SR = struct
     type t = {
         owner : string;
@@ -957,9 +957,9 @@ type t =
   | ErrorReq of string
   | FailedReq of string
   | FileLengthReq of FileLength.t
-| ForceMoveReq of ForceMove.t
+  | ForceMoveReq of ForceMove.t
   | GetListLenReq
-| GetNickListReq
+  | GetNickListReq
   | GetPassReq
   | GetReq of Get.t
   | HelloReq of Hello.t
@@ -976,12 +976,12 @@ type t =
   | MyInfoReq of DcTypes.dc_myinfo
   | MyNickReq of MyNick.t
   | MyPassReq of string
-| NickListReq of NickList.t
-| OpListReq of OpList.t
+  | NickListReq of NickList.t
+  | OpListReq of OpList.t
   | QuitReq of Quit.t
-| RevConnectToMeReq of RevConnectToMe.t
+  | RevConnectToMeReq of RevConnectToMe.t
   | SearchReq of Search.t
-| SendReq
+  | SendReq
   | SRReq of SR.t
   | SupportsReq of DcTypes.dc_supports
   | ToReq of To.t
@@ -1018,17 +1018,17 @@ let dc_parse source s =
           | "$Hello" -> HelloReq (Hello.parse args)
           | "$HubName" -> HubNameReq (HubName.parse args)
           | "$HubTopic" -> HubTopicReq (dc_to_utf args)
-            | "$Key" -> KeyReq (Key.parse args)
+          | "$Key" -> KeyReq (Key.parse args)
           | "$Lock" -> LockReq (Lock.parse args)
           | "$LogedIn" -> LogedInReq args
           (*| "$MultiConnectToMe" -> MultiConnectToMeReq (MultiConnectToMe.parse args)*)
           (*| "$MultiSearch" -> MultiSearchReq (Search.parse args)*)
           | "$MyINFO" -> MyInfoReq (MyINFO.parse args)
-            | "$MyNick" -> MyNickReq (MyNick.parse args)
-            | "$NickList" -> NickListReq (NickList.parse args)
-            | "$OpList" -> OpListReq (OpList.parse args)
-            | "$Quit" -> QuitReq (Quit.parse args)
-            | "$RevConnectToMe" -> RevConnectToMeReq (RevConnectToMe.parse args)
+          | "$MyNick" -> MyNickReq (MyNick.parse args)
+          | "$NickList" -> NickListReq (NickList.parse args)
+          | "$OpList" -> OpListReq (OpList.parse args)
+          | "$Quit" -> QuitReq (Quit.parse args)
+          | "$RevConnectToMe" -> RevConnectToMeReq (RevConnectToMe.parse args)
           | "$Search" -> SearchReq (Search.parse args)
           | "$SR" -> SRReq (SR.parse args)
           | "$Supports" -> SupportsReq (Supports.parse source args) (* here we need the info about source type*)
@@ -1121,7 +1121,7 @@ let dc_print m =
   | GetNickListReq -> lprintf_nl "$GetNickList"
   | GetPassReq -> lprintf_nl "$GetPass"
   | GetReq t -> Get.print t
-    | HelloReq t -> Hello.print t
+  | HelloReq t -> Hello.print t
   | HubIsFullReq -> lprintf_nl "$HubIsFull"
   | HubNameReq t -> HubName.print t
   | HubTopicReq _ -> lprintf_nl "$HubTopic"
@@ -1134,16 +1134,16 @@ let dc_print m =
   (*| MultiSearchReq t -> lprintf "MULTI "; Search.print t*)
   | MyPassReq s -> lprintf_nl "$MyPass %s" s
   | MyInfoReq t -> MyINFO.print t
-    | MyNickReq t -> MyNick.print t
-    | NickListReq t -> NickList.print t
-    | OpListReq t -> OpList.print t
+  | MyNickReq t -> MyNick.print t
+  | NickListReq t -> NickList.print t
+  | OpListReq t -> OpList.print t
   | QuitReq t -> Quit.print t
-    | RevConnectToMeReq t -> RevConnectToMe.print t
-    | SearchReq t -> Search.print t
+  | RevConnectToMeReq t -> RevConnectToMe.print t
+  | SearchReq t -> Search.print t
   | SendReq -> Send.print ()
   | SRReq t -> SR.print t
   | SupportsReq t -> Supports.print t
-    | ToReq t -> To.print t
+  | ToReq t -> To.print t
   | UGetBlockReq t -> UGetBlock.print t
   | UnknownReq s -> lprintf_nl "UnknownReq: (%s)..." s
   | UserCommandReq -> lprintf_nl "UserCommand"

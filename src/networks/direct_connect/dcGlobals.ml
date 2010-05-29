@@ -283,10 +283,10 @@ let find_sockets_client sock =
   | Found_client c -> Some c
   | _ -> None )
 
-(* set our nick for hubs from .ini or global *)              
+(* set our nick for hubs from .ini or global *)
 let local_login () =
   if !!login = "" then !!CommonOptions.global_login else !!login
-    
+
 (* Shorten string to some maximum length *)
 let shorten_string s length =
   if length < String.length s then
@@ -530,7 +530,7 @@ let new_file tiger_root (directory:string) (filename:string) (file_size:int64) =
       let temp_filename = safe_filename
         (match tiger_root with
         | "" -> Printf.sprintf "DC_%s_%s" directory filename
-        | _ -> Printf.sprintf "DC_%s" tiger_root )
+        | _ -> Printf.sprintf "DC_%s" tiger_root)
       in 
       let fullname = Filename.concat !!temp_directory temp_filename in
       let temp_file = Unix32.create_rw fullname in
@@ -601,7 +601,7 @@ let new_client () =
           dummy_client_impl with
           impl_client_val = c;
           impl_client_ops = client_ops;
-	  impl_client_upload = None;
+          impl_client_upload = None;
         } in
   (*lprintf_nl "New client";     *)
   CommonClient.new_client impl; 
@@ -1035,38 +1035,38 @@ let new_result user tiger_root (directory:string) (filename:string) (filesize:in
   
 (*
 /** We don't keep leaves for blocks smaller than this... */
-	static const int64_t MIN_BLOCK_SIZE = 64*1024;
+        static const int64_t MIN_BLOCK_SIZE = 64*1024;
 *)
 (*CommonHasher.compute_tiger :
   string -> int64 -> int64 -> (Md4.TigerTree.t job -> unit) -> unit 
 *)
   
 (* DC++ blocksize
-		int64_t bl = 1024;
-		while(bl * (int64_t)d->getTigerTree().getLeaves().size() < d->getTigerTree().getFileSize())
-			bl *= 2;
-		d->getTigerTree().setBlockSize(bl);
-		d->getTigerTree().calcRoot();
+                int64_t bl = 1024;
+                while(bl * (int64_t)d->getTigerTree().getLeaves().size() < d->getTigerTree().getFileSize())
+                        bl *= 2;
+                d->getTigerTree().setBlockSize(bl);
+                d->getTigerTree().calcRoot();
 *)
 (*
 AdcCommand Download::getCommand(bool zlib, bool tthf) {
-	AdcCommand cmd(AdcCommand::CMD_GET);
-	if(isSet(FLAG_TREE_DOWNLOAD)) {
-		cmd.addParam("tthl");
-	} else if(isSet(FLAG_PARTIAL_LIST)) {
-		cmd.addParam("list");
-	} else {
-		cmd.addParam("file");
-	}
-	if(tthf && getTTH() != NULL) {
-		cmd.addParam("TTH/" + getTTH()->toBase32());
-	} else {
-		cmd.addParam(Util::toAdcFile(getSource()));
-	}
-	cmd.addParam(Util::toString(getPos()));
-	cmd.addParam(Util::toString(getSize() - getPos()));
+        AdcCommand cmd(AdcCommand::CMD_GET);
+        if(isSet(FLAG_TREE_DOWNLOAD)) {
+                cmd.addParam("tthl");
+        } else if(isSet(FLAG_PARTIAL_LIST)) {
+                cmd.addParam("list");
+        } else {
+                cmd.addParam("file");
+        }
+        if(tthf && getTTH() != NULL) {
+                cmd.addParam("TTH/" + getTTH()->toBase32());
+        } else {
+                cmd.addParam(Util::toAdcFile(getSource()));
+        }
+        cmd.addParam(Util::toString(getPos()));
+        cmd.addParam(Util::toString(getSize() - getPos()));
   
-	if(zlib && getSize() != -1 && BOOLSETTING(COMPRESS_TRANSFERS)) {
-		cmd.addParam("ZL1");
-	}
+        if(zlib && getSize() != -1 && BOOLSETTING(COMPRESS_TRANSFERS)) {
+                cmd.addParam("ZL1");
+        }
 *)

@@ -936,16 +936,16 @@ value ml_has_pthread(value unit)
 #define NTFS_SUPER_MAGIC      0x5346544E
 
 struct statfs {
-   long    f_type;     /* type of filesystem (see below) */
-   long    f_bsize;    /* optimal transfer block size */
-   long    f_blocks;   /* total data blocks in file system */
-   long    f_bfree;    /* free blocks in fs */
-   long    f_bavail;   /* free blocks avail to non-superuser */
-   long    f_files;    /* total file nodes in file system */
-   long    f_ffree;    /* free file nodes in fs */
-   long    f_fsid;     /* file system id */
-   long    f_namelen;  /* maximum length of filenames */
-   long    f_spare[6]; /* spare for later */
+   unsigned __int64    f_type;     /* type of filesystem (see below) */
+   unsigned __int64    f_bsize;    /* optimal transfer block size */
+   unsigned __int64    f_blocks;   /* total data blocks in file system */
+   unsigned __int64    f_bfree;    /* free blocks in fs */
+   unsigned __int64    f_bavail;   /* free blocks avail to non-superuser */
+   unsigned __int64    f_files;    /* total file nodes in file system */
+   unsigned __int64    f_ffree;    /* free file nodes in fs */
+   unsigned __int64    f_fsid;     /* file system id */
+   unsigned __int64    f_namelen;  /* maximum length of filenames */
+   unsigned __int64    f_spare[6]; /* spare for later */
 };
 
 static int statfs (const unsigned char *path, struct statfs *buf)
