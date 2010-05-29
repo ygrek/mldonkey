@@ -1863,12 +1863,13 @@ let _ =
 
     "voo", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
+        let put fmt = Printf.bprintf buf fmt in
         let changed_list = List.sort (fun d1 d2 -> compare d1 d2) (List.filter (fun o -> 
             o.option_value <> o.option_default && not (String2.starts_with o.option_name "enable_")
             ) (CommonInteractive.all_simple_options ())) in
         if use_html_mods o then begin
 
-            Printf.bprintf buf "\\<script type=\\\"text/javascript\\\"\\>
+            put "\\<script type=\\\"text/javascript\\\"\\>
 \\<!--
 function pluginSubmit() {
 var formID = document.getElementById(\\\"pluginForm\\\");
@@ -1885,23 +1886,32 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
 //--\\>
 \\</script\\>";
 
+            let button ~title ~cls ~cmd content = put "\\<td nowrap title=\\\"%s\\\" class=\\\"%s\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=%s';setTimeout('window.location.replace(window.location.href)',500)\\\"\\>%s\\</a\\>\\</td\\>" title cls cmd content
+            in
+
+            let select name options =
+              put "\\<select id=\\\"%s\\\" name=\\\"%s\\\"
+style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>" name name;
+              List.iter (fun (n,v) ->
+                put "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" n v;
+              ) options; 
+              put "\\</select\\>"
+            in
 
             let tabnumber = ref 0 in
             let mtabs = ref 1 in
 
             if !!html_mods_use_js_helptext then
-             Printf.bprintf buf "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:#FFFFDD;color:black;border-color:black;border-width:20px;font-size:8pt; visibility:visible; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
+             put "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:#FFFFDD;color:black;border-color:black;border-width:20px;font-size:8pt; visibility:visible; left:25px; top:-100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
 
-            Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
-\\<tr\\>\\<td\\>
-\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>\\</td\\>";
+            put "\\<div class=\\\"vo\\\"\\>";
+            put "\\<table class=main cellspacing=0 cellpadding=0\\>";
+            put "\\<tr\\>\\<td\\>";
+            put "\\<table cellspacing=0 cellpadding=0 class='hcenter'\\>\\<tr\\>";
 
-
-            List.iter (fun (s,d) ->
+            List.iter (fun (s,title) ->
                 incr tabnumber; incr mtabs;
-                Printf.bprintf buf "\\<td nowrap title=\\\"%s\\\" class=fbig\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+%d';setTimeout('window.location.replace(window.location.href)',500)\\\"\\>%s\\</a\\>\\</td\\>"
-                  d !tabnumber s
+                button ~title ~cls:"fbig" ~cmd:(Printf.sprintf "voo+%d" !tabnumber) s
             ) [ ("Client", "Client related options & Up/Download limitations ") ; 
                 ("Ports", "Interface ports, each Network port is stored in Network plugin options") ; 
                 ("html", "Show Webinterface related options") ; 
@@ -1912,45 +1922,35 @@ if (\\\"0123456789.\\\".indexOf(v) == -1)
                 ("Misc", "miscellaneous") ;
                 ("changed", "Show changed options") ];
 
-            Printf.bprintf buf "
-\\<td nowrap title=\\\"Show all options\\\" class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo'\\\"\\>All\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbig pr\\\"\\>
+            button ~title:"Show all options" ~cls:"fbig" ~cmd:"voo" "All";
+            put "\\<td nowrap class=\\\"fbig pr\\\"\\>
 \\<form style=\\\"margin: 0px;\\\" name=\\\"pluginForm\\\" id=\\\"pluginForm\\\"
-action=\\\"javascript:pluginSubmit();\\\"\\>
-\\<select id=\\\"plugin\\\" name=\\\"plugin\\\"
-style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
-\\<option value=\\\"0\\\"\\>Plugins\n";
+action=\\\"javascript:pluginSubmit();\\\"\\>";
 
-            let netlist = ref [] in
-            List.iter (fun s ->
-                incr tabnumber;
-                netlist := !netlist @ [(s,!tabnumber)]
+            let options = 
+              let netlist = List.map
+                (fun s -> incr tabnumber; s,!tabnumber) 
+                (CommonInteractive.all_active_network_opfile_network_names ())
+              in
+              let duplist = ref [] in
+              List.map (fun (s,t) ->
+                let name = if List.memq s !duplist then s^"+" else s in
+                duplist := name :: !duplist;
+                string_of_int t, name
+              ) (List.sort (fun (s1,_) (s2,_) -> compare s1 s2) netlist);
+            in
 
-            ) (CommonInteractive.all_active_network_opfile_network_names ());
+            select "plugin" (("0","Plugins") :: options);
 
-            let duplist = ref [] in
-            let netname = ref "" in
-            List.iter (fun tup ->
-                let s = (fst tup) in
-                let t = (snd tup) in
-                if List.memq s !duplist then
-                  netname := Printf.sprintf "%s+" s
-                else netname := s;
-                duplist := !duplist @ [!netname];
-                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n"
-                  t !netname
-            ) (List.sort (fun d1 d2 -> compare (fst d1) (fst d2)) !netlist);
-
-            Printf.bprintf buf "\\</select\\>\\</td\\>\\</form\\>
-\\</tr\\>\\</table\\>
-\\</td\\>\\</tr\\>
-\\<tr\\>\\<td\\>";
+            put "\\</form\\>\\</td\\>\\</tr\\>\\</table\\>";
+            put "\\</td\\>\\</tr\\>";
+            put "\\<tr\\>\\<td\\>";
 
             list_options_html o (
               match args with
               |  [] | _ :: _ :: _ ->
                   CommonInteractive.all_simple_options ()
-                  
+
               | ["changed"] ->
                   changed_list
 
@@ -2173,49 +2173,54 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
 
 
             );
-            Printf.bprintf buf "
-\\</td\\>\\</tr\\>
-\\<tr\\>\\<td\\>
-\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap title=\\\"Show shares Tab (also related for incoming directory)\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
-%s
-\\<td nowrap title=\\\"Show Web_infos Tab where you can add/remove automatic downloads like serverlists\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Show Calendar Tab, there are informations about automatically jobs\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
-\\<td nowrap class=\\\"fbig fbigb pr\\\"\\>
+            put "\\</td\\>\\</tr\\>";
+            put "\\<tr\\>\\<td\\>";
+
+            put "\\<table cellspacing=0 cellpadding=0 class='hcenter'\\>\\<tr\\>";
+
+            button ~title:"Show shares Tab (also related for incoming directory)" ~cls:"fbig fbigb" ~cmd:"shares" "Shares";
+            if (user2_is_admin o.conn_user.ui_user) then
+              button ~title:"Show users Tab where you can add/remove Users" ~cls:"fbig fbigb" ~cmd:"users" "Users";
+
+            button ~title:"Show Web_infos Tab where you can add/remove automatic downloads like serverlists" ~cls:"fbig fbigb" ~cmd:"vwi" "Web infos";
+            button ~title:"Show Calendar Tab, there are informations about automatically jobs" ~cls:"fbig fbigb" ~cmd:"vcal" "Calendar";
+            put "\\<td nowrap class=\\\"fbig fbigb pr\\\"\\>
 \\<form style=\\\"margin: 0px;\\\" name=\\\"htmlModsStyleForm\\\" id=\\\"htmlModsStyleForm\\\"
-action=\\\"javascript:submitHtmlModsStyle();\\\"\\>
-\\<select id=\\\"modsStyle\\\" name=\\\"modsStyle\\\"
-style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"this.form.submit()\\\"\\>
-\\<option value=\\\"0\\\"\\>style/theme\n"
-(if (user2_is_admin o.conn_user.ui_user) then
-  "\\<td nowrap title=\\\"Show users Tab where you can add/remove Users\\\" class=\\\"fbig fbigb\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=users'\\\"\\>Users\\</a\\>\\</td\\>"
- else "");
+action=\\\"javascript:submitHtmlModsStyle();\\\"\\>";
 
-            Array.iteri (fun i style ->
-                Printf.bprintf buf "\\<option value=\\\"%d\\\"\\>%s\\</option\\>\n" i style.style_name
-	    ) CommonMessages.styles;
-
-            if Sys.file_exists html_themes_dir then begin
-              let list = Unix2.list_directory html_themes_dir in
-              List.iter (fun d ->
+            let options =
+              ("0", "style/theme")
+              ::
+              Array.to_list (Array.mapi (fun i style -> string_of_int i, style.style_name) CommonMessages.styles)
+              @
+              if Sys.file_exists html_themes_dir then begin
+                let list = Unix2.list_directory html_themes_dir in
+                List.fold_left (fun acc d ->
                   if Unix2.is_directory (Filename.concat html_themes_dir d) then
                     let sd = (if String.length d > 11 then String.sub d 0 11 else d) in
-                    Printf.bprintf buf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" d sd;
-              ) (List.sort (fun d1 d2 -> compare d1 d2) list);
-            end;
-            
-          Printf.bprintf buf "\\</select\\>\\</td\\>\\</tr\\>\\</form\\>\\</table\\>
-\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>\\</td\\>
-\\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=\\\"fbig fbigb fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>toggle html_mods\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Toggle option helptext from javascript popup to html table\\\" class=\\\"fbig fbigb pr fbigpad\\\"\\>
-\\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=set+html_mods_use_js_helptext+%s'; setTimeout('window.location.replace(window.location.href)',1000);return true;}\\\"\\>toggle js_helptext\\</a\\>
-\\</td\\>\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>" (if !!html_mods_use_js_helptext then "false" else "true");
+                    (d,sd) :: acc
+                  else
+                    acc
+                ) [] (List.sort (fun d1 d2 -> compare d1 d2) list);
+              end
+              else []
+            in
+
+            select "modsStyle" options;
+
+            put "\\</form\\>\\</td\\>\\</tr\\>\\</table\\>";
+            put "\\</td\\>\\</tr\\>";
+            put "\\<tr\\>\\<td\\>";
+            put "\\<table cellspacing=0 cellpadding=0 class='hcenter'\\>\\<tr\\>";
+            button ~title:"Change to simple Webinterface without html_mods" ~cls:"fbig fbigb fbigpad" ~cmd:"html_mods" "toggle html_mods";
+            put "\\<td nowrap title=\\\"Toggle option helptext from javascript popup to html table\\\" class=\\\"fbig fbigb pr fbigpad\\\"\\>
+\\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=set+html_mods_use_js_helptext+%s'; setTimeout('window.location.replace(window.location.href)',1000);return true;}\\\"\\>toggle js_helptext\\</a\\>" (if !!html_mods_use_js_helptext then "false" else "true");
+            put "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\</br\\>";
+
           html_mods_table_one_row buf "downloaderTable" "downloaders" [
           ("", "srh", "!! press ENTER to send changes to core !!"); ];
           end
-                     
+
         else begin
           match args with
             | [] | _ :: _ :: _ -> list_options o (CommonInteractive.all_simple_options ())
@@ -2230,8 +2235,8 @@ style=\\\"padding: 0px; font-size: 10px; font-family: verdana\\\" onchange=\\\"t
         if use_html_mods o then begin
             Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
 \\<tr\\>\\<td\\>
-\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
-\\<td class=downloaded width=100%%\\>\\</td\\>
+\\<table cellspacing=0 cellpadding=0  width='100%%'\\>\\<tr\\>
+\\<td class=downloaded width='100%%'\\>\\</td\\>
 \\<td nowrap title=\\\"force downloading all web_infos files\\\" class=\\\"fbig\\\"\\>
 \\<a onclick=\\\"javascript: {parent.fstatus.location.href='submit?q=force_web_infos';}\\\"\\>Re-download all\\</a\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
@@ -2495,7 +2500,7 @@ let _ =
         if use_html_mods o then begin
             Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
 \\<tr\\>\\<td\\>
-\\<table cellspacing=0 cellpadding=0  width=100%%\\>\\<tr\\>
+\\<table cellspacing=0 cellpadding=0  width='100%%'\\>\\<tr\\>
 \\<td class=downloaded width=100%%\\>\\</td\\>
 \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript: {
                    var getdir = prompt('Input: <priority#> <directory> [<strategy>] (surround dir with quotes if necessary)','0 /home/mldonkey/share')
