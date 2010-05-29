@@ -1,6 +1,6 @@
 (** Generic implementation of Kademlia *)
 
-let k = 8
+let bucket_nodes = 8
 
 module H = Md4.Sha1
 
@@ -24,7 +24,9 @@ type time = float
 type status = | Good | Bad | Unknown | Pinged
 type node = { id : id; addr : addr; mutable last : time; mutable status : status; }
 type bucket = { lo : id; hi : id; mutable last_change : time; nodes : node array; }
-type table = L of bucket | N of table * table
+(* FIXME better *)
+type tree = L of bucket | N of tree * tree
+type table = { mutable root : tree; self : id; }
 
 let show_addr (ip,port) = Printf.sprintf "%s:%u" (Ip.to_string ip) port
 
@@ -61,7 +63,7 @@ let cmp id1 id2 =
   | _ -> assert false
 
 (* boundaries inclusive *)
-let between x lo hi = not (cmp x lo = LT || cmp x hi = GT)
+let inside x node = not (cmp x node.lo = LT || cmp x node.hi = GT)
 
 let bracket res destroy k =
   let x = try k res with exn -> destroy res; raise exn in
@@ -151,11 +153,25 @@ let () =
   assert (eq_big_int (distance middle' middle) (pred_big_int (power_int_positive_int 2 160)));
   ()
 
+exception Nothing
+
+let insert table node =
+  let rec loop = function
+  | N (l,r) -> if cmp node.id r.lo = LT then N (loop l, r) else N (l, loop r)
+  | L b ->
+    if Array.find (fun n -> n.id = node.id) 
+  Array.length b.nodes <> bucket_nodes -> b.nodes <- Array.of_list (node::Array.to_list b.nodes); raise Nothing
+  | L b when inside table.self b -> 
+  | L _ -> raise Nothing (* throw away *)
+  in
+  try table.root <- loop table.root
+  with Nothing -> ()
+
 let now = Unix.gettimeofday
 
-let empty () = L { lo = H.null; hi = middle; last_change = now (); nodes = [||]; }
+let empty () = L { lo = H.null; hi = last; last_change = now (); nodes = [||]; }
 
-let table = ref (empty ())
+let table = { root = empty (); self = H.random (); }
 
 let () =
   show_table !table
