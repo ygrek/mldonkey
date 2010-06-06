@@ -243,7 +243,7 @@ let show_tracker_url : tracker_url -> string = function
   | `Udp (host,port) -> Printf.sprintf "udp://%s:%d" host port
 
 let can_handle_tracker = function
-  | `Http _ -> false
+  | `Http _
   | `Udp _ -> true
   | `Other _ -> false
 

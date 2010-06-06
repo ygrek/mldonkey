@@ -208,7 +208,7 @@ let print_addr addr =
 let max_delayed_send = 1
   
 let write t ping s ip port =
-  lprintf_nl "UDP write %d bytes to %s:%d" (String.length s) (Ip.to_string ip) port;
+(*  lprintf_nl "UDP write to %s:%d" (Ip.to_string ip) port; *)
   if not (closed t) && t.wlist_size < !max_wlist_size then 
     let s, addr = match t.socks_local with
       None -> s, Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
@@ -225,19 +225,17 @@ let write t ping s ip port =
     in
     match t.write_controler with
       None ->
-        lprintf_nl "UDP no write controller";
         if not (PacketSet.is_empty t.wlist) then
           begin
             let sock = sock t in
             try
               let len = String.length s in
 
-              let () =
+              let _ =
                 try
                   if ping then declare_ping ip;
                   ignore(Unix.sendto (fd sock) s 0 len [] addr);
-(*                   if !verbose_bandwidth > 1 then  *)
-                    begin
+                  if !verbose_bandwidth > 1 then begin
                       lprintf_nl "[BW2] direct send udp %d bytes (write)" len;
                     end;
                 with e ->
@@ -252,7 +250,6 @@ lprintf_nl "UDP sent [%s]" (String.escaped
 *)
             with
               Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) -> 
-                lprintf_nl "UDP err, queue";
                 t.wlist <- PacketSet.add  (0, {
                     udp_ping = ping;
                     udp_content = s ;
@@ -267,7 +264,6 @@ lprintf_nl "UDP sent [%s]" (String.escaped
                 raise e
           end
         else begin
-            lprintf_nl "UDP queue (wlist_size %d)" t.wlist_size;
             t.wlist <- PacketSet.add (0, {
                 udp_ping = ping;
                 udp_content = s ;
@@ -279,7 +275,6 @@ lprintf_nl "UDP sent [%s]" (String.escaped
     | Some bc ->
 
         begin
-          lprintf_nl "UDP with bontroller, queue (wlist_size %d)" t.wlist_size;
           t.wlist <- PacketSet.add (bc.base_time + max_delayed_send, {
               udp_ping = ping;
               udp_content = s;
@@ -298,7 +293,6 @@ let dummy_sock = Obj.magic 0
 let read_buf = String.create 66000
 
 let rec iter_write_no_bc t sock = 
-  lprintf_nl "UDP iter_write_no_bc (wlist_size %d)" t.wlist_size;
   let (time,p) = PacketSet.min_elt t.wlist in
   t.wlist <- PacketSet.remove (time,p) t.wlist;
   t.wlist_size <- t.wlist_size - String.length p.udp_content;
@@ -306,8 +300,7 @@ let rec iter_write_no_bc t sock =
   begin try
       ignore (local_sendto (fd sock) p);
       udp_uploaded_bytes := !udp_uploaded_bytes ++ (Int64.of_int len);
-(*       if !verbose_bandwidth > 1 then  *)
-      begin
+      if !verbose_bandwidth > 1 then begin
           lprintf_nl "[BW2] direct send udp %d bytes (iter_write_no_bc)" len;
       end
     with
@@ -325,12 +318,10 @@ let iter_write_no_bc t sock =
   try
     iter_write_no_bc t sock 
   with
-    Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) ->
-      lprintf_nl "UDP iter_write_no_bc err, must_write";
+    Unix.Unix_error ((Unix.EWOULDBLOCK | Unix.ENOBUFS), _, _) -> 
       must_write t.sock true
 
 let rec iter_write t sock bc = 
-  lprintf_nl "UDP iter_write (wlist_size %d)" t.wlist_size;
   if bc.total_bytes = 0 || bc.remaining_bytes > 0 then
     let _ = () in
     let (time,p) = PacketSet.min_elt t.wlist in
@@ -349,8 +340,7 @@ let rec iter_write t sock bc =
         bc.remaining_bytes <- bc.remaining_bytes - (len +
           !TcpBufferedSocket.ip_packet_size) ;
         TcpBufferedSocket.register_bytes (Some bc.tcp_bc) len;
-(*         if !verbose_bandwidth > 1 then  *)
-          begin
+        if !verbose_bandwidth > 1 then begin
             lprintf_nl "[BW2] bc send udp %d bytes" len;
           end;
       with
@@ -393,7 +383,6 @@ let udp_handler t sock event =
   
   | CAN_WRITE ->
       begin
-      lprintf_nl "UDP CAN_WRITE";
         try
           match t.write_controler with
             None ->
@@ -401,15 +390,11 @@ let udp_handler t sock event =
           | Some bc ->
               iter_write t sock bc
         with Not_found ->
-            lprintf_nl "UDP CAN_WRITE Not_found must_write false";
             must_write t.sock false
       end;
-      lprintf_nl "UDP CAN_WRITE done";
       if not (closed t) then begin
-          lprintf_nl "UDP run CAN_REFILL";
           t.event_handler t CAN_REFILL;
           if PacketSet.is_empty t.wlist then begin
-              lprintf_nl "UDP packetset empty";
               must_write t.sock false;
               t.event_handler t WRITE_DONE
             end

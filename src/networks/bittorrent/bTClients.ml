@@ -122,7 +122,7 @@ let string_of_event = function
 let talk_to_udp_tracker host port args file t need_sources =
   let interact ip =
     let socket = create (Ip.to_inet_addr !!client_bind_addr) 0 (fun sock event ->
-      lprintf_nl "udpt got event %s for %s" (string_of_event event) host;
+(*       lprintf_nl "udpt got event %s for %s" (string_of_event event) host; *)
       match event with
       | WRITE_DONE | CAN_REFILL -> ()
       | READ_DONE -> assert false (* set_reader prevents this *)
@@ -138,17 +138,17 @@ let talk_to_udp_tracker host port args file t need_sources =
           close socket (Closed_for_exception exn)
       end
     in
-    BasicSocket.set_wtimeout (sock socket) 5.;
-    BasicSocket.set_rtimeout (sock socket) 5.;
+    BasicSocket.set_wtimeout (sock socket) 60.;
+    BasicSocket.set_rtimeout (sock socket) 60.;
     let txn = Random.int32 Int32.max_int in
-    lprintf_nl "udpt txn %ld for %s" txn host;
+(*     lprintf_nl "udpt txn %ld for %s" txn host; *)
     write socket false (connect_request txn) ip port;
     set_reader begin fun () ->
       let p = read socket in
       let conn = connect_response p.udp_content txn in
-      lprintf_nl "udpt connection_id %Ld for %s" conn host;
+(*       lprintf_nl "udpt connection_id %Ld for %s" conn host; *)
       let txn = Random.int32 Int32.max_int in
-      lprintf_nl "udpt txn' %ld for host %s" txn host;
+(*       lprintf_nl "udpt txn' %ld for host %s" txn host; *)
       let int s = Int64.of_string (List.assoc s args) in
       let req = announce_request conn txn
         ~info_hash:(List.assoc "info_hash" args) 
@@ -175,7 +175,8 @@ let talk_to_udp_tracker host port args file t need_sources =
         if need_sources then t.tracker_last_clients_num <- 0;
 
         let (interval,clients) = announce_response p.udp_content txn in
-        lprintf_nl "udpt got interval %ld clients %d for host %s" interval (List.length clients) host;
+        if !verbose_msg_servers then
+          lprintf_nl "udpt got interval %ld clients %d for host %s" interval (List.length clients) host;
         if interval > 0l then
         begin
           t.tracker_interval <- Int32.to_int interval;
@@ -185,21 +186,25 @@ let talk_to_udp_tracker host port args file t need_sources =
         if need_sources then
         List.iter (fun (ip',port) ->
           let ip = Ip.of_int64 (Int64.logand 0xFFFFFFFFL (Int64.of_int32 ip')) in 
-          lprintf_nl "udpt got %s:%d" (Ip.to_string ip) port;
+(*           lprintf_nl "udpt got %s:%d" (Ip.to_string ip) port; *)
           t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
           maybe_new_client file Sha1.null ip port
         ) clients;
         close socket Closed_by_user;
-        lprintf_nl "udpt interact done for %s" host;
+        if !verbose_msg_servers then
+          lprintf_nl "udpt interact done for %s" host;
         if need_sources then !resume_clients_hook file
         ) end
   in
   try
-    lprintf_nl "udpt start with %s:%d" host port;
+    if !verbose_msg_servers then
+      lprintf_nl "udpt start with %s:%d" host port;
     Ip.async_ip host (fun ip ->
-      lprintf_nl "udpt resolved %s to ip %s" host (Ip.to_string ip);
+(*       lprintf_nl "udpt resolved %s to ip %s" host (Ip.to_string ip); *)
       try interact ip with exn -> lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn))
-      (fun n -> lprintf_nl "udpt failed to resolve %s (%d)" host n)
+      (fun n -> 
+        if !verbose_msg_servers then
+          lprintf_nl "udpt failed to resolve %s (%d)" host n)
   with
   exn -> 
     lprintf_nl "udpt start exn %s" (Printexc2.to_string exn)
