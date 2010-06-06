@@ -22,7 +22,7 @@ let connect_response s exp_txn =
   | { 0l : 32 ; txn : 32 ; conn_id : 64 } -> 
     if txn = exp_txn then conn_id else fail "error connect_response txn %ld expected %ld" txn exp_txn
   | { :error_response } -> fail "error connect_response txn %ld : %s" txn msg
-  | { _ } -> fail "error connect_response"
+  | { }  -> fail "error connect_response"
 
 (** announce *)
 let announce_request conn txn ~info_hash ~peer_id (downloaded,left,uploaded) event ?(ip=0l) ?(key=0l) ~numwant port =
@@ -46,7 +46,7 @@ let announce_response s exp_txn =
   let rec clients rest l =
     bitmatch rest with
     | { ip : 32 ; port : 16 ; rest : -1 : bitstring } -> clients rest ((ip,port)::l)
-    | { _ } -> l
+    | { } -> l
   in
   bitmatch bits s with
   | { 1l : 32 ; txn : 32 ; interval : 32 ; leechers : 32 ; seeders : 32 ;
@@ -56,5 +56,5 @@ let announce_response s exp_txn =
         else
           fail "error announce_response txn %ld expected %ld" txn exp_txn
   | { :error_response } -> fail "error announce_response txn %ld : %s" txn msg
-  | { _ } -> fail "error announce_response"
+  | { } -> fail "error announce_response"
 

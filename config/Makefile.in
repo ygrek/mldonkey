@@ -436,12 +436,19 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/fasttrackInteractive.mlt \
   $(SRC_FASTTRACK)/fasttrackMain.mlt
 
+$(BITSTRING)/pa_bitstring.cmo: $(BITSTRING)/pa_bitstring.mlt build/bitstring.cma
+	$(OCAMLC) build/bitstring.cma -I $(BITSTRING) -I +camlp4 camlp4lib.cma -pp 'camlp4of -impl' -c $<
+
+$(SRC_BITTORRENT)/bTUdpTracker.ml: $(SRC_BITTORRENT)/bTUdpTracker.mlp $(BITSTRING)/pa_bitstring.cmo
+	camlp4of build/bitstring.cma $(BITSTRING)/pa_bitstring.cmo -impl $< -o $@
+
 BITTORRENT_SRCS= \
   $(BITSTRING_SRCS) \
   $(SRC_BITTORRENT)/bencode.ml \
   $(SRC_BITTORRENT)/bTRate.ml \
   $(SRC_BITTORRENT)/bTTypes.ml \
   $(SRC_BITTORRENT)/bTOptions.ml \
+  $(SRC_BITTORRENT)/bTUdpTracker.ml \
   $(SRC_BITTORRENT)/bTProtocol.ml \
   $(SRC_BITTORRENT)/bTTorrent.ml \
   $(SRC_BITTORRENT)/bTGlobals.ml \
