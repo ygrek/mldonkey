@@ -68,6 +68,7 @@ endif
 
 
 CDK=src/utils/cdk
+BITSTRING=src/utils/bitstring
 LIB=src/utils/lib
 NET=src/utils/net
 RSS=src/utils/ocamlrss
@@ -88,10 +89,10 @@ SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
 SRC_FILETP=src/networks/fileTP
 
-SUBDIRS=$(CDK) $(LIB) $(RSS) $(XML) $(NET) tools \
+SUBDIRS=$(CDK) $(BITSTRING) $(LIB) $(RSS) $(XML) $(NET) tools \
    $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
 
-INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
+INCLUDES += $(foreach file, $(SUBDIRS), -I $(file)) -I +camlp4
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES) $(GTKCFLAGS) $(GD_CFLAGS)
 
@@ -131,6 +132,16 @@ endif
 ifeq ("$(OS_FILES2)", "cygwin")
   LIBS_flags += -cclib "resfile.o"
 endif
+
+BITSTRING_SRCS = \
+  $(BITSTRING)/bitstring.ml \
+  $(BITSTRING)/bitstring_persistent.mlc4 \
+  $(BITSTRING)/bitstring_c.c
+
+BITSTRING_LIBS_flags = -I +camlp4
+BITSTRING_LIBS_opt = dynlink.cmxa camlp4lib.cmxa
+BITSTRING_STATIC_LIBS_opt = $(BITSTRING_LIBS_opt)
+BITSTRING_LIBS_byte = dynlink.cma camlp4lib.cma
 
 ifeq ("$(BZIP2)", "yes")
   LIBS_flags += -cclib -lbz2
@@ -426,6 +437,7 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/fasttrackMain.mlt
 
 BITTORRENT_SRCS= \
+  $(BITSTRING_SRCS) \
   $(SRC_BITTORRENT)/bencode.ml \
   $(SRC_BITTORRENT)/bTRate.ml \
   $(SRC_BITTORRENT)/bTTypes.ml \
@@ -1101,16 +1113,17 @@ $1_ZOG := $(filter %.zog, $($1_SRCS))
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
 $1_MLY := $(filter %.mly, $($1_SRCS)) 
 $1_ML4 := $(filter %.ml4, $($1_SRCS)) 
+$1_MLC4 := $(filter %.mlc4, $($1_SRCS)) 
 $1_MLT := $(filter %.mlt, $($1_SRCS)) 
 $1_MLP := $(filter %.mlcpp, $($1_SRCS)) 
-$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt %.mlcpp, $($1_SRCS)) 
-$1_DOC := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlcpp, $($1_SRCS)) 
+$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlc4 %.mlt %.mlcpp, $($1_SRCS)) 
+$1_DOC := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlc4 %.mlcpp, $($1_SRCS)) 
 $1_C := $(filter %.c %.cc, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
 $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)    
 
-TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli)  $($1_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLC4:.mlc4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli)  $($1_ZOG:.zog=.ml) 
  
 ZOGSOURCES +=  $($1_ZOG:.zog=.ml) 
 MLTSOURCES +=  $($1_MLT:.mlt=.ml)
@@ -1170,6 +1183,7 @@ EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 
 libcdk_SRCS=  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS)
 libmagic_SRCS= $(MAGIC_SRCS)
+libbitstring_SRCS= $(BITSTRING_SRCS)
 libcommon_SRCS= $(COMMON_SRCS)
 libclient_SRCS= $(COMMON_CLIENT_SRCS)
 ifeq ("$(GUI)", "newgui2")
@@ -1185,6 +1199,7 @@ libicons_SRCS= $(ALL_ICONS_SRCS)
 EXPAND_LIB(libicons,icons)
 EXPAND_LIB(libcdk,cdk)
 EXPAND_LIB(libmagic,magic)
+EXPAND_LIB(libbitstring,bitstring)
 EXPAND_LIB(libcommon,common)
 EXPAND_LIB(libclient,client)
 EXPAND_LIB(DRIVER,driver)
@@ -1209,9 +1224,10 @@ $1_ZOG := $(filter %.zog, $($1_SRCS))
 $1_MLL := $(filter %.mll, $($1_SRCS)) 
 $1_MLY := $(filter %.mly, $($1_SRCS)) 
 $1_ML4 := $(filter %.ml4, $($1_SRCS)) 
+$1_MLC4 := $(filter %.mlc4, $($1_SRCS)) 
 $1_MLT := $(filter %.mlt, $($1_SRCS)) 
 $1_MLP := $(filter %.mlcpp, $($1_SRCS)) 
-$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlt %.mlcpp, $($1_SRCS)) 
+$1_ML := $(filter %.ml %.mll %.zog %.mly %.ml4 %.mlc4 %.mlt %.mlcpp, $($1_SRCS)) 
 $1_C := $(filter %.c %.cc, $($1_SRCS)) 
 $1_CMOS=$(foreach file, $($1_ML),   $(basename $(file)).cmo) 
 $1_CMXS=$(foreach file, $($1_ML),   $(basename $(file)).cmx) 
@@ -1220,7 +1236,7 @@ $1_OBJS=$(foreach file, $($1_C),   $(basename $(file)).o)
 $1_CMXAS := $(foreach file, $($1_CMXA),   build/$(basename $(file)).cmxa)
 $1_CMAS=$(foreach file, $($1_CMXA),   build/$(basename $(file)).cma)    
 
-TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
+TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLC4:.mlc4=.ml) $($1_MLT:.mlt=.ml) $($1_MLP:.mlcpp=.ml) $($1_MLL:.mll=.ml) $($1_MLY:.mly=.ml) $($1_MLY:.mly=.mli) $($1_ZOG:.zog=.ml) 
  
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$(OCAMLOPT) -linkall -o $[[@]] \
@@ -1229,6 +1245,7 @@ $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$($5_LIBS_opt) $($5_LIBS_flags) \
 	$($6_LIBS_opt) $($6_LIBS_flags) \
 	$($7_LIBS_opt) $($7_LIBS_flags) \
+	$($8_LIBS_opt) $($8_LIBS_flags) \
 	-I build $($1_CMXAS) $($1_CMXS) 
  
 $2.byte: $($1_OBJS) $($1_CMOS) $($1_CMAS)
@@ -1238,6 +1255,7 @@ $2.byte: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 	$($5_LIBS_byte) $($5_LIBS_flags) \
 	$($6_LIBS_byte) $($6_LIBS_flags) \
 	$($7_LIBS_byte) $($7_LIBS_flags) \
+	$($8_LIBS_byte) $($8_LIBS_flags) \
 	-I build $($1_CMAS) $($1_CMOS) 
  
 $2.static: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
@@ -1247,6 +1265,7 @@ $2.static: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$($5_LIBS_flags) $($5_STATIC_LIBS_opt) \
 	$($6_LIBS_flags) $($6_STATIC_LIBS_opt) \
 	$($7_LIBS_flags) $($7_STATIC_LIBS_opt) \
+	$($8_LIBS_flags) $($8_STATIC_LIBS_opt) \
 	-I build $($1_CMXAS) $($1_CMXS)
 
 $2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
@@ -1256,6 +1275,7 @@ $2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 	$($5_LIBS_flags) $($5_STATIC_LIBS_opt) \
 	$($6_LIBS_flags) $($6_STATIC_LIBS_opt) \
 	$($7_LIBS_flags) $($7_STATIC_LIBS_opt) \
+	$($8_LIBS_flags) $($8_STATIC_LIBS_opt) \
 	-I build $($1_CMAS) $($1_CMOS) 
 ]])
 
@@ -1266,6 +1286,7 @@ $2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 # $5 = if set link GD code
 # $6 = if set link CryptoPP code (only for targets mlnet, mldonkey)
 # $7 = if set link libmagic code (only for p2p core, not for GUIs, tools etc.)
+# $8 = if set link libbitstring code (only for Bittorrent p2p core)
 
 EXPAND(mldonkey,mldonkey,NO,mldonkey,GD,CRYPTOPP,MAGIC)
 EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui,GD,CRYPTOPP,MAGIC)
@@ -1280,14 +1301,14 @@ EXPAND(mldc,mldc,NO,mldc,GD,NO,MAGIC)
 EXPAND(mldc+gui,mldc+gui,GTK,mldc+gui,GD,NO,MAGIC)
 EXPAND(mlnap,mlnap,NO,mlnap,GD,NO,MAGIC)
 EXPAND(mlnap+gui,mlnap+gui,GTK,mlnap+gui,GD,NO,MAGIC)
-EXPAND(MLNET,mlnet,NO,MLNET,GD,CRYPTOPP,MAGIC)
-EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui,GD,CRYPTOPP,MAGIC)
+EXPAND(MLNET,mlnet,NO,MLNET,GD,CRYPTOPP,MAGIC,BITSTRING)
+EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui,GD,CRYPTOPP,MAGIC,BITSTRING)
 EXPAND(mlgnut,mlgnut,NO,mlgnut,GD,NO,MAGIC)
 EXPAND(mlgnut+gui,mlgnut+gui,GTK,mlgnut+gui,GD,NO,MAGIC)
 EXPAND(mlg2,mlg2,NO,mlg2,GD,NO,MAGIC)
 EXPAND(mlg2+gui,mlg2+gui,GTK,mlg2+gui,GD,NO,MAGIC)
-EXPAND(mlbt,mlbt,NO,mlbt,GD,NO,MAGIC)
-EXPAND(mlbt+gui,mlbt+gui,GTK,mlbt+gui,GD,NO,MAGIC)
+EXPAND(mlbt,mlbt,NO,mlbt,GD,NO,MAGIC,BITSTRING)
+EXPAND(mlbt+gui,mlbt+gui,GTK,mlbt+gui,GD,NO,MAGIC,BITSTRING)
 EXPAND(mlfasttrack,mlfasttrack,NO,mlfasttrack,GD,NO,MAGIC)
 EXPAND(mlfasttrack+gui,mlfasttrack+gui,GTK,mlfasttrack+gui,GD,NO,MAGIC)
 EXPAND(mlfileTP,mlfiletp,NO,mlfileTP,GD,NO,MAGIC)
@@ -1397,6 +1418,7 @@ clean:
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mlgui mlnet.exe mlgui.exe mldonkeytop mldonkeytop.exe
+	rm -f mlbt mlbt.exe mlfiletp mlfiletp.exe
 	rm -f svg_converter svg_converter.byte mld_hash make_torrent copysources get_range subconv testrss
 	rm -f svg_converter.exe mld_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe testrss.exe
 	(for i in $(SUBDIRS); do \
@@ -1423,6 +1445,7 @@ releaseclean: clean moreclean
 	rm -f packages/windows/mlnet.nsi
 	rm -f src/daemon/driver/driverGraphics.ml
 	rm -f src/networks/donkey/donkeySui.ml
+	rm -f src/utils/bitstring/bitstring.ml
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new
 	rm -f src/utils/lib/gAutoconf.ml
@@ -1460,7 +1483,7 @@ LOCAL=patches/build
 PA_ZOG_FILES=tools/zoggy/zog_types.ml tools/zoggy/zog_messages.ml tools/zoggy/zog_misc.ml tools/zoggy/pa_zog.ml
 
 pa_zog.cma: $(PA_ZOG_FILES)
-	$(OCAMLC) -I tools/zoggy -I +camlp4 -pp "$(CAMLP4) pa_o.cmo pr_dump.cmo -loc loc" -a -o pa_zog.cma  $(PA_ZOG_FILES)
+	@$(OCAMLC) -I tools/zoggy -I +camlp4 -pp "$(CAMLP4) pa_o.cmo pr_dump.cmo -loc loc" -a -o pa_zog.cma  $(PA_ZOG_FILES)
 
 
 OCAMLPP=./ocamlpp.byte
@@ -1483,12 +1506,12 @@ resfile.o:
 
 depend:   $(RESFILE) \
 	$(PA_ZOG) $(LIB)/http_lexer.ml $(TMPSOURCES)
-	$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) *.ml *.mli > .depend
-	(for i in $(SUBDIRS); do \
+	@$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) *.ml *.mli > .depend
+	@(for i in $(SUBDIRS); do \
 		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
 		$(OCAMLPP) $$i/*.mlt  >> .depend; \
 	done)
-	if test "$(GUI)" = "newgui2"; then \
+	@if test "$(GUI)" = "newgui2"; then \
 		$(MAKE) svg_converter.byte; \
 	fi
 
@@ -1728,7 +1751,7 @@ rpm: sourcedist
 
 -include .depend
 
-.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlt .mlii .mlcpp .svg
+.SUFFIXES: .mli .ml .cmx .cmo .o .c .cmi .mll .mly .zog .plugindep .xpm .ml .cc .ml_icons .ml4 .mlc4 .mlt .mlii .mlcpp .svg
 
 .mli.cmi :
 	$(OCAMLC) $(INCLUDES) -c $<
@@ -1761,26 +1784,29 @@ rpm: sourcedist
 	$(OCAMLC) $(DEVFLAGS) $(INCLUDES) -c $<
 
 .mlcpp.ml:
-	cpp -P $< $(FIX_BROKEN_CPP) > $@
+	@cpp -P $< $(FIX_BROKEN_CPP) > $@
 
 .mll.ml :
-	$(OCAMLLEX) $<
+	@$(OCAMLLEX) -q $<
 
 .mly.ml :
-	$(OCAMLYACC) $<
+	@$(OCAMLYACC) $<
 
 .mly.mli:
-	$(OCAMLYACC) $<
+	@$(OCAMLYACC) $<
 
 .zog.ml:
-	$(CAMLP4) pa_o.cmo ./pa_zog.cma pr_o.cmo -impl $< > $@
+	@$(CAMLP4) pa_o.cmo ./pa_zog.cma pr_o.cmo -impl $< > $@
 
 .ml4.ml:
-	echo '# 1 "$<"' > $@
-	$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< >> $@
+	@echo '# 1 "$<"' > $@
+	@$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< >> $@
+
+.mlc4.ml:
+	@$(CAMLP4OF) -I +camlp4 -impl $< -o $@
 
 .mlt.ml:
-	$(OCAMLPP) -pp $< > $@
+	@$(OCAMLPP) -pp $< > $@
 
 .c.o :
 	$(OCAMLC) -verbose -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" $(LIBS_flags) -c $<
