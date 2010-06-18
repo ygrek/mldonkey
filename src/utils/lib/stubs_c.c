@@ -1490,12 +1490,16 @@ CAMLprim value ml_fsync(value v_fd)
 {
     CAMLparam1(v_fd);
     int r = 0;
-    if (Is_long(v_fd)) /* FIXME windows */
-    {
-      caml_enter_blocking_section();
-      r = fsync(Int_val(v_fd));
-      caml_leave_blocking_section();
-    }
+    OS_FD fd;
+
+    if (OS_IS_FD(v_fd)) 
+      fd = Fd_val(v_fd); 
+    else 
+      caml_invalid_argument("fsync");
+
+    caml_enter_blocking_section();
+    r = os_fsync(fd);
+    caml_leave_blocking_section();
     if (0 != r)
       uerror("fsync",Nothing);
     CAMLreturn(Val_unit);

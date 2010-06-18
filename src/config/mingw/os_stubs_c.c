@@ -476,3 +476,10 @@ value os_set_console_title(value buf)
    SetConsoleTitle((LPCTSTR)pbuf);
    return Val_unit;
 }
+
+int os_fsync(OS_FD fd)
+{
+   int r = FlushFileBuffers(fd);
+   return (0 == r ? -1 : 0);
+}
+
