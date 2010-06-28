@@ -23,9 +23,9 @@ type addr = Ip.t * int
 type time = float
 type status = | Good | Bad | Unknown | Pinged
 type node = { id : id; addr : addr; mutable last : time; mutable status : status; }
-type bucket = { lo : id; hi : id; mutable last_change : time; nodes : node array; }
+type bucket = { lo : id; hi : id; mutable last_change : time; mutable nodes : node array; }
 (* FIXME better *)
-type tree = L of bucket | N of tree * tree
+type tree = L of bucket | N of tree * id * tree
 type table = { mutable root : tree; self : id; }
 
 let show_addr (ip,port) = Printf.sprintf "%s:%u" (Ip.to_string ip) port
@@ -42,10 +42,11 @@ let show_node n =
 
 let show_bucket b = 
   pr "lo : %s hi : %s changed : %f" (H.to_hexa b.lo) (H.to_hexa b.hi) b.last_change;
-  Array.iter show_node b.nodes
+  pr "count : %d" (Array.length b.nodes)
+(*   Array.iter show_node b.nodes *)
 
-let rec show_table = function 
-  | N (l,r) -> show_table l; show_table r
+let rec show_tree = function 
+  | N (l,_,r) -> show_tree l; show_tree r
   | L b -> show_bucket b
 
 let h2s h =
@@ -120,6 +121,10 @@ let split lo hi =
   let mid = div_big_int (add_big_int (h2n lo) (h2n hi)) (big_int_of_int 2) in
   n2h mid 
 
+let succ h =
+  assert (cmp h last <> EQ);
+  n2h (succ_big_int (h2n h))
+
 let distance h1 h2 =
   let s1 = h2s h1 and s2 = h2s h2 in
   let d = ref zero_big_int in
@@ -153,26 +158,52 @@ let () =
   assert (eq_big_int (distance middle' middle) (pred_big_int (power_int_positive_int 2 160)));
   ()
 
-exception Nothing
+exception Nothing 
 
 let insert table node =
+(*   pr "insert %s" (show_id node.id); *)
   let rec loop = function
-  | N (l,r) -> if cmp node.id r.lo = LT then N (loop l, r) else N (l, loop r)
+  | N (l,mid,r) -> (match cmp node.id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
   | L b ->
-    if Array.find (fun n -> n.id = node.id) 
-  Array.length b.nodes <> bucket_nodes -> b.nodes <- Array.of_list (node::Array.to_list b.nodes); raise Nothing
-  | L b when inside table.self b -> 
-  | L _ -> raise Nothing (* throw away *)
+    Array.iter (fun n -> if cmp n.id node.id = EQ then (pr "duplicate"; raise Nothing)) b.nodes;
+    if Array.length b.nodes <> bucket_nodes then
+    begin
+(*       pr "inserted"; *)
+      b.nodes <- Array.of_list (node :: Array.to_list b.nodes);
+      raise Nothing
+    end
+    else if inside table.self b && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
+(*       let () = pr "splitting" in *)
+      let mid = split b.lo b.hi in
+      let (nodes1,nodes2) = List.partition (fun n -> cmp n.id node.id = LT) (Array.to_list b.nodes) in
+      N ( L { lo = b.lo; hi = mid; last_change = node.last; nodes = Array.of_list nodes1; }, 
+          mid,
+          L { lo = succ mid; hi = b.hi; last_change = node.last; nodes = Array.of_list nodes2; } )
+    else
+    begin 
+(*       pr "bucket full";  *)
+      raise Nothing
+    end
   in
-  try table.root <- loop table.root
-  with Nothing -> ()
+  try table.root <- loop table.root with Nothing -> ()
 
 let now = Unix.gettimeofday
 
-let empty () = L { lo = H.null; hi = last; last_change = now (); nodes = [||]; }
+let create () = { root = L { lo = H.null; hi = last; last_change = now (); nodes = [||]; };
+                  self = H.random (); 
+                }
 
-let table = { root = empty (); self = H.random (); }
+let show_table t =
+  pr "self : %s" (show_id t.self);
+  show_tree t.root
 
-let () =
-  show_table !table
+let init file = try load file with _ -> create ()
+
+let tt () =
+  let table = create () in
+  show_table table;
+  for i = 1 to 1_000_000 do
+    insert table { id = H.random (); addr = (Ip.of_string "127.0.0.1", 9000); last = now (); status = Good; }
+  done;
+  show_table table
 

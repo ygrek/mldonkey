@@ -39,7 +39,7 @@ let catch f x = try `Ok (f x) with e -> `Exn e
 
 (* 2-level association *)
 module Assoc2 : sig
-  
+
   type ('a,'b,'c) t
   val create : unit -> ('a,'b,'c) t
   val add : ('a,'b,'c) t -> 'a -> 'b -> 'c -> unit
@@ -117,6 +117,11 @@ let udp_set_reader socket f =
 
 module A = Assoc2
 
+let send sock (ip,port) txnmsg =
+  let s = encode txnmsg in
+  log #info "send %S" s;
+  write sock false s ip port
+
 let create answer =
   let socket = create Unix.inet_addr_any 0 (fun sock event ->
       match event with
@@ -131,14 +136,14 @@ let create answer =
   set_rtimeout (sock socket) 5.;
   let h = A.create () in
   (* FIXME Expire timeouted entries *)
-  let handle ((ip,port) as addr) (txn,v) =
+  let handle addr (txn,v) =
     match v with
     | Error (code,msg) ->
         A.remove h addr txn;
         log #info "dht error %Ld : %S from %s" code msg (show_addr addr)
     | Query (name,args) -> 
         let ret = answer name args in
-        write socket false (encode (txn, Response ret)) ip port
+        send socket addr (txn, ret)
     | Response ret ->
         match A.find h addr txn with
         | None -> log #warn "no txn %S for %s" txn (show_addr addr)
@@ -150,15 +155,16 @@ let create answer =
   let handle p =
     match make_addr p.udp_addr with
     | None -> ()
-    | Some (ip,port as addr) ->
+    | Some addr ->
       let ret = ref None in
       try
+        log #info "recv %S" p.udp_content;
         let r = decode_exn p.udp_content in
         ret := Some r;
         handle addr r
       with exn ->
         log #warn ~exn "dht handle packet"; 
-        let error txn code str = write socket false (encode (txn,(Error (Int64.of_int code,str)))) ip port in
+        let error txn code str = send socket addr (txn,(Error (Int64.of_int code,str))) in
         match exn,!ret with
         | Malformed_packet x, Some (txn, _)
         | Protocol_error (txn,x), _ -> error txn 203 x
@@ -169,18 +175,17 @@ let create answer =
   udp_set_reader socket handle;
   (socket,h)
 
-let write (socket,h) msg ip port k =
-  let l = try Hashtbl.find h (ip,port) with Not_found -> [] in
+let write (socket,h) msg addr k =
+  let tt = Assoc2.find_all h addr in
   let rec loop () =
     let txn = string_of_int (Random.int max_int) in
-    match List.mem_assoc txn l with
+    match Hashtbl.mem tt txn with
     | true -> loop ()
     | false -> txn
   in
   let txn = loop () in
-  Hashtbl.add h (ip,port) ((txn,k) :: l);
-  let s = encode (txn,msg) in
-  write socket false s ip port
+  Assoc2.add h addr txn k;
+  send socket addr (txn,msg)
 
 end
 
@@ -203,11 +208,24 @@ let parse_query_exn name args =
   let p = match name with
   | "ping" -> Ping
   | "find_node" -> FindNode (sha1 "target")
-  | "get_peers" -> GetPeers (sha1"info_hash")
+  | "get_peers" -> GetPeers (sha1 "info_hash")
   | "announce_peer" -> Announce (sha1 "info_hash", Int64.to_int & KRPC.int & get "port", KRPC.str & get "token")
   | s -> failwith (Printf.sprintf "parse_query name=%s" name)
   in
   sha1 "id", p
+
+let make_query id x =
+  let sha1 x = Bencode.String (H.direct_to_string x) in
+  let self = ("id", sha1 id) in
+  match x with
+  | Ping -> KRPC.Query ("ping", [self])
+  | FindNode t -> KRPC.Query ("find_node", ["target", sha1 t; self])
+  | GetPeers h -> KRPC.Query ("get_peers", ["info_hash", sha1 h; self])
+  | Announce (h, port, token) -> KRPC.Query ("announce_peer", 
+      ["info_hash", sha1 h; 
+       "port", Bencode.Int (Int64.of_int port);
+       "token", Bencode.String token;
+       ])
 
 let parse_nodes s =
   assert (String.length s mod 26 = 0);
@@ -234,6 +252,14 @@ let parse_response_exn q dict =
   in
   sha1 "id", p
 
+let make_response id x =
+  let sha1 x = Bencode.String (H.direct_to_string x) in
+  let self = ("id", sha1 id) in
+  match x with (* FIXME *)
+  | Ack -> KRPC.Response [self]
+  | Nodes _ -> KRPC.Response [self]
+  | Peers _ -> KRPC.Response [self]
+
 module Test = struct
 
 open Bencode
@@ -242,7 +268,7 @@ let e = Dictionary ["t",String "aa"; "y", String "e"; "e", List [Int 201L; Strin
 let s = "d1:eli201e24:A Generic Error Occurrede1:t2:aa1:y1:ee"
 let v = "aa", KRPC.Error (201L, "A Generic Error Occurred")
 
-let () = 
+let t () = 
   assert (encode e = s);
   assert (KRPC.decode_exn s = v);
   assert (KRPC.encode v = s);
@@ -250,4 +276,44 @@ let () =
 
 end
 
+let main t =
+  let bootstrap = Ip.of_string "67.215.242.139", 6881 in
+(*   let bootstrap = [Ip.of_string "router.bittorrent.com", 6881; Ip.of_string "router.utorrent.com", 6881;] in *)
+  let answer name args =
+    try
+    let (id,x) = parse_query_exn name args in
+    let s = match x with
+    | Ping -> "ping"
+    | FindNode _ -> "find_node"
+    | GetPeers _ -> "get_peers"
+    | Announce _ -> "announce"
+    in
+    log #info "received %s from %s" s (show_id id);
+    make_response t.self Ack
+    with
+    exn -> log #info ~exn "answer"; raise exn
+  in
+  let dht = KRPC.create answer in
+  KRPC.write dht (make_query t.self Ping) bootstrap begin fun dict ->
+    log #info "got response";
+    let (id,x) = parse_response_exn Ping dict in
+    let s = match x with
+    | Ack -> "ack"
+    | Nodes _ -> "nodes"
+    | Peers _ -> "peers"
+    in
+    log #info "received answer %s from %S" s (show_id id);
+    exit 0
+  end;
+  BasicSocket.loop ()
+
+let main () =
+  Kademlia.bracket (init "dht.dat") (store "dht.dat") main
+
+let () =
+  Printexc.record_backtrace true;
+  try
+    main ()
+  with
+    exn -> log #error "main : %s\n%s" (Printexc.to_string exn) (Printexc.get_backtrace ())
 
