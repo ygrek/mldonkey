@@ -84,6 +84,7 @@ let enable () =
     add_session_timer enabler !!import_new_torrents_interval (fun _ ->
         BTInteractive.scan_new_torrents_directory ();
     );
+    add_session_timer enabler 60. (fun _ -> BTInteractive.announce_shared_files (); );
     add_timer 5. (fun _ -> BTInteractive.scan_new_torrents_directory ());
     add_timer 10. BTInteractive.share_files;
     add_session_timer enabler 600. BTInteractive.retry_all_ft;
