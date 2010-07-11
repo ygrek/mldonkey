@@ -6,7 +6,7 @@ module H = Md4.Sha1
 
 let pr fmt = Printf.ksprintf print_endline fmt
 
-let () =
+let q () =
   let hash = H.random () in
   pr "len: %d up: %x %x %x" H.length (H.up hash) (H.up2 hash) (H.up3 hash);
   pr "string: %s" (H.to_string hash);
@@ -38,7 +38,7 @@ let show_status = function
 
 let show_node n =
   pr " id : %s inet %s last : %f status : %s" 
-    (H.to_hexa n.id) (show_addr n.addr) n.last (show_status n.status)
+    (show_id n.id) (show_addr n.addr) n.last (show_status n.status)
 
 let show_bucket b = 
   pr "lo : %s hi : %s changed : %f" (H.to_hexa b.lo) (H.to_hexa b.hi) b.last_change;
@@ -135,10 +135,12 @@ let distance h1 h2 =
   !d
 
 let () =
+  (*
   print_endline (show_id H.null);
   print_endline (show_id middle);
   print_endline (show_id middle');
   print_endline (show_id last);
+  *)
   assert (LT = cmp H.null middle);
   assert (LT = cmp H.null middle');
   assert (LT = cmp H.null last);
@@ -196,6 +198,12 @@ let create () = { root = L { lo = H.null; hi = last; last_change = now (); nodes
 let show_table t =
   pr "self : %s" (show_id t.self);
   show_tree t.root
+
+let rec fold f acc = function
+  | N (l,_,r) -> fold f (fold f acc l) r
+  | L b -> f acc b
+
+let size t = fold (fun acc b -> acc + Array.length b.nodes) 0 t.root
 
 let init file = try load file with _ -> create ()
 
