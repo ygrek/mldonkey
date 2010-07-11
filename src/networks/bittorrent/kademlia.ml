@@ -1,4 +1,9 @@
-(** Generic implementation of Kademlia *)
+(** Kademlia 
+
+  Petar Maymounkov and David Mazières
+  "Kademlia: A Peer-to-Peer Information System Based on the XOR Metric"
+  http://infinite-source.de/az/whitepapers/kademlia_optimized.pdf
+*)
 
 let bucket_nodes = 8
 
@@ -190,6 +195,21 @@ let insert table node =
     end
   in
   try table.root <- loop table.root with Nothing -> ()
+
+let find_node t h =
+  let rec loop alt = function
+  | N (l,mid,r) -> (match cmp h mid with LT | EQ -> loop (r::alt) l | GT -> loop (l::alt) r)
+  | L b ->
+    let found = Array.to_list b.nodes in
+    if Array.length b.nodes = bucket_nodes then found
+    else found
+(* FIXME 
+      List.iter (fun node -> fold (fun acc b -> 
+        let acc = Array.to_list b.nodes @ acc in
+        if List.length acc >= bucket_nodes then raise Nothing 
+*)
+  in
+  loop [] t.root
 
 let now = Unix.gettimeofday
 
