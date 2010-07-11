@@ -130,8 +130,8 @@ let send sock (ip,port as addr) txnmsg =
   log #info "KRPC to %s : %S" (show_addr addr) s;
   write sock false s ip port
 
-let create answer =
-  let socket = create Unix.inet_addr_any 0 (fun sock event ->
+let create port answer =
+  let socket = create Unix.inet_addr_any port (fun sock event ->
       match event with
       | WRITE_DONE | CAN_REFILL -> ()
       | READ_DONE -> assert false (* set_reader prevents this *)
@@ -175,7 +175,7 @@ let create answer =
         let error txn code str = send socket addr (txn,(Error (Int64.of_int code,str))) in
         match exn,!ret with
         | Malformed_packet x, Some (txn, _)
-        | Protocol_error (txn,x), _ -> error txn 203 x
+        | Protocol_error ("",x), Some(txn, _) | Protocol_error (txn,x), _ -> error txn 203 x
         | Method_unknown x, Some (txn, _) -> error txn 204 x
         | _, Some (txn, Query _) -> error txn 202 ""
         | _ -> ()
@@ -211,15 +211,17 @@ let show_query = function
 
 type response =
 | Ack
-| Nodes of id list
-| Peers of string * addr list * id list
+| Nodes of (id * addr) list
+| Peers of string * addr list * (id * addr) list
 
 let strl f l = String.concat " " & List.map f l
 
+let show_node (id,addr) = sprintf "%s (%s)" (show_addr addr) (show_id id)
+
 let show_response = function
 | Ack -> "ack"
-| Nodes l -> sprintf "nodes [%s]" (strl show_id l)
-| Peers (token,peers,nodes) -> sprintf "peers token=%s [%s] [%s]" token (strl show_addr peers) (strl show_id nodes)
+| Nodes l -> sprintf "nodes [%s]" (strl show_node l)
+| Peers (token,peers,nodes) -> sprintf "peers token=%s [%s] [%s]" token (strl show_addr peers) (strl show_node nodes)
 
 let parse_query_exn name args =
   let get k = List.assoc k args in
@@ -246,13 +248,20 @@ let make_query id x =
        "token", Bencode.String token;
        ])
 
+let parse_peer s =
+  if String.length s <> 6 then failwith "parse_peer" else
+  let c i = int_of_char & s.[i] in
+  Ip.of_ints (c 0,c 1,c 2,c 3), (c 4 lsl 8 + c 5)
+
 let parse_nodes s =
   assert (String.length s mod 26 = 0);
-  [] (* FIXME *)
-
-let parse_peer s =
-  assert (String.length s = 6);
-  Ip.of_string "0.0.0.0", 0
+  let i = ref 0 in
+  let nodes = ref [] in
+  while !i < String.length s do
+    nodes := (H.direct_of_string (String.sub s !i 20), parse_peer (String.sub s (!i+20) 6)) :: !nodes;
+    i := !i + 26;
+  done;
+  !nodes
 
 let parse_response_exn q dict =
   let get k = List.assoc k dict in
@@ -295,28 +304,56 @@ let () =
 
 end
 
+let find_node t h = []
+let get_peers t h = []
+
 let main t =
+  let exit () = 
+    store "dht.dat" t;
+    exit 0
+  in
   log #info "DHT size : %d self : %s" (size t) (show_id t.self); 
-  let bootstrap = Ip.of_string "67.215.242.139", 6881 in
 (*   let bootstrap = [Ip.of_string "router.bittorrent.com", 6881; Ip.of_string "router.utorrent.com", 6881;] in *)
+  let bootstrap = Ip.of_string "67.215.242.139", 6881 in
+  let _bootstrap = Ip.of_string "127.0.0.1", 12345 in
   let answer addr name args =
     try
     let (id,q) = parse_query_exn name args in
     log #info "DHT query from %s (%s) : %s" (show_addr addr) (show_id id) (show_query q);
-    make_response t.self Ack
+    let response =
+      match q with
+      | Ping -> Ack
+      | FindNode h -> Nodes (find_node t h)
+      | GetPeers h -> let token = "FIXME" in Peers (token,get_peers t h,find_node t h)
+      | Announce (token,peers,port) -> Ack
+    in
+    make_response t.self response
     with
     exn -> log #warn ~exn "query %s from %s" name (show_addr addr); raise exn
   in
-  let dht = KRPC.create answer in
-  KRPC.write dht (make_query t.self Ping) bootstrap begin fun addr dict ->
-    begin try
-    let (id,r) = parse_response_exn Ping dict in
-    log #info "DHT response from %s (%s) : %s" (show_addr addr) (show_id id) (show_response r);
-    with 
-    exn -> log #warn ~exn "response from %s" (show_addr addr); raise exn
-    end;
-    store "dht.dat" t;
-    exit 0
+  let dht = KRPC.create 12346 answer in
+  let dht_query q k =
+    KRPC.write dht (make_query t.self q) bootstrap begin fun addr dict ->
+      try
+        let (id,r) = parse_response_exn q dict in
+        log #info "DHT response from %s (%s) : %s" (show_addr addr) (show_id id) (show_response r);
+        k id addr r
+      with
+        exn -> log #warn ~exn "DHT response to %s from %s" (show_query q) (show_addr addr); raise exn
+    end
+  in
+  dht_query Ping begin fun id addr r ->
+    match r with
+    | Ack -> log #info "ack"
+    | _ -> log #warn "whut?"
+  end;
+  dht_query (FindNode t.self) begin fun _ _ r ->
+    match r with
+    | Nodes l -> 
+      log #info "Got %d nodes" (List.length l);
+      List.iter (fun (id,addr) -> insert t (new_node id addr)) l;
+      exit ()
+    | _ -> log #warn "whut?"
   end;
   BasicSocket.loop ()
 

@@ -21,6 +21,8 @@ let show_id = H.to_hexa
 type addr = Ip.t * int
 
 type time = float
+let minutes n = float (60 * n)
+let node_period = minutes 15
 type status = | Good | Bad | Unknown | Pinged
 type node = { id : id; addr : addr; mutable last : time; mutable status : status; }
 type bucket = { lo : id; hi : id; mutable last_change : time; mutable nodes : node array; }
@@ -64,7 +66,7 @@ let cmp id1 id2 =
   | _ -> assert false
 
 (* boundaries inclusive *)
-let inside x node = not (cmp x node.lo = LT || cmp x node.hi = GT)
+let inside node hash = not (cmp hash node.lo = LT || cmp hash node.hi = GT)
 
 let bracket res destroy k =
   let x = try k res with exn -> destroy res; raise exn in
@@ -174,7 +176,7 @@ let insert table node =
       b.nodes <- Array.of_list (node :: Array.to_list b.nodes);
       raise Nothing
     end
-    else if inside table.self b && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
+    else if inside b table.self && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
 (*       let () = pr "splitting" in *)
       let mid = split b.lo b.hi in
       let (nodes1,nodes2) = List.partition (fun n -> cmp n.id node.id = LT) (Array.to_list b.nodes) in
@@ -182,7 +184,7 @@ let insert table node =
           mid,
           L { lo = succ mid; hi = b.hi; last_change = node.last; nodes = Array.of_list nodes2; } )
     else
-    begin 
+    begin
 (*       pr "bucket full";  *)
       raise Nothing
     end
@@ -206,6 +208,7 @@ let rec fold f acc = function
 let size t = fold (fun acc b -> acc + Array.length b.nodes) 0 t.root
 
 let init file = try load file with _ -> create ()
+let new_node id addr = { id = id; addr = addr; last = now (); status = Unknown; }
 
 let tt () =
   let table = create () in
