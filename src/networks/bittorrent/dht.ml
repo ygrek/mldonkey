@@ -44,6 +44,12 @@ let log = new logger "dht"
 let catch f x = try `Ok (f x) with e -> `Exn e
 let (&) f x = f x
 
+let self_version =
+  let module A = Autoconf in
+  let n = int_of_string A.major_version * 100 + int_of_string A.minor_version * 10 + int_of_string A.sub_version - 300 in
+  assert (n > 0 && n < 256);
+  sprintf "ML%c%c" (if A.scm_version = "" then '=' else '+') (Char.chr n)
+
 (* 2-level association *)
 module Assoc2 : sig
 
@@ -91,7 +97,7 @@ let encode (txn,msg) =
   | Response dict -> ["y", B.String "r"; "r", B.Dictionary dict]
   | Error (code,text) -> ["y", B.String "e"; "e", B.List [B.Int code; B.String text] ]
   in
-  let x = ("t", B.String txn) :: x in
+  let x = ("t", B.String txn) :: ("v", B.String self_version):: x in
   B.encode (B.Dictionary x)
 
 let str = function Bencode.String s -> s | _ -> failwith "str"
@@ -108,13 +114,14 @@ let decode_exn s =
   let module Array = struct let get x k = match x with B.Dictionary l -> List.assoc k l | _ -> failwith "decode get" end in
   let x = try B.decode s with _ -> raise (Malformed_packet "decode") in
   let txn = try str x.("t") with _ -> raise (Malformed_packet "txn") in
+  let ver = try Some (str x.("v")) with _ -> None in
   try
-  let v = match str x.("y") with
+  let msg = match str x.("y") with
   | "q" -> Query (str x.("q"), dict x.("a"))
   | "r" -> Response (dict x.("r"))
   | "e" -> begin match list x.("e") with B.Int n :: B.String s :: _ -> Error (n, s) | _ -> failwith "decode e" end
   | _ -> failwith "type"
-  in (txn, v)
+  in (txn, ver, msg)
   with
   exn -> log #warn ~exn "err"; raise (Protocol_error (txn,"Invalid argument"))
 
@@ -132,7 +139,7 @@ module A = Assoc2
 
 let send sock (ip,port as addr) txnmsg =
   let s = encode txnmsg in
-  log #info "KRPC to %s : %S" (show_addr addr) s;
+  log #debug "KRPC to %s : %S" (show_addr addr) s;
   write sock false s ip port
 
 let create port answer =
@@ -149,9 +156,10 @@ let create port answer =
   set_rtimeout (sock socket) 5.;
   let h = A.create () in
   (* FIXME Expire timeouted entries *)
-  let handle addr (txn,v) =
-    log #info "KRPC from %s txn %S : %s" (show_addr addr) txn (show_msg v);
-    match v with
+  let handle addr (txn,ver,msg) =
+    let version = match ver with Some s -> sprintf "client %S " s | None -> "" in
+    log #debug "KRPC from %s %stxn %S : %s" (show_addr addr) version txn (show_msg msg);
+    match msg with
     | Error _ ->
         A.remove h addr txn
     | Query (name,args) -> 
@@ -159,7 +167,7 @@ let create port answer =
         send socket addr (txn, ret)
     | Response ret ->
         match A.find h addr txn with
-        | None -> log #warn "no txn %S for %s" txn (show_addr addr)
+        | None -> log #warn "no txn %S for %s %s" txn (show_addr addr) version
         | Some k -> A.remove h addr txn; k addr ret
   in
   let make_addr sockaddr = 
@@ -171,18 +179,19 @@ let create port answer =
     | Some addr ->
       let ret = ref None in
       try
-        log #info "recv %S" p.udp_content;
+        log #debug "recv %S" p.udp_content;
         let r = decode_exn p.udp_content in
         ret := Some r;
         handle addr r
       with exn ->
-        log #warn ~exn "dht handle packet"; 
+        let version = match !ret with Some (_,Some s,_) -> sprintf "client %S " s | _ -> "" in
+        log #warn ~exn "dht handle packet from %s %s" (show_addr addr) version;
         let error txn code str = send socket addr (txn,(Error (Int64.of_int code,str))) in
         match exn,!ret with
-        | Malformed_packet x, Some (txn, _)
-        | Protocol_error ("",x), Some(txn, _) | Protocol_error (txn,x), _ -> error txn 203 x
-        | Method_unknown x, Some (txn, _) -> error txn 204 x
-        | _, Some (txn, Query _) -> error txn 202 ""
+        | Malformed_packet x, Some (txn, _, _)
+        | Protocol_error ("",x), Some(txn, _, _) | Protocol_error (txn,x), _ -> error txn 203 x
+        | Method_unknown x, Some (txn, _, _) -> error txn 204 x
+        | _, Some (txn, _, Query _) -> error txn 202 ""
         | _ -> ()
   in
   udp_set_reader socket handle;
@@ -322,13 +331,13 @@ module Test = struct
 
 open Bencode
 
-let e = Dictionary ["t",String "aa"; "y", String "e"; "e", List [Int 201L; String "A Generic Error Occurred"] ]
-let s = "d1:eli201e24:A Generic Error Occurrede1:t2:aa1:y1:ee"
+let e = Dictionary ["t",String "aa"; "v", String self_version; "y", String "e"; "e", List [Int 201L; String "A Generic Error Occurred"] ]
+let s = sprintf "d1:eli201e24:A Generic Error Occurrede1:t2:aa1:v4:%s1:y1:ee" self_version
 let v = "aa", KRPC.Error (201L, "A Generic Error Occurred")
 
 let () = 
   assert (encode e = s);
-  assert (KRPC.decode_exn s = v);
+  assert (KRPC.decode_exn s = (fst v, Some self_version, snd v));
   assert (KRPC.encode v = s);
   ()
 
