@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2010/07/15
+7208: New aliases (ygrek)
+- "unpause", "continue" for command "resume"
+- "man" for command "help"
 7233: BT: Announce shared files when share_scan_interval = 0 (ygrek)
 
 2010/05/26

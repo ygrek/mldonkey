@@ -163,7 +163,7 @@ let eval auth cmd o =
           ) list;
         end
 
-    | ["help"] | ["?"] ->
+    | ["help"] | ["?"] | ["man"] ->
           let module M = CommonMessages in
            if o.conn_output = HTML then
              begin
@@ -290,10 +290,9 @@ Use '$rhelp command$n' or '$r? command$n' for help on a command.
             ";
     | "?" :: args | "help" :: args | "man" :: args ->
           List.iter (fun arg ->
-              List.iter (fun (cmd, _, _, help) ->
-                  if cmd = arg then
-                    Printf.bprintf  buf "%s %s\n" cmd help)
-              !CommonNetwork.network_commands)
+              match List.filter (fun (cmd, _, _, _) -> cmd = arg) !CommonNetwork.network_commands with
+              | [] -> Printf.bprintf buf "Unknown command : %s\n" arg
+              | l -> List.iter (fun (_,_,_,help) -> Printf.bprintf  buf "%s %s\n" arg help) l)
           args
     | one :: two ->
         let cmd, args =
