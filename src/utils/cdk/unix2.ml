@@ -273,3 +273,6 @@ let ml_setrlimit resource n =
   try
     setrlimit resource new_rlimit
   with _ -> ()
+
+external fsync : Unix.file_descr -> unit = "ml_fsync"
+

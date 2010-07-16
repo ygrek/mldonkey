@@ -48,6 +48,8 @@ struct filedescr {
 #define Fd_val(v) (((struct filedescr *) Data_custom_val(v))->fd.handle)
 #define Socket_val(v) (((struct filedescr *) Data_custom_val(v))->fd.socket)
 
+#define OS_IS_FD(v) (KIND_HANDLE == Descr_kind_val(v))
+
 typedef HANDLE OS_FD;
 typedef SOCKET OS_SOCKET;
 typedef unsigned int uint;
@@ -66,6 +68,8 @@ unsigned char * utf8_to_utf16(const char * str);
 
 #define Fd_val(v) Int_val(v)
 #define Socket_val(v) Int_val(v)
+
+#define OS_IS_FD(v) (Is_long(v))
 
 typedef int OS_FD;
 typedef int OS_SOCKET;
@@ -155,7 +159,7 @@ extern int64 os_getfilesize(char *path);
 extern void os_set_nonblock(OS_SOCKET fd);
 extern void os_uname(char buf[]);
 extern int os_os_supported();
-
+extern int os_fsync(OS_FD fd);
 
 #define HASH_BUFFER_LEN 131072
 extern unsigned char hash_buffer[HASH_BUFFER_LEN];
