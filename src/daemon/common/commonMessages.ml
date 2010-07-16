@@ -233,6 +233,10 @@ a:hover {
   font-family: Verdana;
   font-size: 8px;
   }
+.hcenter {
+  margin-left: auto;
+  margin-right: auto;
+}
 td.fbig {
   color: @color_general_text@;
   cursor: pointer;
