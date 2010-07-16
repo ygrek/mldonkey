@@ -1117,7 +1117,7 @@ let commands =
       | exn -> [text "Error: %s" (Printexc2.to_string exn); `Break]
       end;
       ""
-    ), _s "<filename> <comment> :\tgenerate the corresponding <filename> .torrent file with <comment> in torrents/tracked/.\n\t\t\t\t\tThe file is automatically tracked, and seeded if in incoming/";
+    ), _s "<filename> [<comment>] :\tgenerate the corresponding <filename> .torrent file with <comment>.\n\t\t\t\t\t\tThe file is automatically tracked if tracker is enabled and seeded if located in incoming/";
 
     "torrents", "Network/Bittorrent", Arg_none (fun o ->
       output o 

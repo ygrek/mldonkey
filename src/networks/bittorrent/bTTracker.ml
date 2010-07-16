@@ -49,12 +49,11 @@ them.
 
 (*
 
-torrents/: for BitTorrent
-  downloads/: .torrent files of current downloads
-  tracked/: .torrent files of tracked downloads
-    * If the file appears in incoming/, it is automatically seeded.
-  seeded/:
-     * If the file appears in incoming/, it is automatically seeded.
+torrents/: .torrent files
+  downloads/: current downloads
+  seeded/: currently seeding
+  incoming/: monitored for new torrents to start downloading
+  old/: no content available
 
   *)
 
@@ -101,15 +100,15 @@ let tracker_port = define_option bittorrent_section ["tracker_port"]
     port_option 6881
 
 let max_tracked_files = define_option bittorrent_section ["max_tracked_files"]
-  "The maximal number of tracked files (to prevend saturation attack)"
+  "The maximum number of tracked files (to prevent saturation attack)"
     int_option 100
 
 let max_tracker_reply = define_option bittorrent_section ["max_tracker_reply"]
-  "The maximal number of peers returned by the tracker"
+  "The maximum number of peers returned by the tracker"
     int_option 20
 
 let tracker_force_local_torrents = define_option bittorrent_section ["tracker_force_local_torrents"]
-  "The tracker will check the torrent file is available if an announce request is received"
+  "The tracker will track only torrents available locally"
     bool_option true
 
 let tracker_use_key = define_option bittorrent_section ["tracker_use_key"]
