@@ -823,6 +823,10 @@ let share_files _ =
         end
   ) shared_files_copy
 
+(** talk_to_tracker maintains timers and will connect to trackers only when allowed by rules *)
+let announce_shared_files () =
+  List.iter (fun file -> if file_state file = FileShared then BTClients.talk_to_tracker file false) !current_files
+
 let scan_new_torrents_directory () =
   let filenames = Unix2.list_directory new_torrents_directory in
   List.iter (fun file ->

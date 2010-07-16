@@ -216,3 +216,9 @@ int os_os_supported()
 {
 	  return 1;  /* return always 1 to expect an supported os */
 }
+
+int os_fsync(OS_FD fd)
+{
+   return fsync(fd);
+}
+

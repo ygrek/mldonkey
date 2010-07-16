@@ -938,6 +938,8 @@ let save opfile =
             opfile.file_rc;
           opfile.file_rc <- !rem
 	end;
+      flush oc;
+      Unix2.fsync (Unix.descr_of_out_channel oc);
       Hashtbl.clear once_values_rev);
     (try
       begin
