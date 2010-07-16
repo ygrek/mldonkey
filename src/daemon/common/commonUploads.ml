@@ -782,12 +782,22 @@ let next_uploads () =
       lprintf "streaming_left %d\n" !streaming_left;
     end; *)
   (* buffer empties with time... *)
+  (* FIXME wall-clock time is not needed here and causes problems when clock jumps *)
   let new_streaming_time = BasicSocket.current_time () in
-  let deltat = (match !streaming_time with
+  let deltat' = (match !streaming_time with
     | None -> 0.
     | Some t -> new_streaming_time -. t) in
-  streaming_left := !streaming_left + 
-    (int_of_float (!CommonGlobals.payload_bandwidth *. deltat));
+  (* stay sane no matter what *)
+  let deltat = min 10. (max 0. deltat') in
+  if abs_float (deltat -. deltat') > epsilon_float then
+    lprintf_nl "Detected clock jump. deltat %f adjusted to %f" deltat' deltat;
+  (* do not overflow *)
+  let deltab = !CommonGlobals.payload_bandwidth *. deltat in
+  if deltab > float max_int then
+    lprintf_nl "OVERFLOW deltab %f, ignored" deltab
+  else
+    streaming_left := !streaming_left + (int_of_float deltab);
+(*   lprintf_nl "next_uploads %f %f %d %d %d" new_streaming_time deltat !streaming_left (streaming_amount()) (Fifo.length upload_clients); *)
   streaming_left := min !streaming_left (streaming_amount ());
   streaming_time := Some new_streaming_time;
   next_uploads_aux ()
