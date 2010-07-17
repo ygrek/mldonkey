@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/07/17
+7248: DC: correctly parse dchub:// entries in xml hublist (ygrek)
 7247: BT tracker: remember tracked files after restart (ygrek)
 
 2010/07/16

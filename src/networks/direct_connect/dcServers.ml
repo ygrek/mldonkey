@@ -571,9 +571,21 @@ let rec xml_select names xs =
     let l = List.filter (xml_tag name) xs in
     xml_select t (List.concat (List.map Xml.children l))
 
+let ssplit s sub =
+  try
+    let n = String2.search_from s 0 sub in
+    Some (String2.before s n, String2.after s (n + String.length sub))
+  with
+    _ -> None
+
 let parse_address s =
-  try Scanf.sscanf s "dchub://%s@:%u" (fun s n -> s,n)
-  with _ -> try Scanf.sscanf s "%s@:%u" (fun s n -> s,n) with _ -> s,411
+  let s = match ssplit (String.lowercase s) "://" with
+  | Some ("dchub",s) -> s
+  | None -> s
+  | Some (("adc"|"adcs"),_) -> failwith "ADC not supported"
+  | Some (proto,_) -> failwith (Printf.sprintf "Unsupported protocol %S" proto)
+  in
+  try Scanf.sscanf s "%s@:%u" (fun s n -> s,n) with _ -> s,411
 
 let make_hublist_from_xml x =
   let make_hub x =
@@ -590,7 +602,11 @@ let make_hublist_from_xml x =
     }
   in
   let l = xml_select ["hublist";"hubs";"hub"] [x] in
-  let l' = List.fold_left (fun acc x -> try make_hub x :: acc with _ -> acc) [] l in
+  let add_hub acc x = 
+    try make_hub x :: acc
+    with exn -> lprintf_nl "Skipping hublist entry : %s" (Printexc2.to_string exn); acc
+  in
+  let l' = List.fold_left add_hub [] l in
   if !verbose_msg_servers then
     lprintf_nl "Found %u valid (of %u total) servers in hublist" (List.length l') (List.length l);
   l'
