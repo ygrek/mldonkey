@@ -72,7 +72,7 @@ let enable () =
         Pervasives.exit 69
       end;
     if !!BTTracker.tracker_port > 0 then (
-        try BTTracker.start_tracker ()
+        try BTTracker.start_tracker !!tracked_files_list
         with e ->
             lprintf "Exception in BTTracker.start_tracker: %s\n"
               (Printexc2.to_string e));

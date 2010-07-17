@@ -155,7 +155,12 @@ let old_files = define_option bittorrent_section ["old_files"]
   ""
     (list_option (tuple2_option (string_option, int64_option))) []
 
+let tracked_files_list = define_option bittorrent_section ["tracked_files"]
+  ""
+    (list_option Sha1.option) []
+
 let get_user_agent () = 
   if !!user_agent = "default" then
     CommonOptions.get_user_agent ()
   else !!user_agent
+

@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/07/17
+7247: BT tracker: remember tracked files after restart (ygrek)
+
 2010/07/16
 7245: HTML: Fix unstable option sections links position (ygrek)
 7210: upload scheduler: correctly handle clock jumps (ygrek)

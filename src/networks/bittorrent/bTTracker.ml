@@ -49,12 +49,11 @@ them.
 
 (*
 
-torrents/: for BitTorrent
-  downloads/: .torrent files of current downloads
-  tracked/: .torrent files of tracked downloads
-    * If the file appears in incoming/, it is automatically seeded.
-  seeded/:
-     * If the file appears in incoming/, it is automatically seeded.
+torrents/: .torrent files
+  downloads/: current downloads
+  seeded/: currently seeding
+  incoming/: monitored for new torrents to start downloading
+  old/: no content available
 
   *)
 
@@ -101,15 +100,15 @@ let tracker_port = define_option bittorrent_section ["tracker_port"]
     port_option 6881
 
 let max_tracked_files = define_option bittorrent_section ["max_tracked_files"]
-  "The maximal number of tracked files (to prevend saturation attack)"
+  "The maximum number of tracked files (to prevent saturation attack)"
     int_option 100
 
 let max_tracker_reply = define_option bittorrent_section ["max_tracker_reply"]
-  "The maximal number of peers returned by the tracker"
+  "The maximum number of peers returned by the tracker"
     int_option 20
 
 let tracker_force_local_torrents = define_option bittorrent_section ["tracker_force_local_torrents"]
-  "The tracker will check the torrent file is available if an announce request is received"
+  "The tracker will track only torrents available locally"
     bool_option true
 
 let tracker_use_key = define_option bittorrent_section ["tracker_use_key"]
@@ -165,6 +164,8 @@ let new_tracker info_hash =
     if !verbose_msg_servers then
       lprintf_nl "Start tracking torrent [%s]" (Sha1.to_hexa info_hash);
     Hashtbl.add tracked_files info_hash tracker;
+    if not (List.mem info_hash !!tracked_files_list) then
+      tracked_files_list =:= info_hash :: !!tracked_files_list;
     tracker
   else
     failwith (Printf.sprintf "[BT] Too many tracked files (%d)" !ntracked_files)
@@ -583,7 +584,7 @@ let scan_tracked_directory _ =
   ) filenames
     *)
 
-let start_tracker () =
+let start_tracker tracked =
   if !!tracker_port <> 0 then begin
       let config = {
           bind_addr = if !!force_client_ip then Ip.to_inet_addr !!set_client_ip else Unix.inet_addr_any ;
@@ -598,7 +599,13 @@ let start_tracker () =
       let sock = TcpServerSocket.create "BT tracker"
           (Ip.to_inet_addr !!client_bind_addr)
         !!tracker_port (Http_server.handler config) in
-      tracker_sock := Some sock
+      tracker_sock := Some sock;
+      List.iter begin fun info_hash ->
+        try
+          ignore (new_tracker info_hash)
+        with exn ->
+          lprintf_nl "Cannot start tracking %s : %s" (Sha1.to_hexa info_hash) (Printexc2.to_string exn)
+      end tracked
     end
 (*
   if !!tracker_port <> 0 then begin
