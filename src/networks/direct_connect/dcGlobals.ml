@@ -968,7 +968,7 @@ let dc_with_connected_servers f =
 (* Return hub state text *)
 let dc_hubstate_to_text s =
   (match s.server_hub_state with
-  | Waiting -> "Waiting"
+  | Waiting -> "Not connected"
   | User -> "User"
   | Vipped -> "Vip"
   | Opped -> "Op" )
