@@ -456,7 +456,7 @@ module MyINFO = struct
           in
           let dest,nick = 
             (match String2.splitn dest_nick ' ' 2 with
-            | [ dest ; nick ; _ ] -> dest , nick 
+            | [ dest ; nick ; _ ] -> dest, dc_to_utf nick 
             | _ -> if !verbose_msg_clients then lprintf_nl "No. of ' ':s is wrong in dest_nick"; raise Not_found ) 
           in
           if tagline = "" then return_no_tags dest nick tagline email size 
@@ -465,7 +465,7 @@ module MyINFO = struct
               (match String2.split tagline '>' with      (* split desc with '>' *)
               | [tagline ; _ ] -> tagline
               | _ -> if !verbose_msg_clients then lprintf_nl "No. of '>':s is wrong in nickdesk"; raise Not_found )
-            in                  
+            in
             (match String2.splitn tagline ' ' 1 with        (* split desc with one ' ' *)
             | [client ; tags] ->
                 let version = ref "" in
@@ -476,20 +476,20 @@ module MyINFO = struct
                 let bwlimit = ref 0 in
                 List.iter (fun str ->                 (* split tags with ',' for this iteration *) 
                   let l = String.length str in
-                  if (l > 2) then    
+                  if (l > 2) then
                     (match str.[0] with
                     | 'v' (* GreylinkDC++ *)
                     | 'V' -> (try version := String2.after str 2 with _ -> () ) 
                     | 'M' -> if (str.[2] = 'P') then mode := 'P'
-                    | 'H' ->   
-                        (match String2.split str '/' with  
+                    | 'H' ->
+                        (match String2.split str '/' with
                         | a :: b :: c :: _ -> hubs :=
                             ( (try int_of_string (String2.after a 2) with _ -> 0 ), 
                             (try int_of_string b with _ -> 0 ),
                             (try int_of_string c with _ -> 0 ) )
                         | _ -> () )
                     | 'S' -> (try slots := int_of_string (String2.after str 2) with _ -> () )
-                    | 'O' -> (try upload := int_of_string (String2.after str 2) with _ ->  () )  
+                    | 'O' -> (try upload := int_of_string (String2.after str 2) with _ ->  () )
                     | 'L' | 'B' -> (try bwlimit := int_of_string (String2.after str 2) with _ ->  () )
                     | _ -> 
                         if !verbose_unknown_messages then 
@@ -497,7 +497,7 @@ module MyINFO = struct
                 ) (String2.split tags ','); 
                 {                                   (* pass this info record as result.. *) 
                   dest = dest;
-                  nick = dc_to_utf nick;
+                  nick = nick;
                   description = tagline;
                   client_brand = client;
                   version = !version;
@@ -522,11 +522,11 @@ module MyINFO = struct
     with _ -> 
       lprintf_nl "Error in MyInfo parsing";
       raise Not_found )
-      
+
   let print t = lprintf_nl "$MyINFO %s %s %s %s %Ld" t.dest t.nick t.description t.conn_speed t.sharesize
     let write buf t = 
     Printf.bprintf buf " %s %s %s$ $%s%c$%s$%Ld$" 
-      t.dest t.nick t.description t.conn_speed
+      t.dest (utf_to_dc t.nick) t.description t.conn_speed
       (char_of_int t.flag) t.email t.sharesize
 end
 
@@ -1151,7 +1151,7 @@ let dc_print m =
   | ValidateNickReq s -> lprintf_nl "$ValidateNick %s" s
   | ValidateDenideReq s -> lprintf_nl "$ValidateDenide %s" s
   | VersionReq s -> lprintf_nl "$Version %s" s )
-  
+
 (* server incoming messages handler *) (* |7467673|738838383| *)
 let dc_handler_server f sock nread =
   let b = TcpBufferedSocket.buf sock in
@@ -1163,8 +1163,11 @@ let dc_handler_server f sock nread =
           let len = pos - b.pos in
           let s = String.sub b.buf b.pos len in
           buf_used b (len+1);
-          f (dc_parse true s) sock; 
-            iter b.len
+          begin 
+            try f (dc_parse true s) sock
+            with exn -> lprintf_nl "server handler %S : %s" s (Printexc2.to_string exn)
+          end;
+          iter b.len
         end
       end
     in
@@ -1186,12 +1189,16 @@ let dc_handler_client c fm nm dm sock nread = (* fm = (read_first_message false)
             let pos = String.index_from b.buf b.pos '|' in
             if pos < (b.pos + b.len) then begin
               let len = pos - b.pos in
-              let s = dc_parse false (String.sub b.buf b.pos len) in
+              let s = String.sub b.buf b.pos len in
+              let msg = dc_parse false s in
               buf_used b (len+1);
-              (match !c with
-              | None -> c := fm s sock   (* do this only once per new non-existing client eg. we are in ACTIVE mode *)
-              | Some c -> nm c s sock ); (* after initial connection is established *)
-                  iter b.len
+              begin try
+                (match !c with
+                | None -> c := fm msg sock (* do this only once per new non-existing client eg. we are in ACTIVE mode *)
+                | Some c -> nm c msg sock); (* after initial connection is established *)
+              with exn -> lprintf_nl "client handler %S : %s" s (Printexc2.to_string exn)
+              end;
+              iter b.len
             end )
       end
     in
@@ -1199,14 +1206,14 @@ let dc_handler_client c fm nm dm sock nread = (* fm = (read_first_message false)
   with Not_found ->
     (*lprintf_nl "Message from client cut: (%s)" (String.sub b.buf b.pos b.len);*)
     () )
-      
+
 let buf = Buffer.create 100
-      
-(* To servers and to clients outgoing messages *)      
+
+(* To servers and to clients outgoing messages *)
 let dc_send_msg sock m =
   Buffer.reset buf;
   dc_write buf m;
   Buffer.add_char buf '|';
   let s = Buffer.contents buf in
   write_string sock s
-      
+
