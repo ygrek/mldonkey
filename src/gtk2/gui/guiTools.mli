@@ -174,6 +174,7 @@ type b_children =
 class tool_bar : ([> Gtk.box] as 'a) Gtk.obj ->
   object
     inherit GPack.box
+    val obj : 'a Gtk.obj
     val mutable bb_children : b_children list
     method add_toggle_button : 
       style : Gtk.Tags.toolbar_style ->

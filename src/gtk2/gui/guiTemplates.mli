@@ -125,9 +125,10 @@ module Gview :
           method update_item : Gtk.tree_iter -> V.item -> V.item -> unit
         end
 
-      class treeview : [> Gtk.box] Gtk.obj ->
+      class treeview : ([> Gtk.box] as 'a) Gtk.obj ->
         object
           inherit GPack.box
+          val obj : 'a Gtk.obj
           method expanded_paths : int array list
           method gview : g_view
           method id : int
