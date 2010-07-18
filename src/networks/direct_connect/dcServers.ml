@@ -391,7 +391,7 @@ let client_to_server s m sock =
                 if !verbose_unknown_messages then lprintf_nl "Codedname was wrong in Search receiving";
                 raise Not_found )
             in
-            let message =                 (* message structure for both active and passive messages *)        
+            let message =                 (* message structure for both active and passive messages *)
               let module S = SR in {
                 S.owner = s.server_last_nick;
                 S.directory = directory;
@@ -413,11 +413,11 @@ let client_to_server s m sock =
         end;
             if t.Search.passive then 
               dc_send_msg sock (SRReq ( message ))
-            else             
+            else
               DcClients.udp_send (Ip.of_string t.Search.ip) (int_of_string t.Search.port) (SRReq ( message ))
           ) files
         in
-        
+
         if t.Search.passive then begin                          (* if passive search received *)
           if not !!firewalled then begin                        (* and we are in active mode  *)
             if (t.Search.nick <> s.server_last_nick) then begin (* if search is not from ourself ... *)
@@ -448,7 +448,7 @@ let client_to_server s m sock =
       let u = new_user (Some s) t.To.from in
       u.user_messages <- u.user_messages @ [
         (int_of_float (current_time ()), t.To.from, PrivateMessage (0, t.To.message))];
-      
+
   | UnknownReq m -> 
       if m <> "" then
         if !verbose_unexpected_messages || !verbose_msg_servers then
@@ -458,34 +458,38 @@ let client_to_server s m sock =
           else lprintf_nl "%s (%s)" txt m
 
   | UserCommandReq -> () (* Not supported atm *)
-  
+
   | UserIPReq st -> (* CHECK *)
       if !verbose_msg_servers then lprintf_nl "Received $UserIP";
-      List.iter ( fun nameip ->
-        lprintf_nl "UserIPReq: nameip=%s" nameip; 
-        match String2.split nameip ' ' with
-        | name :: ip :: [] -> 
-            (try
-              let u = search_user_by_name name in 
-              ( try u.user_ip <- Ip.addr_of_string ip with _ -> () );
-              lprintf_nl "Added ip %s to user %s" (Ip.string_of_addr u.user_ip) u.user_nick
-            with _ ->
-                if !verbose_unexpected_messages then lprintf_nl "No user by name %s" name )
-        | _ -> ()
-      ) st;
-                    
-  | ValidateDenideReq n ->  
+      let st = UserIP.parse_nameip st in
+      List.iter begin fun (name,addr) ->
+        lprintf_nl "UserIP: %s %s" name (Ip.string_of_addr addr); 
+        try
+          if name = s.server_last_nick then
+          begin
+            match addr with 
+            | Ip.AddrIp ip -> lprintf_nl "Received self IP: %s" (Ip.to_string ip); last_high_id := ip
+            | Ip.AddrName _ -> ()
+          end;
+          let u = search_user_by_name name in
+          u.user_ip <- addr;
+          lprintf_nl "Added ip %s to user %s" (Ip.string_of_addr u.user_ip) u.user_nick
+        with _ ->
+          if !verbose_unexpected_messages then lprintf_nl "No user by name %s" name
+      end st
+
+  | ValidateDenideReq n ->
       let errortxt = Printf.sprintf "Nick %s is already in use" n in
       if !verbose_unexpected_messages || !verbose_msg_servers then
         lprintf_nl "%s" errortxt;
       disconnect_server s (Closed_for_error errortxt )
-                    
+
   | VersionReq v -> ()
-                    
+
   | _ -> 
     lprintf_nl "--> Unhandled server message. Implement ?:";
     DcProtocol.dc_print m )
-                    
+
 (* connect to DC server *)
 let connect_server s =
   if can_open_connection connection_manager then

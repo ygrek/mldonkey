@@ -45,3 +45,7 @@ val min : 'a list -> 'a
 val max : 'a list -> 'a
 
 val shuffle: 'a list -> 'a list
+
+(** [filter_map f l] *)
+val filter_map : ('a -> 'b option) -> 'a list -> 'b list
+
