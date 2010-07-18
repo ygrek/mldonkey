@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/07/18
+7253: Fix downloading Ocaml 3.12 archive, use lablgtk-2.12.0 for Ocaml < 3.10
 7252: GTK2 GUI: Fix compile bug with lablgtk2-20100620 and Ocaml 3.12
 7251: BT: OCaml 3.08.3 compatibility fix (ygrek)
 7250: DC: discover self IP (ygrek)

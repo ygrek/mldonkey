@@ -532,10 +532,13 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
           $WGET http://caml.inria.fr/pub/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$REQUIRED_OCAML".tar.gz
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
-          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.09/ocaml-"$REQUIRED_OCAML".tar.gz
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.12/ocaml-"$REQUIRED_OCAML".tar.gz
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
-          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.11/ocaml-"$REQUIRED_OCAML".tar.gz
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.10/ocaml-"$REQUIRED_OCAML".tar.gz
+        fi
+        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.09/ocaml-"$REQUIRED_OCAML".tar.gz
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           $WGET http://caml.inria.fr/pub/distrib/ocaml-3.08/ocaml-"$REQUIRED_OCAML".tar.gz
@@ -1180,7 +1183,14 @@ if test ! "$GUI" = "no"; then
         AC_MSG_CHECKING(for librsvg - version >= $REQUIRED_RSVG)
         if pkg-config --atleast-version $REQUIRED_RSVG $PKG_RSVG; then
           GTK_CONFIG="pkg-config $PKG_GTK $PKG_RSVG"
-          REQUIRED_LABLGTK=2.10.1
+          case "$OCAMLVERSION" in
+              3.08*|3.09*)
+                REQUIRED_LABLGTK=2.12.0
+                ;;
+              *)
+                REQUIRED_LABLGTK=2.14.1
+                ;;
+          esac
           LABLGTK_NAME=lablgtk2
           AC_MSG_RESULT(yes)
         else
