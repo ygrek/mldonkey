@@ -1052,7 +1052,12 @@ let compute_torrent filename announce comment =
     Filename.concat (Sys.getcwd ()) torrent_path,
     try `Ok (BTTracker.track_torrent basename file_id) with exn -> `Err (Printexc2.to_string exn)
 
-let text fmt = Printf.ksprintf (fun s -> `Text s) fmt
+(* let text fmt = Printf.ksprintf (fun s -> `Text s) fmt *)
+(* 
+  OCaml 3.08.3 compatibility (ksprintf not available)
+  http://mldonkey.sourceforge.net/phpBB2/viewtopic.php?p=30453 
+*)
+let text s = `Text s
 let link name url = `Link (name,url)
 
 let output buf typ elements =
@@ -1105,16 +1110,16 @@ let commands =
 
         let (path,url) = compute_torrent !filename "" !comment in
         [
-          text "Torrent file generated : %s" path;
+          text (Printf.sprintf "Torrent file generated : %s" path);
           `Break;
           (match url with
           | `Ok url -> link "Download" url
-          | `Err s -> text "Not tracked : %s" s);
+          | `Err s -> text (Printf.sprintf "Not tracked : %s" s));
           `Break
         ]
       with 
       | Not_found -> [text "Not enough parameters"; `Break]
-      | exn -> [text "Error: %s" (Printexc2.to_string exn); `Break]
+      | exn -> [text (Printf.sprintf "Error: %s" (Printexc2.to_string exn)); `Break]
       end;
       ""
     ), _s "<filename> [<comment>] :\tgenerate the corresponding <filename> .torrent file with <comment>.\n\t\t\t\t\t\tThe file is automatically tracked if tracker is enabled and seeded if located in incoming/";

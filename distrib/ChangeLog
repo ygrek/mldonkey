@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/07/18
+7251: BT: OCaml 3.08.3 compatibility fix (ygrek)
 7250: DC: discover self IP (ygrek)
 7249: DC: fix parsing MyINFO with non-latin nicks (ygrek)
 
