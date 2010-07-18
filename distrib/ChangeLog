@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/07/18
+7249: DC: fix parsing MyINFO with non-latin nicks (ygrek)
+
 2010/07/17
 7248: DC: correctly parse dchub:// entries in xml hublist (ygrek)
 7247: BT tracker: remember tracked files after restart (ygrek)
