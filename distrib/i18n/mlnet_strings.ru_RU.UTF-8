@@ -22,9 +22,9 @@
          module "DriverMain"
 (************************************)
 
-"Core stopped" = "Ядро остоновленно"
+"Core stopped" = "Ядро остановленно"
 
-"Received SIGINT, stopping MLDonkey..." = "Получен сигнал SIGINT, остонавливаю MLDonkey..."
+"Received SIGINT, stopping MLDonkey..." = "Получен сигнал SIGINT, останавливаю MLDonkey..."
 
 "Core started" = "Ядро запущено"
 
@@ -68,7 +68,7 @@
 
 ": directory for pid file" = ": каталог для файла идентификатора процесса (pid)"
 
-"\"<user> <pass>\" : create user/change password" = "\"<пользователь\user> <пароль\pass>\" : создать пользователя /сменить пароль"
+"\"<user> <pass>\" : create user/change password" = "\"<имя пользователя> <пароль>\" : создать пользователя / сменить пароль"
 
 (************************************)
          module "Ip"
@@ -94,7 +94,7 @@
 
 ":\t\t\t\tclose all files (use to free space on disk after remove)" = ":\t\t\t\tзакрыть все файлы (использовать свободное место на диске после удаления)"
 
-"<bool> :\t\t\tuse poll instead of select" = "<bool> :\t\t\tиспользовать опрос вместо выбора"
+"<bool> :\t\t\tuse poll instead of select" = "<bool> :\t\t\tиспользовать poll вместо select"
 
 ":\t\t\tclose all opened sockets" = ":\t\t\tзакрыть все открытые сокеты"
 
@@ -102,7 +102,7 @@
 
 "<theme> :\t\t\tselect html_theme" = "<theme> :\t\t\tвыбрать HTML тему"
 
-":\t\t\t\t\tprint RSS feeds" = ":\t\t\t\t\tвывести потоки RSS"
+":\t\t\t\t\tprint RSS feeds" = ":\t\t\t\t\tвывести ленты RSS"
 
 ":\t\t\tselect html_mods_style <#>" = ":\t\t\tвыберите стиль оформления страниц<#>"
 
@@ -114,7 +114,7 @@
 
 ":\t\t\t\tenable logging to file" = ":\t\t\t\tвключить запись в лог файл"
 
-"<num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)" = "<num1> <num2> :\t\t\пытаться объеденить загрузки из файла <num2> (вторичного) с файлом <num1> (первичного)"
+"<num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)" = "<num1> <num2> :\t\t\tпопробовать объединить закачку файла <num2> (вторичного) с файлом <num1> (первичного)"
 
 ":\t\t\t\tclear the table of clients being debugged" = ":\t\t\t\tочистить таблицу клиентов которые отлаживаются"
 
@@ -292,7 +292,7 @@
 
 "<client num> :\t\tadd client <client num> to friends" = "<client num> :\t\tдобавить клиента <client num> в друзья"
 
-"<client num> :\t\t\task friend files" = "<client num> :\t\t\задать файлы друга (task friend files)"
+"<client num> :\t\t\task friend files" = "<client num> :\t\t\tспросить файлы друга (ask friend files)"
 
 ":\t\t\t\t\tview friends" = ":\t\t\t\t\tпосмотреть друзей"
 
@@ -684,9 +684,9 @@
 
 "(experimental)" = "(экспериментальные)"
 
-"Regexp of comments to filter out, example: string1|string2|string3" = "Регулярные выражения для фильтрования комментариев, например: строка1|строка2|строка3 \n Пример: Spammers.com|Скачайте меня|Вредное содержимое \n Совет: если вам попадаются посторонние файлы с комментария на тему что-нибудь скачать\купить и т.п. \n внесите ключевое слово из них в этот список, тем самым вы будете их блокировать."
+"Regexp of comments to filter out, example: string1|string2|string3" = "Регулярные выражения для фильтрования комментариев, например: строка1|строка2|строка3 \n Пример: Spammers.com|Скачайте меня|Вредное содержимое \n Совет: если вам попадаются посторонние файлы с комментария на тему что-нибудь скачать/купить и т.п. \n внесите ключевое слово из них в этот список, тем самым вы будете их блокировать."
 
-"Regexp of messages to filter out, example: string1|string2|string3" = "Регулярные выражения для фильтрования сообщений, например: строка1|строка2|строка3 \n Пример: Скачай новейший мод мула|Курсы английского|Посетите адрес \n Совет: если вам постоянно приходят сообщения на тему что-нибудь скачать\купить и т.п. \n внесите ключевое слово из них в этот список, тем самым вы будете их блокировать. "
+"Regexp of messages to filter out, example: string1|string2|string3" = "Регулярные выражения для фильтрования сообщений, например: строка1|строка2|строка3 \n Пример: Скачай новейший мод мула|Курсы английского|Посетите адрес \n Совет: если вам постоянно приходят сообщения на тему что-нибудь скачать/купить и т.п. \n внесите ключевое слово из них в этот список, тем самым вы будете их блокировать. "
 
 "Allow others to browse our share list (0: none, 1: friends only, 2: everyone" = "Разрешить другим просматривать список доступных ресурсов (0: никому, 1: только друзьям, 2: всем"
 
@@ -1024,7 +1024,7 @@
 
 "Full access enabled" = "Полный доступ включён"
 
-"Bad login/password" = "Плохой логин\пароль"
+"Bad login/password" = "Плохой логин/пароль"
 
 "Command not authorized\n use 'auth <user> <password>' before." = "Команда не может быть выполнена, вы не авторизированы\n используйте команду 'auth <user> <password>' для авторизации."
 
