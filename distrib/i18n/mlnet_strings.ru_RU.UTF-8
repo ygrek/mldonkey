@@ -1,0 +1,1042 @@
+(************************************)
+         module "GeoIp"
+(************************************)
+
+"database not loaded" = "база данных не загружена"
+
+"%s database loaded" = "%s база данных загружена"
+
+(************************************)
+         module "CommonWeb"
+(************************************)
+
+"downloading newer %s, HTML header (%s)" = "скачиваю новый %s, HTML заголовок говорит: (%s)"
+
+"local file %s not found, HTTP request failed (error %d)" = "локальный файл %s не найден, HTTP запрос не выполнен (ошибка %d)"
+
+"%s while loading %s" = "%s пока загружается %s"
+
+"request %s (%s)" = "запрос %s (%s)"
+
+(************************************)
+         module "DriverMain"
+(************************************)
+
+"Core stopped" = "Ядро остоновленно"
+
+"Received SIGINT, stopping MLDonkey..." = "Получен сигнал SIGINT, остонавливаю MLDonkey..."
+
+"Core started" = "Ядро запущено"
+
+"If you connect from a remote machine adjust allowed_ips" = "Если вы подключаетесь с удаленного компьютера, добавьте его IP-адрес в параметр allowed_ips в файле downloads.ini" 
+
+"Connect to IP %s, port %d" = "Подключаемся к IP-адресу %s, через порт %d"
+
+"For a GUI check out http://sancho-gui.sourceforge.net" = "Если хотите скачать графическую оболочку для MLdonkey, зайдите на сайт http://sancho-gui.sourceforge.net"
+
+"Or with browser: http://%s:%d" = "Если хотите подключиться к Mldonkey c помощью вашего браузера зайдите на адрес: http://%s:%d"
+
+"To command: telnet %s %d" = "Если вы хотите управлять MLdonkey через Telnet используйте команду: telnet %s %d"
+
+"%s " = "%s "
+
+"%s[dMain] disabled networks: " = "%s[dMain] отключённые сети: "
+
+"---- enabling interfaces ----" = "---- инициализация интерфейсов ----"
+
+"---- enabling %s ----" = "---- инициализация протокола сети  %s ----"
+
+"enabling networks: " = "используются протоколы пиринговых сетей: "
+
+"Check http://www.mldonkey.org for updates" = "Посетите сайт http://www.mldonkey.org для проверки на наличие обновлений"
+
+" : print version number and exit" = " : вывод номера версии и выход из программы"
+
+" <filename> : check file format" = " <filename> : проверьте формат файла"
+
+"<ip> : undocumented" = "<ip> : ip адресс из недокументированного диапазона"
+
+" : display information on the implementations" = " : показать информацию о выполнении"
+
+": keep output to stdout after startup" = ": сохранить вывод в стандартный вывод после запуска"
+
+": keep output to stderr after startup" = ": сохранить вывод в стандартный вывод об ошибках, после запуска"
+
+" : this argument was removed, core will exit" = " : этот аргумент был удалён, ядро будет остановлено"
+
+" : find another port when one is already used" = " : находить другой порт, когда этот уже используется"
+
+": directory for pid file" = ": каталог для файла идентификатора процесса (pid)"
+
+"\"<user> <pass>\" : create user/change password" = "\"<пользователь\user> <пароль\pass>\" : создать пользователя /сменить пароль"
+
+(************************************)
+         module "Ip"
+(************************************)
+
+"[DNS] could not resolve %s, check URL" = "[DNS] не может определить адрес %s, проверьте URL"
+
+"[DNS] Resolving [%s] ..." = "[DNS] Определение DNS адреса для [%s] ..."
+
+(************************************)
+         module "DriverCommands"
+(************************************)
+
+"directory removed" = "Директория (папка) удалена"
+
+":\t\t\tfor debugging only" = ":\t\t\tтолько для отлкадки"
+
+"<ip> :\t\t\tcheck whether an IP is blocked" = "<ip> :\t\t\tпроверьте заблокирован ли IP - адрес"
+
+":\t\t\t\tdisplay the list of blocked IP ranges that were hit" = ":\t\t\t\tпоказывает список  IP диапазонов которые были блокированы"
+
+":\t\t\t\tfor debugging only" = ":\t\t\t\tтолько для отладки"
+
+":\t\t\t\tclose all files (use to free space on disk after remove)" = ":\t\t\t\tзакрыть все файлы (использовать свободное место на диске после удаления)"
+
+"<bool> :\t\t\tuse poll instead of select" = "<bool> :\t\t\tиспользовать опрос вместо выбора"
+
+":\t\t\tclose all opened sockets" = ":\t\t\tзакрыть все открытые сокеты"
+
+":\t\t\t\tprint memory stats [<verbosity #num>]" = ":\t\t\t\tвывести состояние памяти [<verbosity #num>]"
+
+"<theme> :\t\t\tselect html_theme" = "<theme> :\t\t\tвыбрать HTML тему"
+
+":\t\t\t\t\tprint RSS feeds" = ":\t\t\t\t\tвывести потоки RSS"
+
+":\t\t\tselect html_mods_style <#>" = ":\t\t\tвыберите стиль оформления страниц<#>"
+
+":\t\t\t\ttoggle html_mods" = ":\t\t\t\tпереключить режимы отображения страниц"
+
+":\t\t\t\tclear log_file" = ":\t\t\t\tочистить файл лога"
+
+":\t\t\t\tclose logging to file" = ":\t\t\t\tпрекратить запись в лог файл"
+
+":\t\t\t\tenable logging to file" = ":\t\t\t\tвключить запись в лог файл"
+
+"<num1> <num2> :\t\t\ttry to swarm downloads from file <num2> (secondary) to file <num1> (primary)" = "<num1> <num2> :\t\t\пытаться объеденить загрузки из файла <num2> (вторичного) с файлом <num1> (первичного)"
+
+":\t\t\t\tclear the table of clients being debugged" = ":\t\t\t\tочистить таблицу клиентов которые отлаживаются"
+
+"<client nums> :\t\tdebug file state" = "<client nums> :\t\tотладка состояния файла"
+
+"<client nums> :\t\tdebug message in communications with these clients" = "<client nums> :\t\tотладка сообщений в общении с этими клиентами"
+
+"<true|false> :\t\t\treactivate log to stdout" = "<true|false> :\t\t\tвозобновить запись лога в стандартный вывод"
+
+"<width> <height> :\t\t\tset terminal width and height (devel)" = "<width> <height> :\t\t\tустановить ширину и высоту терминала(devel)"
+
+":\t\t\t\t\ttoggle ansi terminal (devel)" = ":\t\t\t\t\tпереключить ansi терминал(devel)"
+
+":\t\t\t\t\tdump current log state to console" = ":\t\t\t\t\tвывести текущее состояние лога в консоль"
+
+":\t\t\treload messages file" = ":\t\t\tперезагрузить файл сообщений"
+
+"<user> <num> :\t\t\tchange owner of download <num> to <user>" = "<user> <num> :\t\t\tизменить владельца закачки <num> на пользователя <user>"
+
+"<group> <num> :\t\t\tchange group of download <num> to <group>, use group = none for private file" = "<group> <num> :\t\t\tизменить группу владельцев для закачки <num> на группу <group>, используйте группу = none для личных файлов"
+
+":\t\t\t\tprint default group of logged-in user" = ":\t\t\t\tвывести группу по умолчанию к которой принадлежит залогиненный пользователь"
+
+":\t\t\t\tprint groups of logged-in user" = ":\t\t\t\tвывести группы залогинившихся пользователей"
+
+":\t\t\t\tprint logged-in user name" = ":\t\t\t\tвывести имя текущего пользователя"
+
+":\t\t\t\t\tprint users" = ":\t\t\t\t\tвывести список пользователей"
+
+"<group> <true|false> :\tchange group admin status" = "<group> <true|false> :\tизменение административного статуса группы"
+
+"<group> :\t\t\tremove an unused mldonkey group" = "<group> :\t\t\tудаление не используемой группы mldonkey"
+
+"<group> <admin: true|false> :\tadd new mldonkey group" = "<group> <admin: true|false> :\tдобавить новую группу mldonkey"
+
+"<user> <dir> :\t\tchange user specific commit directory" = "<user> <dir> :\t\tизменить персональную директорию пользователя"
+
+"<user> <num> :\t\t\tchange number of allowed concurrent downloads" = "<user> <num> :\t\t\tизменить количество одновременных закачек"
+
+"<user> <mail> :\t\tchange user mail address" = "<user> <mail> :\t\tсменить адресc электронной почты пользователя"
+
+"<passwd> :\t\t\tchange own password" = "<passwd> :\t\t\tизменить собственный пароль"
+
+"<user> <group|None> :\tchange user default group" = "<user> <group|None> :\tизменить группу по умолчанию, к которой принадлежит пользователь"
+
+"<user> <group> :\t\tremove a group from a mldonkey user" = "<user> <group> :\t\tудалить группу для пользователя mldonkey"
+
+"<user> <group> :\t\tadd a group to a mldonkey user" = "<user> <group> :\t\tдобавить группу для пользователя mldonkey"
+
+"<user> :\t\t\tremove a mldonkey user" = "<user> :\t\t\tудалить пользователя mldonkey"
+
+"<user> <passwd> [<group>] [<commit_dir>] [<mail>] [<max_downloads>]: add new mldonkey user/change user password" = "<user> <passwd> [<group>] [<commit_dir>] [<mail>] [<max_downloads>]: добавить нового пользователя mldonkey/изменить пароль пользователя"
+
+"<file> :\t\t\tdownload all the links contained in the file" = "<file> :\t\t\tзагрузить все ссылки содержащиеся в файле"
+
+"<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link" = "<link> :\t\t\t\tзагрузить ed2k, sig2dat, torrent или другую ссылку"
+
+":\t\t\ttell which files have several very different names" = ":\t\t\tпоказать какие файлы имеют несколько очень разных имен"
+
+"<num> \"<new name>\" :\t\tchange name of download <num> to <new name>" = "<num> \"<new name>\" :\t\tизменить имя закачки <num> на <new name>"
+
+"<file number> :\t\t\tstart previewer for file <file number>" = "<file number> :\t\t\tзапустить предпросмотр файла <file number>"
+
+"[<num>|queued|paused|downloading] :\t$bview file info for download <num>, or lists of queued, paused or downloading files, or all downloads if no argument given$n" = "[<num>|queued|paused|downloading] :\t$bпросмотреть информацию о файле для закачки <num>, или список файлов, которые находятся в очереди, поставлены на паузу, или закачиваются, или посмотреть все закачки если не указаны аргументы$n"
+
+":\t\t\t\t$bmove downloaded files to incoming directory$n" = ":\t\t\t\t$bпереместить скачанные файлы во входящую директорию$n"
+
+"<num> :\t\t\t\tchange release state of a download" = "<num> :\t\t\t\tизменить релиз-состояние закачки"
+
+"<num|all> :\t\t\tresume a paused download (use arg 'all' for all files)" = "<num|all> :\t\t\tвозобновить скачивание закачек, поставленных на паузу (исползуйте агрумент 'all' для всех файлов)"
+
+"<num|all> :\t\t\tpause a download (use arg 'all' for all files)" = "<num|all> :\t\t\tприостановить закачку (используйте аргумент 'all' для всех файлов)"
+
+"<num> :\t\t\tverify chunks of file <num>" = "<num> :\t\t\tпроверить части файла <num>"
+
+":\t\t\t\tdisplay downloaders list" = ":\t\t\t\tотобразить список качающих"
+
+"<num|all> :\t\t\tcancel download (use arg 'all' for all files)" = "<num|all> :\t\t\tотменить закачку (используйте аргумент 'all' для всех файлов)"
+
+"<num> :\t\t\tprint the segments downloaded in file" = "<num> :\t\t\tотобразить сегменты скачанные в файле"
+
+"<yes|no|what> :\t\t\tconfirm cancellation" = "<yes|no|what> :\t\t\tподтвердить отмену"
+
+"<file number> <random|linear> :\tchange download order of file blocks (default random, with first and last block first)" = "<file number> <random|linear> :\tизменить порядок скачивания блоков закачки (по умолчанию в случайном порядке, с первым и последним блоком сначала)"
+
+"<priority> <files numbers> :\tchange file priorities" = "<priority> <files numbers> :\tизменить приоритет файлов"
+
+":\t\t\t\tshow users currently uploading" = ":\t\t\t\tотобразить пользователей которые раздают"
+
+"[downloading|shared|empty for all]: list links of shared files" = "[downloading|shared|empty for all]: отобразить ссылки файлов, которые находятся на доступе"
+
+":\t\t\t\tstatistics on upload" = ":\t\t\t\tстатистика по отдаче"
+
+"<dir> :\t\t\t\tunshare directory <dir>" = "<dir> :\t\t\t\tзакрыть доступ к папке <dir>"
+
+"<priority> <dir> [<strategy>] :\tshare directory <dir> with <priority> [and sharing strategy <strategy>]" = "<priority> <dir> [<strategy>] :\tоткрыть доступ к папке <dir> с приоритетом <priority> [и стратегией доступа <strategy>]"
+
+":\t\t\t\tprint shared directories" = ":\t\t\t\tотобразить директории находящиеся на общем доступе"
+
+"debug command" = "отладить комманду"
+
+"debug command (example: file .)" = "отладить комманду (пример: file .)"
+
+"debug command (example: disk .)" = "отладить комманду (пример: disk .)"
+
+":\t\t\t\tcheck shared files for removal" = ":\t\t\t\tпроверить файлы на доступе для удаления"
+
+":\t\t\t\t$bprint options values by section$n" = ":\t\t\t\t$bотобразить значения опций по секциям$n"
+
+":\t\t\t\t\tprint web_infos options" = ":\t\t\t\t\tотобразить опции web_infos"
+
+"[<option>|changed]:\t\t\tprint options (use * as wildcard), 'changed' prints all changed options, leave empty to print all options" = "[<option>|changed]:\t\t\tотобразить опцию (используйте * как шаблон), 'changed' выводит все опции которые были изменены, оставьте пустым для вывода всех опций"
+
+":\t\t\t\t\t$bdisplay options$n" = ":\t\t\t\t\t$bотобразить опции$n"
+
+"[<options|sources|backup>] :\tsave options and/or sources or backup (empty for options and sources)" = "[<options|sources|backup>] :\tсохранить опции и/или исходники или бекапы (оставьте пусто для опций и исходников)"
+
+"<option_name> <option_value> :\t$bchange option value$n" = "<option_name> <option_value> :\t$bизменить значение опции$n"
+
+":\t\t\tforce download of an already downloaded file" = ":\t\t\tпринудительно закачать уже закаченный файл"
+
+"<num> :\t\t\t\t$bfile to download$n" = "<num> :\t\t\t\t$bфайл для скачки$n"
+
+":\t\t\tview custom queries" = ":\t\t\tпросмотреть определенные запросы"
+
+":\t\t\t\t\tview all queries" = ":\t\t\t\t\tпросмотреть все запросы"
+
+"<query> :\t\t\t\tsearch for files locally\n\n\tWith special args:\n\t-network <netname>\n\t-minsize <size>\n\t-maxsize <size>\n\t-media <Video|Audio|...>\n\t-Video\n\t-Audio\n\t-format <format>\n\t-title <word in title>\n\t-album <word in album>\n\t-artist <word in artist>\n\t-field <field> <fieldvalue>\n\t-not <word>\n\t-and <word>\n\t-or <word>\n" = "<query> :\t\t\t\tискать файлы локально\n\n\tС специальными аргументами:\n\t-network <netname>\n\t-minsize <size>\n\t-maxsize <size>\n\t-media <Video|Audio|...>\n\t-Video\n\t-Audio\n\t-format <format>\n\t-title <word in title>\n\t-album <word in album>\n\t-artist <word in artist>\n\t-field <field> <fieldvalue>\n\t-not <word>\n\t-and <word>\n\t-or <word>\n"
+
+"<query> :\t\t\t\t$bsearch for files on all networks$n\n\n\tWith special args:\n\t-network <netname>\n\t-minsize <size>\n\t-maxsize <size>\n\t-media <Video|Audio|...>\n\t-Video\n\t-Audio\n\t-format <format>\n\t-title <word in title>\n\t-album <word in album>\n\t-artist <word in artist>\n\t-field <field> <fieldvalue>\n\t-not <word>\n\t-and <word>\n\t-or <word>\n" = "<query> :\t\t\t\t$bискать файлы во всех сетях$n\n\n\tС специальными аргументами:\n\t-network <netname>\n\t-minsize <size>\n\t-maxsize <size>\n\t-media <Video|Audio|...>\n\t-Video\n\t-Audio\n\t-format <format>\n\t-title <word in title>\n\t-album <word in album>\n\t-artist <word in artist>\n\t-field <field> <fieldvalue>\n\t-not <word>\n\t-and <word>\n\t-or <word>\n"
+
+"[<num>] :\t\t\t\t$bview results of a search$n" = "[<num>] :\t\t\t\t$bпосмотреть результат поиска$n"
+
+"<num1> <num2> ... :\t\tforget searches <num1> <num2> ..." = "<num1> <num2> ... :\t\tзабыть поиски <num1> <num2> ..."
+
+":\t\t\t\tprint network porttest results" = ":\t\t\t\tотобразить результат сетевого теста портов"
+
+":\t\t\tforce start network porttest" = ":\t\t\tпринудительно начать сетевой тест портов"
+
+":\t\t\t\tstart IP discovery" = ":\t\t\t\tзапустить определение IP"
+
+"<num> :\t\t\t\tdisable a particular network" = "<num> :\t\t\t\tотключение конкретной сети"
+
+"<num> :\t\t\t\tenable a particular network" = "<num> :\t\t\t\tвключение конкретной сети"
+
+":\t\t\t\tprint all networks" = ":\t\t\t\tнапечатать все сети"
+
+"<cmd> :\t\t\t\tstart command <cmd>\n\t\t\t\t\tmust be allowed in 'allowed_commands' option or by 'allow_any_command' if arguments" = "<cmd> :\t\t\t\tзапуск комманды <cmd>\n\t\t\t\t\tдолжен быть разрешенным в опции 'allowed_commands' или включением опции 'allow_any_command'"
+
+":\t\t\t\tremove graphical transfer statistics files" = ":\t\t\t\tскрыть графическую статистику передачи файлов"
+
+":\t\t\t\tdisplay graphical transfer statistics" = ":\t\t\t\tотобразить графическую статистику передачи файлов"
+
+":\t\t\t\t\tdisplay transfer statistics" = ":\t\t\t\t\tотобразить статистику передач"
+
+":\t\t\t\treset country based transfer statistics and save statistics.ini" = ":\t\t\t\tсбросить статистику по странам и сохранить statistics.ini"
+
+":\t\t\t\tdisplay country database" = ":\t\t\t\tотобразить базу данных стран"
+
+"[<all|regex>]:\t\t\tdisplay country based transfer statistics for countries with data transfered,\n\t\t\t\t\tuse arg 'all' for all countries seen\n\t\t\t\t\tor * as wildcard for country name, code and continent" = "[<all|regex>]:\t\t\tотобразить статистику по странам, с отображением количества переданной информации для каждой страны,\n\t\t\t\t\tиспользуйте аргумент 'all' для всех стран\n\t\t\t\t\tили * как шаблон для имени стран, кодов или континентов"
+
+":\t\t\t\ttoggle between the two rate and opened connection sets" = ":\t\t\t\tпереключить между двумя рейтингами (rate) и открытыми наборами соединений"
+
+":\t\t\t\tprint current bandwidth stats" = ":\t\t\t\tотобразить текущую статистику по полосе"
+
+":\t\t\t\t\tview upload credits" = ":\t\t\t\t\tпросмотреть кредиты отдачи (upload credits)"
+
+"<m> :\t\t\t\tdisable upload during <m> minutes, queue all files" = "<m> :\t\t\t\tотключить отдачу в течении <m> минут(ы), поставить в очередь все файлы"
+
+"<client num> :\t\t\tprint files from friend <client num>" = "<client num> :\t\t\tотобразить файлы друга <client num>"
+
+":\t\t\t\tdisplay all friends" = ":\t\t\t\tпоказать всех друзей"
+
+"<client numbers|all> :\tremove friend (use arg 'all' for all friends)" = "<client numbers|all> :\tудалить друша (используйте аргумент 'all' для удаления всех друзей)"
+
+"<client num> :\t\tadd client <client num> to friends" = "<client num> :\t\tдобавить клиента <client num> в друзья"
+
+"<client num> :\t\t\task friend files" = "<client num> :\t\t\задать файлы друга (task friend files)"
+
+":\t\t\t\t\tview friends" = ":\t\t\t\t\tпосмотреть друзей"
+
+"<server numbers|all> :\t\tdisconnect from server(s)" = "<server numbers|all> :\t\tотключится от сервера(ов)"
+
+"[<num>] :\t\t\t\tconnect to more servers (or to server <num>)" = "[<num>] :\t\t\t\tприсоединится к большему количеству серверов (или к серверу <num>)"
+
+"<num> :\t\t\tshow list of files published on server <num>" = "<num> :\t\t\tотобразить список файлов опубликованных на сервере <num>"
+
+"<num> :\t\t\tprint banner of connected server <num>" = "<num> :\t\t\tотобразить баннер подключенного сервера<num>"
+
+"<server numbers|all|blocked|disc> :\tremove server(s) ('all'/'blocked'/'disc' = all/IP blocked/disconnected servers)" = "<server numbers|all|blocked|disc> :\tудалить сервер(а) ('all'/'blocked'/'disc' = все/заблокированные по IP/отключенные)"
+
+":\t\t\t\t\tlist all known servers" = ":\t\t\t\t\tотобразить список всех известных серверов"
+
+":\t\t\t\t\t$blist connected servers$n" = ":\t\t\t\t\t$bотобразить список всех подключенных серверов$n"
+
+":\t\t\t\t\tprint calendar" = ":\t\t\t\t\tотобразить календарь"
+
+"<hour> \"<command>\" :\tadd a command to be executed every day" = "<hour> \"<command>\" :\tдобавить команду, которая будет выполняться каждый день"
+
+"<client num> <msg> :\t\tsend a message to a client" = "<client num> <msg> :\t\tотправить сообщение клиенту"
+
+":\t\t\t\tmessage_log [refresh delay in seconds]" = ":\t\t\t\tлог сообщений [период обновления в секундах]"
+
+"<minutes> :\t\t\tprint activity in the last <minutes> minutes" = "<minutes> :\t\t\tотобразить активность в последние <minutes> минут"
+
+":\t\t\t\tprint mldonkey disk information" = ":\t\t\t\tотобразить информацию о диске на котором находится mldonkey"
+
+":\t\t\t\tprint mldonkey port usage information" = ":\t\t\t\tотобразить информацию о задействованных портах mldonkey"
+
+":\t\t\t\tprint mldonkey runtime information" = ":\t\t\t\tотобразить информацию о времени работы mldonkey"
+
+":\t\t\t\tprint mldonkey core build information" = ":\t\t\t\tотобразить информацию о сборке mldonkey"
+
+":\t\t\t\tprint mldonkey core build, runtime and disk information" = ":\t\t\t\tотобразить информацию о сборке mldonkey, времени работы и информациб о диске"
+
+":\t\t\t\tcore uptime" = ":\t\t\t\tвремя работы ядра"
+
+":\t\t\t\tprint mldonkey version" = ":\t\t\t\tотобразить версию mldonkey"
+
+"<num|all> :\t\t\t\tview client (use arg 'all' for all clients)" = "<num|all> :\t\t\t\tпросмотреть клиента (используйте аргумент 'all' для всех клиентов)"
+
+":\t\t\t\trecover lost files from temp directory" = ":\t\t\t\tвосстанавливать потерянные файлы из временной директории"
+
+"[<list of kind|URL>] :\tre-download web_infos, leave empty to re-download all" = "[<list of kind|URL>] :\tперезагрузить web_infos, оставьте пустым чтобы перезагрузить всё"
+
+"<url> :\t\t\tremove URL from web_infos" = "<url> :\t\t\tудалить URL из web_infos"
+
+"<kind> <url> [<period>] :\tload this file from the web\n\t\t\t\t\tkind is either server.met (if the downloaded file is a server.met)\n\t\t\t\t\tperiod is the period between updates (in hours, default 0 = only loaded at startup)" = "<kind> <url> [<period>] :\tзагрузить этот файл из интернета\n\t\t\t\t\tнапример server.met/1.zip (если  скачиваемый файл server.met/1.zip)\n\t\t\t\t\tпериод это время между обновлениями (в часах, по умолчанию 0 = обновлять только при запуске)"
+
+":\t\t\t\t\t$bsave and kill the server$n" = ":\t\t\t\t\t$bсохранить и убить сервер$n"
+
+":\t\t\tlogout interface" = ":\t\t\tвыйти из интерфейса"
+
+":\t\t\t\t\t$bclose telnet$n" = ":\t\t\t\t\t$bзакрыть telnet$n"
+
+":\t\t\t\t$bdelete a command alias\n\t\t\t\t\texample: \"unalias ca\"$n" = ":\t\t\t\t$bудалить псевдоним\n\t\t\t\t\tнапример: \"unalias ca\"$n"
+
+":\t\t\t\t\t$badd a command alias\n\t\t\t\t\tfor example: \"alias ca cancel all\" makes an alias\n\t\t\t\t\t\"ca\" performing \"cancel all\"\n\t\t\t\t\tto substitute an alias just make a new one\n\t\t\t\t\tfor example: \"alias ca vd\"$n" = ":\t\t\t\t\t$bдобавить псевдоним комманде\n\t\t\t\t\tНапример комманда: \"alias ca cancel all\" создаст псевдоним\n\t\t\t\t\t\"ca\" который будет выполнять комманду \"cancel all\"\n\t\t\t\t\tдля замены псевдонима просто сделайте новый псевдоним с таким же именем\n\t\t\t\t\tНапример: \"alias ca vd\"$n"
+
+":\t\t\t\tdump heap for debug" = ":\t\t\t\tсделать демп динамической памяти для отладки"
+
+(************************************)
+         module "BTInteractive"
+(************************************)
+
+"<filename> <comment> :\tgenerate the corresponding <filename> .torrent file with <comment> in torrents/tracked/.\n\t\t\t\t\tThe file is automatically tracked, and seeded if in incoming/" = "<filename> <comment> :\tгенерирует соответственный файл <filename>.torrent с комментарием <comment> в папке torrents/tracked/.\n\t\t\t\t\tФайл автоматически помечен как прослеживаемый (tracked), и раздается если находится во входящих/"
+
+":\t\t\t\tprint all .torrent files on this server" = ":\t\t\t\tотображает все файлы .torrent которые находятся на этом сервере"
+
+"<num> :\t\t\tshow internal data of .torrent file" = "<num> :\t\t\tпоказать внутреннюю информацию .torrent файла"
+
+":\t\t\tprint all seeded .torrent files on this server" = ":\t\t\tпоказать все сидируемые файлы .torrent на этом сервере"
+
+":\t\t\trecheck torrents/* directories for changes" = ":\t\t\tперепроверить папки в torrents/* на изменения"
+
+":\t\t\tremove all old .torrent files" = ":\t\t\tудалить все старые .torrent файлы"
+
+":\t\t\t\tstops all bittorrent downloads, use this if you want to make sure that the stop signal actually\n\t\t\t\t\tgets to the tracker when shutting mlnet down, but you have to wait till the stops get to the\n\t\t\t\t\ttracker and not wait too long, so mldonkey reconnects to the tracker :)" = ":\t\t\t\tостанавливает все торрент закачки, используйте эту комманду только если вы хотите убедиться что стоп сигнал действительно\n\t\t\t\t\tдоставляется трекеру когда выключаете mlnet, но вы должны ждать пока стоп сигнал не дойдет до\n\t\t\t\t\tтрекера и не ждать очень долго, поэтому mldonkey переподключается к трекеру :)"
+
+(************************************)
+         module "DonkeyInteractive"
+(************************************)
+
+"No forceable download found" = "Найдена не принудительная закачка"
+
+"File already downloaded (use 'force_download' if necessary)" = "Файл уже загружается (используте 'force_download' если нужно)"
+
+(************************************)
+         module "CommonComplexOptions"
+(************************************)
+
+"Options backup as %s correctly saved" = "Опции резервного копирования как  %s удачно сохранены"
+
+"Sources correctly saved" = "Источники удачно сохранены"
+
+"Album Search" = "Поиск альбома"
+
+"Keywords" = "Ключевые слова"
+
+"Movie Search" = "Поиск фильма"
+
+"MP3 Search" = "Поиск MP3"
+
+"Complex Search" = "Расширенный поиск"
+
+"Mp3 Options" = "Опции Mp3"
+
+"Min Bitrate" = "Минимальный битрейт"
+
+"Title" = "Название"
+
+"Album" = "Альбом"
+
+"Artist" = "Исполнитель"
+
+"Simple Options" = "Простые опции"
+
+"Format" = "Формат"
+
+"Media" = "Медиа"
+
+"Max Size" = "Максимальный размер"
+
+"Min Size" = "Минимальный размер"
+
+"keywords" = "ключевые слова"
+
+"Options correctly saved" = "Опции коректно сохранены"
+
+(************************************)
+         module "CommonOptions"
+(************************************)
+
+"!! No files, please use search or the dllink <url> command to add a new download !!" = "!! Нет файлов, пожалуйста, используйте поиск или комманду dllink <url> для добавления новой закачки !!"
+
+"--- Connected to %d servers on the %s network ---\n" = "--- Подключено к %d серверам по протоколу %s ---\n"
+
+"Welcome to MLDonkey" = "Добро пожаловать в  MLdonkey ! Версия:"
+
+"Logging in %s" = "Запись лога включена, пишу в файл %s"
+
+"List of IP addresses to use to boot Kademlia networks" = "Лист IP адресов для использования Kademlia сети"
+
+"Set this option to false if you don't want to receive new Overnet peers" = "Переключите эту опцию в состояние выключено(false) - если вы не хотите получать новые пиры в сети Overnet"
+
+"The MD4 of the Overnet client" = "The MD4 of the Overnet client"
+
+"Interval (in seconds) before republish files" = "Интервал (в секундах) перед повторным публикованием файлов"
+
+"allow extended search to search on overnet" = "разрешить расширенный поиск, для поиска в пиринговой сети overnet"
+
+"Size of the filename storage used to answer queries" = "Размер хранилища имен файлов используемый для ответа на запросы"
+
+"port for Kademlia" = "порт для использования сети Kademlia"
+
+"The files that were downloaded" = "Файлы которые были скачаны"
+
+"port for overnet" = "порт используемый пиринговой сетью overnet"
+
+"login of client on eDonkey network (nothing default to global one)" = "регистрация в пиринговой сети eDonkey (пустой по умолчанию, сам логин берётся из глобальных настроек)"
+
+"maximum number of files published to servers per minute, eMule default 200" = "максимальное количество файлов опубликованных для серверов в минуту, для протокола eMule по умолчанию 200"
+
+"disconnect if server users is smaller" = "отключатся если количество пользователей сервера меньше"
+
+"Set the maximal rank of a client to be kept as a client" = "Указать макимальный ранг клиента, на котором он все еще остается клиентом"
+
+"Set the number of hours you want client to remain banned" = "Установить количество часов, на протяжении которых клиент будет забанен"
+
+"true if you want your client IP to be set from servers ID" = "true если вы хотите чтобы ваш IP брался из ID сервера"
+
+"true if you want your client to ban\n  clients that try queue jumping (3 reconnections faster than 9 minutes)" = "true если вы хотите забанить клиентов\n  которые пытаются прыгать в очередь (3 переподключения в течении 9 минут)"
+
+"true if you want your mldonkey to lose some\n  upload bandwidth sending messages to clients which are banned :)" = "true если вы хотите чтобы mldonkey терял часть\n  исходящей полосы отправляя сообщения клиентам которые забанены:)"
+
+"Are the downloaded files added to the old files list to prevent re-download ?" = "Добавляются ли скачанные файлы в старые списки файлов чтобы избежать перезакачки ?"
+
+"Are the cancelled files added to the old files list to prevent re-download ?" = "Добавляются ли отмененные файлы в старые списки файлов чтобы избежать перезакачки ?"
+
+"How often should we check all servers (minimum 4 hours, 0 to disable)" = "Как часто mldonkey должен проверять все сервера (минимум 4 часа, 0 чтобы отключить)"
+
+"Minimal number of servers remaining after remove_old_servers" = "Минимальное количество серверов, которое должно оставаться после комманды remove_old_servers"
+
+"How often should remove old donkey servers (see max_server_age) be called\n  (in seconds, 0 to disable)" = "Как часто mldonkey должен удалять старые donkey-сервера (смотрите max_server_age) чтобы быть вызванным (be called)\n  (в секундах, 0 чтобы отключить)"
+
+"max number of days after which an unconnected server is removed" = "максимальное количество дней после которых несоединенные сервера удаляются"
+
+"The weight of upload on a donkey connection compared to upload on other\n  peer-to-peer networks. Setting it to 5 for example means that a donkey\n  connection will be allowed to send 5 times more information per second than\n  an Open Napster connection. This is done to favorise donkey connections\n  over other networks, where upload is less efficient, without preventing\n  upload from these networks." = "Вес раздач в сети donkey в сравнении с другими\n p2p сетями. Установив значение этого параметра равным 5, к примеру, означает что соединениям в donkey\n  сети будет разрешено слать в 5 раз больше информации за секунду чем\n  соединениям сети Open Napster. Это делается для того чтобы приоритезировать donkey соединения\n  над другими сетями, где отдача не так важна, без прекращения\n  раздачи в этих сетях."
+
+"How long can a silent server stay connected" = "Как долго молчащий сервер может оставаться подключенным"
+
+"Uploaded zones (1 zone = 180 kBytes) needed to enable the dynamic upload lifetime" = "Зоны раздачи (1 зона = 180 кБайт) которые нужны для активирования динамической раздачи (dynamic upload lifetime)"
+
+"Each client upload lifetime depends on download-upload ratio" = "Период жизни раздачи клиента зависит от коэффициента раздачи/скачивания"
+
+"If true, each client is allowed to complete only one chunk, independent, if it is empty or\n   partial. this setting overrides upload_full_chunks and dynamic_upload_lifetime,\n   but is, as a failsafe, limited by upload_lifetime (should be set reasonable high)" = "Если true, каждому клиенту разрешено заканчивать только одну часть (chunk), независимо, пустую\n или частичною (partial). Эта настройка игнорирует upload_full_chunks и dynamic_upload_lifetime,\n   но для безопасности ограничена параметром upload_lifetime (должен быть обоснованно высоким)"
+
+"If true, each client is allowed to receive one chunk, this setting overrides upload_lifetime" = "Если true, каждому клиенту разрешено получать одну часть, эта опция игнорирует опцию upload_lifetime"
+
+"How long a downloading client can stay in my upload queue (in minutes >5)" = "Как долго качающий клиент может оставаться в очереди на отдачу (в минутах >5)"
+
+"How long can a silent client stay in the upload queue" = "Как долго молчащий клиент можеть оставаться в очереди на отдачу"
+
+"How long should we wait in the queue of another client" = "Как долго mldonkey должен ждать в очереди другого клиента"
+
+"A list of ports that specify servers to remove\n  from server list. Servers with ports on this list can't be added, and\n  will eventually be removed" = "Список портов, которые определяют серверы для удаления\n  из списка сервера. Сервера с портами из этого списка не могут быть добавлены и\n  в конечном итоге будут удалены"
+
+"Enable secure user identification support" = "Включить поддержку безопасной идентификации пользователя"
+
+"The RSA private key of this client" = "Приватный ключ RSA этого клиента"
+
+"The MD4 of this client" = "MD4 этого клиента"
+
+"Save sources to file_sources.ini and reload them on core start." = "Сохранить источники в file_sources.ini и загружать их при запуске ядра."
+
+"Maximal number of sources for each file" = "Максимальное количество источников для каждого файла"
+
+"Allow mldonkey to propagate your sources to other mldonkey clients.\n   This function is superseeded by eMule-style source exchange,\n   this option is outdated" = "Разрешить mldonkey пропагандировать ваши источники другим клиентам mldonkey.\n   Эта функция is superseeded by eMule-style source exchange,\n   эта опция устарела"
+
+"The maximal delay a connection with a server should last when walking through the list" = "Максимальная длительность задержки соединения с сервером, при прохождении списка серверов"
+
+"Number of servers that can be used to walk\n  between servers" = "Количество серверов которые можно использовать при прохождении\n  между серверами"
+
+"only servers which are set to 'preferred' will be connected, \n  please note that any server must be set to preferred to use this feature" = "только с серверами которые установлены как 'предпочитаемые' будет установлено соединение, \n  пожалуйста, имейте в виду, что хотя бы один сервер должен быть установлен как 'предпочитаемый' для использования этой функции"
+
+"Set this option to false if you don't want mldonkey\n  to change the master servers it is connected to" = "Установите значение этой опции false если вы не хотите чтобы mldonkey\n  менял мастер сервера к которым он подключен"
+
+"Set this option to false if you don't want to\n  receive new servers from clients" = "Установите значение этой опции false если вы не хотите\n  получать новые сервера от клиентов"
+
+"Set this option to false if you don't want to\n  receive new servers from server.met" = "Установите значение этой опции false если вы не хотите\n  получать новые сервера от server.met"
+
+"Set this option to false if you don't want to\n  receive new servers from servers" = "Установите значение этой опции false если вы не хотите\n  получать новые сервера от серверов"
+
+"send all clients your IP regardless of what ID was assigned by the server" = "посылать всем клиентам ваш IP-адрес не зависимо от ID который был присвоен вам сервером"
+
+"immediately close connection to servers that don't grant a High ID" = "немедленно закрывать соединения к серверам которые не отвечают Высокому ID (High ID)"
+
+"A list of server IP to remove from server list. Can contain single IPs, CIDR ranges, or begin-end ranges.\n  Servers on this list can't be added, and will eventually be removed" = "Список IP адресов серверов для удаления из списка серверов. Может содержать одиночные IP, диапазоны CIDR, или начало-конец диапазоны.\n  Сервера из этого списка не могут быть добавлены, и в конечном итоге будут удалены"
+
+"Should mldonkey try to detect sources masquerading as others and ban them" = "Должен mldonkey пытаться определить маскарадинг источников и блокировать их"
+
+"Should mldonkey try to detect sources responsible for corruption and ban them, currently disabled" = "Должен mldonkey пытаться определить источники ответственные за коррупцию и банить их, в настоящий момент отключено"
+
+"The number of servers you want to stay connected to, maximum allowable = 3" = "Количество серверов к которым вы хотите быть подключенным, максимально разрешенное = 3"
+
+"Timeout on client connections when not queued" = "Таймаут на соединение с клиентами когда не в очереди"
+
+"Delay used to request file sources" = "Задержка используемся при запросе источников файла"
+
+"The port used for connection by other donkey clients." = "Порт используемый для соединения с другими клиентами сети donkey."
+
+"Max number of UDP packets per round for eXtended Search" = "Максимальное количество UDP пакетов за секунду для расширенного поиска (eXtended Search)"
+
+"Let you define a default comment for creating torrents" = "Позволяет Вам определить комментарий по умолчанию для созданных торрент-ссылок"
+
+"Let you define a default tracker for creating torrents (leave empty for mlnet tracker)" = "Позволяет Вам определить трекер по умолчанию для созданных торрент-ссылок (оставить пустым, чтобы использовать mlnet трекер)"
+
+"The tracker will check the client key to update ip if changed" = "Трекер будет проверять ключ клиента чтобы обновить IP-адрес если он поменялся"
+
+"The tracker will check the torrent file is available if an announce request is received" = "Трекер будет проверять доступен ли торрен файл в случае получения запроса оповещения (announce request)"
+
+"The maximal number of peers returned by the tracker" = "Максимальное количество пиров возвращаемое трекером"
+
+"The maximal number of tracked files (to prevend saturation attack)" = "Максимальное количество отслеживаемых (tracked) файлов (для предотвращения аттак насыщения (saturation attack))"
+
+"The port to bind the tracker to" = "Порт к которому привязывать трекер"
+
+"Known Peers" = "Известные пиры"
+
+"Known ultrapeers" = "Известные ультрапиры"
+
+"All the swarmers used" = "Все используемые свормеры (swarmers)"
+
+"                Incoming and shared directories.\n   At least two entries have to be present here, one with strategy\n   incoming_files and one with strategy incoming_directories.\n   Both entries can point to the same directory.\n   If one of the two strategies is missing, MLDonkey will create a default\n   directory with its entry here.\n   Finished BT multifile downloads are committed to the first directory\n   with strategy incoming_directories. Other downloads are committed\n   to the first directory with the strategy incoming_files.\n   MLdonkey searches all shared_directories with incoming_* strategies\n   on commit and uses the first one with enough free diskspace.\n   Other strategies can be found in searches.ini, section customized_sharing." = "                Входящие и папки находящиеся на доступе.\n   Как минимум две записи должны быть здесь, одна со стратегией\n   incoming_files и одна со стратегией incoming_directories.\n   Обе записи могут указывать на одну и туже папку.\n   Если одна из двух стратегий отсутсвует, MLDonkey создат папку\n   по умолчанию со своим путем.\n   Законченный многофайловые BT загрузки перемещаются в первую папку\n   со стратегией incoming_directories. Другие закачки перемещаются\n   в первую папку с стратегией incoming_files.\n   MLdonkey ищет во всех shared_directories с incoming_* стратегией\n   при перемещении и использует первую, которая имеет достаточно места.\n   Другие стратегии могут быть найдены в файле searches.ini, секция customized_sharing."
+
+"The list of known friends" = "Список известных друзей"
+
+"Shortcuts for special specialized searches" = "Ярлык для специальных специализированных поисков"
+
+"Maximal number of saved searches" = "Максимальное количество сохраненных поисков"
+
+"List of known servers" = "Список известных серверов"
+
+"" = ""
+
+"The files currently being downloaded, primary downloads must come first" = "Файлы которые сейчас закачиваются, главные закачки должны идти первыми"
+
+"The files whose download is finished" = "Файлы закачка которых закончена"
+
+"Depreciated option, kept for compatibility reasons - used by MLDonkey < 2.7.5" = "Остаточная опция, оставленная для совместимости - используется MLDonkey < 2.7.5"
+
+"The users that are defined on this core. The default user is\ncalled 'admin', and uses an empty password. To create new users,\nlogin as admin in mldonkey, and use the 'useradd' command.\n\nuser_groups                   = Files belonging to one of these groups can be seen by the user.\nuser_default_group            = New downloads by this user will belong to this group.\nuser_commit_dir               = Commit files to <incoming>/<user_commit_dir>\nuser_mail                     = Address used to sent confirmation mails after comitting a download\nuser_max_concurrent_downloads = Maximum number of downloads allowed, 0 = unlimited\n" = "Пользователи которые созданы на этом ядре. Пользователь по умолчанию\nназывается 'admin', у этого пользователя отсутствует пароль. Чтобы создать нового пользователя,\nвойдите в mldonkey пользователем 'admin', и используйте комманду 'useradd'.\n\nuser_groups                   = Файлы принадлежащие одной из груп видимы пользователю.\nuser_default_group            = Новые закачки этого пользователя будут принадлежать этой группе.\nuser_commit_dir               = Перемещать файлы в <incoming>/<user_commit_dir>\nuser_mail                     = Электронный адрес на который будут отправляться подтверждения после перемещения скачанных файлов\nuser_max_concurrent_downloads = Максимально разрешенное количество одновременных закачек, 0 = неограничено\n"
+
+"The groups that are defined on this core.\n\ngroup_admin           = Are members of this group MLDonkey admins?\n                        Only members of this group can change settings and see uploads.\n" = "Группы созданные на этом ядре.\n\ngroup_admin           = Члены этой группы админы MLDonkey?\n                        Только члены этой группы могут менять настройки и смотреть отдачи.\n"
+
+"number of lines for GUI console messages" = "количество линий в сообщении GUI консоли"
+
+"Post log messages to syslog. This setting is independent of log_file\n  and its associated commands, therefore close_log does not stop log to syslog.\n  Its therefore possible to log to syslog and log_file at the same time." = "Записывать сообщения лога в сислог (syslog). Эта настройка не зависит от log_file\n  и связанных с ним комманд, например close_log не остановит запись в сислог.\n  Также возможна запись лога и в syslog и в log_file одновременно."
+
+"The file in which you want mldonkey to log its debug messages. If you\n  set this option, mldonkey will log this info in the file until you use the\n  'close_log' command. The log file may become very large. You can\n  also enable logging in a file after startup using the 'log_file' command." = "Файл в который будет записываться отладочная информация. Если вы\n  установите эту опцию, mldonkey будет записывать отладочную информацию в этот файл до тех пор пока вы \n  не используете комманду 'close_log'. Этот файл может стать очень большим. Вы можете\n  также включить логгирование в файл после запуска используя комманду 'log_file'."
+
+"Maximum size of log_file in MB, this value is only checked on startup,\n   log_file will be deleted if its bigger than log_file_size." = "Максимальный размер log_file в МБ, это значение проверяется только при запуске,\n   log_file будет удален если его размер будет больше log_file_size."
+
+"size of log in number of records" = "размер лога в количестве записей"
+
+"If this option is set, IP addresses on the local network are allowed\n  (only for debugging)" = "Если установлена эта опция, IP адреса локальной сети разрешены\n  (только для отладки)"
+
+"Maximum length of file comments" = "Максимальная длинна комментариев к файлам"
+
+"Maximum number of comments per file" = "Максимальное количество комментариев на файл"
+
+"(internal option)" = "(внутренняя опция)"
+
+"Maximal number of results displayed for a search" = "Максимальное количество результатов отображаемых при поиске"
+
+"The major GC speed is computed from this parameter. This is the memory\n  that will be \"wasted\" because the GC does not immediatly collect \n  unreachable blocks. It is expressed as a percentage of the memory used\n  for live data. The GC will work more (use more CPU time and collect \n  blocks more eagerly) if space_overhead is smaller." = "Основная скорость собирателя мусора (GC) вычисляется из этого параметра. Это память\n  которая будет \"потерянной\" потому что собиратель мусора не моментально собирает \n  недоступные блоки. Он выражается в процентах от используемой памяти\n  для реальных данных. Собиратель мусора будет работать больее активно (использовать больше времени CPU и собирать \n  блоки более охотно) если space_overhead меньше."
+
+"The percentage of free memory before a compaction is triggered" = "Процент свободной памяти ниже которого срабатывает уплотнение"
+
+"This option defines a set of date at which some commands have to be executed.\n  For each tuple, the first argument is a list of week days (from 0 to 6),\n  the second is a list of hours (from 0 to 23) and the last one a command to\n  execute. Can be used with 'pause all' and 'resume all' for example to\n  resume and pause downloads automatically for the night." = "Эта опция определяет дату и время в которое заданная комманда будет выполнена.\n  Для каждого набора, первый аргумент - список дней недели (от 0 до 6),\n  второй список часов (от 0 до 23) и последний комманда на\n  выполнение. Может использоваться с 'pause all' и 'resume all' на пример чтобы\n  останавливать и запускать закачки автоматически ночью."
+
+"How many samples go into an estimate of transfer rates" = "Сколько выборок входит в оценку скорости передачи"
+
+"The delay between one glance at a file and another" = "Задержка между просмотром (glance) файлов"
+
+"timeout when connecting to a server" = "таймаут соединения с сервером"
+
+"The delay between two saves of the 'downloads.ini' file (default is 15 minutes).\n  Changes to this option require a core restart." = "Интервал сохранения файла 'downloads.ini' (по умолчанию 15 минут).\n  Изменение этой опции, требует перезагрузки ядра."
+
+"Maximal size in byte of the buffers of a client, minimum 50.000 byte.\nFor high-volume links raise this value to 1.000.000 or higher." = "Максимальный размер буффера клиента в байтах, минимально 50.000 байт.\nДля длинных ссылок нужно увеличить этот параметр до 1.000.000 байт или выше."
+
+"Minimal number of results for filter form to appear" = "Минимальное количество отображаемых результатов дя формы фильтра"
+
+"Whether to display results already downloaded" = "Отображать результаты которые уже скачены"
+
+"The minimal delay between two connections to the same client (in seconds)" = "Минимальная задержка между двумя соединениями к одному и тому же клиенту (в секундах)"
+
+"The source queues to display in source lists (see 'sources' command)" = "Отображать очереди источника в списках источников (смотрите комманду 'sources')"
+
+"Size of the minor heap in kB" = "Размер минорной динамической памяти в кБ"
+
+"Should the MLSUBMIT.REG file be created" = "Должен ли создаваться файл MLSUBMIT.REG"
+
+"The IP address used to bind the p2p clients" = "IP адрес используемый для привязки p2p клиентов"
+
+"The delay between reloads of the vd output in the WEB interface" = "Задержка между выводом vd в WEB интерфейсе"
+
+"Force compaction every <n> hours (in [1..24])" = "Принудительно уплотнять каждые <n> часов (в [1..24])"
+
+"Message printed at startup additional to welcome text" = "Сообщение выводимое при загрузке, дополнительно к тексту приветствия"
+
+"The height of the command frame in pixel (depends on your screen and browser sizes)" = "Высота коммандного окна в пикселях (зависит от размера вашего экрана и браузера)"
+
+"This option controls whether the WEB interface should show frame borders or not" = "Эта опция контролирует будет ли выводиться рамка фреймов или нет"
+
+"The realm shown when connecting with a WEB browser" = "Сообщение отображаемое при авторизации на WEB интерфейсе"
+
+"Delay between updates to the GUI" = "Задержка между обновлениями GUI"
+
+"Is the default terminal an ANSI terminal (escape sequences can be used)" = "Терминал по умолчанию, это ANSI терминал (последовательности escape могут использоваться)"
+
+"The size long client names will be shortened to in the interface" = "Размер до которого будут сокращаться длинные имена клиентов в интерфейсе"
+
+"The maximum number of different filenames used by MLDonkey" = "Максимальное количество разных имен используемых MLDonkey*"
+
+"The size long names will be shortened to in the interface" = "Размер до которого будут сокращаться длинные имена в интерфейсе"
+
+"The size of the buffer between the client and its GUI. Can be useful\n  to increase when the connection between them has a small bandwith" = "Размер буффера между клиентом и его GUI. Иногда полезно\n  увеличивать когда между ними узкий канал передачи данных"
+
+"The conversions to apply on Unicode characters" = "Конвертация применяемая к символами Unicode"
+
+"The maximum time in seconds to wait for networks to cleanly shutdown." = "Максимальное время ожидания правильного завершения выхода из сетей в секундах.*"
+
+"Define the format of the archive, zip or tar.gz are valid." = "Определить формат архива, возможные варианты: zip или tar.gz."
+
+"Define the total number of options archives in old_config." = "Задайте общее количество архивов опций в old_config."
+
+"How often (in hours) should a backup of the ini files be written into old_config.\n  A value of zero means that a backup is written only when the core shuts down." = "Как часто бекапы ini файлов должны сохранятся в old_config (в часах).\n  Ноль означает что бекапы будут сохраняться только при завершении выполнения ядра."
+
+"show all eMule mods in statistics" = "показать все моды eMule в статистике"
+
+"build statistics about eMule mods" = "построить статистику о модах eMule"
+
+"Flush buffers if buffers exceed buffer_writes_threshold kB (experimental)" = "Очистить буфферы если буфферы превысят buffer_writes_threshold кБ (экспериментальная)"
+
+"Buffer writes and flush after buffer_writes_delay seconds (experimental)" = "Записать буфферы и сбросить после buffer_writes_delay секунд (экспериментальная)"
+
+"(experimental)" = "(экспериментальные)"
+
+"Regexp of comments to filter out, example: string1|string2|string3" = "Регулярные выражения для фильтрования комментариев, например: строка1|строка2|строка3 \n Пример: Spammers.com|Скачайте меня|Вредное содержимое \n Совет: если вам попадаются посторонние файлы с комментария на тему что-нибудь скачать\купить и т.п. \n внесите ключевое слово из них в этот список, тем самым вы будете их блокировать."
+
+"Regexp of messages to filter out, example: string1|string2|string3" = "Регулярные выражения для фильтрования сообщений, например: строка1|строка2|строка3 \n Пример: Скачай новейший мод мула|Курсы английского|Посетите адрес \n Совет: если вам постоянно приходят сообщения на тему что-нибудь скачать\купить и т.п. \n внесите ключевое слово из них в этот список, тем самым вы будете их блокировать. "
+
+"Allow others to browse our share list (0: none, 1: friends only, 2: everyone" = "Разрешить другим просматривать список доступных ресурсов (0: никому, 1: только друзьям, 2: всем"
+
+"Allow you to use any command with ! in the interface instead of only the\n  ones in allowed_commands" = "Разрешить вам использовать любую комманду с ! в интерфейсе вместо тех которые описаны в allowed_commands"
+
+"Commands that you are allowed to be call from the interface. These\n  commands should short, so that the core is not blocked more than necessary." = "Разрешенные комманды которые Вам можно использовать в интерфейсе. Эти\n  комманды должны быть короткими, чтобы не блокировать ядро.*"
+
+"Name of GUI to start" = "Имя запускаемого GUI"
+
+"Directory where mldonkey binaries are installed" = "Директория где установленны исполняемые файлы mldonkey"
+
+"Name of program used for preview (first arg is local filename, second arg\n  is name of file as searched on eDonkey" = "Имя программы используемой для предпросмотра (первый аргумент имя локального файла, второй аргумент\n имя файла которое искалось в eDonkey*"
+
+"Send a warning mail each <interval> hours for each directory, 0 to deactivate mail warnings." = "Посылать предупреждающие письма каждые <interval> часов для каждой директории, 0 отключает отправку писем."
+
+"If true core shuts down when free space on core dir is below hdd_coredir_minfree,\n  otherwise all downloads are paused and a warning email is sent." = "Если true ядро будет отключено когда свободное место в директории ядра станет ниже hdd_coredir_minfree,\n  в противном случае все закачки будут приостановлены и предупреждающее письмо будет отпавлено."
+
+"Mininum free space in MB on core directory, minimum 20" = "Минимальный размер свободного места в МБ в директории ядра, минимум 20"
+
+"If true core shuts down when free space on temp dir is below hdd_temp_minfree,\n  otherwise all downloads are paused and a warning email is sent." = "Если true ядро будет отключено когда свободное место в временной папке ниже hdd_temp_minfree,\n  в противном случае все закачки будут приостановлены и предупреждающее письмо будет отправлено."
+
+"Mininum free space in MB on temp_directory, minimum 50" = "Минимальный размер свободного места в МБ в temp_directory, минимум 50"
+
+"Create new files as sparse, only valid on MinGW for files on NTFS drives" = "Создавать новые файлы разреженными (sparse), работает только на MinGW для файлов на NTFS разделах"
+
+"New directories in incoming_directories are created with these rights (in octal)" = "Новые директории в incoming_directories создаются с этими правами (в восьмеричном виде)"
+
+"New download files are created with these rights (in octal)" = "Новые файлы создаются с этими правами (в восьмеричном виде)"
+
+"How often (in minutes) should MLDonkey scan all shared directories for new/removed files.\n  Minimum 5, 0 to disable. Use command reshare to manually scan shares.\n  When core starts, shared directories are scanned once, independent of this option." = "Как часто (в минутах) MLDonkey должен сканировать все директории, которые находятся на доступе, на новые/удалённые файлы.\n  Минимум 5, 0 чтобы отключить. Используйте комманду reshare чтобы в ручную просканировать папки.\n  Когда ядро запускается, папки, которые находятся на доступе, сканируются один раз, независимо от этой опции."
+
+"The directory where temporary files should be put" = "Директория в которую будут помещены временные файлы"
+
+"How many megabytes should MLdonkey keep for saving configuration files." = "Сколько мегабайт MLdonkey должен оставлять для сохранения конфигурационных файлов."
+
+"Should MLdonkey try to recover downloads of files in temp/ at startup" = "Должен ли MLdonkey пытаться восстановить закачки файлов из temp/ при загрузке"
+
+"Automatically Start the GUI" = "Автоматически запускать GUI"
+
+"Ask for GUI start" = "Запрашивать разрешение на запуск GUI"
+
+"The group of run_as_user user to be used" = "Группа для пользователя run_as_user*"
+
+"The UID of the user (0=disabled) you want mldonkey to run as, after the ports\n  have been bound (can be used not to run with root privileges when\n  a port < 1024 is needed)" = "UID пользователя (0=отключено) с которым будет запускаться mldonkey, после того как порты\n  были привязаны (может использоваться для того чтобы запускать mldonkey с правами root когда\n  порт < 1024 нужен)"
+
+"The login of the user you want mldonkey to run as, after the ports\n  have been bound (can be used not to run with root privileges when\n  a port < 1024 is needed)" = "The login of the user you want mldonkey to run as, after the ports\n  have been bound (can be used not to run with root privileges when\n  a port < 1024 is needed)"
+
+"The command which is called when a download is started. Arguments\n  are '-file <num>'\n  Also these environment variables can be used (prefered way):\n    $TEMPNAME  - temp file name, including path\n    $FILEID    - same as $1\n    $FILESIZE  - same as $2\n    $FILENAME  - same as $3\n    $FILEHASH  - internal hash\n    $NETWORK   - network used for downloading\n    $ED2K_HASH - ed2k hash if MD4 is known\n    $FILE_OWNER - user who started the download\n    $FILE_GROUP - group the file belongs to\n    $USER_MAIL - mail address of file_owner\n  " = "Комманда которая будет запускаться когда начинается закачка. Аргументы:\n  '-file <num>'\n  Также возможно использование переменных окружения (предпочитаемый путь):\n    $TEMPNAME  - имя временного файла, включая путь к файлу\n    $FILEID    - тоже что и $1\n    $FILESIZE  -  тоже что и $2\n    $FILENAME  - тоже что и $3\n    $FILEHASH  - внутренний хеш\n    $NETWORK   - сеть которая использовалась для закачки\n    $ED2K_HASH - ed2k хеш если MD4 известен\n    $FILE_OWNER - пользователь который инициировал закачку\n    $FILE_GROUP - группа которой принадлежит файл\n    $USER_MAIL - почтовый адресс file_owner\n  "
+
+"A command that is called when a file is committed, does not work on MinGW.\n  Arguments are (kept for compatability):\n    $1 - temp file name, without path\n    $2 - file size\n    $3 - filename of the committed file\n  Also these environment variables can be used (prefered way):\n    $TEMPNAME  - temp file name, including path\n    $FILEID    - same as $1\n    $FILESIZE  - same as $2\n    $FILENAME  - same as $3\n    $FILEHASH  - internal hash\n    $DURATION  - download duration\n    $INCOMING  - directory used for commit\n    $NETWORK   - network used for downloading\n    $ED2K_HASH - ed2k hash if MD4 is known\n    $FILE_OWNER - user who started the download\n    $FILE_GROUP - group the file belongs to\n    $USER_MAIL - mail address of file_owner\n  " = "Комманда которая выполняется после того как файл был перемещен в папку пользователя, не работает на MinGW.\n  Аргументы: (сохранены для совместимости):\n    $1 - имя временного файла, без пути\n    $2 - размер файла\n    $3 - имя файла\n  Также возможно использование переменных окружения (предпочитаемый путь):\n    $TEMPNAME  - имя временного файла, включая путь\n    $FILEID    - то же что и $1\n    $FILESIZE  - то же что и $2\n    $FILENAME  - то же что и $3\n    $FILEHASH  - внутренний хещ\n    $DURATION  - длительность загрузки\n    $INCOMING  - директория в которую перемещался файл\n    $NETWORK   - сеть которая использовалась для закачки\n    $ED2K_HASH - ed2k хеш если MD4 известен\n    $FILE_OWNER - пользователь который инициировал закачку\n    $FILE_GROUP - группа которой принадлежит файл\n    $USER_MAIL - почтовый адресс file_owner\n  "
+
+"The maximal length of zero bytes between non-zero bytes in a file that\n  should be interpreted as downloaded during a recovery" = "Максимальная длина цепочки нулевых байтов между не нулевыми байтами в файле который\n  должен интерпретироваться как скачанный во время восстановления"
+
+"How many sources to use to download each chunk" = "Сколько источников использовать для скачки каждой части"
+
+"The maximal number of files in Downloading state (other ones are Queued)" = "Максимальное количество файлов которые качаются (все остальные будут поставленны в очередь)"
+
+"Set to true if you want to activate the release slot feature for all new downloads." = "Установите этот параметр в true если вы хотите активировать слоты релизов (release slot) для каждой новой закачки."
+
+"Set to true if you want all new downloads be paused immediatly\n  will be set to false on core start." = "Установите этот параметр в true если вы хотите чтобы все новые закачки автоматически ставились на паузу\n  Сбросится при запуске ядра.*"
+
+"Set to false if you don't want mldonkey to automatically put completed files\n  in incoming directory" = "Установите этот параметр в false если вы не хотите чтобы mldonkey автоматически перемещал законченные закачки\n  в входящие директории"
+
+"Put a prefix for the filename here which shows up in the notification mail" = "Введите префикс для имени файла который будет отображаться в письмах уведомлениях"
+
+"Send filename in mail subject" = "Слать имя файла в теме письма"
+
+"Does your mail-server need <...> around addresses" = "Нужны ли вашему почтовому серверу скобки <...> до и после почтового адреса (соответственно)."
+
+"Your e-mail if you want to receive mails when downloads are completed" = "Ваш электронный адрес если вы хотите получать письма уведомления о том что закачка закончена"
+
+"The port to use on the mail server (default 25)" = "Порт используемы почтовым сервером (по умолчанию 25)"
+
+"The mail server you want to use (must be SMTP). Use hostname or IP address" = "Почтовый сервер который вы хотите использовать (должен быть SMTP). Используйте имя хоста или IP адрес"
+
+"Direct TCP connections to HTTP proxy (the proxy should support CONNECT)" = "Прямое TCP соединение к HTTP прокси (прокси должен поддерживать CONNECT)"
+
+"Port of HTTP proxy" = "Порт HTTP прокси"
+
+"Direct HTTP queries to HTTP proxy" = "Прямые HTTP запросы к HTTP прокси"
+
+"Cookies send with a http request (used for .torrent files and web_infos)" = "Отправка кукисов с http запросом (используется для .torrent файлов и web_infos)*"
+
+"Should a connection check if the peer we are connected to is still alive?\n  This implies some bandwidth-cost (with 200 connections ~10-20%)" = "Должен ли mldonkey проверять 'жив' ли пир к которому мы подключены\n  Использование этой опции стоит потери полосы пропускания канала (на 200 соединений ~10-20%)*"
+
+"The size of the minimal packet you want mldonkey to send when data is\n  available on the connection" = "Размер наименьшего пакета который будет отправлен mldonkey когда данные \n  доступны на соединении*"
+
+"The size of the MTU of a TCP/IP packet on your connection" = "Размер MTU TCP/IP пакета для вашего соединения"
+
+"The size of the header of a TCP/IP packet on your connection (ppp adds\n  14 bytes sometimes, so modify to take that into account)" = "Размер заголовка TCP/IP пакета для вашего соединения (ppp иногда добавляет\n  14 байт, так что измените эту опцию, чтобы учест это)"
+
+"Location of GeoIP.dat (Get one from http://www.maxmind.com/download/geoip/database/)" = "Размещение GeoIP.dat (Можно взять http://www.maxmind.com/download/geoip/database/)"
+
+"false: use ip_blocking_countries as block list, all other countries are allowed\n  true: use ip_blocking_countries as allow list, all other countries are blocked" = "false: использовать ip_blocking_countries как черный список, все другие страны разрешены\n  true: использовать ip_blocking_countries как белый список, все другие страны заблокированы"
+
+"List of countries to block connections from/to (requires Geoip).\n  Names are in ISO 3166 format, see http://www.maxmind.com/app/iso3166\n  You can also at your own risk use \"Unknown\" for IPs Geoip won't recognize." = "Список стран к которым или от которых блокировать соединения (требуется Geoip).\n  Имена в стандарте ISO 3166, смотрите http://www.maxmind.com/app/iso3166\n  Так же вы можете использовать на свой страх и риск \"Unknown\" для IP которые Geoip не сможет распознать."
+
+"IP blocking list filename (peerguardian format), can also be in gz/bz2/zip format\n  Zip files must contain either a file named guarding.p2p or guarding_full.p2p." = "Имя файла в котором содержится список блокирования IP адресов (в формате peerguardian), так же может быть в формате gz/bz2/zip\n  Заархивированные файлы должны содержать файлы с именем guarding.p2p или guarding_full.p2p."
+
+"Keep IP blocking ranges descriptions in memory" = "Хранить диапазоны блокированных IP адресов в памяти"
+
+"If MLDonkey can not read broken RSS feeds, use this program to preprocess them" = "Если MLDonkey не может прочитать испорченную RSS ленту, использовать эту программу для предподготовки ленты"
+
+"URLs of RSS feeds" = "URL ссылки RSS лент"
+
+"A list of lines to download on the WEB: each line has\n  the format: (kind, period, url), where kind is either\n  'server.met' for a server.met file (also in gz/bz2/zip format)\n               containing ed2k server, or\n  'comments.met' for a file of comments, or\n  'guarding.p2p' for a blocklist file (also in gz/bz2/zip format), or\n  'ocl' for file in the ocl format containing overnet peers, or\n  'contact.dat' for an contact.dat file containing overnet peers,\n  'nodes.gzip' for a fasttrack nodes.gzip,\n  and period is the period between updates (in hours),\n  a period of zero means the file is only loaded once on startup,\n  and url is the url of the file to download.\n  IMPORTANT: Put the URL and the kind between quotes.\n  EXAMPLE:\n    web_infos = [\n    (\"server.met\", 0, \"http://www.gruk.org/server.met.gz\");\n    (\"hublist\", 0, \"http://dchublist.com/hublist.config.bz2\");\n    (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/level1.gz\");\n    (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");\n    (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");\n    (\"geoip.dat\", 168, \"http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz\");\n    ]\n  " = "Список скачиваемых ссылок: каждая строка имеет\n  следующий формат: (kind, period, url), где kind это либо\n  'server.met' для файла server.met (также в формате gz/bz2/zip)\n               содержащий ed2k сервер, или\n  'comments.met' для файла комментариев, или\n  'guarding.p2p' для файла с списком блокировки (также в формате gz/bz2/zip), или\n  'ocl' для файла в формате ocl который содержит пиры overnet, или\n  'contact.dat' для файла contact.dat который содержит пиры overnet,\n  'nodes.gzip' для узлов fasttrack,\n period интервал между обновлениями (в часах),\n  интервал равный 0 означает что файлы будут загружен только при запуске ядра,\n  и url ссылки на файлы которые будут скачаны.\n  ВАЖНО: URL и kind должны заключатся в кавычки.\n  ПРИМЕР:\n    web_infos = [\n    (\"server.met\", 0, \"http://www.gruk.org/server.met.gz\");\n    (\"hublist\", 0, \"http://dchublist.com/hublist.config.bz2\");\n    (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/level1.gz\");\n    (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");\n    (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");\n    (\"geoip.dat\", 168, \"http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz\");\n    ]\n  "
+
+"User agent string (default = \"default\")" = "Пользовательская строка агента (по умолчанию	 = \"default\")"
+
+"Use http://ip.discoveryvip.com/ip.asp to obtain WAN IP" = "Использовать http://ip.discoveryvip.com/ip.asp чтобы получить IP адрес WAN интерфейса"
+
+"Use the IP specified by 'client_ip' instead of trying to determine it\n  ourself. Don't set this option to true if you have dynamic IP." = "Использовать IP адрес указанный в 'client_ip' вместо того чтобы пытаться определить его.\n  Не устанавливайте этото параметр в true если у Вас динамический IP адрес."
+
+"The last IP address used for this client" = "Последний IP адрес с которым использовался этот клиент"
+
+"Use javascript to display option help text as js popup (true=use js, false=use html tables)" = "Использовать яваскрипты  чтобы отображать подсказки как всплывающие окна js (true=использовать js, false=использовать html таблицы)"
+
+"How long to display the tooltips" = "Как долго отображать подсказки"
+
+"How long to wait before displaying the tooltips" = "Как долго ждать перед тем как отобразить подсказку"
+
+"Whether to use the fancy javascript tooltips or plain html-title" = "Использовать подсказки написанные на fancy javascript или плоские html-заголовки"
+
+"Use gzip compression on web pages" = "Использовать сжатие gzip на веб страницах"
+
+"Whether to use checkboxes in the WEB interface for search result list" = "Использовать ли переключатели (checkboxes) в WEB интерфейсе для списка результатов поиска"
+
+"Whether to use checkboxes in the WEB interface for download list" = "Использовать ли переключатели (checkboxes) в WEB интерфейсе для списка закачек"
+
+"html_mods_theme to use (located in relative html_themes/<theme_name> directory\n  leave blank to use internal theme" = "Какую html_mods_theme использовать (находится в html_themes/<theme_name> директории\n  оставьте пустым чтобы использовать тему по умолчанию"
+
+"bw_stats refresh delay (seconds)" = "bw_stats период обновления (секунды)"
+
+"Maximum chat messages to log in memory" = "Максимальное количество сообщений чата сохраняемое в памяти"
+
+"Whether to load the mldonkey_messages.ini file (false=use internal settings)" = "Загружать файл mldonkey_messages.ini (false=использовать внутреннюю настройку)"
+
+"Whether to display the pending slots in uploaders command" = "Отображать слоты ждущие обработки в командах отдач*"
+
+"Change max width of chunk graph" = "Изменить максимальную ширину части в графике*"
+
+"Change style of chunk graph" = "Изменить стиль графика частей*"
+
+"Whether to display chunks list as graph or text in vd output" = "Отображать список частей как график или как текст в выводе vd*"
+
+"Change height of download indicator bar in vd output" = "Изменить высоту полосы индикатора загрузки в выводе vd"
+
+"Whether to display the Priority column in vd output" = "Отображать столбец приоритета в выводе vd*"
+
+"Whether to display the Last column in vd output" = "Отображать столбец Последие (Last) в выводе vd*"
+
+"Tag graph y size in vd output ( 50 < x < 1200 )" = "Размер графика по оси y в выводе vd ( 50 < x < 1200 )*"
+
+"Tag graph x size in vd output ( 130 < x < 3600 )" = "Размер графика по оси x в выводе vd ( 130 < x < 3600 )*"
+
+"Tag graph upload y pos in vd output" = "Размер графика отдачи по оси y в выводе vd*"
+
+"Tag graph upload x pos in vd output" = "Размер графика отдачи по оси х в выводе vd*"
+
+"Tag graph download y pos in vd output" = "Размер графика скачивани по оси y в выводе vd*"
+
+"Tag graph download x pos in vd output" = "Размер графика отдачи по оси х в выводе vd*"
+
+"Tag graph title y pos in vd output" = "Размер графика заголовка по оси y в выводе vd*"
+
+"Tag graph title x pos in vd output" = "Размер графика заголовка по оси х в выводе vd*"
+
+"Tag graph title" = "Тег заглавия графика*"
+
+"Enable tag graph title" = "Включить тег заглавия графика*"
+
+"Draw tag as png if true, else draw as jpg in vd output" = "Рисовать тег в png формате если true, иначе рисовать в формате jpg в выводе vd"
+
+"Tag source image name" = "Тег имени исходного изображения*"
+
+"Use tag source image " = "Использовать тег исходного изображения* "
+
+"Draw tag graph" = "Рисовать график тегов*"
+
+"Number of shown subgrids on graph (0 = no subgrids)" = "Количество отображаемых подделений на графике (0 = нет подделений)*"
+
+"Max hours on time scale per grid (0 = no limit)" = "Максимальное количество часов на графике времени на деление (0 = не ограничено)*"
+
+"Dynamic grid width, start with 1 h/grid, maximum html_mods_vd_gfx_h_grid_time h/grid" = "Динамическая ширина делений, начинается с 1 ч/деление, максимально html_mods_vd_gfx_h_grid_time часов/деление"
+
+"compute values for hourly graph every 1,2,3,4,5,10,15,20,30,60 min\n\tChanges to this option require a core restart." = "вычислять значения для часовых графиков каждые 1,2,3,4,5,10,15,20,30,60 минут\n\tИзменения этой опции требуют перезапуска ядра."
+
+"Graph y size in vd output ( 200 < y < 1200 )" = "Размер графика по оси y в выводе vd ( 200 < y < 1200 )"
+
+"Graph x size in vd output ( 365 < x < 3665 )" = "Размер графика по оси х в выводе vd ( 365 < x < 3665 )"
+
+"Show hourly graph in vd output" = "Отображать часовой график в выводе vd"
+
+"Draw graph as png if true, else draw as jpg in vd output" = "Рисовать график в png формате если true, иначе рисовать в формате jpg в выводе vd"
+
+"Show transparent graph in vd output (only for png)" = "Показать прозрачный график в выводе vd (только для png)"
+
+"Show mean line on graph in vd output" = "Отображать оси в выводе vd***"
+
+"Flip up/side graph position in vd output" = "Отобразить график по оси х или по оси у в выводе vd*"
+
+"Stacked download and upload graph" = "График загрузки и отдачи расположенный в стеке***"
+
+"Split download and upload graph in vd output" = "Поменять местами графики закачки и отдачи в выводе vd"
+
+"Fill graph in vd output" = "Залить графикв в вывводе vd***"
+
+"Remove graph files on core shutdown" = "Удалить файлы графиков при завершении ядра"
+
+"Show graph in vd output" = "Отображать графики в выводе vd"
+
+"Whether to display flags instead of country codes" = "Отображать флаги стран вместо их кодов"
+
+"Whether to display the Age column in vd output" = "Отображать ли столбец Возраст в выводе vd*"
+
+"Whether to display the Active Sources column in vd output" = "Отображать ли столбец Активные источники в выводе vd"
+
+"Whether to display the Group column in vd output" = "Отображать ли столбец Группа в выводе vd"
+
+"Whether to display the User column in vd output" = "Отображать ли столбец Пользователь в выводе vd"
+
+"Whether to display the Comments column in vd output" = "Отображать ли столбец Комментарии в выводе vd"
+
+"Whether to display the Net column in vd output" = "Отображать столбец Сеть в выводе vd"
+
+"Whether to use relative availability in the WEB interface" = "Использовать ли относительную доступность в WEB интерфейсе***"
+
+"Whether to use human readable GMk number format" = "Использовать ли легко читаемый для человека формат чисел GMk"
+
+"Which html_mods style to use (set with html_mods_style command)" = "Который html_mods стиль использовать (задается коммандой html_mods_style)"
+
+"Whether to use the modified WEB interface" = "Использовать ли модифицированный WEB интерфейс"
+
+"Set to true if you also want mldonkey to download HTTP files (experimental)" = "Установите true если хотите чтобы mldonkey скачивал HTTP файлы (экспериментальная)"
+
+"Set to true if you also want mldonkey to run as a OpenFT sub node (experimental)" = "Установите true если хотите чтобы mldonkey работал как подузел OpenFT (экспериментальная)"
+
+"Set to true if you also want mldonkey to run as a direct-connect node (experimental)" = "Установите true если хотите чтобы mldonkey работал как клиент сети direct-connect (экспериментальная)"
+
+"Set to true if you also want mldonkey to run as a Fasttrack sub node (experimental)" = "Установите true если хотите чтобы mldonkey работал как подузел Fasttrack (экспериментальная)"
+
+"Set to true if you also want mldonkey to run as a gnutella2 sub node (experimental)" = "Установите true если хотите чтобы mldonkey работал как подузел gnutella2 (экспериментальная)"
+
+"Set to true if you also want mldonkey to run as a gnutella1 sub node (experimental)" = "Установите true если хотите чтобы mldonkey работал как подузел gnutella1 (экспериментальная)"
+
+"Set to true if you also want mldonkey to run as a soulseek client (experimental)" = "Установите true если хотите чтобы mldonkey работал как клиент сети soulseek (экспериментальная)"
+
+"Set to true if you also want mldonkey to run as a napster client (experimental)" = "Установите true если хотите чтобы mldonkey работал как клиент сети napster (экспериметальная)"
+
+"Set to true if you also want mldonkey to run as a donkey client" = "Установите true если хотите чтобы mldonkey работал как клиент сети donkey"
+
+"Set to true if you also want mldonkey to run as an Bittorrent client" = "Установите true если хотите чтобы mldonkey работал как клиент сети Bittorrent"
+
+"Set to true if you want mldonkey to connect to edonkey servers\n  (enable_donkey must be true, and only experimental)" = "Установите true если хотите чтобы mldonkey соединялся с серверами edonkey\n  (enable_donkey должно быть true также, пока только экспериметальная)"
+
+"Set to true if you also want mldonkey to run as an kademlia client\n  (enable_donkey must be true, and only experimental)" = "Установтие true если хотите чтобы mldonkey работал как клиент сети kademlia\n  (enable_donkey должно быть true также, пока только экспериментальная)"
+
+"Set to true if you also want mldonkey to run as an overnet client\n  (enable_donkey must be true)" = "Установите true если хотите чтобы mldonkey работал как клиент сети overnet\n  (enable_donkey должно быть true также)"
+
+"This option enables MLdonkey to always read as much data as possible\n  from a channel, but use more CPU as it must then copy the data in the\n  channel buffer." = "Эта опция включает режим работы при котором MLDonkey всегда считывает столько данных сколько позволяет\n  канал, но использует больше процессорного времени так как он должен потом копировать информацию в\n  канальный буффер."
+
+"No-limit IPs" = "IP адреса без ограничений"
+
+"list of IP addresses allowed to connect to the core with no limit on\n  upload/download and upload slots.  List separated by spaces, wildcard=255\n  ie: use 192.168.0.255 for 192.168.0.* " = "Cписок IP адресов которым позволено подключатся к ядру без ограничений по слотам отдачи/скачивания.\n   Элементы списка отделяются пробелами, маска=255 замененяет значок * (множество) \n  например: используйте 192.168.0.255 для 192.168.0.*. \n Если у вас есть домашняя или провайдерская локальная сеть без ограничения по скорости, крайне рекомендуется добавить её в этот параметр."
+
+"The delay in milliseconds to wait in the event loop. Can be decreased to\n  increase the bandwidth usage, or increased to lower the CPU usage." = "Задержка в кольце ожидания в миллисекундах. Может быть уменьшена чтобы\n  увеличить полосу пропускания, или увеличина чтобы уменьшить загрузку процессора."
+
+"Maximal number of connections that can be opened per second" = "Максимальное количество открытых соденинений в секунду"
+
+"Set this to true if you want to have dynamic upload slot allocation (experimental)" = "Установите true если хотите иметь динамическое назначение слотов отдачи (экспериментальная)"
+
+"Maximum file size to benefit from the reserved slot for small files (0 to disable)" = "Максимальный размер файла, чтобы для него был выдан слот на скачивание вне очереди(рекомендуется для маленьких файлов) впишите 0 чтобы отключить"
+
+"Set aside a single reserved slot to upload to friends" = "Установите единственный зарезервированный слот отдачи для друзей***"
+
+"How many percent of upload slots can be used for downloading files\n  tagged as release, maximum 75%" = "Сколько процентов слотов отдачи могут быть использованы для скачивания файлов\n  помеченные как релизы, максимально 75%"
+
+"How many slots can be used for upload, minimum 3" = "Сколько слотов может быть использовано для отдачи, минимум 3"
+
+"Amount of indirect connections in percent (min 30, max 70) of max_opened_connections" = "Количество непрямых соединений в процентах (минимум 30, максимум 70) от max_opened_connections"
+
+"Second maximal number of opened connections for easy toggling (use bw_toggle)" = "Укажите максимальное количество открытых соединений /в режиме 2/ для простого переключения используйте функцию (bw_toggle)"
+
+"Maximal number of opened connections" = "Максимальное количество открытых соединений"
+
+"Second maximal download rate for easy toggling (use bw_toggle)" = "Максимальная скорость скачивания /в режиме 2/ для простого переключения между режимами используйте bw_toggle"
+
+"Second maximal upload rate for easy toggling (use bw_toggle)" = "Максимальная скорость отдачи /в режиме 2/ для простого переключения между режимами используйте bw_toggle"
+
+"The maximal download rate you can tolerate on your link in kBytes/s (0 = no limit)\n  The limit will apply on all your connections (clients and servers) and both\n  control and data messages. Maximum value depends on max_hard_upload_rate:\n  >= 10    -> unlimited download\n  < 10 > 3 -> download limited to upload * 4\n  < 4      -> download limited to upload * 3" = "Максимальная скорость которую вы можете позволить на своем канале кБайт/с (0 = без ограничения)\n  Ограничение будет применятся ко всем вашим соединениям (клиентским и серверным) и для комманд управления и\n  для потоков данных. Максимальное значение зависит от max_hard_upload_rate:\n  >= 10    -> закачка без ограничений\n  < 10 > 3 -> закачка ограничена скоростью отдачи умноженной на 4\n  < 4      -> закачка ограничена скоростью отдачи умноженной на 3"
+
+"The maximal upload rate you can tolerate on your link in kBytes/s (0 = no limit)\n  The limit will apply on all your connections (clients and servers) and both\n  control and data messages." = "Максимальная скорость отдачи которую вы можете позволить на вашем канале в кБайтах/с (0 = без ограничения)\n  Ограничение будет применятся ко всем вашим соединениям (клиентским и серверным) и для комманд управления и \n  для потоков данных."
+
+"A space-separated list of keywords. Each keyword triggers\n  printing information on the corresponding messages:\n  verb : verbose mode (interesting not only for coders)\n  mc : debug client messages\n  mr|raw : debug raw messages\n  mct : debug emule clients tags\n  ms : debug server messages\n  sm : debug source management\n  net : debug net\n  gui : debug gui\n  no-login : disable login messages\n  file : debug file handling\n  do : some download warnings\n  up : some upload warnings\n  unk : unknown messages\n  ov : overnet\n  loc : debug source research/master servers\n  share: debug sharing\n  md4 : md4 computation\n  connect : debug connections\n  udp : udp messages\n  ultra|super : debug supernode\n  swarming : debug swarming\n  hc : http_client messages\n  hs : http_server messages\n  com : commands by non-admin users\n  act : debug activity\n  bw : debug bandwidth\n  geo : debug GeoIP\n  unexp : debug unexpected messages" = "Список ключевых слов разделенных пробелами. Каждое ключевое слово включает \n  вывод соответствующей информации:\n  verb : детальный режим (интересный только для программистов)\n  mc : отладка сообщений клиентов\n  mr|raw : отладка необработанных сообщений\n  mct : отладка тегов emule\n  ms : отладка сообщений сервера\n  sm : отладка управления источниками\n  net : отладка сети\n  gui : отладка gui\n  no-login : отключает вывод регистрационной информации\n  file : отладка управления файлами\n  do : некоторые предупреждения скачивания\n  up : некоторые предупреждения отдачи\n  unk : неизвестные сообщения \n  ov : overnet\n  loc : отладка поиска источников или мастер-серверов\n  share: отладка общего доступа\n  md4 : подсчет md4\n  connect : отладка соединений\n  udp : сообщения udp\n  ultra|super : отладка supernode\n  swarming : отладка роения (swarming)\n  hc : сообщения http_client \n  hs : сообщения http_server\n  com : комманды запущенные не администраторами \n  act : отладка активности\n  bw : отладка полосы пропускания\n  geo : отладка GeoIP\n  unexp : отладка не ожидаемых сообщений"
+
+"Aliases to commands. The alias (fist string) has to be\n  whitespaceless, the outcome of the alias (second string)\n  may have spaces (put it in quotation then)." = "Псевдонимы для комманд. Псевдонимы (первая строка) должны быть\n  без пробеллов, исход псевдонма (вторая строка)\n  может содержать пробелы (заключенные в кавычки)."
+
+"Improved telnet interface" = "Улучшенный telnet интерфейс"
+
+"Should *all* sources for a file be shown on HTML/telnet vd <num>" = "Должны ли *все* источники файла отображаться в HTML/telnet vd <num> выводе***"
+
+"The IP address used to bind the telnet server" = "IP адрес к которому привязывать telnet сервер"
+
+"The IP address used to bind the gui server" = "IP адрес к которому привязывать GUI сервер"
+
+"The IP address used to bind the http server" = "IP адрес к которому привязывать HTTP сервер"
+
+"The port to connect via telnet" = "Порт для подключения через telnet"
+
+"port for user interaction, 0 to deactivate telnet interface" = "порт для взаимодествия с пользователем по протоколу telnet, выставьте значение 0 чтобы отключить telnet интерфейс"
+
+"The port to connect via HTTP" = "Порт для подсоединения через HTTP протокол"
+
+"The port used to connect to your client with a web browser, 0 to deactivate web interface" = "Порт используемый для подсоединения через web браузер, напишите 0 для отключения web интерфейса"
+
+"The port to connect for GiFT GUIs." = "Порт для подключения GiFT GUI"
+
+"port for GiFT Graphical Interfaces interaction. It was 1213, but the default is\n  now 0 for disabled, because it does not check for a password." = "порт для взаимодействия графического интерфейса GiFT. Когда-то был 1213, но по умолчанию\n  теперь 0, тоесть отключен, потому что этот протокол не проверяет пароль."
+
+"The port to connect the GUI" = "Порт для подключения графического интерфейса"
+
+"port for Graphical Interfaces, 0 to deactivate GUI interface" = "порт для доступа через графический интерфейс , 0 деактивирует графический интерфейс"
+
+"Allowed IPs" = "Разрешённые IP адреса"
+
+"list of IP address allowed to connect to the core via telnet/GUI/WEB\n  for internal command set: list separated by spaces\n  example for internal command: set allowed_ips \"127.0.0.0/8 192.168.1.2\"\n  or for editing the ini-file: list separated by semi-colon\n  example for ini-file: allowed_ips = [ \"127.0.0.0/8\"; \"192.168.1.2\";]\n  CIDR and range notations are supported: ie use 192.168.0.0/24\n  or 192.168.0.0-192.168.0.255 for 192.168.0.*" = "список IP адресов, которым разрешено подключаться к ядру по telnet/GUI/WEB\n  для набора внутренних комманд: список разделен пробелами\n  пример внутренней комманды: set allowed_ips \"127.0.0.0/8 192.168.1.2\"\n  или для ini-файлов: список разделен точкой с запятой\n  пример для ini-файла: allowed_ips = [ \"127.0.0.0/8\"; \"192.168.1.2\";]\n  CIDR и указания диапазонов поддерживаются: например используйте 192.168.0.0/24\n  или 192.168.0.0-192.168.0.255 для указания 192.168.0.* ***"
+
+"small name of client" = "короткое имя клиента"
+
+"loaded language resource file" = "файл с поддержкой русского языка подгружен"
+
+(************************************)
+         module "CommonMessages"
+(************************************)
+
+"Full access enabled" = "Полный доступ включён"
+
+"Bad login/password" = "Плохой логин\пароль"
+
+"Command not authorized\n use 'auth <user> <password>' before." = "Команда не может быть выполнена, вы не авторизированы\n используйте команду 'auth <user> <password>' для авторизации."
+
+"Main commands are:\n" = "Главные(основные) команды:\n"
+
+"Available commands are:\n" = "Допустимые команды: \n"
+
+(************************************)
+         module "CommonStats"
+(************************************)
+
+"Country-based traffic statistics" = "Статистика траффика по странам мира"
+
+"Uptime" = "Время беспрерывной работы"
+
