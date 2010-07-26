@@ -56,7 +56,7 @@ val wget : request -> (string -> unit) -> unit
 val whead : request -> ( (string * string) list -> unit) -> unit
 val whead2 : request -> ( (string * string) list -> unit) -> (int -> unit) -> unit
 
-val wget_string : request -> (string -> unit) ->
+val wget_string : request -> (string -> unit) -> ?ferr:(int -> unit) ->
   (int -> int64 -> unit) -> unit
 
   

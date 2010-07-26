@@ -227,9 +227,9 @@ let rec get_page r content_handler f ferr =
         let sock = TcpBufferedSocket.connect token "http client connecting"
         (try Ip.to_inet_addr ip with e -> raise Not_found) port
         (fun sock e -> 
-              () 
-(*              if !verbose then
-                  lprintf "Event %s\n"
+(*               ()  *)
+(*              if !verbose then *)
+                  lprintf_nl "Event %s"
                     (match e with
                       CONNECTED -> "CONNECTED"
                     | WRITE_DONE -> "WRITE_DONE"
@@ -238,14 +238,19 @@ let rec get_page r content_handler f ferr =
                     | READ_DONE n -> Printf.sprintf "READ_DONE %d" n
                     | BASIC_EVENT e ->
                         match e with
-                          (CLOSED s) -> Printf.sprintf "CLOSED %s" (string_of_reason s)
+                        | CLOSED s ->
+                          begin match s with (* FIXME content-length check *)
+                          | Closed_by_user | Closed_by_peer _ -> f ()
+                          | _ -> ferr 0
+                          end;
+                          Printf.sprintf "CLOSED %s" (string_of_reason s)
                         | RTIMEOUT -> "RTIMEOUT"
                         | LTIMEOUT -> "LTIMEOUT"
                         | WTIMEOUT -> "WTIMEOUT"
                         | CAN_READ -> "CAN_READ"
                         | CAN_WRITE -> "CAN_WRITE"
                     )
- *)
+(* *)
           )
         in
 
@@ -271,11 +276,13 @@ let rec get_page r content_handler f ferr =
     if !verbose then print_headers ();
     match ans_code with
       200 ->
+(*
         TcpBufferedSocket.set_closer sock
             (fun _ _ -> 
               (* lprintf "default_headers_handler closer\n"; *)
               f ()
             );
+*)
 
         let content_length = ref (-1L) in
         List.iter (fun (name, content) ->
@@ -445,7 +452,7 @@ let whead2 r f ferr =
 
 let whead r f = whead2 r f def_ferr
 
-let wget_string r f progress =
+let wget_string r f ?(ferr=def_ferr) progress =
     
   let file_buf = Buffer.create 1000 in
   let file_size = ref 0L in
@@ -469,7 +476,7 @@ let wget_string r f progress =
         end)
   (fun _ ->  
       f (Buffer.contents file_buf)
-  ) def_ferr
+  ) ferr
 
 
 let split_header header =
