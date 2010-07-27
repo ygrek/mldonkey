@@ -194,6 +194,13 @@ let string_of_reason c =
   | Closed_for_exception e -> Printf.sprintf "exception %s"
         (Printexc2.to_string e)
 
+let string_of_basic_event = function
+| CLOSED s -> Printf.sprintf "CLOSED %s" (string_of_reason s)
+| RTIMEOUT -> "RTIMEOUT"
+| LTIMEOUT -> "LTIMEOUT"
+| WTIMEOUT -> "WTIMEOUT"
+| CAN_READ -> "CAN_READ"
+| CAN_WRITE -> "CAN_WRITE"
 
 (*************************************************************************)
 (*                                                                       *)

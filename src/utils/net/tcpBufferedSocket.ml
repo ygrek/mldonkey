@@ -59,6 +59,14 @@ type event =
 | READ_DONE of int
 | BASIC_EVENT of BasicSocket.event
 
+let string_of_event = function
+| CONNECTED -> "CONNECTED"
+| WRITE_DONE -> "WRITE_DONE"
+| CAN_REFILL -> "CAN_REFILL"
+| BUFFER_OVERFLOW -> "BUFFER_OVERFLOW"
+| READ_DONE n -> Printf.sprintf "READ_DONE %d" n
+| BASIC_EVENT e -> string_of_basic_event e
+
 type token = {
     mutable token_used : bool;
     connection_manager : connection_manager;
