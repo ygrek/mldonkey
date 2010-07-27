@@ -44,6 +44,8 @@ type request = {
     req_retry : int;
     req_max_retry : int;
     req_save : bool;
+    (** maximum time whole request processing is allowed to take, in seconds *)
+    req_max_total_time : float;
   }
 
 type content_handler = 

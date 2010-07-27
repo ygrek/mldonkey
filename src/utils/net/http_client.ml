@@ -52,6 +52,7 @@ type request = {
     req_retry : int;
     req_max_retry : int;
     req_save : bool;
+    req_max_total_time : float;
   }
 
 type content_handler = 
@@ -74,6 +75,7 @@ let basic_request = {
     req_retry = 0;
     req_max_retry = 0;
     req_save = false;
+    req_max_total_time = infinite_timeout;
   }
       
 let make_full_request r =
@@ -210,6 +212,11 @@ let http_reply_handler nr headers_handler sock nread =
 let def_ferr = (fun c -> ())
 
 let rec get_page r content_handler f ferr =
+  let ok = ref false in
+  let ferr =
+    let err_done = ref false in (* call not more than once *)
+    fun n -> if not !err_done then begin err_done := true; ferr n; end 
+  in
   let rec get_url level r =
   try
     let url = r.req_url in
@@ -225,33 +232,14 @@ let rec get_page r content_handler f ferr =
 (*         lprintf "IP done %s:%d\n" (Ip.to_string ip) port;*)
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.connect token "http client connecting"
-        (try Ip.to_inet_addr ip with e -> raise Not_found) port
-        (fun sock e -> 
-(*               ()  *)
-(*              if !verbose then *)
-                  lprintf_nl "Event %s"
-                    (match e with
-                      CONNECTED -> "CONNECTED"
-                    | WRITE_DONE -> "WRITE_DONE"
-                    | CAN_REFILL -> "CAN_REFILL"
-                    | BUFFER_OVERFLOW -> "BUFFER_OVERFLOW"
-                    | READ_DONE n -> Printf.sprintf "READ_DONE %d" n
-                    | BASIC_EVENT e ->
-                        match e with
-                        | CLOSED s ->
-                          begin match s with (* FIXME content-length check *)
-                          | Closed_by_user | Closed_by_peer _ -> f ()
-                          | _ -> ferr 0
-                          end;
-                          Printf.sprintf "CLOSED %s" (string_of_reason s)
-                        | RTIMEOUT -> "RTIMEOUT"
-                        | LTIMEOUT -> "LTIMEOUT"
-                        | WTIMEOUT -> "WTIMEOUT"
-                        | CAN_READ -> "CAN_READ"
-                        | CAN_WRITE -> "CAN_WRITE"
-                    )
-(* *)
-          )
+          (try Ip.to_inet_addr ip with e -> raise Not_found) port
+          (fun sock e -> 
+(*             if !verbose then lprintf_nl "Event %s" (string_of_event e); *)
+            match e with (* FIXME content-length check *)
+            | BASIC_EVENT (CLOSED (Closed_by_user | Closed_by_peer _)) when !ok -> f ()
+            | BASIC_EVENT (CLOSED _) -> ferr 0
+            | BASIC_EVENT LTIMEOUT -> close sock Closed_for_lifetime
+            | _ -> ())
         in
 
         let nread = ref false in
@@ -261,6 +249,7 @@ let rec get_page r content_handler f ferr =
         TcpBufferedSocket.set_reader sock (http_reply_handler nread
             (default_headers_handler url level));
         set_rtimeout sock 5.;
+        set_lifetime sock r.req_max_total_time;
     )
     ferr;
   with e -> 
@@ -275,15 +264,8 @@ let rec get_page r content_handler f ferr =
     in
     if !verbose then print_headers ();
     match ans_code with
-      200 ->
-(*
-        TcpBufferedSocket.set_closer sock
-            (fun _ _ -> 
-              (* lprintf "default_headers_handler closer\n"; *)
-              f ()
-            );
-*)
-
+    | 200 ->
+        ok := true;
         let content_length = ref (-1L) in
         List.iter (fun (name, content) ->
             if String.lowercase name = "content-length" then
