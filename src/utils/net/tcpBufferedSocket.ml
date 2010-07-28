@@ -908,7 +908,16 @@ let bandwidth_controler t sock =
   (match t.read_control with
       None -> ()
     | Some bc ->
-        must_read sock (bc.total_bytes = 0 || bc.remaining_bytes > 0));
+(*         must_read sock (bc.total_bytes = 0 || bc.remaining_bytes > 0)); *)
+        (* bandwidth_controler is called before socket is engaged into data transfer.
+           This can be either upload or download connection, but when download speed
+           is capped and fully saturated the above condition will be false,
+           consequently the socket will never get [want_read] property and
+           will never get considered by the event loop, until finally being 
+           closed on timeout. This bug manifests itself with no _new_ BT upload clients
+           or inability to connect to servers (DC) when download is running.
+           This is a temporary fix, bandwidth limiting logic needs some global refactoring *)
+        must_read sock true);
   (match t.write_control with
       None -> ()
     | Some bc ->
