@@ -44,6 +44,8 @@ type request = {
     req_retry : int;
     req_max_retry : int;
     req_save : bool;
+    (** maximum time whole request processing is allowed to take, in seconds *)
+    req_max_total_time : float;
   }
 
 type content_handler = 
@@ -56,7 +58,7 @@ val wget : request -> (string -> unit) -> unit
 val whead : request -> ( (string * string) list -> unit) -> unit
 val whead2 : request -> ( (string * string) list -> unit) -> (int -> unit) -> unit
 
-val wget_string : request -> (string -> unit) ->
+val wget_string : request -> (string -> unit) -> ?ferr:(int -> unit) ->
   (int -> int64 -> unit) -> unit
 
   

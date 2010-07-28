@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/07/28
+7262: BT: improve porttest (ygrek)
 7254: BT/bandwidth controllers: accept incoming connections while downloading
 - should improve upload when downlink is saturated (ygrek)
 

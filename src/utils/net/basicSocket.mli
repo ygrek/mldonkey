@@ -109,9 +109,10 @@ external has_threads : unit -> bool = "ml_has_pthread"
 val get_rtimeout : t -> float * float
 val int64_time : unit -> int64
 val current_time : unit -> float
-  
+
 val string_of_reason : close_reason -> string
-  
+val string_of_basic_event : event -> string
+
 val loop_delay : float ref
 
 val socket_keepalive : bool ref
