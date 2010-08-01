@@ -48,6 +48,7 @@ struct filedescr {
 #define Fd_val(v) (((struct filedescr *) Data_custom_val(v))->fd.handle)
 #define Socket_val(v) (((struct filedescr *) Data_custom_val(v))->fd.socket)
 
+#define Descr_kind_val(v) (((struct filedescr *) Data_custom_val(v))->kind)
 #define OS_IS_FD(v) (KIND_HANDLE == Descr_kind_val(v))
 
 typedef HANDLE OS_FD;
