@@ -236,7 +236,7 @@ let rec get_page r content_handler f ferr =
           (fun sock e -> 
 (*             if !verbose then lprintf_nl "Event %s" (string_of_event e); *)
             match e with (* FIXME content-length check *)
-            | BASIC_EVENT (CLOSED (Closed_by_user | Closed_by_peer _)) when !ok -> f ()
+            | BASIC_EVENT (CLOSED (Closed_by_user | Closed_by_peer)) when !ok -> f ()
             | BASIC_EVENT (CLOSED _) -> ferr 0
             | BASIC_EVENT LTIMEOUT -> close sock Closed_for_lifetime
             | _ -> ())
