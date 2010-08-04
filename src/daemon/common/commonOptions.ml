@@ -1130,11 +1130,17 @@ let http_proxy_port = define_option current_section ["http_proxy_port"]
   "Port of HTTP proxy"
     port_option 8080
 
+let http_proxy_login = define_option current_section ["http_proxy_login"]
+  "HTTP proxy login (leave empty if proxy doesn't require authentication)"
+    string_option ""
+
+let http_proxy_password = define_option current_section ["http_proxy_password"]
+  "HTTP proxy password"
+    string_option ""
+
 let http_proxy_tcp = define_option current_section ["http_proxy_tcp"]
   "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)"
     bool_option false
-
-
 
 
 (*************************************************************************)
@@ -2043,12 +2049,19 @@ let _ =
   )
 
 let http_proxy = ref None
+let http_proxy_auth = ref None
 
 let http_proxy_tcp_update _ =
   if !!http_proxy_tcp then
-    TcpBufferedSocket.http_proxy := !http_proxy
+  begin
+    TcpBufferedSocket.http_proxy := !http_proxy;
+    TcpBufferedSocket.http_proxy_auth := !http_proxy_auth;
+  end
   else
-    TcpBufferedSocket.http_proxy := None
+  begin
+    TcpBufferedSocket.http_proxy := None;
+    TcpBufferedSocket.http_proxy_auth := None;
+  end
 
 let _ =
   let proxy_update _ =
@@ -2056,10 +2069,16 @@ let _ =
     (match !!http_proxy_server with
         "" -> None
       | _  -> Some (!!http_proxy_server, !!http_proxy_port));
+    http_proxy_auth :=
+    (match !!http_proxy_login with
+     | "" -> None
+     | _ -> Some (!!http_proxy_login, !!http_proxy_password));
     http_proxy_tcp_update ()
   in
   option_hook http_proxy_server proxy_update;
   option_hook http_proxy_port proxy_update;
+  option_hook http_proxy_login proxy_update;
+  option_hook http_proxy_password proxy_update;
   option_hook http_proxy_tcp http_proxy_tcp_update
 
 let _ =

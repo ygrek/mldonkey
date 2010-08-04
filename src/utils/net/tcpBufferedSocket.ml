@@ -1035,6 +1035,7 @@ let close_after_write t =
         shutdown t Closed_by_user)
 
 let http_proxy = ref None
+let http_proxy_auth = ref None
 
 let set_reader t f =
 (*  lprintf "set_reader for %s\n" t.host; *)
@@ -1347,7 +1348,11 @@ let connect token name host port handler =
         Printf.bprintf buf "Cache-Control: no-cache\n";
         Printf.bprintf buf "Connection: Keep-Alive\n";
         Printf.bprintf buf "Proxy-Connection: Keep-Alive\n";
-(*Printf.bprintf buf "User-Agent: Mozilla/4.0 (compatible; MSIE 5.01; Windows NT; Hotbar 2.0)\n";*)
+        begin match !http_proxy_auth with
+        | Some (login,password) ->
+            Printf.bprintf buf "Proxy-Authorization: Basic %s\n" (Base64.encode (login ^ ":" ^ password))
+        | None -> () 
+        end;
         Printf.bprintf buf "User-Agent: MLdonkey/%s\n" Autoconf.current_version;
         Printf.bprintf buf "\n";
         ignore (MlUnix.write s (Buffer.contents buf) 0 (Buffer.length buf))

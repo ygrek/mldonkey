@@ -147,6 +147,7 @@ val minimal_packet_size : int ref
 val get_rtimeout : t -> float * float
   
 val http_proxy : (string * int) option ref
+val http_proxy_auth : (string * string) option ref
 val copy_read_buffer : bool ref
   
 type connection_manager
