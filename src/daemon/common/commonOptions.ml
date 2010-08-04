@@ -2049,30 +2049,23 @@ let _ =
   )
 
 let http_proxy = ref None
-let http_proxy_auth = ref None
 
 let http_proxy_tcp_update _ =
   if !!http_proxy_tcp then
-  begin
-    TcpBufferedSocket.http_proxy := !http_proxy;
-    TcpBufferedSocket.http_proxy_auth := !http_proxy_auth;
-  end
+    TcpBufferedSocket.http_proxy := !http_proxy
   else
-  begin
-    TcpBufferedSocket.http_proxy := None;
-    TcpBufferedSocket.http_proxy_auth := None;
-  end
+    TcpBufferedSocket.http_proxy := None
 
 let _ =
   let proxy_update _ =
-    http_proxy :=
-    (match !!http_proxy_server with
-        "" -> None
-      | _  -> Some (!!http_proxy_server, !!http_proxy_port));
-    http_proxy_auth :=
-    (match !!http_proxy_login with
-     | "" -> None
-     | _ -> Some (!!http_proxy_login, !!http_proxy_password));
+    let auth = match !!http_proxy_login with
+    | "" -> None
+    | _ -> Some (!!http_proxy_login, !!http_proxy_password)
+    in
+    http_proxy := 
+      (match !!http_proxy_server with
+      | "" -> None
+      | _  -> Some (!!http_proxy_server, !!http_proxy_port, auth));
     http_proxy_tcp_update ()
   in
   option_hook http_proxy_server proxy_update;

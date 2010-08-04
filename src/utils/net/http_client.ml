@@ -44,7 +44,7 @@ type request = {
     req_headers : ( string * string ) list;
     req_user_agent : string;
     req_accept : string;
-    req_proxy : (string * int) option;
+    req_proxy : (string * int * (string * string) option) option; (* (host,port,(login,password)) *)
     mutable req_url : url;
     mutable req_save_to_file_time : float;
     req_request : http_request;
@@ -106,9 +106,15 @@ let make_full_request r =
   Printf.bprintf res "User-Agent: %s\r\n" r.req_user_agent;
   Printf.bprintf res "Accept: %s\r\n" r.req_accept;
   Printf.bprintf res "Connection: close\r\n";
- (match r.req_referer with None -> ()
-    | Some url -> 
-        Printf.bprintf res "Referer: %s\r\n" (Url.to_string_no_args url));
+  begin match r.req_referer with 
+  | None -> ()
+  | Some url -> Printf.bprintf res "Referer: %s\r\n" (Url.to_string_no_args url)
+  end;
+  begin match r.req_proxy with
+  | Some (_,_,Some (login,password)) ->
+      Printf.bprintf res "Proxy-Authorization: Basic %s\n" (Base64.encode (login ^ ":" ^ password))
+  | _ -> ()
+  end;
   if url.user <> "" then begin
     let userpass = Printf.sprintf "%s:%s" url.user url.passwd in
     Printf.bprintf res "Authorization: Basic %s\r\n" (Base64.encode userpass)
@@ -225,7 +231,7 @@ let rec get_page r content_handler f ferr =
     let server, port =
       match r.req_proxy with
       | None -> url.server, url.port
-      | Some (s, p) -> s, p
+      | Some (s, p, _) -> s, p
     in
 (*    lprintf "async_ip ...\n"; *)
     Ip.async_ip server (fun ip ->
