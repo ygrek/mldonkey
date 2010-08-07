@@ -1108,7 +1108,7 @@ copy_statfs (struct statfs *buf)
 # endif
   v = copy_int64 (buf->f_frsize); caml_modify (&Field (bufv, 10), v);
 #else
-#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__DragonFly__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__APPLE__) || defined(__DragonFly__) || defined(__FreeBSD_kernel__)
 #  if defined(__OpenBSD__) || defined(__NetBSD__) || (defined(__FreeBSD__) && __FreeBSD_version < 502000) || defined(__DragonFly__) || defined(__APPLE__)
 #    include <sys/syslimits.h>
      v = copy_int64 (NAME_MAX); caml_modify (&Field (bufv, 8), v);

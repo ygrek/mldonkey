@@ -105,6 +105,9 @@ END
     SYSTEM=cygwin
     OS_FILES2=cygwin
     ;;
+  *kfreebsd*)
+    SYSTEM=kfreebsd
+    ;;
   *freebsd*|*dragonfly*)
     SYSTEM=freebsd
     CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
