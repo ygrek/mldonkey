@@ -1170,10 +1170,10 @@ let display_file_list buf o l =
         if !!auto_commit then
           if o.conn_output = HTML then
             html_mods_table_one_row buf "searchTable" "search" [
-              ("", "srh", "Files will be automatically commited in the incoming directory"); ]
+              ("", "srh", "Files will be automatically committed in the incoming directory"); ]
           else
             Printf.bprintf buf
-              "Files will be automatically commited in the incoming directory"
+              "Files will be automatically committed in the incoming directory"
         else
           if o.conn_output = HTML then
             html_mods_table_one_row buf "searchTable" "search" [
@@ -1946,7 +1946,7 @@ let buildinfo html buf =
      
     if html then
       html_mods_table_header buf "sharesTable" "shares" [
-       ( "0", "srh", "core Build informations", "Buildinfo" ) ;
+       ( "0", "srh", "core Build information", "Buildinfo" ) ;
        ( "0", "srh", "", "" ) ]
     else
       Printf.bprintf buf "\n\t--Buildinfo--\n";
@@ -2075,7 +2075,7 @@ let runinfo html buf o =
 
     if html then
       html_mods_table_header buf "sharesTable" "shares" [
-       ( "0", "srh", "core runtime informations", "Runinfo" ) ;
+       ( "0", "srh", "core runtime information", "Runinfo" ) ;
        ( "0", "srh", "", "" ) ]
     else
       Printf.bprintf buf "\n\t--Runinfo--\n";

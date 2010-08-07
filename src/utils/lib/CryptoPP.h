@@ -101,7 +101,7 @@
 #	define IS_LITTLE_ENDIAN
 #endif
 
-// override #define in caml/compatability.h
+// override #define in caml/compatibility.h
 #undef flush 
 
 // define this if you want to disable all OS-dependent features,
@@ -6614,7 +6614,7 @@ CRYPTOPP_DLL void OS_GenerateRandomBlock(bool blocking, byte *output, unsigned i
 class CRYPTOPP_DLL AutoSeededRandomPool : public RandomPool
 {
 public:
-	//! blocking will be ignored if the prefered RNG isn't available
+	//! blocking will be ignored if the preferred RNG isn't available
 	explicit AutoSeededRandomPool(bool blocking = false, unsigned int seedSize = 32)
 		{Reseed(blocking, seedSize);}
 	void Reseed(bool blocking = false, unsigned int seedSize = 32);

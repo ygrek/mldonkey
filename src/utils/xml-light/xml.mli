@@ -42,7 +42,7 @@ open Xml_types
 	you can use theses functions. But if you want advanced parsing usage,
 	please look at the {!XmlParser} module.
 	All the parsing functions can raise some exceptions, see the
-	{{:#exc}Exceptions} section for more informations. *)
+	{{:#exc}Exceptions} section for more information. *)
 
 (** Parse the named file into an Xml data structure. *)
 val parse_file : string -> xml
@@ -65,11 +65,11 @@ val parse_string : string -> xml
 	{li {!Xml.File_not_found} is raised when and error occured while
 		opening a file with the {!Xml.parse_file} function or when a
 		DTD file declared by the Xml document is not found {i (see the
-		{!XmlParser} module for more informations on how to handle the
+		{!XmlParser} module for more information on how to handle the
 		DTD file loading)}.}
 	}
 	If the Xml document is containing a DTD, then some other exceptions
-	can be raised, see the module {!Dtd} for more informations.
+	can be raised, see the module {!Dtd} for more information.
  *)
 
 exception Error of error

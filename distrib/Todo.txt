@@ -21,7 +21,7 @@ URGENT WORK:
   * When a connection succeeds and downloads, we should retry the connection
      ASAP.
   * How to remove servers from disabled networks ?
-  * When a file is commited, we should add a flag to say if it has been
+  * When a file is committed, we should add a flag to say if it has been
       verified or not.
 
 GNUTELLA:
@@ -78,7 +78,7 @@ BitTorrent:
     * Pause/resume file
     * Reserve upload slots
     * Share downloaded files
-    * Commited or not
+    * Committed or not
 
 FastTrack:
  * Fifo to reconnect to clients PER FILE, limited by the number of currently

@@ -241,7 +241,7 @@ let temp_dir_name () =
   try
     Sys.getenv "MLDONKEY_TEMP"
   with Not_found ->
-(* kept for compatability with Filename.temp_dir_name, this code
+(* kept for compatibility with Filename.temp_dir_name, this code
    is never reached because $MLDONKEY_TEMP is filled in commonOptions.ml *)
   match Sys.os_type with
     | "Unix" | "Cygwin" ->

@@ -1804,7 +1804,7 @@ let _ =
 \\<td nowrap title=\\\"Show shares Tab (also related for incoming directory)\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=shares'\\\"\\>Shares\\</a\\>\\</td\\>
 %s
 \\<td nowrap title=\\\"Show Web_infos Tab where you can add/remove automatic downloads like serverlists\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vwi'\\\"\\>Web infos\\</a\\>\\</td\\>
-\\<td nowrap title=\\\"Show Calendar Tab, there are informations about automatically jobs\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
+\\<td nowrap title=\\\"Show Calendar Tab, there are information about automatically jobs\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=vcal'\\\"\\>Calendar\\</a\\>\\</td\\>
 \\<td nowrap title=\\\"Change to simple Webinterface without html_mods\\\" class=\\\"fbig fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=html_mods'\\\"\\>Toggle html_mods\\</a\\>\\</td\\>
 \\<td nowrap title=\\\"voo\\\" class=\\\"fbig pr fbigpad\\\"\\>\\<a onclick=\\\"javascript:window.location.href='submit?q=voo+1'\\\"\\>Full Options\\</a\\>\\</td\\>
 \\</tr\\>\\</table\\>
@@ -2183,7 +2183,7 @@ action=\\\"javascript:pluginSubmit();\\\"\\>";
               button ~title:"Show users Tab where you can add/remove Users" ~cls:"fbig fbigb" ~cmd:"users" "Users";
 
             button ~title:"Show Web_infos Tab where you can add/remove automatic downloads like serverlists" ~cls:"fbig fbigb" ~cmd:"vwi" "Web infos";
-            button ~title:"Show Calendar Tab, there are informations about automatically jobs" ~cls:"fbig fbigb" ~cmd:"vcal" "Calendar";
+            button ~title:"Show Calendar Tab, there are information about automatically jobs" ~cls:"fbig fbigb" ~cmd:"vcal" "Calendar";
             put "\\<td nowrap class=\\\"fbig fbigb pr\\\"\\>
 \\<form style=\\\"margin: 0px;\\\" name=\\\"htmlModsStyleForm\\\" id=\\\"htmlModsStyleForm\\\"
 action=\\\"javascript:submitHtmlModsStyle();\\\"\\>";
@@ -3147,9 +3147,9 @@ let _ =
         let buf = o.conn_buf in
         if o.conn_output = HTML then
           html_mods_table_one_row buf "serversTable" "servers" [
-            ("", "srh", "Commited"); ]
+            ("", "srh", "Committed"); ]
         else
-          Printf.bprintf buf "Commited";
+          Printf.bprintf buf "Committed";
         ""
     ) , ":\t\t\t\t$bmove downloaded files to incoming directory$n";
 

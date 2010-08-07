@@ -7,7 +7,7 @@ add more features, and we will grant you access to the CVS in the future.
 You can also provide mldonkey with support for another p2p network.
 
 If you don't want how to start, you must first understand the code (see the
-informations below), and then, you can call "mldonkey -check_impl" to
+information below), and then, you can call "mldonkey -check_impl" to
 see which methods have not been implemented yet. You can also test different
 operations and see what is not working good. Another option is to test
 other p2p applications and try to import some interesting features in

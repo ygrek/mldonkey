@@ -117,7 +117,7 @@ let log_clients_on_console = define_expert_option donkey_section ["log_clients_o
 
 let propagate_sources = define_expert_option donkey_section ["propagate_sources"]
   "Allow mldonkey to propagate your sources to other mldonkey clients.
-   This function is superseeded by eMule-style source exchange,
+   This function is superseded by eMule-style source exchange,
    this option is outdated"
     bool_option false
 

@@ -127,7 +127,7 @@ let send_dirfull_warning dir full line1 =
     end
   end
 
-let file_commited_name incoming_dir file =
+let file_committed_name incoming_dir file =
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
   let fs = Unix32.filesystem incoming_dir in
   let namemax =
@@ -240,7 +240,7 @@ let file_commit file =
             ()
           in
 
-	  let new_name = file_commited_name incoming.shdir_dirname file in
+	  let new_name = file_committed_name incoming.shdir_dirname file in
 	    if Unix2.is_directory file_name then begin
 	      Unix2.safe_mkdir new_name;
 	      Unix2.chmod new_name !Unix32.create_dir_mode;
@@ -268,7 +268,7 @@ let file_commit file =
                       incoming.shdir_dirname incoming.shdir_priority
                       best_name new_name);
               with e ->
-                  lprintf_nl "Exception %s while trying to share commited file"
+                  lprintf_nl "Exception %s while trying to share committed file"
                     (Printexc2.to_string e);
             end;
 

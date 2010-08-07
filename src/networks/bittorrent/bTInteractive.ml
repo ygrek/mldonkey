@@ -181,7 +181,7 @@ let op_file_commit file new_name =
               file.file_torrent_diskname new_torrent_diskname));
       file.file_torrent_diskname <- new_torrent_diskname;
 
-      (* update file_shared with new path to commited file *)
+      (* update file_shared with new path to committed file *)
       match file.file_shared with
       | None -> ()
       | Some old_impl ->

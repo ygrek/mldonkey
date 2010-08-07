@@ -1217,11 +1217,11 @@ let max_recover_gap = define_option current_section ["max_recover_zeroes_gap"]
 
 let file_completed_cmd = define_option current_section ["file_completed_cmd"]
   "A command that is called when a file is committed, does not work on MinGW.
-  Arguments are (kept for compatability):
+  Arguments are (kept for compatibility):
     $1 - temp file name, without path
     $2 - file size
     $3 - filename of the committed file
-  Also these environment variables can be used (prefered way):
+  Also these environment variables can be used (preferred way):
     $TEMPNAME  - temp file name, including path
     $FILEID    - same as $1
     $FILESIZE  - same as $2
@@ -1240,7 +1240,7 @@ let file_completed_cmd = define_option current_section ["file_completed_cmd"]
 let file_started_cmd = define_option current_section ["file_started_cmd"]
   "The command which is called when a download is started. Arguments
   are '-file <num>'
-  Also these environment variables can be used (prefered way):
+  Also these environment variables can be used (preferred way):
     $TEMPNAME  - temp file name, including path
     $FILEID    - same as $1
     $FILESIZE  - same as $2

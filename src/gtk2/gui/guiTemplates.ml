@@ -68,7 +68,7 @@ let verbose_chat = O.gtk_verbose_chat
      |                           on a "store" may take tremendeous time when a GTree.view
      |                           is connected to it. When we add, remove, store, ... the 
      |                           GTree.model interface of the "store" communicate those
-     |                           informations to the GTree.view to display/render the changes.
+     |                           information to the GTree.view to display/render the changes.
      |                           To improve the speed, we disconnect the g_list / g_tree
      |                           from the #g_view (a treeview for instance). Once these
      |                           operations are over, the g_list / g_tree is reconnected to the GTree.view.

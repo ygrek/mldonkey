@@ -56,7 +56,7 @@ Updated Mozilla protocol handler to version 2.1
 5897: FileTP: Support HTTP downloads of files > 1GB
 5815: Unix32: Override system umask to force correct function
       of option create_file_mode (pango)
-5912: Extend patch 5817: "Code updates for Ocaml 3.10.0beta compatability"
+5912: Extend patch 5817: "Code updates for Ocaml 3.10.0beta compatibility"
       to Ocaml 3.11
 5910: EDK: Revoke upload slot when client asks for blocks positioned after EOF
 5908: Fix commit when incoming filesystem allows more than 16M chars
@@ -149,7 +149,7 @@ Updated Mozilla protocol handler to version 2.1
 5819: MinGW: Fix charsetstubs.c compile with latest MinGW
 
 2007/03/25
-5817: Code updates for Ocaml 3.10.0beta compatability
+5817: Code updates for Ocaml 3.10.0beta compatibility
 - to use Ocaml 3.10 add ./configure option --enable-ocamlver=3.10
 - MLDonkey will accept the new Ocaml version without this option when
   the final version of Ocaml 3.10 is released and proven to be working
@@ -908,7 +908,7 @@ new options:
 * Blocksize is computed like this: file_size / 200, rounded up to full
   megabytes, if bigger than 10MB: 10 MB are used as maximum blocksize.
   Preallocated blocks are marked file_disk_allocation_bitmap option.
-* Blocks already fully preallocated on disk are prefered for downloading.
+* Blocks already fully preallocated on disk are preferred for downloading.
   That way one can get antifragmentation benefits without preallocating
   too much space, specially for downloads with small chunks.
 * If the block about to be filled with data for the first time its read/written
@@ -1586,7 +1586,7 @@ A patch can be found here: http://caml.inria.fr/mantis/view.php?id=3948
   - 5 upload slots
   - 20 fd as reserve for ini files
 4704: Fix some C compile warnings (schlumpf)
-4739: Fix some cross-compiling obstacles, remove Ocaml 3.08.2 compatability
+4739: Fix some cross-compiling obstacles, remove Ocaml 3.08.2 compatibility
 * Cross-compiling is only possible with a correct Ocaml toolchain
 * MLDonkey can not build this Ocaml toolchain
 * This patch only fixes some autoconf checks
@@ -1695,11 +1695,11 @@ A patch can be found here: http://caml.inria.fr/mantis/view.php?id=3948
 * added environment variables for file_completed_cmd, see description:
 
     A command that is called when a file is committed, does not work on MinGW.
-    Arguments are (kept for compatability):
+    Arguments are (kept for compatibility):
     $1 - temp file name, without path
     $2 - file size
     $3 - filename of the committed file
-    Also these environment variables can be used (prefered way):
+    Also these environment variables can be used (preferred way):
     $TEMPNAME - temp file name, including path
     $FILEID - same as $1
     $FILESIZE - same as $2
@@ -2345,7 +2345,7 @@ patch posted in bug 13619:
 
 2005/06/23
 4122: EDK: "server <met>" command now responds with a clearer answer (Knocker)
-4121: EDK: Dont remove prefered server if server_users < min_users_on_server
+4121: EDK: Dont remove preferred server if server_users < min_users_on_server
       (Knocker)
 4120: EDK: send emule_version to servers (Knocker)
 4083: new build target: release.mlnet.distri
@@ -3296,7 +3296,7 @@ A SERIOUS bug is in 2.5.29, don't use it, version 2.5.30 will appear soon !
         be used afterwards (but it does not remove the file). Used
         in CommonInteractive.file_commit and CommonInteractive.file_cancel.
   * DonkeyInteractive: clients might get stucked if they tried to
-      upload a file that has just been commited, since the name is not
+      upload a file that has just been committed, since the name is not
       updated anymore in Unix32.rename. We need to remove the former 'file' 
       structure and then add a new one for the shared file, thus disconnecting
       all the former uploaders (knowing them, they will reconnect asap :)).
@@ -3393,7 +3393,7 @@ A SERIOUS bug is in 2.5.29, don't use it, version 2.5.30 will appear soon !
         case of error. 
      * New format SparseFile completely implemented. 
      * Unix32.rename makes the Unix32.t invalid. Might cause some bugs
-        when sharing just commited files (TO CHECK).
+        when sharing just committed files (TO CHECK).
   * Options:
      * New EXPERIMENTAL option 'emulate_sparsefiles' in downloads.ini,
         to emulate sparse files on non-sparse filesystems (e.g. FAT).
@@ -4245,8 +4245,8 @@ due to problems with old clients accessing savannah at startup.
 
 2003/02/26: Simon (v 2.02-21)
   - eDonkey: 
-      * Save hashes of commited files in shared_files.ini to remove
-        rehashing commited files on startup
+      * Save hashes of committed files in shared_files.ini to remove
+        rehashing committed files on startup
       * Remove / after the md4 in ed2k links      
       * Full-Chunks SUPPORTED
   - Applied patch #1185
@@ -5043,7 +5043,7 @@ due to problems with old clients accessing savannah at startup.
       improve that ? Must check that this timeout is changed when the client
       becomes interesting (queued for upload or download). Also set
       max_clients_per_second to more than 5...
-  - fix: prefered files are not queried twice anymore, nor client repeatedly 
+  - fix: preferred files are not queried twice anymore, nor client repeatedly
      queried after connection, to avoid Emule Black-list stupid mechanism.
   - fix: unknown commands should print an error now
   - add: new command "priority" that can be used to change the priority of
@@ -5109,7 +5109,7 @@ due to problems with old clients accessing savannah at startup.
   - fix: upload improvements
      * names are correctly chosen, and sent to the server
      * all BUFFER_OVERFLOW due to long file lists have been removed
-     * after restart, non commited files are still shared.
+     * after restart, non committed files are still shared.
      * bug fixed when shared file list is too long (shortened message)
      * the size of the ShareReq message directly depends on the space
         available in the server buffer.

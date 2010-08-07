@@ -395,8 +395,8 @@
 
    this protocol specs writen and analyst by suxxx
    without any help from neo-modus.com if you want
-   informations about the protocol or if you have
-   informations about some messages eg.write me a mail.
+   information about the protocol or if you have
+   information about some messages eg.write me a mail.
 
 Telechargement dans DC:
 
