@@ -279,9 +279,9 @@ if test ! -z "$SUB_VERSION3"; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION3
 fi
 
-REQUIRED_OCAML=3.11.2
-DOWNLOAD_OCAML_MAJOR=3.11
-DOWNLOAD_OCAML=3.11.2
+REQUIRED_OCAML=3.12.0
+DOWNLOAD_OCAML_MAJOR=3.12
+DOWNLOAD_OCAML=3.12.0
 
 REQUIRED_LABLGTK=1.2.7
 
@@ -643,9 +643,9 @@ OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 OCAMLLIB=`$OCAMLC -where`
 REBUILD_OCAML=no
 case "$OCAMLVERSION" in
-    3.10*|3.11*|3.12*)
+    3.1*)
       if test "$GUI" = "oldgui"; then
-        OLDGUI_NO_310=yes
+        OLDGUI_NO_31=yes
         GUI=no
       fi
       ;;
@@ -1601,8 +1601,8 @@ if test "$LABLGTK_CONFIG" = "yes"; then
   fi
 fi
 
-if test "$OLDGUI_NO_310" = "yes"; then
-  echo " - GUI support       GTK1 oldgui does not work with Ocaml 3.10/3.11, disabled"
+if test "$OLDGUI_NO_31" = "yes"; then
+  echo " - GUI support       GTK1 oldgui does not work with Ocaml 3.1*, disabled"
 fi
 
 if test "$TARGET_TYPE" = "byte"; then

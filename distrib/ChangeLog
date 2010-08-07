@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/08/07:
+7272: Configure: Use Ocaml 3.12.0 as default compiler
 7269: Fix typos (glondu)
 -------------------------------------------------------------------------------
 2010/08/01: version 3.0.3 = tag release-3-0-3
