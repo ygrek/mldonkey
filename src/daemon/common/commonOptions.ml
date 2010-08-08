@@ -1130,11 +1130,17 @@ let http_proxy_port = define_option current_section ["http_proxy_port"]
   "Port of HTTP proxy"
     port_option 8080
 
+let http_proxy_login = define_option current_section ["http_proxy_login"]
+  "HTTP proxy login (leave empty if proxy doesn't require authentication)"
+    string_option ""
+
+let http_proxy_password = define_option current_section ["http_proxy_password"]
+  "HTTP proxy password"
+    string_option ""
+
 let http_proxy_tcp = define_option current_section ["http_proxy_tcp"]
   "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)"
     bool_option false
-
-
 
 
 (*************************************************************************)
@@ -2052,14 +2058,20 @@ let http_proxy_tcp_update _ =
 
 let _ =
   let proxy_update _ =
-    http_proxy :=
-    (match !!http_proxy_server with
-        "" -> None
-      | _  -> Some (!!http_proxy_server, !!http_proxy_port));
+    let auth = match !!http_proxy_login with
+    | "" -> None
+    | _ -> Some (!!http_proxy_login, !!http_proxy_password)
+    in
+    http_proxy := 
+      (match !!http_proxy_server with
+      | "" -> None
+      | _  -> Some (!!http_proxy_server, !!http_proxy_port, auth));
     http_proxy_tcp_update ()
   in
   option_hook http_proxy_server proxy_update;
   option_hook http_proxy_port proxy_update;
+  option_hook http_proxy_login proxy_update;
+  option_hook http_proxy_password proxy_update;
   option_hook http_proxy_tcp http_proxy_tcp_update
 
 let _ =

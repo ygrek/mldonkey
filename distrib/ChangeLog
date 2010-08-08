@@ -14,7 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2010/08/07:
+2010/08/08
+7267: http proxy authentication support (ygrek)
+- new options http_proxy_login and http_proxy_password control authentication
+  for TCP CONNECT and plain HTTP requests through http proxy
+
+2010/08/07
 7273: Fix compile errors on Debian/kFreeBSD
 7272: Configure: Use Ocaml 3.12.0 as default compiler
 7269: Fix typos (glondu)

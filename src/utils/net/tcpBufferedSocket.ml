@@ -1044,8 +1044,8 @@ let set_reader t f =
       f
     else
     match !http_proxy with
-      None -> f
-    | Some (h, p) ->
+    | None -> f
+    | Some _ ->
         fun sock nread ->
 (* HTTP/1.0 200 OK\n\n *)
           let b = buf sock in
@@ -1328,10 +1328,10 @@ let connect token name host port handler =
     let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     if !bind_address <> Unix.inet_addr_any then
       Unix.bind s (Unix.ADDR_INET (!bind_address, 0));
-    let proxy_ip, proxy_port =
+    let proxy_ip, proxy_port, proxy_auth =
       match !http_proxy with
-        None -> Ip.null, 0
-      | Some (h, p) -> Ip.from_name h, p
+      | None -> Ip.null, 0, None
+      | Some (h, p, auth) -> Ip.from_name h, p, auth
     in
     let ip = Ip.of_inet_addr host in
     let use_proxy = proxy_ip <> Ip.null && proxy_ip <> ip in
@@ -1347,7 +1347,11 @@ let connect token name host port handler =
         Printf.bprintf buf "Cache-Control: no-cache\n";
         Printf.bprintf buf "Connection: Keep-Alive\n";
         Printf.bprintf buf "Proxy-Connection: Keep-Alive\n";
-(*Printf.bprintf buf "User-Agent: Mozilla/4.0 (compatible; MSIE 5.01; Windows NT; Hotbar 2.0)\n";*)
+        begin match proxy_auth with
+        | Some (login,password) ->
+            Printf.bprintf buf "Proxy-Authorization: Basic %s\n" (Base64.encode (login ^ ":" ^ password))
+        | None -> () 
+        end;
         Printf.bprintf buf "User-Agent: MLdonkey/%s\n" Autoconf.current_version;
         Printf.bprintf buf "\n";
         ignore (MlUnix.write s (Buffer.contents buf) 0 (Buffer.length buf))
