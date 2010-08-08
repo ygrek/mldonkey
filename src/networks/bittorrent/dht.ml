@@ -142,7 +142,9 @@ let send sock (ip,port as addr) txnmsg =
   log #debug "KRPC to %s : %S" (show_addr addr) s;
   write sock false s ip port
 
-let create port answer =
+type t = UdpSocket.t * (addr, string, (addr -> dict -> unit)) A.t
+
+let create port answer : t =
   let socket = create Unix.inet_addr_any port (fun sock event ->
       match event with
       | WRITE_DONE | CAN_REFILL -> ()
@@ -170,13 +172,11 @@ let create port answer =
         | None -> log #warn "no txn %S for %s %s" txn (show_addr addr) version
         | Some k -> A.remove h addr txn; k addr ret
   in
-  let make_addr sockaddr = 
-    try match sockaddr with Unix.ADDR_INET (inet,port) -> Some (Ip.of_inet_addr inet, port) | _ -> None with _ -> None
-  in
   let handle p =
-    match make_addr p.udp_addr with
-    | None -> ()
-    | Some addr ->
+    match p.udp_addr with
+    | Unix.ADDR_UNIX _ -> assert false
+    | Unix.ADDR_INET (inet_addr,port) ->
+      let addr = (Ip.of_inet_addr inet_addr, port) in
       let ret = ref None in
       try
         log #debug "recv %S" p.udp_content;
@@ -346,6 +346,41 @@ end
 let get_peers t h = []
 let find_node t h = List.map (fun node -> node.id, node.addr) & find_node t h
 
+module M = struct
+
+type t = { rt : Kademlia.table; dht : KRPC.t; }
+
+let create rt dht_port answer = { rt = rt; dht = KRPC.create dht_port answer; }
+
+let dht_query t addr q k =
+  log #info "DHT query to %s : %s" (show_addr addr) (show_query q);
+  KRPC.write t.dht (make_query t.rt.self q) addr begin fun addr dict ->
+    try
+      let (id,r) = parse_response_exn q dict in
+      log #info "DHT response from %s (%s) : %s" (show_addr addr) (show_id id) (show_response r);
+      k (id,addr) r
+      with
+        exn -> log #warn ~exn "DHT response to %s from %s" (show_query q) (show_addr addr); raise exn
+    end
+
+let ping t addr k = dht_query t addr Ping begin fun node r ->
+  match r with Ack -> k (Some node)
+  | _ -> k None; failwith "dht_query ping" end
+
+let find_node t addr h k = dht_query t addr (FindNode h) begin fun node r ->
+  match r with Nodes l -> k node l
+  | _ -> failwith "dht_query find_node" end
+
+let get_peers t addr h k = dht_query t addr (GetPeers h) begin fun node r ->
+  match r with Peers (token,peers,nodes) -> k node token peers nodes
+  | _ -> failwith "dht_query get_peers" end
+
+let announce t addr port token h k = dht_query t addr (Announce (token,h,port)) begin fun node r ->
+  match r with Ack -> k node
+  | _ -> failwith "dht_query announce" end
+
+end
+
 let main storage dht_port =
   let t = init storage in
   let finish () =
@@ -358,13 +393,14 @@ let main storage dht_port =
   log #info "DHT size : %d self : %s" (size t) (show_id t.self); 
 (*   let routers = [Ip.of_string "router.bittorrent.com", 6881; Ip.of_string "router.utorrent.com", 6881;] in *)
   let router = Ip.of_string "67.215.242.139", 6881 in
-  let local = Ip.of_string "127.0.0.1", 12345 in
+(*   let local = Ip.of_string "127.0.0.1", 12345 in *)
+  let dht = ref (Obj.magic 0 : M.t) in
   let answer addr name args =
     try
     let (id,q) = parse_query_exn name args in
     let node = (id,addr) in
     log #info "DHT query from %s : %s" (show_node node) (show_query q);
-    insert t (new_node id addr);
+    update (M.ping !dht) t id addr;
     let response =
       match q with
       | Ping -> Ack
@@ -377,34 +413,7 @@ let main storage dht_port =
     with
     exn -> log #warn ~exn "query %s from %s" name (show_addr addr); raise exn
   in
-  let dht = KRPC.create dht_port answer in
-  let dht_query addr q k =
-    log #info "DHT query to %s : %s" (show_addr addr) (show_query q);
-    KRPC.write dht (make_query t.self q) addr begin fun addr dict ->
-      try
-        let (id,r) = parse_response_exn q dict in
-        log #info "DHT response from %s (%s) : %s" (show_addr addr) (show_id id) (show_response r);
-        k (id,addr) r
-      with
-        exn -> log #warn ~exn "DHT response to %s from %s" (show_query q) (show_addr addr); raise exn
-    end
-  in
-  let ping addr k = dht_query addr Ping begin fun node r ->
-    match r with Ack -> k node
-    | _ -> failwith "dht_query ping" end
-  in
-  let find_node addr h k = dht_query addr (FindNode h) begin fun node r ->
-    match r with Nodes l -> k node l
-    | _ -> failwith "dht_query find_node" end
-  in
-  let get_peers addr h k = dht_query addr (GetPeers h) begin fun node r ->
-    match r with Peers (token,peers,nodes) -> k node token peers nodes
-    | _ -> failwith "dht_query get_peers" end
-  in
-  let announce addr port token h k = dht_query addr (Announce (token,h,port)) begin fun node r ->
-    match r with Ack -> k node
-    | _ -> failwith "dht_query announce" end
-  in
+  dht := M.create t dht_port answer;
   let bootstrap addr =
     let found = Hashtbl.create 13 in
     let dist = ref (h2n Kademlia.last) in
@@ -415,27 +424,44 @@ let main storage dht_port =
       | true ->
         log #info "continue node %s distance %.4g (found %d)" 
           (show_node node) (Big_int.float_of_big_int dist') (Hashtbl.length found);
-        find_node addr t.self begin fun _ l ->
+        M.find_node !dht addr t.self begin fun _ l ->
           log #info "got %d nodes from %s" (List.length l) (show_node node);
           List.iter (fun (id,addr as node) ->
             if not (Hashtbl.mem found id) then
             begin
               Hashtbl.add found id addr;
-              insert t (new_node id addr);
+              update (M.ping !dht) t ~st:Unknown id addr;
               continue node
             end
             ) l;
           if Big_int.lt_big_int dist' !dist then dist := dist';
         end
     in
-    ping addr begin fun node ->
-      log #info "bootstrap node is up - %s" (show_node node);
-      continue node
+    M.ping !dht addr begin function 
+      | Some node ->
+        log #info "bootstrap node is up - %s" (show_node node);
+        continue node
+      | None ->
+        log #warn "bootstrap node is down"
     end
+  in
+  let refresh () =
+    let ids = refresh t in
+    log #info "will refresh %d buckets" (List.length ids);
+    let cb (id,addr as node) l =
+      log #info "refresh: got %d nodes from %s" (List.length l) (show_node node);
+      update (M.ping !dht) t id addr; (* replied *)
+      List.iter (fun (id,addr) -> update (M.ping !dht) t ~st:Unknown id addr) l
+    in
+    List.iter (fun target ->
+      let nodes = find_node t target in
+      List.iter (fun (_,addr) -> M.find_node !dht addr target cb) nodes)
+    ids
   in
 (*   show_table t; exit 0; *)
 (*   ping router (fun _ -> log #info "pong"); *)
   bootstrap router;
+  BasicSocket.add_infinite_timer 60. refresh;
   BasicSocket.loop ()
 
 let () =

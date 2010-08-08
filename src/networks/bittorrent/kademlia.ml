@@ -40,11 +40,11 @@ let show_addr (ip,port) = Printf.sprintf "%s:%u" (Ip.to_string ip) port
 let show_status = function
   | Good -> "good"
   | Bad -> "bad"
-  | Unknown -> "unk"
-  | Pinged -> "ping"
+  | Unknown -> "unknown"
+  | Pinged -> "pinged"
 
 let show_node n =
-  pr " id : %s inet %s last : %f status : %s" 
+  Printf.sprintf "%s at %s last %f %s"
     (show_id n.id) (show_addr n.addr) n.last (show_status n.status)
 
 let show_bucket b = 
@@ -119,13 +119,23 @@ let hash_of_big_int n =
   assert (eq_big_int zero_big_int !n);
   H.direct_of_string s
 
+let big_int_2 = big_int_of_int 2
 (* hash <-> number *)
 let h2n = big_int_of_hash
 let n2h = hash_of_big_int
 
+let choose_random lo hi =
+  assert (cmp lo hi = LT);
+  let rec loop a b =
+    if cmp a b = EQ then a else
+    let mid = n2h (div_big_int (add_big_int (h2n a) (h2n b)) big_int_2) in
+    if Random.bool () then loop a mid else loop mid b
+  in
+  loop lo hi
+
 let split lo hi =
   assert (cmp lo hi = LT);
-  let mid = div_big_int (add_big_int (h2n lo) (h2n hi)) (big_int_of_int 2) in
+  let mid = div_big_int (add_big_int (h2n lo) (h2n hi)) big_int_2 in
   n2h mid 
 
 let succ h =
@@ -167,34 +177,92 @@ let () =
   assert (eq_big_int (distance middle' middle) (pred_big_int (power_int_positive_int 2 160)));
   ()
 
+(*
+module type Network = sig
+  type t
+  val ping : t -> addr -> (id -> bool -> unit) -> unit
+end
+*)
+
+let now = Unix.gettimeofday
+
+(* module Make(T : Network) = struct *)
+
 exception Nothing 
 
-let insert table node =
+let make_node id addr st = { id = id; addr = addr; last = now (); status = st; }
+let mark n st = n.last <- now (); n.status <- st
+let touch b = b.last_change <- now ()
+
+let rec update ping table ?(st=Good) id data =
 (*   pr "insert %s" (show_id node.id); *)
   let rec loop = function
-  | N (l,mid,r) -> (match cmp node.id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
+  | N (l,mid,r) -> (match cmp id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
   | L b ->
-    Array.iter (fun n -> if cmp n.id node.id = EQ then (pr "duplicate"; raise Nothing)) b.nodes;
+    Array.iter begin fun n -> 
+      match cmp n.id id = EQ, n.addr = data with
+      | true, true -> mark n Good; touch b; raise Nothing
+      | true, _ | _, true -> pr "conflict [%s] with %s %s" (show_node n) (show_id id) (show_addr data)
+      | _ -> ()
+    end b.nodes;
     if Array.length b.nodes <> bucket_nodes then
     begin
-(*       pr "inserted"; *)
-      b.nodes <- Array.of_list (node :: Array.to_list b.nodes);
+      pr "inserted %s" (show_id id);
+      b.nodes <- Array.of_list (make_node id data st :: Array.to_list b.nodes);
+      touch b;
       raise Nothing
-    end
-    else if inside b table.self && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
-(*       let () = pr "splitting" in *)
+    end;
+    Array.iteri (fun i n ->
+      if n.status = Bad then
+      begin
+        pr "replaced [%s] with %s" (show_node b.nodes.(i)) (show_id id);
+        b.nodes.(i) <- make_node id data st; (* replace *)
+        touch b;
+        raise Nothing
+      end) b.nodes;
+    match Array.fold_left (fun acc n -> if n.status = Unknown then n::acc else acc) [] b.nodes with
+    | [] ->
+    if inside b table.self && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
+      let () = pr "splitting" in
       let mid = split b.lo b.hi in
-      let (nodes1,nodes2) = List.partition (fun n -> cmp n.id node.id = LT) (Array.to_list b.nodes) in
-      N ( L { lo = b.lo; hi = mid; last_change = node.last; nodes = Array.of_list nodes1; }, 
+      let (nodes1,nodes2) = List.partition (fun n -> cmp n.id id = LT) (Array.to_list b.nodes) in
+      let new_node = N (
+          L { lo = b.lo; hi = mid; last_change = b.last_change; nodes = Array.of_list nodes1; }, 
           mid,
-          L { lo = succ mid; hi = b.hi; last_change = node.last; nodes = Array.of_list nodes2; } )
+          L { lo = succ mid; hi = b.hi; last_change = b.last_change; nodes = Array.of_list nodes2; } )
+      in
+      try loop new_node with Nothing -> new_node (* insert into new node *)
     else
     begin
-(*       pr "bucket full";  *)
+      pr "bucket full (%s)" (show_id id);
       raise Nothing
     end
+    | unk ->
+      let count = ref (List.length unk) in
+      let cb n = fun res ->
+        decr count; n.status <- (match res with Some _ -> Good | None -> Bad); 
+        if !count = 0 then (* retry *)
+        begin 
+          pr "all %d pinged, retry %s" (List.length unk) (show_id id); 
+          touch b; 
+          update ping table ~st id data 
+        end
+      in
+      List.iter (fun n -> n.status <- Pinged; ping n.addr (cb n)) unk;
+      raise Nothing
   in
   try table.root <- loop table.root with Nothing -> ()
+
+(* end *)
+
+let refresh table =
+  let expire = now () -. node_period in
+  let rec loop acc = function
+  | N (l,_,r) -> let acc = loop acc l in loop acc r
+  | L b when b.last_change < expire -> choose_random b.lo b.hi :: acc
+  | L _ -> acc
+  in
+  loop [] table.root
 
 let find_node t h =
   let rec loop alt = function
@@ -211,8 +279,6 @@ let find_node t h =
   in
   loop [] t.root
 
-let now = Unix.gettimeofday
-
 let create () = { root = L { lo = H.null; hi = last; last_change = now (); nodes = [||]; };
                   self = H.random (); 
                 }
@@ -228,13 +294,21 @@ let rec fold f acc = function
 let size t = fold (fun acc b -> acc + Array.length b.nodes) 0 t.root
 
 let init file = try load file with _ -> create ()
-let new_node id addr = { id = id; addr = addr; last = now (); status = Unknown; }
+
+(*
+module NoNetwork : Network = struct 
+  let ping addr k = k H.null (Random.bool ())
+end
+module K = Make(NoNetwork)
+*)
 
 let tt () =
   let table = create () in
-  show_table table;
+  show_table table; 
+  let addr = Ip.of_string "127.0.0.1", 9000 in
+  let ping addr k = k (if Random.bool () then Some (H.null,addr) else None) in
   for i = 1 to 1_000_000 do
-    insert table { id = H.random (); addr = (Ip.of_string "127.0.0.1", 9000); last = now (); status = Good; }
+    update ping table (H.random ()) addr
   done;
   show_table table
 
