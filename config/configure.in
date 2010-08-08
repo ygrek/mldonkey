@@ -535,7 +535,7 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
           $WGET http://caml.inria.fr/pub/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$REQUIRED_OCAML".tar.gz
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
-          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.12/ocaml-"$REQUIRED_OCAML".tar.gz
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.11/ocaml-"$REQUIRED_OCAML".tar.gz
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           $WGET http://caml.inria.fr/pub/distrib/ocaml-3.10/ocaml-"$REQUIRED_OCAML".tar.gz
