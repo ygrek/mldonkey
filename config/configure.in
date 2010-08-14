@@ -383,8 +383,11 @@ if test "$CHECKBOUNDS" = "yes"; then
   CHECKBOUNDS=true
 fi
 
-AC_ARG_ENABLE(profile,       [  --enable-profile        allows you to profile mlnet using gprof], [PROFILE="$enableval"])
+AC_ARG_ENABLE(profile,       [  --enable-profile        allows you to profile mlnet using gprof (enables debug)], [PROFILE="$enableval"])
 AC_ARG_ENABLE(debug,         [  --enable-debug          allows you to compile mlnet with debug symbols], [DEBUG="$enableval"])
+if test "$PROFILE" = "yes"; then
+  DEBUG="yes"
+fi
 AC_ARG_ENABLE(gui,           [  --disable-gui           allows you to disable GUI build (default)], [GUI="$enableval"])
 AC_ARG_ENABLE(gui,           [  --enable-gui=oldgui|newgui1|newgui2
                           allows you to choose a GUI (default: newgui2 - is a GTK2 GUI, other GUIs use GTK1)], [GUI="$enableval"])
@@ -694,6 +697,7 @@ if test "$FORCE_MINGW" = "yes"; then
 fi
 if test "$DEBUG" = "yes"; then
     OCAMLC="$OCAMLC -g"
+    OCAMLOPT="$OCAMLOPT -g"
 fi
 
 echo -e "\n----------------------------------"
