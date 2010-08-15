@@ -387,7 +387,7 @@ let encode_torrent torrent =
 
 let make_torrent announce filename comment is_private =
   let announce_list = [ announce ] in
-  let basename = Filename.basename filename in
+  let basename = Filename2.basename filename in
   let files, t =
     if Unix2.is_directory filename then
       let rec iter_directory list dirname =

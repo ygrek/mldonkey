@@ -69,7 +69,7 @@ let _ =
         let torrent_id, encoded =  BTTorrent.encode_torrent torrent in
         let s = Bencode.encode encoded in
         File.from_string !torrent_filename s;
-        Printf.printf "Torrent file of %s modified\n" (Sha1.to_string torrent_id);
+        Printf.printf "Torrent file of %s modified\n" (Sha1.to_hexa torrent_id);
     ), ": change the tracker inside a .torrent file";
 
     "-print", Arg.Unit (fun filename ->
@@ -89,7 +89,7 @@ let _ =
         Printf.printf "        piece size: %Ld\n" torrent.torrent_piece_size;
         Printf.printf "  Pieces: %d\n" (Array.length torrent.torrent_pieces);
         Array.iteri (fun i s ->
-            Printf.printf "    %3d: %s\n" i (Sha1.to_string s)
+            Printf.printf "    %3d: %s\n" i (Sha1.to_hexa s)
         ) torrent.torrent_pieces;
         if torrent.torrent_files <> [] then begin
             Printf.printf "  Files: %d\n" (List.length torrent.torrent_files);
@@ -102,9 +102,13 @@ let _ =
     "-create", Arg.String (fun filename ->
         check_tracker ();
         check_torrent ();
-        BTTorrent.generate_torrent !announce !torrent_filename !torrent_comment
-          (Int64.of_int !torrent_private) filename;
-        Printf.printf "Torrent file generated\n";
+        try
+          let hash = BTTorrent.generate_torrent !announce !torrent_filename !torrent_comment 
+            (Int64.of_int !torrent_private) filename
+          in
+          Printf.printf "Torrent file generated : %s\n" (Sha1.to_hexa hash);
+        with
+          exn -> Printf.printf "Cannot create torrent : %s\n" (Printexc2.to_string exn); exit 2
     )," <filename> : compute hashes of filename(s) (can be a directory) and generate a .torrent file";
 
     "-split", Arg.String (fun filename ->
@@ -185,8 +189,8 @@ let _ =
           if torrent.torrent_pieces.(i) <> sha1 then begin
               Printf.printf "WARNING: piece %d (%Ld-%Ld) has SHA1 %s instead of %s\n"
                 i begin_pos end_pos
-                (Sha1.to_string sha1)
-              (Sha1.to_string torrent.torrent_pieces.(i));
+                (Sha1.to_hexa sha1)
+              (Sha1.to_hexa torrent.torrent_pieces.(i));
             end
         done;
 

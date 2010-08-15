@@ -433,7 +433,7 @@ module MultiFile = struct
 
     let rec make_tree files =
       match files with
-        [||] -> assert false
+      | [||] -> failwith "make_tree: no files"
       | [| file |] -> Leaf file
       | _ ->
           let len = Array.length files in
