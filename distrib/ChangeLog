@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/08/15
+7274: DC: Increase message buffer size to fix communication with bots
+      (somedamnthing)
+
 2010/08/08
 7267: http proxy authentication support (ygrek)
 - new options http_proxy_login and http_proxy_password control authentication
