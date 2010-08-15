@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2010/08/15
+7278: configure: more useful --enable-debug (ygrek)
+- enable also for ocamlopt
+- enable when profiling 
 7274: DC: Increase message buffer size to fix communication with bots
       (somedamnthing)
 
