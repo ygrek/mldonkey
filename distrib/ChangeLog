@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/08/16
+7267: Fix compilation error in GTK2 GUI
 7282: Fix configure warning
 -------------------------------------------------------------------------------
 2010/08/15: version 3.0.4 = tag release-3-0-4
