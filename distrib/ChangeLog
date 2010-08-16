@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/08/16
+7282: Fix configure warning
+-------------------------------------------------------------------------------
 2010/08/15: version 3.0.4 = tag release-3-0-4
 7280: BT: fix make_torrent creates sometimes torrents without name argument
       (ygrek)
