@@ -166,6 +166,16 @@ let gtk_connection_http_use_proxy = define_option current_section
     "Direct TCP connections to HTTP proxy (the proxy should support CONNECT)"
     bool_option false
 
+let gtk_connection_http_proxy_login = define_option current_section
+    ["gtk_connection_http_proxy_login"]
+    "HTTP proxy login (leave empty if proxy doesn't require authentication)"
+    string_option ""
+
+let gtk_connection_http_proxy_password = define_option current_section
+    ["gtk_connection_http_proxy_password"]
+    "HTTP proxy password"
+    string_option ""
+
 (* {Client} *)
 
 let gtk_client_login = define_option current_section
