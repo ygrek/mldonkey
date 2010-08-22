@@ -650,10 +650,6 @@ OCAMLLIB=`$OCAMLC -where`
 REBUILD_OCAML=no
 case "$OCAMLVERSION" in
     3.1*)
-      if test "$GUI" = "oldgui"; then
-        OLDGUI_NO_31=yes
-        GUI=no
-      fi
       ;;
     "$REQUIRED_OCAML"*|3.09.*|3.08.4*|3.08.3*) ;;
     *)
