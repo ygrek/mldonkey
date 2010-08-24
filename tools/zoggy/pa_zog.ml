@@ -865,12 +865,30 @@ Gram.Entry.clear implem;;
 let field_error s =
   Printf.eprintf "Error: field %s is empty\n" s
 
+let eoi : 'eoi Gram.Entry.t = Gram.Entry.mk "eoi"
+let () = 
+  Gram.extend (eoi : 'eoi Gram.Entry.t)
+   ((fun () ->
+       (None,
+        [ (None, None,
+           [ ([ Gram.Stoken
+                  (((function | EOI -> true | _ -> false),
+                    "EOI")) ],
+              (Gram.Action.mk
+                 (fun (__camlp4_0 : Gram.Token.t) (loc : Gram.Loc.t)
+                    ->
+                    match __camlp4_0 with
+                    | EOI -> (() : 'eoi)
+                    | _ -> assert false))) ]) ]))
+      ())
+
   EXTEND Gram
 (*     GLOBAL: project; *)
     GLOBAL: implem;
     implem: 
-      [ [ el = LIST0 entity; EOI -> el, None ] ]
+      [ [ el = LIST0 entity ; eoi -> el, None ] ]
     ;
+(*     eoi: [[ EOI -> () ]]; *)
     entity:
       [ [ "<"; LIDENT "entity"; LIDENT "name"; "="; name = LIDENT;
           pl = LIST0 [ x = LIDENT -> x ]; ">"; w = OPT widget; "</"; LIDENT "entity";
