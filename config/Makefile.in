@@ -91,7 +91,7 @@ SRC_FILETP=src/networks/fileTP
 SUBDIRS=$(CDK) $(LIB) $(RSS) $(XML) $(NET) tools \
    $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
 
-INCLUDES += $(foreach file, $(SUBDIRS), -I $(file))
+INCLUDES += $(foreach file, $(SUBDIRS), -I $(file)) -I +camlp4
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES) $(GTKCFLAGS) $(GD_CFLAGS)
 
@@ -1460,7 +1460,7 @@ LOCAL=patches/build
 PA_ZOG_FILES=tools/zoggy/zog_types.ml tools/zoggy/zog_messages.ml tools/zoggy/zog_misc.ml tools/zoggy/pa_zog.ml
 
 pa_zog.cma: $(PA_ZOG_FILES)
-	$(OCAMLC) -I tools/zoggy -I +camlp4 -pp "$(CAMLP4) pa_o.cmo pr_dump.cmo -loc loc" -a -o pa_zog.cma  $(PA_ZOG_FILES)
+	$(OCAMLC) -I tools/zoggy -I +camlp4 -pp "$(CAMLP4OF) -loc loc" -a -o pa_zog.cma  $(PA_ZOG_FILES)
 
 
 OCAMLPP=./ocamlpp.byte
