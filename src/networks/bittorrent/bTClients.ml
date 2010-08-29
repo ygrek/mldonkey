@@ -18,7 +18,8 @@
 *)
 
 
-(** Functions used in client<->client communication
+(** Functions used in client<->client communication 
+    and also client<->tracker
 *)
 
 (** A peer (or client) is always a remote peer in this file.
@@ -73,6 +74,142 @@ let http11_ok = "HTTP/1.1 200 OK"
 let next_uploaders = ref ([] : BTTypes.client list)
 let current_uploaders = ref ([] : BTTypes.client list)
 
+(** Check that client is valid and record it *)
+let maybe_new_client file id ip port =
+  let cc = Geoip.get_country_code_option ip in
+  if id <> !!client_uid
+     && ip != Ip.null
+     && port <> 0
+     && (match !Ip.banned (ip, cc) with
+         | None -> true
+         | Some reason ->
+           if !verbose_connect then
+             lprintf_file_nl (as_file file) "%s:%d blocked: %s" (Ip.to_string ip) port reason;
+           false)
+  then
+    ignore (new_client file id (ip,port) cc);
+  if !verbose_sources > 1 then
+    lprintf_file_nl (as_file file) "Received %s:%d" (Ip.to_string ip) port
+
+
+let resume_clients_hook = ref (fun _ -> assert false)
+
+include struct
+
+(* open modules locally *)
+open BTUdpTracker
+open UdpSocket
+
+let string_of_event = function
+  | READ_DONE -> "READ_DONE"
+  | WRITE_DONE -> "WRITE_DONE"
+  | CAN_REFILL -> "CAN_REFILL"
+  | BASIC_EVENT e -> match e with
+    | CLOSED reason -> "CLOSED " ^ (string_of_reason reason)
+    | RTIMEOUT -> "RTIMEOUT"
+    | WTIMEOUT -> "WTIMEOUT"
+    | LTIMEOUT -> "LTIMEOUT"
+    | CAN_READ -> "CAN_READ"
+    | CAN_WRITE -> "CAN_WRITE"
+
+(** talk to udp tracker and parse response
+  except of parsing should perform everything that 
+  talk_to_tracker's inner function does FIXME refactor both 
+
+  Better create single global udp socket and use it for all 
+  tracker requests and distinguish trackers by txn? FIXME?
+  *)
+let talk_to_udp_tracker host port args file t need_sources =
+  let interact ip =
+    let socket = create (Ip.to_inet_addr !!client_bind_addr) 0 (fun sock event ->
+(*       lprintf_nl "udpt got event %s for %s" (string_of_event event) host; *)
+      match event with
+      | WRITE_DONE | CAN_REFILL -> ()
+      | READ_DONE -> assert false (* set_reader prevents this *)
+      | BASIC_EVENT x -> match x with
+        | CLOSED _ -> ()
+        | CAN_READ | CAN_WRITE -> assert false (* udpSocket implementation prevents this *)
+        | LTIMEOUT | WTIMEOUT | RTIMEOUT -> close sock (Closed_for_error "udpt timeout"))
+    in
+    let set_reader f =
+      set_reader socket begin fun _ -> 
+        try f () with exn ->
+          lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn);
+          close socket (Closed_for_exception exn)
+      end
+    in
+    BasicSocket.set_wtimeout (sock socket) 60.;
+    BasicSocket.set_rtimeout (sock socket) 60.;
+    let txn = Random.int32 Int32.max_int in
+(*     lprintf_nl "udpt txn %ld for %s" txn host; *)
+    write socket false (connect_request txn) ip port;
+    set_reader begin fun () ->
+      let p = read socket in
+      let conn = connect_response p.udp_content txn in
+(*       lprintf_nl "udpt connection_id %Ld for %s" conn host; *)
+      let txn = Random.int32 Int32.max_int in
+(*       lprintf_nl "udpt txn' %ld for host %s" txn host; *)
+      let int s = Int64.of_string (List.assoc s args) in
+      let req = announce_request conn txn
+        ~info_hash:(List.assoc "info_hash" args) 
+        ~peer_id:(List.assoc "peer_id" args)
+        (int "downloaded",int "left",int "uploaded")
+        (match try List.assoc "event" args with Not_found -> "" with
+         | "completed" -> 1l
+         | "started" -> 2l
+         | "stopped" -> 3l
+         | "" -> 0l
+         | s -> lprintf_nl "udpt event %s? for %s" s host; 0l)
+        ~ip:(if !!force_client_ip then (Int64.to_int32 (Ip.to_int64 !!set_client_ip)) else 0l)
+        ~numwant:(if need_sources then try Int32.of_string (List.assoc "numwant" args) with _ -> -1l else 0l)
+        (int_of_string (List.assoc "port" args))
+      in
+      write socket false req ip port;
+      set_reader (fun () ->
+        let p = read socket in
+
+        t.tracker_last_conn <- last_time ();
+        file.file_tracker_connected <- true;
+        t.tracker_interval <- 600;
+        t.tracker_min_interval <- 600;
+        if need_sources then t.tracker_last_clients_num <- 0;
+
+        let (interval,clients) = announce_response p.udp_content txn in
+        if !verbose_msg_servers then
+          lprintf_nl "udpt got interval %ld clients %d for host %s" interval (List.length clients) host;
+        if interval > 0l then
+        begin
+          t.tracker_interval <- Int32.to_int interval;
+          if t.tracker_min_interval > t.tracker_interval then
+            t.tracker_min_interval <- t.tracker_interval
+        end;
+        if need_sources then
+        List.iter (fun (ip',port) ->
+          let ip = Ip.of_int64 (Int64.logand 0xFFFFFFFFL (Int64.of_int32 ip')) in 
+(*           lprintf_nl "udpt got %s:%d" (Ip.to_string ip) port; *)
+          t.tracker_last_clients_num <- t.tracker_last_clients_num + 1;
+          maybe_new_client file Sha1.null ip port
+        ) clients;
+        close socket Closed_by_user;
+        if !verbose_msg_servers then
+          lprintf_nl "udpt interact done for %s" host;
+        if need_sources then !resume_clients_hook file
+        ) end
+  in
+  try
+    if !verbose_msg_servers then
+      lprintf_nl "udpt start with %s:%d" host port;
+    Ip.async_ip host (fun ip ->
+(*       lprintf_nl "udpt resolved %s to ip %s" host (Ip.to_string ip); *)
+      try interact ip with exn -> lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn))
+      (fun n -> 
+        if !verbose_msg_servers then
+          lprintf_nl "udpt failed to resolve %s (%d)" host n)
+  with
+  exn -> 
+    lprintf_nl "udpt start exn %s" (Printexc2.to_string exn)
+
+end (* include *)
 
 (**
   In this function we connect to a tracker.
@@ -182,28 +319,30 @@ let connect_trackers file event need_sources f =
       then
         begin
           (* if we already tried to connect but failed, disable tracker, but allow re-enabling *)
+          (* FIXME t.tracker_last_conn < 1 only at first connect, so later failures will stay undetected! *)
           if file.file_tracker_connected && t.tracker_last_clients_num = 0 && t.tracker_last_conn < 1 then 
-          begin
-            if !verbose_msg_servers then
-              lprintf_nl "Request error from tracker: disabling %s" t.tracker_url;
-            t.tracker_status <- Disabled (intern "MLDonkey: Request error from tracker")
-          end
-          (* Send request to tracker *)
-          else begin
-              let args = if String.length t.tracker_id > 0 then
-                  ("trackerid", t.tracker_id) :: args else args
-              in
-              let args = if String.length t.tracker_key > 0 then
-                  ("key", t.tracker_key) :: args else args
-              in
+            begin
               if !verbose_msg_servers then
-                lprintf_nl "connect_trackers: tracker_connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i file: %s"
-                  (string_of_bool file.file_tracker_connected)
-                  t.tracker_id t.tracker_key t.tracker_last_clients_num
-                  (t.tracker_last_conn - last_time()) file.file_name;
+                lprintf_nl "Request error from tracker: disabling %s" (show_tracker_url t.tracker_url);
+              t.tracker_status <- Disabled (intern "MLDonkey: Request error from tracker")
+            end
+          (* Send request to tracker *)
+          else 
+            let args = if String.length t.tracker_id > 0 then
+                ("trackerid", t.tracker_id) :: args else args
+            in
+            let args = if String.length t.tracker_key > 0 then
+                ("key", t.tracker_key) :: args else args
+            in
+            if !verbose_msg_servers then
+              lprintf_nl "connect_trackers: connected:%s id:%s key:%s last_clients:%i last_conn-last_time:%i numwant:%s file: %s"
+                (string_of_bool file.file_tracker_connected)
+                t.tracker_id t.tracker_key t.tracker_last_clients_num
+                (t.tracker_last_conn - last_time()) (try List.assoc "numwant" args with _ -> "_") file.file_name;
 
+            match t.tracker_url with
+            | `Http url ->
               let module H = Http_client in
-              let url = t.tracker_url in
               let r = {
                   H.basic_request with
                   H.req_url = Url.of_string ~args: args url;
@@ -215,19 +354,20 @@ let connect_trackers file event need_sources f =
 
               if !verbose_msg_servers then
                   lprintf_nl "Request sent to tracker %s for file: %s"
-                    t.tracker_url file.file_name;
+                    url file.file_name;
               H.wget r
                 (fun fileres ->
                   t.tracker_last_conn <- last_time ();
                   file.file_tracker_connected <- true;
                   f t fileres)
-          end
+            | `Other url -> assert false (* should have been disabled *)
+            | `Udp (host,port) -> talk_to_udp_tracker host port args file t need_sources
         end
 
       else
         if !verbose_msg_servers then
           lprintf_nl "Request NOT sent to tracker %s - next request in %ds for file: %s"
-            t.tracker_url (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
+            (show_tracker_url t.tracker_url) (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
   ) enabled_trackers
 
 let start_upload c =
@@ -363,7 +503,9 @@ let disconnect_clients file =
 let download_finished file =
     if List.memq file !current_files then
       begin
-        connect_trackers file "completed" false (fun _ _ -> ()); (*must be called before swarmer gets removed from file*)
+        connect_trackers file "completed" false (fun _ _ -> 
+          lprintf_file_nl (as_file file) "Tracker return: completed %s" file.file_name;
+          ()); (*must be called before swarmer gets removed from file*)
         (*CommonComplexOptions.file_completed*)
         file_completed (as_file file);
         (* Remove the swarmer for this file as it is not useful anymore... *)
@@ -1313,6 +1455,9 @@ let resume_clients file =
             lprintf_file_nl (as_file file) "Exception %s in resume_clients"   (Printexc2.to_string e)
   ) file.file_clients
 
+let () =
+  resume_clients_hook := resume_clients
+
 (** Check if the value replied by the tracker is correct.
   @param key the name of the key
   @param n the value to check
@@ -1322,31 +1467,13 @@ let resume_clients file =
 let chk_keyval key n url name =
   let int_n = (Int64.to_int n) in
   if !verbose_msg_clients then
-    lprintf_nl "Reply from %s in file: %s has %s: %d" url name key int_n;
+    lprintf_nl "Reply from %s in file: %s has %s: %d" (show_tracker_url url) name key int_n;
   if int_n > -1 then
     int_n
   else begin
-     lprintf_nl "Reply from %s in file: %s has an invalid %s value: %d" url name key int_n;
+     lprintf_nl "Reply from %s in file: %s has an invalid %s value: %d" (show_tracker_url url) name key int_n;
      0
    end
-
-(** Check that client is valid and record it *)
-let maybe_new_client file id ip port =
-  let cc = Geoip.get_country_code_option ip in
-  if id <> !!client_uid
-     && ip != Ip.null
-     && port <> 0
-     && (match !Ip.banned (ip, cc) with
-         | None -> true
-         | Some reason ->
-           if !verbose_connect then
-             lprintf_file_nl (as_file file) "%s:%d blocked: %s" (Ip.to_string ip) port reason;
-           false)
-  then
-    ignore (new_client file id (ip,port) cc);
-    if !verbose_sources > 1 then
-      lprintf_file_nl (as_file file) "Received %s:%d" (Ip.to_string ip) port;
-    ()
 
 let exn_catch f x = try `Ok (f x) with exn -> `Exn exn
 
@@ -1357,6 +1484,7 @@ let exn_catch f x = try `Ok (f x) with exn -> `Exn exn
 let talk_to_tracker file need_sources =
   (* This is the function which will be called by the http client for parsing the response *)
   let f t filename =
+    let tracker_url = show_tracker_url t.tracker_url in
     let tracker_failed reason =
       (* On failure, disable the tracker and count attempts (@see is_tracker_enabled) *)
       let num = match t.tracker_status with | Disabled_failure (i,_) -> i + 1 | _ -> 1 in
@@ -1364,7 +1492,7 @@ let talk_to_tracker file need_sources =
       lprintf_file_nl (as_file file) "Failure no. %d%s from Tracker %s for file: %s Reason: %s"
         num
         (if !!tracker_retries = 0 then "" else Printf.sprintf "/%d" !!tracker_retries)
-        t.tracker_url file.file_name (Charset.Locale.to_utf8 reason)
+        tracker_url file.file_name (Charset.Locale.to_utf8 reason)
     in
     match exn_catch File.to_string filename with
     | `Exn _ | `Ok "" -> tracker_failed "empty reply"
@@ -1381,7 +1509,7 @@ let talk_to_tracker file need_sources =
           begin match t.tracker_status with
           | Disabled_failure (i, _) ->
               lprintf_file_nl (as_file file) "Received good message from Tracker %s after %d bad attempts" 
-                t.tracker_url i
+                tracker_url i
           | _ -> () end;
           (* Received good message from tracker after failures, re-enable tracker *)
           t.tracker_status <- Enabled;
@@ -1391,7 +1519,7 @@ let talk_to_tracker file need_sources =
             | "failure reason", String failure -> tracker_failed failure
             | "warning message", String warning ->
                 lprintf_file_nl (as_file file) "Warning from Tracker %s in file: %s Reason: %s" 
-                  t.tracker_url file.file_name warning
+                  tracker_url file.file_name warning
             | "interval", Int n ->
                 t.tracker_interval <- chk_keyval key n;
                 (* in case we don't receive "min interval" *)
@@ -1422,11 +1550,11 @@ let talk_to_tracker file need_sources =
             | "key", String n ->
                 t.tracker_key <- n;
                 if !verbose_msg_clients then
-                  lprintf_file_nl (as_file file) "%s in file: %s has key: %s" t.tracker_url file.file_name n
+                  lprintf_file_nl (as_file file) "%s in file: %s has key: %s" tracker_url file.file_name n
             | "tracker id", String n ->
                 t.tracker_id <- n;
                 if !verbose_msg_clients then
-                  lprintf_file_nl (as_file file) "%s in file: %s has tracker id %s" t.tracker_url file.file_name n
+                  lprintf_file_nl (as_file file) "%s in file: %s has tracker id %s" tracker_url file.file_name n
 
             | "peers", List list ->
                 if need_sources then

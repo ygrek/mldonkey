@@ -291,6 +291,11 @@ type job = {
     err_handler : (int -> unit);
   }
 
+let exn_log name f x = 
+  try 
+    f x
+  with e -> 
+    lprintf_nl "[Ip] %s : unexpected exn %s" name (Printexc2.to_string e)
 
 external job_done : job -> bool = "ml_ip_job_done"
 external job_start : job -> unit = "ml_ip_job_start"
@@ -302,7 +307,7 @@ let async_ip name f ferr =
   try
 (*    lprintf "async_ip [%s]\n" name; *)
     let ip = resolve_name_immediate name in
-    (try f ip with _ -> ())
+    exn_log "async_ip" f ip
   with Not_found ->
     Fifo.put ip_fifo (name, f, ferr)
 
@@ -322,14 +327,14 @@ let _ =
           let (name, f, ferr) = Fifo.take ip_fifo in
           (try
 	    let ip = resolve_name_immediate name in
-            (try f ip with _ -> ())
+            exn_log "ip_fifo immediate" f ip
           with Not_found ->
 (*                  lprintf "resolving name...\n"; *)
             if !BasicSocket.use_threads && 
               BasicSocket.has_threads () then
                 let job = {
-                  handler = f;
-                  err_handler = ferr;
+                  handler = exn_log "ip_fifo handler" f;
+                  err_handler = exn_log "ip_fifo err_handler" ferr;
                   name = name;
                   entries = [||];
                   error = false;
@@ -338,7 +343,7 @@ let _ =
                 job_start job
             else begin
 (*                      lprintf "from_name ...\n"; *)
-              f (from_name name)
+              exn_log "ip_fifo no threads" f (from_name name)
 		
             end
           )

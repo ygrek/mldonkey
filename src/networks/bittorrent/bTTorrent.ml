@@ -145,7 +145,7 @@ let decode_torrent s =
             match key, value with
             | "announce", String tracker_url ->
                if !verbose_msg_servers then
-                 lprintf_nl "[BT] New tracker added :%s" tracker_url;
+                 lprintf_nl "[BT] New tracker added: %s" tracker_url;
                 announce := tracker_url
             | "announce-list", List list ->
                 List.iter (fun url_list ->

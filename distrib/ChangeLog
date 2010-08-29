@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/08/29
+7144: BT: Support for UDP trackers (ygrek)
 7288: HTML: Prepare localization (balamutick)
 7287: Fix GTK1 oldgui compile with Ocaml 3.1* (ygrek)
 7289: Raise minimum required Ocaml version to 3.10.1

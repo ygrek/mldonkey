@@ -718,6 +718,17 @@ ifelse(AC_ACVERSION, [2.13], [],
 
 ])
 
+dnl Check for native endianness.
+AC_C_BIGENDIAN(,,
+  [AC_MSG_ERROR([Machine endianness could not be determined])]
+)
+if test "x$WORDS_BIGENDIAN" = "x"; then
+  NATIVEENDIAN=LittleEndian
+else
+  NATIVEENDIAN=BigEndian
+fi
+AC_SUBST(NATIVEENDIAN)
+
 # various header files
 AC_CHECK_FUNCS(setrlimit getrlimit strerror_r strerror posix_fallocate)
 AC_CHECK_HEADERS(byteswap.h,,)
@@ -1446,6 +1457,7 @@ AC_OUTPUT(\
   Makefile.config \
   mldonkey.rc \
   $AUTOCONF.new $GTK_AUTOCONF.new \
+   ../src/utils/bitstring/bitstring.ml \
    ../src/utils/lib/magic.ml \
    ../src/networks/donkey/donkeySui.ml \
    ../src/daemon/driver/driverGraphics.ml \

@@ -232,6 +232,11 @@ type tracker_status =
 | Disabled_mld of string
 | Disabled_failure of (int * string)
 
+type tracker_url =
+[ `Http of string (* url *)
+| `Udp of string * int (* host and port *)
+| `Other of string ]
+
 type client = {
     client_client : client CommonClient.client_impl;
     mutable client_file : file;
@@ -287,7 +292,7 @@ type client = {
   }
 
 and tracker_info = {
-    tracker_url : string;
+    tracker_url : tracker_url;
     mutable tracker_interval : int;
     mutable tracker_min_interval : int;
     mutable tracker_last_conn : int;
