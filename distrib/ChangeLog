@@ -14,6 +14,12 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/08/29
+7144: BT: Support for UDP trackers (ygrek)
+7288: HTML: Prepare localization (balamutick)
+7287: Fix GTK1 oldgui compile with Ocaml 3.1* (ygrek)
+7289: Raise minimum required Ocaml version to 3.10.1
+
 2010/08/16
 7267: Fix compilation error in GTK2 GUI
 7282: Fix configure warning

@@ -120,7 +120,7 @@ type tag = [
 
 type tag =
   [ `HORIZONTAL | `VERTICAL | `ICONS | `TEXT | `BOTH | `NORMAL | `HALF
-  | `NONE | `DEFAULT_STYLE | `SPREAD | `EDGE | `START | `END | `IN | `OUT
+  | `NONE | `DEFAULT_STYLE | `SPREAD | `EDGE | `START | (*`END | `IN |*) `OUT
   | `ETCHED_IN | `ETCHED_OUT | `ALWAYS | `AUTOMATIC | `NEVER | `LEFT
   | `RIGHT | `TOP | `BOTTOM | `CONTINUOUS | `DISCONTINUOUS | `DELAYED
   | `TOP_LEFT | `BOTTOM_LEFT | `TOP_RIGHT | `BOTTOM_RIGHT | `SINGLE
@@ -146,7 +146,7 @@ type prop_values =
 type property = {
     prop_kind : prop_kind ; (** property kind *)
     mutable prop_value : string ; (** ocaml code of the value *)
-    prop_value_loc : int * int ; (** source location of the value *)
+    prop_value_loc : Camlp4.PreCast.Loc.t ; (** source location of the value *)
   } 
 
 let gt s = "Gtk.Tags."^s
@@ -159,8 +159,8 @@ let toolbar_space_values = [ "`EMPTY", `EMPTY; "`LINE", `LINE ]
 let button_relief_values = [ "`NORMAL", `NORMAL; "`HALF", `HALF; "`NONE", `NONE ]
 let button_box_style_values = [ "`DEFAULT_STYLE", `DEFAULT_STYLE; 
 				"`SPREAD", `SPREAD; "`EDGE", `EDGE;
-				"`START", `START; "`END", `END ]
-let shadow_type_values = [ "`NONE", `NONE; "`IN", `IN; "`OUT", `OUT;
+				"`START", `START; (*"`END", `END*) ]
+let shadow_type_values = [ "`NONE", `NONE; (*"`IN", `IN;*) "`OUT", `OUT;
 			   "`ETCHED_IN", `ETCHED_IN; "`ETCHED_OUT", `ETCHED_OUT ]
 let policy_type_values = [ "`AUTOMATIC", `AUTOMATIC ; "`ALWAYS", `ALWAYS ]
 let position_values = [ "`LEFT", `LEFT; "`RIGHT", `RIGHT; "`TOP", `TOP; "`BOTTOM", `BOTTOM ]
@@ -386,7 +386,7 @@ type ele_class =
 (** A GUI element. Some fields won't be used, depending on the element class. *)
 type gui_element = {
     mutable name : string ;
-    name_loc : int * int ;
+    name_loc : Camlp4.PreCast.Loc.t;
     classe : ele_class ;
     mutable props : property list ;
     mutable children : gui_element list ;

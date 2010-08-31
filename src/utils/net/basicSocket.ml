@@ -260,13 +260,17 @@ let sprint_socket s =
 (*                                                                       *)
 (*************************************************************************)
 
+let exn_log name f x = 
+  try 
+    f x
+  with e -> 
+    lprintf_nl "[bS] %s : unexpected exn %s" name (Printexc2.to_string e)
+
 let close t msg =
   if t.fd <> dummy_fd then begin
       if !debug then
           lprintf_nl "[bS] CLOSING: %s (%s)" (sprint_socket t) (string_of_reason msg);
-      (try
-          Unix.close t.fd;
-          with _ -> ());
+      exn_log "close" Unix.close t.fd;
       t.fd <- dummy_fd;
       closed_tasks := t :: !closed_tasks;
       t.closed <- true;
@@ -454,7 +458,7 @@ let rec exec_hooks list =
   match list with
     [] -> ()
   | f :: tail ->
-      (try f () with _ -> ());
+      exn_log "hook" f ();
       exec_hooks tail
 
 (*************************************************************************)
@@ -469,19 +473,19 @@ let rec exec_tasks =
       (
         let time = !current_time in
         if not t.closed && t.next_rtimeout < time then
-          (try t.event_handler t RTIMEOUT with _ -> ());
+          exn_log "exec rtimeout" (t.event_handler t) RTIMEOUT;
         if not t.closed && t.next_wtimeout < time then
-          (try t.event_handler t WTIMEOUT with _ -> ());
+          exn_log "exec wtimeout" (t.event_handler t) WTIMEOUT;
         if not t.closed && t.lifetime < time then
-          (try t.event_handler t LTIMEOUT with _ -> ());
+          exn_log "exec ltimeout" (t.event_handler t) LTIMEOUT;
         if not t.closed && t.flags land can_read <> 0 then
-          (try
+          exn_log "exec can_read" (fun () ->
               t.next_rtimeout <- time +. t.rtimeout;
-              t.event_handler t CAN_READ with _ -> ());
+              t.event_handler t CAN_READ) ();
         if not t.closed && t.flags land can_write <> 0 then
-          (try
+          exn_log "exec can_write" (fun () ->
               t.next_wtimeout <- time +. t.wtimeout;
-              t.event_handler t CAN_WRITE with _ -> ());
+              t.event_handler t CAN_WRITE) ();
       );
       exec_tasks tail
 
@@ -497,7 +501,7 @@ let rec exec_timers = function
       (
         if (not t.applied) && t.next_time <= !current_time then begin
             t.applied <- true;
-            try t.time_handler t with _ -> ()
+            begin try t.time_handler t with _ -> () end (* exn_log -> many Fifo.empty *)
           end
       );
       exec_timers tail
@@ -512,7 +516,7 @@ let loop () =
   add_infinite_timer 1.0 (fun _ ->
       if !verbose_bandwidth > 0 then
         lprintf_nl "[BW1] Resetting bandwidth counters";
-      List.iter (fun f -> try f () with _ -> ()) !bandwidth_second_timers
+      List.iter (fun f -> exn_log "reset bw ctr" f ()) !bandwidth_second_timers
   );
   while true do
     try
@@ -527,7 +531,7 @@ let loop () =
           [] -> ()
         | t :: tail ->
             closed_tasks := tail;
-            (try t.event_handler t (CLOSED t.error) with _ -> ());
+            exn_log "exec closed" (t.event_handler t) (CLOSED t.error)
       done;
 
 (*      lprintf "before iter_timer\n"; *)

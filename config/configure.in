@@ -379,7 +379,7 @@ AC_ARG_ENABLE(fasttrack,     [  --disable-fasttrack     allows you to remove sup
 
 AC_ARG_ENABLE(batch,         [  --enable-batch          reply YES to all queries in this script], [BATCH="$enableval"])
 AC_ARG_ENABLE(force-ocaml,   [  --enable-force-ocaml    force usage of self-compiled Ocaml], [FORCE_OCAML="$enableval"])
-AC_ARG_ENABLE(ocamlver,      [  --enable-ocamlver=VER   force usage of specific Ocaml version (3.08.1|CVS), ], [REQUIRED_OCAML="$enableval"])
+AC_ARG_ENABLE(ocamlver,      [  --enable-ocamlver=VER   force usage of specific Ocaml version (3.10.1|CVS), ], [REQUIRED_OCAML="$enableval"])
 AC_ARG_ENABLE(mingw,         [  --enable-mingw          forces compilation with MINGW on Cygwin], [FORCE_MINGW="$enableval"])
 AC_ARG_ENABLE(checks,        [  --enable-checks         force mldonkey to perform bound checks on array/string access], [CHECKBOUNDS="$enableval"])
 if test "$CHECKBOUNDS" = "yes"; then
@@ -492,14 +492,20 @@ if [ test -z "$OCAMLC" ] || [ test -z "$CAMLP4" ] || [ test "$REQUIRED_OCAML" = 
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
   case "$OCAMLVERSION" in
-    "$REQUIRED_OCAML"*|3.12.*|3.11.*|3.10.*|3.09.*|3.08.4*|3.08.3*) ;;
+    "$REQUIRED_OCAML"*|3.12.*|3.11.*|3.10.1*|3.10.2*) ;;
     *)
         echo "Need build"
         BUILD_OCAML=yes
         ;;
   esac
 fi
-
+case "$REQUIRED_OCAML" in
+  3.10.0|3.0*)
+    echo "Need build"
+    REQUIRED_OCAML=3.12.0
+    BUILD_OCAML=yes
+    ;;
+esac
 if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
 
   if [ test "$SYSTEM" = "mingw" ]; then
@@ -542,12 +548,6 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           $WGET http://caml.inria.fr/pub/distrib/ocaml-3.10/ocaml-"$REQUIRED_OCAML".tar.gz
-        fi
-        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
-          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.09/ocaml-"$REQUIRED_OCAML".tar.gz
-        fi
-        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
-          $WGET http://caml.inria.fr/pub/distrib/ocaml-3.08/ocaml-"$REQUIRED_OCAML".tar.gz
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           echo "********        download Ocaml $REQUIRED_OCAML not successful, try do download it manually       *********" 1>&2;
@@ -618,6 +618,7 @@ if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc.opt ; then
   OCAMLLEX=$LOCAL_OCAML/ocamllex.opt
   OCAMLYACC=$LOCAL_OCAML/ocamlyacc
   CAMLP4=$LOCAL_OCAML/camlp4
+  CAMLP4OF=$LOCAL_OCAML/camlp4of
 else
   if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc ; then
   OCAML_PATH="$LOCAL_OCAML"/
@@ -632,6 +633,7 @@ else
   OCAMLLEX=$LOCAL_OCAML/ocamllex
   OCAMLYACC=$LOCAL_OCAML/ocamlyacc
   CAMLP4=$LOCAL_OCAML/camlp4
+  CAMLP4OF=$LOCAL_OCAML/camlp4of
   else
   AC_CHECK_PROG(OCAMLOPT, ocamlopt.opt, ocamlopt.opt)
   AC_CHECK_PROG(OCAMLOPT, ocamlopt, ocamlopt, no)
@@ -642,31 +644,34 @@ else
   AC_CHECK_PROG(OCAMLDOC, ocamldoc, ocamldoc)
   AC_CHECK_PROG(OCAMLMKTOP, ocamlmktop, ocamlmktop)
   AC_CHECK_PROG(CAMLP4, camlp4, camlp4)
+  AC_CHECK_PROG(CAMLP4OF, camlp4of, camlp4of, no)
 fi
 fi
 
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 OCAMLLIB=`$OCAMLC -where`
-REBUILD_OCAML=no
+
+# check if native dynlink is supported and therefore needed for linking
+CAMLP4LIB_OPT="camlp4lib.cmxa"
+CAMLP4LIB_BYTE="camlp4lib.cma"
+if test -f $OCAMLLIB/dynlink.cma; then
+  CAMLP4LIB_BYTE="dynlink.cma $CAMLP4LIB_BYTE"
+fi
+if test -f $OCAMLLIB/dynlink.cmxa; then
+  CAMLP4LIB_OPT="dynlink.cmxa $CAMLP4LIB_OPT"
+fi
+
+# force usage of supported Ocaml versions
 case "$OCAMLVERSION" in
-    3.1*)
-      if test "$GUI" = "oldgui"; then
-        OLDGUI_NO_31=yes
-        GUI=no
-      fi
-      ;;
-    "$REQUIRED_OCAML"*|3.09.*|3.08.4*|3.08.3*) ;;
+    3.10.1*|3.10.2*|3.1*) ;;
     *)
       if [ test "$REQUIRED_OCAML" != "CVS" ]; then
-        REBUILD_OCAML=yes
+        echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2;
+        echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
+        exit 1
       fi
       ;;
 esac
-if test "$REBUILD_OCAML" = "yes"; then
-  echo "********  Version $REQUIRED_OCAML of Objective-Caml is required  *********" 1>&2;
-  echo "*******  Check http://caml.inria.fr/  ********" 1>&2;
-  exit 1;
-fi
 
 if test "$OCAMLOPT" = "no"; then
   TARGET_TYPE=byte
@@ -712,6 +717,17 @@ ifelse(AC_ACVERSION, [2.13], [],
    AC_SYS_LARGEFILE
 
 ])
+
+dnl Check for native endianness.
+AC_C_BIGENDIAN(,,
+  [AC_MSG_ERROR([Machine endianness could not be determined])]
+)
+if test "x$WORDS_BIGENDIAN" = "x"; then
+  NATIVEENDIAN=LittleEndian
+else
+  NATIVEENDIAN=BigEndian
+fi
+AC_SUBST(NATIVEENDIAN)
 
 # various header files
 AC_CHECK_FUNCS(setrlimit getrlimit strerror_r strerror posix_fallocate)
@@ -1164,8 +1180,6 @@ echo "-----------------------------------------------"
 echo "     Checking activated networks finished."
 echo "-----------------------------------------------"
 
-OCAMLLIB=`$OCAMLC -where`
-
 if test -f $OCAMLLIB/lablgl.cma; then
   LABLGL_CMA=lablgl.cma
 fi
@@ -1190,14 +1204,7 @@ if test ! "$GUI" = "no"; then
         AC_MSG_CHECKING(for librsvg - version >= $REQUIRED_RSVG)
         if pkg-config --atleast-version $REQUIRED_RSVG $PKG_RSVG; then
           GTK_CONFIG="pkg-config $PKG_GTK $PKG_RSVG"
-          case "$OCAMLVERSION" in
-              3.08*|3.09*)
-                REQUIRED_LABLGTK=2.12.0
-                ;;
-              *)
-                REQUIRED_LABLGTK=2.14.1
-                ;;
-          esac
+          REQUIRED_LABLGTK=2.14.1
           LABLGTK_NAME=lablgtk2
           AC_MSG_RESULT(yes)
         else
@@ -1236,15 +1243,15 @@ if test "$GTK_CONFIG" = "no"; then
      LABLGTK_CONFIG=no
 else
   AC_MSG_CHECKING(for native code $LABLGTK_NAME)
-  if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablgtk.$OCAMLLIB_EXT; then
+  if test -f $OCAMLLIB/$LABLGTK_NAME/lablgtk.$OCAMLLIB_EXT; then
      if test "$GUI" = "newgui2"; then
-       if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablrsvg.$OCAMLLIB_EXT; then
+       if test -f $OCAMLLIB/$LABLGTK_NAME/lablrsvg.$OCAMLLIB_EXT; then
          AC_MSG_RESULT(yes)
          LABLGTK_CONFIG=yes
        else
          AC_MSG_RESULT(no)
          LABLGTK_CONFIG=no
-         if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablrsvg.cma; then
+         if test -f $OCAMLLIB/$LABLGTK_NAME/lablrsvg.cma; then
            echo "---------------------------------------------------------"
            echo "lablrsvg is not installed properly. See the INSTALL.txt"
            echo "file of mldonkey to see how to compile $LABLGTK_NAME. You"
@@ -1265,7 +1272,7 @@ else
   else
      AC_MSG_RESULT(no)
      LABLGTK_CONFIG=no
-     if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablgtk.cma; then
+     if test -f $OCAMLLIB/$LABLGTK_NAME/lablgtk.cma; then
        echo "-------------------------------------------------------------"
        echo "$LABLGTK_NAME is not installed properly. See the INSTALL.txt"
        echo "file of mldonkey to see how to compile $LABLGTK_NAME. You"
@@ -1314,7 +1321,7 @@ else
           rm -rf lablgtk-"$REQUIRED_LABLGTK"
          )
          cd $CONFIG_DIR
-         if test -f `$OCAMLC -where`/$LABLGTK_NAME/lablgtk.$OCAMLLIB_EXT; then
+         if test -f $OCAMLLIB/$LABLGTK_NAME/lablgtk.$OCAMLLIB_EXT; then
             LABLGTK_CONFIG=yes
          else
             echo "Installation of $LABLGTK_NAME failed"
@@ -1341,8 +1348,7 @@ if test "$LABLGTK_CONFIG" = "no"; then
 else
   MORE_TARGETS="$MORE_TARGETS $GUIS"
   AC_MSG_CHECKING(GToolbox.popup_menu args)
-  OCAML_LIB_DIR="`$OCAMLC -where`"
-  GTOOLBOX="$OCAML_LIB_DIR/$LABLGTK_NAME/gToolbox.mli"
+  GTOOLBOX="$OCAMLLIB/$LABLGTK_NAME/gToolbox.mli"
   grep popup $GTOOLBOX | grep -i button 2> /dev/null && GTOOLBOX_ARGS=new
   if test "$GTOOLBOX_ARGS" = "new"; then
     GTOOLBOX_POPUPMENU=' ~button: button ~time: time '
@@ -1378,6 +1384,9 @@ AC_SUBST(OCAMLYACC)
 AC_SUBST(OCAMLDEP)
 AC_SUBST(OCAMLDEP_OPTIONS)
 AC_SUBST(CAMLP4)
+AC_SUBST(CAMLP4OF)
+AC_SUBST(CAMLP4LIB_OPT)
+AC_SUBST(CAMLP4LIB_BYTE)
 AC_SUBST(PERL)
 AC_SUBST(OCAMLDOC)
 AC_SUBST(OCAMLMKTOP)
@@ -1448,6 +1457,7 @@ AC_OUTPUT(\
   Makefile.config \
   mldonkey.rc \
   $AUTOCONF.new $GTK_AUTOCONF.new \
+   ../src/utils/bitstring/bitstring.ml \
    ../src/utils/lib/magic.ml \
    ../src/networks/donkey/donkeySui.ml \
    ../src/daemon/driver/driverGraphics.ml \
