@@ -644,7 +644,7 @@ else
   AC_CHECK_PROG(OCAMLDOC, ocamldoc, ocamldoc)
   AC_CHECK_PROG(OCAMLMKTOP, ocamlmktop, ocamlmktop)
   AC_CHECK_PROG(CAMLP4, camlp4, camlp4)
-  AC_CHECK_PROG(CAMLP4OF, camlp4of, camlp4of, no)
+  AC_CHECK_PROG(CAMLP4OF, camlp4of, camlp4of, $CAMLP4 pa_o.cmo pr_o.cmo Camlp4QuotationExpander.cmo Camlp4GrammarParser.cmo)
 fi
 fi
 
