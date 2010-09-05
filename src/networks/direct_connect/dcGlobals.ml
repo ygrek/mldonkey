@@ -559,7 +559,7 @@ let new_file tiger_root (directory:string) (filename:string) (file_size:int64) =
         impl_file_received = current_size;
           impl_file_val = file;
           impl_file_ops = file_ops;
-          impl_file_age = last_time ();          
+          impl_file_age = last_time ();
         impl_file_best_name = filename;
         } in
       file_add impl FileNew;  (* CommonInteractive.file_add *)
@@ -577,42 +577,45 @@ let file_size file = file.file_file.impl_file_size
 let file_downloaded file = file_downloaded (as_file file.file_file)
 let file_age file = file.file_file.impl_file_age
 let file_fd file = file_fd (as_file file.file_file)
-      
-(* Add new client, return client*)      
+
+(* Add new client, return client*)
 let new_client () = 
       let rec c = {
           client_client = impl;
           client_sock = NoConnection;
-    client_name = None;
+          client_name = None;
           client_addr = None;
-    client_supports = None;
-    client_lock = "";
-    client_file = None; (* (file, filename) *)
-    client_state = DcIdle;
-    client_error = NoError;
-    client_error_count = 0;
-    client_preread_bytes_left = 0;
+          client_supports = None;
+          client_lock = "";
+          client_file = None; (* (file, filename) *)
+          client_state = DcIdle;
+          client_error = NoError;
+          client_error_count = 0;
+          client_preread_bytes_left = 0;
           client_pos = Int64.zero;
-    client_endpos = Int64.zero; (* atm. upload end position *)
+          client_endpos = Int64.zero; (* atm. upload end position *)
           client_receiving = Int64.zero;
-    client_user = None;
+          client_user = None;
+          client_connect_time = last_time ();
           client_connection_control = new_connection_control ();
+          client_downloaded = Int64.zero;
+          client_uploaded = Int64.zero;
         } and impl = {
           dummy_client_impl with
           impl_client_val = c;
           impl_client_ops = client_ops;
           impl_client_upload = None;
         } in
-  (*lprintf_nl "New client";     *)
-  CommonClient.new_client impl; 
-  clients_list := c :: !clients_list;
+      (*lprintf_nl "New client";     *)
+      CommonClient.new_client impl; 
+      clients_list := c :: !clients_list;
       c
 
-(* add client to file & vice versa *)      
+(* add client to file & vice versa *)
 let add_client_to_file client file = (* TODO  we never empty files clients list so implement some kind of size control *) 
   if not (List.memq client file.file_clients) then begin       (* if client is not on file's contact list... *)
     file.file_clients <- client :: file.file_clients;          (* then add this new client to file contact list *)
-    client.client_file <- Some file;                           
+    client.client_file <- Some file;
     (*file_add_source (as_file file.file_file) (as_client client.client_client)*) (* CommonFile.file_add_source *)
   end
 
@@ -622,7 +625,7 @@ let add_client_to_user client user =
     user.user_clients <- user.user_clients @ [ client ];                  (* add client to userlist *)
     client.client_user <- Some user
   end
-      
+
 (* New client to user with file *)
 let new_client_to_user_with_file u f =
   let c = new_client () in
@@ -630,10 +633,10 @@ let new_client_to_user_with_file u f =
   add_client_to_user c u;
   add_client_to_file c f;
   c
-  
+
 let client_type c =
   client_type (as_client c.client_client)
-  
+
 (* Find clients by name, return list of all matching clients *)
 (*let find_clients_by_name name =
   let result = ref [] in
@@ -670,20 +673,26 @@ let client_state_to_string c =
   | DcUploadDoneWaitingForMore -> "DcUploadDoneWaitingForMore" )
 
 (* Copy client data to another *) 
-let copy_client c nc =
-    (*nc.client_sock <- c.client_sock;*)
-    nc.client_name <- c.client_name;
-    nc.client_addr <- c.client_addr;
-    nc.client_supports <- c.client_supports;
-    nc.client_lock <- c.client_lock;
-    nc.client_file <- c.client_file;
-    (*nc.client_state <- c.client_state;*)
-    nc.client_pos <- c.client_pos; 
-    nc.client_receiving <- c.client_receiving;
-    nc.client_user <- c.client_user;
-    nc.client_error <- c.client_error;
-    nc.client_error_count <- c.client_error_count;
-    nc.client_endpos <- c.client_endpos
+let new_copy_client c =
+  {
+    (new_client ()) with
+    (*client_sock = c.client_sock;*)
+    client_name = c.client_name;
+    client_addr = c.client_addr;
+    client_supports = c.client_supports;
+    client_lock = c.client_lock;
+    client_file = c.client_file;
+    (*client_state = c.client_state;*)
+    client_pos = c.client_pos; 
+    client_receiving = c.client_receiving;
+    client_user = c.client_user;
+    client_error = c.client_error;
+    client_error_count = c.client_error_count;
+    client_endpos = c.client_endpos;
+    client_connect_time = c.client_connect_time;
+    client_downloaded = c.client_downloaded;
+    client_uploaded = c.client_uploaded;
+  }
 
 (* Get clients username *)
 let clients_username client =
