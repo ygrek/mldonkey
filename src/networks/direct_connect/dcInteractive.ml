@@ -116,7 +116,7 @@ let td_command text title ?(blink=false) ?(target=`Output) cmd =
      onMouseOut=\\\"mOut(this);\\\" title=\\\"%s\\\"
      onClick=\\\"parent.%s.location.href='submit?q=%s'\\\"\\>%s\\</td\\>"
      (if blink then "style=\\\"text-decoration:blink\\\" " else "")
-     title (match target with `Output -> "output" | `Status -> "fstatus") 
+     title (match target with `Output -> "output" | `Status -> "fstatus")
      (String.concat "+" cmd) (* Url.encode ? *)
      text
 
@@ -288,9 +288,9 @@ let hub_print s num o =
     %s\\</tr\\>\n"
     (html_mods_cntr ())
     num
-    (td_command 
+    (td_command
       (if s.server_autoconnect then "UnSet" else "Set") 
-      "Set this server/hub autoconnection state"
+      "Set this hub autoconnection state"
       ["dcautoconnect"; (if s.server_autoconnect then "false" else "true"); sip] )
     sname sip sport sstate 
     (td_command (string_of_int susers) "Show users for this hub only" ["dcusers";sip] )
@@ -1336,13 +1336,14 @@ msgWindow.location.reload();
   ), "<name> : Show filelist for user";
 
   "dcautoconnect", Arg_two (fun arg1 arg2 o ->
-    (try
+    show_dc_buttons o;
+    try
       let s = Hashtbl.find servers_by_ip arg2 in
       let auto = bool_of_string arg1 in
       s.server_autoconnect <- auto;
-      server_must_update s
-    with _ -> () );
-    "ok"
+      server_must_update s;
+      "ok"
+    with exn -> Printf.sprintf "Failed : %s" (Printexc2.to_string exn)
   ), "<true/false> <ip> : Set/unset the server autoconnection state";
 
   ] (* end of   let commands = *)

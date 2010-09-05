@@ -582,7 +582,8 @@ let client_handler sock event =
 let read_first_message t sock =
   (match t with 
   | MyNickReq n ->                         (* if very first client to client message is $MyNick, then continue... *)
-      if !verbose_msg_clients then lprintf_nl "Received FIRST MyNick with name (%s)" n;
+      let ip,port as peer_addr = TcpBufferedSocket.peer_addr sock in
+      if !verbose_msg_clients then lprintf_nl "Received FIRST MyNick with name %S from %s:%u" n (Ip.to_string ip) port;
       (try
         let u = search_user_by_name n in   (* check if user with this name exists *)
         let c =
@@ -624,7 +625,7 @@ let read_first_message t sock =
                   lprintf_nl "Should not happen: In FIRST MyNick user (%s)" n;
                 raise Not_found ) );
         u.user_state <- UserIdle;          (* initialize user_state for later correct usage *)
-        c.client_addr <- Some (TcpBufferedSocket.peer_addr sock);
+        c.client_addr <- Some peer_addr;
         init_connection c sock;
         Some c                             (* return client *)
       with _ -> 
@@ -647,7 +648,7 @@ let get_client_supports c = (* return ( xmlbzlist , adc ,tthf )  xmlbzlist means
     | None -> false,false,false )
   in 
   xmlbzlist , adc, tthf
-            
+
 (* Send download commands to client *) 
 let dc_send_download_command c sock =
   let xmlbzlist, adc, tthf = get_client_supports c in
@@ -918,6 +919,8 @@ let rec client_reader c t sock =
       in
       match req with
       | `FullList name ->
+        lprintf_nl "Client %S requested FullList %s" (clients_username c) name;
+
         let mylist_filename = Filename.concat directconnect_directory name in
         c.client_state <- DcUploadListStarting mylist_filename;
         c.client_pos <- Int64.zero;
@@ -935,11 +938,33 @@ let rec client_reader c t sock =
             dc_send_msg sock (FileLengthReq size)
         end
 
-      | `PartialList _ -> failwith "Partial lists not yet supported"
+      | `PartialList (dir,_re) ->
+          lprintf_nl "Client %s requested PartialList %s" (clients_username c) dir;
+
+          let mylist = try DcShared.make_xml_mylist (DcShared.find_dir_exn dir) 
+            with exn -> failwith (Printf.sprintf "PartialList %s : %s" dir (Printexc2.to_string exn))
+          in 
+          let filename = Filename.concat directconnect_directory
+            (DcGlobals.safe_filename (Printf.sprintf "mylist.%s.partial.xml" (clients_username c)))
+          in
+          DcShared.buffer_to_bz2_to_file mylist filename;
+          c.client_state <- DcUploadListStarting filename;
+          c.client_pos <- Int64.zero;
+          let size = Int64.of_int (Buffer.length mylist) in
+          begin match t with
+          | AdcGetReq t ->
+              dc_send_msg sock (AdcSndReq {
+                AdcSnd.adctype = t.AdcGet.adctype;
+                AdcSnd.start_pos = 0L;
+                AdcSnd.bytes = size;
+                AdcSnd.zl = false; (* CHECK *)
+              });
+              client_reader c SendReq sock                 (* call ourselves again with send starting *)
+          | _ ->                                           (* GetReq _ | UGetBlockReq _ *)
+              assert false
+          end
 
       | `File (name, start_pos, bytes) -> (* client wants normal file *) 
-          (*lprintf_nl "Client (%s) wants to download %s (%s) %Ld bytes from pos: %Ld" (clients_username c) 
-              fname tth bytes start_pos;*)
           let dcsh = match name with
             | `TTH tth ->
               (try                                       (* lets find file by tth       *)
@@ -952,6 +977,8 @@ let rec client_reader c t sock =
               with _ ->
                 failwith (Printf.sprintf "Shared file not found by codedname %S" fname))
           in
+          lprintf_nl "Client %S wants to download %S (%s) %Ld bytes from pos: %Ld" (clients_username c) 
+              dcsh.dc_shared_fullname dcsh.dc_shared_tiger_root bytes start_pos;
           (* check if upload still exists *)
           c.client_pos <- start_pos;
           let rem = dcsh.dc_shared_size -- c.client_pos in 
@@ -964,7 +991,7 @@ let rec client_reader c t sock =
                 dc_send_msg sock (AdcSndReq {
                   AdcSnd.adctype = t.AdcGet.adctype;
                   start_pos = start_pos;
-                  bytes = rem;
+                  bytes = bytes;
                   zl = false; (* CHECK *)
                 } );
                 client_reader c SendReq sock             (* call ourselves again with send starting *)

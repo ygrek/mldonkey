@@ -218,12 +218,12 @@ well be sent in one go. Identifier must be a directory in the unnamed root, endi
     let adc_type,ident,flags =
       match t.adctype with
 (*       | AdcTthl tth -> "tthl", show_name (NameTTH tth), [] *)
-      | AdcFile name -> "file", show_name name, []
-      | AdcList (path,re) -> "list", path, if re then ["RE1"] else []
+      | AdcFile name -> "file", show_name name, ""
+      | AdcList (path,re) -> "list", path, " RE1"
     in
-    let flags = if t.zl then "ZL1"::flags else flags in
-    Printf.sprintf "$%s %s %s %Ld %Ld %s" A.command
-      adc_type ident t.start_pos t.bytes (String.concat " " flags)
+    let flags = if t.zl then flags ^ " ZL1" else flags in
+    Printf.sprintf "$%s %s %s %Ld %Ld%s" A.command
+      adc_type ident t.start_pos t.bytes flags
 
   let print t = lprintf_nl "%s" (to_string t)
   let write buf t = Buffer.add_string buf (to_string t)
