@@ -575,6 +575,9 @@ CDK_CMXA=cdk.cmxa
 MLNET_CMXA=$(CDK_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 MLNET_SRCS= $(MAIN_SRCS)
 
+TESTS_CMXA=$(CDK_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa
+TESTS_SRCS=tools/tests.ml
+
 ifeq ("$(GUI)", "newgui2")
 mlnet+gui_CMXA= \
   magic.cmxa cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
@@ -1342,6 +1345,7 @@ EXPAND(BTVIEW,btview)
 EXPAND(CLUSTER,cluster)
 EXPAND(TESTRSS,testrss)
 EXPAND(SVG_CONVERTER,svg_converter)
+EXPAND(TESTS,tests)
 
 #######################################################################
 
