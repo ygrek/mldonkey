@@ -59,14 +59,14 @@ let make_mylist () =
       if dirname = "" then ntabs else begin
         buf_tabs buf ntabs;
         let dir = dirname in
-        Printf.bprintf buf "%s\r\n" dir;
+        Printf.bprintf buf "%s\r\n" (DcProtocol.utf_to_dc dir);
         ntabs+1
       end
     in
     List.iter (fun dcsh ->
       buf_tabs buf ntabs;
       let fname = Filename2.basename dcsh.dc_shared_codedname in
-      Printf.bprintf buf "%s|%Ld\r\n" fname dcsh.dc_shared_size
+      Printf.bprintf buf "%s|%Ld\r\n" (DcProtocol.utf_to_dc fname) dcsh.dc_shared_size
     ) node.shared_files;
     List.iter (fun (_, node) ->
         iter ntabs node
@@ -134,7 +134,7 @@ let file_to_che3_to_string filename =
 (* Compress string to Che3 and write to file *)
 let string_to_che3_to_file str filename =
   (try
-    let s = Che3.compress (DcProtocol.utf_to_dc str) in
+    let s = Che3.compress str in
     let wlen = 4096 in
     (*let str = String.create slen in*)
     let slen = String.length s in
