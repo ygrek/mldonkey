@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/09/07
+7302: DC: Fix performance problem with many shared files (ygrek)
 7299: configure: abort on unknown options
 
 2010/09/01
