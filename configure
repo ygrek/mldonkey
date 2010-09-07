@@ -43,5 +43,5 @@ else
           echo "Running m4 to generate Makefile..."
           m4 Makefile.in > ../Makefile
        fi \
-    && ./configure $*
+    && ./configure --enable-option-checking=fatal $*
 fi

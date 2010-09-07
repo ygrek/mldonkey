@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/09/07
+7299: configure: abort on unknown options
+
 2010/09/01
 7296: Fix compilation problems introduced by patch 7144 (ygrek)
 - remove linking to camlp4lib
