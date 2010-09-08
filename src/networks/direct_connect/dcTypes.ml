@@ -154,7 +154,7 @@ and dc_shared_file = {
   mutable dc_shared_chunks : int;
 }
 
-and client = {  (* remember DcGlobals.copy_client if add anything *)
+and client = {  (* remember DcGlobals.new_copy_client if add anything *)
   client_client : client CommonClient.client_impl;
   mutable client_name : string option;
   mutable client_addr : (Ip.t * int) option;
@@ -171,6 +171,9 @@ and client = {  (* remember DcGlobals.copy_client if add anything *)
   mutable client_receiving : int64;
   mutable client_user : user option;
   mutable client_connection_control : connection_control;
+  client_connect_time : int;
+  mutable client_downloaded : int64;
+  mutable client_uploaded : int64;
   }
 
 and dc_result = { (* rst of the info (filename & size) are on Commonresults.result_info *)

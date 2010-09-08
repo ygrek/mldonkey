@@ -722,8 +722,7 @@ let rec client_reader c t sock =
                  if !verbose_msg_clients then lprintf_nl "  Client won the election...";
                  (match c.client_state with                  (* memorize list loading if that is the case *) 
                  | DcConnectionStyle _ ->                    (* if file was tried to download ... *) 
-                     let nc = new_client () in
-                     copy_client c nc;
+                     let nc = new_copy_client c in
                      nc.client_sock <- NoConnection;
                      nc.client_addr <- None;
                      (match c.client_file with
@@ -737,8 +736,7 @@ let rec client_reader c t sock =
                      | None -> () );  
                      remove_client_from_clients_file c
                  | _ -> (* DcDownloadListConnecting *)       (* if filelist was tried to download *)
-                     let nc = new_client () in
-                     copy_client c nc;
+                     let nc = new_copy_client c in
                      nc.client_sock <- NoConnection;
                      nc.client_addr <- None;
                      (match c.client_user with
@@ -1325,7 +1323,8 @@ let client_downloaded c sock nread = (* TODO check tth while loading, abort if e
         c.client_pos <- c.client_pos ++ downloaded;
         (match c.client_user with 
         | Some u -> u.user_downloaded <- u.user_downloaded ++ downloaded 
-        | _ -> () );         
+        | _ -> () );
+        c.client_downloaded <- c.client_downloaded ++ downloaded;
         buf_used b b.len;
         if c.client_pos > (file_downloaded file) then (* update downloading state *) (* TODO check tth while loading *)
           add_file_downloaded (as_file file.file_file) (c.client_pos -- (file_downloaded file));
@@ -1350,11 +1349,12 @@ let client_downloaded c sock nread = (* TODO check tth while loading, abort if e
         (match c.client_user with
         | Some u -> u.user_downloaded <- u.user_downloaded ++ len
         | _ -> () );
+        c.client_downloaded <- c.client_downloaded ++ len;
         c.client_receiving <- c.client_receiving -- len;
         buf_used b b.len;
         if c.client_receiving = Int64.zero then begin
           Unix32.close filelist_fd;
-          if !verbose_download then lprintf_nl "Received filelist from (%s)" (clients_username c);             
+          if !verbose_download then lprintf_nl "Received filelist from (%s)" (clients_username c);
           c.client_receiving <- Int64.zero;           (* this marks client as receiving commands again *)
           c.client_pos <- Int64.zero;
           TcpBufferedSocket.set_rtimeout sock infinite_timeout;
@@ -1524,6 +1524,7 @@ let dc_upload c bytes =
           (match c.client_user with
           | Some u -> u.user_uploaded <- u.user_uploaded ++ uploaded
           | _ -> () );
+          c.client_uploaded <- c.client_uploaded ++ uploaded;
           (match c.client_state with
           | DcUpload (dcsh,_,_,_) ->
               (try
@@ -1565,12 +1566,12 @@ module P = GuiTypes
 let _ =
   client_ops.op_client_info <- (fun c ->
     let name = clients_username c in
-    let kind,downloaded,uploaded =
+    let kind,total_downloaded,total_uploaded =
       let ip,port =
         (match c.client_addr with
         | Some (ip,port) -> ip,port
         | None -> Ip.null,0 )
-  in
+      in
       (match c.client_user with
       | Some user ->
           let kind = 
@@ -1581,6 +1582,11 @@ let _ =
       | _ ->
           let kind = Indirect_location (empty_string,Md4.null,ip,port) in
           kind,Int64.zero,Int64.zero )
+    in
+    let software, version = 
+      match c.client_user with
+      | Some u -> u.user_myinfo.client_brand, u.user_myinfo.version
+      | None -> empty_string, empty_string
     in
     let filename =
       (match c.client_file with
@@ -1594,12 +1600,14 @@ let _ =
         P.client_type = client_type c;
         P.client_name = name;
         P.client_num = (client_num (as_client c.client_client));
-        P.client_connect_time = last_time ();
-        P.client_software = empty_string;
-        P.client_release = empty_string;
+        P.client_connect_time = c.client_connect_time;
+        P.client_software = software;
+        P.client_release = version;
         P.client_emulemod = empty_string;
-        (*P.client_downloaded = downloaded;*)
-        (*P.client_uploaded = uploaded;*)
+        P.client_session_downloaded = c.client_downloaded;
+        P.client_session_uploaded = c.client_uploaded;
+        P.client_total_downloaded = total_downloaded;
+        P.client_total_uploaded = total_uploaded;
         P.client_upload = Some filename;
         P.client_sui_verified = None; (* new 2.6.5 *)
 (*      P.client_sock_addr = ""; *)
