@@ -31,7 +31,7 @@ let max_xs_packets = define_expert_option donkey_section ["max_xs_packets"]
 
 let donkey_port = define_option donkey_section ["port"]
   ~restart: true
-  "The port used for connection by other donkey clients."
+  "The port used for TCP connection by other donkey clients. UDP port = port + 4."
     port_option (2000 + Random.int 20000)
 
 let check_client_connections_delay = define_expert_option donkey_section ["check_client_connections_delay"]
