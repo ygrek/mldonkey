@@ -30,7 +30,7 @@ let log_prefix = "[dcPro]"
 
 let lprintf_nl fmt =
   lprintf_nl2 log_prefix fmt
-    
+
 (* Replace one string to another string from string *)
 (*let dc_replace_str_to_str s find_str to_str =
   if find_str = to_str then failwith "dc_replace_str_to_str find_str = to_str";
@@ -56,7 +56,7 @@ let lprintf_nl fmt =
     else !str
   in
   replace s *)
-      
+
 (* Decode chat messages *)
 (* You can now use $ and | in the chat. *)
 (* DC++ uses the HTML standard &#36; and &#124; to replace them *)
@@ -72,7 +72,7 @@ let dc_encode_chat s = (* convert '|'and '$' to html characters &#36; and &#124;
   let s = String2.replace s '|' "&#124;" in
   let s = String2.replace s '&' "&amp;" in
   s
-        
+
 (* Reuseable modules for simple commands *)
 module Empty = functor(M: sig val msg : string end) ->  struct
   let parse s = ()
@@ -102,6 +102,22 @@ let dc_to_utf s =
     Charset.convert (Charset.charset_from_string !!DcOptions.default_encoding) Charset.UTF_8 s
   with
     _ -> Charset.Locale.to_utf8 s
+
+let make_name s =
+  match String2.split s '/' with
+  | ["TTH";tth] -> 
+      if is_valid_tiger_hash tth then NameTTH tth else failwith "Invalid TTH"
+(*
+  | ""::path -> 
+      if List.exists (function "." | ".." -> true | _ -> false) path then failwith "Invalid path" else NameShared path
+*)
+  | [file] -> NameSpecial file
+  | _ -> failwith ("Invalid name : " ^ s)
+
+let show_name = function
+(*   | NameShared l -> "/" ^ String.concat "/" l *)
+  | NameSpecial s -> s
+  | NameTTH tth -> "TTH/" ^ tth
 
 module SimpleCmd(M: sig val msg : string end) = struct
   type t = string
@@ -170,93 +186,48 @@ should be taken as a hint that the requesting client will be getting the subdire
 well be sent in one go. Identifier must be a directory in the unnamed root, ending (and beginning) with ‘/’. *)
 
   type t = {
-    mutable adctype : adc_type;
-    mutable fname : string;
-    mutable tth : string;
-    mutable start_pos : int64;
-    mutable bytes : int64;
-    mutable zl : bool;
+    adctype : adc_type;
+    start_pos : int64;
+    bytes : int64;
+    zl : bool;
   }
 
-  let s_tth = ref "TTH/"
-  let s_tthl = ref "tthl"
-  let s_file = ref "file"
-
   let parse s =
-    (try
-      let m = {
-        adctype = AdcFile;
-        fname = "";
-        tth = "";
-        start_pos = Int64.zero;
-        bytes = Int64.zero;
-        zl = false;
-      } in
-      let strip_right str =
-        let pos = String.rindex str ' ' in
-        String2.before str pos, String2.after str (pos+1)
-      in
-      (match String2.splitn s ' ' 1 with
-      | [adc_type ; msg] ->
-          let msg =                               (* strip possible ZL1 *)
-            (match String2.split msg ' ' with 
-            | msg :: "ZL1" :: [] -> m.zl <- true; msg
-            | _ -> msg )          
-          in
-          m.adctype <-                            (* define adc-type *)
-            (match adc_type with 
-            | "file" -> AdcFile 
-            | "tthl" -> AdcTthl
-            | _ -> raise Not_found );
-
-          let msg, bytes = strip_right msg in     (* strip bytes and start from msg right side *)
-          m.bytes <- Int64.of_string bytes;
-          let msg, start = strip_right msg in
-          m.start_pos <- Int64.of_string start; 
-
-          if (String2.before msg 4) = !s_tth then (* identifier is TTH *)
-            m.tth <- String2.after msg 4
-          else begin                              (* identifier is file *)
-            let msg =   (* strip first / that DC++ seems to add at least downloads from filelists *)
-              if (String2.before msg 1 = "/") then (String2.after msg 1)
-              else msg in
-            let s = dc_replace_str_to_str msg "\\ " " " in  (* replace escaped "\ " from filename with " " space *)                         
-            m.fname <- s
+    try
+      match String2.split s ' ' with
+      | adc_type :: ident :: start_pos :: bytes :: flags ->
+        {
+          adctype = begin match adc_type with
+                    | "file" -> AdcFile (make_name ident)
+(*                     | "tthl" -> AdcTthl (match name with NameTTH tth -> tth | _ -> failwith "tthl") *)
+                    | "list" -> AdcList (ident, List.mem "RE1" flags)
+(*                     ((match name with NameShared dir -> dir | _ -> failwith "list"),  *)
+                    | _ -> failwith "Unknown ADC GET type" 
           end;
+          start_pos = Int64.of_string start_pos;
+          bytes = Int64.of_string bytes;
+          zl = List.mem "ZL1" flags;
+        }
+      | _ -> failwith "Invalid ADC GET format"
+    with exn ->
+      if !verbose_msg_clients || !verbose_upload then 
+        lprintf_nl "Error in AdcGet parsing : %s" (Printexc2.to_string exn);
+      raise Not_found
 
-          (* sanity checks... *)
-          if (m.adctype = AdcTthl) && (m.fname = "") then raise Not_found;
-          m                                       (* return m as result *) 
-      | _ -> raise Not_found )
-    with _ ->
-      if !verbose_msg_clients || !verbose_upload then lprintf_nl "Error in AdcGet parsing";
-      raise Not_found )
-      
-      let print t = 
-    let adc_type,fname_or_tth =
-      (match t.adctype with
-      | AdcTthl -> !s_tthl, !s_tth ^ t.tth
-      | AdcFile -> !s_file, (if t.tth <> "" then !s_tth ^ t.tth else t.fname ) )
+  let to_string t = 
+    let adc_type,ident,flags =
+      match t.adctype with
+(*       | AdcTthl tth -> "tthl", show_name (NameTTH tth), [] *)
+      | AdcFile name -> "file", show_name name, ""
+      | AdcList (path,re) -> "list", path, " RE1"
     in
-    lprintf_nl "%s %s %s %Ld %Ld%s" A.command
-      adc_type fname_or_tth t.start_pos t.bytes (if t.zl then " ZL1" else "")
-      
-      let write buf t = 
-    let adc_type,fname_or_tth =
-      (match t.adctype with 
-      | AdcTthl -> !s_tthl, !s_tth ^ t.tth
-      | AdcFile -> !s_file,
-          (if t.tth <> "" then !s_tth ^ t.tth else begin
-            let s = ref "" in
-            s := dc_replace_str_to_str t.fname " " "\\ "; (* escape all spaces *)
-            !s
-           end ) 
-      )
-    in
-    Printf.bprintf buf "$%s %s %s %Ld %Ld%s" A.command 
-      adc_type fname_or_tth t.start_pos t.bytes (if t.zl then " ZL1" else "")
-    (*if !verbose_msg_clients || !verbose_download then lprintf_nl "Sending: (%s)" (Buffer.contents buf);*)
-    
+    let flags = if t.zl then flags ^ " ZL1" else flags in
+    Printf.sprintf "$%s %s %s %Ld %Ld%s" A.command
+      adc_type ident t.start_pos t.bytes flags
+
+  let print t = lprintf_nl "%s" (to_string t)
+  let write buf t = Buffer.add_string buf (to_string t)
+
   end
 
 module AdcGet = Adc (struct let command = "ADCGET" end)

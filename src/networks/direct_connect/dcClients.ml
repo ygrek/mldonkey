@@ -582,7 +582,8 @@ let client_handler sock event =
 let read_first_message t sock =
   (match t with 
   | MyNickReq n ->                         (* if very first client to client message is $MyNick, then continue... *)
-      if !verbose_msg_clients then lprintf_nl "Received FIRST MyNick with name (%s)" n;
+      let ip,port as peer_addr = TcpBufferedSocket.peer_addr sock in
+      if !verbose_msg_clients then lprintf_nl "Received FIRST MyNick with name %S from %s:%u" n (Ip.to_string ip) port;
       (try
         let u = search_user_by_name n in   (* check if user with this name exists *)
         let c =
@@ -624,7 +625,7 @@ let read_first_message t sock =
                   lprintf_nl "Should not happen: In FIRST MyNick user (%s)" n;
                 raise Not_found ) );
         u.user_state <- UserIdle;          (* initialize user_state for later correct usage *)
-        c.client_addr <- Some (TcpBufferedSocket.peer_addr sock);
+        c.client_addr <- Some peer_addr;
         init_connection c sock;
         Some c                             (* return client *)
       with _ -> 
@@ -647,16 +648,15 @@ let get_client_supports c = (* return ( xmlbzlist , adc ,tthf )  xmlbzlist means
     | None -> false,false,false )
   in 
   xmlbzlist , adc, tthf
-            
+
 (* Send download commands to client *) 
 let dc_send_download_command c sock =
   let xmlbzlist, adc, tthf = get_client_supports c in
-  let fname, from_pos , tth =
-    (match c.client_state with
+  let name, from_pos =
+    match c.client_state with
     | DcDownload file ->
         let separator = String2.of_char '/' in
         let fname = file.file_directory ^ separator ^ file.file_name in
-        let fname = if adc then separator ^ fname else fname in  (* adc needs trailing '/' *)
         let preload_bytes =                                      (* calculate preread bytes position *) 
           let from_pos = file_downloaded file in
           if from_pos < int64_kbyte then begin                   (* if read under 1k bytes from client, start over *)
@@ -668,40 +668,44 @@ let dc_send_download_command c sock =
           end
         in
         c.client_preread_bytes_left <- preload_bytes;
-        fname, c.client_pos -- (Int64.of_int preload_bytes), file.file_unchecked_tiger_root
-        | _ ->
+        `Normal (fname, file.file_unchecked_tiger_root), c.client_pos -- (Int64.of_int preload_bytes)
+    | _ ->
         c.client_pos <- Int64.zero;
-        if xmlbzlist then
-          mylistxmlbz2, c.client_pos, empty_string
-        else
-          mylist,  c.client_pos , empty_string ) 
+        `List (if xmlbzlist then mylistxmlbz2 else mylist), c.client_pos
   in
-  if !verbose_msg_clients || !verbose_download then 
+  if !verbose_msg_clients || !verbose_download then
+  begin
+    let (fname,tth) = match name with `Normal (name,tth) -> name,tth | `List name -> name,"" in
     lprintf_nl "Sending $Get/$ADCGET: (%s)(%s)(%s)(%Ld)" (clients_username c) fname tth from_pos;
-  if adc then begin                                          (* if client supports adc ...*)
-    let fname = if (tth <> "") && tthf                       (* if client supports tthf ... *) 
-      then empty_string                                      (* only tth or filename is sent valid *)
-      else fname
-    in  
-    dc_send_msg sock ( AdcGetReq {
-      AdcGet.adctype = AdcFile;
-      AdcGet.fname = fname;
-      AdcGet.tth = tth;
-      AdcGet.start_pos = from_pos;
-      AdcGet.bytes = Int64.minus_one;                        (* TODO load file from from_pos to anywhere *)
-      AdcGet.zl = false;
-    } )
-  end else if xmlbzlist then begin                           (* if client supports ugetblock ...*)
-    dc_send_msg sock ( UGetBlockReq {
-      UGetBlock.ufilename = fname;
+  end;
+  let msg = match adc, tthf, name with
+  | true, true, `Normal (_,tth) when tth <> "" ->
+    AdcGetReq {
+      AdcGet.adctype = AdcFile (NameTTH tth);
+      start_pos = from_pos;
+      bytes = Int64.minus_one;                        (* TODO load file from from_pos to anywhere *)
+      zl = false;
+    }
+  | true, _, `List name ->
+    AdcGetReq {
+      AdcGet.adctype = AdcFile (NameSpecial name); (* FIXME AdcList *)
+      start_pos = from_pos;
+      bytes = Int64.minus_one;
+      zl = false;
+    }
+  | _, _, (`Normal (name,_) | `List name) ->
+    if xmlbzlist then (* if client supports ugetblock ...*)
+    UGetBlockReq {
+      UGetBlock.ufilename = name;
       UGetBlock.ubytes = Int64.minus_one;
       UGetBlock.upos = from_pos;
-    } )
-  end else begin                                             (* else send normal GET *)
-    dc_send_msg sock  ( GetReq {
-      Get.filename = fname;
-      Get.pos = Int64.succ from_pos } )
-      end
+    }
+    else (* else send normal GET *)
+    GetReq {
+      Get.filename = name;
+      Get.pos = Int64.succ from_pos }
+  in
+  dc_send_msg sock msg
 
 (* clients messages normal reader *) 
 let rec client_reader c t sock =
@@ -866,123 +870,151 @@ let rec client_reader c t sock =
       if !verbose_unexpected_messages then
         lprintf_nl "Exception (%s) FileLength/AdcSnd:" (Printexc2.to_string e);
       close sock (Closed_for_error (Printexc2.to_string e)) )
-  
+
   | AdcGetReq _
   | GetReq _ 
   | UGetBlockReq _ -> (* TODO downloading a section of file *) (* TODO state checking ? *)
-      let fname, tth, start_pos, bytes, zl  =
-        (match t with 
-        | AdcGetReq t ->
-            (*lprintf_nl "Received $AdcGet (%s) (%s) %Ld %Ld" t.AdcGet.fname t.AdcGet.tth t.AdcGet.start_pos t.AdcGet.bytes;*)
-            t.AdcGet.fname, t.AdcGet.tth, t.AdcGet.start_pos, t.AdcGet.bytes, t.AdcGet.zl
-        | GetReq t ->
-            (*lprintf_nl "Received $Get %s %Ld" t.Get.filename t.Get.pos;*)
-            t.Get.filename, empty_string, (Int64.pred t.Get.pos), Int64.minus_one, false 
-        | UGetBlockReq t -> 
-            (*lprintf_nl "Received $UGetBlock %Ld %Ld %s"  t.UGetBlock.upos t.UGetBlock.ubytes t.UGetBlock.ufilename;*)
-            t.UGetBlock.ufilename, empty_string, t.UGetBlock.upos, t.UGetBlock.ubytes, false 
-        | _ -> raise Not_found )
-      in
+
       if (c.client_state = DcUploadDoneWaitingForMore) then begin (* if this is a continual loading *) 
         if !verbose_upload || !verbose_msg_clients then lprintf_nl "  Continuing upload/slot";
         TcpBufferedSocket.set_lifetime sock infinite_timeout;     (* restore connection lifetime *) 
-        end;
-  
+      end;
+
       let direction_change =                                    (* memorize possible direction change *)
         (match c.client_state with
         | DcConnectionStyle MeActive Download 65535
         | DcConnectionStyle ClientActive Download 65535 -> true (* these mean direction change and we have lost *)
         | _ -> false );
       in
-          
-      if (fname = mylist) || (fname = mylistxmlbz2) then begin    (* client wants our filelist *)
-        let mylist_filename =
-          if (fname = mylist) then (Filename.concat directconnect_directory mylist)
-          else if (fname = mylistxmlbz2) then (Filename.concat directconnect_directory mylistxmlbz2)
-          else begin
-            if !verbose_upload && !verbose_unexpected_messages then lprintf_nl "Invalid mylistname";
-            raise Not_found
-                end
-        in
+
+      begin try
+
+      let req = 
+        match t with
+        | AdcGetReq { AdcGet.zl = true } ->
+            failwith "ZLib not yet supported"
+
+        | AdcGetReq { AdcGet.adctype = AdcList (dir,re1) } -> `PartialList (dir,re1)
+
+        | AdcGetReq { AdcGet.adctype = AdcFile (NameSpecial name) }
+        | GetReq { Get.filename = name }
+        | UGetBlockReq { UGetBlock.ufilename = name } 
+            when name = mylist || name = mylistxmlbz2 -> `FullList name
+
+        | AdcGetReq { AdcGet.adctype = AdcFile (NameSpecial name) } ->
+            failwith ("ADCGET special name not supported : " ^ name)
+
+        | AdcGetReq { AdcGet.adctype = AdcFile (NameTTH tth); start_pos=start; bytes=bytes } ->
+            `File (`TTH tth, start, bytes)
+
+        | GetReq t ->
+            let name = String2.replace t.Get.filename char92 "/" in
+            `File (`Name name, Int64.pred t.Get.pos, Int64.minus_one)
+
+        | UGetBlockReq t ->
+            let name = String2.replace t.UGetBlock.ufilename char92 "/" in
+            `File (`Name name, t.UGetBlock.upos, t.UGetBlock.ubytes)
+
+        | _ -> failwith "Unexpected request"
+      in
+      match req with
+      | `FullList name ->
+        lprintf_nl "Client %S requested FullList %s" (clients_username c) name;
+
+        let mylist_filename = Filename.concat directconnect_directory name in
         c.client_state <- DcUploadListStarting mylist_filename;
         c.client_pos <- Int64.zero;
         let size = Unix32.getsize mylist_filename in
-        (match t with
-        | AdcGetReq _ ->
-            if zl then begin
-              if !verbose_upload && !verbose_unexpected_messages then lprintf_nl "Zlib not yet supported";
-              raise Not_found
-            end;
+        begin match t with
+        | AdcGetReq t ->
             dc_send_msg sock (AdcSndReq {
-              AdcSnd.adctype = AdcFile;
-              AdcSnd.fname = fname;
-              AdcSnd.tth = tth;
-              AdcSnd.start_pos = start_pos;
+              AdcSnd.adctype = t.AdcGet.adctype;
+              AdcSnd.start_pos = 0L;
               AdcSnd.bytes = size;
               AdcSnd.zl = false; (* CHECK *)
             });
             client_reader c SendReq sock                 (* call ourselves again with send starting *)
         | _ ->                                           (* GetReq _ | UGetBlockReq _ *)
-            dc_send_msg sock (FileLengthReq size) );
+            dc_send_msg sock (FileLengthReq size)
+        end
 
-      end else begin                                     (* client wants normal file *) 
-        let fname = String2.replace fname char92 "/" in
-        (try
-          (*lprintf_nl "Client (%s) wants to download %s (%s) %Ld bytes from pos: %Ld" (clients_username c) 
-              fname tth bytes start_pos;*)
-          let dcsh =
-            if tth <> "" then begin                      
+      | `PartialList (dir,_re) ->
+          lprintf_nl "Client %s requested PartialList %s" (clients_username c) dir;
+
+          let mylist = try DcShared.make_xml_mylist (DcShared.find_dir_exn dir) 
+            with exn -> failwith (Printf.sprintf "PartialList %s : %s" dir (Printexc2.to_string exn))
+          in 
+          let filename = Filename.concat directconnect_directory
+            (DcGlobals.safe_filename (Printf.sprintf "mylist.%s.partial.xml" (clients_username c)))
+          in
+          DcShared.buffer_to_bz2_to_file mylist filename;
+          c.client_state <- DcUploadListStarting filename;
+          c.client_pos <- Int64.zero;
+          let size = Int64.of_int (Buffer.length mylist) in
+          begin match t with
+          | AdcGetReq t ->
+              dc_send_msg sock (AdcSndReq {
+                AdcSnd.adctype = t.AdcGet.adctype;
+                AdcSnd.start_pos = 0L;
+                AdcSnd.bytes = size;
+                AdcSnd.zl = false; (* CHECK *)
+              });
+              client_reader c SendReq sock                 (* call ourselves again with send starting *)
+          | _ ->                                           (* GetReq _ | UGetBlockReq _ *)
+              assert false
+          end
+
+      | `File (name, start_pos, bytes) -> (* client wants normal file *) 
+          let dcsh = match name with
+            | `TTH tth ->
               (try                                       (* lets find file by tth       *)
-                Hashtbl.find dc_shared_files_by_hash tth (* if found, return files name *)
+                Hashtbl.find dc_shared_files_by_hash tth
               with _ ->
-                if !verbose_upload then lprintf_nl "Shared file not found by tth (%s) in Get/Adcget" tth;
-                raise Not_found ) 
-            end else begin 
+                failwith (Printf.sprintf "Shared file not found by tth %S" tth))
+            | `Name fname ->
               (try                                       (* so lets find filename then     *)
                 Hashtbl.find dc_shared_files_by_codedname fname 
               with _ ->
-                if !verbose_upload then lprintf_nl "Shared file not found by codedname (%s) in Get/AdcGet" fname ;
-                raise Not_found )     
-            end
+                failwith (Printf.sprintf "Shared file not found by codedname %S" fname))
           in
+          lprintf_nl "Client %S wants to download %S (%s) %Ld bytes from pos: %Ld" (clients_username c) 
+              dcsh.dc_shared_fullname dcsh.dc_shared_tiger_root bytes start_pos;
           (* check if upload still exists *)
           c.client_pos <- start_pos;
           let rem = dcsh.dc_shared_size -- c.client_pos in 
-          if dc_can_upload () || (counts_as_minislot dcsh.dc_shared_size) then begin   (* if free slots or file size *) 
+          if dc_can_upload () || (counts_as_minislot dcsh.dc_shared_size) then 
+          begin   (* if free slots or file size *) 
             if not (counts_as_minislot dcsh.dc_shared_size) then dc_insert_uploader ();(* increase uploaders *)
             c.client_state <- DcUploadStarting (dcsh,start_pos,bytes);
             (match t with
-            | AdcGetReq _ ->
-                if zl then begin 
-                  if !verbose_upload && !verbose_unexpected_messages then lprintf_nl "Zlib not yet supported";
-                  raise Not_found
-        end;
+            | AdcGetReq t ->
                 dc_send_msg sock (AdcSndReq {
-                  AdcSnd.adctype = AdcFile;
-                  AdcSnd.fname = fname;
-                  AdcSnd.tth = tth;
-                  AdcSnd.start_pos = start_pos;
-                  AdcSnd.bytes = bytes;
-                  AdcSnd.zl = false; (* CHECK *)
+                  AdcSnd.adctype = t.AdcGet.adctype;
+                  start_pos = start_pos;
+                  bytes = bytes;
+                  zl = false; (* CHECK *)
                 } );
                 client_reader c SendReq sock             (* call ourselves again with send starting *)
             | _ ->                                       (* GetReq _ | UGetBlockReq _ *)
-                dc_send_msg sock (FileLengthReq rem) );
-  
-              end else begin
+                dc_send_msg sock (FileLengthReq rem) )
+
+          end else begin
             (*lprintf_nl "Sending MaxedOut to (%s)" (clients_username c);*)
             dc_send_msg sock MaxedOutReq;
             close sock (Closed_for_error ("By us: Maxedout")) 
           end
-        with _ ->
+      with exn ->
+          if !verbose_upload then
+            lprintf_nl "Error answering GET/ADCGET: %s" (Printexc2.to_string exn);
           let errortxt = "File Not Available" in 
-          (match t with
+          begin match t with
           | AdcGetReq _
-          | GetReq _ ->  
+          | GetReq _ ->
               dc_send_msg sock (ErrorReq errortxt) 
           | _ ->                                       (* UGetBlockReq _ *)
-              dc_send_msg sock (FailedReq errortxt) ); 
-          close sock (Closed_for_error ("By us:" ^ errortxt)) )
+              dc_send_msg sock (FailedReq errortxt) 
+          end; 
+          close sock (Closed_for_error ("By us:" ^ errortxt))
       end;
       if direction_change then begin                   (* now the users clients states wont interfere this check *)
         (match c.client_user with                      (* we can check if we can start new download immediately  *)
@@ -991,9 +1023,9 @@ let rec client_reader c t sock =
             ignore (ask_user_for_download user)
         | _ -> () );
               end
-        
+
   | GetListLenReq -> ()
-        
+
   | KeyReq _ -> 
       (*lprintf_nl "Received $Key ... dumping it";*)
       (*lprintf_nl "Client state: %s" (client_state_to_string c);*)

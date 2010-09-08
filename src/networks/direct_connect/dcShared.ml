@@ -76,7 +76,7 @@ let make_mylist () =
   Buffer.contents buf
 
 (* Create mylist of shared files in xml-format *)
-let make_xml_mylist () = 
+let make_xml_mylist root = 
   let buf = Buffer.create 1000 in
   Printf.bprintf buf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>\r\n";
   Printf.bprintf buf "<FileListing Version=\"1\" CID=\"1,0,2,3,4,5,6\" Base=\"/\" Generator=\"MLDC-%s\">\r\n" (Xml.escape Autoconf.current_version);
@@ -102,7 +102,7 @@ let make_xml_mylist () =
         Printf.bprintf buf "</Directory>\r\n"
     ) node.shared_dirs
   in
-  iter 0 dc_shared_tree;
+  iter 0 root;
   Printf.bprintf buf "</FileListing>";
   buf
 
@@ -212,11 +212,20 @@ let buffer_to_bz2_to_file buf filename =
 
 (* Create xml and mylist filelist *)
 let create_filelist () =
-  buffer_to_bz2_to_file (make_xml_mylist () ) (Filename.concat directconnect_directory mylistxmlbz2);
+  buffer_to_bz2_to_file (make_xml_mylist dc_shared_tree) (Filename.concat directconnect_directory mylistxmlbz2);
   if !verbose_upload then lprintf_nl "Created mylist.xml file";
   string_to_che3_to_file (make_mylist () ) (Filename.concat directconnect_directory mylist);
   if !verbose_upload then lprintf_nl "Created mylist file";
   ()
+
+let find_dir_exn name =
+  let path = String2.split_simplify name '/' in
+  let rec follow path node =
+    match path with
+    | [] -> node
+    | x::xs -> follow xs (List.assoc x node.shared_dirs)
+  in
+  follow path dc_shared_tree
 
 (*let dc_share_file dcsh = ()*)
 (*  let magic =

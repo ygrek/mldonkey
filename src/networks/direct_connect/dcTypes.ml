@@ -375,7 +375,15 @@ and dc_mylistnode = (* type for mylist parsing *)
    | MylistDirectory of (string * dc_mylistnode list ref)
    | MylistFile of (string * string) (* filename * size *)
 
-and adc_type = AdcTthl | AdcFile
+and adc_name =
+(*   | NameShared of string list (* shared filename - path from root *) *)
+  | NameSpecial of string (* rootless filename - filelists, future extensions *)
+  | NameTTH of string (* TTH/ *)
+
+and adc_type = 
+  | AdcFile of adc_name
+(*   | AdcTthl of string (* tth *) *)
+  | AdcList of string * bool (* path * recursive *)
 
 and dc_shared_tree =
   {

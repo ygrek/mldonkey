@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/09/08
+7308: DC: handle ADCGET list (ygrek)
 7307: New make target "tests" for unit tests (ygrek)
 7306: DC: show client brand, session transfer and duration (ygrek)
 
