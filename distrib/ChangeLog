@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/09/08
+7305: Xml-light: fix attributes parsing (ygrek)
 7310: EDK: improve comment port option (ygrek)
 7308: DC: handle ADCGET list (ygrek)
 7307: New make target "tests" for unit tests (ygrek)
