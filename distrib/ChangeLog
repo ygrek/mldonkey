@@ -15,7 +15,7 @@ ChangeLog
 =========
 
 2010/09/08
-7306: DC: show client brand, session transfer and duration
+7306: DC: show client brand, session transfer and duration (ygrek)
 
 2010/09/07
 7302: DC: Fix performance problem with many shared files (ygrek)
