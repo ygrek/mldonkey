@@ -81,29 +81,23 @@ let make_xml_mylist root =
   Printf.bprintf buf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>\r\n";
   Printf.bprintf buf "<FileListing Version=\"1\" CID=\"1,0,2,3,4,5,6\" Base=\"/\" Generator=\"MLDC-%s\">\r\n" (Xml.escape Autoconf.current_version);
   let rec iter ntabs node =
-    let dirname = node.shared_dirname in
-    let ntabs =
-      if dirname = "" then ntabs else begin
-        buf_tabs buf ntabs;
-        let dir = dirname in
-        Printf.bprintf buf "<Directory Name=\"%s\">\r\n" (Xml.escape dir);
-        ntabs+1
-      end
-    in
+    buf_tabs buf ntabs;
+    Printf.bprintf buf "<Directory Name=\"%s\">\r\n" (Xml.escape node.shared_dirname);
     List.iter (fun dcsh ->
-      buf_tabs buf ntabs;
+      buf_tabs buf (ntabs + 1);
       let fname = Filename2.basename dcsh.dc_shared_codedname in
       Printf.bprintf buf "<File Name=\"%s\" Size=\"%Ld\" TTH=\"%s\"/>\r\n" (Xml.escape fname)
         dcsh.dc_shared_size (Xml.escape dcsh.dc_shared_tiger_root)
     ) node.shared_files;
-    List.iter (fun (_, node) ->
-        iter ntabs node;
-        buf_tabs buf ntabs;
-        Printf.bprintf buf "</Directory>\r\n"
-    ) node.shared_dirs
+    List.iter (fun (_, node) -> iter (ntabs+1) node) node.shared_dirs;
+    buf_tabs buf ntabs;
+    Printf.bprintf buf "</Directory>\r\n"
   in
-  iter 0 root;
-  Printf.bprintf buf "</FileListing>";
+  if root.shared_dirname = "" then 
+    List.iter (fun (_,node) -> iter 0 node) root.shared_dirs
+  else 
+    iter 0 root;
+  Printf.bprintf buf "</FileListing>\r\n";
   buf
 
 let file_to_che3_to_string filename = 
