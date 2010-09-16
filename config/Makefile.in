@@ -1455,6 +1455,7 @@ releaseclean: clean moreclean
 	rm -f src/networks/bittorrent/bTUdpTracker.ml
 	rm -f src/networks/donkey/donkeySui.ml
 	rm -f src/utils/bitstring/bitstring.ml
+	rm -f src/utils/bitstring/bitstring_persistent.ml
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new
 	rm -f src/utils/lib/gAutoconf.ml
