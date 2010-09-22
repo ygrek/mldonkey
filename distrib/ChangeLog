@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/09/22
+7308: DC: bugfix (generate valid partial list) (ygrek)
+
 2010/09/16
 7144: Update clean targets
 
