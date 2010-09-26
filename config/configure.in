@@ -1470,8 +1470,7 @@ diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTO
 cd ..
 
 echo -e "\nBuilding dependencies (if it blocks, try '$GNU_MAKE depend' to see the problem)"
-#$GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
-$GNU_MAKE depend
+$GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
 
 echo -e -n "\nConfiguring MLDonkey" $MLDONKEY_VERSION
 if test ! -z "$SCM_VERSION"; then
