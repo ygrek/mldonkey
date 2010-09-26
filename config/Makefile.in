@@ -135,13 +135,7 @@ endif
 
 BITSTRING_SRCS = \
   $(BITSTRING)/bitstring.ml \
-  $(BITSTRING)/bitstring_persistent.mlc4 \
   $(BITSTRING)/bitstring_c.c
-
-BITSTRING_LIBS_flags = -I +camlp4
-BITSTRING_LIBS_opt = $(CAMLP4LIB_OPT)
-BITSTRING_STATIC_LIBS_opt = $(BITSTRING_LIBS_opt)
-BITSTRING_LIBS_byte = $(CAMLP4LIB_BYTE)
 
 ifeq ("$(BZIP2)", "yes")
   LIBS_flags += -cclib -lbz2
@@ -436,11 +430,14 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/fasttrackInteractive.mlt \
   $(SRC_FASTTRACK)/fasttrackMain.mlt
 
-$(BITSTRING)/pa_bitstring.cmo: $(BITSTRING)/pa_bitstring.mlt build/bitstring.cma
-	$(OCAMLC) build/bitstring.cma -I $(BITSTRING) -I +camlp4 camlp4lib.cma -pp '$(CAMLP4OF) -impl' -c $<
+$(BITSTRING)/bitstring_persistent.cmo: $(BITSTRING)/bitstring_persistent.ml $(BITSTRING)/bitstring_persistent.cmi build/bitstring.cma
+	$(OCAMLC) -I $(BITSTRING) -I +camlp4 camlp4lib.cma -c $<
+
+$(BITSTRING)/pa_bitstring.cmo: $(BITSTRING)/pa_bitstring.mlt $(BITSTRING)/bitstring_persistent.cmo build/bitstring.cma
+	$(OCAMLC) -I $(BITSTRING) -I +camlp4 camlp4lib.cma -pp '$(CAMLP4OF) -impl' -c $^
 
 $(SRC_BITTORRENT)/bTUdpTracker.ml: $(SRC_BITTORRENT)/bTUdpTracker.mlp $(BITSTRING)/pa_bitstring.cmo
-	$(CAMLP4OF) build/bitstring.cma $(BITSTRING)/pa_bitstring.cmo -impl $< -o $@
+	$(CAMLP4OF) build/bitstring.cma $(BITSTRING)/bitstring_persistent.cmo $(BITSTRING)/pa_bitstring.cmo -impl $< -o $@
 
 BITTORRENT_SRCS= \
   $(BITSTRING_SRCS) \
@@ -1458,6 +1455,7 @@ releaseclean: clean moreclean
 	rm -f src/networks/bittorrent/bTUdpTracker.ml
 	rm -f src/networks/donkey/donkeySui.ml
 	rm -f src/utils/bitstring/bitstring.ml
+	rm -f src/utils/bitstring/bitstring_persistent.ml
 	rm -f src/utils/lib/autoconf.ml
 	rm -f src/utils/lib/autoconf.ml.new
 	rm -f src/utils/lib/gAutoconf.ml
