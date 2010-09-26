@@ -22,7 +22,7 @@ let q () =
 
 (** node ID type *)
 type id = H.t
-let show_id = H.to_hexa
+let show_id h = let s = H.to_hexa h in (String.sub s 0 6 ^ ".." ^ String.sub s 16 4)
 type addr = Ip.t * int
 
 type time = float
@@ -35,6 +35,9 @@ type bucket = { lo : id; hi : id; mutable last_change : time; mutable nodes : no
 type tree = L of bucket | N of tree * id * tree
 type table = { mutable root : tree; self : id; }
 
+let now = Unix.gettimeofday
+let diff t = Printf.sprintf "%.0f sec ago" (now () -. t)
+
 let show_addr (ip,port) = Printf.sprintf "%s:%u" (Ip.to_string ip) port
 
 let show_status = function
@@ -44,13 +47,12 @@ let show_status = function
   | Pinged -> "pinged"
 
 let show_node n =
-  Printf.sprintf "%s at %s last %f %s"
-    (show_id n.id) (show_addr n.addr) n.last (show_status n.status)
+  Printf.sprintf "%s at %s was %s %s"
+    (show_id n.id) (show_addr n.addr) (show_status n.status) (diff n.last)
 
 let show_bucket b = 
-  pr "lo : %s hi : %s changed : %f" (H.to_hexa b.lo) (H.to_hexa b.hi) b.last_change;
-  pr "count : %d" (Array.length b.nodes)
-(*   Array.iter show_node b.nodes *)
+  pr "count : %d lo : %s hi : %s changed : %s" (Array.length b.nodes) (H.to_hexa b.lo) (H.to_hexa b.hi) (diff b.last_change);
+  Array.iter (fun n -> pr "  %s" (show_node n)) b.nodes
 
 let rec show_tree = function 
   | N (l,_,r) -> show_tree l; show_tree r
@@ -184,8 +186,6 @@ module type Network = sig
 end
 *)
 
-let now = Unix.gettimeofday
-
 (* module Make(T : Network) = struct *)
 
 exception Nothing 
@@ -201,21 +201,21 @@ let rec update ping table ?(st=Good) id data =
   | L b ->
     Array.iter begin fun n -> 
       match cmp n.id id = EQ, n.addr = data with
-      | true, true -> mark n Good; touch b; raise Nothing
+      | true, true -> pr "mark [%s] as good" (show_node n); mark n Good; touch b; raise Nothing
       | true, _ | _, true -> pr "conflict [%s] with %s %s" (show_node n) (show_id id) (show_addr data)
       | _ -> ()
     end b.nodes;
     if Array.length b.nodes <> bucket_nodes then
     begin
-      pr "inserted %s" (show_id id);
+      pr "insert %s" (show_id id);
       b.nodes <- Array.of_list (make_node id data st :: Array.to_list b.nodes);
       touch b;
       raise Nothing
     end;
     Array.iteri (fun i n ->
-      if n.status = Bad then
+      if n.status = Bad || (n.status = Pinged && now () -. n.last > node_period) then
       begin
-        pr "replaced [%s] with %s" (show_node b.nodes.(i)) (show_id id);
+        pr "replace [%s] with %s" (show_node b.nodes.(i)) (show_id id);
         b.nodes.(i) <- make_node id data st; (* replace *)
         touch b;
         raise Nothing
@@ -223,7 +223,8 @@ let rec update ping table ?(st=Good) id data =
     match Array.fold_left (fun acc n -> if n.status = Unknown then n::acc else acc) [] b.nodes with
     | [] ->
     if inside b table.self && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
-      let () = pr "splitting" in
+    begin
+      pr "split";
       let mid = split b.lo b.hi in
       let (nodes1,nodes2) = List.partition (fun n -> cmp n.id id = LT) (Array.to_list b.nodes) in
       let new_node = N (
@@ -232,6 +233,7 @@ let rec update ping table ?(st=Good) id data =
           L { lo = succ mid; hi = b.hi; last_change = b.last_change; nodes = Array.of_list nodes2; } )
       in
       try loop new_node with Nothing -> new_node (* insert into new node *)
+    end
     else
     begin
       pr "bucket full (%s)" (show_id id);
@@ -239,6 +241,7 @@ let rec update ping table ?(st=Good) id data =
     end
     | unk ->
       let count = ref (List.length unk) in
+      pr "ping %d unknown nodes" !count;
       let cb n = fun res ->
         decr count; n.status <- (match res with Some _ -> Good | None -> Bad); 
         if !count = 0 then (* retry *)
@@ -284,7 +287,7 @@ let create () = { root = L { lo = H.null; hi = last; last_change = now (); nodes
                 }
 
 let show_table t =
-  pr "self : %s" (show_id t.self);
+  pr "self : %s now : %f" (show_id t.self) (now ());
   show_tree t.root
 
 let rec fold f acc = function

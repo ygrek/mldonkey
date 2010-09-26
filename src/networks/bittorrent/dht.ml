@@ -390,6 +390,7 @@ let main storage dht_port =
   in
   Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> finish ()));
   Sys.set_signal Sys.sigterm (Sys.Signal_handle (fun _ -> finish ()));
+  Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> show_table t));
   log #info "DHT size : %d self : %s" (size t) (show_id t.self); 
 (*   let routers = [Ip.of_string "router.bittorrent.com", 6881; Ip.of_string "router.utorrent.com", 6881;] in *)
   let router = Ip.of_string "67.215.242.139", 6881 in
@@ -449,8 +450,8 @@ let main storage dht_port =
     let ids = refresh t in
     log #info "will refresh %d buckets" (List.length ids);
     let cb (id,addr as node) l =
-      log #info "refresh: got %d nodes from %s" (List.length l) (show_node node);
       update (M.ping !dht) t id addr; (* replied *)
+      log #info "refresh: got %d nodes from %s" (List.length l) (show_node node);
       List.iter (fun (id,addr) -> update (M.ping !dht) t ~st:Unknown id addr) l
     in
     List.iter (fun target ->
