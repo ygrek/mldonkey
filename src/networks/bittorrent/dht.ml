@@ -235,7 +235,7 @@ let show_node (id,addr) = sprintf "%s (%s)" (show_addr addr) (show_id id)
 let show_response = function
 | Ack -> "ack"
 | Nodes l -> sprintf "nodes [%s]" (strl show_node l)
-| Peers (token,peers,nodes) -> sprintf "peers token=%s [%s] [%s]" token (strl show_addr peers) (strl show_node nodes)
+| Peers (token,peers,nodes) -> sprintf "peers token=%S [%s] [%s]" token (strl show_addr peers) (strl show_node nodes)
 
 let parse_query_exn name args =
   let get k = List.assoc k args in
@@ -346,11 +346,13 @@ end
 let get_peers t h = []
 let find_node t h = List.map (fun node -> node.id, node.addr) & find_node t h
 
+module Addrs = Set.Make(struct type t = addr let compare = compare end)
+
 module M = struct
 
-type t = { rt : Kademlia.table; dht : KRPC.t; }
+type t = { rt : Kademlia.table; dht : KRPC.t; torrents : (H.t, Addrs.t) Hashtbl.t; }
 
-let create rt dht_port answer = { rt = rt; dht = KRPC.create dht_port answer; }
+let create rt dht_port answer = { rt = rt; dht = KRPC.create dht_port answer; torrents = Hashtbl.create 8 }
 
 let dht_query t addr q k =
   log #info "DHT query to %s : %s" (show_addr addr) (show_query q);
@@ -375,11 +377,59 @@ let get_peers t addr h k = dht_query t addr (GetPeers h) begin fun node r ->
   match r with Peers (token,peers,nodes) -> k node token peers nodes
   | _ -> failwith "dht_query get_peers" end
 
-let announce t addr port token h k = dht_query t addr (Announce (token,h,port)) begin fun node r ->
+let announce t addr port token h k = dht_query t addr (Announce (h,port,token)) begin fun node r ->
   match r with Ack -> k node
   | _ -> failwith "dht_query announce" end
 
+let store t info_hash addr =
+  try 
+    let peers = Hashtbl.find t.torrents info_hash in
+    Hashtbl.replace t.torrents info_hash (Addrs.add addr peers)
+  with
+    Not_found -> Hashtbl.add t.torrents info_hash (Addrs.singleton addr)
+
 end
+
+module Secret : sig 
+
+type t
+val create : float -> t
+val get : t -> string
+val valid : t -> string -> bool
+
+end = struct
+
+type t = { mutable cur : string; mutable prev : string; timeout : float; mutable next : float; }
+let make () = string_of_int (Random.int max_int)
+let create tm =
+  assert (tm > 0.);
+  let s = make () in 
+  { cur = s; prev = s; timeout = tm; next = now () +. tm; }
+let invalidate t =
+  if now () > t.next then
+  begin
+    t.prev <- t.cur;
+    t.cur <- make ();
+    t.next <- now () +. t.timeout;
+  end
+let get t =
+  invalidate t;
+  t.cur
+let valid t s =
+  invalidate t;
+  s = t.cur || s = t.prev
+
+end
+
+let make_token addr h secret =
+  H.to_hexa (H.xor (H.string (show_addr addr)) h) ^ "/" ^ (Secret.get secret)
+
+let valid_token addr h secret token =
+  try
+    Scanf.sscanf token "%40s/%s%!" (fun s1 s2 ->
+      Secret.valid secret s2 && H.to_hexa (H.xor (H.string (show_addr addr)) h) = s1)
+  with
+  _ -> false
 
 let main storage dht_port =
   let t = init storage in
@@ -395,6 +445,7 @@ let main storage dht_port =
 (*   let routers = [Ip.of_string "router.bittorrent.com", 6881; Ip.of_string "router.utorrent.com", 6881;] in *)
   let router = Ip.of_string "67.215.242.139", 6881 in
 (*   let local = Ip.of_string "127.0.0.1", 12345 in *)
+  let secret = Secret.create (minutes 10) in
   let dht = ref (Obj.magic 0 : M.t) in
   let answer addr name args =
     try
@@ -406,8 +457,11 @@ let main storage dht_port =
       match q with
       | Ping -> Ack
       | FindNode h -> Nodes (find_node t h)
-      | GetPeers h -> let token = "FIXME" in Peers (token,get_peers t h,find_node t h)
-      | Announce (token,peers,port) -> Ack
+      | GetPeers h -> let token = make_token addr h secret in Peers (token,get_peers t h,find_node t h)
+      | Announce (h,port,token) ->
+        if not (valid_token addr h secret token) then failwith "bad token in announce";
+        M.store !dht h (fst addr, port);
+        Ack
     in
     log #info "DHT response to %s : %s" (show_node node) (show_response response);
     make_response t.self response

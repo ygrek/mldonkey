@@ -213,6 +213,7 @@ let rec update ping table ?(st=Good) id data =
       raise Nothing
     end;
     Array.iteri (fun i n ->
+      if n.status = Good && now () -. n.last > node_period then mark n Unknown;
       if n.status = Bad || (n.status = Pinged && now () -. n.last > node_period) then
       begin
         pr "replace [%s] with %s" (show_node b.nodes.(i)) (show_id id);
@@ -243,7 +244,7 @@ let rec update ping table ?(st=Good) id data =
       let count = ref (List.length unk) in
       pr "ping %d unknown nodes" !count;
       let cb n = fun res ->
-        decr count; n.status <- (match res with Some _ -> Good | None -> Bad); 
+        decr count; mark n (match res with Some _ -> Good | None -> Bad); 
         if !count = 0 then (* retry *)
         begin 
           pr "all %d pinged, retry %s" (List.length unk) (show_id id); 
@@ -251,7 +252,7 @@ let rec update ping table ?(st=Good) id data =
           update ping table ~st id data 
         end
       in
-      List.iter (fun n -> n.status <- Pinged; ping n.addr (cb n)) unk;
+      List.iter (fun n -> mark n Pinged; ping n.addr (cb n)) unk;
       raise Nothing
   in
   try table.root <- loop table.root with Nothing -> ()
