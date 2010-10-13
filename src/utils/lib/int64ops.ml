@@ -59,3 +59,6 @@ let int64_to_human_readable size =
     (Printf.sprintf "%5.1f%s" (Int64.to_float size /. 1073741824.) ("gb") )
   else
     (Printf.sprintf "%8s%s" (Int64.to_string size) ("b") )
+
+let int64_min_int x i = if x > Int64.of_int i then i else Int64.to_int x
+
