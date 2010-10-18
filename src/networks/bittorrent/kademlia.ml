@@ -18,7 +18,7 @@ let q () =
   pr "direct: %S" (H.direct_to_string hash);
   pr "hexa: %s" (H.to_hexa hash);
   pr "bits: %s" (H.to_bits hash);
-  pr "base32: %s" (H.to_base32 hash);
+  pr "base32: %s" (H.to_base32 hash)
 
 (** node ID type *)
 type id = H.t

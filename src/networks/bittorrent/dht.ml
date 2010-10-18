@@ -59,6 +59,7 @@ module Assoc2 : sig
   val find_all : ('a,'b,'c) t -> 'a -> ('b,'c) Hashtbl.t
   val find : ('a,'b,'c) t -> 'a -> 'b -> 'c option
   val remove : ('a,'b,'c) t -> 'a -> 'b -> unit
+  val iter : ('a,'b,'c) t -> ('a -> 'b -> 'c -> unit) -> unit
 
 end = struct
 
@@ -72,6 +73,7 @@ let add h a b c =
 let find_all h a = try Hashtbl.find h a with Not_found -> Hashtbl.create 3
 let find h a b = try Some (Hashtbl.find (Hashtbl.find h a) b) with Not_found -> None
 let remove h a b = try let ha = Hashtbl.find h a in Hashtbl.remove ha b; if Hashtbl.length ha = 0 then Hashtbl.remove h a with Not_found -> ()
+let iter h f = Hashtbl.iter (fun a h -> Hashtbl.iter (fun b c -> f a b c) h) h
 
 end
 
@@ -142,7 +144,7 @@ let send sock (ip,port as addr) txnmsg =
   log #debug "KRPC to %s : %S" (show_addr addr) s;
   write sock false s ip port
 
-type t = UdpSocket.t * (addr, string, (addr -> dict -> unit)) A.t
+type t = UdpSocket.t * (addr, string, (addr -> dict -> unit) * (unit -> unit) * int) A.t
 
 let create port answer : t =
   let socket = create Unix.inet_addr_any port (fun sock event ->
@@ -157,20 +159,33 @@ let create port answer : t =
   set_wtimeout (sock socket) 5.;
   set_rtimeout (sock socket) 5.;
   let h = A.create () in
-  (* FIXME Expire timeouted entries *)
+  let timeout h =
+    let now = last_time () in
+    let bad = ref [] in
+    let total = ref 0 in
+    A.iter h (fun addr txn (_,kerr,t) -> incr total; if t < now then bad := (addr,txn,kerr) :: !bad);
+    log #info "timeouted %d of %d DHT queries" (List.length !bad) !total;
+    List.iter (fun (addr,txn,kerr) ->
+      A.remove h addr txn;
+      try kerr () with exn -> log #warn ~exn "timeout for %s" (show_addr addr)) !bad;
+  in
+  BasicSocket.add_infinite_timer 5. (fun () -> timeout h);
   let handle addr (txn,ver,msg) =
     let version = match ver with Some s -> sprintf "client %S " s | None -> "" in
     log #debug "KRPC from %s %stxn %S : %s" (show_addr addr) version txn (show_msg msg);
     match msg with
     | Error _ ->
-        A.remove h addr txn
-    | Query (name,args) -> 
+        begin match A.find h addr txn with
+        | None -> log #warn "no txn %S for %s %s (error received)" txn (show_addr addr) version
+        | Some (_, kerr, _) -> A.remove h addr txn; kerr ()
+        end
+    | Query (name,args) ->
         let ret = answer addr name args in
         send socket addr (txn, ret)
     | Response ret ->
         match A.find h addr txn with
         | None -> log #warn "no txn %S for %s %s" txn (show_addr addr) version
-        | Some k -> A.remove h addr txn; k addr ret
+        | Some (k,_,_) -> A.remove h addr txn; k addr ret
   in
   let handle p =
     match p.udp_addr with
@@ -197,7 +212,7 @@ let create port answer : t =
   udp_set_reader socket handle;
   (socket,h)
 
-let write (socket,h) msg addr k =
+let write (socket,h) msg addr k ~kerr =
   let tt = Assoc2.find_all h addr in
   let rec loop () = (* choose txn FIXME *)
     let txn = string_of_int (Random.int max_int) in
@@ -206,7 +221,7 @@ let write (socket,h) msg addr k =
     | false -> txn
   in
   let txn = loop () in
-  Assoc2.add h addr txn k;
+  Assoc2.add h addr txn (k,kerr,last_time () + 10);
   send socket addr (txn,msg)
 
 end (* KRPC *)
@@ -343,9 +358,6 @@ let () =
 
 end
 
-let get_peers t h = []
-let find_node t h = List.map (fun node -> node.id, node.addr) & find_node t h
-
 module Addrs = Set.Make(struct type t = addr let compare = compare end)
 
 module M = struct
@@ -354,39 +366,40 @@ type t = { rt : Kademlia.table; dht : KRPC.t; torrents : (H.t, Addrs.t) Hashtbl.
 
 let create rt dht_port answer = { rt = rt; dht = KRPC.create dht_port answer; torrents = Hashtbl.create 8 }
 
-let dht_query t addr q k =
+let dht_query t addr q k ~kerr =
   log #info "DHT query to %s : %s" (show_addr addr) (show_query q);
   KRPC.write t.dht (make_query t.rt.self q) addr begin fun addr dict ->
-    try
-      let (id,r) = parse_response_exn q dict in
-      log #info "DHT response from %s (%s) : %s" (show_addr addr) (show_id id) (show_response r);
-      k (id,addr) r
-      with
-        exn -> log #warn ~exn "DHT response to %s from %s" (show_query q) (show_addr addr); raise exn
-    end
+    let (id,r) = try parse_response_exn q dict with exn -> kerr (); raise exn in
+    log #info "DHT response from %s (%s) : %s" (show_addr addr) (show_id id) (show_response r);
+    k (id,addr) r
+  end ~kerr
 
 let ping t addr k = dht_query t addr Ping begin fun node r ->
   match r with Ack -> k (Some node)
-  | _ -> k None; failwith "dht_query ping" end
+  | _ -> k None; failwith "dht_query ping" end ~kerr:(fun () -> k None)
 
-let find_node t addr h k = dht_query t addr (FindNode h) begin fun node r ->
+let find_node t addr h k ~kerr = dht_query t addr (FindNode h) begin fun node r ->
   match r with Nodes l -> k node l
-  | _ -> failwith "dht_query find_node" end
+  | _ -> kerr (); failwith "dht_query find_node" end ~kerr
 
-let get_peers t addr h k = dht_query t addr (GetPeers h) begin fun node r ->
+let get_peers t addr h k ~kerr = dht_query t addr (GetPeers h) begin fun node r ->
   match r with Peers (token,peers,nodes) -> k node token peers nodes
-  | _ -> failwith "dht_query get_peers" end
+  | _ -> kerr (); failwith "dht_query get_peers" end ~kerr
 
-let announce t addr port token h k = dht_query t addr (Announce (h,port,token)) begin fun node r ->
+let announce t addr port token h k ~kerr = dht_query t addr (Announce (h,port,token)) begin fun node r ->
   match r with Ack -> k node
-  | _ -> failwith "dht_query announce" end
+  | _ -> kerr (); failwith "dht_query announce" end ~kerr
 
+(* FIXME timeout old entries *)
 let store t info_hash addr =
   try 
     let peers = Hashtbl.find t.torrents info_hash in
     Hashtbl.replace t.torrents info_hash (Addrs.add addr peers)
   with
     Not_found -> Hashtbl.add t.torrents info_hash (Addrs.singleton addr)
+
+let self_get_peers t h = try Addrs.elements & Hashtbl.find t.torrents h with Not_found -> []
+let self_find_node t h = List.map (fun node -> node.id, node.addr) & Kademlia.find_node t.rt h
 
 end
 
@@ -431,6 +444,94 @@ let valid_token addr h secret token =
   with
   _ -> false
 
+let alpha = 3
+
+module LimitedSet = struct
+
+module type S = sig
+
+type elt
+type t
+val create : int -> t
+(** @return whether the element was really added *)
+val insert : t -> elt -> bool
+val elements : t -> elt list
+
+end 
+
+module Make(Ord:Set.OrderedType) : S with type elt = Ord.t =
+struct
+
+module S = Set.Make(Ord)
+
+type elt = Ord.t
+type t = int ref * S.t ref
+
+let create n = ref n, ref S.empty
+
+let insert (left,set) elem =
+  match S.mem elem !set with
+  | true -> false
+  | false ->
+    match !left with
+    | 0 ->
+      let max = S.max_elt !set in
+      if Ord.compare elem max < 0 then
+        begin set := S.add elem (S.remove max !set); true end
+      else 
+        false
+    | n ->
+      set := S.add elem !set;
+      decr left;
+      true
+
+let elements (_,set) = S.elements !set
+
+end (* Make *)
+
+end (* LimitedSet *)
+
+let lookup_node dht target k =
+  log #info "lookup %s" (show_id target);
+  let module S = LimitedSet.Make(struct
+    type t = id * addr
+    let compare n1 n2 = Big_int.compare_big_int (distance target (fst n1)) (distance target (fst n2))
+  end) in
+  let found = S.create Kademlia.bucket_nodes in
+  let queried = Hashtbl.create 13 in
+  let active = ref 0 in
+  let check_ready () =
+    log #info "active %d" !active;
+    if 0 = !active then k (S.elements found)
+  in
+  let rec new_node (id,addr as node) =
+    update (M.ping dht) dht.M.rt ~st:Unknown id addr;
+    match S.insert found node with
+    | false -> log #info "node %s is not needed" (show_node node)
+    | true -> log #info "node %s added" (show_node node); query node
+  and query (id,addr as node) =
+    if not (Hashtbl.mem queried node) then
+    begin
+      incr active;
+      Hashtbl.add queried node true;
+      log #info "will query node %s" (show_node node);
+      M.find_node dht addr target begin fun _ l ->
+        update (M.ping dht) dht.M.rt id addr;
+        decr active;
+        log #info "got %d nodes from %s" (List.length l) (show_node node);
+        List.iter new_node l;
+        check_ready ()
+      end ~kerr:(fun () -> decr active; log #info "timeout from %s" (show_node node); check_ready ())
+    end
+  in
+  let nodes = M.self_find_node dht target in
+  List.iter query nodes
+
+let show_torrents dht =
+  Hashtbl.iter (fun h addrs ->
+    log #info "torrent %s : %s" (H.to_hexa h) (String.concat " " (List.map show_addr (Addrs.elements addrs))))
+  dht.M.torrents
+
 let main storage dht_port =
   let t = init storage in
   let finish () =
@@ -438,15 +539,15 @@ let main storage dht_port =
     store storage t;
     exit 0
   in
-  Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> finish ()));
-  Sys.set_signal Sys.sigterm (Sys.Signal_handle (fun _ -> finish ()));
-  Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> show_table t));
   log #info "DHT size : %d self : %s" (size t) (show_id t.self); 
 (*   let routers = [Ip.of_string "router.bittorrent.com", 6881; Ip.of_string "router.utorrent.com", 6881;] in *)
   let router = Ip.of_string "67.215.242.139", 6881 in
 (*   let local = Ip.of_string "127.0.0.1", 12345 in *)
   let secret = Secret.create (minutes 10) in
   let dht = ref (Obj.magic 0 : M.t) in
+  Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> finish ()));
+  Sys.set_signal Sys.sigterm (Sys.Signal_handle (fun _ -> finish ()));
+  Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> show_table t; show_torrents !dht));
   let answer addr name args =
     try
     let (id,q) = parse_query_exn name args in
@@ -456,8 +557,10 @@ let main storage dht_port =
     let response =
       match q with
       | Ping -> Ack
-      | FindNode h -> Nodes (find_node t h)
-      | GetPeers h -> let token = make_token addr h secret in Peers (token,get_peers t h,find_node t h)
+      | FindNode h -> Nodes (M.self_find_node !dht h)
+      | GetPeers h -> 
+        let token = make_token addr h secret in
+        Peers (token,M.self_get_peers !dht h,M.self_find_node !dht h)
       | Announce (h,port,token) ->
         if not (valid_token addr h secret token) then failwith "bad token in announce";
         M.store !dht h (fst addr, port);
@@ -490,7 +593,7 @@ let main storage dht_port =
             end
             ) l;
           if Big_int.lt_big_int dist' !dist then dist := dist';
-        end
+        end ~kerr:(fun () -> ())
     in
     M.ping !dht addr begin function 
       | Some node ->
@@ -509,14 +612,28 @@ let main storage dht_port =
       List.iter (fun (id,addr) -> update (M.ping !dht) t ~st:Unknown id addr) l
     in
     List.iter (fun target ->
-      let nodes = find_node t target in
-      List.iter (fun (_,addr) -> M.find_node !dht addr target cb) nodes)
+      let nodes = M.self_find_node !dht target in
+      List.iter (fun (_,addr) -> M.find_node !dht addr target cb ~kerr:(fun () -> ())) nodes)
     ids
+  in
+  let run_queries () =
+    log #info "run_queries";
+    let id = H.of_hexa "FA959F240D5859CAC30F32ECD21BD89F576481F0" in
+    lookup_node !dht id (fun nodes ->
+      List.iter begin fun node -> 
+        log #info "run_queries found %s" (show_node node);
+        M.get_peers !dht (snd node) id (fun node token peers nodes ->
+          log #info "got %d peers and %d nodes from %s with token %S" 
+            (List.length peers) (List.length nodes) (show_node node) token) 
+          ~kerr:(fun () -> log #info "get_peers error from %s" (show_node node))
+      end nodes)
   in
 (*   show_table t; exit 0; *)
 (*   ping router (fun _ -> log #info "pong"); *)
   bootstrap router;
   BasicSocket.add_infinite_timer 60. refresh;
+(*   BasicSocket.add_infinite_timer 30. run_queries; *)
+  run_queries ();
   BasicSocket.loop ()
 
 let () =
