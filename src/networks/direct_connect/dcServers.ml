@@ -582,12 +582,14 @@ let ssplit s sub =
   with
     _ -> None
 
+exception ADC_not_supported
+
 let parse_address s =
   let s = match ssplit (String.lowercase s) "://" with
   | Some ("dchub",s) -> s
   | None -> s
-  | Some (("adc"|"adcs"),_) -> failwith "ADC not supported"
-  | Some (proto,_) -> failwith (Printf.sprintf "Unsupported protocol %S" proto)
+  | Some (("adc"|"adcs"),_) -> raise ADC_not_supported
+  | Some (proto,_) -> failwith (Printf.sprintf "Unsupported protocol in %S" s)
   in
   try Scanf.sscanf s "%s@:%u" (fun s n -> s,n) with _ -> s,411
 
@@ -606,16 +608,20 @@ let make_hublist_from_xml x =
     }
   in
   let l = xml_select ["hublist";"hubs";"hub"] [x] in
-  let add_hub acc x = 
-    try make_hub x :: acc
-    with exn -> lprintf_nl "Skipping hublist entry : %s" (Printexc2.to_string exn); acc
+  let adc = ref 0 in
+  let add_hub acc x =
+    try 
+      make_hub x :: acc
+    with 
+    | ADC_not_supported -> incr adc; acc
+    | exn -> lprintf_nl "Skipping hublist entry : %s" (Printexc2.to_string exn); acc
   in
   let l' = List.fold_left add_hub [] l in
   if !verbose_msg_servers then
-    lprintf_nl "Found %u valid (of %u total) servers in hublist" (List.length l') (List.length l);
+    lprintf_nl "Servers in hublist : %u total, %u valid, %u adc" (List.length l) (List.length l') !adc;
   l'
 
-(* Connect to all autoconnect servers once *)  
+(* Connect to all autoconnect servers once *)
 let autoconnect_to_servers () =
   Hashtbl.iter (fun _ s ->
     if s.server_autoconnect then begin                    (* only if server is marked as autoconnect *) 
