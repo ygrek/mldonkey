@@ -31,6 +31,9 @@ let tryopen openf closef filename f =
   closef descr;
   result
 
+let exn_drop f x = try f x with _ -> ()
+let with_remove fn f = tryopen (fun fn -> fn) (fun fn -> exn_drop Sys.remove fn) fn f
+
 let tryopen_read fn f = tryopen open_in close_in fn f
 let tryopen_write fn f = tryopen open_out close_out fn f
 let tryopen_read_bin fn f = tryopen open_in_bin close_in fn f
@@ -41,8 +44,6 @@ let tryopen_write_gen fn flags perm f =
   tryopen (open_out_gen flags perm) close_out fn f
 let tryopen_openfile fn flags perm f =
   tryopen (fun fn -> Unix.openfile fn flags perm) Unix.close fn f
-let tryopen_tempfile fn flags perm f =
-  tryopen (fun fn -> Unix.openfile fn flags perm) (fun fd -> Unix.close fd; try Sys.remove fn with _ -> ()) fn f
 let tryopen_dir dir f = tryopen opendir closedir dir f
 let tryopen_read_zip fn f = tryopen Zip.open_in Zip.close_in fn f
 let tryopen_write_zip fn f = tryopen Zip.open_out Zip.close_out fn f
@@ -212,10 +213,10 @@ let random () =
 
 let can_write_to_directory dirname =
   let temp_file = Filename.concat dirname "tmp_" ^ random () ^ "_mld.tmp" in
-  let check () =
-    tryopen_tempfile temp_file [O_WRONLY; O_CREAT] 0o600 (fun fd ->
+  let check () = with_remove temp_file (fun _ ->
+    tryopen_openfile temp_file [O_WRONLY; O_CREAT] 0o600 (fun fd ->
       let test_string = "mldonkey accesstest - this file can be deleted\n" in
-      really_write fd test_string 0 (String.length test_string))
+      really_write fd test_string 0 (String.length test_string)))
   in
   try
     check ()
