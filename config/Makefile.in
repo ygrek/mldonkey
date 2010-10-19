@@ -1585,7 +1585,7 @@ release.shared: opt
 	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
 
 release.static: static opt
@@ -1596,8 +1596,8 @@ release.static: static opt
 	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
-	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
 release.mlnet.static: mlnet.static
 	rm -rf mldonkey-*
@@ -1605,8 +1605,8 @@ release.mlnet.static: mlnet.static
 	cp mlnet.static $(DISDIR)/mlnet && strip $(DISDIR)/mlnet
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
-	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
 release.mlnet.byte.static: mlnet.byte.static
 	rm -rf mldonkey-*
@@ -1614,8 +1614,8 @@ release.mlnet.byte.static: mlnet.byte.static
 	cp mlnet.byte.static $(DISDIR)/mlnet
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).byte.static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
-	$(COMPRESS) mldonkey-$(CURRENT_VERSION).byte.static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).byte.static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).byte.static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
 release.mlnet.distri: mlnet mlnet.static
 	rm -rf mldonkey-*
@@ -1628,8 +1628,8 @@ release.mlnet.distri: mlnet mlnet.static
 	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
-	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
 release.utils.shared: mld_hash make_torrent
 	rm -rf mldonkey-*
@@ -1642,8 +1642,8 @@ release.utils.shared: mld_hash make_torrent
 	done
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
-	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
 release.utils.static: mld_hash.static make_torrent.static
 	rm -rf mldonkey-*
@@ -1652,8 +1652,8 @@ release.utils.static: mld_hash.static make_torrent.static
 	cp -f make_torrent.static $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
-	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
-	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`$(GLIBC_VERSION_ARCH).tar
+	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
+	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
 release.sources: 
 	rm -rf **/CVS
@@ -1670,8 +1670,8 @@ $(DISDIR):  static distrib/Readme.txt
 	   cp $$i.static $(DISDIR)/$$i && strip  $(DISDIR)/$$i; \
 	done
 	tar cf $(DISDIR).tar $(DISDIR)
-	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
-	bzip2 mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s`.tar
+	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`.tar
+	bzip2 mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`.tar
 
 SHADIR=mldonkey-shared
 
@@ -1685,8 +1685,8 @@ $(SHADIR):  static distrib/Readme.txt
 	   cp $$i.static $(SHADIR)/$$i && strip  $(SHADIR)/$$i; \
 	done
 	tar cf $(SHADIR).tar $(SHADIR)
-	mv $(SHADIR).tar mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
-	bzip2 mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s`.tar
+	mv $(SHADIR).tar mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s | sed "s/\//_/"`.tar
+	bzip2 mldonkey-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s | sed "s/\//_/"`.tar
 
 auto-release:
 ## i386

@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/10/19
+7349: Fix release.* make targets on GNU/kFreeBSD
 7348: Update GNU config.guess and config.sub to version 2010/09
 -------------------------------------------------------------------------------
 2010/09/26: version 3.0.5 = tag release-3-0-5
