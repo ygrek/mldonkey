@@ -21,7 +21,6 @@ ChangeLog
 - HTML: reversed order of chat messages
 7319: EDK: Fix CryptoPP on mips64 abi n32 (viric)
 7356: options: ensure that tmp file is removed (ygrek)
-7355: DC web ui: escape commands' arguments (ygrek)
 7354: DC: cleanup temporary files (ygrek)
 7353: DC: silence "ADC not supported" message (ygrek)
 7352: net: do not log ordinary network errors (ygrek)
