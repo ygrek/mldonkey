@@ -63,6 +63,7 @@ type emule_proto = {
     mutable emule_extmultipacket : int;
     mutable emule_largefiles : int;
     mutable emule_kad_version : int;
+    mutable emule_support_captcha : int;
   }
 
 type emule_tag_name =
@@ -730,6 +731,7 @@ let dummy_emule_proto = {
     emule_extmultipacket = 0;
     emule_largefiles = 0;
     emule_kad_version = 0;
+    emule_support_captcha = 0;
   }
 
 let emule_proto () =

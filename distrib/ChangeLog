@@ -15,6 +15,10 @@ ChangeLog
 =========
 
 2010/10/23
+7318: EDK: Emule captcha support and slight cleanup (dennisne)
+- added support for Emule's anti-spam chat CAPTCHAs
+- added clear_message_log command to clear (long) message logs 
+- HTML: reversed order of chat messages
 7319: EDK: Fix CryptoPP on mips64 abi n32 (viric)
 7356: options: ensure that tmp file is removed (ygrek)
 7355: DC web ui: escape commands' arguments (ygrek)

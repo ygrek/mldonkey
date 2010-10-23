@@ -303,7 +303,7 @@ let results_ini = create_options_file "results.ini"
 let files_ini = create_options_file "files.ini"
 let friends_ini = create_options_file "friends.ini"
 
-let messages_log = ref "messages.log"
+let messages_log = "messages.log"
 
 let servers_section = file_section servers_ini [] ""
 

@@ -69,6 +69,7 @@ let mldonkey_emule_proto =
     emule_extmultipacket = 0;
     emule_largefiles = 1;
     emule_kad_version = 0;
+    emule_support_captcha = 1;
   }
 
 let emule_miscoptions1 m =
@@ -121,18 +122,20 @@ let print_emule_proto_miscoptions1 m =
 
 let emule_miscoptions2 m =
   let o =
+    (m.emule_support_captcha lsl 11) lor
     (m.emule_largefiles lsl 4)
   in
   Int64.of_int o
 
 let update_emule_proto_from_miscoptions2 m o =
   let o = Int64.to_int o in
-  m.emule_require_crypt  <- (o lsr 9) land 0x1;
-  m.emule_request_crypt  <- (o lsr 8) land 0x1;
-  m.emule_support_crypt  <- (o lsr 7) land 0x1;
-  m.emule_extmultipacket <- (o lsr 5) land 0x1;
-  m.emule_largefiles     <- (o lsr 4) land 0x1;
-  m.emule_kad_version    <- (o lsr 0) land 0xf
+  m.emule_support_captcha <- (o lsr 11) land 0x1;
+  m.emule_require_crypt   <- (o lsr 9)  land 0x1;
+  m.emule_request_crypt   <- (o lsr 8)  land 0x1;
+  m.emule_support_crypt   <- (o lsr 7)  land 0x1;
+  m.emule_extmultipacket  <- (o lsr 5)  land 0x1;
+  m.emule_largefiles      <- (o lsr 4)  land 0x1;
+  m.emule_kad_version     <- (o lsr 0)  land 0xf
 
 let print_emule_proto_miscoptions2 m =
   let buf = Buffer.create 50 in
@@ -142,6 +145,7 @@ let print_emule_proto_miscoptions2 m =
   if m.emule_extmultipacket <> 0 then Printf.bprintf buf " extmultipacket %d\n" m.emule_extmultipacket;
   if m.emule_largefiles <> 0 then Printf.bprintf buf " largefiles %d\n" m.emule_largefiles;
   if m.emule_kad_version <> 0 then Printf.bprintf buf " kad_version %d\n" m.emule_kad_version;
+  if m.emule_support_captcha <> 0 then Printf.bprintf buf " support_captcha %d\n" m.emule_support_captcha;
   Buffer.contents buf
 
 let emule_compatoptions m =
@@ -941,6 +945,39 @@ module EmulePublicKeyReq = struct
 
   end
 
+
+module EmuleCaptchaReq = struct
+
+    type t = string
+
+    let print t =
+      lprintf_nl "EmuleCaptchaReq [CAPTCHA BMP length=%d bytedata=%s]" (String.length t) (String.escaped t)
+
+    let parse len s =
+      String.sub s 2 (len - 2)
+
+    let write buf t =
+      buf_estring buf t
+
+  end
+
+
+module EmuleCaptchaRes = struct
+
+    type t = int
+
+    let print t =
+      lprintf_nl "EmuleCaptchaRes RESPONSE=%d" t
+
+    let parse s =
+      get_uint8 s 1
+
+    let write buf t =
+      buf_int8 buf t
+
+  end
+
+
 module EmuleSecIdentStateReq = struct
 
     type t = {
@@ -1105,12 +1142,12 @@ module EmuleCompressedPart = struct
         usesixtyfour = usesixtyfour;
         statpos = if usesixtyfour then get_int64 s 17 else get_uint64_32 s 17;
         newsize = if usesixtyfour then get_uint64_32 s 25 else get_uint64_32 s 21;
-    	bloc = if usesixtyfour then String.sub s 29 (len-29) else String.sub s 25 (len-25)
+        bloc = if usesixtyfour then String.sub s 29 (len-29) else String.sub s 25 (len-25)
       }
 
     let print t =
       lprintf_nl "EmuleCompressedPart for %s %Ld %Ld len %d"
-	(Md4.to_string t.md4) t.statpos t.newsize (String.length t.bloc)
+        (Md4.to_string t.md4) t.statpos t.newsize (String.length t.bloc)
 
     let write buf t =
       buf_md4 buf t.md4;
@@ -1177,6 +1214,8 @@ type t =
 | EmuleMultiPacketAnswerReq of Md4.t * t list
 | EmuleCompressedPart of EmuleCompressedPart.t
 | EmulePortTestReq of EmulePortTestReq.t
+| EmuleCaptchaReq of EmuleCaptchaReq.t
+| EmuleCaptchaRes of EmuleCaptchaRes.t
 
 let rec print t =
   begin
@@ -1248,6 +1287,10 @@ let rec print t =
         EmuleCompressedPart.print t
     | EmulePortTestReq t ->
         EmulePortTestReq.print t
+    | EmuleCaptchaReq t ->
+        EmuleCaptchaReq.print t
+    | EmuleCaptchaRes t ->
+        EmuleCaptchaRes.print t
     | UnknownReq (opcode, s) ->
         let len = String.length s in
         lprintf_nl "UnknownReq: magic (%d), opcode (%d) len (%d)" opcode 
@@ -1379,8 +1422,9 @@ let rec parse_emule_packet emule opcode len s =
         EmuleCompressedPart (EmuleCompressedPart.parse true len s)
     | 0xa2 -> BlocReq (Bloc.parse true len s) (* OP_SENDINGPART_I64 *)
     | 0xa3 -> QueryBlocReq (QueryBloc.parse true len s) (*OP_REQUESTPARTS_I64 *)
-    | 0xfe (* 254 *) ->
-        EmulePortTestReq s
+    | 0xa5 (* 165 *) -> EmuleCaptchaReq (EmuleCaptchaReq.parse len s) (* OP_CHATCAPTCHAREQ *)
+    | 0xa6 (* 166 *) -> EmuleCaptchaRes (EmuleCaptchaRes.parse s) (* OP_CHATCAPTCHARES *)
+    | 0xfe (* 254 *) -> EmulePortTestReq s
 
     | code ->
         if !CommonOptions.verbose_unknown_messages then
@@ -1495,6 +1539,8 @@ let write emule buf t =
     | EmuleClientInfoReq _
     | EmuleFileDescReq _
     | EmuleQueueRankingReq _
+    | EmuleCaptchaReq _
+    | EmuleCaptchaRes _
     | EmuleCompressedPart _
       -> 0xC5
     | QueryBlocReq t when t.QueryBloc.usesixtyfour -> 0xC5
@@ -1664,7 +1710,15 @@ let write emule buf t =
 
     | EmulePortTestReq t ->
         buf_int8 buf 0xfe;
-        EmulePortTestReq.write buf;
+        EmulePortTestReq.write buf
+
+    | EmuleCaptchaReq t ->
+        buf_int8 buf 0xa5;
+        EmuleCaptchaReq.write buf t
+
+    | EmuleCaptchaRes t ->
+        buf_int8 buf 0xa6;
+        EmuleCaptchaRes.write buf t
 
     | UnknownReq (opcode, s) ->
         Buffer.add_string buf s
