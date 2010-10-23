@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/10/23
+7350: cleanup accesstest temp files (ygrek)
+
 2010/10/19
 7349: Fix release.* make targets on GNU/kFreeBSD
 7348: Update GNU config.guess and config.sub to version 2010/09

@@ -41,6 +41,8 @@ let tryopen_write_gen fn flags perm f =
   tryopen (open_out_gen flags perm) close_out fn f
 let tryopen_openfile fn flags perm f =
   tryopen (fun fn -> Unix.openfile fn flags perm) Unix.close fn f
+let tryopen_tempfile fn flags perm f =
+  tryopen (fun fn -> Unix.openfile fn flags perm) (fun fd -> Unix.close fd; try Sys.remove fn with _ -> ()) fn f
 let tryopen_dir dir f = tryopen opendir closedir dir f
 let tryopen_read_zip fn f = tryopen Zip.open_in Zip.close_in fn f
 let tryopen_write_zip fn f = tryopen Zip.open_out Zip.close_out fn f
@@ -208,32 +210,32 @@ let random () =
   done;
   s
 
-let rec can_write_to_directory dirname =
+let can_write_to_directory dirname =
   let temp_file = Filename.concat dirname "tmp_" ^ random () ^ "_mld.tmp" in
   let check () =
-    tryopen_openfile temp_file [O_WRONLY; O_CREAT] 0o600 (fun fd ->
+    tryopen_tempfile temp_file [O_WRONLY; O_CREAT] 0o600 (fun fd ->
       let test_string = "mldonkey accesstest - this file can be deleted\n" in
-      really_write fd test_string 0 (String.length test_string));
-    (try Sys.remove temp_file with _ -> ()) in
+      really_write fd test_string 0 (String.length test_string))
+  in
   try
     check ()
   with
-    | Unix.Unix_error (Unix.EACCES, _, _) ->
-	lprintf_nl "can not create files in directory %s, check rights..." dirname; 
-	exit 73
-    | Unix.Unix_error (Unix.ENOENT, _, _) ->
-	(try
-	  safe_mkdir dirname; 
-	  check ()
-	with _ ->
-          lprintf_nl "%s does not exist and can not be created,  exiting..." dirname; 
-	  exit 73)
-    | Unix.Unix_error (error, what, code) -> 
-	lprintf_nl "%s for directory %s" (error_message error) what;
-	exit 73
-    | e -> 
-	lprintf_nl "%s for directory %s" (Printexc2.to_string e) dirname; 
-	exit 73
+  | Unix.Unix_error (Unix.EACCES, _, _) ->
+      lprintf_nl "can not create files in directory %s, check rights..." dirname; 
+      exit 73
+  | Unix.Unix_error (Unix.ENOENT, _, _) ->
+      (try
+        safe_mkdir dirname;
+        check ()
+      with _ ->
+        lprintf_nl "%s does not exist and can not be created,  exiting..." dirname; 
+        exit 73)
+  | Unix.Unix_error (error, func, what) -> 
+      lprintf_nl "%s(%s) : %s for directory %s" func what (error_message error) dirname;
+      exit 73
+  | e ->
+      lprintf_nl "%s for directory %s" (Printexc2.to_string e) dirname; 
+      exit 73
 
 (** The resource type to query or set with [getrlimit] or [setrlimit] *)
 type rlimit_resource = RLIMIT_CPU (** CPU time in seconds *)
