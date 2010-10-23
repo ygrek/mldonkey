@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/10/23
+7351: DC: fix download of large files (integer overflow) (ygrek)
 7350: cleanup accesstest temp files (ygrek)
 
 2010/10/19

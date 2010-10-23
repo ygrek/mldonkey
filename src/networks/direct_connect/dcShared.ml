@@ -107,10 +107,7 @@ let file_to_che3_to_string filename =
   let slen = 4096 in
   (try
     let rec read pos =
-      let rlen =
-        let rem = Int64.sub flen pos in (* *)
-        if rem > Int64.of_int slen then slen else Int64.to_int rem
-      in
+      let rlen = int64_min_int (flen -- pos) slen in
       let npos = Int64.add pos (Int64.of_int rlen) in
       let str = String.create slen in
       Unix32.read file_fd pos str 0 rlen;
