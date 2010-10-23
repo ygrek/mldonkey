@@ -1587,14 +1587,15 @@ let _ =
           try
             dc_hublist := (
               match List.rev (String2.split filename '.') with
-              | "bz2"::"xml"::_ -> DcServers.make_hublist_from_xml (Xml.parse_file (Misc2.bz2_extract filename))
+              | "bz2"::"xml"::_ ->
+                Unix2.with_remove (Misc2.bz2_extract filename) (fun filename ->
+                  DcServers.make_hublist_from_xml (Xml.parse_file filename))
               | "xml"::_ -> DcServers.make_hublist_from_xml (Xml.parse_file filename)
-              | "bz2"::_ -> DcServers.make_hublist_from_file (Misc2.bz2_extract filename)
+              | "bz2"::_ -> Unix2.with_remove (Misc2.bz2_extract filename) DcServers.make_hublist_from_file
               | _ -> DcServers.make_hublist_from_file filename);
-            lprintf_nl "loaded dc++ hublist, %d entries" (List.length !dc_hublist)
+            lprintf_nl "Loaded DC hublist, %d entries" (List.length !dc_hublist)
           with e -> 
-            if !verbose_msg_servers then
-              lprintf_nl "(%s) in loading/parsing serverlist" (Printexc2.to_string e);
+            lprintf_nl "Exception while parsing hublist from %S : %s" url (Printexc2.to_string e);
             raise Not_found
         end
       else
