@@ -1135,6 +1135,18 @@ let check_stolen_hash c sock md4 =
     if !!ban_identity_thieves then
       ban_client c sock "is probably using stolen client hashes"
 
+let string_of_client_addr c =
+    try
+      match c.client_source.DonkeySources.source_sock with
+      | Connection sock ->
+          (Ip.to_string (peer_ip sock) ^ ":" ^ string_of_int (peer_port sock))
+      | _ ->
+          raise Not_found
+    with _ ->
+      match c.client_kind with
+      | Direct_address (ip,port) -> ((Ip.to_string ip) ^ ":" ^ string_of_int port)
+      | Indirect_address _ | Invalid_address _ -> "Indirect"
+
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
   
@@ -1935,134 +1947,24 @@ end else *)
 (* FIXME: add logging *)
 (*      !say_hook c s *)
       private_message_from (as_client c)  s;
-      
-      let cip =
-        ( 
-          try
-            
-            match c.client_source.DonkeySources.source_sock with
-              Connection sock ->
-                (Ip.to_string (peer_ip sock) ^ ":" ^ string_of_int (peer_port sock))
-            | _ -> (match c.client_kind with 
-                    Direct_address (ip,port) ->
-                      ((Ip.to_string ip) ^ ":" ^ string_of_int port)
-                  | Indirect_address _ | Invalid_address _ -> "Indirect"
-                )
-          
-          with _ -> 
-              
-              try 
-                match c.client_kind with 
-                  Direct_address (ip,port) ->
-                    ((Ip.to_string ip) ^ ":" ^ string_of_int port)
-                | Indirect_address _ | Invalid_address _ -> "Indirect"
-              with _ -> ""
-        ) 
-      in
+      let cip = string_of_client_addr c in
       log_chat_message cip (client_num c) c.client_name s;
 
-  
   | M.EmuleCaptchaReq t ->
-      let buf = Buffer.create 4096 in
-      let len = String.length t in
-      let b64_map = [|
-        'A'; 'B'; 'C'; 'D'; 'E'; 'F'; 'G'; 'H'; 'I'; 'J'; 'K'; 'L'; 'M'; 'N'; 'O'; 'P';
-        'Q'; 'R'; 'S'; 'T'; 'U'; 'V'; 'W'; 'X'; 'Y'; 'Z'; 'a'; 'b'; 'c'; 'd'; 'e'; 'f';
-        'g'; 'h'; 'i'; 'j'; 'k'; 'l'; 'm'; 'n'; 'o'; 'p'; 'q'; 'r'; 's'; 't'; 'u'; 'v';
-        'w'; 'x'; 'y'; 'z'; '0'; '1'; '2'; '3'; '4'; '5'; '6'; '7'; '8'; '9'; '+'; '/'|] in
-
-      for i = 0 to (len / 3) - 1 do
-        let c1 = int_of_char t.[i*3] in
-        let c2 = int_of_char t.[i*3+1] in
-        let c3 = int_of_char t.[i*3+2] in
-        let n1 = c1 lsr 2 in
-        let n2 = ((c1 land 3) lsl 4) lor (c2 lsr 4) in
-        let n3 = ((c2 land 0xf) lsl 2) lor (c3 lsr 6) in
-        let n4 = c3 land 63 in
-          Printf.bprintf buf "%c%c%c%c" b64_map.(n1) b64_map.(n2) b64_map.(n3) b64_map.(n4);
-      done;
-      if (len mod 3) = 1 then (
-        let i = len - 2 in
-        let c1 = int_of_char t.[i] in
-        let c2 = int_of_char t.[i+1] in
-        let n1 = ((c1 land 0xf) lsl 2) lor (c2 lsr 6) in
-        let n2 = c2 land 63 in
-          Printf.bprintf buf "%c%c==" b64_map.(n1) b64_map.(n2)
-      )
-      else if (len mod 3) = 2 then (
-        let i = len - 3 in
-        let c1 = int_of_char t.[i] in
-        let c2 = int_of_char t.[i+1] in
-        let c3 = int_of_char t.[i+2] in
-        let n1 = ((c1 land 3) lsl 4) lor (c2 lsr 4) in
-        let n2 = ((c2 land 0xf) lsl 2) lor (c3 lsr 6) in
-        let n3 = c3 land 63 in
-          Printf.bprintf buf "%c%c%c=" b64_map.(n1) b64_map.(n2) b64_map.(n3)
-      );
-
-      let b64data = Buffer.contents buf in
-      let cip =
-        ( 
-          try
-            
-            match c.client_source.DonkeySources.source_sock with
-              Connection sock ->
-                (Ip.to_string (peer_ip sock) ^ ":" ^ string_of_int (peer_port sock))
-            | _ -> (match c.client_kind with 
-                    Direct_address (ip,port) ->
-                      ((Ip.to_string ip) ^ ":" ^ string_of_int port)
-                  | Indirect_address _ | Invalid_address _ -> "Indirect"
-                )
-          
-          with _ -> 
-              
-              try 
-                match c.client_kind with 
-                  Direct_address (ip,port) ->
-                    ((Ip.to_string ip) ^ ":" ^ string_of_int port)
-                | Indirect_address _ | Invalid_address _ -> "Indirect"
-              with _ -> ""
-        ) 
-      in
-        log_chat_message cip (client_num c) c.client_name ("data:image/bmp;base64," ^ b64data)
-
+      let b64data = Base64.encode t in
+      let cip = string_of_client_addr c in
+      log_chat_message cip (client_num c) c.client_name ("data:image/bmp;base64," ^ b64data)
 
   | M.EmuleCaptchaRes t ->
-      let cip =
-        (
-          try
-            
-            match c.client_source.DonkeySources.source_sock with
-              Connection sock ->
-                (Ip.to_string (peer_ip sock) ^ ":" ^ string_of_int (peer_port sock))
-            | _ -> (match c.client_kind with 
-                    Direct_address (ip,port) ->
-                      ((Ip.to_string ip) ^ ":" ^ string_of_int port)
-                  | Indirect_address _ | Invalid_address _ -> "Indirect"
-                )
-          
-          with _ -> 
-              
-              try 
-                match c.client_kind with 
-                  Direct_address (ip,port) ->
-                    ((Ip.to_string ip) ^ ":" ^ string_of_int port)
-                | Indirect_address _ | Invalid_address _ -> "Indirect"
-              with _ -> ""
-        )
+      let msg = match t with
+      | 0 -> _s "You have correctly solved the captcha and your message was sent."
+      | 1 -> _s "Wrong answer to the captcha, so your message was not sent. You will only be sent 3 captchas. Try sending another message to receive another captcha challenge."
+      | 2 -> _s "3 captchas have already been sent to you. Fail."
+      | _ -> _s "Unknown captcha state!?"
       in
-        log_chat_message cip (client_num c) c.client_name (
-          if t = 0 then
-            "You have correctly solved the captcha and your message was sent."
-          else if t = 1 then
-            "Wrong answer to the captcha, so your message was not sent. You will only be sent 3 captchas. Try sending another message to receive another captcha challenge."
-          else if t = 2 then
-            "3 captchas have already been sent to you. Fail."
-          else
-            "Unknown captcha state!?"
-        )
+      let cip = string_of_client_addr c in
+      log_chat_message cip (client_num c) c.client_name msg
 
-  
   | M.QueryChunkMd4Req t when !CommonGlobals.has_upload = 0 -> 
       
       let file = find_file t in

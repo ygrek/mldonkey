@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/10/24
+7318: EDK/Emule captcha: Use Base64 functions (ygrek)
 7357: configure: fix quoting of arguments (ygrek)
 
 2010/10/23

@@ -1194,7 +1194,7 @@ let _ =
       }
   )
 
-let string_of_client_addr c =
+let string_of_client_ip c =
   try match c.client_source.DonkeySources.source_sock with
       Connection sock -> (Ip.to_string (peer_ip sock))
     | _ -> ""
@@ -1212,7 +1212,7 @@ let get_ips_cc_cn c =
         (Ip.to_string real_ip),cc,cn
     | _ ->  
         let cc,cn = Geoip.unknown_country in
-        (string_of_client_addr c),cc,cn
+        (string_of_client_ip c),cc,cn
   with _ -> ("X","??","Country Error")
 
 
@@ -1808,7 +1808,7 @@ let _ =
               (shorten c.client_name 20)
               (match c.client_kind with
                   Direct_address (ip,port) -> (Ip.to_string ip)
-                  |  _ -> (string_of_client_addr c));
+                  |  _ -> (string_of_client_ip c));
                     Printf.bprintf buf "\n%14sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
                     (Int64.to_string c.client_total_downloaded)
                     (Int64.to_string c.client_total_uploaded)
