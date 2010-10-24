@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/10/24
+7357: configure: fix quoting of arguments (ygrek)
+
 2010/10/23
 7318: EDK: Emule captcha support and slight cleanup (dennisne)
 - added support for Emule's anti-spam chat CAPTCHAs
