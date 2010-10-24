@@ -484,42 +484,42 @@ let op_file_print_sources file o =
   if Hashtbl.length file.file_clients > 0 then begin
 
       let header_list = [
-        ( "1", "srh br ac", "Client number", "Num" ) ;
-        ( "0", "srh br", "Client UID", "UID" ) ;
-        ( "0", "srh br", "Client software", "Soft" ) ;
-        ( "0", "srh", "IP address", "IP address" ) ;
-        ( "0", "srh br ar", "Port", "Port" ) ;
-        ] @ (if Geoip.active () then [( "0", "srh br ar", "Country Code/Name", "CC" )] else []) @ [
-        ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
-        ( "1", "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
-        ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
-        ( "1", "srh ar br", "Session DL bytes from this client for all files", "sDL" ) ;
-        ( "0", "srh ar", "Interested [T]rue, [F]alse", "I" ) ;
-        ( "0", "srh ar", "Choked [T]rue, [F]alse", "C" ) ;
-        ( "1", "srh br ar", "Allowed to write", "A" ) ;
-        ( "0", "srh ar", "Interesting [T]rue, [F]alse", "I" );
-        ( "0", "srh ar", "Already sent interested [T]rue, [F]alse", "A" );
-        ( "0", "srh br ar", "Already sent not interested [T]rue, [F]alse", "N" );
+        ( Num, "srh br ac", "Client number", "Num" ) ;
+        ( Str, "srh br", "Client UID", "UID" ) ;
+        ( Str, "srh br", "Client software", "Soft" ) ;
+        ( Str, "srh", "IP address", "IP address" ) ;
+        ( Str, "srh br ar", "Port", "Port" ) ;
+        ] @ (if Geoip.active () then [( Str, "srh br ar", "Country Code/Name", "CC" )] else []) @ [
+        ( Num, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+        ( Num, "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
+        ( Num, "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
+        ( Num, "srh ar br", "Session DL bytes from this client for all files", "sDL" ) ;
+        ( Str, "srh ar", "Interested [T]rue, [F]alse", "I" ) ;
+        ( Str, "srh ar", "Choked [T]rue, [F]alse", "C" ) ;
+        ( Num, "srh br ar", "Allowed to write", "A" ) ;
+        ( Str, "srh ar", "Interesting [T]rue, [F]alse", "I" );
+        ( Str, "srh ar", "Already sent interested [T]rue, [F]alse", "A" );
+        ( Str, "srh br ar", "Already sent not interested [T]rue, [F]alse", "N" );
 
-        ( "0", "srh ar", "Good [T]rue, [F]alse", "G" );
-        ( "0", "srh ar", "Incoming [T]rue, [F]alse", "I" );
-        ( "0", "srh br ar", "Registered bitfield [T]rue, [F]alse", "B" );
+        ( Str, "srh ar", "Good [T]rue, [F]alse", "G" );
+        ( Str, "srh ar", "Incoming [T]rue, [F]alse", "I" );
+        ( Str, "srh br ar", "Registered bitfield [T]rue, [F]alse", "B" );
 
-        ( "0", "srh ar", "Connect Time", "T" );
-        ( "0", "srh ar", "Last optimist", "L.Opt" );
-        ( "0", "srh br ar", "Num try", "N" );
+        ( Str, "srh ar", "Connect Time", "T" );
+        ( Str, "srh ar", "Last optimist", "L.Opt" );
+        ( Str, "srh br ar", "Num try", "N" );
 
-        ( "0", "srh", "DHT [T]rue, [F]alse", "D" );
-        ( "0", "srh", "Cache extensions [T]rue, [F]alse", "C" );
-        ( "0", "srh", "Fast extensions [T]rue, [F]alse", "F" );
-        ( "0", "srh", "uTorrent extensions [T]rue, [F]alse", "U" );
-        ( "0", "srh br", "Azureus messaging protocol [T]rue, [F]alse", "A" );
+        ( Str, "srh", "DHT [T]rue, [F]alse", "D" );
+        ( Str, "srh", "Cache extensions [T]rue, [F]alse", "C" );
+        ( Str, "srh", "Fast extensions [T]rue, [F]alse", "F" );
+        ( Str, "srh", "uTorrent extensions [T]rue, [F]alse", "U" );
+        ( Str, "srh br", "Azureus messaging protocol [T]rue, [F]alse", "A" );
 (*
-        ( "0", "srh", "Bitmap (absent|partial|present|verified)", (colored_chunks
+        ( Str, "srh", "Bitmap (absent|partial|present|verified)", (colored_chunks
         (Array.init (String.length info.G.file_chunks)
         (fun i -> ((int_of_char info.G.file_chunks.[i])-48)))) ) ;
 *)
-        ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
+        ( Num, "srh ar", "Number of full chunks", (Printf.sprintf "%d"
           (match file.file_swarmer with
           | None -> 0
           | Some swarmer ->
@@ -1190,8 +1190,8 @@ let commands =
         if use_html_mods o then begin
           html_mods_cntr_init ();
           html_mods_table_header o.conn_buf "sourcesInfo" "sourcesInfo" [
-            ( "0", "srh br", "File Info", "Info" ) ;
-            ( "0", "srh", "Value", "Value" ) ]
+            ( Str, "srh br", "File Info", "Info" ) ;
+            ( Str, "srh", "Value", "Value" ) ]
         end;
         op_file_print file.impl_file_val o;
         if use_html_mods o then begin

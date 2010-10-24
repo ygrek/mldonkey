@@ -491,30 +491,30 @@ module Make(M:
          Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
 	 
          html_mods_table_header buf "sourcesTable" "sources" [
-           ( "0", "srh br", "New sources", 
+           ( Str, "srh br", "New sources", 
 	     Printf.sprintf "New(%d)" new_sources_queue );
-           ( "0", "srh br", "Good sources", 
+           ( Str, "srh br", "Good sources", 
 	     Printf.sprintf "Good(%d)" good_sources_queue );
-           ( "0", "srh br", "Ready saved sources", 
+           ( Str, "srh br", "Ready saved sources", 
 	     Printf.sprintf "Ready(%d)" ready_saved_sources_queue);
-           ( "0", "srh br", "Waiting saved sources", 
+           ( Str, "srh br", "Waiting saved sources", 
 	     Printf.sprintf "Wait(%d)" waiting_saved_sources_queue);
-           ( "0", "srh br", "Old sources 1", 
+           ( Str, "srh br", "Old sources 1", 
 	     Printf.sprintf "Old1(%d)" old_sources1_queue );
-           ( "0", "srh br", "Old sources 2", 
+           ( Str, "srh br", "Old sources 2", 
 	     Printf.sprintf "Old2(%d)" old_sources2_queue );
-           ( "0", "srh br", "Old sources 3", 
+           ( Str, "srh br", "Old sources 3", 
 	     Printf.sprintf "Old3(%d)" old_sources3_queue );
-           ( "0", "srh br", "Do not try sources", 
+           ( Str, "srh br", "Do not try sources", 
 	     Printf.sprintf "nTry(%d)" do_not_try_queue );
-           ( "0", "srh br", "Connected sources", 
+           ( Str, "srh br", "Connected sources", 
 	     Printf.sprintf "Conn(%d)" connected_sources_queue );
-           ( "0", "srh br", "Connecting sources", 
+           ( Str, "srh br", "Connecting sources", 
 	     Printf.sprintf "Cing(%d)" connecting_sources_queue );
-           ( "0", "srh br", "Busy sources", 
+           ( Str, "srh br", "Busy sources", 
 	     Printf.sprintf "Busy(%d)" busy_sources_queue );
-           ( "0", "srh br", "Total sources", "All" );
-           ( "0", "srh br", "Filename", "Name" ); ];
+           ( Str, "srh br", "Total sources", "All" );
+           ( Str, "srh br", "Filename", "Name" ); ];
        else begin
          Printf.bprintf buf "Statistics on sources: time %d\n" (last_time ());
          Printf.bprintf buf "File sources per manager queue(%d):\n" 
@@ -694,19 +694,19 @@ module Make(M:
          Printf.bprintf buf "\\</table\\>\\</div\\>\n";
 
          html_mods_table_header buf "sourcesTable" "sources" [
-           ( "0", "srh", "New sources", "New" );
-           ( "0", "srh", "Good sources", "Good" );
-           ( "0", "srh", "Ready sources", "Ready" );
-           ( "0", "srh", "Waiting sources", "Wait" );
-           ( "0", "srh", "Old sources 1", "Old1" );
-           ( "0", "srh", "Old sources 2", "Old2" );
-           ( "0", "srh", "Old sources 3", "Old3" );
-           ( "0", "srh", "Do not try", "nTry" );
-           ( "0", "srh", "Connected sources", "Conn" );
-           ( "0", "srh", "Connecting sources", "Cing" );
-           ( "0", "srh", "Busy sources", "Busy" );
-           ( "0", "srh", "Total sources", "All" );
-           ( "0", "srh", "Type", "Type" ); ];
+           ( Str, "srh", "New sources", "New" );
+           ( Str, "srh", "Good sources", "Good" );
+           ( Str, "srh", "Ready sources", "Ready" );
+           ( Str, "srh", "Waiting sources", "Wait" );
+           ( Str, "srh", "Old sources 1", "Old1" );
+           ( Str, "srh", "Old sources 2", "Old2" );
+           ( Str, "srh", "Old sources 3", "Old3" );
+           ( Str, "srh", "Do not try", "nTry" );
+           ( Str, "srh", "Connected sources", "Conn" );
+           ( Str, "srh", "Connecting sources", "Cing" );
+           ( Str, "srh", "Busy sources", "Busy" );
+           ( Str, "srh", "Total sources", "All" );
+           ( Str, "srh", "Type", "Type" ); ];
 
        end
        else
@@ -835,9 +835,9 @@ module Make(M:
        ) connecting_sources;
        if output_type = HTML then begin
          html_mods_table_header buf "sourcesTable" "sources" [
-           ( "0", "srh", "Connecting sources", "Connecting sources" );
-           ( "0", "srh", "Next direct sources", "Next direct sources" );
-           ( "0", "srh", "Next indirect sources", "Next indirect sources" ); ];
+           ( Str, "srh", "Connecting sources", "Connecting sources" );
+           ( Str, "srh", "Next direct sources", "Next direct sources" );
+           ( Str, "srh", "Next indirect sources", "Next indirect sources" ); ];
          Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
          html_mods_td buf [
            ("", "sr", (Printf.sprintf "%d entries" 

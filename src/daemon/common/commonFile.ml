@@ -397,12 +397,12 @@ let default_file_print_sources file o =
   if List.length !allsources > 0 then begin
 
     html_mods_table_header buf "sourcesTable" "sources al" [
-        ( "1", "srh br ac", "Client number", "Num" ) ;
-        ( "0", "srh br", "Client Name", "Name" ) ;
-        ( "0", "srh br", "IP address", "IP address" ) ;
-        ( "0", "srh br", "Client software", "CS" ) ;
-        ( "1", "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
-        ( "1", "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ];
+        ( Num, "srh br ac", "Client number", "Num" ) ;
+        ( Str, "srh br", "Client Name", "Name" ) ;
+        ( Str, "srh br", "IP address", "IP address" ) ;
+        ( Str, "srh br", "Client software", "CS" ) ;
+        ( Num, "srh ar", "Total UL bytes to this client for all files", "UL" ) ;
+        ( Num, "srh ar br", "Total DL bytes from this client for all files", "DL" ) ; ];
 
     html_mods_cntr_init ();
 
@@ -704,8 +704,8 @@ let file_print file o =
 
       html_mods_cntr_init ();
       html_mods_table_header buf "sourcesInfo" "sourcesInfo" [
-        ( "0", "srh br", "File Info", "Info" ) ;
-        ( "0", "srh", "Value", "Value" ) ];
+        ( Str, "srh br", "File Info", "Info" ) ;
+        ( Str, "srh", "Value", "Value" ) ];
 
       Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [

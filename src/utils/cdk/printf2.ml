@@ -300,6 +300,7 @@ let html_mods_commands buf n c l =
     ( "bu bbig", "Extend search to more servers and view results", "mSub('output','vr');", "Extend search" ) ;
 *)
 
+type sort_kind = Num (* numeric, parse size suffixes (kMGT) *) | Str (* plain string *)
 
 let html_mods_table_header buf ?(total = "0") n c l =
     (* Name Class List *)
@@ -308,9 +309,10 @@ let html_mods_table_header buf ?(total = "0") n c l =
     if List.length l > 0 then begin
         Printf.bprintf buf "\\<tr\\>";
         List.iter (fun (w,x,y,z)  ->
+         let sort = match w with Num -> "1" | Str -> "0" in
          (* Sort Class Title Value *)
          Printf.bprintf buf "\\<td onClick=\\\"_tabSort(this,%s,%s);\\\" class=\\\"%s\\\" title=\\\"%s\\\"\\>%s\\</td\\>"
-         w total x y z;
+         sort total x y z;
         ) l;
         Printf.bprintf buf "\\</tr\\>"
       end

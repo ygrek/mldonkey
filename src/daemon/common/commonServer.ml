@@ -377,27 +377,27 @@ let server_print_html_header buf ext =
 -100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
 
     html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) ([
-    ( "1", "srh", "Server number", "#" ) ;
-    ( "0", "srh", "Connect|Disconnect", "C/D" ) ;
-    ( "0", "srh", "Remove", "Rem" ) ;
-    ( "0", "srh", "Preferred", "P" ) ;
-    ( "0", "srh", "Master servers", "M" ) ;
-    ( "0", "srh", "[Hi]gh or [Lo]w ID", "ID" ) ;
-    ( "0", "srh", "Network name", "Network" ) ;
-    ( "0", "srh", "Connection status", "Status" ) ;
-    ( "0", "srh br", "IP address", "IP address" ) ;
-    ] @ (if Geoip.active () then [( "0", "srh br", "Country Code/Name", "CC" )] else []) @ [
-    ( "1", "srh ar", "Number of connected users", "Users" ) ;
-    ( "1", "srh ar br", "Max number of users", "MaxUsers" ) ;
-    ( "1", "srh ar br", "LowID users", "LowID" ) ;
-    ( "1", "srh ar", "Number of files indexed on server", "Files" );
-    ( "1", "srh ar br", "Number of published files on server", "Publ" );
-    ( "1", "srh ar", "Soft file limit", "Soft" ) ;
-    ( "1", "srh ar br", "Hard file limit", "Hard" ) ;
-    ( "0", "srh ar br", "Ping (ms)", "Ping" ) ;
-    ( "0", "srh br", "Server version", "Version" ) ;
-    ( "0", "srh", "Server name", "Name" ) ;
-    ( "0", "srh", "Server details", "Details" ) ])
+    ( Num, "srh", "Server number", "#" ) ;
+    ( Str, "srh", "Connect|Disconnect", "C/D" ) ;
+    ( Str, "srh", "Remove", "Rem" ) ;
+    ( Str, "srh", "Preferred", "P" ) ;
+    ( Str, "srh", "Master servers", "M" ) ;
+    ( Str, "srh", "[Hi]gh or [Lo]w ID", "ID" ) ;
+    ( Str, "srh", "Network name", "Network" ) ;
+    ( Str, "srh", "Connection status", "Status" ) ;
+    ( Str, "srh br", "IP address", "IP address" ) ;
+    ] @ (if Geoip.active () then [( Str, "srh br", "Country Code/Name", "CC" )] else []) @ [
+    ( Num, "srh ar", "Number of connected users", "Users" ) ;
+    ( Num, "srh ar br", "Max number of users", "MaxUsers" ) ;
+    ( Num, "srh ar br", "LowID users", "LowID" ) ;
+    ( Num, "srh ar", "Number of files indexed on server", "Files" );
+    ( Num, "srh ar br", "Number of published files on server", "Publ" );
+    ( Num, "srh ar", "Soft file limit", "Soft" ) ;
+    ( Num, "srh ar br", "Hard file limit", "Hard" ) ;
+    ( Str, "srh ar br", "Ping (ms)", "Ping" ) ;
+    ( Str, "srh br", "Server version", "Version" ) ;
+    ( Str, "srh", "Server name", "Name" ) ;
+    ( Str, "srh", "Server details", "Details" ) ])
 
 let server_print s o =
   let impl = as_server_impl s in

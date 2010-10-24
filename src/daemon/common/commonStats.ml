@@ -319,26 +319,26 @@ let print_stats_ascii buf arr l tl uptime =
 
 let stats_html_header buf =
   html_mods_table_header buf ~total:"1" "csTable" "cs" [
-   ( "0", "srh", "Client brand", "Brand" );
-   ( "0", "srh", "Separator", ":" );
-   ( "1", "srh ar", "Successful connections", "Seen" );
-   ( "1", "srh", "Successful connections percent", "%" );
-   ( "0", "srh", "Separator", "|" );
-   ( "1", "srh ar", "File requests received", "Reqs" );
-   ( "1", "srh", "File requests received percent", "%" );
-   ( "0", "srh", "Separator", "|" );
-   ( "1", "srh ar", "Total bans", "B" );
-   ( "1", "srh", "Total bans percent", "%" );
-   ( "0", "srh", "Separator", "|" ); 
-   ( "1", "srh ar", "Total uploads", "UL" );
-   ( "1", "srh", "Total uploads percent", "%" );
-   ( "1", "srh ar", "Total uploads average KB/s", "KB/s" );
-   ( "0", "srh", "Separator", "|" );
-   ( "1", "srh ar", "Total downloads", "DL" );
-   ( "1", "srh", "Total downloads percent", "%" );
-   ( "1", "srh ar", "Total downloads average KB/s", "KB/s" );
-   ( "0", "srh", "Separator", "|" );
-   ( "1", "srh", "Total uploads:downloads ratio", "U:DL" );
+   ( Str, "srh", "Client brand", "Brand" );
+   ( Str, "srh", "Separator", ":" );
+   ( Num, "srh ar", "Successful connections", "Seen" );
+   ( Num, "srh", "Successful connections percent", "%" );
+   ( Str, "srh", "Separator", "|" );
+   ( Num, "srh ar", "File requests received", "Reqs" );
+   ( Num, "srh", "File requests received percent", "%" );
+   ( Str, "srh", "Separator", "|" );
+   ( Num, "srh ar", "Total bans", "B" );
+   ( Num, "srh", "Total bans percent", "%" );
+   ( Str, "srh", "Separator", "|" ); 
+   ( Num, "srh ar", "Total uploads", "UL" );
+   ( Num, "srh", "Total uploads percent", "%" );
+   ( Num, "srh ar", "Total uploads average KB/s", "KB/s" );
+   ( Str, "srh", "Separator", "|" );
+   ( Num, "srh ar", "Total downloads", "DL" );
+   ( Num, "srh", "Total downloads percent", "%" );
+   ( Num, "srh ar", "Total downloads average KB/s", "KB/s" );
+   ( Str, "srh", "Separator", "|" );
+   ( Num, "srh", "Total uploads:downloads ratio", "U:DL" );
   ]
 
 let stats_list l arr = 
