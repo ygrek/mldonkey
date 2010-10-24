@@ -394,7 +394,7 @@ let server_print_html_header buf ext =
     ( Num, "srh ar br", "Number of published files on server", "Publ" );
     ( Num, "srh ar", "Soft file limit", "Soft" ) ;
     ( Num, "srh ar br", "Hard file limit", "Hard" ) ;
-    ( Str, "srh ar br", "Ping (ms)", "Ping" ) ;
+    ( Num, "srh ar br", "Ping (ms)", "Ping" ) ;
     ( Str, "srh br", "Server version", "Version" ) ;
     ( Str, "srh", "Server name", "Name" ) ;
     ( Str, "srh", "Server details", "Details" ) ])

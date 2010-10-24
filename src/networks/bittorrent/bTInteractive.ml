@@ -488,7 +488,7 @@ let op_file_print_sources file o =
         ( Str, "srh br", "Client UID", "UID" ) ;
         ( Str, "srh br", "Client software", "Soft" ) ;
         ( Str, "srh", "IP address", "IP address" ) ;
-        ( Str, "srh br ar", "Port", "Port" ) ;
+        ( Num, "srh br ar", "Port", "Port" ) ;
         ] @ (if Geoip.active () then [( Str, "srh br ar", "Country Code/Name", "CC" )] else []) @ [
         ( Num, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
         ( Num, "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
@@ -505,9 +505,9 @@ let op_file_print_sources file o =
         ( Str, "srh ar", "Incoming [T]rue, [F]alse", "I" );
         ( Str, "srh br ar", "Registered bitfield [T]rue, [F]alse", "B" );
 
-        ( Str, "srh ar", "Connect Time", "T" );
-        ( Str, "srh ar", "Last optimist", "L.Opt" );
-        ( Str, "srh br ar", "Num try", "N" );
+        ( Num, "srh ar", "Connection Time", "T" );
+        ( Str, "srh ar", "Last optimistic unchoke", "L.Opt" );
+        ( Num, "srh br ar", "Number of tries", "N" );
 
         ( Str, "srh", "DHT [T]rue, [F]alse", "D" );
         ( Str, "srh", "Cache extensions [T]rue, [F]alse", "C" );
@@ -566,7 +566,7 @@ let op_file_print_sources file o =
             ("", "sr", (btos c.client_incoming));
             ("", "br sr", (btos c.client_registered_bitfield));
 
-            ("", "sr", Printf.sprintf "%d" c.client_connect_time);
+            ("", "sr", Printf.sprintf "%d" ((last_time () - c.client_connect_time) / 60));
             ("", "ar sr", string_of_date c.client_last_optimist);
             ("", "br sr", Printf.sprintf "%d" c.client_num_try);
 

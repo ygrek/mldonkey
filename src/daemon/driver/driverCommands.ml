@@ -1287,7 +1287,7 @@ let _ =
         if use_html_mods o then
           begin
             html_mods_table_header buf "sharesTable" "shares" [
-               ( Str, "srh ar", "Number", "Num" ) ;
+               ( Num, "srh ar", "Number", "Num" ) ;
                ( Str, "srh", "Country code", "Code" ) ;
                ( Str, "srh", "Country name", "Country" ) ;
                ( Str, "srh", "Continent code", "Con" ) ;
@@ -2258,7 +2258,7 @@ action=\\\"javascript:submitHtmlModsStyle();\\\"\\>";
 	        ( Str, "srh ac", "Click to remove URL", "Remove" ) ;
 	        ( Str, "srh", "Download now", "DL" ) ;
 	        ( Str, "srh", "Filetype", "Type" ) ;
-	        ( Str, "srh", "Interval in hours", "Interval" ) ;
+	        ( Num, "srh", "Interval in hours", "Interval" ) ;
 	        ( Str, "srh", "URL", "URL" ) ;
 	        ( Str, "srh", "URL state", "State" ) ;
               ] ;
@@ -2568,8 +2568,8 @@ let _ =
                ( Str, "srh", "Incoming", "Incoming" ) ;
                ( Str, "srh", "Directories", "Directories" ) ;
                ( Str, "srh", "Recursive", "Recursive" ) ;
-               ( Str, "srh", "Minsize", "Minsize" ) ;
-               ( Str, "srh", "Maxsize", "Maxsize" ) ;
+               ( Num, "srh", "Minsize", "Minsize" ) ;
+               ( Num, "srh", "Maxsize", "Maxsize" ) ;
                ( Str, "srh", "Extensions", "Extensions" ) ];
 
             html_mods_cntr_init ();
@@ -2778,10 +2778,10 @@ let _ =
                   ] @
                   (if !!emule_mods_count then [( Str, "srh", "eMule MOD", "EM" )] else [])
                   @ [
-                  ( Str, "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
-                  ( Str, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
-                  ( Str, "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
-                  ( Str, "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
+                  ( Num, "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
+                  ( Num, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+                  ( Num, "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
+                  ( Num, "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
                   ( Str, "srh ar", "Slot kind", "Slot" ) ;
                   ( Str, "srh", "Filename", "Filename" ) ]);
 
@@ -2860,10 +2860,10 @@ let _ =
                   ] @
                   (if !!emule_mods_count then [( Str, "srh", "eMule MOD", "EM" )] else [])
                   @ [
-                  ( Str, "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
-                  ( Str, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
-                  ( Str, "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
-                  ( Str, "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
+                  ( Num, "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
+                  ( Num, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+                  ( Num, "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
+                  ( Num, "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
                   ( Str, "srh", "Filename", "Filename" ) ]);
 
                 Intmap.iter (fun cnum c ->
@@ -3562,8 +3562,8 @@ let _ =
               ( Str, "srh", "Default group", "Default group" ) ;
               ( Str, "srh", "Mail address", "Email" ) ;
               ( Str, "srh", "Commit dir", "Commit dir" ) ;
-              ( Str, "srh ar", "Download quota", "Max DLs" ) ;
-              ( Str, "srh ar", "Download count", "DLs" ) ];
+              ( Num, "srh ar", "Download quota", "Max DLs" ) ;
+              ( Num, "srh ar", "Download count", "DLs" ) ];
 
             html_mods_cntr_init ();
             user2_users_iter (fun user ->
@@ -3629,8 +3629,8 @@ class=\\\"srb\\\"\\>%s\\</a\\> " user.user_name group.group_name group.group_nam
               ( Str, "srh ac", "Click to remove group", "Remove" );
               ( Str, "srh", "Groupname", "Group" );
               ( Str, "srh ac", "Click to change status", "Admin" );
-              ( Str, "srh ar", "Member count", "Mem" );
-              ( Str, "srh ar", "Download count", "DLs" ) ];
+              ( Num, "srh ar", "Member count", "Mem" );
+              ( Num, "srh ar", "Download count", "DLs" ) ];
 
 	    html_mods_cntr_init ();
             user2_groups_iter (fun group ->

@@ -2113,8 +2113,8 @@ let portinfo html buf =
   if html then
       html_mods_table_header buf "sharesTable" "shares" [
        ( Str, "srh", "Network", "Network" ) ;
-       ( Str, "srh ar", "Port", "Port" ) ;
-       ( Num, "srh", "Type", "Type" ) ]
+       ( Num, "srh ar", "Port", "Port" ) ;
+       ( Str, "srh", "Type", "Type" ) ]
   else
     begin
       Printf.bprintf buf "\n\t--Portinfo--\n";
