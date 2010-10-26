@@ -2087,6 +2087,11 @@ let cancel_recover_file file =
 
 let _ =
   CommonWeb.add_web_kind web_info web_info_descr (fun url filename ->
+    try
+      DonkeyNodesDat.parse filename bootstrap
+    with
+      exn ->
+      lprintf_nl "Parsing nodes.dat as binary failed : %s : will try as text" (Printexc2.to_string exn);
       let s = File.to_string filename in
       let s = String2.replace s '"' "" in
       let lines = String2.split_simplify s '\n' in

@@ -330,6 +330,7 @@ DONKEY_SRCS += \
   $(SRC_DONKEY)/donkeyOneFile.ml \
   \
   $(SRC_DONKEY)/donkeyOvernetImport.ml \
+  $(SRC_DONKEY)/donkeyNodesDat.ml \
   $(SRC_DONKEY)/donkeyOvernet.ml \
   $(SRC_DONKEY)/donkeyProtoKademlia.ml \
   $(SRC_DONKEY)/donkeyClient.ml \
@@ -435,9 +436,6 @@ $(BITSTRING)/bitstring_persistent.cmo: $(BITSTRING)/bitstring_persistent.ml $(BI
 
 $(BITSTRING)/pa_bitstring.cmo: $(BITSTRING)/pa_bitstring.mlt $(BITSTRING)/bitstring_persistent.cmo build/bitstring.cma
 	$(OCAMLC) -I $(BITSTRING) -I +camlp4 camlp4lib.cma -pp '$(CAMLP4OF) -impl' -c $^
-
-$(SRC_BITTORRENT)/bTUdpTracker.ml: $(SRC_BITTORRENT)/bTUdpTracker.mlp $(BITSTRING)/pa_bitstring.cmo
-	$(CAMLP4OF) build/bitstring.cma $(BITSTRING)/bitstring_persistent.cmo $(BITSTRING)/pa_bitstring.cmo -impl $< -o $@
 
 BITTORRENT_SRCS= \
   $(BITSTRING_SRCS) \
@@ -1454,6 +1452,7 @@ releaseclean: clean moreclean
 	rm -f src/daemon/driver/driverGraphics.ml
 	rm -f src/networks/bittorrent/bTUdpTracker.ml
 	rm -f src/networks/donkey/donkeySui.ml
+	rm -f src/networks/donkey/donkeyNodesDat.ml
 	rm -f src/utils/bitstring/bitstring.ml
 	rm -f src/utils/bitstring/bitstring_persistent.ml
 	rm -f src/utils/lib/autoconf.ml
@@ -1795,6 +1794,9 @@ rpm: sourcedist
 
 .mlcpp.ml:
 	@cpp -P $< $(FIX_BROKEN_CPP) > $@
+
+%.ml: %.mlp $(BITSTRING)/pa_bitstring.cmo
+	$(CAMLP4OF) build/bitstring.cma $(BITSTRING)/bitstring_persistent.cmo $(BITSTRING)/pa_bitstring.cmo -impl $< -o $@
 
 .mll.ml :
 	@$(OCAMLLEX) -q $<
