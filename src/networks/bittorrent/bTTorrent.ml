@@ -280,9 +280,9 @@ let decode_torrent s =
   assert (real_file_name <> "");
   assert (!file_piece_size <> zero);
   assert (!file_pieces <> "");
-  assert (!file_info = Bencode.decode (Bencode.encode !file_info));
+  assert (!file_info = Bencode.decode (Bencode.encode ~strict:false !file_info));
 
-  let file_id = Sha1.string (Bencode.encode !file_info) in
+  let file_id = Sha1.string (Bencode.encode ~strict:false !file_info) in
   let npieces = 1 + Int64.to_int ((!length -- one) // !file_piece_size) in
   let pieces = Array.init npieces (fun i ->
         let s = String.sub !file_pieces (i*20) 20 in
