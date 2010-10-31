@@ -22,7 +22,7 @@ let q () =
 
 (** node ID type *)
 type id = H.t
-let show_id h = let s = H.to_hexa h in (String.sub s 0 6 ^ ".." ^ String.sub s 16 4)
+let show_id h = let s = H.to_hexa h in (String.sub s 0 7 ^ ".." ^ String.sub s 17 3)
 type addr = Ip.t * int
 
 type time = float
