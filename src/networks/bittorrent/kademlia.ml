@@ -25,8 +25,8 @@ type id = H.t
 let show_id h = let s = H.to_hexa h in (String.sub s 0 7 ^ ".." ^ String.sub s 17 3)
 type addr = Ip.t * int
 
-type time = float
-let minutes n = float (60 * n)
+type time = int
+let minutes n = 60 * n
 let node_period = minutes 15
 type status = | Good | Bad | Unknown | Pinged
 type node = { id : id; addr : addr; mutable last : time; mutable status : status; }
@@ -35,8 +35,8 @@ type bucket = { lo : id; hi : id; mutable last_change : time; mutable nodes : no
 type tree = L of bucket | N of tree * id * tree
 type table = { mutable root : tree; self : id; }
 
-let now = Unix.gettimeofday
-let diff t = Printf.sprintf "%.0f sec ago" (now () -. t)
+let now = BasicSocket.last_time
+let diff t = Printf.sprintf "%d sec ago" (now () - t)
 
 let show_addr (ip,port) = Printf.sprintf "%s:%u" (Ip.to_string ip) port
 
@@ -213,8 +213,8 @@ let rec update ping table ?(st=Good) id data =
       raise Nothing
     end;
     Array.iteri (fun i n ->
-      if n.status = Good && now () -. n.last > node_period then mark n Unknown;
-      if n.status = Bad || (n.status = Pinged && now () -. n.last > node_period) then
+      if n.status = Good && now () - n.last > node_period then mark n Unknown;
+      if n.status = Bad || (n.status = Pinged && now () - n.last > node_period) then
       begin
         pr "replace [%s] with %s" (show_node b.nodes.(i)) (show_id id);
         b.nodes.(i) <- make_node id data st; (* replace *)
@@ -260,7 +260,7 @@ let rec update ping table ?(st=Good) id data =
 (* end *)
 
 let refresh table =
-  let expire = now () -. node_period in
+  let expire = now () - node_period in
   let rec loop acc = function
   | N (l,_,r) -> let acc = loop acc l in loop acc r
   | L b when b.last_change < expire -> choose_random b.lo b.hi :: acc
@@ -288,7 +288,7 @@ let create () = { root = L { lo = H.null; hi = last; last_change = now (); nodes
                 }
 
 let show_table t =
-  pr "self : %s now : %f" (show_id t.self) (now ());
+  pr "self : %s now : %d" (show_id t.self) (now ());
   show_tree t.root
 
 let rec fold f acc = function
