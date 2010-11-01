@@ -43,6 +43,7 @@ open CommonOptions
 open CommonUserDb
 open CommonInteractive
 open CommonEvent
+open UpnpClient
 
 open DriverInteractive
 
@@ -2147,6 +2148,12 @@ action=\\\"javascript:pluginSubmit();\\\"\\>";
 			] @
 			(if Autoconf.filetp = "yes" then [(strings_of_option enable_fileTP)] else [])
 			@ [
+			] @
+			(if Autoconf.upnp_natpmp then [(strings_of_option upnp_port_forwarding)] else [])
+			@ [
+			] @
+			(if Autoconf.upnp_natpmp then [(strings_of_option clear_upnp_port_at_exit)] else [])
+			@ [
 			strings_of_option tcpip_packet_size;
 			strings_of_option mtu_packet_size;
 			strings_of_option minimal_packet_size;
@@ -4195,4 +4202,43 @@ let _ =
         CommonPictures.compute_ocaml_code dir output;
         _s "done"
     ), ":\t\t\tfor debugging only";
+
+    "debug_upnp", Arg_multiple ( fun args o ->
+		match args with
+			| ["init"] ->  
+				UpnpClient.init_maps ();
+
+			| ["add"; intPort; extPort; isTcp; notes ] ->
+				UpnpClient.maps_add_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
+				
+			| ["start"] -> 	
+				UpnpClient.job_start ();
+				
+			| ["remove"; intPort; extPort; isTcp; notes] ->
+				UpnpClient.maps_remove_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
+				
+			| ["clear"] -> 	
+				UpnpClient.remove_all_maps 0 ;
+				
+			| ["stop"] -> 	
+				UpnpClient.job_stop 0;
+				
+			| ["show"] | [] ->
+				let buf = o.conn_buf in
+					let	maps = UpnpClient.maps_get () in
+					Printf.bprintf buf "upnp port forwarding status:\n";
+					List.iter (fun map ->
+						let msg = UpnpClient.strings_port_map map in
+						Printf.bprintf buf "%s\n" msg;
+					) maps;
+						
+			| _ -> ();
+				;
+			_s "done"
+    ), ":\t\t\t\t\t$debugging upnp\n"
+       ^"\t\t\t\t\tfor example: \"add 4662 4662 1 ed_port\" add port forwarding intPort extPort isTcp notes\n"
+       ^"\t\t\t\t\t\"remove 4662 4662 1 ed_port\" remove port forwarding intPort extPort isTcp notes\n"
+       ^"\t\t\t\t\t\"clear\" clear all port forwarding\n"
+       ^"\t\t\t\t\t\"show\" show all port forwarding info $n";
+		
   ]

@@ -108,6 +108,8 @@ let version () =
 in an option, and then change the option accordingly. ?> *)
 let find_other_port = ref false
 
+let upnp_port_forwarding () = !!upnp_port_forwarding && Autoconf.upnp_natpmp
+
 let shorten str limit =
   (* TODO: we should change all strings to utf8 when
      they come into the core instead. *)

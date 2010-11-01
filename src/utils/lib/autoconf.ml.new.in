@@ -48,3 +48,4 @@ let has_gd_jpg = "@GD_JPG@" = "yes"
 let bzip2 = "@BZIP2@" = "yes"
 let magic = "@MAGIC@" = "yes"
 let magic_works = ref false
+let upnp_natpmp = "@UPNP_NATPMP@" = "yes"

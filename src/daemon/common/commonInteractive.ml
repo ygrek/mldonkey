@@ -503,6 +503,7 @@ let contact_remove c =
       lprintf_nl "Exception in contact_remove: %s" (Printexc2.to_string e)
 
 let clean_exit n =
+  begin
   let can_exit = networks_for_all network_clean_exit in
   if can_exit then exit_properly n
   else 
@@ -512,7 +513,15 @@ let clean_exit n =
         if can_exit || retry_counter > !!shutdown_timeout then
 	  exit_properly n
 	else retry_later (retry_counter + 1)) in
-    retry_later 0
+    retry_later 0;
+
+  if (upnp_port_forwarding ()) then
+    begin
+    if !!clear_upnp_port_at_exit then
+      UpnpClient.remove_all_maps 0 ;
+    UpnpClient.job_stop 3;
+    end;
+  end
 
 let time_of_sec sec =
   let hours = sec / 60 / 60 in

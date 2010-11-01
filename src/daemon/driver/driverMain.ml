@@ -458,10 +458,31 @@ or getting a binary compiled with glibc %s.\n\n")
   lprintf_nl (_b "Check http://www.mldonkey.org for updates");
   networks_iter (fun r -> network_load_complex_options r);
   lprintf_nl (_b "enabling networks: ");
+  if (upnp_port_forwarding ()) then
+    UpnpClient.init_maps ();
+    let add_upnp_port p s=
+      lprintf_nl "using port %d (%s)" p s;
+      if ((upnp_port_forwarding ())) then
+        match String2.split_simplify s ' ' with
+          | [ "client_port" ; tcpudp   ]
+          | [ "overnet_port" ; tcpudp  ]
+          | [ "kademlia_port" ; tcpudp ] ->
+          if (String2.contains tcpudp "TCP") then 
+            begin
+            UpnpClient.maps_add_item 1 p p 1 "" ;
+            lprintf_nl "add upnp port forwarding %d TCP" p;
+            end;
+          if (String2.contains tcpudp "UDP") then
+            begin
+            UpnpClient.maps_add_item 1 p p 0 "" ;
+            lprintf_nl "add upnp port forwarding %d UDP" p;
+            end
+          | _ -> ()
+  in
   networks_iter (fun r ->
       lprintf_nl (_b "---- enabling %s ----") r.network_name;
       network_enable r;
-      List.iter (fun (p,s) -> if p <> 0 then lprintf_nl "using port %d (%s)" p s) (network_ports r);
+      List.iter (fun (p,s) -> if p <> 0 then add_upnp_port p s) (network_ports r);
 (* are there drawbacks to start recover_temp unconditionally here ? *)
       if !!recover_temp_on_startup then
         network_recover_temp r;
@@ -479,6 +500,8 @@ or getting a binary compiled with glibc %s.\n\n")
 	  end);
   if not !found then lprintf (_b "none");
   lprint_newline ();
+  if (upnp_port_forwarding ()) then
+    UpnpClient.job_start ();
   networks_iter_all (fun n -> network_update_options n);
   CommonOptions.start_running_plugins := true;
   CommonInteractive.force_download_quotas ();

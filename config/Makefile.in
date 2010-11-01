@@ -245,6 +245,8 @@ COMMON_SRCS = \
   $(COMMON)/commonHasher_c.c
 
 COMMON_CLIENT_SRCS= \
+  $(NET)/upnpClient.ml \
+  $(NET)/upnp_stubs.c \
   $(COMMON)/commonUser.ml \
   $(COMMON)/commonNetwork.ml \
   $(COMMON)/commonServer.ml \
@@ -553,6 +555,11 @@ ifeq ("$(GD)", "yes")
 else
   DRIVER_SRCS= \
     $(DRIVER)/driverGraphics_nogd.ml
+endif
+
+ifeq ("$(UPNP_NATPMP)", "yes")
+  UPNP_NATPMP_LIBS_flags=-cclib "$(UPNP_NATPMP_LIBS)" -ccopt "$(UPNP_NATPMP_LDFLAGS)"
+  UPNP_NATPMP_STATIC_LIBS_flags=-cclib "$(UPNP_NATPMP_STATIC_LIBS)" -ccopt "$(UPNP_NATPMP_LDFLAGS)"
 endif
 
 DRIVER_SRCS+= \
@@ -1222,6 +1229,7 @@ EXPAND_LIB(libicons,icons)
 EXPAND_LIB(libcdk,cdk)
 EXPAND_LIB(libmagic,magic)
 EXPAND_LIB(libbitstring,bitstring)
+EXPAND_LIB(libupnp_natpmp,upnp_natpmp)
 EXPAND_LIB(libcommon,common)
 EXPAND_LIB(libclient,client)
 EXPAND_LIB(DRIVER,driver)
@@ -1268,6 +1276,7 @@ $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$($6_LIBS_opt) $($6_LIBS_flags) \
 	$($7_LIBS_opt) $($7_LIBS_flags) \
 	$($8_LIBS_opt) $($8_LIBS_flags) \
+	$($9_LIBS_opt) $($9_LIBS_flags) \
 	-I build $($1_CMXAS) $($1_CMXS) 
  
 $2.byte: $($1_OBJS) $($1_CMOS) $($1_CMAS)
@@ -1278,6 +1287,7 @@ $2.byte: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 	$($6_LIBS_byte) $($6_LIBS_flags) \
 	$($7_LIBS_byte) $($7_LIBS_flags) \
 	$($8_LIBS_byte) $($8_LIBS_flags) \
+	$($9_LIBS_byte) $($9_LIBS_flags) \
 	-I build $($1_CMAS) $($1_CMOS) 
  
 $2.static: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
@@ -1288,6 +1298,7 @@ $2.static: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$($6_LIBS_flags) $($6_STATIC_LIBS_opt) \
 	$($7_LIBS_flags) $($7_STATIC_LIBS_opt) \
 	$($8_LIBS_flags) $($8_STATIC_LIBS_opt) \
+	$($9_LIBS_flags) $($9_STATIC_LIBS_opt) \
 	-I build $($1_CMXAS) $($1_CMXS)
 
 $2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
@@ -1298,6 +1309,7 @@ $2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 	$($6_LIBS_flags) $($6_STATIC_LIBS_opt) \
 	$($7_LIBS_flags) $($7_STATIC_LIBS_opt) \
 	$($8_LIBS_flags) $($8_STATIC_LIBS_opt) \
+	$($9_LIBS_flags) $($9_STATIC_LIBS_opt) \
 	-I build $($1_CMAS) $($1_CMOS) 
 ]])
 
@@ -1309,9 +1321,10 @@ $2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 # $6 = if set link CryptoPP code (only for targets mlnet, mldonkey)
 # $7 = if set link libmagic code (only for p2p core, not for GUIs, tools etc.)
 # $8 = if set link libbitstring code (only for Bittorrent p2p core)
+# $9 = if set link libminiupnpc & libnatpmp code
 
-EXPAND(mldonkey,mldonkey,NO,mldonkey,GD,CRYPTOPP,MAGIC,BITSTRING)
-EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui,GD,CRYPTOPP,MAGIC,BITSTRING)
+EXPAND(mldonkey,mldonkey,NO,mldonkey,GD,CRYPTOPP,MAGIC,BITSTRING,UPNP_NATPMP)
+EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui,GD,CRYPTOPP,MAGIC,BITSTRING,UPNP_NATPMP)
 EXPAND(MLPROGRESS, mlprogress,GTK, MLPROGRESS)
 EXPAND(MLDONKEYGUI,mlgui,GTK,MLDONKEYGUI)
 
@@ -1319,29 +1332,29 @@ ifeq ("$(GUI)", "oldgui")
  EXPAND(MLDONKEYGUI2,mlgui2,GTK,MLDONKEYGUI2)
 endif
 
-EXPAND(mldc,mldc,NO,mldc,GD,NO,MAGIC)
-EXPAND(mldc+gui,mldc+gui,GTK,mldc+gui,GD,NO,MAGIC)
-EXPAND(mlnap,mlnap,NO,mlnap,GD,NO,MAGIC)
-EXPAND(mlnap+gui,mlnap+gui,GTK,mlnap+gui,GD,NO,MAGIC)
-EXPAND(MLNET,mlnet,NO,MLNET,GD,CRYPTOPP,MAGIC,BITSTRING)
-EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui,GD,CRYPTOPP,MAGIC,BITSTRING)
-EXPAND(mlgnut,mlgnut,NO,mlgnut,GD,NO,MAGIC)
-EXPAND(mlgnut+gui,mlgnut+gui,GTK,mlgnut+gui,GD,NO,MAGIC)
-EXPAND(mlg2,mlg2,NO,mlg2,GD,NO,MAGIC)
-EXPAND(mlg2+gui,mlg2+gui,GTK,mlg2+gui,GD,NO,MAGIC)
-EXPAND(mlbt,mlbt,NO,mlbt,GD,NO,MAGIC,BITSTRING)
-EXPAND(mlbt+gui,mlbt+gui,GTK,mlbt+gui,GD,NO,MAGIC,BITSTRING)
-EXPAND(mlfasttrack,mlfasttrack,NO,mlfasttrack,GD,NO,MAGIC)
-EXPAND(mlfasttrack+gui,mlfasttrack+gui,GTK,mlfasttrack+gui,GD,NO,MAGIC)
-EXPAND(mlfileTP,mlfiletp,NO,mlfileTP,GD,NO,MAGIC)
-EXPAND(mlfileTP+gui,mlfiletp+gui,GTK,mlfileTP+gui,GD,NO,MAGIC)
-EXPAND(mlslsk,mlslsk,NO,mlslsk,GD,NO,MAGIC)
-EXPAND(mlslsk+gui,mlslsk+gui,GTK,mlslsk+gui,GD,NO,MAGIC)
+EXPAND(mldc,mldc,NO,mldc,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mldc+gui,mldc+gui,GTK,mldc+gui,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlnap,mlnap,NO,mlnap,GD,NO,MAGIC,UPNP_NATPMP)
+EXPAND(mlnap+gui,mlnap+gui,GTK,mlnap+gui,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(MLNET,mlnet,NO,MLNET,GD,CRYPTOPP,MAGIC,BITSTRING,UPNP_NATPMP)
+EXPAND(mlnet+gui,mlnet+gui,GTK,mlnet+gui,GD,CRYPTOPP,MAGIC,BITSTRING,UPNP_NATPMP)
+EXPAND(mlgnut,mlgnut,NO,mlgnut,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlgnut+gui,mlgnut+gui,GTK,mlgnut+gui,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlg2,mlg2,NO,mlg2,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlg2+gui,mlg2+gui,GTK,mlg2+gui,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlbt,mlbt,NO,mlbt,GD,NO,MAGIC,BITSTRING,UPNP_NATPMP)
+EXPAND(mlbt+gui,mlbt+gui,GTK,mlbt+gui,GD,NO,MAGIC,BITSTRING,UPNP_NATPMP)
+EXPAND(mlfasttrack,mlfasttrack,NO,mlfasttrack,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlfasttrack+gui,mlfasttrack+gui,GTK,mlfasttrack+gui,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlfileTP,mlfiletp,NO,mlfileTP,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlfileTP+gui,mlfiletp+gui,GTK,mlfileTP+gui,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlslsk,mlslsk,NO,mlslsk,GD,NO,MAGIC,NO,UPNP_NATPMP)
+EXPAND(mlslsk+gui,mlslsk+gui,GTK,mlslsk+gui,GD,NO,MAGIC,NO,UPNP_NATPMP)
 EXPAND(STARTER,mlguistarter,GTK)
 EXPAND(OBSERVER,observer)
 EXPAND(MLD_HASH,mld_hash)
 EXPAND(OCAMLPP,ocamlpp)
-EXPAND(MAKE_TORRENT,make_torrent,NO,NO,NO,NO,MAGIC,BITSTRING)
+EXPAND(MAKE_TORRENT,make_torrent,NO,NO,NO,NO,MAGIC,BITSTRING,UPNP_NATPMP)
 EXPAND(SUBCONV,subconv)
 EXPAND(MLSPLIT,mlsplit)
 EXPAND(CONTESTER,contester,CRYPT)
