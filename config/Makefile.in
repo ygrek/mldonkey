@@ -330,6 +330,7 @@ DONKEY_SRCS += \
   $(SRC_DONKEY)/donkeyOneFile.ml \
   \
   $(SRC_DONKEY)/donkeyOvernetImport.ml \
+  $(SRC_DONKEY)/donkeyNodesDat.ml \
   $(SRC_DONKEY)/donkeyOvernet.ml \
   $(SRC_DONKEY)/donkeyProtoKademlia.ml \
   $(SRC_DONKEY)/donkeyClient.ml \
@@ -436,11 +437,7 @@ $(BITSTRING)/bitstring_persistent.cmo: $(BITSTRING)/bitstring_persistent.ml $(BI
 $(BITSTRING)/pa_bitstring.cmo: $(BITSTRING)/pa_bitstring.mlt $(BITSTRING)/bitstring_persistent.cmo build/bitstring.cma
 	$(OCAMLC) -I $(BITSTRING) -I +camlp4 camlp4lib.cma -pp '$(CAMLP4OF) -impl' -c $^
 
-$(SRC_BITTORRENT)/bTUdpTracker.ml: $(SRC_BITTORRENT)/bTUdpTracker.mlp $(BITSTRING)/pa_bitstring.cmo
-	$(CAMLP4OF) build/bitstring.cma $(BITSTRING)/bitstring_persistent.cmo $(BITSTRING)/pa_bitstring.cmo -impl $< -o $@
-
 BITTORRENT_SRCS= \
-  $(BITSTRING_SRCS) \
   $(SRC_BITTORRENT)/bencode.ml \
   $(SRC_BITTORRENT)/bTRate.ml \
   $(SRC_BITTORRENT)/bTTypes.ml \
@@ -531,7 +528,7 @@ MLSPLIT_SRCS = \
 
 MAKE_TORRENT_SRCS = \
   $(MAGIC_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
-  $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITTORRENT_SRCS) \
+  $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITSTRING_SRCS) $(BITTORRENT_SRCS) \
   tools/make_torrent.ml
 
 GET_RANGE_SRCS = \
@@ -569,19 +566,30 @@ DRIVER_SRCS+= \
 ICONS_CMXA=icons.cmxa
 
 CDK_CMXA=cdk.cmxa
-MLNET_CMXA=$(CDK_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
-MLNET_SRCS= $(MAIN_SRCS)
+BITSTRING_CMXA=
+BITSTRING_CMA=
+MLNET_SRCS=
+ifeq ("$(DONKEY)", "yes")
+BITSTRING_CMXA=bitstring.cmxa
+BITSTRING_CMA=bitstring.cma
+endif
+ifeq ("$(BITTORRENT)", "yes")
+BITSTRING_CMXA=bitstring.cmxa
+BITSTRING_CMA=bitstring.cma
+endif
+MLNET_SRCS+= $(MAIN_SRCS)
+MLNET_CMXA=$(CDK_CMXA) $(BITSTRING_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 
 TESTS_CMXA=$(CDK_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa
 TESTS_SRCS=tools/tests.ml
 
 ifeq ("$(GUI)", "newgui2")
 mlnet+gui_CMXA= \
-  magic.cmxa cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
+  $(BITSTRING_CMXA) magic.cmxa cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
   icons.cmxa guibase.cmxa gui.cmxa
 else
 mlnet+gui_CMXA= \
-  magic.cmxa cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
+  $(BITSTRING_CMXA) magic.cmxa cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 endif
 
@@ -1112,7 +1120,7 @@ top: mldonkeytop
 runtop: top
 	./mldonkeytop $(INCLUDES)
 
-TOP_CMXA+=cdk.cmxa magic.cmxa common.cmxa client.cmxa core.cmxa
+TOP_CMXA+=$(BITSTRING_CMA) cdk.cmxa magic.cmxa common.cmxa client.cmxa core.cmxa
 TOP_SRCS= 
 
 define([[EXPAND_LIB]],[[
@@ -1154,24 +1162,31 @@ CORE_SRCS += $($2_SRCS)
 
 endif
 
+ifeq ("$2", "DONKEY")
+$1_SRCS+= $(CRYPTOPP_SRCS)
+$1_CMXA+= $(BITSTRING_CMXA)
+$1+gui_CMXA+= $(BITSTRING_CMXA)
+else
+ifeq ("$2", "BITTORRENT")
+$1_CMXA+= $(BITSTRING_CMXA)
+$1+gui_CMXA+= $(BITSTRING_CMXA)
+endif
+endif
+
 $1_CMXA+= cdk.cmxa magic.cmxa common.cmxa client.cmxa $1.cmxa driver.cmxa
 
-ifeq ("$2", "DONKEY")
-$1_SRCS+= $(CRYPTOPP_SRCS) $(MAIN_SRCS)
-else
-$1_SRCS= $(MAIN_SRCS)
-endif
+$1_SRCS+= $(MAIN_SRCS)
 
 EXPAND_LIB($2,$1)
 
 ifeq ("$(GUI)", "newgui2")
-$1+gui_CMXA=cdk.cmxa \
-   common.cmxa client.cmxa $1.cmxa driver.cmxa \
-   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
-else
-$1+gui_CMXA=cdk.cmxa \
-   common.cmxa client.cmxa $1.cmxa driver.cmxa \
+$1+gui_CMXA+=cdk.cmxa \
+   magic.cmxa common.cmxa client.cmxa $1.cmxa driver.cmxa \
    icons.cmxa guibase.cmxa gui.cmxa
+else
+$1+gui_CMXA+=cdk.cmxa \
+   magic.cmxa common.cmxa client.cmxa $1.cmxa driver.cmxa \
+   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 endif
 
 $1+gui_SRCS= $(MAIN_SRCS)
@@ -1295,8 +1310,8 @@ $2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 # $7 = if set link libmagic code (only for p2p core, not for GUIs, tools etc.)
 # $8 = if set link libbitstring code (only for Bittorrent p2p core)
 
-EXPAND(mldonkey,mldonkey,NO,mldonkey,GD,CRYPTOPP,MAGIC)
-EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui,GD,CRYPTOPP,MAGIC)
+EXPAND(mldonkey,mldonkey,NO,mldonkey,GD,CRYPTOPP,MAGIC,BITSTRING)
+EXPAND(mldonkey+gui,mldonkey+gui,GTK,mldonkey+gui,GD,CRYPTOPP,MAGIC,BITSTRING)
 EXPAND(MLPROGRESS, mlprogress,GTK, MLPROGRESS)
 EXPAND(MLDONKEYGUI,mlgui,GTK,MLDONKEYGUI)
 
@@ -1426,7 +1441,10 @@ clean:
 	rm -f build/*.a build/*.cma build/*.cmxa
 	rm -f *_plugin
 	rm -f mldonkey mlgui mlnet.exe mlgui.exe mldonkeytop mldonkeytop.exe
-	rm -f mlbt mlbt.exe mlfiletp mlfiletp.exe
+	rm -f mlbt mlbt+gui mlbt.exe
+	rm -f mlfiletp mlfiletp+gui mlfiletp.exe
+	rm -f mldc mldc+gui mldc.exe
+	rm -f mlfasttrack mlfasttrack+gui mlfasttrack.exe
 	rm -f svg_converter svg_converter.byte mld_hash make_torrent copysources get_range subconv testrss
 	rm -f svg_converter.exe mld_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe testrss.exe
 	(for i in $(SUBDIRS); do \
@@ -1454,6 +1472,7 @@ releaseclean: clean moreclean
 	rm -f src/daemon/driver/driverGraphics.ml
 	rm -f src/networks/bittorrent/bTUdpTracker.ml
 	rm -f src/networks/donkey/donkeySui.ml
+	rm -f src/networks/donkey/donkeyNodesDat.ml
 	rm -f src/utils/bitstring/bitstring.ml
 	rm -f src/utils/bitstring/bitstring_persistent.ml
 	rm -f src/utils/lib/autoconf.ml
@@ -1795,6 +1814,9 @@ rpm: sourcedist
 
 .mlcpp.ml:
 	@cpp -P $< $(FIX_BROKEN_CPP) > $@
+
+%.ml: %.mlp $(BITSTRING)/pa_bitstring.cmo
+	$(CAMLP4OF) build/bitstring.cma $(BITSTRING)/bitstring_persistent.cmo $(BITSTRING)/pa_bitstring.cmo -impl $< -o $@
 
 .mll.ml :
 	@$(OCAMLLEX) -q $<
