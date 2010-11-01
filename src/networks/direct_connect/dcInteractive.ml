@@ -123,12 +123,12 @@ let td_command text title ?(blink=false) ?(target=`Output) cmd =
 (* Print DC hubs header *)
 let dc_hublist_print_html_header buf ext =
     html_mods_table_header buf "serversTable" (Printf.sprintf "servers%s" ext) [
-                ( "1", "srh", "Hub number", "#" ) ;
-                ( "0", "srh", "Add hub to servers", "Add" ) ;
-                ( "0", "srh", "Hub name", "Hub name" ) ; 
-                ( "0", "srh", "IP address", "IP address" ) ;
-                ( "1", "srh", "Users in hub", "Users" ) ;
-                ( "0", "srh", "Hub info", "Info" ) ]
+                ( Num, "srh", "Hub number", "#" ) ;
+                ( Str, "srh", "Add hub to servers", "Add" ) ;
+                ( Str, "srh", "Hub name", "Hub name" ) ; 
+                ( Str, "srh", "IP address", "IP address" ) ;
+                ( Num, "srh", "Users in hub", "Users" ) ;
+                ( Str, "srh", "Hub info", "Info" ) ]
 
 (* print in html or txt list of hubs *)
 let hublist_print h hnum o =
@@ -163,22 +163,22 @@ let hublist_print h hnum o =
 (* Print DC users header *)
 let dc_user_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
-                ( "1", "srh", "User number", "#" );
-                ( "0", "srh", "User name", "Name" );
-                ( "0", "srh", "User type", "Type" );
-                ( "1", "srh", "Users slots (all/free)", "Slots" );
-                ( "1", "srh", "Users connected hubs (Normal/Vipped/Opped)", "Hubs" );
-                ( "0", "srh", "Users mode", "Mode" );
-                ( "1", "srh", "Users shared size", "Shared" );
-                ( "0", "srh", "User state", "State" );
-                ( "0", "srh", "User description field", "Description" );
-                ( "1", "srh", "User clients number", "Clients" );
-                ( "1", "srh", "Users servers number", "Servers" );
-                ( "0", "srh", "Download this clients filelist", "Filelist" );
-                ( "0", "srh", "Open chat window with this user. Blinking tells there are new unread messages", "Chat");
-                ( "1", "srh", "User total uploaded bytes", "Up" );
-                ( "1", "srh", "User total downloaded bytes", "Down" );
-                ( "0", "srh", "User client supports", "Supports" ); ];
+                ( Num, "srh", "User number", "#" );
+                ( Str, "srh", "User name", "Name" );
+                ( Str, "srh", "User type", "Type" );
+                ( Num, "srh", "Users slots (all/free)", "Slots" );
+                ( Num, "srh", "Users connected hubs (Normal/Vipped/Opped)", "Hubs" );
+                ( Str, "srh", "Users mode", "Mode" );
+                ( Num, "srh", "Users shared size", "Shared" );
+                ( Str, "srh", "User state", "State" );
+                ( Str, "srh", "User description field", "Description" );
+                ( Num, "srh", "User clients number", "Clients" );
+                ( Num, "srh", "Users servers number", "Servers" );
+                ( Str, "srh", "Download this clients filelist", "Filelist" );
+                ( Str, "srh", "Open chat window with this user. Blinking tells there are new unread messages", "Chat");
+                ( Num, "srh", "User total uploaded bytes", "Up" );
+                ( Num, "srh", "User total downloaded bytes", "Down" );
+                ( Str, "srh", "User client supports", "Supports" ); ];
     ()
 
 (* print in html or txt list of users *)
@@ -256,14 +256,14 @@ let user_print user num o =
 (* Print DC hubs header *)
 let dc_hub_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
-                ( "1", "srh", "Hub number", "#" ) ;
-                ( "0", "srh", "Set/UnSet server autoconnection state", "Auto" ) ;
-                ( "0", "srh", "Hub name", "Hub name" ) ;
-                ( "0", "srh", "IP address", "IP address" ) ;
-                ( "0", "srh", "My state in this hub", "State" ) ;
-                ( "1", "srh", "Users in hub", "Users" ) ;
-                ( "0", "srh", "Hub info", "Info" );
-                ( "0", "srh", "Open chat window with this hub. Blinking tells there are new unread message", "Chat" ) ]
+                ( Num, "srh", "Hub number", "#" ) ;
+                ( Str, "srh", "Set/UnSet server autoconnection state", "Auto" ) ;
+                ( Str, "srh", "Hub name", "Hub name" ) ;
+                ( Str, "srh", "IP address", "IP address" ) ;
+                ( Str, "srh", "My state in this hub", "State" ) ;
+                ( Num, "srh", "Users in hub", "Users" ) ;
+                ( Str, "srh", "Hub info", "Info" );
+                ( Str, "srh", "Open chat window with this hub. Blinking tells there are new unread message", "Chat" ) ]
 
 (* Print list of connected hubs *)
 let hub_print s num o =
@@ -308,14 +308,14 @@ let hub_print s num o =
 (* Print DC clients header *)
 let dc_client_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
-                ( "1", "srh", "Client number", "#" );
-                ( "0", "srh", "Remove Client", "Rem" );
-                ( "0", "srh", "Client name", "Name" );
-                ( "0", "srh", "Client ip/port", "Ip:Port" );
-                ( "0", "srh", "Client state", "State" );
-                ( "0", "srh", "Client connection", "Conn" );
-                ( "0", "srh", "Client last error/count", "Error" );
-                ( "0", "srh", "Client file", "File" ); ];
+                ( Num, "srh", "Client number", "#" );
+                ( Str, "srh", "Remove Client", "Rem" );
+                ( Str, "srh", "Client name", "Name" );
+                ( Str, "srh", "Client ip/port", "Ip:Port" );
+                ( Str, "srh", "Client state", "State" );
+                ( Str, "srh", "Client connection", "Conn" );
+                ( Str, "srh", "Client last error/count", "Error" );
+                ( Str, "srh", "Client file", "File" ); ];
             ()
 
 (* print in html or txt list of clients *)
@@ -378,14 +378,14 @@ let client_print name client num o =
 (* Print DC files header *)
 let dc_file_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
-                ( "1", "srh", "File number", "#" );
-                ( "0", "srh", "File name/path", "File" );
-                ( "1", "srh", "File size", "Size" );
-                ( "0", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" ); 
-                ( "1", "srh", "Files clients number (sources)", "Clients" );
-                ( "1", "srh", "Autosearches done", "Searches" );
-                ( "0", "srh", "Find new source by tth", "Find TTH" );
-                ( "0", "srh", "Find new source by similar name context", "Find similar" );  ];
+                ( Num, "srh", "File number", "#" );
+                ( Str, "srh", "File name/path", "File" );
+                ( Num, "srh", "File size", "Size" );
+                ( Str, "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" ); 
+                ( Num, "srh", "Files clients number (sources)", "Clients" );
+                ( Num, "srh", "Autosearches done", "Searches" );
+                ( Str, "srh", "Find new source by tth", "Find TTH" );
+                ( Str, "srh", "Find new source by similar name context", "Find similar" );  ];
     ()  
 
 let html_show_tth file size tth =
@@ -435,11 +435,11 @@ let file_print file num o =
 (* Print DC shared files header *)
 let dc_shared_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
-                ( "1", "srh", "File number", "#" );
-                ( "0", "srh", "Shared file name", "Name" );
-                ( "1", "srh", "Shared file size", "Size" );
-                ( "0", "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" );
-                (*( "1", "srh", "Shared files Tiger tree array length", "TTree #" );*) ];
+                ( Num, "srh", "File number", "#" );
+                ( Str, "srh", "Shared file name", "Name" );
+                ( Num, "srh", "Shared file size", "Size" );
+                ( Str, "srh", "Tiger Tree Hash and magnet url", "TTH and magnet" );
+                (*( Num, "srh", "Shared files Tiger tree array length", "TTree #" );*) ];
     ()
 
 
@@ -462,8 +462,8 @@ let shared_print dcsh num o =
 (* Print DC filelist header *)
 let dc_filelist_print_html_header buf =
     html_mods_table_header buf "serversTable" "servers" [
-                ( "1", "srh", "Number", "#" ) ;
-                ( "0", "srh", "Filelist name", "Filelist" ) ]
+                ( Num, "srh", "Number", "#" ) ;
+                ( Str, "srh", "Filelist name", "Filelist" ) ]
 
 (* Print one line from filelist *)
 let filelist_print fname line o =
@@ -533,10 +533,10 @@ let dc_list o group_type group_name =
 (* Print DC filelist files header *)
 let dc_filelist_files_print_html_header buf =
     html_mods_table_header buf "serversTable" (Printf.sprintf "servers") [
-                ( "1", "srh", "Number", "#" );
-                ( "0", "srh", "File/Directory name", "File/Directory name" );
-                ( "1", "srh", "File Size", "Size" );
-                ( "0", "srh", "Files TTH", "TTH" ) ]
+                ( Num, "srh", "Number", "#" );
+                ( Str, "srh", "File/Directory name", "File/Directory name" );
+                ( Num, "srh", "File Size", "Size" );
+                ( Str, "srh", "Files TTH", "TTH" ) ]
 
 (* Print one line from filelist file *)
 let filelist_file_print is_file spaces username dir fname fsize ftth line o =
@@ -582,8 +582,8 @@ let filelist_file_print is_file spaces username dir fname fsize ftth line o =
 (* Print DC info header *)
 let dc_info_html_header buf =
   html_mods_table_header buf "sharesTable" "shares" [
-       ( "0", "srh", "Direct Connect information", "DC Info" ) ;
-       ( "0", "srh", empty_string, empty_string ) ]
+       ( Str, "srh", "Direct Connect information", "DC Info" ) ;
+       ( Str, "srh", empty_string, empty_string ) ]
 
 (* Print DC info *)
 let dc_info_print info data line o =
@@ -817,9 +817,9 @@ let commands = [
     end else     
       Printf.bprintf buf "%d logged messages\n" (List.length messages);
     if use_html_mods o then html_mods_table_header buf "serversTable" "servers" [
-                ( "0", "srh", "Timestamp", "Time" );
-                ( "0", "srh", "Who message is from", "From" );
-                ( "0", "srh", "Message text", "Message" ) ];
+                ( Str, "srh", "Timestamp", "Time" );
+                ( Str, "srh", "Who message is from", "From" );
+                ( Str, "srh", "Message text", "Message" ) ];
     List.iter (fun (t,f,m) ->
       let msg =
         (match m with

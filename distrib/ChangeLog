@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/11/01
+7365: HTML: improve code for sorting tables (ygrek)
 7364: KAD: parse new nodes.dat formats (ygrek)
 
 2010/10/28
