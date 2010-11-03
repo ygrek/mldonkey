@@ -1244,7 +1244,7 @@ if test ! "$GUI" = "no"; then
         AC_MSG_CHECKING(for librsvg - version >= $REQUIRED_RSVG)
         if pkg-config --atleast-version $REQUIRED_RSVG $PKG_RSVG; then
           GTK_CONFIG="pkg-config $PKG_GTK $PKG_RSVG"
-          REQUIRED_LABLGTK=2.14.1
+          REQUIRED_LABLGTK=2.14.2
           LABLGTK_NAME=lablgtk2
           AC_MSG_RESULT(yes)
         else
@@ -1329,7 +1329,7 @@ else
          rm -rf lablgtk-"$REQUIRED_LABLGTK"
          if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
            echo Downloading ...
-           $WGET http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
+           $WGET http://www.math.nagoya-u.ac.jp/~garrigue/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
          fi
          if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
 

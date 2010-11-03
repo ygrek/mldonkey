@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/11/03
+7372: GTK2 GUI: Compile with lablgtk-2.14.2 by default
+
 2010/11/01
 7303: UPNP support (zzpptt)
 - to compile using pre-installed libs: configure --enable-upnp-natpmp
