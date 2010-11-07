@@ -307,7 +307,7 @@ let op_network_parse_url url user group =
     else 
       if (String2.check_prefix real_url "ftp://") ||
          (String2.check_prefix real_url "ssh://") then (
-      download_file url "" user group;
+      download_file real_url "" user group;
       "started FileTP download", true)
     else
       "invalid URL", false

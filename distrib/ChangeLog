@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/11/07
+7375: FileTP: fix submitting ftp download links (ygrek)
 7374: BT: calculate compatible hash for wrong torrents (ygrek)
 6012: http_client: Support gzip accept-encoding + content-encoding (ygrek)
 
