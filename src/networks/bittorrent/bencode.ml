@@ -121,7 +121,7 @@ let decode s =
   let (v,pos) = decode s 0 len in
   v
 
-let encode v =
+let encode ?(strict=true) v =
   let buf = Buffer.create 100 in
   let encode_string s = Printf.bprintf buf "%d:%s" (String.length s) s in
   let rec encode v =
@@ -134,7 +134,11 @@ let encode v =
        Buffer.add_char buf 'e'
     | Dictionary list ->
        Buffer.add_char buf 'd';
-       List.iter (fun (key,v) -> encode_string key; encode v) (List.sort (fun (s1, _) (s2, _) -> compare s1 s2) list);
+       (* When calculating hash for the torrent file we leave the dictionary
+       "as is" in order to get the same hash as the client that created
+       this torrent even when the keys are not sorted (as required by BEP-3) *)
+       let list = if strict then List.sort (fun (s1, _) (s2, _) -> compare s1 s2) list else list in
+       List.iter (fun (key,v) -> encode_string key; encode v) list;
        Buffer.add_char buf 'e'
   in
   encode v;
