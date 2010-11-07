@@ -110,6 +110,8 @@ let parse_url url user group =
 let register_commands list =
   register_commands (List2.tail_map (fun (n,f,h) -> (n, "Direct Connect", f,h)) list)
 
+let command l = String.concat "+" (List.map Url.encode l)
+
 let td_command text title ?(blink=false) ?(target=`Output) cmd =
   Printf.sprintf
      "\\<td class=\\\"srb\\\" %sonMouseOver=\\\"mOvr(this);\\\"
@@ -117,7 +119,7 @@ let td_command text title ?(blink=false) ?(target=`Output) cmd =
      onClick=\\\"parent.%s.location.href='submit?q=%s'\\\"\\>%s\\</td\\>"
      (if blink then "style=\\\"text-decoration:blink\\\" " else "")
      title (match target with `Output -> "output" | `Status -> "fstatus")
-     (String.concat "+" cmd) (* Url.encode ? *)
+     (command cmd)
      text
 
 (* Print DC hubs header *)
@@ -872,13 +874,13 @@ let commands = [
 \\<!--
 function submitCmd() {
 var formID = document.getElementById(\\\"msgForm\\\")
-parent.output.location.href='submit?q=dcmessages+'+formID.sendCmd.value
+parent.output.location.href='submit?q=dcmessages+'+encodeURIComponent(formID.sendCmd.value)
 }
 function submitMessageForm() {
 var formID = document.getElementById(\\\"msgForm\\\")
-var regExp = new RegExp (' ', 'gi') 
-var msgTextOut = formID.msgText.value.replace(regExp, '+')
-parent.fstatus.location.href='submit?q=dcsendmsg+'+formID.sendCmd.value+\\\"+\\\"+msgTextOut
+var msgTextOut = encodeURIComponent(formID.msgText.value)
+var msgUserOut = encodeURIComponent(formID.sendCmd.value)
+parent.fstatus.location.href='submit?q=dcsendmsg+'+msgUserOut+\\\"+\\\"+msgTextOut
 formID.msgText.value=\\\"\\\"
 msgWindow.location.reload();
 }
@@ -888,11 +890,11 @@ msgWindow.location.reload();
         (match s with 
         | Some s ->
             let ip,port = (Ip.to_string s.server_ip),(string_of_int s.server_port) in
-            Printf.sprintf "dcmsglog+20+%s+%s" ip port, s.server_users, Printf.sprintf "%s %s" ip port 
+            command ["dcmsglog";"20";ip;port], s.server_users, Printf.sprintf "%s %s" ip port 
         | None ->
             (match u with 
             | Some u ->
-                Printf.sprintf "dcmsglog+20+%s" u.user_nick, [], u.user_nick
+                command ["dcmsglog";"20";u.user_nick], [], u.user_nick
             | None -> 
                 if !verbose_unexpected_messages then lprintf_nl "dcmessages: No user or server";
                 raise Not_found )

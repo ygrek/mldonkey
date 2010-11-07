@@ -78,6 +78,8 @@ let files_to_cancel o =
   "Type 'confirm yes/no' to cancel them"
 
 let execute_command arg_list output cmd args =
+  if !verbose then
+    lprintf_nl "execute command %S %s" cmd (String.concat " " (List.map (Printf.sprintf "%S") args));
   let buf = output.conn_buf in
   try
     let rec iter list =
