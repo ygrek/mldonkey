@@ -67,6 +67,7 @@ else
 endif
 
 
+EXTLIB=src/utils/extlib
 CDK=src/utils/cdk
 BITSTRING=src/utils/bitstring
 LIB=src/utils/lib
@@ -89,7 +90,7 @@ SRC_SOULSEEK=src/networks/soulseek
 SRC_DIRECTCONNECT=src/networks/direct_connect
 SRC_FILETP=src/networks/fileTP
 
-SUBDIRS=$(CDK) $(BITSTRING) $(LIB) $(RSS) $(XML) $(NET) tools \
+SUBDIRS=$(EXTLIB) $(CDK) $(BITSTRING) $(LIB) $(RSS) $(XML) $(NET) tools \
    $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
 
 INCLUDES += $(foreach file, $(SUBDIRS), -I $(file)) -I +camlp4
@@ -154,7 +155,9 @@ CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(LIB)/syslog.ml $(CDK)/printf2.ml \
   $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
   $(CDK)/unix2.ml $(CDK)/file.ml \
   $(CDK)/heap_c.c $(CDK)/array2.ml
-  
+
+EXTLIB_SRCS += $(EXTLIB)/IO.ml
+
 ifneq ("$(PTHREAD_CFLAGS)" , "")
   CFLAGS += $(PTHREAD_CFLAGS)
   LIBS_flags += -ccopt "$(PTHREAD_CFLAGS)"
@@ -508,33 +511,33 @@ DIRECT_CONNECT_SRCS= \
 
 
 OBSERVER_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(DONKEY_SRCS) \
   tools/observer.ml
 
 MLD_HASH_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   tools/mld_hash.ml
 
 OCAMLPP_SRCS = \
   tools/ocamlpp.ml4
 
 COPYSOURCES_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) tools/copysources.ml
+  $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) tools/copysources.ml
 
 SUBCONV_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) tools/subconv.ml
+  $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) tools/subconv.ml
 
 MLSPLIT_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) tools/mlsplit.ml
+  $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) tools/mlsplit.ml
 
 MAKE_TORRENT_SRCS = \
-  $(MAGIC_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(MAGIC_SRCS) $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITSTRING_SRCS) $(BITTORRENT_SRCS) \
   tools/make_torrent.ml
 
 GET_RANGE_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
+  $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   tools/get_range.ml
 
 ifeq ("$(OPENFT)" , "yes")
@@ -585,18 +588,18 @@ BITSTRING_CMXA=bitstring.cmxa
 BITSTRING_CMA=bitstring.cma
 endif
 MLNET_SRCS+= $(MAIN_SRCS)
-MLNET_CMXA=$(CDK_CMXA) $(BITSTRING_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
+MLNET_CMXA=extlib.cmxa $(CDK_CMXA) $(BITSTRING_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 
 TESTS_CMXA=$(CDK_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa
 TESTS_SRCS=tools/tests.ml
 
 ifeq ("$(GUI)", "newgui2")
 mlnet+gui_CMXA= \
-  $(BITSTRING_CMXA) magic.cmxa cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
+  $(BITSTRING_CMXA) magic.cmxa extlib.cmxa cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
   icons.cmxa guibase.cmxa gui.cmxa
 else
 mlnet+gui_CMXA= \
-  $(BITSTRING_CMXA) magic.cmxa cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
+  $(BITSTRING_CMXA) magic.cmxa extlib.cmxa cdk.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa \
   gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 endif
 
@@ -610,8 +613,7 @@ mlnet+gui_SRCS=$(MAIN_SRCS)
 #######################################################################
 
 
-TESTRSS_SRCS= \
-  $(CDK_SRCS) $(LIB_SRCS) tools/testrss.ml
+TESTRSS_SRCS= $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) tools/testrss.ml
 
 
 #######################################################################
@@ -658,7 +660,7 @@ ifneq ("$(GUI)" , "no")
   endif
 
 SVG_CONVERTER_SRCS = \
-  $(CDK_SRCS) $(LIB_SRCS) tools/svg_converter.ml
+  $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) tools/svg_converter.ml
 
 CURSES_LIBS_byte=-cclib -lncurses
 CURSES_LIBS_opt=-cclib -lncurses
@@ -1080,25 +1082,25 @@ OLDGUI_SRCS=  \
 GUI_SRCS= $($(GUI_CODE)_SRCS)
 
 ifeq ("$(GUI)", "newgui2")
-  MLDONKEYGUI_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
+  MLDONKEYGUI_CMXA= extlib.cmxa cdk.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
 else
-  MLDONKEYGUI_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
+  MLDONKEYGUI_CMXA= extlib.cmxa cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa gui.cmxa
 endif
 
 MLDONKEYGUI_SRCS= $(MAIN_SRCS)
 
 ifeq ("$(GUI)", "newgui2")
-  STARTER_CMXA=cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
+  STARTER_CMXA=extlib.cmxa cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
   STARTER_SRCS= $(SRC_GUI)/guiStarter.ml
 else
-  STARTER_CMXA=cdk.cmxa
+  STARTER_CMXA=extlib.cmxa cdk.cmxa
   STARTER_SRCS= $(SRC_GUI)/gui_starter.ml
 endif
 
 ifeq ("$(GUI)", "newgui2")
-  INSTALLER_CMXA= cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
+  INSTALLER_CMXA= extlib.cmxa cdk.cmxa common.cmxa icons.cmxa guibase.cmxa
 else
-  INSTALLER_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
+  INSTALLER_CMXA= extlib.cmxa cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 endif
 
 ifeq ("$(GUI)", "newgui2")
@@ -1109,7 +1111,7 @@ else
     $(SRC_GUI)/gui_installer_base.zog $(SRC_GUI)/gui_installer.ml
 endif
 
-MLPROGRESS_CMXA= cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
+MLPROGRESS_CMXA= extlib.cmxa cdk.cmxa gmisc.cmxa common.cmxa icons.cmxa guibase.cmxa
 
 MLPROGRESS_SRCS = \
   $(PROGRESS_SRCS) $(MAIN_SRCS)
@@ -1127,7 +1129,7 @@ top: mldonkeytop
 runtop: top
 	./mldonkeytop $(INCLUDES)
 
-TOP_CMXA+=$(BITSTRING_CMA) cdk.cmxa magic.cmxa common.cmxa client.cmxa core.cmxa
+TOP_CMXA+=$(BITSTRING_CMA) extlib.cmxa cdk.cmxa magic.cmxa common.cmxa client.cmxa core.cmxa
 TOP_SRCS= 
 
 define([[EXPAND_LIB]],[[
@@ -1180,18 +1182,18 @@ $1+gui_CMXA+= $(BITSTRING_CMXA)
 endif
 endif
 
-$1_CMXA+= cdk.cmxa magic.cmxa common.cmxa client.cmxa $1.cmxa driver.cmxa
+$1_CMXA+= extlib.cmxa cdk.cmxa magic.cmxa common.cmxa client.cmxa $1.cmxa driver.cmxa
 
 $1_SRCS+= $(MAIN_SRCS)
 
 EXPAND_LIB($2,$1)
 
 ifeq ("$(GUI)", "newgui2")
-$1+gui_CMXA+=cdk.cmxa \
+$1+gui_CMXA+=extlib.cmxa cdk.cmxa \
    magic.cmxa common.cmxa client.cmxa $1.cmxa driver.cmxa \
    icons.cmxa guibase.cmxa gui.cmxa
 else
-$1+gui_CMXA+=cdk.cmxa \
+$1+gui_CMXA+=extlib.cmxa cdk.cmxa \
    magic.cmxa common.cmxa client.cmxa $1.cmxa driver.cmxa \
    gmisc.cmxa icons.cmxa guibase.cmxa gui.cmxa
 endif
@@ -1210,6 +1212,7 @@ EXPAND_DRIVER(mlbt,BITTORRENT,bittorrent)
 EXPAND_DRIVER(mldonkey,DONKEY,donkey)
 EXPAND_DRIVER(mlslsk,SOULSEEK,soulseek)
 
+libextlib_SRCS= $(EXTLIB_SRCS)
 libcdk_SRCS=  $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS)
 libmagic_SRCS= $(MAGIC_SRCS)
 libbitstring_SRCS= $(BITSTRING_SRCS)
@@ -1225,6 +1228,7 @@ libgui_SRCS=   $(GUI_SRCS)
 libgui3_SRCS=   $(GUI3_SRCS)
 libicons_SRCS= $(ALL_ICONS_SRCS)
 
+EXPAND_LIB(libextlib,extlib)
 EXPAND_LIB(libicons,icons)
 EXPAND_LIB(libcdk,cdk)
 EXPAND_LIB(libmagic,magic)
