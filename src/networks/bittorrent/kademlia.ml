@@ -199,10 +199,14 @@ let rec update ping table ?(st=Good) id data =
   let rec loop = function
   | N (l,mid,r) -> (match cmp id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
   | L b ->
-    Array.iter begin fun n -> 
+    Array.iteri begin fun i n ->
       match cmp n.id id = EQ, n.addr = data with
       | true, true -> pr "mark [%s] as good" (show_node n); mark n Good; touch b; raise Nothing
-      | true, _ | _, true -> pr "conflict [%s] with %s %s" (show_node n) (show_id id) (show_addr data)
+      | true, false | false, true -> 
+          pr "conflict [%s] with %s %s, replacing" (show_node n) (show_id id) (show_addr data);
+          b.nodes.(i) <- make_node id data st; (* replace *)
+          touch b;
+          raise Nothing
       | _ -> ()
     end b.nodes;
     if Array.length b.nodes <> bucket_nodes then
@@ -255,7 +259,8 @@ let rec update ping table ?(st=Good) id data =
       List.iter (fun n -> mark n Pinged; ping n.addr (cb n)) unk;
       raise Nothing
   in
-  try table.root <- loop table.root with Nothing -> ()
+  if id <> table.self then
+    try table.root <- loop table.root with Nothing -> ()
 
 (* end *)
 

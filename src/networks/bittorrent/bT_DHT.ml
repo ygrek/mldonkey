@@ -550,7 +550,8 @@ let lookup_node dht ?nodes target k =
   | None -> M.self_find_node dht target
   | Some l -> l
   in
-  List.iter query nodes
+  List.iter query nodes;
+  check_ready ()
 
 let show_torrents dht =
   let now = BasicSocket.last_time () in
@@ -575,7 +576,7 @@ let bootstrap dht addr =
 
 let bootstrap ?(routers=[]) dht =
   lookup_node dht dht.M.rt.self begin fun l ->
-    log #info "auto bootstrap : found %s" (strl show_node l);
+    log #info "auto bootstrap : found [%s]" (strl show_node l);
     if List.length l < Kademlia.bucket_nodes then
       List.iter (bootstrap dht) routers
   end
