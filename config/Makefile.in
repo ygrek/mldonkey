@@ -28,8 +28,8 @@ NO_LIBS_opt=
 NO_STATIC_LIBS_opt=
 NO_CMXA=
 
-LIBS_byte=-custom bigarray.cma unix.cma str.cma
-LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa
+LIBS_byte=-custom bigarray.cma unix.cma str.cma nums.cma
+LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa nums.cmxa
 
 BIGARRAY_LIBS_opt=bigarray.cmxa
 BIGARRAY_LIBS_byte=bigarray.cma
@@ -448,6 +448,8 @@ BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bTUdpTracker.ml \
   $(SRC_BITTORRENT)/bTProtocol.ml \
   $(SRC_BITTORRENT)/bTTorrent.ml \
+  $(SRC_BITTORRENT)/kademlia.ml \
+  $(SRC_BITTORRENT)/bT_DHT.ml \
   $(SRC_BITTORRENT)/bTGlobals.ml \
   $(SRC_BITTORRENT)/bTComplexOptions.ml \
   $(SRC_BITTORRENT)/bTStats.ml \

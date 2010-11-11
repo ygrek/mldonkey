@@ -1076,8 +1076,8 @@ let compute_torrent filename announce comment =
    filename announce comment;
   let basename = Printf.sprintf "%s.torrent" (Filename.basename filename) in
   let torrent = Filename.concat seeded_directory basename in
-  let is_private = 0 in
-  let file_id = BTTorrent.generate_torrent announce torrent comment (Int64.of_int is_private) filename in
+  let is_private = false in
+  let file_id = BTTorrent.generate_torrent announce torrent comment is_private filename in
   match try_share_file torrent with 
   | `Err msg -> failwith msg
   | `Ok torrent_path ->

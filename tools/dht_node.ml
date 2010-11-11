@@ -13,17 +13,10 @@ let run_queries =
     "FE73D74660695208F3ACD221B7A9A128A3D36D47";
   |] in
   fun dht ->
-  let id = ids.(Random.int (Array.length ids)) in
-  log #info "run_queries: start %s" id;
-  let id = Kademlia.H.of_hexa id in
-  lookup_node dht id (fun nodes ->
-    List.iter begin fun node -> 
-      log #info "run_queries: found %s" (show_node node);
-      M.get_peers dht (snd node) id (fun node token peers nodes ->
-        log #info "run_queries: got %d peers and %d nodes from %s with token %S" 
-          (List.length peers) (List.length nodes) (show_node node) token) 
-        ~kerr:(fun () -> log #info "run_queries: get_peers error from %s" (show_node node))
-    end nodes)
+  let id = Kademlia.H.of_hexa ids.(Random.int (Array.length ids)) in
+  query_peers dht id (fun node token peers ->
+    log #info "run_queries : %s returned %d peers : %s"
+      (show_node node) (List.length peers) (strl Kademlia.show_addr peers))
 
 let () =
   Random.self_init ();

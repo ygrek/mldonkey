@@ -133,7 +133,11 @@ let value_to_file file_size file_state user group assocs =
         let file_creation_date = try get_value "file_creation_date" value_to_int64 with Not_found -> Int64.zero in
         let file_modified_by = try get_value "file_modified_by" value_to_string with Not_found -> "" in
         let file_encoding = try get_value "file_encoding" value_to_string with Not_found -> "" in
-        let file_is_private = try get_value "file_is_private" value_to_int64 with Not_found -> Int64.zero in
+        let file_is_private = 
+          try get_value "file_is_private" value_to_bool with 
+          | Not_found -> false
+          | _ -> try get_value "file_is_private" value_to_int64 <> 0L with _ -> false
+        in
         let file_files =
           try
             let file_files = (get_value "file_files"

@@ -249,14 +249,14 @@ type response =
 | Nodes of (id * addr) list
 | Peers of string * addr list * (id * addr) list
 
-let strl f l = String.concat " " & List.map f l
+let strl f l = "[" ^ (String.concat " " & List.map f l) ^ "]"
 
 let show_node (id,addr) = sprintf "%s (%s)" (show_addr addr) (show_id id)
 
 let show_response = function
 | Ack -> "ack"
-| Nodes l -> sprintf "nodes [%s]" (strl show_node l)
-| Peers (token,peers,nodes) -> sprintf "peers token=%S [%s] [%s]" token (strl show_addr peers) (strl show_node nodes)
+| Nodes l -> sprintf "nodes %s" (strl show_node l)
+| Peers (token,peers,nodes) -> sprintf "peers token=%S %s %s" token (strl show_addr peers) (strl show_node nodes)
 
 let parse_query_exn name args =
   let get k = List.assoc k args in
@@ -368,7 +368,7 @@ module Peers = Map.Make(struct type t = addr let compare = compare end)
 
 module M = struct
 
-type t = { rt : Kademlia.table; storage : string; dht : KRPC.t; torrents : (H.t, int Peers.t) Hashtbl.t; }
+type t = { rt : Kademlia.table; storage : string; dht : KRPC.t; torrents : (H.t, int Peers.t) Hashtbl.t; port : int; }
 
 let dht_query t addr q k ~kerr =
   log #info "DHT query to %s : %s" (show_addr addr) (show_query q);
@@ -419,7 +419,7 @@ let create storage dht_port answer =
   let dht = KRPC.create dht_port answer in
   let torrents = Hashtbl.create 8 in
   manage_timeouts torrents;
-  { rt = rt; storage = storage; dht = dht; torrents = torrents; }
+  { rt = rt; storage = storage; dht = dht; torrents = torrents; port = dht_port; }
 
 let shutdown dht =
   (* FIXME destroy timers and sockets *)
@@ -429,7 +429,7 @@ let peers_list f m = Peers.fold (fun peer tm l -> (f peer tm)::l) m []
 let self_get_peers t h = peers_list (fun a _ -> a) (try Hashtbl.find t.torrents h with Not_found -> Peers.empty)
 let self_find_node t h = List.map (fun node -> node.id, node.addr) & Kademlia.find_node t.rt h
 
-end
+end (* module M *)
 
 module Secret : sig 
 
@@ -576,10 +576,35 @@ let bootstrap dht addr =
 
 let bootstrap ?(routers=[]) dht =
   lookup_node dht dht.M.rt.self begin fun l ->
-    log #info "auto bootstrap : found [%s]" (strl show_node l);
+    log #info "auto bootstrap : found %s" (strl show_node l);
     if List.length l < Kademlia.bucket_nodes then
       List.iter (bootstrap dht) routers
   end
+
+let query_peers dht id k =
+  log #info "query_peers: start %s" (H.to_hexa id);
+  lookup_node dht id (fun nodes ->
+    log #info "query_peers: found nodes %s" (strl show_node nodes);
+(*
+    let found = ref Peers.empty in
+    let check =
+      let left = ref (List.length nodes + 1) (* one immediate check *) in
+      fun () -> decr left; if 0 = !left then k (Peers.fold (fun peer () l -> peer :: l) !found [])
+    in
+*)
+    List.iter begin fun node ->
+      M.get_peers dht (snd node) id begin fun node token peers nodes ->
+        log #info "query_peers: got %d peers and %d nodes from %s with token %S" 
+          (List.length peers) (List.length nodes) (show_node node) token;
+        k node token peers;
+(*
+        found := List.fold_left (fun acc peer -> Peers.add peer () acc) !found peers;
+        check ()
+*)
+        end
+        ~kerr:(fun () -> log #info "query_peers: get_peers error from %s" (show_node node)(*; check ()*));
+(*       check () *)
+    end nodes)
 
 let start storage port =
   let secret = Secret.create secret_timeout in
@@ -626,4 +651,6 @@ let start storage port =
   log #info "DHT size : %d self : %s" (size (!!dht).M.rt) (show_id (!!dht).M.rt.self); 
   BasicSocket.add_infinite_timer 60. refresh;
   !!dht
+
+let stop dht = M.shutdown dht (* FIXME stop timers *)
 
