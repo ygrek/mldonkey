@@ -151,7 +151,7 @@ let file_committed_name incoming_dir file =
       in
       iter 1
     else new_name in
-  set_file_best_name file (file_best_name file) "" 0;
+  set_file_best_name file (file_best_name file) fs namemax;
   Filename.concat incoming_dir new_name
 
 let script_for_file file incoming new_name =

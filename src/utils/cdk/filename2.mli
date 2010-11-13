@@ -17,6 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+val slash : char
+(** character used as a directory separator in file paths *)
+
 val dirname : string -> string 
 (*d [dirname filename] returns the dirname of [filename] after normalization *)
 
