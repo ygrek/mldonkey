@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/11/13
+7386: Makefile: Do not compile make_torrent when BT support is disabled
+- fixes compile error during "make utils"
+
 2010/11/07
 7355: HTML: Fix URL enconding of commands (ygrek)
 7375: FileTP: fix submitting ftp download links (ygrek)

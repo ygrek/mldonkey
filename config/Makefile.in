@@ -1571,10 +1571,17 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile: patches/ocamlopt-$(REQUIRED_OCAML)
 $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/Makefile
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
-utils.byte: mld_hash.byte make_torrent.byte copysources.byte get_range.byte subconv.byte
-utils.opt: svg_converter mld_hash make_torrent copysources get_range subconv
-utils.opt.static: svg_converter mld_hash.static make_torrent.static copysources.static get_range.static subconv.static
-utils.byte.static: mld_hash.byte.static make_torrent.byte.static copysources.byte.static get_range.byte.static subconv.byte.static
+ifeq ("$(BITTORRENT)", "yes")
+MAKE_TORRENT=make_torrent
+MAKE_TORRENT_BYTE=$(MAKE_TORRENT).byte
+MAKE_TORRENT_STATIC=$(MAKE_TORRENT).static
+MAKE_TORRENT_BYTE_STATIC=$(MAKE_TORRENT_BYTE).static
+endif
+
+utils.byte: mld_hash.byte $(MAKE_TORRENT_BYTE) copysources.byte get_range.byte subconv.byte
+utils.opt: svg_converter mld_hash $(MAKE_TORRENT) copysources get_range subconv
+utils.opt.static: svg_converter mld_hash.static $(MAKE_TORRENT_STATIC) copysources.static get_range.static subconv.static
+utils.byte.static: mld_hash.byte.static $(MAKE_TORRENT_BYTE_STATIC) copysources.byte.static get_range.byte.static subconv.byte.static
 utils.static: 
 	if test "$(TARGET_TYPE)" = "byte"; then \
 		$(MAKE) utils.byte.static; \
@@ -1667,10 +1674,10 @@ release.mlnet.distri: mlnet mlnet.static
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
-release.utils.shared: mld_hash make_torrent
+release.utils.shared: mld_hash $(MAKE_TORRENT)
 	rm -rf mldonkey-*
 	mkdir -p $(DISDIR)
-	for i in "mld_hash make_torrent"; do \
+	for i in "mld_hash $(MAKE_TORRENT)"; do \
 	   cp -f $$i $(DISDIR)/$$i && \
 	   if [ "$(SYSTEM)" != "macos" ]; then \
 	     strip $(DISDIR)/$$i; \
@@ -1681,11 +1688,13 @@ release.utils.shared: mld_hash make_torrent
 	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
-release.utils.static: mld_hash.static make_torrent.static
+release.utils.static: mld_hash.static $(MAKE_TORRENT_STATIC)
 	rm -rf mldonkey-*
 	mkdir -p $(DISDIR)
 	cp -f mld_hash.static $(DISDIR)/mld_hash && strip  $(DISDIR)/mld_hash
+ifeq ("$(BITTORRENT)", "yes")
 	cp -f make_torrent.static $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
+endif
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
 	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
