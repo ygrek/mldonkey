@@ -10,7 +10,7 @@ open Printf
 let dht_query_timeout = 20
 let store_peer_timeout = minutes 30
 let secret_timeout = minutes 10
-(* let alpha = 3 *)
+let alpha = 3
 
 type 'a pr = ?exn:exn -> ('a, unit, string, unit) format4 -> 'a
 type level = [ `Debug | `Info | `Warn | `Error ]
@@ -200,13 +200,13 @@ let create port answer : t =
       let addr = (Ip.of_inet_addr inet_addr, port) in
       let ret = ref None in
       try
-        log #debug "recv %S" p.udp_content;
+(*         log #debug "recv %S" p.udp_content; *)
         let r = decode_exn p.udp_content in
         ret := Some r;
         handle addr r
       with exn ->
-        let version = match !ret with Some (_,Some s,_) -> sprintf "client %S " s | _ -> "" in
-        log #warn ~exn "dht handle packet from %s %s" (show_addr addr) version;
+        let version = match !ret with Some (_,Some s,_) -> sprintf " client %S" s | _ -> "" in
+        log #warn ~exn "dht handle packet from %s%s : %S" (show_addr addr) version p.udp_content;
         let error txn code str = send socket addr (txn,(Error (Int64.of_int code,str))) in
         match exn,!ret with
         | Malformed_packet x, Some (txn, _, _)
@@ -482,6 +482,7 @@ val create : int -> t
 (** @return whether the element was really added *)
 val insert : t -> elt -> bool
 val elements : t -> elt list
+val iter : t -> (elt -> unit) -> unit
 
 end 
 
@@ -511,6 +512,8 @@ let insert (left,set) elem =
       decr left;
       true
 
+let iter (_,set) f = S.iter f !set
+
 let elements (_,set) = S.elements !set
 
 end (* Make *)
@@ -519,8 +522,11 @@ end (* LimitedSet *)
 
 let update dht ?st id addr = update (M.ping dht) dht.M.rt ?st id addr
 
+exception Break
+
 let lookup_node dht ?nodes target k =
   log #info "lookup %s" (show_id target);
+  let start = BasicSocket.last_time () in
   let module S = LimitedSet.Make(struct
     type t = id * addr
     let compare n1 n2 = Big_int.compare_big_int (distance target (fst n1)) (distance target (fst n2))
@@ -528,29 +534,41 @@ let lookup_node dht ?nodes target k =
   let found = S.create Kademlia.bucket_nodes in
   let queried = Hashtbl.create 13 in
   let active = ref 0 in
-  let check_ready () = if 0 = !active then k (S.elements found) in
-  (* FIXME use alpha *)
-  let rec query (id,addr as node) =
-    if not (Hashtbl.mem queried node) then
+  let check_ready () =
+    if 0 = !active then
     begin
-      incr active;
-      Hashtbl.add queried node true;
-      log #info "will query node %s" (show_node node);
-      M.find_node dht addr target begin fun (id,addr as node) l ->
-        update dht id addr;
-        let (_:bool) = S.insert found node in
-        decr active;
-        log #info "got %d nodes from %s" (List.length l) (show_node node);
-        List.iter query l;
-        check_ready ()
-      end ~kerr:(fun () -> decr active; log #info "timeout from %s" (show_node node); check_ready ())
+      let result = S.elements found in
+      log #info "lookup_node %s done, queried %d, found %d, elapsed %ds" 
+        (show_id target) (Hashtbl.length queried) (List.length result) (BasicSocket.last_time () - start);
+      k result
     end
+  in
+  let rec round nodes =
+    let inserted = List.fold_left (fun acc node -> if S.insert found node then acc + 1 else acc) 0 nodes in
+    begin try
+      let n = ref 0 in
+      S.iter found (fun node ->
+        if alpha = !n then raise Break;
+        if not (Hashtbl.mem queried node) then begin incr n; query node end)
+    with Break -> () end;
+    inserted
+  and query (id,addr as node) =
+    incr active;
+    Hashtbl.add queried node true;
+    log #info "will query node %s" (show_node node);
+    M.find_node dht addr target begin fun (id,addr as node) nodes ->
+      update dht id addr;
+      decr active;
+      let inserted = round nodes in
+      log #info "got %d nodes from %s, inserted %d" (List.length nodes) (show_node node) inserted;
+      check_ready ()
+    end ~kerr:(fun () -> decr active; log #info "timeout from %s" (show_node node); check_ready ())
   in
   let nodes = match nodes with
   | None -> M.self_find_node dht target
   | Some l -> l
   in
-  List.iter query nodes;
+  let _ = round nodes in
   check_ready ()
 
 let show_torrents dht =

@@ -80,7 +80,8 @@ let enable () =
               (Printexc2.to_string e));
     let dht = BT_DHT.start "bt_dht.dat" 12345 in
     let routers = [Ip.of_string "67.215.242.139", 6881] in
-(*     BT_DHT.bootstrap dht ~routers; *)
+    (* FIXME *)
+    BT_DHT.bootstrap dht ~routers;
     bt_dht := Some dht;
     if !!share_scan_interval <> 0 then
     add_session_timer enabler (float_of_int (!!share_scan_interval * 60))
