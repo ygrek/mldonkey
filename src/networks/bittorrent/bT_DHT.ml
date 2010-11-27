@@ -66,6 +66,7 @@ module Assoc2 : sig
   val find : ('a,'b,'c) t -> 'a -> 'b -> 'c option
   val remove : ('a,'b,'c) t -> 'a -> 'b -> unit
   val iter : ('a,'b,'c) t -> ('a -> 'b -> 'c -> unit) -> unit
+  val clear : ('a,'b,'c) t -> unit
 
 end = struct
 
@@ -80,6 +81,7 @@ let find_all h a = try Hashtbl.find h a with Not_found -> Hashtbl.create 3
 let find h a b = try Some (Hashtbl.find (Hashtbl.find h a) b) with Not_found -> None
 let remove h a b = try let ha = Hashtbl.find h a in Hashtbl.remove ha b; if Hashtbl.length ha = 0 then Hashtbl.remove h a with Not_found -> ()
 let iter h f = Hashtbl.iter (fun a h -> Hashtbl.iter (fun b c -> f a b c) h) h
+let clear h = Hashtbl.clear h
 
 end
 
@@ -152,7 +154,7 @@ let send sock (ip,port as addr) txnmsg =
 
 type t = UdpSocket.t * (addr, string, (addr -> dict -> unit) * (unit -> unit) * int) A.t
 
-let create port answer : t =
+let create port enabler answer : t =
   let socket = create Unix.inet_addr_any port (fun sock event ->
       match event with
       | WRITE_DONE | CAN_REFILL -> ()
@@ -175,7 +177,7 @@ let create port answer : t =
       A.remove h addr txn;
       try kerr () with exn -> log #warn ~exn "timeout for %s" (show_addr addr)) !bad;
   in
-  BasicSocket.add_infinite_timer 5. (fun () -> timeout h);
+  BasicSocket.add_session_timer enabler 5. (fun () -> timeout h);
   let handle addr (txn,ver,msg) =
     let version = match ver with Some s -> sprintf "client %S " s | None -> "" in
     log #debug "KRPC from %s %stxn %S : %s" (show_addr addr) version txn (show_msg msg);
@@ -217,6 +219,12 @@ let create port answer : t =
   in
   udp_set_reader socket handle;
   (socket,h)
+
+let shutdown (socket,h) =
+  close socket Closed_by_user;
+  A.iter h (fun addr _ (_,kerr,_) ->
+    try kerr () with exn -> log #warn ~exn "shutdown for %s" (show_addr addr));
+  A.clear h
 
 let write (socket,h) msg addr k ~kerr =
   let tt = Assoc2.find_all h addr in
@@ -368,11 +376,18 @@ module Peers = Map.Make(struct type t = addr let compare = compare end)
 
 module M = struct
 
-type t = { rt : Kademlia.table; storage : string; dht : KRPC.t; torrents : (H.t, int Peers.t) Hashtbl.t; port : int; }
+type t = {
+  rt : Kademlia.table; (* routing table *)
+  storage : string; (* name of file for persistence *)
+  rpc : KRPC.t; (* KRPC protocol socket *)
+  dht_port : int; (* port *)
+  torrents : (H.t, int Peers.t) Hashtbl.t; (* torrents announced by other peers *)
+  enabler : bool ref; (* timers' enabler *)
+}
 
 let dht_query t addr q k ~kerr =
   log #info "DHT query to %s : %s" (show_addr addr) (show_query q);
-  KRPC.write t.dht (make_query t.rt.self q) addr begin fun addr dict ->
+  KRPC.write t.rpc (make_query t.rt.self q) addr begin fun addr dict ->
     let (id,r) = try parse_response_exn q dict with exn -> kerr (); raise exn in
     log #info "DHT response from %s (%s) : %s" (show_addr addr) (show_id id) (show_response r);
     k (id,addr) r
@@ -398,8 +413,8 @@ let store t info_hash addr =
   let peers = try Hashtbl.find t.torrents info_hash with Not_found -> Peers.empty in
   Hashtbl.replace t.torrents info_hash (Peers.add addr (BasicSocket.last_time () + store_peer_timeout) peers)
 
-let manage_timeouts h =
-  BasicSocket.add_infinite_timer 60. begin fun () ->
+let manage_timeouts enabler h =
+  BasicSocket.add_session_timer enabler 60. begin fun () ->
     let now = BasicSocket.last_time () in
     let torrents = Hashtbl.fold (fun k peers l -> (k,peers)::l) h [] in
     let rm = ref 0 in
@@ -416,13 +431,15 @@ let manage_timeouts h =
 
 let create storage dht_port answer =
   let rt = Kademlia.init storage in
-  let dht = KRPC.create dht_port answer in
+  let enabler = ref true in
+  let rpc = KRPC.create dht_port enabler answer in
   let torrents = Hashtbl.create 8 in
-  manage_timeouts torrents;
-  { rt = rt; storage = storage; dht = dht; torrents = torrents; port = dht_port; }
+  manage_timeouts enabler torrents;
+  { rt = rt; storage = storage; rpc = rpc; torrents = torrents; dht_port = dht_port; enabler = enabler; }
 
 let shutdown dht =
-  (* FIXME destroy timers and sockets *)
+  dht.enabler := false;
+  KRPC.shutdown dht.rpc;
   Kademlia.store dht.storage dht.rt
 
 let peers_list f m = Peers.fold (fun peer tm l -> (f peer tm)::l) m []
@@ -667,8 +684,8 @@ let start storage port =
     ids
   in
   log #info "DHT size : %d self : %s" (size (!!dht).M.rt) (show_id (!!dht).M.rt.self); 
-  BasicSocket.add_infinite_timer 60. refresh;
+  BasicSocket.add_session_timer (!!dht).M.enabler 60. refresh;
   !!dht
 
-let stop dht = M.shutdown dht (* FIXME stop timers *)
+let stop dht = M.shutdown dht
 

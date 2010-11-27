@@ -714,7 +714,7 @@ let rec client_parse_header counter cc init_sent gconn sock
       lprintf_nl "file and client found";
 (*    if not c.client_incoming then *)
     begin match c.client_dht, !bt_dht with
-    | true, Some dht -> send_client c (DHT_Port dht.BT_DHT.M.port)
+    | true, Some dht -> send_client c (DHT_Port dht.BT_DHT.M.dht_port)
     | _ -> ()
     end;
     send_bitfield c; 
