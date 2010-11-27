@@ -9,16 +9,39 @@ let bucket_nodes = 8
 
 module H = Md4.Sha1
 
-let pr fmt = Printf.ksprintf print_endline fmt
+type 'a pr = ?exn:exn -> ('a, unit, string, unit) format4 -> 'a
+type level = [ `Debug | `Info | `Warn | `Error ]
 
-let q () =
-  let hash = H.random () in
-  pr "len: %d up: %x %x %x" H.length (H.up hash) (H.up2 hash) (H.up3 hash);
-  pr "string: %s" (H.to_string hash);
-  pr "direct: %S" (H.direct_to_string hash);
-  pr "hexa: %s" (H.to_hexa hash);
-  pr "bits: %s" (H.to_bits hash);
-  pr "base32: %s" (H.to_base32 hash)
+class logger prefix = 
+  let int_level = function
+    | `Debug -> 0
+    | `Info -> 1
+    | `Warn -> 2
+    | `Error -> 3
+  in
+  let print_log limit prefix level ?exn fmt =
+    let put s =
+      let b = match level with 
+      | 0 -> false 
+      | _ -> true
+      in 
+      match b,exn with
+      | false, _ -> ()
+      | true, None -> Printf2.lprintf_nl "[%s] %s" prefix s
+      | true, Some exn -> Printf2.lprintf_nl "[%s] %s : exn %s" prefix s (Printexc2.to_string exn)
+  in
+  Printf.ksprintf put fmt
+in
+object
+val mutable limit = int_level `Info
+method debug : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 0 ?exn fmt
+method info  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 1 ?exn fmt
+method warn  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 2 ?exn fmt
+method error : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 3 ?exn fmt
+method allow (level:level) = limit <- int_level level
+end
+
+let log = new logger "btkad"
 
 (** node ID type *)
 type id = H.t
@@ -51,8 +74,8 @@ let show_node n =
     (show_id n.id) (show_addr n.addr) (show_status n.status) (diff n.last)
 
 let show_bucket b = 
-  pr "count : %d lo : %s hi : %s changed : %s" (Array.length b.nodes) (H.to_hexa b.lo) (H.to_hexa b.hi) (diff b.last_change);
-  Array.iter (fun n -> pr "  %s" (show_node n)) b.nodes
+  log #info "count : %d lo : %s hi : %s changed : %s" (Array.length b.nodes) (H.to_hexa b.lo) (H.to_hexa b.hi) (diff b.last_change);
+  Array.iter (fun n -> log #info "  %s" (show_node n)) b.nodes
 
 let rec show_tree = function 
   | N (l,_,r) -> show_tree l; show_tree r
@@ -154,12 +177,6 @@ let distance h1 h2 =
   !d
 
 let () =
-  (*
-  print_endline (show_id H.null);
-  print_endline (show_id middle);
-  print_endline (show_id middle');
-  print_endline (show_id last);
-  *)
   assert (LT = cmp H.null middle);
   assert (LT = cmp H.null middle');
   assert (LT = cmp H.null last);
@@ -195,15 +212,15 @@ let mark n st = n.last <- now (); n.status <- st
 let touch b = b.last_change <- now ()
 
 let rec update ping table ?(st=Good) id data =
-(*   pr "insert %s" (show_id node.id); *)
+(*   log #debug "insert %s" (show_id node.id); *)
   let rec loop = function
   | N (l,mid,r) -> (match cmp id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
   | L b ->
     Array.iteri begin fun i n ->
       match cmp n.id id = EQ, n.addr = data with
-      | true, true -> pr "mark [%s] as good" (show_node n); mark n Good; touch b; raise Nothing
+      | true, true -> log #info "mark [%s] as good" (show_node n); mark n Good; touch b; raise Nothing
       | true, false | false, true -> 
-          pr "conflict [%s] with %s %s, replacing" (show_node n) (show_id id) (show_addr data);
+          log #warn "conflict [%s] with %s %s, replacing" (show_node n) (show_id id) (show_addr data);
           b.nodes.(i) <- make_node id data st; (* replace *)
           touch b;
           raise Nothing
@@ -211,7 +228,7 @@ let rec update ping table ?(st=Good) id data =
     end b.nodes;
     if Array.length b.nodes <> bucket_nodes then
     begin
-      pr "insert %s" (show_id id);
+      log #info"insert %s" (show_id id);
       b.nodes <- Array.of_list (make_node id data st :: Array.to_list b.nodes);
       touch b;
       raise Nothing
@@ -220,7 +237,7 @@ let rec update ping table ?(st=Good) id data =
       if n.status = Good && now () - n.last > node_period then mark n Unknown;
       if n.status = Bad || (n.status = Pinged && now () - n.last > node_period) then
       begin
-        pr "replace [%s] with %s" (show_node b.nodes.(i)) (show_id id);
+        log #info "replace [%s] with %s" (show_node b.nodes.(i)) (show_id id);
         b.nodes.(i) <- make_node id data st; (* replace *)
         touch b;
         raise Nothing
@@ -229,7 +246,7 @@ let rec update ping table ?(st=Good) id data =
     | [] ->
     if inside b table.self && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
     begin
-      pr "split";
+      log #info "split";
       let mid = split b.lo b.hi in
       let (nodes1,nodes2) = List.partition (fun n -> cmp n.id id = LT) (Array.to_list b.nodes) in
       let new_node = N (
@@ -241,17 +258,17 @@ let rec update ping table ?(st=Good) id data =
     end
     else
     begin
-      pr "bucket full (%s)" (show_id id);
+      log #info "bucket full (%s)" (show_id id);
       raise Nothing
     end
     | unk ->
       let count = ref (List.length unk) in
-      pr "ping %d unknown nodes" !count;
+      log #info "ping %d unknown nodes" !count;
       let cb n = fun res ->
         decr count; mark n (match res with Some _ -> Good | None -> Bad); 
         if !count = 0 then (* retry *)
         begin 
-          pr "all %d pinged, retry %s" (List.length unk) (show_id id); 
+          log #info "all %d pinged, retry %s" (List.length unk) (show_id id); 
           touch b; 
           update ping table ~st id data 
         end
@@ -293,7 +310,7 @@ let create () = { root = L { lo = H.null; hi = last; last_change = now (); nodes
                 }
 
 let show_table t =
-  pr "self : %s now : %d" (show_id t.self) (now ());
+  log #info "self : %s now : %d" (show_id t.self) (now ());
   show_tree t.root
 
 let rec fold f acc = function

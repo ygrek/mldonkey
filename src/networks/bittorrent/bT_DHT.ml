@@ -12,38 +12,6 @@ let store_peer_timeout = minutes 30
 let secret_timeout = minutes 10
 let alpha = 3
 
-type 'a pr = ?exn:exn -> ('a, unit, string, unit) format4 -> 'a
-type level = [ `Debug | `Info | `Warn | `Error ]
-
-class logger prefix = 
-  let int_level = function
-    | `Debug -> 0
-    | `Info -> 1
-    | `Warn -> 2
-    | `Error -> 3
-  in
-  let print_log limit prefix level ?exn fmt =
-    let put s =
-      let b = match level with 
-      | 0 -> false 
-      | _ -> true
-      in 
-      match b,exn with
-      | false, _ -> ()
-      | true, None -> Printf2.lprintf_nl "[%s] %s" prefix s
-      | true, Some exn -> Printf2.lprintf_nl "[%s] %s : exn %s" prefix s (Printexc2.to_string exn)
-  in
-  ksprintf put fmt
-in
-object
-val mutable limit = int_level `Info
-method debug : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 0 ?exn fmt
-method info  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 1 ?exn fmt
-method warn  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 2 ?exn fmt
-method error : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 3 ?exn fmt
-method allow (level:level) = limit <- int_level level
-end
-
 let log = new logger "dht"
 
 let catch f x = try `Ok (f x) with e -> `Exn e
