@@ -1163,11 +1163,6 @@ let backup_tar archive files =
 	    header, s) in
 	Tar.output otar header s
       with
-      | (Gzip.Error "error during compression") as e when Autoconf.windows && arg = "fasttrack.ini" ->
-	  (* for whatever reason this error is raised on Windows,
-             but fasttrack.ini is stored correctly *)
-	  if !verbose then
-            lprintf_nl "Tar: Windows specific pseudo error %s in %s" (Printexc2.to_string e) arg
       | e ->
 	  failed_files := arg :: !failed_files;
 	  lprintf_nl "Tar: skipping %s, error %s" arg (Printexc2.to_string e)
