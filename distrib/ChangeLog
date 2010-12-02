@@ -14,6 +14,53 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/11/15: version 3.0.6 = tag release-3-0-6
+
+2010/11/13
+7386: Makefile: Do not compile make_torrent when BT support is disabled
+- fixes compile error during "make utils"
+
+2010/11/07
+7355: HTML: Fix URL enconding of commands (ygrek)
+7375: FileTP: fix submitting ftp download links (ygrek)
+7374: BT: calculate compatible hash for wrong torrents (ygrek)
+6012: http_client: Support gzip accept-encoding + content-encoding (ygrek)
+
+2010/11/03
+7372: GTK2 GUI: Compile with lablgtk-2.14.2 by default
+
+2010/11/01
+7303: UPNP support (zzpptt)
+- to compile using pre-installed libs: configure --enable-upnp-natpmp
+- to compile UPNP libs during MLDonkey compile use --enable-force-upnp-natpmp
+- ToDo: MinGW support
+7365: HTML: improve code for sorting tables (ygrek)
+7364: KAD: parse new nodes.dat formats (ygrek)
+
+2010/10/28
+7358: Update mlnet_strings.ru_RU.UTF-8 (balamutick)
+
+2010/10/24
+7318: EDK/Emule captcha: Use Base64 functions (ygrek)
+7357: configure: fix quoting of arguments (ygrek)
+
+2010/10/23
+7318: EDK: Emule captcha support and slight cleanup (dennisne)
+- added support for Emule's anti-spam chat CAPTCHAs
+- added clear_message_log command to clear (long) message logs 
+- HTML: reversed order of chat messages
+7319: EDK: Fix CryptoPP on mips64 abi n32 (viric)
+7356: options: ensure that tmp file is removed (ygrek)
+7354: DC: cleanup temporary files (ygrek)
+7353: DC: silence "ADC not supported" message (ygrek)
+7352: net: do not log ordinary network errors (ygrek)
+7351: DC: fix download of large files (integer overflow) (ygrek)
+7350: cleanup accesstest temp files (ygrek)
+
+2010/10/19
+7349: Fix release.* make targets on GNU/kFreeBSD
+7348: Update GNU config.guess and config.sub to version 2010/09
+-------------------------------------------------------------------------------
 2010/09/26: version 3.0.5 = tag release-3-0-5
 
 2010/09/22

@@ -303,7 +303,7 @@ let results_ini = create_options_file "results.ini"
 let files_ini = create_options_file "files.ini"
 let friends_ini = create_options_file "friends.ini"
 
-let messages_log = ref "messages.log"
+let messages_log = "messages.log"
 
 let servers_section = file_section servers_ini [] ""
 
@@ -538,6 +538,15 @@ let alias_commands = define_option current_section ["alias_commands"]
     [ "quit", "q";
       "exit", "q";
     ]
+
+let upnp_port_forwarding = define_option current_section ["upnp_port_forwarding"]
+  ~restart: true
+  "upnp port forwarding"
+    bool_option false
+
+let clear_upnp_port_at_exit = define_option current_section ["clear_upnp_port_at_exit"]
+  "clear all upnp port forwarding before mldonkey exit"
+    bool_option true
 
 let verbosity = define_expert_option current_section ["verbosity"]
   "A space-separated list of keywords. Each keyword triggers

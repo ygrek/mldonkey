@@ -52,9 +52,9 @@ let tryopen_read_tar fn f =
 let tryopen_write_tar ?compress fn f = 
   tryopen (Tar.open_out ?compress) Tar.close_out fn f
 let tryopen_read_gzip fn f = 
-  tryopen Gzip.open_in Gzip.close_in fn f
+  tryopen Gzip.open_in_file Gzip.close_in fn f
 let tryopen_write_gzip ?level fn f = 
-  tryopen (Gzip.open_out ?level) Gzip.close_out fn f
+  tryopen (Gzip.open_out_file ?level) Gzip.close_out fn f
 let tryopen_umask temp_umask f =
   (* Unix.umask is not implemented on MinGW *)
   let safe_umask umask = try Unix.umask umask with Invalid_argument _ -> 0 in

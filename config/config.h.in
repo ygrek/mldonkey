@@ -147,3 +147,6 @@
 
 /* Define to 1 if you have strerror_r() */
 #undef HAVE_STRERROR_R
+
+/* Define to 1 if you want to use libminiupnpc + libnatpmp */
+#undef ENABLE_UPNP_NATPMP

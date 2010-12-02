@@ -43,6 +43,7 @@ open CommonOptions
 open CommonUserDb
 open CommonInteractive
 open CommonEvent
+open UpnpClient
 
 open DriverInteractive
 
@@ -545,6 +546,11 @@ let _ =
         ""
     ), "<minutes> :\t\t\tprint activity in the last <minutes> minutes";
 
+    "clear_message_log", Arg_none (fun o ->
+        Fifo.clear chat_message_fifo;
+        Printf.sprintf "Chat messages cleared"
+     ), ":\t\t\t\tclear chat message buffer";
+
     "message_log", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         html_mods_cntr_init ();
@@ -579,7 +585,7 @@ let _ =
                 ( Str, "srh", "Client name", "Client name" ) ;
                 ( Str, "srh", "Message text", "Message" ) ] ;
 
-            Fifo.iter (fun (t,i,num,n,s) ->
+            List.iter (fun (t,i,num,n,s) ->
                 if use_html_mods o then begin
                     Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
                       (html_mods_cntr ());
@@ -588,13 +594,15 @@ let _ =
                       ("", "sr",  i);
                       ("", "sr", Printf.sprintf "%d" num);
                       ("", "sr", n);
-                      ("", "srw", (String.escaped s)) ];
+                      ("", "srw", (if String.length s > 11 && String.sub s 0 11 = "data:image/" then
+                          "\\<img src=\\\"" ^ String.escaped s ^ "\\\">"
+                        else String.escaped s)) ];
                     Printf.bprintf buf "\\</tr\\>"
                   end
                 else
                   Printf.bprintf buf "\n%s [client #%d] %s(%s): %s\n"
                     (Date.simple (BasicSocket.date_of_int t)) num n i s;
-            ) chat_message_fifo;
+            ) (List.rev (Fifo.to_list chat_message_fifo));
             if use_html_mods o then Printf.bprintf buf
                 "\\</table\\>\\</div\\>\\</div\\>";
 
@@ -611,8 +619,10 @@ let _ =
                   a1 ^ a2 ^ " "
               ) "" msglist in
             let cnum = int_of_string n in
-            client_say (client_find cnum) msg;
-	    log_chat_message "localhost" 0 !!global_login msg;
+            let c = client_find cnum in
+            let g = client_info c in
+            client_say c msg;
+	    log_chat_message "FROM ME" cnum ("TO: " ^ g.client_name) msg;
             Printf.sprintf "Sending msg to client #%d: %s" cnum msg;
         | _ ->
             if use_html_mods o then begin
@@ -675,7 +685,11 @@ formID.msgText.value=\\\"\\\";
                 Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"refresh\\\" name=\\\"refresh\\\"
             action=\\\"javascript:msgWindow.location.reload();\\\"\\>
             \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-            Value=\\\"Refresh\\\"\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>";
+            Value=\\\"Refresh\\\"\\>\\</td\\>\\</form\\>";
+                Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"clear\\\" name=\\\"clear\\\"
+            action=\\\"javascript:window.location.href='submit?q=clear_message_log'\\\"\\>
+            \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
+            Value=\\\"Clear\\\"\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>";
                 ""
               end
             else
@@ -2135,6 +2149,12 @@ action=\\\"javascript:pluginSubmit();\\\"\\>";
 			@ [
 			] @
 			(if Autoconf.filetp = "yes" then [(strings_of_option enable_fileTP)] else [])
+			@ [
+			] @
+			(if Autoconf.upnp_natpmp then [(strings_of_option upnp_port_forwarding)] else [])
+			@ [
+			] @
+			(if Autoconf.upnp_natpmp then [(strings_of_option clear_upnp_port_at_exit)] else [])
 			@ [
 			strings_of_option tcpip_packet_size;
 			strings_of_option mtu_packet_size;
@@ -4184,4 +4204,43 @@ let _ =
         CommonPictures.compute_ocaml_code dir output;
         _s "done"
     ), ":\t\t\tfor debugging only";
+
+    "debug_upnp", Arg_multiple ( fun args o ->
+		match args with
+			| ["init"] ->  
+				UpnpClient.init_maps ();
+
+			| ["add"; intPort; extPort; isTcp; notes ] ->
+				UpnpClient.maps_add_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
+				
+			| ["start"] -> 	
+				UpnpClient.job_start ();
+				
+			| ["remove"; intPort; extPort; isTcp; notes] ->
+				UpnpClient.maps_remove_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
+				
+			| ["clear"] -> 	
+				UpnpClient.remove_all_maps 0 ;
+				
+			| ["stop"] -> 	
+				UpnpClient.job_stop 0;
+				
+			| ["show"] | [] ->
+				let buf = o.conn_buf in
+					let	maps = UpnpClient.maps_get () in
+					Printf.bprintf buf "upnp port forwarding status:\n";
+					List.iter (fun map ->
+						let msg = UpnpClient.strings_port_map map in
+						Printf.bprintf buf "%s\n" msg;
+					) maps;
+						
+			| _ -> ();
+				;
+			_s "done"
+    ), ":\t\t\t\t\t$debugging upnp\n"
+       ^"\t\t\t\t\tfor example: \"add 4662 4662 1 ed_port\" add port forwarding intPort extPort isTcp notes\n"
+       ^"\t\t\t\t\t\"remove 4662 4662 1 ed_port\" remove port forwarding intPort extPort isTcp notes\n"
+       ^"\t\t\t\t\t\"clear\" clear all port forwarding\n"
+       ^"\t\t\t\t\t\"show\" show all port forwarding info $n";
+		
   ]

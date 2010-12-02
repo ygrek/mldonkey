@@ -75,7 +75,7 @@ end
 let open_inchan comp chan = 
   match comp with
     | `Plain -> new in_chan chan
-    | `Gzip -> new gzin_chan (Gzip.open_in_chan chan)
+    | `Gzip -> new gzin_chan (Gzip.open_in (IO.input_channel chan))
     | `Bzip2 -> 
 #ifdef USE_BZIP2
 	new bzin_chan (Bzip2.open_in_chan chan)
@@ -286,7 +286,7 @@ end
 class gzout_chan o = object
   method output str pos len = Gzip.output o str pos len
   method flush () = Gzip.flush o
-  method close () = Gzip.close_out o
+  method close () = (Gzip.close_out o : unit)
 end
 
 #ifdef USE_BZIP2
@@ -301,7 +301,7 @@ end
 let open_outchan comp chan = 
   match comp with
     | `Plain -> new out_chan chan
-    | `Gzip -> new gzout_chan (Gzip.open_out_chan chan)
+    | `Gzip -> new gzout_chan (Gzip.open_out (IO.output_channel chan))
     | `Bzip2 -> 
 #ifdef USE_BZIP2
 	new bzout_chan (Bzip2.open_out_chan chan)

@@ -1940,6 +1940,7 @@ let buildinfo html buf =
        | true, true -> " magic(active)"
        | true, false -> " magic(inactive)"
        | false, _ -> " no-magic") ^
+      (if Autoconf.upnp_natpmp then " upnp natpmp" else " no-upnp no-natpmp") ^
       (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
     );
   let list = List.rev !list in
