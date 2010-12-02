@@ -858,9 +858,9 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
 \\</script\\>";
 
           html_mods_table_header buf "scan_tempTable" "scan_temp" [
-            ( "0", "srh", "Filename", "Filename (press ENTER to rename)" ) ;
-            ( "0", "srh", "Status", "Status" ) ;
-            ( "0", "srh", "MD4 (link=ed2k)", "MD4 (link=ed2k)" ); ];
+            ( Str, "srh", "Filename", "Filename (press ENTER to rename)" ) ;
+            ( Str, "srh", "Status", "Status" ) ;
+            ( Str, "srh", "MD4 (link=ed2k)", "MD4 (link=ed2k)" ); ];
 
 
     end;
@@ -1194,7 +1194,7 @@ let _ =
       }
   )
 
-let string_of_client_addr c =
+let string_of_client_ip c =
   try match c.client_source.DonkeySources.source_sock with
       Connection sock -> (Ip.to_string (peer_ip sock))
     | _ -> ""
@@ -1212,7 +1212,7 @@ let get_ips_cc_cn c =
         (Ip.to_string real_ip),cc,cn
     | _ ->  
         let cc,cn = Geoip.unknown_country in
-        (string_of_client_addr c),cc,cn
+        (string_of_client_ip c),cc,cn
   with _ -> ("X","??","Country Error")
 
 
@@ -1426,41 +1426,41 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
       in
 
       html_mods_table_header buf "sourcesTable" "sources al" ([
-          ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ;
-          ( "0", "srh", "[A] = Active download from client", "A" ) ;
-          ( "0", "srh", "Client state", "CS" ) ;
-          ( "0", "srh", "Client name", "Name" ) ;
-          ( "0", "srh", "Client brand", "CB" ) ;
-          ( "0", "srh", "Client release", "CR" ) ;
+          ( Num, "srh ac", "Client number (click to add as friend)", "Num" ) ;
+          ( Str, "srh", "[A] = Active download from client", "A" ) ;
+          ( Str, "srh", "Client state", "CS" ) ;
+          ( Str, "srh", "Client name", "Name" ) ;
+          ( Str, "srh", "Client brand", "CB" ) ;
+          ( Str, "srh", "Client release", "CR" ) ;
         ] @
-          (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+          (if !!emule_mods_count then [( Str, "srh", "eMule MOD", "EM" )] else [])
         @ [
-          ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ;
-          ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
-          ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
-          ( "0", "srh br", "IP address", "IP address" ) ;
-          ] @ (if Geoip.active () then [( "0", "srh br", "Country Code/Name", "CC" )] else []) @ [
-          ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
-          ( "1", "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
-          ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
-          ( "1", "srh ar br", "Session DL bytes from this client for all files", "sDL" ) ;
-          ( "1", "srh ar", "Your queue rank on this client", "Rnk" ) ;
-          ( "1", "srh ar br", "Source score", "Scr" ) ;
-          ( "1", "srh ar br", "Last ok", "LO" ) ;
-          ( "1", "srh ar", "Request score", "RS" ) ;
-          ( "1", "srh ar", "Request queue (see sources command)", "RQ" ) ;
-          ( "1", "srh ar br", "Request time (last connect) (# minutes ago)", "RT" ) ;
-          ( "0", "srh", "Has a slot [T]rue, [F]alse", "H" ) ;
-          ( "0", "srh br", "Banned [T]rue, [F]alse", "B" ) ;
-          ( "1", "srh ar", "Requests sent", "RS" ) ;
-          ( "1", "srh ar", "Requests received", "RR" ) ;
-          ( "1", "srh ar br", "Connected time (minutes)", "CT" ) ;
-          ( "0", "srh br", "Client MD4", "MD4" ) ;
-          ( "0", "srh", "Chunks (absent|partial|present|verified)",
+          ( Str, "srh", "Overnet [T]rue, [F]alse", "O" ) ;
+          ( Str, "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
+          ( Str, "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
+          ( Str, "srh br", "IP address", "IP address" ) ;
+          ] @ (if Geoip.active () then [( Str, "srh br", "Country Code/Name", "CC" )] else []) @ [
+          ( Num, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+          ( Num, "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
+          ( Num, "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
+          ( Num, "srh ar br", "Session DL bytes from this client for all files", "sDL" ) ;
+          ( Num, "srh ar", "Your queue rank on this client", "Rnk" ) ;
+          ( Num, "srh ar br", "Source score", "Scr" ) ;
+          ( Num, "srh ar br", "Last ok", "LO" ) ;
+          ( Num, "srh ar", "Request score", "RS" ) ;
+          ( Num, "srh ar", "Request queue (see sources command)", "RQ" ) ;
+          ( Num, "srh ar br", "Request time (last connect) (# minutes ago)", "RT" ) ;
+          ( Str, "srh", "Has a slot [T]rue, [F]alse", "H" ) ;
+          ( Str, "srh br", "Banned [T]rue, [F]alse", "B" ) ;
+          ( Num, "srh ar", "Requests sent", "RS" ) ;
+          ( Num, "srh ar", "Requests received", "RR" ) ;
+          ( Num, "srh ar br", "Connected time (minutes)", "CT" ) ;
+          ( Str, "srh br", "Client MD4", "MD4" ) ;
+          ( Str, "srh", "Chunks (absent|partial|present|verified)",
 	  match chunks with
 	  | None -> ""
 	  | Some chunks -> colored_chunks chunks) ;
-          ( "1", "srh ar", "Number of full chunks", (Printf.sprintf "%d"
+          ( Num, "srh ar", "Number of full chunks", (Printf.sprintf "%d"
             (match chunks with
 	    | None -> 0
 	    | Some chunks ->
@@ -1808,7 +1808,7 @@ let _ =
               (shorten c.client_name 20)
               (match c.client_kind with
                   Direct_address (ip,port) -> (Ip.to_string ip)
-                  |  _ -> (string_of_client_addr c));
+                  |  _ -> (string_of_client_ip c));
                     Printf.bprintf buf "\n%14sDown  : %-10s                  Uploaded: %-10s  Ratio: %s%1.1f (%s)\n" ""
                     (Int64.to_string c.client_total_downloaded)
                     (Int64.to_string c.client_total_uploaded)

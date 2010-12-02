@@ -46,6 +46,7 @@ type request = {
     req_accept : string;
     req_proxy : (string * int * (string * string) option) option; (* (host,port,(login,password)) *)
     mutable req_url : url;
+    mutable req_gzip : bool;
     mutable req_save_to_file_time : float;
     req_request : http_request;
     req_referer : Url.url option;
@@ -68,6 +69,7 @@ let basic_request = {
     req_referer = None;
     req_save_to_file_time = 0.;
     req_request = GET;
+    req_gzip = false;
     req_proxy = None;
     req_headers = [];
     req_user_agent = "Wget 1.4";
@@ -103,6 +105,7 @@ let make_full_request r =
   List.iter (fun (a,b) ->
       Printf.bprintf res "%s: %s\r\n" a b
   ) r.req_headers;
+  Printf.bprintf res "Accept-Encoding: gzip\r\n";
   Printf.bprintf res "User-Agent: %s\r\n" r.req_user_agent;
   Printf.bprintf res "Accept: %s\r\n" r.req_accept;
   Printf.bprintf res "Connection: close\r\n";
@@ -274,9 +277,15 @@ let rec get_page r content_handler f ferr =
         ok := true;
         let content_length = ref (-1L) in
         List.iter (fun (name, content) ->
-            if String.lowercase name = "content-length" then
-            try content_length := Int64.of_string content
-            with _ -> lprintf_nl "bad content length [%s]" content;
+            match String.lowercase name with
+            | "content-length" ->
+                (try
+                  content_length := Int64.of_string content
+                with _ ->
+                  lprintf_nl "bad content length [%s]" content)
+            | "content-encoding" ->
+                if String.lowercase content = "gzip" then r.req_gzip <- true
+            | _ -> ()
         ) headers;
         let location = "Location", Url.to_string old_url in
         let content_handler = content_handler !content_length (location::headers) in
@@ -366,12 +375,24 @@ let rec get_page r content_handler f ferr =
         raise Not_found
   in
   get_url 0 r
-  
+
+(** Copy all data from [input] to [output] *)
+let io_copy input output =
+  try
+    let size = 16 * 1024 in
+    let s = String.create size in
+    while true do
+      let n = IO.input input s 0 size in
+      if n = 0 then raise IO.No_more_input;
+      ignore (IO.really_output output s 0 n)
+    done
+  with IO.No_more_input -> ()
+
 let wget r f = 
-  
+
   let file_buf = Buffer.create 1000 in
   let file_size = ref 0L in
-  
+
   try
   get_page r (fun maxlen headers sock nread ->
 (*      lprintf "received %d\n" nread; *)
@@ -413,7 +434,20 @@ let wget r f =
 
       let filename = Filename.concat webinfos_dir base in
       if !verbose then lprintf_nl "Filename: %s" filename;
-      Unix2.tryopen_write_bin filename (fun oc -> output_string oc s);
+      if r.req_gzip then
+      begin
+        try
+          Unix2.tryopen_write_bin filename begin fun oc ->
+            let gz = Gzip.input_io (IO.input_string s) in
+            io_copy gz (IO.output_channel oc)
+          end
+        with e ->
+          lprintf_nl "Exception %s while uncompressing content from %s" (Printexc2.to_string e) (Url.to_string r.req_url);
+          Sys.remove filename;
+          raise Not_found
+      end
+      else
+        Unix2.tryopen_write_bin filename (fun oc -> output_string oc s);
       if r.req_save_to_file_time <> 0. then
         Unix.utimes filename r.req_save_to_file_time r.req_save_to_file_time;
       try
@@ -462,8 +496,19 @@ let wget_string r f ?(ferr=def_ferr) progress =
           if nread > left then
             TcpBufferedSocket.close sock Closed_by_user
         end)
-  (fun _ ->  
-      f (Buffer.contents file_buf)
+  (fun _ ->
+      let content = 
+        if r.req_gzip then
+          try
+            let io = IO.input_string (Buffer.contents file_buf) in
+            IO.read_all io
+          with e -> 
+            lprintf_nl "Exception %s while uncompressing content from %s" (Printexc2.to_string e) (Url.to_string r.req_url);
+            raise Not_found
+        else
+          Buffer.contents file_buf
+      in
+      f content
   ) ferr
 
 

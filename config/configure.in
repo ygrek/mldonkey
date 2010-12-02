@@ -22,7 +22,7 @@ cd config
 
 MAJOR_VERSION=3
 MINOR_VERSION=0
-SUB_VERSION=5   # range 0-7 due to eMule limitations
+SUB_VERSION=6   # range 0-7 due to eMule limitations
 
 # **********                                                                                  **********
 # **********                                  check for C compiler                            **********
@@ -326,6 +326,8 @@ BZIP2=yes
 MAGIC=yes
 ICONV=yes
 USE_PTHREAD=yes
+UPNP_NATPMP=no
+UPNP_NATPMP_FORCE=no
 
 # **********
 
@@ -411,6 +413,8 @@ AC_ARG_ENABLE(iconv,         [  --disable-iconv         disable the use of iconv
 AC_ARG_ENABLE(gd,            [  --disable-gd            disable the use of gd], [GD="$enableval"])
 AC_ARG_ENABLE(bzip2,         [  --disable-bzip2         disable the use of bzip2], [BZIP2="$enableval"])
 AC_ARG_ENABLE(magic,         [  --disable-magic         disable the use of libmagic (GNU file)], [MAGIC="$enableval"])
+AC_ARG_ENABLE(upnp-natpmp,   [  --enable-upnp-natpmp    enable the use of libminiupnpc and libnatpmp], [UPNP_NATPMP="$enableval"])
+AC_ARG_ENABLE(force-upnp-natpmp,   [  --enable-force-upnp-natpmp    force local compilation of libminiupnpc and libnatpmp], [UPNP_NATPMP_FORCE="$enableval"])
 
 if test "$FORCE_MINGW" = "yes"; then
     CC="$CC -mno-cygwin"
@@ -781,6 +785,42 @@ if test "$BZIP2" = "yes"; then
   AC_DEFINE(USE_BZIP2, 1, [Define to 1 if you have bzip2 support.])
 else
   AC_MSG_NOTICE(bzlib not available)
+fi
+
+if test "$UPNP_NATPMP_FORCE" = "yes"; then
+	UPNP_NATPMP=yes
+	cd $PATCH_DIR
+	$WGET http://miniupnp.tuxfamily.org/files/miniupnpc-1.4.20100609.tar.gz
+	$WGET http://miniupnp.tuxfamily.org/files/libnatpmp-20100202.tar.gz
+	mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
+	cd $BUILD_DIR
+	rm -rf libnatpmp-20100202 miniupnpc-1.4.20100609
+	tar -xzf $PATCH_DIR/miniupnpc-1.4.20100609.tar.gz
+	tar -xzf $PATCH_DIR/libnatpmp-20100202.tar.gz
+	cd $BUILD_DIR/libnatpmp-20100202
+	make all install PREFIX=$LOCAL_DIR
+	cd $BUILD_DIR/miniupnpc-1.4.20100609
+	make all install PREFIX=$LOCAL_DIR
+	cd $CONFIG_DIR
+	rm -rf $BUILD_DIR/libnatpmp-20100202 $BUILD_DIR/miniupnpc-1.4.20100609
+	CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
+	LDFLAGS="${LDFLAGS} -L$LOCAL_DIR/usr/lib"
+fi
+
+if test "$UPNP_NATPMP" = "yes"; then
+  echo "----- checking libminiupnpc >= 1.4.20100609 (optional)"
+  AC_CHECK_HEADERS(miniupnpc/miniupnpc.h,[AC_CHECK_LIB(miniupnpc,upnpDiscover,[UPNP_NATPMP=yes],[UPNP_NATPMP=no])],[UPNP_NATPMP=no])
+fi
+
+if test "$UPNP_NATPMP" = "yes"; then
+  echo "----- checking libnatpmp >= 20100202 (optional)"
+  AC_CHECK_HEADERS(natpmp.h,[AC_CHECK_LIB(natpmp,initnatpmp,[UPNP_NATPMP=yes],[UPNP_NATPMP=no])],[UPNP_NATPMP=no])
+fi
+
+if test "$UPNP_NATPMP" = "yes"; then
+  AC_DEFINE(ENABLE_UPNP_NATPMP, 1, [Define to 1 if you have libminiupnpc & libnatpmp for port forwarding support.])
+  UPNP_NATPMP_LIBS="-lminiupnpc -lnatpmp $LIBS"
+  UPNP_NATPMP_STATIC_LIBS="-lminiupnpc -lnatpmp $LIBS"
 fi
 
 if test "$MAGIC" != "no"; then
@@ -1204,7 +1244,7 @@ if test ! "$GUI" = "no"; then
         AC_MSG_CHECKING(for librsvg - version >= $REQUIRED_RSVG)
         if pkg-config --atleast-version $REQUIRED_RSVG $PKG_RSVG; then
           GTK_CONFIG="pkg-config $PKG_GTK $PKG_RSVG"
-          REQUIRED_LABLGTK=2.14.1
+          REQUIRED_LABLGTK=2.14.2
           LABLGTK_NAME=lablgtk2
           AC_MSG_RESULT(yes)
         else
@@ -1289,7 +1329,7 @@ else
          rm -rf lablgtk-"$REQUIRED_LABLGTK"
          if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
            echo Downloading ...
-           $WGET http://wwwfun.kurims.kyoto-u.ac.jp/soft/lsl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
+           $WGET http://www.math.nagoya-u.ac.jp/~garrigue/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
          fi
          if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
 
@@ -1443,6 +1483,9 @@ AC_SUBST(GD_LDFLAGS)
 AC_SUBST(BZIP2)
 AC_SUBST(MAGIC)
 AC_SUBST(MAGICLIB)
+AC_SUBST(UPNP_NATPMP)
+AC_SUBST(UPNP_NATPMP_LIBS)
+AC_SUBST(UPNP_NATPMP_STATIC_LIBS)
 BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"
 AC_SUBST(BUILD_SYSTEM)
 AC_SUBST(GLIBC_VERSION)
@@ -1580,6 +1623,13 @@ fi
 
 echo -n " - libmagic          "
 if test "$MAGIC" = "yes"; then
+  echo "enabled"
+else
+  echo "        disabled"
+fi
+
+echo -n " - upnp & natpmp     "
+if test "$UPNP_NATPMP" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"

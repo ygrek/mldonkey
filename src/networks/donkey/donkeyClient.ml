@@ -1135,6 +1135,18 @@ let check_stolen_hash c sock md4 =
     if !!ban_identity_thieves then
       ban_client c sock "is probably using stolen client hashes"
 
+let string_of_client_addr c =
+    try
+      match c.client_source.DonkeySources.source_sock with
+      | Connection sock ->
+          (Ip.to_string (peer_ip sock) ^ ":" ^ string_of_int (peer_port sock))
+      | _ ->
+          raise Not_found
+    with _ ->
+      match c.client_kind with
+      | Direct_address (ip,port) -> ((Ip.to_string ip) ^ ":" ^ string_of_int port)
+      | Indirect_address _ | Invalid_address _ -> "Indirect"
+
 let client_to_client for_files c t sock = 
   let module M = DonkeyProtoClient in
   
@@ -1935,32 +1947,24 @@ end else *)
 (* FIXME: add logging *)
 (*      !say_hook c s *)
       private_message_from (as_client c)  s;
-      
-      let cip =
-        ( 
-          try
-            
-            match c.client_source.DonkeySources.source_sock with
-              Connection sock ->
-                (Ip.to_string (peer_ip sock) ^ ":" ^ string_of_int (peer_port sock))
-            | _ -> (match c.client_kind with 
-                    Direct_address (ip,port) ->
-                      ((Ip.to_string ip) ^ ":" ^ string_of_int port)
-                  | Indirect_address _ | Invalid_address _ -> "Indirect"
-                )
-          
-          with _ -> 
-              
-              try 
-                match c.client_kind with 
-                  Direct_address (ip,port) ->
-                    ((Ip.to_string ip) ^ ":" ^ string_of_int port)
-                | Indirect_address _ | Invalid_address _ -> "Indirect"
-              with _ -> ""
-        ) 
-      in
+      let cip = string_of_client_addr c in
       log_chat_message cip (client_num c) c.client_name s;
-  
+
+  | M.EmuleCaptchaReq t ->
+      let b64data = Base64.encode t in
+      let cip = string_of_client_addr c in
+      log_chat_message cip (client_num c) c.client_name ("data:image/bmp;base64," ^ b64data)
+
+  | M.EmuleCaptchaRes t ->
+      let msg = match t with
+      | 0 -> _s "You have correctly solved the captcha and your message was sent."
+      | 1 -> _s "Wrong answer to the captcha, so your message was not sent. You will only be sent 3 captchas. Try sending another message to receive another captcha challenge."
+      | 2 -> _s "3 captchas have already been sent to you. Fail."
+      | _ -> _s "Unknown captcha state!?"
+      in
+      let cip = string_of_client_addr c in
+      log_chat_message cip (client_num c) c.client_name msg
+
   | M.QueryChunkMd4Req t when !CommonGlobals.has_upload = 0 -> 
       
       let file = find_file t in

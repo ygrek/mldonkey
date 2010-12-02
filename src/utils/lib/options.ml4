@@ -851,10 +851,10 @@ let save opfile =
   if not (Sys.file_exists old_config_dir) then Unix.mkdir old_config_dir 0o755;
 
   let filename = opfile.file_name in
-  let temp_file = filename ^ ".tmp" in
   let old_file = Filename.concat old_config_dir filename in
 
   try
+    Unix2.with_remove (filename ^ ".tmp") begin fun temp_file ->
     Unix2.tryopen_write temp_file (fun oc ->
       (* race! *)
       if !save_private then (try Unix.chmod temp_file 0o600 with _ -> ());
@@ -951,6 +951,7 @@ let save opfile =
      with e ->
         lprintf_nl "[Opt] exception %s while saving %s" (Printexc2.to_string e) filename
     );
+    end; (* remove temp_file *)
     opfile.file_after_save_hook ();
   with e -> 
     opfile.file_after_save_hook ();

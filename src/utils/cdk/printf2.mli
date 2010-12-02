@@ -45,10 +45,12 @@ val log_to_file : out_channel -> unit
 val log_to_buffer : Buffer.t -> unit
 val close_log : unit -> unit
 
+type sort_kind = Num (* numeric, parse size suffixes (kMGT) *) | Str (* plain string *)
+
 val html_mods_big_header_start : Buffer.t -> string -> string list -> unit
 val html_mods_big_header_end : Buffer.t -> unit
 val html_mods_commands : Buffer.t -> string -> string -> (string * string * string * string) list -> unit
-val html_mods_table_header : Buffer.t -> ?total:string -> string -> string -> (string * string * string * string) list -> unit
+val html_mods_table_header : Buffer.t -> ?total:string -> string -> string -> (sort_kind * string * string * string) list -> unit
 val html_mods_table_header_colspan : Buffer.t -> ?total:string -> string -> string -> (string * string * string * string * string) list -> unit
 val html_mods_table_no_header : Buffer.t -> string -> string -> (string * string * string) list -> unit
 val html_mods_table_one_row : Buffer.t -> string -> string -> (string * string * string) list -> unit

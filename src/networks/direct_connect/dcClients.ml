@@ -1541,10 +1541,7 @@ let dc_upload c bytes =
             | DcUploadList fd -> fd
             | _ -> failwith "No fd in upload" )
           in 
-          let rlen =
-            let rem = Int64.to_int (c.client_endpos -- c.client_pos) in
-            if rem > bytes then bytes else rem
-          in
+          let rlen = int64_min_int (c.client_endpos -- c.client_pos) bytes in
           CommonUploads.consume_bandwidth rlen;
           let upload_buffer = String.create rlen in
           Unix32.read file_fd c.client_pos upload_buffer 0 rlen;

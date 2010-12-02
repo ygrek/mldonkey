@@ -479,9 +479,13 @@ let rec exec_tasks =
         if not t.closed && t.lifetime < time then
           exn_log "exec ltimeout" (t.event_handler t) LTIMEOUT;
         if not t.closed && t.flags land can_read <> 0 then
-          exn_log "exec can_read" (fun () ->
+          begin try
               t.next_rtimeout <- time +. t.rtimeout;
-              t.event_handler t CAN_READ) ();
+              t.event_handler t CAN_READ
+          with 
+          | Unix_error ((ECONNRESET | ETIMEDOUT | ECONNREFUSED), _, _) -> ()
+          | exn -> lprintf_nl "[bS] %s : unexpected exn exec can_read" (Printexc2.to_string exn)
+          end;
         if not t.closed && t.flags land can_write <> 0 then
           exn_log "exec can_write" (fun () ->
               t.next_wtimeout <- time +. t.wtimeout;

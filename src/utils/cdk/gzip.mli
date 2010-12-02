@@ -22,12 +22,12 @@
 type in_channel
         (* Abstract type representing a channel opened for reading
            from a compressed file. *)
-val open_in: string -> in_channel
-        (* Open a compressed file for reading.  The argument is the file
-           name. *)
-val open_in_chan: Pervasives.in_channel -> in_channel
+val open_in: IO.input -> in_channel
         (* Open a compressed file for reading.  The argument is a
            regular file channel already opened on the compressed file. *)
+val open_in_file: string -> in_channel
+        (* Open a compressed file for reading.  The argument is the file
+           name. *)
 val input_char: in_channel -> char
         (* Uncompress one character from the given channel, and return it.
            Raise [End_of_file] if no more compressed data is available. *)
@@ -73,10 +73,10 @@ val dispose: in_channel -> unit
 
 (*** Writing to compressed files *)
 
-type out_channel
+type 'a out_channel
         (* Abstract type representing a channel opened for writing
            to a compressed file. *)
-val open_out: ?level:int -> string -> out_channel
+val open_out_file: ?level:int -> string -> unit out_channel
         (* Open a compressed file for writing.  The argument is the file
            name.  The file is created if it does not exist, or
            truncated to zero length if it exists. 
@@ -85,28 +85,28 @@ val open_out: ?level:int -> string -> out_channel
            (but fastest) compression and 9 being the strongest
            (but slowest) compression.  The default level is 6
            (medium compression). *)
-val open_out_chan: ?level:int -> Pervasives.out_channel -> out_channel
+val open_out: ?level:int -> 'a IO.output -> 'a out_channel
         (* Open a compressed file for writing.  The argument is a
            regular file channel already opened on the compressed file.
            The optional [level] argument sets the compression level
            as documented for [Gzip.open_out]. *)
-val output_char: out_channel -> char -> unit
+val output_char: 'a out_channel -> char -> unit
         (* Output one character to the given compressed channel. *)
-val output_byte: out_channel -> int -> unit
+val output_byte: 'a out_channel -> int -> unit
         (* Same as [Gzip.output_char], but the output character is given
            by its code.  The given integer is taken modulo 256. *)
-val output: out_channel -> string -> int -> int -> unit
+val output: 'a out_channel -> string -> int -> int -> unit
         (* [output oc buf pos len] compresses and writes [len] characters
            from string [buf], starting at offset [pos], and writes the
            compressed data to the channel [oc].
            Raise [Invalid_argument "Gzip.output"] if
            [pos] and [len] do not designate a valid substring of [buf]. *)
-val close_out: out_channel -> unit
+val close_out: 'a out_channel -> 'a
         (* Close the given output channel.  If the channel was created with
            [Gzip.open_out_chan], the underlying regular file channel
            (of type [Pervasives.out_channel]) is also closed.
            Do not apply any of the functions above to a closed channel. *)
-val flush: out_channel -> unit
+val flush: 'a out_channel -> unit
         (* Same as [Gzip.close_out], but do not close the underlying
            regular file channel (of type [Pervasives.out_channel]);
            just flush all pending compressed data and
@@ -119,3 +119,7 @@ val flush: out_channel -> unit
 exception Error of string
         (* Exception raised by the functions above to signal errors during
            compression or decompression, or ill-formed input files. *)
+
+val input_io : IO.input -> IO.input
+val output_io : 'a IO.output -> 'a IO.output
+

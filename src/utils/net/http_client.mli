@@ -37,6 +37,7 @@ type request = {
     req_accept : string;
     req_proxy : (string * int * (string * string) option) option; (** (host,port,(login,password)) *)
     mutable req_url : Url.url;
+    mutable req_gzip : bool;
     mutable req_save_to_file_time : float;
 (* re-download a saved file only if newer *)
     req_request : http_request;

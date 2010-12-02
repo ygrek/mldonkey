@@ -1869,9 +1869,38 @@ template <class T> inline const T& STDMAX(const T& a, const T& b)
 // #define GETBYTE(x, y) (((byte *)&(x))[y])
 
 CRYPTOPP_DLL unsigned int Parity(unsigned long);
-CRYPTOPP_DLL unsigned int BytePrecision(unsigned long);
-CRYPTOPP_DLL unsigned int BitPrecision(unsigned long);
 CRYPTOPP_DLL unsigned long Crop(unsigned long, unsigned int size);
+
+template <typename T>
+unsigned int BitPrecision(const T &value)
+{
+	if (!value)
+		return 0;
+
+	unsigned int l=0, h=8*sizeof(value);
+
+	while (h-l > 1)
+	{
+		unsigned int t = (l+h)/2;
+		if (value >> t)
+			l = t;
+		else
+			h = t;
+	}
+
+	return h;
+}
+
+template <typename T>
+unsigned int BytePrecision(const T &value)
+{
+	unsigned int i;
+	for (i=sizeof(value); i; --i)
+		if (value >> (i-1)*8)
+			break;
+
+	return i;
+}
 
 inline unsigned int BitsToBytes(unsigned int bitCount)
 {

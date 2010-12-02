@@ -1671,13 +1671,13 @@ let print_results stime buf o results =
     begin
 
       html_mods_table_header buf "resultsTable" "results" [
-		( "1", "srh", "Number", "#" ) ;
-		( "1", "srh ar", "Size", "Size" ) ;
-		( "0", "srh ar", "Availability", "A" )  ;
-		( "0", "srh ar", "Status, D = already downloaded", "S" )  ;
-		( "0", "srh", "Filename", "Name" ) ;
-		( "0", "srh", "Tag", "Tag" ) ;
-		( "0", "srh", "MD4", "MD4" ) ];
+		( Num, "srh", "Number", "#" ) ;
+		( Num, "srh ar", "Size", "Size" ) ;
+		( Str, "srh ar", "Availability", "A" )  ;
+		( Str, "srh ar", "Status, D = already downloaded", "S" )  ;
+		( Str, "srh", "Filename", "Name" ) ;
+		( Str, "srh", "Tag", "Tag" ) ;
+		( Str, "srh", "MD4", "MD4" ) ];
 
       print_table_html_mods buf
        (List.rev !files)
@@ -1733,16 +1733,16 @@ let browse_friends () =
 
 let networks_header buf =
     html_mods_table_header buf "networkTable" "networkInfo" [
-      ( "0", "srh br", "Network name", "Network" ) ;
-      ( "0", "srh br", "Status", "Status" ) ;
-      ( "0", "srh br", "Has upload", "Upload" ) ;
-      ( "0", "srh br", "Has servers", "Servers" ) ;
-      ( "0", "srh br", "Has supernodes", "Supernodes" ) ;
-      ( "0", "srh br", "Has search", "Search" ) ;
-      ( "0", "srh br", "Has chat", "Chat" ) ;
-      ( "0", "srh br", "Has rooms", "Rooms" ) ;
-      ( "0", "srh", "Has multinet", "Multinet" ) ;
-      ( "0", "srh", "Has porttest", "Porttest" ) ]
+      ( Str, "srh br", "Network name", "Network" ) ;
+      ( Str, "srh br", "Status", "Status" ) ;
+      ( Str, "srh br", "Has upload", "Upload" ) ;
+      ( Str, "srh br", "Has servers", "Servers" ) ;
+      ( Str, "srh br", "Has supernodes", "Supernodes" ) ;
+      ( Str, "srh br", "Has search", "Search" ) ;
+      ( Str, "srh br", "Has chat", "Chat" ) ;
+      ( Str, "srh br", "Has rooms", "Rooms" ) ;
+      ( Str, "srh", "Has multinet", "Multinet" ) ;
+      ( Str, "srh", "Has porttest", "Porttest" ) ]
 
 let print_network_modules buf o =
   let buf = o.conn_buf in
@@ -1940,14 +1940,15 @@ let buildinfo html buf =
        | true, true -> " magic(active)"
        | true, false -> " magic(inactive)"
        | false, _ -> " no-magic") ^
+      (if Autoconf.upnp_natpmp then " upnp natpmp" else " no-upnp no-natpmp") ^
       (if Autoconf.check_bounds then " check-bounds" else " no-check-bounds")
     );
   let list = List.rev !list in
      
     if html then
       html_mods_table_header buf "sharesTable" "shares" [
-       ( "0", "srh", "core Build information", "Buildinfo" ) ;
-       ( "0", "srh", "", "" ) ]
+       ( Str, "srh", "core Build information", "Buildinfo" ) ;
+       ( Str, "srh", "", "" ) ]
     else
       Printf.bprintf buf "\n\t--Buildinfo--\n";
     html_mods_cntr_init ();
@@ -2075,8 +2076,8 @@ let runinfo html buf o =
 
     if html then
       html_mods_table_header buf "sharesTable" "shares" [
-       ( "0", "srh", "core runtime information", "Runinfo" ) ;
-       ( "0", "srh", "", "" ) ]
+       ( Str, "srh", "core runtime information", "Runinfo" ) ;
+       ( Str, "srh", "", "" ) ]
     else
       Printf.bprintf buf "\n\t--Runinfo--\n";
     html_mods_cntr_init ();
@@ -2112,9 +2113,9 @@ let portinfo html buf =
   let fill_network s = String.make (max 0 (!network_name_list_width - 7)) s in
   if html then
       html_mods_table_header buf "sharesTable" "shares" [
-       ( "0", "srh", "Network", "Network" ) ;
-       ( "0", "srh ar", "Port", "Port" ) ;
-       ( "1", "srh", "Type", "Type" ) ]
+       ( Str, "srh", "Network", "Network" ) ;
+       ( Num, "srh ar", "Port", "Port" ) ;
+       ( Str, "srh", "Type", "Type" ) ]
   else
     begin
       Printf.bprintf buf "\n\t--Portinfo--\n";
@@ -2158,12 +2159,12 @@ let diskinfo html buf =
   html_mods_cntr_init ();
   if html then
       html_mods_table_header buf "sharesTable" "shares" [
-       ( "0", "srh", "Directory", "Directory" ) ;
-       ( "0", "srh", "Directory type", "Type" ) ;
-       ( "1", "srh ar", "HDD used", "used" ) ;
-       ( "1", "srh ar", "HDD free", "free" ) ;
-       ( "1", "srh ar", "% free", "% free" ) ;
-       ( "0", "srh", "Filesystem", "FS" ) ]
+       ( Str, "srh", "Directory", "Directory" ) ;
+       ( Str, "srh", "Directory type", "Type" ) ;
+       ( Num, "srh ar", "HDD used", "used" ) ;
+       ( Num, "srh ar", "HDD free", "free" ) ;
+       ( Num, "srh ar", "% free", "% free" ) ;
+       ( Str, "srh", "Filesystem", "FS" ) ]
   else
     begin
       Printf.bprintf buf "\n\t--Diskinfo--\n";
@@ -2459,14 +2460,14 @@ let print_upstats o list server =
 
   if use_html_mods o then
     html_mods_table_header buf "upstatsTable" "upstats" [
-      ( "1", "srh", "Total file requests", "Reqs" ) ;
-      ( "1", "srh", "Total bytes sent", "Total" ) ;
-      ( "1", "srh", "Upload Ratio", "UPRatio" ) ;
-      ( "0", "srh", "Preview", "P" ) ;
-      ( "0", "srh", "Filename", "Filename" );
-      ( "0", "srh", "Statistic links", "Stats" );
-      ( "0", "srh", "Published on servers", "Publ" );
-      ( "0", "srh", "Share status", "Status" )
+      ( Num, "srh", "Total file requests", "Reqs" ) ;
+      ( Num, "srh", "Total bytes sent", "Total" ) ;
+      ( Num, "srh", "Upload Ratio", "UPRatio" ) ;
+      ( Str, "srh", "Preview", "P" ) ;
+      ( Str, "srh", "Filename", "Filename" );
+      ( Str, "srh", "Statistic links", "Stats" );
+      ( Str, "srh", "Published on servers", "Publ" );
+      ( Str, "srh", "Share status", "Status" )
     ]
   else
     begin

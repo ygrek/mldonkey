@@ -43,6 +43,7 @@ open CommonOptions
 open CommonUserDb
 open CommonInteractive
 open CommonEvent
+open UpnpClient
 
 open DriverInteractive
 
@@ -77,6 +78,8 @@ let files_to_cancel o =
   "Type 'confirm yes/no' to cancel them"
 
 let execute_command arg_list output cmd args =
+  if !verbose then
+    lprintf_nl "execute command %S %s" cmd (String.concat " " (List.map (Printf.sprintf "%S") args));
   let buf = output.conn_buf in
   try
     let rec iter list =
@@ -110,18 +113,18 @@ let list_options_html o list =
   let buf = o.conn_buf in
   if !!html_mods_use_js_helptext then
     html_mods_table_header buf "upstatsTable" "upstats" [
-      ( "0", "srh", "Option name", "Name (Help=mouseOver)" ) ;
-      ( "0", "srh", "Option value", "Value (press ENTER to save)" ) ;
-      ( "0", "srh", "Option default", "Default" );
-      ( "0", "srh", "Option type", "Type" );
+      ( Str, "srh", "Option name", "Name (Help=mouseOver)" ) ;
+      ( Str, "srh", "Option value", "Value (press ENTER to save)" ) ;
+      ( Str, "srh", "Option default", "Default" );
+      ( Str, "srh", "Option type", "Type" );
     ]
   else
     html_mods_table_header buf "voTable" "vo" [
-      ( "0", "srh", "Option name", "Name" ) ;
-      ( "0", "srh", "Option value", "Value (press ENTER to save)" ) ;
-      ( "0", "srh", "Option default", "Default" ) ;
-      ( "0", "srh", "Option type", "Type" );
-      ( "0", "srh", "Option description", "Help" ) ];
+      ( Str, "srh", "Option name", "Name" ) ;
+      ( Str, "srh", "Option value", "Value (press ENTER to save)" ) ;
+      ( Str, "srh", "Option default", "Default" ) ;
+      ( Str, "srh", "Option type", "Type" );
+      ( Str, "srh", "Option description", "Help" ) ];
 
   html_mods_cntr_init ();
 
@@ -212,9 +215,9 @@ let list_calendar o list =
   let buf = o.conn_buf in
   if o.conn_output = HTML then begin
       html_mods_table_header buf "web_infoTable" "vo" [
-        ( "0", "srh", "Weekdays", "Weekdays" ) ;
-        ( "0", "srh", "Hours", "Hours" ) ;
-        ( "0", "srh", "Command", "Command" ) ] ;
+        ( Str, "srh", "Weekdays", "Weekdays" ) ;
+        ( Str, "srh", "Hours", "Hours" ) ;
+        ( Str, "srh", "Command", "Command" ) ] ;
       html_mods_cntr_init ();
       List.iter (fun (wdays, hours, command) ->
           Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
@@ -419,21 +422,21 @@ let _ =
         let buf = o.conn_buf in
         if args = ["all"] then begin
             if use_html_mods o then html_mods_table_header buf "vcTable" "vc" ([
-                ( "1", "srh ac", "Client number", "Num" ) ;
-                ( "0", "srh", "Network", "Network" ) ;
-                ( "0", "srh", "IP address", "IP address" ) ;
-                ] @ (if Geoip.active () then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
-                ( "0", "srh", "Client name", "Client name" ) ;
-                ( "0", "srh", "Client brand", "CB" ) ;
-                ( "0", "srh", "Client release", "CR" ) ;
+                ( Num, "srh ac", "Client number", "Num" ) ;
+                ( Str, "srh", "Network", "Network" ) ;
+                ( Str, "srh", "IP address", "IP address" ) ;
+                ] @ (if Geoip.active () then [( Str, "srh", "Country Code/Name", "CC" )] else []) @ [
+                ( Str, "srh", "Client name", "Client name" ) ;
+                ( Str, "srh", "Client brand", "CB" ) ;
+                ( Str, "srh", "Client release", "CR" ) ;
                 ] @
-                (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+                (if !!emule_mods_count then [( Str, "srh", "eMule MOD", "EM" )] else [])
                 @ [
-                ( "0", "srh", "Client file queue", "Q" ) ;
-                ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
-                ( "1", "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
-                ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
-                ( "1", "srh ar", "Session DL bytes from this client for all files", "sDL" )]);
+                ( Str, "srh", "Client file queue", "Q" ) ;
+                ( Num, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+                ( Num, "srh ar br", "Total DL bytes from this client for all files", "tDL" ) ;
+                ( Num, "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
+                ( Num, "srh ar", "Session DL bytes from this client for all files", "sDL" )]);
 
             html_mods_cntr_init ();
             let all_clients_list = clients_get_all () in
@@ -543,6 +546,11 @@ let _ =
         ""
     ), "<minutes> :\t\t\tprint activity in the last <minutes> minutes";
 
+    "clear_message_log", Arg_none (fun o ->
+        Fifo.clear chat_message_fifo;
+        Printf.sprintf "Chat messages cleared"
+     ), ":\t\t\t\tclear chat message buffer";
+
     "message_log", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         html_mods_cntr_init ();
@@ -571,13 +579,13 @@ let _ =
 
             if use_html_mods o then
               html_mods_table_header buf "serversTable" "servers" [
-                ( "0", "srh", "Timestamp", "Time" ) ;
-                ( "0", "srh", "IP address", "IP address" ) ;
-                ( "1", "srh", "Client number", "Num" ) ;
-                ( "0", "srh", "Client name", "Client name" ) ;
-                ( "0", "srh", "Message text", "Message" ) ] ;
+                ( Str, "srh", "Timestamp", "Time" ) ;
+                ( Str, "srh", "IP address", "IP address" ) ;
+                ( Num, "srh", "Client number", "Num" ) ;
+                ( Str, "srh", "Client name", "Client name" ) ;
+                ( Str, "srh", "Message text", "Message" ) ] ;
 
-            Fifo.iter (fun (t,i,num,n,s) ->
+            List.iter (fun (t,i,num,n,s) ->
                 if use_html_mods o then begin
                     Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
                       (html_mods_cntr ());
@@ -586,13 +594,15 @@ let _ =
                       ("", "sr",  i);
                       ("", "sr", Printf.sprintf "%d" num);
                       ("", "sr", n);
-                      ("", "srw", (String.escaped s)) ];
+                      ("", "srw", (if String.length s > 11 && String.sub s 0 11 = "data:image/" then
+                          "\\<img src=\\\"" ^ String.escaped s ^ "\\\">"
+                        else String.escaped s)) ];
                     Printf.bprintf buf "\\</tr\\>"
                   end
                 else
                   Printf.bprintf buf "\n%s [client #%d] %s(%s): %s\n"
                     (Date.simple (BasicSocket.date_of_int t)) num n i s;
-            ) chat_message_fifo;
+            ) (List.rev (Fifo.to_list chat_message_fifo));
             if use_html_mods o then Printf.bprintf buf
                 "\\</table\\>\\</div\\>\\</div\\>";
 
@@ -609,8 +619,10 @@ let _ =
                   a1 ^ a2 ^ " "
               ) "" msglist in
             let cnum = int_of_string n in
-            client_say (client_find cnum) msg;
-	    log_chat_message "localhost" 0 !!global_login msg;
+            let c = client_find cnum in
+            let g = client_info c in
+            client_say c msg;
+	    log_chat_message "FROM ME" cnum ("TO: " ^ g.client_name) msg;
             Printf.sprintf "Sending msg to client #%d: %s" cnum msg;
         | _ ->
             if use_html_mods o then begin
@@ -673,7 +685,11 @@ formID.msgText.value=\\\"\\\";
                 Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"refresh\\\" name=\\\"refresh\\\"
             action=\\\"javascript:msgWindow.location.reload();\\\"\\>
             \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
-            Value=\\\"Refresh\\\"\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>";
+            Value=\\\"Refresh\\\"\\>\\</td\\>\\</form\\>";
+                Printf.bprintf buf "\\<form style=\\\"margin: 0px;\\\" id=\\\"clear\\\" name=\\\"clear\\\"
+            action=\\\"javascript:window.location.href='submit?q=clear_message_log'\\\"\\>
+            \\<td\\>\\<input style=\\\"font-family: verdana; font-size: 12px;\\\" type=submit
+            Value=\\\"Clear\\\"\\>\\</td\\>\\</form\\>\\</tr\\>\\</table\\>";
                 ""
               end
             else
@@ -971,11 +987,11 @@ let _ =
 \\</td\\>\\</tr\\>
 \\<tr\\>\\<td\\>";
             html_mods_table_header buf "friendsTable" "friends" [
-              ( "1", "srh", "Client number", "Num" ) ;
-              ( "0", "srh", "Remove", "Remove" ) ;
-              ( "0", "srh", "Network", "Network" ) ;
-              ( "0", "srh", "Name", "Name" ) ;
-              ( "0", "srh", "State", "State" ) ] ;
+              ( Num, "srh", "Client number", "Num" ) ;
+              ( Str, "srh", "Remove", "Remove" ) ;
+              ( Str, "srh", "Network", "Network" ) ;
+              ( Str, "srh", "Name", "Name" ) ;
+              ( Str, "srh", "State", "State" ) ] ;
           end;
         html_mods_cntr_init ();
         List.iter (fun c ->
@@ -1194,15 +1210,15 @@ let _ =
             html_mods_big_header_start buf "shares" [t1;t2];
 
             html_mods_table_header buf ~total:"1" "sharesTable" "shares" [
-               ( "0", "srh", "Country name", "Country" ) ;
-               ( "0", "srh", "Country code", "Code" ) ;
-               ( "0", "srh", "Continent", "Con" ) ;
-               ( "1", "srh ar", "Session uploaded", "sUl" ) ;
-               ( "1", "srh ar", "Session downloaded", "sDl" ) ;
-               ( "1", "srh ar", "Session seen", "sSe" ) ;
-               ( "1", "srh ar", "Total uploaded", "tUl" ) ;
-               ( "1", "srh ar", "Total downloaded", "tDl" ) ;
-               ( "1", "srh ar", "Total seen", "tSe" ) ;
+               ( Str, "srh", "Country name", "Country" ) ;
+               ( Str, "srh", "Country code", "Code" ) ;
+               ( Str, "srh", "Continent", "Con" ) ;
+               ( Num, "srh ar", "Session uploaded", "sUl" ) ;
+               ( Num, "srh ar", "Session downloaded", "sDl" ) ;
+               ( Num, "srh ar", "Session seen", "sSe" ) ;
+               ( Num, "srh ar", "Total uploaded", "tUl" ) ;
+               ( Num, "srh ar", "Total downloaded", "tDl" ) ;
+               ( Num, "srh ar", "Total seen", "tSe" ) ;
             ];
             html_mods_cntr_init ();
             let csu = ref 0L in
@@ -1287,11 +1303,11 @@ let _ =
         if use_html_mods o then
           begin
             html_mods_table_header buf "sharesTable" "shares" [
-               ( "0", "srh ar", "Number", "Num" ) ;
-               ( "0", "srh", "Country code", "Code" ) ;
-               ( "0", "srh", "Country name", "Country" ) ;
-               ( "0", "srh", "Continent code", "Con" ) ;
-               ( "0", "srh", "Continent name", "Continent" ) ;
+               ( Num, "srh ar", "Number", "Num" ) ;
+               ( Str, "srh", "Country code", "Code" ) ;
+               ( Str, "srh", "Country name", "Country" ) ;
+               ( Str, "srh", "Continent code", "Con" ) ;
+               ( Str, "srh", "Continent name", "Continent" ) ;
             ];
             html_mods_cntr_init ();
             Array.iteri (fun i _ ->
@@ -1510,8 +1526,8 @@ let _ =
                             \\<a onclick=\\\"javascript:window.location.reload()\\\"\\>Refresh results\\</a\\>\\</td\\>
                           \\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>";
       html_mods_table_header buf "sharesTable" "shares" [
-        ( "0", "srh", "Network", "Network" ) ;
-        ( "0", "srh", "Result", "Result" ) ]
+        ( Str, "srh", "Network", "Network" ) ;
+        ( Str, "srh", "Result", "Result" ) ]
     end;
     html_mods_cntr_init ();
     List.iter (fun (net, result) -> 
@@ -2134,6 +2150,12 @@ action=\\\"javascript:pluginSubmit();\\\"\\>";
 			] @
 			(if Autoconf.filetp = "yes" then [(strings_of_option enable_fileTP)] else [])
 			@ [
+			] @
+			(if Autoconf.upnp_natpmp then [(strings_of_option upnp_port_forwarding)] else [])
+			@ [
+			] @
+			(if Autoconf.upnp_natpmp then [(strings_of_option clear_upnp_port_at_exit)] else [])
+			@ [
 			strings_of_option tcpip_packet_size;
 			strings_of_option mtu_packet_size;
 			strings_of_option minimal_packet_size;
@@ -2255,12 +2277,12 @@ action=\\\"javascript:submitHtmlModsStyle();\\\"\\>";
 	    else begin
 
     	      html_mods_table_header buf "web_infoTable" "vo" [
-	        ( "0", "srh ac", "Click to remove URL", "Remove" ) ;
-	        ( "0", "srh", "Download now", "DL" ) ;
-	        ( "0", "srh", "Filetype", "Type" ) ;
-	        ( "0", "srh", "Interval in hours", "Interval" ) ;
-	        ( "0", "srh", "URL", "URL" ) ;
-	        ( "0", "srh", "URL state", "State" ) ;
+	        ( Str, "srh ac", "Click to remove URL", "Remove" ) ;
+	        ( Str, "srh", "Download now", "DL" ) ;
+	        ( Str, "srh", "Filetype", "Type" ) ;
+	        ( Num, "srh", "Interval in hours", "Interval" ) ;
+	        ( Str, "srh", "URL", "URL" ) ;
+	        ( Str, "srh", "URL state", "State" ) ;
               ] ;
 
               html_mods_cntr_init ();
@@ -2294,8 +2316,8 @@ action=\\\"javascript:submitHtmlModsStyle();\\\"\\>";
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
 
     	    html_mods_table_header buf "web_infoTable" "vo" [
-	      ( "0", "srh", "Web kind", "Kind" );
-	      ( "0", "srh", "Description", "Type" ) ];
+	      ( Str, "srh", "Web kind", "Kind" );
+	      ( Str, "srh", "Description", "Type" ) ];
 
             html_mods_cntr_init ();
             List.iter (fun (kind, data) ->
@@ -2513,14 +2535,14 @@ let _ =
 \\<tr\\>\\<td\\>";
 
             html_mods_table_header buf "sharesTable" "shares" [
-               ( "0", "srh ac", "Click to unshare directory", "Unshare" ) ;
-               ( "1", "srh ar", "Priority", "P" ) ;
-               ( "0", "srh", "Directory", "Directory" ) ;
-               ( "0", "srh", "Strategy", "Strategy" ) ;
-               ( "1", "srh ar", "HDD used", "used" ) ;
-               ( "1", "srh ar", "HDD free", "free" ) ;
-               ( "1", "srh ar", "% free", "% free" ) ;
-               ( "0", "srh", "Filesystem", "FS" ) ];
+               ( Str, "srh ac", "Click to unshare directory", "Unshare" ) ;
+               ( Num, "srh ar", "Priority", "P" ) ;
+               ( Str, "srh", "Directory", "Directory" ) ;
+               ( Str, "srh", "Strategy", "Strategy" ) ;
+               ( Num, "srh ar", "HDD used", "used" ) ;
+               ( Num, "srh ar", "HDD free", "free" ) ;
+               ( Num, "srh ar", "% free", "% free" ) ;
+               ( Str, "srh", "Filesystem", "FS" ) ];
 
             html_mods_cntr_init ();
             List.iter (fun shared_dir ->
@@ -2564,13 +2586,13 @@ let _ =
 
 	    html_mods_big_header_start buf "sharesTable" ["Share strategies"];
             html_mods_table_header buf "sharesTable" "shares" [
-               ( "0", "srh", "Name", "Name" ) ;
-               ( "0", "srh", "Incoming", "Incoming" ) ;
-               ( "0", "srh", "Directories", "Directories" ) ;
-               ( "0", "srh", "Recursive", "Recursive" ) ;
-               ( "0", "srh", "Minsize", "Minsize" ) ;
-               ( "0", "srh", "Maxsize", "Maxsize" ) ;
-               ( "0", "srh", "Extensions", "Extensions" ) ];
+               ( Str, "srh", "Name", "Name" ) ;
+               ( Str, "srh", "Incoming", "Incoming" ) ;
+               ( Str, "srh", "Directories", "Directories" ) ;
+               ( Str, "srh", "Recursive", "Recursive" ) ;
+               ( Num, "srh", "Minsize", "Minsize" ) ;
+               ( Num, "srh", "Maxsize", "Maxsize" ) ;
+               ( Str, "srh", "Extensions", "Extensions" ) ];
 
             html_mods_cntr_init ();
 
@@ -2765,25 +2787,25 @@ let _ =
               begin
 
                 html_mods_table_header buf "uploadersTable" "uploaders" ([
-                  ( "1", "srh ac", "Client number", "Num" ) ;
-                  ( "0", "srh", "Network", "Network" ) ;
-                  ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
-                  ( "0", "srh", "Client name", "Client name" ) ;
-                  ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
-                  ( "0", "srh", "IP address", "IP address" ) ;
-		  ] @ (if Geoip.active () then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
-                  ( "0", "srh", "Connected time (minutes)", "CT" ) ;
-                  ( "0", "srh", "Client brand", "CB" ) ;
-                  ( "0", "srh", "Client release", "CR" ) ;
+                  ( Num, "srh ac", "Client number", "Num" ) ;
+                  ( Str, "srh", "Network", "Network" ) ;
+                  ( Str, "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
+                  ( Str, "srh", "Client name", "Client name" ) ;
+                  ( Str, "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
+                  ( Str, "srh", "IP address", "IP address" ) ;
+		  ] @ (if Geoip.active () then [( Str, "srh", "Country Code/Name", "CC" )] else []) @ [
+                  ( Str, "srh", "Connected time (minutes)", "CT" ) ;
+                  ( Str, "srh", "Client brand", "CB" ) ;
+                  ( Str, "srh", "Client release", "CR" ) ;
                   ] @
-                  (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+                  (if !!emule_mods_count then [( Str, "srh", "eMule MOD", "EM" )] else [])
                   @ [
-                  ( "0", "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
-                  ( "0", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
-                  ( "0", "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
-                  ( "0", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
-                  ( "0", "srh ar", "Slot kind", "Slot" ) ;
-                  ( "0", "srh", "Filename", "Filename" ) ]);
+                  ( Num, "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
+                  ( Num, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+                  ( Num, "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
+                  ( Num, "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
+                  ( Str, "srh ar", "Slot kind", "Slot" ) ;
+                  ( Str, "srh", "Filename", "Filename" ) ]);
 
                 List.iter (fun c ->
                     try
@@ -2848,23 +2870,23 @@ let _ =
               begin
                 Printf.bprintf buf "\\<br\\>\\<br\\>";
                 html_mods_table_header buf "uploadersTable" "uploaders" ([
-                  ( "1", "srh ac", "Client number", "Num" ) ;
-                  ( "0", "srh", "Network", "Network" ) ;
-                  ( "0", "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
-                  ( "0", "srh", "Client name", "Client name" ) ;
-                  ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
-                  ( "0", "srh", "IP address", "IP address" ) ;
-		  ] @ (if Geoip.active () then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [
-                  ( "0", "srh", "Client brand", "CB" ) ;
-                  ( "0", "srh", "Client release", "CR" ) ;
+                  ( Num, "srh ac", "Client number", "Num" ) ;
+                  ( Str, "srh", "Network", "Network" ) ;
+                  ( Str, "srh", "Connection type [I]ndirect [D]irect", "C" ) ;
+                  ( Str, "srh", "Client name", "Client name" ) ;
+                  ( Str, "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
+                  ( Str, "srh", "IP address", "IP address" ) ;
+		  ] @ (if Geoip.active () then [( Str, "srh", "Country Code/Name", "CC" )] else []) @ [
+                  ( Str, "srh", "Client brand", "CB" ) ;
+                  ( Str, "srh", "Client release", "CR" ) ;
                   ] @
-                  (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+                  (if !!emule_mods_count then [( Str, "srh", "eMule MOD", "EM" )] else [])
                   @ [
-                  ( "0", "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
-                  ( "0", "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
-                  ( "0", "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
-                  ( "0", "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
-                  ( "0", "srh", "Filename", "Filename" ) ]);
+                  ( Num, "srh ar", "Total DL bytes from this client for all files", "tDL" ) ;
+                  ( Num, "srh ar", "Total UL bytes to this client for all files", "tUL" ) ;
+                  ( Num, "srh ar", "Session DL bytes from this client for all files", "sDL" ) ;
+                  ( Num, "srh ar", "Session UL bytes to this client for all files", "sUL" ) ;
+                  ( Str, "srh", "Filename", "Filename" ) ]);
 
                 Intmap.iter (fun cnum c ->
 
@@ -3059,25 +3081,25 @@ let _ =
 
         if use_html_mods o then
           html_mods_table_header buf "downloadersTable" "downloaders" ([
-              ( "1", "srh ac", "Client number (click to add as friend)", "Num" ) ;
-              ( "0", "srh", "Client state", "CS" ) ;
-              ( "0", "srh", "Client name", "Name" ) ;
-              ( "0", "srh", "Client brand", "CB" ) ;
-              ( "0", "srh", "Client release", "CR" ) ;
+              ( Num, "srh ac", "Client number (click to add as friend)", "Num" ) ;
+              ( Str, "srh", "Client state", "CS" ) ;
+              ( Str, "srh", "Client name", "Name" ) ;
+              ( Str, "srh", "Client brand", "CB" ) ;
+              ( Str, "srh", "Client release", "CR" ) ;
             ] @
-              (if !!emule_mods_count then [( "0", "srh", "eMule MOD", "EM" )] else [])
+              (if !!emule_mods_count then [( Str, "srh", "eMule MOD", "EM" )] else [])
             @ [
-              ( "0", "srh", "Overnet [T]rue, [F]alse", "O" ) ;
-              ( "1", "srh ar", "Connected time (minutes)", "CT" ) ;
-              ( "0", "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
-              ( "0", "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
-              ( "0", "srh", "IP address", "IP address" ) ;
-              ] @ (if Geoip.active () then [( "0", "srh", "Country Code/Name", "CC" )] else []) @ [ 
-              ( "1", "srh ar", "Total UL bytes to this client for all files", "tUL");
-              ( "1", "srh ar", "Total DL bytes from this client for all files", "tDL");
-              ( "1", "srh ar", "Session UL bytes to this client for all files", "sUL");
-              ( "1", "srh ar", "Session DL bytes from this client for all files", "sDL");
-              ( "0", "srh", "Filename", "Filename" ) ]);
+              ( Str, "srh", "Overnet [T]rue, [F]alse", "O" ) ;
+              ( Num, "srh ar", "Connected time (minutes)", "CT" ) ;
+              ( Str, "srh", "Connection [I]ndirect, [D]irect", "C" ) ;
+              ( Str, "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
+              ( Str, "srh", "IP address", "IP address" ) ;
+              ] @ (if Geoip.active () then [( Str, "srh", "Country Code/Name", "CC" )] else []) @ [ 
+              ( Num, "srh ar", "Total UL bytes to this client for all files", "tUL");
+              ( Num, "srh ar", "Total DL bytes from this client for all files", "tDL");
+              ( Num, "srh ar", "Session UL bytes to this client for all files", "sUL");
+              ( Num, "srh ar", "Session DL bytes from this client for all files", "sDL");
+              ( Str, "srh", "Filename", "Filename" ) ]);
 
         let counter = ref 0 in
 
@@ -3555,15 +3577,15 @@ let _ =
 \\</td\\>\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>";
 
             html_mods_table_header buf "sharesTable" "shares" [
-              ( "0", "srh ac", "Click to remove user", "Remove" ) ;
-              ( "0", "srh", "Username", "User" ) ;
-              ( "0", "srh ac", "Only member of admin groups have admin rights", "Admin" ) ;
-              ( "0", "srh", "Member of groups", "Groups" ) ;
-              ( "0", "srh", "Default group", "Default group" ) ;
-              ( "0", "srh", "Mail address", "Email" ) ;
-              ( "0", "srh", "Commit dir", "Commit dir" ) ;
-              ( "0", "srh ar", "Download quota", "Max DLs" ) ;
-              ( "0", "srh ar", "Download count", "DLs" ) ];
+              ( Str, "srh ac", "Click to remove user", "Remove" ) ;
+              ( Str, "srh", "Username", "User" ) ;
+              ( Str, "srh ac", "Only member of admin groups have admin rights", "Admin" ) ;
+              ( Str, "srh", "Member of groups", "Groups" ) ;
+              ( Str, "srh", "Default group", "Default group" ) ;
+              ( Str, "srh", "Mail address", "Email" ) ;
+              ( Str, "srh", "Commit dir", "Commit dir" ) ;
+              ( Num, "srh ar", "Download quota", "Max DLs" ) ;
+              ( Num, "srh ar", "Download count", "DLs" ) ];
 
             html_mods_cntr_init ();
             user2_users_iter (fun user ->
@@ -3626,11 +3648,11 @@ class=\\\"srb\\\"\\>%s\\</a\\> " user.user_name group.group_name group.group_nam
 \\</td\\>\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\<tr\\>\\<td\\>";
 
             html_mods_table_header buf "sharesTable" "shares" [
-              ( "0", "srh ac", "Click to remove group", "Remove" );
-              ( "0", "srh", "Groupname", "Group" );
-              ( "0", "srh ac", "Click to change status", "Admin" );
-              ( "0", "srh ar", "Member count", "Mem" );
-              ( "0", "srh ar", "Download count", "DLs" ) ];
+              ( Str, "srh ac", "Click to remove group", "Remove" );
+              ( Str, "srh", "Groupname", "Group" );
+              ( Str, "srh ac", "Click to change status", "Admin" );
+              ( Num, "srh ar", "Member count", "Mem" );
+              ( Num, "srh ar", "Download count", "DLs" ) ];
 
 	    html_mods_cntr_init ();
             user2_groups_iter (fun group ->
@@ -4009,8 +4031,8 @@ let _ =
             if o.conn_output = HTML then begin
                 Printf.bprintf buf "\\</pre\\>\\<div class=\\\"cs\\\"\\>";
                 html_mods_table_header buf "rssTable" "results" [
-                   ( "0", "sr", "Content", "Content" ) ;
-                   ( "0", "sr", "MLDonkey Download", "Download" ) ];
+                   ( Str, "sr", "Content", "Content" ) ;
+                   ( Str, "sr", "MLDonkey Download", "Download" ) ];
                 Printf.bprintf buf "\\<tr\\>";
                 html_mods_td buf [
                   (r.Rss.ch_title ^ " : " ^ url ^ (Printf.sprintf ", loaded %d hours ago" (((last_time ()) - feed.CW.rss_date) / 3600)), "srh", r.Rss.ch_title);
@@ -4127,9 +4149,9 @@ let _ =
 	List.iter (fun (tablename, l) ->
 	  html_mods_cntr_init ();
 	  html_mods_table_header buf ~total:"1" tablename "servers" [
-	    ( "0", "srh ac br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
-	    ( "1", "srh ar", "Hits", "Hits") ;
-	    ( "0", "srh ac", "Range", "Range")];
+	    ( Str, "srh ac br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
+	    ( Num, "srh ar", "Hits", "Hits") ;
+	    ( Str, "srh ac", "Range", "Range")];
           let nhits = 
 	    Ip_set.bl_fold_left (fun nhits br ->
 		Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
@@ -4182,4 +4204,43 @@ let _ =
         CommonPictures.compute_ocaml_code dir output;
         _s "done"
     ), ":\t\t\tfor debugging only";
+
+    "debug_upnp", Arg_multiple ( fun args o ->
+		match args with
+			| ["init"] ->  
+				UpnpClient.init_maps ();
+
+			| ["add"; intPort; extPort; isTcp; notes ] ->
+				UpnpClient.maps_add_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
+				
+			| ["start"] -> 	
+				UpnpClient.job_start ();
+				
+			| ["remove"; intPort; extPort; isTcp; notes] ->
+				UpnpClient.maps_remove_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
+				
+			| ["clear"] -> 	
+				UpnpClient.remove_all_maps 0 ;
+				
+			| ["stop"] -> 	
+				UpnpClient.job_stop 0;
+				
+			| ["show"] | [] ->
+				let buf = o.conn_buf in
+					let	maps = UpnpClient.maps_get () in
+					Printf.bprintf buf "upnp port forwarding status:\n";
+					List.iter (fun map ->
+						let msg = UpnpClient.strings_port_map map in
+						Printf.bprintf buf "%s\n" msg;
+					) maps;
+						
+			| _ -> ();
+				;
+			_s "done"
+    ), ":\t\t\t\t\t$debugging upnp\n"
+       ^"\t\t\t\t\tfor example: \"add 4662 4662 1 ed_port\" add port forwarding intPort extPort isTcp notes\n"
+       ^"\t\t\t\t\t\"remove 4662 4662 1 ed_port\" remove port forwarding intPort extPort isTcp notes\n"
+       ^"\t\t\t\t\t\"clear\" clear all port forwarding\n"
+       ^"\t\t\t\t\t\"show\" show all port forwarding info $n";
+		
   ]

@@ -890,35 +890,6 @@ unsigned int Parity(unsigned long value)
 	return (unsigned int)value&1;
 }
 
-unsigned int BytePrecision(unsigned long value)
-{
-	unsigned int i;
-	for (i=sizeof(value); i; --i)
-		if (value >> (i-1)*8)
-			break;
-
-	return i;
-}
-
-unsigned int BitPrecision(unsigned long value)
-{
-	if (!value)
-		return 0;
-
-	unsigned int l=0, h=8*sizeof(value);
-
-	while (h-l > 1)
-	{
-		unsigned int t = (l+h)/2;
-		if (value >> t)
-			l = t;
-		else
-			h = t;
-	}
-
-	return h;
-}
-
 unsigned long Crop(unsigned long value, unsigned int size)
 {
 	if (size < 8*sizeof(value))
@@ -1880,7 +1851,10 @@ public:
 		#elif defined(__x86_64__)
 			__asm__("mulq %3" : "=d" (r.m_halfs.high), "=a" (r.m_halfs.low) : "a" (a), "rm" (b) : "cc");
 		#elif defined(__mips64)
-			__asm__("dmultu %2,%3" : "=h" (r.m_halfs.high), "=l" (r.m_halfs.low) : "r" (a), "r" (b));
+      //typedef unsigned int uint128_t __attribute__((mode(TI)));
+      __uint128_t tmp = (__uint128_t) a * b;
+      r.m_halfs.high = tmp >> 64;
+      r.m_halfs.low = tmp;
 		#elif defined(_M_IX86)
 			// for testing
 			word64 t = (word64)a * b;

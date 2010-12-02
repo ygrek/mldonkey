@@ -1,0 +1,55 @@
+
+open Printf2
+open CommonOptions
+open Bitstring
+
+let lprintf_nl fmt = lprintf_nl2 "[NODES]" fmt
+
+(* see http://wiki.amule.org/index.php/Nodes.dat_file *)
+
+let parse filename f =
+  bitmatch bitstring_of_file filename with
+  | { 0l : 32; 02l : 32 : littleendian; count : 32 : littleendian, bind(Int32.to_int count); 
+      nodes : 34 * 8 * count : bitstring ; rest : -1 : bitstring 
+    } when bitstring_length rest = 0
+    ->
+      let () = for i = 0 to pred count do
+        (bitmatch subbitstring nodes (34 * 8 * i) (34 * 8) with
+        | { id : 16 * 8 : string;
+            ip1 : 8; ip2 : 8; ip3 : 8; ip4 : 8; (* littleendian *)
+            udp : 16 : littleendian;
+            tcp : 16 : littleendian;
+            version : 8;
+            key : 8 * 8 : string;
+            verified : 8 
+          } ->
+            let ip = Ip.of_ints (ip4,ip3,ip2,ip1) in
+            if !verbose_overnet then
+              lprintf_nl "v2: id %S ip %s udp %d tcp %d ver %d key %S chk %d"
+                         id (Ip.to_string ip) udp tcp version key verified;
+            f ip udp
+        | { } -> failwith "v2: bad contact"
+        )
+      done in ()
+  | { count : 32 : littleendian, bind(Int32.to_int count);
+      nodes : 25 * 8 * count : bitstring;
+      rest : -1 : bitstring
+    } when bitstring_length rest = 0 
+    ->
+      let () = for i = 0 to pred count do
+        (bitmatch subbitstring nodes (25 * 8 * i) (25 * 8) with
+        | { id : 16 * 8 : string;
+            ip1 : 8; ip2 : 8; ip3 : 8; ip4 : 8; (* littleendian *)
+            udp : 16 : littleendian;
+            tcp : 16 : littleendian;
+            typ : 8 
+          } ->
+            let ip = Ip.of_ints (ip4,ip3,ip2,ip1) in
+            if !verbose_overnet then
+              lprintf_nl "v0: id %S ip %s udp %d tcp %d typ %d" id (Ip.to_string ip) udp tcp typ;
+            f ip udp
+        | { } -> failwith "v0: bad contact"
+        )
+      done in ()
+  | { } -> failwith "nodes.dat bad header"
+
