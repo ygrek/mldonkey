@@ -505,7 +505,7 @@ end (* Make *)
 
 end (* LimitedSet *)
 
-let update dht ?st id addr = update (M.ping dht) dht.M.rt ?st id addr
+let update dht st id addr = update (M.ping dht) dht.M.rt st id addr
 
 exception Break
 
@@ -542,7 +542,7 @@ let lookup_node dht ?nodes target k =
     Hashtbl.add queried node true;
     log #info "will query node %s" (show_node node);
     M.find_node dht addr target begin fun (id,addr as node) nodes ->
-      update dht id addr;
+      update dht Good id addr;
       decr active;
       let inserted = round nodes in
       log #info "got %d nodes from %s, inserted %d" (List.length nodes) (show_node node) inserted;
@@ -617,7 +617,7 @@ let start storage port =
     let (id,q) = parse_query_exn name args in
     let node = (id,addr) in
     log #info "DHT query from %s : %s" (show_node node) (show_query q);
-    update !!dht id addr;
+    update !!dht Good id addr;
     let response =
       match q with
       | Ping -> Ack
@@ -641,14 +641,18 @@ let start storage port =
   let refresh () =
     let ids = Kademlia.refresh (!!dht).M.rt in
     log #info "will refresh %d buckets" (List.length ids);
-    let cb (id,addr as node) l =
-      update !!dht id addr; (* replied *)
+    let cb prev_id (id,addr as node) l =
+      update !!dht Good id addr; (* replied *)
+      if prev_id <> id then
+      begin
+        log #info "refresh: node %s changed id (was %s)" (show_node node) (show_id prev_id);
+        update !!dht Bad prev_id addr;
+      end;
       log #info "refresh: got %d nodes from %s" (List.length l) (show_node node);
-      List.iter (fun (id,addr) -> update !!dht ~st:Unknown id addr) l
+      List.iter (fun (id,addr) -> update !!dht Unknown id addr) l
     in
-    List.iter (fun target ->
-      let nodes = M.self_find_node !!dht target in
-      List.iter (fun (_,addr) -> M.find_node !!dht addr target cb ~kerr:(fun () -> ())) nodes)
+    List.iter (fun (target, nodes) ->
+      List.iter (fun (id,addr) -> M.find_node !!dht addr target (cb id) ~kerr:(fun () -> ())) nodes)
     ids
   in
   log #info "DHT size : %d self : %s" (size (!!dht).M.rt) (show_id (!!dht).M.rt.self); 

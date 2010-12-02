@@ -211,14 +211,23 @@ let make_node id addr st = { id = id; addr = addr; last = now (); status = st; }
 let mark n st = n.last <- now (); n.status <- st
 let touch b = b.last_change <- now ()
 
-let rec update ping table ?(st=Good) id data =
+(*
+let rec delete table id =
+  let rec loop = function
+  | N (l,mid,r) -> (match cmp id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
+  | L b ->
+    Array.iter (fun n ->
+      if cmp n.id id = EQ then
+*)
+
+let rec update ping table st id data =
 (*   log #debug "insert %s" (show_id node.id); *)
   let rec loop = function
   | N (l,mid,r) -> (match cmp id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
   | L b ->
     Array.iteri begin fun i n ->
       match cmp n.id id = EQ, n.addr = data with
-      | true, true -> log #info "mark [%s] as good" (show_node n); mark n Good; touch b; raise Nothing
+      | true, true -> log #info "mark [%s] as %s" (show_node n) (show_status st); mark n st; touch b; raise Nothing
       | true, false | false, true -> 
           log #warn "conflict [%s] with %s %s, replacing" (show_node n) (show_id id) (show_addr data);
           b.nodes.(i) <- make_node id data st; (* replace *)
@@ -228,7 +237,7 @@ let rec update ping table ?(st=Good) id data =
     end b.nodes;
     if Array.length b.nodes <> bucket_nodes then
     begin
-      log #info"insert %s" (show_id id);
+      log #info "insert %s %s" (show_id id) (show_addr data);
       b.nodes <- Array.of_list (make_node id data st :: Array.to_list b.nodes);
       touch b;
       raise Nothing
@@ -270,7 +279,7 @@ let rec update ping table ?(st=Good) id data =
         begin 
           log #info "all %d pinged, retry %s" (List.length unk) (show_id id); 
           touch b; 
-          update ping table ~st id data 
+          update ping table st id data 
         end
       in
       List.iter (fun n -> mark n Pinged; ping n.addr (cb n)) unk;
@@ -285,7 +294,12 @@ let refresh table =
   let expire = now () - node_period in
   let rec loop acc = function
   | N (l,_,r) -> let acc = loop acc l in loop acc r
-  | L b when b.last_change < expire -> choose_random b.lo b.hi :: acc
+  | L b when b.last_change < expire ->
+    if Array2.exists (fun n -> n.status <> Bad) b.nodes then
+      let nodes = Array.map (fun n -> n.id, n.addr) b.nodes in
+      (choose_random b.lo b.hi, Array.to_list nodes) :: acc
+    else
+      acc (* do not refresh buckets with all bad nodes *)
   | L _ -> acc
   in
   loop [] table.root
@@ -334,7 +348,7 @@ let tt () =
   let addr = Ip.of_string "127.0.0.1", 9000 in
   let ping addr k = k (if Random.bool () then Some (H.null,addr) else None) in
   for i = 1 to 1_000_000 do
-    update ping table (H.random ()) addr
+    update ping table Good (H.random ()) addr
   done;
   show_table table
 

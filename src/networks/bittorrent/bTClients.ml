@@ -1262,7 +1262,7 @@ and client_to_client c sock msg =
             if !verbose then
               lprintf_file_nl (as_file file) "Peer didn't reply to DHT ping on announced port"
           | Some (id,addr) ->
-            BT_DHT.update dht id addr
+            BT_DHT.update dht Kademlia.Good id addr
           end
 
   with e ->
