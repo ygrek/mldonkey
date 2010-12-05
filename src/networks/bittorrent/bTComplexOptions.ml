@@ -32,6 +32,11 @@ open BTTypes
 open BTOptions
 open BTGlobals
 
+let bt_dht_ini = create_options_file "bt_dht.ini"
+let bt_dht_section = file_section bt_dht_ini [] ""
+
+let dht_routing_table = define_option bt_dht_section ["dht_routing_table"] ""
+    Kademlia.RoutingTableOption.t (Kademlia.create ())
 
 let bt_stats_ini = create_options_file "stats_bt.ini"
 let bt_stats_section = file_section bt_stats_ini [] ""
@@ -264,9 +269,8 @@ let save_config () =
 let config_files_loaded = ref false
 
 let load _ =
-  (try
-      Options.load bt_stats_ini;
-    with Sys_error _ -> ());
+  begin try Options.load bt_stats_ini with Sys_error _ -> () end;
+  begin try Options.load bt_dht_ini with Sys_error _ -> () end;
   check_client_uid ();
   config_files_loaded := true
 
@@ -304,6 +308,7 @@ let save _ =
       guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
       diff_time := (last_time () - start_time);
       Options.save_with_help bt_stats_ini;
+      Options.save_with_help bt_dht_ini;
     end
 (*  lprintf "SAVED\n";  *)
 

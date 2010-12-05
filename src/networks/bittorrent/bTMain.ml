@@ -78,11 +78,14 @@ let enable () =
         with e ->
             lprintf "Exception in BTTracker.start_tracker: %s\n"
               (Printexc2.to_string e));
-    let dht = BT_DHT.start "bt_dht.dat" 12345 in
-    let routers = [Ip.of_string "67.215.242.139", 6881] in
-    (* FIXME *)
-    BT_DHT.bootstrap dht ~routers;
-    bt_dht := Some dht;
+    if !!dht_port > 0 then
+    begin
+      let dht = BT_DHT.start !!dht_routing_table !!dht_port in
+      let routers = [Ip.of_string "67.215.242.139", 6881] in
+      (* FIXME *)
+      BT_DHT.bootstrap dht ~routers;
+      bt_dht := Some dht;
+    end;
     if !!share_scan_interval <> 0 then
     add_session_timer enabler (float_of_int (!!share_scan_interval * 60))
       (fun _ -> BTInteractive.share_files ();

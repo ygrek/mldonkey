@@ -208,7 +208,10 @@ end
 exception Nothing 
 
 let make_node id addr st = { id = id; addr = addr; last = now (); status = st; }
-let mark n st = n.last <- now (); n.status <- st
+let mark n st =
+  log #info "mark [%s] as %s" (show_node n) (show_status st);
+  n.last <- now ();
+  n.status <- st
 let touch b = b.last_change <- now ()
 
 (*
@@ -227,7 +230,7 @@ let rec update ping table st id data =
   | L b ->
     Array.iteri begin fun i n ->
       match cmp n.id id = EQ, n.addr = data with
-      | true, true -> log #info "mark [%s] as %s" (show_node n) (show_status st); mark n st; touch b; raise Nothing
+      | true, true -> mark n st; touch b; raise Nothing
       | true, false | false, true -> 
           log #warn "conflict [%s] with %s %s, replacing" (show_node n) (show_id id) (show_addr data);
           b.nodes.(i) <- make_node id data st; (* replace *)
@@ -255,15 +258,15 @@ let rec update ping table st id data =
     | [] ->
     if inside b table.self && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
     begin
-      log #info "split";
+      log #info "split %s %s" (H.to_hexa b.lo) (H.to_hexa b.hi);
       let mid = split b.lo b.hi in
-      let (nodes1,nodes2) = List.partition (fun n -> cmp n.id id = LT) (Array.to_list b.nodes) in
+      let (nodes1,nodes2) = List.partition (fun n -> cmp n.id mid = LT) (Array.to_list b.nodes) in
       let new_node = N (
           L { lo = b.lo; hi = mid; last_change = b.last_change; nodes = Array.of_list nodes1; }, 
           mid,
           L { lo = succ mid; hi = b.hi; last_change = b.last_change; nodes = Array.of_list nodes2; } )
       in
-      try loop new_node with Nothing -> new_node (* insert into new node *)
+      new_node
     end
     else
     begin
@@ -286,7 +289,52 @@ let rec update ping table st id data =
       raise Nothing
   in
   if id <> table.self then
-    try table.root <- loop table.root with Nothing -> ()
+    try while true do table.root <- loop table.root done with Nothing -> () (* loop until no new splits *)
+
+let insert_node table node =
+(*   log #debug "insert %s" (show_id node.id); *)
+  let rec loop = function
+  | N (l,mid,r) -> (match cmp node.id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
+  | L b ->
+    Array.iter begin fun n ->
+      match cmp n.id node.id = EQ, n.addr = node.addr with
+      | true, true -> log #warn "insert_node: duplicate entry %s" (show_node n); raise Nothing
+      | true, false | false, true ->
+          log #warn "insert_node: conflict [%s] with [%s]" (show_node n) (show_node node);
+          raise Nothing
+      | _ -> ()
+    end b.nodes;
+    if Array.length b.nodes <> bucket_nodes then
+    begin
+      b.nodes <- Array.of_list (node :: Array.to_list b.nodes);
+      raise Nothing
+    end;
+    if inside b table.self && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
+    begin
+      let mid = split b.lo b.hi in
+      let (nodes1,nodes2) = List.partition (fun n -> cmp n.id mid = LT) (Array.to_list b.nodes) in
+      let last_change = List.fold_left (fun acc n -> max acc n.last) 0 in
+      let new_node = N (
+          L { lo = b.lo; hi = mid; last_change = last_change nodes1; nodes = Array.of_list nodes1; }, 
+          mid,
+          L { lo = succ mid; hi = b.hi; last_change = last_change nodes2; nodes = Array.of_list nodes2; } )
+      in
+      new_node
+    end
+    else
+    begin
+      log #warn "insert_node: bucket full [%s]" (show_node node);
+      raise Nothing
+    end
+  in
+  try while true do table.root <- loop table.root done with Nothing -> ()
+
+let all_nodes t =
+  let rec loop acc = function
+  | N (l,_,r) -> let acc = loop acc l in loop acc r
+  | L b -> Array.to_list b.nodes @ acc
+  in
+  loop [] t.root
 
 (* end *)
 
@@ -351,4 +399,66 @@ let tt () =
     update ping table Good (H.random ()) addr
   done;
   show_table table
+
+module RoutingTableOption = struct
+
+open Options
+open CommonOptions
+
+let value_to_status = function
+  | StringValue "good" -> Good
+  | StringValue "bad" -> Bad
+  | StringValue "pinged" -> Pinged
+  | StringValue "unknown" -> Unknown
+  | _ -> failwith "RoutingTableOption.value_to_status"
+
+let status_to_value = function
+  | Good -> string_to_value "good"
+  | Bad -> string_to_value "bad"
+  | Pinged -> string_to_value "pinged"
+  | Unknown -> string_to_value "unknown"
+
+let value_to_node = function
+  | Module props ->
+    let get cls s = from_value cls (List.assoc s props) in
+    {
+      id = H.of_hexa (get string_option "id");
+      addr = (get Ip.option "ip", get port_option "port");
+      last = get int_option "last";
+      status = value_to_status (List.assoc "status" props);
+    }
+ | _ -> failwith "RoutingTableOption.value_to_node"
+
+let node_to_value n =
+  Module [
+    "id", string_to_value (H.to_hexa n.id);
+    "ip", to_value Ip.option (fst n.addr);
+    "port", to_value port_option (snd n.addr);
+    "last", int_to_value n.last;
+    "status", status_to_value n.status;
+  ]
+
+let value_to_table v =
+  match v with
+  | Module props ->
+    let nodes = value_to_list value_to_node (List.assoc "nodes" props) in
+    let self = H.of_hexa (value_to_string (List.assoc "self" props)) in
+    let t = { root = L { lo = H.null; hi = last; last_change = 0; nodes = [||]; };
+              self = self; }
+    in
+    List.iter (insert_node t) nodes;
+    show_table t;
+    t
+  | _ -> failwith "RoutingTableOption.value_to_table"
+
+let table_to_value t =
+  show_table t;
+  Module [
+    "self", string_to_value (H.to_hexa t.self);
+    "nodes", list_to_value node_to_value (all_nodes t)
+  ]
+
+let t = define_option_class "RoutingTable" value_to_table table_to_value
+
+end
 

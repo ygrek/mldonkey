@@ -346,7 +346,6 @@ module M = struct
 
 type t = {
   rt : Kademlia.table; (* routing table *)
-  storage : string; (* name of file for persistence *)
   rpc : KRPC.t; (* KRPC protocol socket *)
   dht_port : int; (* port *)
   torrents : (H.t, int Peers.t) Hashtbl.t; (* torrents announced by other peers *)
@@ -397,18 +396,16 @@ let manage_timeouts enabler h =
     log #info "Removed %d of %d peers for announced torrents" !rm !total
   end
 
-let create storage dht_port answer =
-  let rt = Kademlia.init storage in
+let create rt dht_port answer =
   let enabler = ref true in
   let rpc = KRPC.create dht_port enabler answer in
   let torrents = Hashtbl.create 8 in
   manage_timeouts enabler torrents;
-  { rt = rt; storage = storage; rpc = rpc; torrents = torrents; dht_port = dht_port; enabler = enabler; }
+  { rt = rt; rpc = rpc; torrents = torrents; dht_port = dht_port; enabler = enabler; }
 
 let shutdown dht =
   dht.enabler := false;
-  KRPC.shutdown dht.rpc;
-  Kademlia.store dht.storage dht.rt
+  KRPC.shutdown dht.rpc
 
 let peers_list f m = Peers.fold (fun peer tm l -> (f peer tm)::l) m []
 let self_get_peers t h = peers_list (fun a _ -> a) (try Hashtbl.find t.torrents h with Not_found -> Peers.empty)
@@ -468,6 +465,7 @@ val create : int -> t
 val insert : t -> elt -> bool
 val elements : t -> elt list
 val iter : t -> (elt -> unit) -> unit
+val min_elt : t -> elt
 
 end 
 
@@ -501,6 +499,8 @@ let iter (_,set) f = S.iter f !set
 
 let elements (_,set) = S.elements !set
 
+let min_elt (_,set) = S.min_elt !set
+
 end (* Make *)
 
 end (* LimitedSet *)
@@ -509,6 +509,7 @@ let update dht st id addr = update (M.ping dht) dht.M.rt st id addr
 
 exception Break
 
+(** @param nodes nodes to start search from, will not be inserted into routing table *)
 let lookup_node dht ?nodes target k =
   log #info "lookup %s" (show_id target);
   let start = BasicSocket.last_time () in
@@ -534,26 +535,26 @@ let lookup_node dht ?nodes target k =
       let n = ref 0 in
       S.iter found (fun node ->
         if alpha = !n then raise Break;
-        if not (Hashtbl.mem queried node) then begin incr n; query node end)
+        if not (Hashtbl.mem queried node) then begin incr n; query true node end)
     with Break -> () end;
     inserted
-  and query (id,addr as node) =
+  and query store (id,addr as node) =
     incr active;
     Hashtbl.add queried node true;
     log #info "will query node %s" (show_node node);
     M.find_node dht addr target begin fun (id,addr as node) nodes ->
-      update dht Good id addr;
+      if store then update dht Good id addr;
       decr active;
       let inserted = round nodes in
-      log #info "got %d nodes from %s, inserted %d" (List.length nodes) (show_node node) inserted;
+      let s = try sprintf ", best %s" (show_id (fst (S.min_elt found))) with _ -> "" in
+      log #info "got %d nodes from %s, useful %d%s" (List.length nodes) (show_node node) inserted s;
       check_ready ()
     end ~kerr:(fun () -> decr active; log #info "timeout from %s" (show_node node); check_ready ())
   in
-  let nodes = match nodes with
-  | None -> M.self_find_node dht target
-  | Some l -> l
-  in
-  let _ = round nodes in
+  begin match nodes with
+  | None -> let (_:int) = round (M.self_find_node dht target) in ()
+  | Some l -> List.iter (query false) l
+  end;
   check_ready ()
 
 let show_torrents dht =
@@ -562,10 +563,6 @@ let show_torrents dht =
     let l = M.peers_list (fun addr tm -> sprintf "%s (exp. %ds)" (show_addr addr) (tm - now)) peers in
     log #info "torrent %s : %s" (H.to_hexa h) (String.concat " " l))
   dht.M.torrents
-
-let finish dht =
-  log #info "finish";
-  M.shutdown dht
 
 let bootstrap dht addr =
   M.ping dht addr begin function
@@ -609,9 +606,9 @@ let query_peers dht id k =
 (*       check () *)
     end nodes)
 
-let start storage port =
+let start rt port =
   let secret = Secret.create secret_timeout in
-  let rec dht = lazy (M.create storage port answer)
+  let rec dht = lazy (M.create rt port answer)
   and answer addr name args =
     try
     let (id,q) = parse_query_exn name args in
