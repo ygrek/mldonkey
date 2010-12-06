@@ -231,14 +231,18 @@ let op_file_print file o =
   List.iter (fun tracker ->
     let tracker_url = show_tracker_url tracker.tracker_url in
     let tracker_text =
+      if not !!use_trackers then
+        Printf.sprintf "disabled: %s" tracker_url
+      else
       match tracker.tracker_status with
-        | Disabled s | Disabled_mld s ->
-            Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s\\</font\\>" tracker_url s
-        | Disabled_failure (i,s) -> 
-            Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s (try %d)\\</font\\>" tracker_url s i
-        | _ ->
-            Printf.sprintf "enabled: %s" tracker_url
-
+      | Disabled s | Disabled_mld s ->
+         Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s\\</font\\>"
+           tracker_url s
+      | Disabled_failure (i,s) -> 
+         Printf.sprintf "\\<font color=\\\"red\\\"\\>disabled: %s\\<br\\>\\--error: %s (try %d)\\</font\\>"
+           tracker_url s i
+      | _ ->
+         Printf.sprintf "enabled: %s" tracker_url
     in
     let text = if not !tracker_header_printed then _s"Tracker(s)" else "" in
     emit text tracker_text;

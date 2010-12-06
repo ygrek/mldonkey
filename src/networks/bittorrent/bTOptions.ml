@@ -168,3 +168,7 @@ let dht_port = define_option bittorrent_section ["dht_port"]
   "The UDP port to bind the DHT node to (0 to disable)"
   port_option 12345
 
+let use_trackers = define_option bittorrent_section ["use_trackers"]
+  "Send announces to trackers"
+  bool_option true
+

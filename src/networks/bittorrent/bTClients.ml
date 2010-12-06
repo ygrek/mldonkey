@@ -1664,8 +1664,7 @@ let talk_to_dht file need_sources =
 
 let talk_to_tracker file need_sources =
   if file.file_last_dht_announce + 14*60 < last_time () && not file.file_private then talk_to_dht file need_sources;
-(*   talk_to_tracker file need_sources *)
-  ()
+  if !!use_trackers then talk_to_tracker file need_sources
 
 (** Check to see if file is finished, if not
   try to get sources for it
