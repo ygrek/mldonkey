@@ -142,7 +142,11 @@ let _ =
       if !CommonOptions.start_running_plugins then
       if !!enable_bittorrent then network_enable network
       else network_disable network);
-  option_hook dht_port (fun _ -> if !!dht_port = 0 then stop_dht () else start_dht ());
+  option_hook dht_port (fun _ ->
+    if !is_enabled then
+    begin
+      if !!dht_port = 0 then stop_dht () else start_dht ()
+    end);
 (*
   network.op_network_save_simple_options <- BTComplexOptions.save_config;
   network.op_network_load_simple_options <-

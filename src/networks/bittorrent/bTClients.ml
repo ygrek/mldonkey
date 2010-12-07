@@ -370,6 +370,9 @@ let connect_trackers file event need_sources f =
             (show_tracker_url t.tracker_url) (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
   ) enabled_trackers
 
+let connect_trackers file event need_sources f =
+  if !!use_trackers then connect_trackers file event need_sources f
+
 let start_upload c =
   set_client_upload (as_client c) (as_file c.client_file);
   set_client_has_a_slot (as_client c) NormalSlot;
@@ -1664,7 +1667,7 @@ let talk_to_dht file need_sources =
 
 let talk_to_tracker file need_sources =
   if file.file_last_dht_announce + 14*60 < last_time () && not file.file_private then talk_to_dht file need_sources;
-  if !!use_trackers then talk_to_tracker file need_sources
+  talk_to_tracker file need_sources
 
 (** Check to see if file is finished, if not
   try to get sources for it
