@@ -98,17 +98,6 @@ let cmp id1 id2 =
 (* boundaries inclusive *)
 let inside node hash = not (cmp hash node.lo = LT || cmp hash node.hi = GT)
 
-let bracket res destroy k =
-  let x = try k res with exn -> destroy res; raise exn in
-  destroy res;
-  x
-
-let with_open_in_bin file = bracket (open_in_bin file) close_in_noerr
-let with_open_out_bin file = bracket (open_out_bin file) close_out_noerr
-
-let load file : table = with_open_in_bin file Marshal.from_channel
-let store file (t:table) = with_open_out_bin file (fun ch -> Marshal.to_channel ch t [])
-
 let middle =
   let s = String.make 20 (Char.chr 0xFF) in
   s.[0] <- Char.chr 0x7F;
@@ -381,8 +370,6 @@ let rec fold f acc = function
 
 let size t = fold (fun acc b -> acc + Array.length b.nodes) 0 t.root
 
-let init file = try load file with _ -> create ()
-
 (*
 module NoNetwork : Network = struct 
   let ping addr k = k H.null (Random.bool ())
@@ -403,7 +390,6 @@ let tt () =
 module RoutingTableOption = struct
 
 open Options
-open CommonOptions
 
 let value_to_status = function
   | StringValue "good" -> Good
