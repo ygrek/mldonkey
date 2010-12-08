@@ -564,21 +564,33 @@ let show_torrents dht =
     log #info "torrent %s : %s" (H.to_hexa h) (String.concat " " l))
   dht.M.torrents
 
-let bootstrap dht addr =
+let bootstrap dht host addr k =
   M.ping dht addr begin function
     | Some node ->
-      log #info "bootstrap node is up - %s" (show_node node);
+      log #info "bootstrap node %s (%s) is up" (show_node node) host;
       lookup_node dht ~nodes:[node] dht.M.rt.self (fun l ->
-        log #info "bootstrap via %s : found %s" (show_addr addr) (strl show_node l))
+        log #info "bootstrap via %s (%s) : found %s" (show_addr addr) host (strl show_node l);
+        k (List.length l >= Kademlia.bucket_nodes))
     | None ->
-      log #warn "bootstrap node %s is down" (show_addr addr)
+      log #warn "bootstrap node %s (%s) is down" (show_addr addr) host;
+      k false
   end
+
+let bootstrap dht (host,port) k =
+  Ip.async_ip host
+    (fun ip -> bootstrap dht host (ip,port) k)
+    (fun n -> log #warn "boostrap node %s cannot be resolved (%d)" host n; k false)
 
 let bootstrap ?(routers=[]) dht =
   lookup_node dht dht.M.rt.self begin fun l ->
     log #info "auto bootstrap : found %s" (strl show_node l);
-    if List.length l < Kademlia.bucket_nodes then
-      List.iter (bootstrap dht) routers
+    let rec loop l ok =
+      match ok,l with
+      | true,_ -> log #info "bootstrap ok, total nodes : %d" (size dht.M.rt)
+      | false,[] -> log #warn "boostrap failed, total nodes : %d" (size dht.M.rt)
+      | false,(node::nodes) -> bootstrap dht node (loop nodes)
+    in
+    loop routers (List.length l >= Kademlia.bucket_nodes)
   end
 
 let query_peers dht id k =
