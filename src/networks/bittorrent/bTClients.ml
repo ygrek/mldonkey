@@ -716,11 +716,11 @@ let rec client_parse_header counter cc init_sent gconn sock
     if !verbose_msg_clients then
       lprintf_nl "file and client found";
 (*    if not c.client_incoming then *)
+    send_bitfield c; (* BitField is always the first message *)
     begin match c.client_dht, !bt_dht with
     | true, Some dht -> send_client c (DHT_Port dht.BT_DHT.M.dht_port)
     | _ -> ()
     end;
-    send_bitfield c; 
     c.client_blocks_sent <- file.file_blocks_downloaded;
 (*
       TODO !!! : send interested if and only if we are interested
