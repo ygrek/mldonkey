@@ -1654,11 +1654,11 @@ let talk_to_dht file need_sources =
   match !bt_dht with
   | None -> ()
   | Some dht ->
-    lprintf_file_nl (as_file file) "DHT announce";
+    if !verbose then lprintf_file_nl (as_file file) "DHT announce";
     file.file_last_dht_announce <- last_time ();
     BT_DHT.query_peers dht file.file_id (fun (_,addr as node) token peers ->
       BT_DHT.M.announce dht addr !!client_port token file.file_id (fun _ -> ()) ~kerr:(fun () -> 
-        lprintf_file_nl (as_file file) "DHT announce to %s failed" (BT_DHT.show_node node));
+        if !verbose then lprintf_file_nl (as_file file) "DHT announce to %s failed" (BT_DHT.show_node node));
       if need_sources then
       begin
         List.iter (fun (ip,port) -> maybe_new_client file Sha1.null ip port) peers;
