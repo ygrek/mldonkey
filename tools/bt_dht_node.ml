@@ -46,11 +46,10 @@ let () =
     match Sys.argv with
     | [|_;file;port|] ->
       let dht = start (init file) (int_of_string port) in
-      let show () = Kademlia.show_table dht.M.rt; show_torrents dht in
       let finish () = store file dht.M.rt; stop dht; exit 0 in
-      Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> show (); finish ()));
-      Sys.set_signal Sys.sigterm (Sys.Signal_handle (fun _ -> show (); finish ()));
-      Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> show ()));
+      Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> show dht; finish ()));
+      Sys.set_signal Sys.sigterm (Sys.Signal_handle (fun _ -> show dht; finish ()));
+      Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> show dht));
       BasicSocket.add_infinite_timer 1800. (fun () -> run_queries dht);
       BasicSocket.add_infinite_timer 3600. (fun () -> store file dht.M.rt);
       let routers = ["router.utorrent.com", 6881; "router.transmission.com",6881] in

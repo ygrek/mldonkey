@@ -7,41 +7,50 @@
 
 let bucket_nodes = 8
 
+(* do not use CommonOptions directly so that tools/bt_dht_node can be compiled separately *)
+let verbose = ref false
+
 module H = Md4.Sha1
 
+let log_prefix = "btkad"
+let lprintf_nl fmt = Printf2.lprintf_nl2 log_prefix fmt
+
 type 'a pr = ?exn:exn -> ('a, unit, string, unit) format4 -> 'a
-type level = [ `Debug | `Info | `Warn | `Error ]
+type level = [ `Debug | `Info | `User | `Warn | `Error ]
 
 class logger prefix = 
   let int_level = function
     | `Debug -> 0
     | `Info -> 1
-    | `Warn -> 2
-    | `Error -> 3
+    | `User -> 2
+    | `Warn -> 3
+    | `Error -> 4
   in
   let print_log limit prefix level ?exn fmt =
     let put s =
       let b = match level with 
-      | 0 -> false 
+      | 0 -> false
+      | 1 -> !verbose
       | _ -> true
       in 
       match b,exn with
       | false, _ -> ()
       | true, None -> Printf2.lprintf_nl "[%s] %s" prefix s
       | true, Some exn -> Printf2.lprintf_nl "[%s] %s : exn %s" prefix s (Printexc2.to_string exn)
-  in
-  Printf.ksprintf put fmt
+    in
+    Printf.ksprintf put fmt
 in
 object
 val mutable limit = int_level `Info
 method debug : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 0 ?exn fmt
 method info  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 1 ?exn fmt
-method warn  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 2 ?exn fmt
-method error : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 3 ?exn fmt
+method user  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 2 ?exn fmt
+method warn  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 3 ?exn fmt
+method error : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 4 ?exn fmt
 method allow (level:level) = limit <- int_level level
 end
 
-let log = new logger "btkad"
+let log = new logger log_prefix
 
 (** node ID type *)
 type id = H.t
@@ -73,11 +82,11 @@ let show_node n =
   Printf.sprintf "%s at %s was %s %s"
     (show_id n.id) (show_addr n.addr) (show_status n.status) (diff n.last)
 
-let show_bucket b = 
-  log #info "count : %d lo : %s hi : %s changed : %s" (Array.length b.nodes) (H.to_hexa b.lo) (H.to_hexa b.hi) (diff b.last_change);
-  Array.iter (fun n -> log #info "  %s" (show_node n)) b.nodes
+let show_bucket b =
+  lprintf_nl "count : %d lo : %s hi : %s changed : %s" (Array.length b.nodes) (H.to_hexa b.lo) (H.to_hexa b.hi) (diff b.last_change);
+  Array.iter (fun n -> lprintf_nl "  %s" (show_node n)) b.nodes
 
-let rec show_tree = function 
+let rec show_tree = function
   | N (l,_,r) -> show_tree l; show_tree r
   | L b -> show_bucket b
 
@@ -361,7 +370,7 @@ let create () = { root = L { lo = H.null; hi = last; last_change = now (); nodes
                 }
 
 let show_table t =
-  log #info "self : %s now : %d" (show_id t.self) (now ());
+  lprintf_nl "self : %s now : %d" (show_id t.self) (now ());
   show_tree t.root
 
 let rec fold f acc = function
@@ -433,12 +442,12 @@ let value_to_table v =
               self = self; }
     in
     List.iter (insert_node t) nodes;
-    show_table t;
+    if !verbose then show_table t;
     t
   | _ -> failwith "RoutingTableOption.value_to_table"
 
 let table_to_value t =
-  show_table t;
+  if !verbose then show_table t;
   Module [
     "self", string_to_value (H.to_hexa t.self);
     "nodes", list_to_value node_to_value (all_nodes t)

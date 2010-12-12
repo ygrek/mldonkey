@@ -578,7 +578,8 @@ let verbosity = define_expert_option current_section ["verbosity"]
   act : debug activity
   bw : debug bandwidth
   geo : debug GeoIP
-  unexp : debug unexpected messages"
+  unexp : debug unexpected messages
+  dht : debug DHT"
     string_option ""
 
 
@@ -1901,6 +1902,7 @@ let verbose_activity = ref false
 let verbose_user_commands = ref false
 let verbose_geoip = ref false
 let verbose_unexpected_messages = ref false
+let verbose_dht = ref (ref false)
 
 let set_all v =
   verbose_msg_clients := v;
@@ -1930,7 +1932,8 @@ let set_all v =
   verbose_activity := v;
   verbose_user_commands := v;
   Geoip.verbose := v;
-  verbose_unexpected_messages := v
+  verbose_unexpected_messages := v;
+  !verbose_dht := v
 
 let _ =
   option_hook verbosity (fun _ ->
@@ -1967,6 +1970,7 @@ let _ =
           | "unexp" -> verbose_unexpected_messages := true
           | "com" -> verbose_user_commands := true
           | "geo" -> Geoip.verbose := true
+          | "dht" -> !verbose_dht := true
 
           | "all" ->
 

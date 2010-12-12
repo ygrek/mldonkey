@@ -12,7 +12,10 @@ let store_peer_timeout = minutes 30
 let secret_timeout = minutes 10
 let alpha = 3
 
-let log = new logger "dht"
+let log_prefix = "dht"
+let lprintf_nl fmt = Printf2.lprintf_nl2 log_prefix fmt
+
+let log = new logger log_prefix
 
 let catch f x = try `Ok (f x) with e -> `Exn e
 let (&) f x = f x
@@ -143,7 +146,7 @@ let create port enabler answer : t =
     log #info "timeouted %d of %d DHT queries" (List.length !bad) !total;
     List.iter (fun (addr,txn,kerr) ->
       A.remove h addr txn;
-      try kerr () with exn -> log #warn ~exn "timeout for %s" (show_addr addr)) !bad;
+      try kerr () with exn -> log #info ~exn "timeout for %s" (show_addr addr)) !bad;
   in
   BasicSocket.add_session_timer enabler 5. (fun () -> timeout h);
   let handle addr (txn,ver,msg) =
@@ -557,12 +560,14 @@ let lookup_node dht ?nodes target k =
   end;
   check_ready ()
 
-let show_torrents dht =
+let show_torrents torrents =
   let now = BasicSocket.last_time () in
   Hashtbl.iter (fun h peers ->
     let l = M.peers_list (fun addr tm -> sprintf "%s (exp. %ds)" (show_addr addr) (tm - now)) peers in
-    log #info "torrent %s : %s" (H.to_hexa h) (String.concat " " l))
-  dht.M.torrents
+    lprintf_nl "torrent %s : %s" (H.to_hexa h) (String.concat " " l))
+  torrents
+
+let show dht = show_table dht.M.rt; show_torrents dht.M.torrents
 
 let bootstrap dht host addr k =
   M.ping dht addr begin function
@@ -586,7 +591,7 @@ let bootstrap ?(routers=[]) dht =
     log #info "auto bootstrap : found %s" (strl show_node l);
     let rec loop l ok =
       match ok,l with
-      | true,_ -> log #info "bootstrap ok, total nodes : %d" (size dht.M.rt)
+      | true,_ -> log #user "bootstrap ok, total nodes : %d" (size dht.M.rt)
       | false,[] -> log #warn "boostrap failed, total nodes : %d" (size dht.M.rt)
       | false,(node::nodes) -> bootstrap dht node (loop nodes)
     in
