@@ -590,7 +590,7 @@ endif
 MLNET_SRCS+= $(MAIN_SRCS)
 MLNET_CMXA=extlib.cmxa $(CDK_CMXA) $(BITSTRING_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 
-TESTS_CMXA=$(CDK_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa
+TESTS_CMXA=extlib.cmxa $(CDK_CMXA) $(BITSTRING_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa
 TESTS_SRCS=tools/tests.ml
 
 ifeq ("$(GUI)", "newgui2")

@@ -1169,7 +1169,7 @@ let smtp_port = define_option current_section ["smtp_port"]
     port_option 25
 
 let smtp_login = define_option current_section ["smtp_login"]
-  (_s"Login to use for SMTP authentication, LOGIN and PLAIN methods are supported (leave empty to disable)")
+  (_s"Login to use for SMTP authentication (leave empty to disable). LOGIN, PLAIN and CRAM-MD5 methods are supported")
   string_option ""
 
 let smtp_password = define_option current_section ["smtp_password"]

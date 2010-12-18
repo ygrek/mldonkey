@@ -54,11 +54,20 @@ let test_dc_parse () =
   t true "$ADCGET file TTH/ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789012 1332982893 9194387";
   t false "$ADCGET tthl q 0 -1"
 
+let test_hmac_md5 () =
+  test ~s:"HMAC-MD5" begin fun () ->
+    let t k c s = Mailer.hmac_md5 k c = Md4.Base16.of_string 16 s in
+    assert (t (String.make 16 '\x0B') "Hi There" "9294727a3638bb1c13f48ef8158bfc9d");
+    assert (t "Jefe" "what do ya want for nothing?" "750c783e6ab0b503eaa86e310a5db738");
+    assert (t (String.make 16 '\xAA') (String.make 50 '\xDD') "56be34521d144c88dbb8c733f0e8b3f6");
+  end
+
 let () =
 (*   let _ = Ip.addr_of_string "dchub://83.102.255.226" in *)
 (*   let _ = Url.of_string "/submit?q=dcn+dchub://example.com+411" in *)
   test_magnet ();
   test_shorten ();
   test_dc_parse ();
+  test_hmac_md5 ();
   pr "Tests finished";
   ()
