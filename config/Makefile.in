@@ -152,9 +152,9 @@ CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(LIB)/syslog.ml $(CDK)/printf2.ml \
   $(CDK)/heap.ml \
   $(CDK)/printexc2.ml $(CDK)/genlex2.ml \
   $(CDK)/filepath.ml $(CDK)/string2.ml \
-  $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
+  $(CDK)/filename2.ml $(CDK)/array2.ml $(CDK)/hashtbl2.ml \
   $(CDK)/unix2.ml $(CDK)/file.ml \
-  $(CDK)/heap_c.c $(CDK)/array2.ml
+  $(CDK)/heap_c.c $(CDK)/list2.ml
 
 EXTLIB_SRCS += $(EXTLIB)/IO.ml
 

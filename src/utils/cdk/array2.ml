@@ -61,4 +61,12 @@ let subarray_fold_lefti f x a firstidx lastidx =
   done;
   !r
 
+(** Fisher-Yates shuffle *)
+let shuffle a =
+  for i = Array.length a - 1 downto 1 do
+    let j = Random.int (i+1) in
+    let tmp = a.(j) in
+    a.(j) <- a.(i);
+    a.(i) <- tmp
+  done
 

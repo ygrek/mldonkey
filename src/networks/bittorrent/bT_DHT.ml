@@ -411,7 +411,15 @@ let shutdown dht =
   KRPC.shutdown dht.rpc
 
 let peers_list f m = Peers.fold (fun peer tm l -> (f peer tm)::l) m []
-let self_get_peers t h = peers_list (fun a _ -> a) (try Hashtbl.find t.torrents h with Not_found -> Peers.empty)
+let self_get_peers t h =
+  let peers = peers_list (fun a _ -> a) (try Hashtbl.find t.torrents h with Not_found -> Peers.empty) in
+  if List.length peers <= 100 then
+    peers
+  else
+    let a = Array.of_list peers in
+    Array2.shuffle a;
+    Array.to_list (Array.sub a 0 100)
+ 
 let self_find_node t h = List.map (fun node -> node.id, node.addr) & Kademlia.find_node t.rt h
 
 end (* module M *)
