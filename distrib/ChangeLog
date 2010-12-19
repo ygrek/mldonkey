@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/12/19
+7303: UPNP: added BT_tracker-port
 7418: SMTP auth implementation (ygrek)
 - new options smtp_login and smtp_password
 - added socket timeout for mail server communication, fix bug #22713
