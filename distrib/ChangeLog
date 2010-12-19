@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2010/12/19
+7412: tar.gzip: fix harmless error message (ygrek)
 7388: DC: fix sharing on Windows (ygrek)
 -------------------------------------------------------------------------------
 2010/11/15: version 3.0.6 = tag release-3-0-6
