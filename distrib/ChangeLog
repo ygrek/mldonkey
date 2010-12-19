@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/12/19
+7388: DC: fix sharing on Windows (ygrek)
+-------------------------------------------------------------------------------
 2010/11/15: version 3.0.6 = tag release-3-0-6
 
 2010/11/13

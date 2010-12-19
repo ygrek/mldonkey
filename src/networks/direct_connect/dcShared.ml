@@ -322,6 +322,12 @@ let dc_updatesharesize () =
 
 let _ = 
   network.op_network_share <- (fun fullname codedname size -> (* this is called once/60s with all shared files *)
+    (* file path in DC network should use '/' as separator, convert local path accordingly *)
+    let codedname =
+      match Filename2.slash with
+      | '/' -> codedname
+      | c -> let s = String.copy codedname in String2.replace_char s c '/'; s
+    in
     (try
       let dcsh = Hashtbl.find dc_shared_files_by_fullname fullname in
       if (dcsh.dc_shared_size = size) then begin            (* if size is correct... *)

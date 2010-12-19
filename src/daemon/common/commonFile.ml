@@ -1267,3 +1267,13 @@ let lprintf_file_nl file fmt =
   lprintf_nl2 ("[" ^ (file_network file).network_shortname ^
 	       "] [file_num " ^ (string_of_int (file_num file)) ^ "]" ^
 	       "[temp " ^ (file_disk_name file) ^ "]") fmt
+
+let concat_file dir filename =
+  let fs = Unix32.filesystem dir in
+  let namemax =
+    match Unix32.fnamelen dir with
+    | None -> 0
+    | Some v -> v
+  in
+  Filename.concat dir (Filename2.filesystem_compliant filename fs namemax)
+

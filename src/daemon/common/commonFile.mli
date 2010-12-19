@@ -157,3 +157,7 @@ val file_owner : CommonTypes.file -> CommonTypes.userdb
 val set_file_group : CommonTypes.file -> CommonTypes.groupdb option -> unit
 val file_group : CommonTypes.file -> CommonTypes.groupdb option
 val lprintf_file_nl : CommonTypes.file -> ('a, unit, unit) Pervasives.format -> 'a
+
+(** [concat_file dir filename] sanitizes [filename] and appends it to [dir] *)
+val concat_file : string -> string -> string
+

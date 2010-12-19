@@ -944,8 +944,8 @@ let rec client_reader c t sock =
           let mylist = try DcShared.make_xml_mylist (DcShared.find_dir_exn dir) 
             with exn -> failwith (Printf.sprintf "PartialList %s : %s" dir (Printexc2.to_string exn))
           in 
-          let filename = Filename.concat directconnect_directory
-            (Printf.sprintf "mylist.%s.partial.xml.bz2" (DcGlobals.safe_filename (clients_username c)))
+          let filename = CommonFile.concat_file directconnect_directory
+            (Printf.sprintf "mylist.%s.partial.xml.bz2" (clients_username c))
           in
           DcShared.buffer_to_bz2_to_file mylist filename;
           c.client_state <- DcUploadListStarting filename;
