@@ -107,9 +107,9 @@ let send_dirfull_warning dir full line1 =
     let send_mail_again =
       try
         let last = Hashtbl.find last_sent_dir_warning dir in
-	last < time_threshold
-      with Not_found -> true in
-
+        last < time_threshold
+      with Not_found -> true
+    in
     if send_mail_again then begin
       if full then Hashtbl.replace last_sent_dir_warning dir current_time;
       CommonEvent.add_event (Console_message_event
@@ -118,12 +118,16 @@ let send_dirfull_warning dir full line1 =
         let module M = Mailer in
         let subject = Printf.sprintf "[mldonkey@%s] AUTOMATED WARNING: %s %s" (Unix.gethostname ()) dir status in
         let mail = {
-          M.mail_to = !!mail; M.mail_from = !!mail;
-	  M.mail_subject = subject; M.mail_body = line1;
+          M.mail_to = !!mail;
+          M.mail_from = !!mail;
+          M.mail_subject = subject;
+          M.mail_body = line1;
+          M.smtp_login = !!smtp_login;
+          M.smtp_password = !!smtp_password;
         } in
-	try
+        try
           M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
-	with _ -> ()
+        with _ -> ()
     end
   end
 
@@ -378,6 +382,8 @@ let mail_for_completed_file file =
         M.mail_from = address;
         M.mail_subject = subject;
         M.mail_body = line1 ^ line2 ^ line3 ^ line4 ^ line5 ^ (if admin then line6 else "") ^ line7;
+        M.smtp_login = !!smtp_login;
+        M.smtp_password = !!smtp_password;
       } in
         M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
     in

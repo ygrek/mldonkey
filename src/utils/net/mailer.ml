@@ -22,12 +22,15 @@ open Printf2
 open Options
 open Unix
 open Date
-  
+open Md4
+ 
 type mail = {
     mail_to : string;
     mail_from : string;
     mail_subject : string;
     mail_body : string;
+    smtp_login : string;
+    smtp_password : string;
   }
 
 let rfc2047_encode h encoding s =
@@ -71,7 +74,9 @@ let rfc2047_encode h encoding s =
   done;
   copy ending;
   Buffer.contents buf
- 
+
+let send oc s = Printf.fprintf oc "%s\r\n" s; flush oc
+let send1 oc s p = Printf.fprintf oc "%s %s\r\n" s p; flush oc
  
 let simple_connect hostname port =
   let s = socket PF_INET SOCK_STREAM 0 in
@@ -87,35 +92,33 @@ let last_response = ref ""
 let bad_response () =
   failwith (Printf.sprintf "Bad response [%s]"
       (String.escaped !last_response))
-  
+
+type response = int * bool * string list
+
+let get_response ic =
+  last_response := input_line ic;
+  if String.length !last_response <= 3 then bad_response ();
+  if !last_response.[String.length !last_response - 1] <> '\r' then bad_response ();
+  let final = match !last_response.[3] with ' ' -> true | '-' -> false | _ -> bad_response () in
+  let code = int_of_string (String.sub !last_response 0 3) in
+  let text = String.sub !last_response 4 (String.length !last_response - 5) in
+  (code,final,text)
+
 let read_response ic =
   let rec iter () =
-  last_response := input_line ic;
-    if String.length !last_response > 3 then begin
-      (* Ignore extended text *)
-      if (String.sub !last_response 3 1) = "-"
-        then iter ()
-        else int_of_string (String.sub !last_response 0 3)
-    end
-  else 
-    bad_response ()
-  in iter ()
+    match get_response ic with
+    | (n,true,_) -> n
+    | _ -> iter ()
+  in
+  iter ()
+
+let mail_address new_style s = if new_style then "<"^s^">" else s
 
 let make_mail mail new_style =
   let mail_date = Date.mail_string (Unix.time ()) in
-  
-  if new_style then
-	Printf.sprintf 
-	"From: mldonkey <%s>\r\nTo: %s\r\n%s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
-	mail.mail_from
-	mail.mail_to
-	(rfc2047_encode "Subject: " "utf-8" mail.mail_subject)
-	mail_date
-	mail.mail_body
-    else
 	Printf.sprintf 
 	"From: mldonkey %s\r\nTo: %s\r\n%s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
-	mail.mail_from
+	(mail_address new_style mail.mail_from)
 	mail.mail_to
 	(rfc2047_encode "Subject: " "utf-8" mail.mail_subject)
 	mail_date
@@ -127,59 +130,121 @@ let canon_addr s =
     if pos = -1 then s else
     if s.[pos] = ' ' then iter_end s (pos-1) else
       iter_begin s (pos-1) pos
-      
   and iter_begin s pos last =
     if pos = -1 || s.[pos] = ' ' then
       String.sub s (pos+1) (last - pos)
     else iter_begin s (pos-1) last
-      
   in
   iter_end s (len - 1)
-      
+
+let string_xor s1 s2 =
+  assert (String.length s1 = String.length s2);
+  let s = String.create (String.length s1) in
+  for i = 0 to String.length s - 1 do
+    s.[i] <- Char.chr (Char.code s1.[i] lxor Char.code s2.[i]);
+  done;
+  s
+
+(* HMAC-MD5, RFC 2104 *)
+let hmac_md5 =
+  let ipad = String.make 64 '\x36' in
+  let opad = String.make 64 '\x5C' in
+  let md5 s = Md5.direct_to_string (Md5.string s) in
+  fun secret challenge ->
+    let secret = if String.length secret > 64 then md5 secret else secret in
+    let k = String.make 64 '\x00' in
+    String.blit secret 0 k 0 (String.length secret);
+    md5 (string_xor k opad ^ md5 (string_xor k ipad ^ challenge))
+
 let sendmail smtp_server smtp_port new_style mail =
 (* a completely synchronous function (BUG) *)
   try
     let s = simple_connect smtp_server smtp_port in
+    Unix.setsockopt_float s Unix.SO_RCVTIMEO 30.;
+    Unix.setsockopt_float s Unix.SO_SNDTIMEO 30.;
     let ic = in_channel_of_descr s in
     let oc = out_channel_of_descr s in
-    
+    let auth_login_enabled = ref false in
+    let auth_plain_enabled = ref false in
+    let auth_cram_enabled = ref false in
+    let read_response_auth ic =
+      let rec loop () =
+        let (n,final,text) = get_response ic in
+        begin match String2.split_simplify (String.uppercase text) ' ' with
+        | ("AUTH"::methods) ->
+          List.iter (function
+          | "LOGIN" -> auth_login_enabled := true
+          | "PLAIN" -> auth_plain_enabled := true
+          | "CRAM-MD5" -> auth_cram_enabled := true
+          | _ -> ()) methods
+        | _ -> ()
+        end;
+        if final then n else loop ()
+      in
+      loop ()
+    in
+
     try
       if read_response ic <> 220 then bad_response ();
-      
-      Printf.fprintf oc "HELO %s\r\n" (gethostname ()); flush oc;
+
+      send1 oc "EHLO" (gethostname ());
+      if read_response_auth ic <> 250 then bad_response ();
+
+      if mail.smtp_login <> "" then
+      begin
+        if !auth_cram_enabled then (* prefer CRAM-MD5 *)
+        begin
+          send oc "AUTH CRAM-MD5";
+          match get_response ic with
+          | (334,true,s) ->
+            (* RFC 2195 *)
+            let digest = hmac_md5 mail.smtp_password (Base64.decode s) in
+            send oc (Base64.encode (Printf.sprintf "%s %s" mail.smtp_login digest));
+            if read_response ic <> 235 then bad_response ()
+          | _ -> bad_response ()
+        end
+        else if !auth_login_enabled then
+        begin
+          send oc "AUTH LOGIN";
+          if read_response ic <> 334 then bad_response (); 
+
+          send oc (Base64.encode mail.smtp_login);
+          if read_response ic <> 334 then bad_response (); 
+
+          send oc (Base64.encode mail.smtp_password);
+          if read_response ic <> 235 then bad_response ()
+        end
+        else if !auth_plain_enabled then
+        begin
+          let auth = Printf.sprintf "\x00%s\x00%s" mail.smtp_login mail.smtp_password in
+          send1 oc "AUTH PLAIN" (Base64.encode auth);
+          if read_response ic <> 235 then bad_response ()
+        end
+      end;
+
+      send1 oc "MAIL FROM:" (mail_address new_style (canon_addr mail.mail_from));
       if read_response ic <> 250 then bad_response ();
-      
-      if new_style then
-        Printf.fprintf oc "MAIL FROM:<%s>\r\n" (canon_addr mail.mail_from)
-      else
-        Printf.fprintf oc "MAIL FROM:%s\r\n" (canon_addr mail.mail_from);
-      flush oc;
+
+      send1 oc "RCPT TO:" (mail_address new_style (canon_addr mail.mail_to));
       if read_response ic <> 250 then bad_response ();
-      
-      if new_style then 
-        Printf.fprintf oc "RCPT TO:<%s>\r\n" (canon_addr mail.mail_to)
-      else
-        Printf.fprintf oc "RCPT TO:%s\r\n" (canon_addr mail.mail_to); 
-      
-      flush oc;
-      if read_response ic <> 250 then bad_response ();
-      
-      Printf.fprintf oc "DATA\r\n"; flush oc;
+
+      send oc "DATA";
       if read_response ic <> 354 then bad_response ();
 
       let body = make_mail mail new_style in
-      Printf.fprintf oc "%s\r\n.\r\n" body; flush oc;
+      send oc body;
+      send oc ".";
       if read_response ic <> 250 then bad_response ();
-      
-      Printf.fprintf oc "QUIT\r\n"; flush oc;
+
+      send oc "QUIT";
       if read_response ic <> 221 then bad_response ();
 
       close_out oc;
     with e ->
-        Printf.fprintf oc "QUIT\r\n"; flush oc;
+        send oc "QUIT";
         if read_response ic <> 221 then bad_response ();
         close_out oc;
         raise e
-        
+
   with e ->
       lprintf_nl "Exception %s while sending mail" (Printexc2.to_string e)

@@ -209,7 +209,7 @@ MAGIC_SRCS += $(LIB)/magic.ml
 
 NET_SRCS = \
   $(NET)/basicSocket.ml \
-  $(NET)/ip.ml $(NET)/ip_set.ml $(NET)/geoip.ml $(NET)/mailer.ml $(NET)/base64.ml  \
+  $(NET)/ip.ml $(NET)/ip_set.ml $(NET)/geoip.ml $(NET)/base64.ml $(NET)/mailer.ml \
   $(NET)/anyEndian.ml $(NET)/bigEndian.ml $(NET)/littleEndian.ml \
   $(NET)/tcpBufferedSocket.ml \
   $(NET)/tcpServerSocket.ml \
@@ -590,7 +590,7 @@ endif
 MLNET_SRCS+= $(MAIN_SRCS)
 MLNET_CMXA=extlib.cmxa $(CDK_CMXA) $(BITSTRING_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa driver.cmxa
 
-TESTS_CMXA=$(CDK_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa
+TESTS_CMXA=extlib.cmxa $(CDK_CMXA) $(BITSTRING_CMXA) magic.cmxa common.cmxa client.cmxa core.cmxa
 TESTS_SRCS=tools/tests.ml
 
 ifeq ("$(GUI)", "newgui2")
@@ -1374,7 +1374,7 @@ EXPAND(BTVIEW,btview)
 EXPAND(CLUSTER,cluster)
 EXPAND(TESTRSS,testrss)
 EXPAND(SVG_CONVERTER,svg_converter)
-EXPAND(TESTS,tests)
+EXPAND(TESTS,tests,NO,MLNET,GD,CRYPTOPP,MAGIC,BITSTRING,UPNP_NATPMP)
 
 #######################################################################
 
@@ -1464,6 +1464,7 @@ clean:
 	rm -f mlfasttrack mlfasttrack+gui mlfasttrack.exe
 	rm -f svg_converter svg_converter.byte mld_hash make_torrent copysources get_range subconv testrss
 	rm -f svg_converter.exe mld_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe testrss.exe
+	rm -f tests tests.exe
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)
