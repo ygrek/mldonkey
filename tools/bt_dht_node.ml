@@ -41,7 +41,6 @@ let run_queries =
 
 let () =
   Random.self_init ();
-  Printexc.record_backtrace true;
   try
     match Sys.argv with
     | [|_;file;port|] ->
@@ -57,5 +56,5 @@ let () =
       BasicSocket.loop ()
     | _ -> Printf.eprintf "Usage : %s <storage> <port>\n" Sys.argv.(0)
   with
-    exn -> log #error "main : %s\n%s" (Printexc.to_string exn) (Printexc.get_backtrace ())
+    exn -> log #error "main : %s" (Printexc.to_string exn)
 
