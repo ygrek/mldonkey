@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2010/12/22
+7418: Ignore setsockopt_float exception while sending mail
+
 2010/12/19
 7303: UPNP: added BT_tracker-port
 7418: SMTP auth implementation (ygrek)
