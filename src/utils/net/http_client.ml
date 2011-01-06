@@ -500,7 +500,7 @@ let wget_string r f ?(ferr=def_ferr) progress =
       let content = 
         if r.req_gzip then
           try
-            let io = IO.input_string (Buffer.contents file_buf) in
+            let io = Gzip.input_io (IO.input_string (Buffer.contents file_buf)) in
             IO.read_all io
           with e -> 
             lprintf_nl "Exception %s while uncompressing content from %s" (Printexc2.to_string e) (Url.to_string r.req_url);

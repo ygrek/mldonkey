@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/01/06
+6012: Fix bug in Http_client.wget_string (ygrek)
+
 2010/12/22
 7418: Ignore setsockopt_float exception while sending mail
 
