@@ -125,7 +125,7 @@ let send sock (ip,port as addr) txnmsg =
 
 type t = UdpSocket.t * (addr, string, (addr -> dict -> unit) * (unit -> unit) * int) A.t
 
-let create port enabler answer : t =
+let create port enabler bw_control answer : t =
   let socket = create Unix.inet_addr_any port (fun sock event ->
       match event with
       | WRITE_DONE | CAN_REFILL -> ()
@@ -135,6 +135,7 @@ let create port enabler answer : t =
         | CAN_READ | CAN_WRITE -> assert false (* udpSocket implementation prevents this *)
         | LTIMEOUT | WTIMEOUT | RTIMEOUT -> () (*close sock (Closed_for_error "KRPC timeout")*))
   in
+  set_write_controler socket bw_control;
   set_wtimeout (sock socket) 5.;
   set_rtimeout (sock socket) 5.;
   let h = A.create () in
@@ -399,9 +400,9 @@ let manage_timeouts enabler h =
     log #info "Removed %d of %d peers for announced torrents" !rm !total
   end
 
-let create rt dht_port answer =
+let create rt dht_port bw_control answer =
   let enabler = ref true in
-  let rpc = KRPC.create dht_port enabler answer in
+  let rpc = KRPC.create dht_port enabler bw_control answer in
   let torrents = Hashtbl.create 8 in
   manage_timeouts enabler torrents;
   { rt = rt; rpc = rpc; torrents = torrents; dht_port = dht_port; enabler = enabler; }
@@ -631,9 +632,9 @@ let query_peers dht id k =
 (*       check () *)
     end nodes)
 
-let start rt port =
+let start rt port bw_control =
   let secret = Secret.create secret_timeout in
-  let rec dht = lazy (M.create rt port answer)
+  let rec dht = lazy (M.create rt port bw_control answer)
   and answer addr name args =
     try
     let (id,q) = parse_query_exn name args in

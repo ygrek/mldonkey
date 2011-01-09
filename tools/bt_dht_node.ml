@@ -44,7 +44,9 @@ let () =
   try
     match Sys.argv with
     | [|_;file;port|] ->
-      let dht = start (init file) (int_of_string port) in
+      let bw = UdpSocket.new_bandwidth_controler 
+        (TcpBufferedSocket.create_write_bandwidth_controler "UNLIMIT" 0) in
+      let dht = start (init file) (int_of_string port) bw in
       let finish () = store file dht.M.rt; stop dht; exit 0 in
       Sys.set_signal Sys.sigint (Sys.Signal_handle (fun _ -> show dht; finish ()));
       Sys.set_signal Sys.sigterm (Sys.Signal_handle (fun _ -> show dht; finish ()));

@@ -53,7 +53,7 @@ let start_dht () =
   begin
     stop_dht ();
     lprintf_nl "starting DHT on port %d" !!dht_port;
-    let dht = BT_DHT.start !!dht_routing_table !!dht_port in
+    let dht = BT_DHT.start !!dht_routing_table !!dht_port CommonGlobals.udp_write_controler in
     BT_DHT.bootstrap dht ~routers:!!dht_bootstrap_nodes;
     bt_dht := Some dht
   end
