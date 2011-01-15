@@ -630,11 +630,6 @@ let load_torrent_string s user group =
 
   (* Save the torrent, because we later want to put
      it in the seeded directory. *)
-  let torrent_is_usable = ref false in
-  List.iter (fun url -> if can_handle_tracker (make_tracker_url url) then torrent_is_usable := true)
-    (if torrent.torrent_announce_list <> [] then torrent.torrent_announce_list else [torrent.torrent_announce]);
-  if not !torrent_is_usable then raise (Torrent_can_not_be_used torrent.torrent_name);
-
   let torrent_diskname =
     let fs = Unix32.filesystem downloads_directory in
     let namemax =
@@ -807,9 +802,6 @@ let scan_new_torrents_directory () =
       load_torrent_file file user user.user_default_group;
       (try Sys.remove file with _ -> ())
     with 
-      Torrent_can_not_be_used _ ->
-        Unix2.rename file (Filename.concat old_directory file_basename);
-        lprintf_nl "Torrent %s does not have valid tracker URLs, moved to torrents/old ..." file_basename
     | e ->
         Unix2.rename file (Filename.concat old_directory file_basename);
         lprintf_nl "Error %s in scan_new_torrents_directory for %s, moved to torrents/old ..."
@@ -892,7 +884,6 @@ let op_network_parse_url url user group =
             "", true
           with
             Torrent_already_exists _ -> "A torrent with this name is already in the download queue", false
-          | Torrent_can_not_be_used _ -> "This torrent does not have valid tracker URLs", false
         with e ->
           lprintf_nl "Exception %s while 2nd loading" (Printexc2.to_string e);
           let s = Printf.sprintf "Can not load load torrent file: %s"
@@ -1273,7 +1264,6 @@ let op_gui_message s user =
         let file = load_torrent_string text user user.user_default_group in
         raise (Torrent_started file.file_name)
       with e -> (match e with
-        | Torrent_can_not_be_used s -> lprintf_nl "Loading torrent from GUI: torrent %s can not be used" s
         | Torrent_already_exists s -> lprintf_nl "Loading torrent from GUI: torrent %s is already in download queue" s
         | _ -> ());
         raise e)
