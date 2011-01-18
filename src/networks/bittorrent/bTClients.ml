@@ -607,6 +607,9 @@ let parse_reserved rbits c =
 
   c.client_azureus_messaging_protocol <- has_bit 0 0x80
 
+let show_client c =
+  let (ip,port) = c.client_host in
+  Printf.sprintf "%s:%d %S" (Ip.to_string ip) port (brand_to_string c.client_brand)
 
 (** This function is called to parse the first message that
   a client send.
@@ -672,11 +675,8 @@ let rec client_parse_header counter cc init_sent gconn sock
             c       *)
     in
 
-    if !verbose_msg_clients then begin
-        let (ip,port) = c.client_host in
-          lprintf_nl "Client %d: Connected from %s:%d" (client_num c)
-            (Ip.to_string ip) port;
-      end;
+    if !verbose_msg_clients then
+        lprintf_nl "Client %d: Connected from %s" (client_num c) (show_client c);
 
     parse_reserved rbits c;
 
@@ -1015,7 +1015,7 @@ and client_to_client c sock msg =
                 | (p1,p2,r) :: _ ->
                     let (x,y) = CommonSwarming.range_range r in
                     lprintf_file_nl (as_file file) "Current range from %s : %Ld [%d] (asked %Ld-%Ld[%Ld-%Ld])"
-                      (brand_to_string c.client_brand) position len
+                      (show_client c) position len
                       p1 p2 x y
               );
 
@@ -1180,9 +1180,8 @@ and client_to_client c sock msg =
               None ->
                 (* Afaik this is no protocol violation and happens if the client
                    didn't send a client bitmap after the handshake. *)
-                let (ip,port) = c.client_host in
-                  if !verbose_msg_clients then lprintf_file_nl (as_file file) "%s:%d with software %s : Choke send, but no client bitmap"
-                    (Ip.to_string ip) port (brand_to_string c.client_brand)
+                  if !verbose_msg_clients then lprintf_file_nl (as_file file) "%s : Choke send, but no client bitmap"
+                    (show_client c)
             | Some up ->
                 CommonSwarming.clear_uploader_intervals up
           end;
@@ -1252,12 +1251,12 @@ and client_to_client c sock msg =
         match !bt_dht with
         | None ->
           if !verbose_msg_clients then
-            lprintf_file_nl (as_file file) "Received DHT PORT when DHT is disabled"
+            lprintf_file_nl (as_file file) "Received DHT PORT when DHT is disabled. From %s" (show_client c)
         | Some dht ->
           BT_DHT.M.ping dht (fst c.client_host, port) begin function
           | None ->
             if !verbose then
-              lprintf_file_nl (as_file file) "Peer didn't reply to DHT ping on announced port"
+              lprintf_file_nl (as_file file) "Peer %s didn't reply to DHT ping on port %d" (show_client c) port
           | Some (id,addr) ->
             BT_DHT.update dht Kademlia.Good id addr
           end
