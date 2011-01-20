@@ -201,7 +201,7 @@ let shutdown (socket,h) =
 let write (socket,h) msg addr k ~kerr =
   let tt = Assoc2.find_all h addr in
   let rec loop () = (* choose txn FIXME *)
-    let txn = string_of_int (Random.int max_int) in
+    let txn = string_of_int (Random.int 1_000_000) in
     match Hashtbl.mem tt txn with
     | true -> loop ()
     | false -> txn
@@ -435,7 +435,7 @@ val valid : t -> string -> bool
 end = struct
 
 type t = { mutable cur : string; mutable prev : string; timeout : time; mutable next : time; }
-let make () = string_of_int (Random.int max_int)
+let make () = string_of_int (Random.int 1_000_000)
 let create tm =
   assert (tm > 0);
   let s = make () in 
