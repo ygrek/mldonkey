@@ -431,6 +431,7 @@ type t
 val create : time -> t
 val get : t -> string
 val valid : t -> string -> bool
+val get_prev : t -> string
 
 end = struct
 
@@ -450,21 +451,18 @@ let invalidate t =
 let get t =
   invalidate t;
   t.cur
+let get_prev t = t.prev
 let valid t s =
   invalidate t;
   s = t.cur || s = t.prev
 
 end
 
-let make_token addr h secret =
-  H.to_hexa (H.xor (H.string (show_addr addr)) h) ^ "/" ^ (Secret.get secret)
+let make_token addr h secret = string_of_int (Hashtbl.hash [show_addr addr; H.direct_to_string h; secret])
 
 let valid_token addr h secret token =
-  try
-    Scanf.sscanf token "%40s/%s%!" (fun s1 s2 ->
-      Secret.valid secret s2 && H.to_hexa (H.xor (H.string (show_addr addr)) h) = s1)
-  with
-  _ -> false
+  token = make_token addr h (Secret.get secret) ||
+  token = make_token addr h (Secret.get_prev secret)
 
 module LimitedSet = struct
 
@@ -646,7 +644,7 @@ let start rt port bw_control =
       | Ping -> Ack
       | FindNode h -> Nodes (M.self_find_node !!dht h)
       | GetPeers h -> 
-        let token = make_token addr h secret in
+        let token = make_token addr h (Secret.get secret) in
         let peers = M.self_get_peers !!dht h in
         let nodes = M.self_find_node !!dht h in
         log #info "answer with %d peers and %d nodes" (List.length peers) (List.length nodes);
