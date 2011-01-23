@@ -108,13 +108,7 @@ let max list =
 
 let shuffle list =
   let a = Array.of_list list in
-  let len = Array.length a in
-  for i = 0 to len-1 do
-    let p = Random.int (len-1) in
-    let tmp = a.(i) in
-    a.(i) <- a.(p);
-    a.(p) <- tmp;
-  done;
+  Array2.shuffle a;
   Array.to_list a
 
 let filter_map f =

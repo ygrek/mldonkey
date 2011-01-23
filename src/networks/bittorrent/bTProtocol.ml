@@ -196,7 +196,7 @@ No payload:
     * 1 - unchoke: you have been unblocked
     * 2 - interested: I'm interested in downloading this file now
     * 3 - not interested: I'm not interested in downloading this file now
-With bencoded payload:
+With payload:
     * 4 - have
           int : index of new completed chunk
     * 5 - bitfield:
@@ -210,10 +210,12 @@ With bencoded payload:
           int: index
           int: begin
           string: piece
-    * 8 - cancel: cancel a requesu
+    * 8 - cancel: cancel a request
           int: index
           int: begin
           int: length (power of 2, 2 ^ 15)
+    * 9 - DHT port announcement
+          int16: UDP port
 
 Choke/unchoke every 10 seconds
 *)
@@ -263,6 +265,7 @@ module TcpMessages = struct
     | Cancel of int * int64 * int64
     | Ping
     | PeerID of string
+    | DHT_Port of int
 
     let to_string msg =
       match msg with
@@ -280,10 +283,11 @@ module TcpMessages = struct
           Printf.sprintf "Cancel %d %Ld[%Ld]" index offset len
       | Ping -> "Ping"
       | PeerID s ->  Printf.sprintf  "PeerID [%s]" (String.escaped s)
+      | DHT_Port n -> Printf.sprintf "DHT_Port %d" n
 
     let parsing opcode m =
         match opcode with
-          0 -> Choke
+        | 0 -> Choke
         | 1 -> Unchoke
         | 2 -> Interested
         | 3 -> NotInterested
@@ -292,6 +296,7 @@ module TcpMessages = struct
         | 6 -> Request (get_int m 0, get_uint64_32 m 4, get_uint64_32 m 8)
         | 7 -> Piece (get_int m 0, get_uint64_32 m 4, m, 8, String.length m - 8)
         | 8 -> Cancel (get_int m 0, get_uint64_32 m 4, get_uint64_32 m 8)
+        | 9 -> DHT_Port (get_int16 m 0)
         | -1 -> PeerID m
         | _ -> raise Not_found
 
@@ -316,10 +321,10 @@ module TcpMessages = struct
             buf_int buf num;
             buf_int64_32 buf index;
             Buffer.add_substring buf s pos len
-
         | Cancel _ -> ()
         | PeerID _ -> ()
         | Ping -> ()
+        | DHT_Port n -> buf_int8 buf 9; buf_int16 buf n
       end;
       let s = Buffer.contents buf in
       str_int s 0 (String.length s - 4);
@@ -496,6 +501,7 @@ let bt_handler parse_fun handler c sock =
             (* lprintf "Message complete: %d\n" msg_len;  *)
             if msg_len > 0 then
                 let opcode = get_int8 b.buf b.pos in
+                (* FIXME sub *)
                 let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
                 buf_used b msg_len;
                 (* lprintf "Opcode %d\n" opcode; *)
@@ -587,32 +593,6 @@ let set_bt_sock sock info ghandler =
 (*                TcpBufferedSocket.close sock "write done" *)
           | refill :: _ -> refill sock)
 
-(*
-No payload:
-    * 0 - choke: you have been blocked
-    * 1 - unchoke: you have been unblocked
-    * 2 - interested: I'm interested in downloading this file now
-    * 3 - not interested: I'm not interested in downloading this file now
-With bencoded payload:
-    * 4 - have
-          int : index of new completed chunk
-    * 5 - bitfield:
-          string: a bitfield of bit 1 for downloaded chunks
-          byte: bits are inverted 0....7 ---> 7 .... 0
-    * 6 - request
-          int: index
-          int: begin
-          int: length (power of 2, 2 ^ 15)
-    * 7 - piece
-          int: index
-          int: begin
-          string: piece
-    * 8 - cancel: cancel a requesu
-          int: index
-          int: begin
-          int: length (power of 2, 2 ^ 15)
-*)
-
 let send_client client_sock msg =
     do_if_connected  client_sock (fun sock ->
       try
@@ -627,13 +607,3 @@ let send_client client_sock msg =
         (Printexc2.to_string e)
 )
 
-let zero8 = String.make 8 '\000'
-
-let send_init client_uid file_id sock =
-  let buf = Buffer.create 100 in
-  buf_string8 buf  "BitTorrent protocol";
-  Buffer.add_string buf zero8;
-  Buffer.add_string buf (Sha1.direct_to_string file_id);
-  Buffer.add_string buf (Sha1.direct_to_string client_uid);
-  let s = Buffer.contents buf in
-  write_string sock s

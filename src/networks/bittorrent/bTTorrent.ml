@@ -80,7 +80,7 @@ let decode_torrent s =
   let file_encoding = ref "" in
   let file_codepage = ref zero in
   let file_ed2k_hash = ref "" in
-  let file_is_private = ref zero in
+  let file_is_private = ref false in
   let file_aps = ref (List []) in
   let file_dht_backup_enable = ref zero in
   let length = ref zero in
@@ -211,10 +211,8 @@ let decode_torrent s =
                     | "publisher-url.utf-8", String publisher_url_utf8 -> ()
 
                     | "private", Int n ->
-                        (* TODO: if set to 1, only accept peers from tracker *)
-                        file_is_private := n;
-                        if !verbose_msg_servers &&
-                          Int64.to_int !file_is_private = 1 then
+                        file_is_private := n <> 0L;
+                        if !verbose_msg_servers && !file_is_private then
                             lprintf_nl "[BT] torrent is private"
                     | key, _ ->
                         if !verbose_msg_servers then
@@ -365,7 +363,7 @@ let encode_torrent torrent =
       "name.utf-8", String torrent.torrent_name_utf8;
       "piece length", Int torrent.torrent_piece_size;
       "pieces", String pieces;
-      "private", Int torrent.torrent_private;
+      "private", Int (if torrent.torrent_private then 1L else 0L);
     ]
   in
 

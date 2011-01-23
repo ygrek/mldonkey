@@ -153,6 +153,8 @@ let current_files = ref ([] : BTTypes.file list)
 
 let listen_sock = ref (None : TcpServerSocket.t option)
 
+let bt_dht = ref (None : BT_DHT.M.t option)
+
 let files_by_uid = Hashtbl.create 13
 
 let max_range_len = Int64.of_int (1 lsl 14)
@@ -299,6 +301,8 @@ let new_file file_id t torrent_diskname file_temp file_state user group =
           file_shared = None;
           file_session_uploaded = Int64.zero;
           file_session_downloaded = Int64.zero;
+          file_last_dht_announce = 0;
+          file_private = t.torrent_private;
         } and file_impl =  {
           dummy_file_impl with
           impl_file_owner = user;

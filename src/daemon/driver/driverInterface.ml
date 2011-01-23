@@ -1128,8 +1128,6 @@ let gui_reader (gui: gui_record) t _ =
       gui_send gui (Console (Printf.sprintf "Failure: %s\n" s))
   | Torrent_started s ->
       gui_send gui (Console (Printf.sprintf "\nInfo: Torrent %s started\n" s))
-  | Torrent_can_not_be_used s ->
-      gui_send gui (Console (Printf.sprintf "\nError: Torrent %s does not have valid tracker URLs\n" s))
   | Torrent_already_exists s ->
       gui_send gui (Console (Printf.sprintf "\nError: Torrent %s is already in download queue\n" s))
   | e ->

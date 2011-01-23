@@ -230,7 +230,7 @@ let read_frames file concat_frame =
           while true do
             
             let line = input_line ic in
-            let i = int_of_string line in
+            let _i = int_of_string line in
             
             let line = input_line ic in
             let frame1, frame2 =

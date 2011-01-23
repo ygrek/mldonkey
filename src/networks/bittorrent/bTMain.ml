@@ -39,6 +39,25 @@ let lprintf_nl fmt =
 
 let is_enabled = ref false
 
+let stop_dht () =
+  match !bt_dht with
+  | None -> ()
+  | Some dht ->
+    if !verbose then lprintf_nl "stopping DHT";
+    BT_DHT.stop dht;
+    bt_dht := None
+
+let start_dht () =
+  let already = match !bt_dht with Some dht -> dht.BT_DHT.M.dht_port = !!dht_port | None -> false in
+  if not already && !!dht_port > 0 then
+  begin
+    stop_dht ();
+    lprintf_nl "starting DHT on port %d" !!dht_port;
+    let dht = BT_DHT.start !!dht_routing_table !!dht_port CommonGlobals.udp_write_controler in
+    BT_DHT.bootstrap dht ~routers:!!dht_bootstrap_nodes;
+    bt_dht := Some dht
+  end
+
 let disable enabler () =
   if !enabler then begin
       is_enabled := false;
@@ -51,6 +70,7 @@ let disable enabler () =
             listen_sock := None;
             TcpServerSocket.close sock Closed_by_user);
       BTTracker.stop_tracker ();
+      stop_dht ();
       if !!enable_bittorrent then enable_bittorrent =:= false
     end
 
@@ -76,6 +96,7 @@ let enable () =
         with e ->
             lprintf "Exception in BTTracker.start_tracker: %s\n"
               (Printexc2.to_string e));
+    start_dht ();
     if !!share_scan_interval <> 0 then
     add_session_timer enabler (float_of_int (!!share_scan_interval * 60))
       (fun _ -> BTInteractive.share_files ();
@@ -114,11 +135,17 @@ let enable () =
   ()
 
 let _ =
+  CommonOptions.verbose_dht := Kademlia.verbose;
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_bittorrent);
   option_hook enable_bittorrent (fun _ ->
       if !CommonOptions.start_running_plugins then
       if !!enable_bittorrent then network_enable network
       else network_disable network);
+  option_hook dht_port (fun _ ->
+    if !is_enabled then
+    begin
+      if !!dht_port = 0 then stop_dht () else start_dht ()
+    end);
 (*
   network.op_network_save_simple_options <- BTComplexOptions.save_config;
   network.op_network_load_simple_options <-
