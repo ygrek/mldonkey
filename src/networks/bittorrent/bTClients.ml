@@ -295,13 +295,7 @@ let connect_trackers file event need_sources f =
         (* only re-enable after normal error *)
         | Disabled _ -> t.tracker_status <- Enabled
         | _ -> ()) file.file_trackers;
-      let enabled_trackers = List.filter (fun t -> tracker_is_enabled t) file.file_trackers in
-      if enabled_trackers = [] && (file_state file) <> FilePaused then
-      begin
-        file_pause (as_file file) (CommonUserDb.admin_user ());
-        lprintf_file_nl (as_file file) "Paused %s, no usable trackers left" (file_best_name (as_file file))
-      end;
-      enabled_trackers
+      List.filter (fun t -> tracker_is_enabled t) file.file_trackers
     end in
 
   List.iter (fun t ->
@@ -369,6 +363,9 @@ let connect_trackers file event need_sources f =
           lprintf_nl "Request NOT sent to tracker %s - next request in %ds for file: %s"
             (show_tracker_url t.tracker_url) (t.tracker_interval - (last_time () - t.tracker_last_conn)) file.file_name
   ) enabled_trackers
+
+let connect_trackers file event need_sources f =
+  if !!use_trackers then connect_trackers file event need_sources f
 
 let start_upload c =
   set_client_upload (as_client c) (as_file c.client_file);
@@ -540,6 +537,20 @@ let set_bit s n =
 let max_range_requests = 5
 (* How much bytes we can request in one Piece *)
 
+let reserved () =
+  let s = String.make 8 '\x00' in
+  s.[7] <- (match !bt_dht with None -> '\x00' | Some _ -> '\x01');
+  s
+
+(** handshake *)
+let send_init client_uid file_id sock =
+  let buf = Buffer.create 100 in
+  buf_string8 buf  "BitTorrent protocol";
+  Buffer.add_string buf (reserved ());
+  Buffer.add_string buf (Sha1.direct_to_string file_id);
+  Buffer.add_string buf (Sha1.direct_to_string client_uid);
+  let s = Buffer.contents buf in
+  write_string sock s
 
 (** A wrapper to send Interested message to a client.
   (Send interested only if needed)
@@ -596,6 +607,9 @@ let parse_reserved rbits c =
 
   c.client_azureus_messaging_protocol <- has_bit 0 0x80
 
+let show_client c =
+  let (ip,port) = c.client_host in
+  Printf.sprintf "%s:%d %S" (Ip.to_string ip) port (brand_to_string c.client_brand)
 
 (** This function is called to parse the first message that
   a client send.
@@ -661,11 +675,8 @@ let rec client_parse_header counter cc init_sent gconn sock
             c       *)
     in
 
-    if !verbose_msg_clients then begin
-        let (ip,port) = c.client_host in
-          lprintf_nl "Client %d: Connected from %s:%d" (client_num c)
-            (Ip.to_string ip) port;
-      end;
+    if !verbose_msg_clients then
+        lprintf_nl "Client %d: Connected from %s" (client_num c) (show_client c);
 
     parse_reserved rbits c;
 
@@ -699,7 +710,11 @@ let rec client_parse_header counter cc init_sent gconn sock
     if !verbose_msg_clients then
       lprintf_nl "file and client found";
 (*    if not c.client_incoming then *)
-     send_bitfield c; 
+    send_bitfield c; (* BitField is always the first message *)
+    begin match c.client_dht, !bt_dht with
+    | true, Some dht -> send_client c (DHT_Port dht.BT_DHT.M.dht_port)
+    | _ -> ()
+    end;
     c.client_blocks_sent <- file.file_blocks_downloaded;
 (*
       TODO !!! : send interested if and only if we are interested
@@ -733,8 +748,8 @@ let rec client_parse_header counter cc init_sent gconn sock
               (Ip.to_string ip) port (Sha1.to_hexa file_id)
       | e ->
           lprintf_nl "Exception %s in client_parse_header" (Printexc2.to_string e);
-      close sock (Closed_for_exception e);
-      raise e
+          close sock (Closed_for_exception e);
+          raise e
 
 
 (** Update the bitmap of a client. Unclear if it is still useful.
@@ -982,7 +997,7 @@ and client_to_client c sock msg =
 
   try
     match msg with
-      Piece (num, offset, s, pos, len) ->
+    | Piece (num, offset, s, pos, len) ->
         (*A Piece message contains the data*)
         set_client_state c (Connected_downloading (file_num file));
         (*flag it as a good client *)
@@ -1000,7 +1015,7 @@ and client_to_client c sock msg =
                 | (p1,p2,r) :: _ ->
                     let (x,y) = CommonSwarming.range_range r in
                     lprintf_file_nl (as_file file) "Current range from %s : %Ld [%d] (asked %Ld-%Ld[%Ld-%Ld])"
-                      (brand_to_string c.client_brand) position len
+                      (show_client c) position len
                       p1 p2 x y
               );
 
@@ -1165,9 +1180,8 @@ and client_to_client c sock msg =
               None ->
                 (* Afaik this is no protocol violation and happens if the client
                    didn't send a client bitmap after the handshake. *)
-                let (ip,port) = c.client_host in
-                  if !verbose_msg_clients then lprintf_file_nl (as_file file) "%s:%d with software %s : Choke send, but no client bitmap"
-                    (Ip.to_string ip) port (brand_to_string c.client_brand)
+                  if !verbose_msg_clients then lprintf_file_nl (as_file file) "%s : Choke send, but no client bitmap"
+                    (show_client c)
             | Some up ->
                 CommonSwarming.clear_uploader_intervals up
           end;
@@ -1232,6 +1246,20 @@ and client_to_client c sock msg =
         else
           if !verbose_msg_clients then
             lprintf_file_nl (as_file file) "Error: received cancel request but client has no slot"
+
+    | DHT_Port port ->
+        match !bt_dht with
+        | None ->
+          if !verbose_msg_clients then
+            lprintf_file_nl (as_file file) "Received DHT PORT when DHT is disabled. From %s" (show_client c)
+        | Some dht ->
+          BT_DHT.M.ping dht (fst c.client_host, port) begin function
+          | None ->
+            if !verbose then
+              lprintf_file_nl (as_file file) "Peer %s didn't reply to DHT ping on port %d" (show_client c) port
+          | Some (id,addr) ->
+            BT_DHT.update dht Kademlia.Good id addr
+          end
 
   with e ->
       lprintf_file_nl (as_file file) "Error %s while handling MESSAGE: %s" (Printexc2.to_string e) (TcpMessages.to_string msg)
@@ -1615,6 +1643,24 @@ let talk_to_tracker file need_sources =
   in
   connect_trackers file event need_sources f
 
+let talk_to_dht file need_sources =
+  match !bt_dht with
+  | None -> ()
+  | Some dht ->
+    if !verbose then lprintf_file_nl (as_file file) "DHT announce";
+    file.file_last_dht_announce <- last_time ();
+    BT_DHT.query_peers dht file.file_id (fun (_,addr as node) token peers ->
+      BT_DHT.M.announce dht addr !!client_port token file.file_id (fun _ -> ()) ~kerr:(fun () -> 
+        if !verbose then lprintf_file_nl (as_file file) "DHT announce to %s failed" (BT_DHT.show_node node));
+      if need_sources then
+      begin
+        List.iter (fun (ip,port) -> maybe_new_client file Sha1.null ip port) peers;
+        resume_clients file
+      end)
+
+let talk_to_tracker file need_sources =
+  if file.file_last_dht_announce + 14*60 < last_time () && not file.file_private then talk_to_dht file need_sources;
+  talk_to_tracker file need_sources
 
 (** Check to see if file is finished, if not
   try to get sources for it

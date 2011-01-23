@@ -164,3 +164,20 @@ let get_user_agent () =
     CommonOptions.get_user_agent ()
   else !!user_agent
 
+let dht_port = define_option bittorrent_section ["dht_port"]
+  "The UDP port to bind the DHT node to (0 to disable)"
+  port_option 12345
+
+let use_trackers = define_option bittorrent_section ["use_trackers"]
+  "Send announces to trackers"
+  bool_option true
+
+let dht_bootstrap_nodes = define_option bittorrent_section ["dht_bootstrap_nodes"]
+  "Addresses of nodes used to bootstrap DHT network. Tried in order until enough nodes are found."
+  (list_option addr_option)
+  [
+    "service.ygrek.org.ua",6881;
+    "router.utorrent.com",6881;
+    "router.transmission.com",6881;
+  ]
+

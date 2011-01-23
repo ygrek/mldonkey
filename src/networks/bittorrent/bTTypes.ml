@@ -40,7 +40,7 @@ type torrent = {
     mutable torrent_creation_date : int64;
     mutable torrent_modified_by : string;
     mutable torrent_encoding : string;
-    mutable torrent_private : int64;
+    mutable torrent_private : bool;
 (*
     mutable torrent_nodes : string;
 *)
@@ -333,6 +333,9 @@ and file = {
     (** session uploaded and downloaded bytes, for statistics reporting *)
     mutable file_session_uploaded : int64;
     mutable file_session_downloaded : int64;
+    (** DHT specific *)
+    mutable file_last_dht_announce : int;
+    file_private : bool;
   }
 
 and ft = {

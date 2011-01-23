@@ -32,6 +32,11 @@ open BTTypes
 open BTOptions
 open BTGlobals
 
+let bt_dht_ini = create_options_file "bt_dht.ini"
+let bt_dht_section = file_section bt_dht_ini [] ""
+
+let dht_routing_table = define_option bt_dht_section ["dht_routing_table"] ""
+    Kademlia.RoutingTableOption.t (Kademlia.create ())
 
 let bt_stats_ini = create_options_file "stats_bt.ini"
 let bt_stats_section = file_section bt_stats_ini [] ""
@@ -133,7 +138,11 @@ let value_to_file file_size file_state user group assocs =
         let file_creation_date = try get_value "file_creation_date" value_to_int64 with Not_found -> Int64.zero in
         let file_modified_by = try get_value "file_modified_by" value_to_string with Not_found -> "" in
         let file_encoding = try get_value "file_encoding" value_to_string with Not_found -> "" in
-        let file_is_private = try get_value "file_is_private" value_to_int64 with Not_found -> Int64.zero in
+        let file_is_private = 
+          try get_value "file_is_private" value_to_bool with 
+          | Not_found -> false
+          | _ -> try get_value "file_is_private" value_to_int64 <> 0L with _ -> false
+        in
         let file_files =
           try
             let file_files = (get_value "file_files"
@@ -260,9 +269,8 @@ let save_config () =
 let config_files_loaded = ref false
 
 let load _ =
-  (try
-      Options.load bt_stats_ini;
-    with Sys_error _ -> ());
+  begin try Options.load bt_stats_ini with Sys_error _ -> () end;
+  begin try Options.load bt_dht_ini with Sys_error _ -> () end;
   check_client_uid ();
   config_files_loaded := true
 
@@ -300,6 +308,7 @@ let save _ =
       guptime =:= !!guptime + (last_time () - start_time) - !diff_time;
       diff_time := (last_time () - start_time);
       Options.save_with_help bt_stats_ini;
+      Options.save_with_help bt_dht_ini;
     end
 (*  lprintf "SAVED\n";  *)
 

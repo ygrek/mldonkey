@@ -48,15 +48,15 @@ let check_torrent () =
     end
 
 let _ =
-  Arg.parse [
-    "-tracker", Arg.String ((:=) announce),
-    "<url> : set the tracker to put in the torrent file";
-    "-torrent", Arg.String ((:=) torrent_filename),
-    "<filename.torrent> : the .torrent file to use";
-    "-comment", Arg.String ((:=) torrent_comment),
-    "\"<string>\" : some comments on the torrent";
-    "-private", Arg.Int ((:=) torrent_private),
-    "<0|1> : set the private flag";
+  let args = [
+    "-tracker", Arg.Set_string announce,
+    "<url> set the tracker to put in the torrent file";
+    "-torrent", Arg.Set_string torrent_filename,
+    "<filename.torrent> the .torrent file to use";
+    "-comment", Arg.Set_string torrent_comment,
+    "\"<string>\" some comments on the torrent";
+    "-private", Arg.Set_int torrent_private,
+    "<0|1> set the private flag";
 
     "-change", Arg.Unit (fun _ ->
         check_tracker ();
@@ -70,7 +70,7 @@ let _ =
         let s = Bencode.encode encoded in
         File.from_string !torrent_filename s;
         Printf.printf "Torrent file of %s modified\n" (Sha1.to_hexa torrent_id);
-    ), ": change the tracker inside a .torrent file";
+    ), " change the tracker inside a .torrent file";
 
     "-print", Arg.Unit (fun filename ->
         check_torrent ();
@@ -85,7 +85,7 @@ let _ =
         Printf.printf "        length: %Ld\n" torrent.torrent_length;
         Printf.printf "        encoding: %s\n" torrent.torrent_encoding;
         Printf.printf "        tracker: %s\n" torrent.torrent_announce;
-        Printf.printf "        private: %s\n" (Int64.to_string torrent.torrent_private);
+        Printf.printf "        private: %s\n" (if torrent.torrent_private then "yes" else "no");
         Printf.printf "        piece size: %Ld\n" torrent.torrent_piece_size;
         Printf.printf "  Pieces: %d\n" (Array.length torrent.torrent_pieces);
         Array.iteri (fun i s ->
@@ -97,19 +97,19 @@ let _ =
                 Printf.printf "    %10Ld : %s\n" len s
             ) torrent.torrent_files;
           end;
-    ), "<filename.torrent>: change the tracker inside a .torrent file";
+    ), "<filename.torrent> print the contents of a .torrent file";
 
     "-create", Arg.String (fun filename ->
         check_tracker ();
         check_torrent ();
         try
           let hash = BTTorrent.generate_torrent !announce !torrent_filename !torrent_comment 
-            (Int64.of_int !torrent_private) filename
+            (!torrent_private<>0) filename
           in
           Printf.printf "Torrent file generated : %s\n" (Sha1.to_hexa hash);
         with
           exn -> Printf.printf "Cannot create torrent : %s\n" (Printexc2.to_string exn); exit 2
-    )," <filename> : compute hashes of filename(s) (can be a directory) and generate a .torrent file";
+    ),"<filename> compute hashes of filename(s) (can be a directory) and generate a .torrent file";
 
     "-split", Arg.String (fun filename ->
         check_torrent ();
@@ -142,7 +142,7 @@ let _ =
         iter zero torrent.torrent_files;
         Unix32.close bt_fd;
 
-    ), "<filename> : split a file corresponding to a .torrent file";
+    ), "<filename> split a file corresponding to a .torrent file";
 
     "-check", Arg.String (fun filename ->
         check_torrent ();
@@ -196,8 +196,10 @@ let _ =
 
         Printf.printf "Torrent file verified !!!\n";
 
-    ), " <filename> : check that <filename> is well encoded by a .torrent";
+    ), "<filename> check that <filename> is well encoded by a .torrent";
   ]
+  in
+  Arg.parse (Arg.align args)
     (fun s ->
       Printf.printf "Don't know what to do with %s\n" s;
       Printf.printf "Use --help to get some help\n";

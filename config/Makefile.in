@@ -28,8 +28,8 @@ NO_LIBS_opt=
 NO_STATIC_LIBS_opt=
 NO_CMXA=
 
-LIBS_byte=-custom bigarray.cma unix.cma str.cma
-LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa
+LIBS_byte=-custom bigarray.cma unix.cma str.cma nums.cma
+LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa nums.cmxa
 
 BIGARRAY_LIBS_opt=bigarray.cmxa
 BIGARRAY_LIBS_byte=bigarray.cma
@@ -152,9 +152,9 @@ CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(LIB)/syslog.ml $(CDK)/printf2.ml \
   $(CDK)/heap.ml \
   $(CDK)/printexc2.ml $(CDK)/genlex2.ml \
   $(CDK)/filepath.ml $(CDK)/string2.ml \
-  $(CDK)/filename2.ml $(CDK)/list2.ml $(CDK)/hashtbl2.ml \
+  $(CDK)/filename2.ml $(CDK)/array2.ml $(CDK)/hashtbl2.ml \
   $(CDK)/unix2.ml $(CDK)/file.ml \
-  $(CDK)/heap_c.c $(CDK)/array2.ml
+  $(CDK)/heap_c.c $(CDK)/list2.ml
 
 EXTLIB_SRCS += $(EXTLIB)/IO.ml
 
@@ -450,6 +450,8 @@ BITTORRENT_SRCS= \
   $(SRC_BITTORRENT)/bTUdpTracker.ml \
   $(SRC_BITTORRENT)/bTProtocol.ml \
   $(SRC_BITTORRENT)/bTTorrent.ml \
+  $(SRC_BITTORRENT)/kademlia.ml \
+  $(SRC_BITTORRENT)/bT_DHT.ml \
   $(SRC_BITTORRENT)/bTGlobals.ml \
   $(SRC_BITTORRENT)/bTComplexOptions.ml \
   $(SRC_BITTORRENT)/bTStats.ml \
@@ -535,6 +537,11 @@ MAKE_TORRENT_SRCS = \
   $(MAGIC_SRCS) $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
   $(COMMON_SRCS) $(COMMON_CLIENT_SRCS) $(BITSTRING_SRCS) $(BITTORRENT_SRCS) \
   tools/make_torrent.ml
+
+BT_DHT_NODE_SRCS = \
+	$(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) \
+	$(SRC_BITTORRENT)/bencode.ml $(SRC_BITTORRENT)/kademlia.ml $(SRC_BITTORRENT)/bT_DHT.ml \
+	tools/bt_dht_node.ml
 
 GET_RANGE_SRCS = \
   $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) $(NET_SRCS) $(MP3TAG_SRCS) \
@@ -1359,6 +1366,7 @@ EXPAND(OBSERVER,observer)
 EXPAND(MLD_HASH,mld_hash)
 EXPAND(OCAMLPP,ocamlpp)
 EXPAND(MAKE_TORRENT,make_torrent,NO,NO,NO,NO,MAGIC,BITSTRING,UPNP_NATPMP)
+EXPAND(BT_DHT_NODE,bt_dht_node,NO,NO,NO,NO,NO,BITSTRING,UPNP_NATPMP)
 EXPAND(SUBCONV,subconv)
 EXPAND(MLSPLIT,mlsplit)
 EXPAND(CONTESTER,contester,CRYPT)
@@ -1462,8 +1470,8 @@ clean:
 	rm -f mlfiletp mlfiletp+gui mlfiletp.exe
 	rm -f mldc mldc+gui mldc.exe
 	rm -f mlfasttrack mlfasttrack+gui mlfasttrack.exe
-	rm -f svg_converter svg_converter.byte mld_hash make_torrent copysources get_range subconv testrss
-	rm -f svg_converter.exe mld_hash.exe make_torrent.exe copysources.exe get_range.exe subconv.exe testrss.exe
+	rm -f svg_converter svg_converter.byte mld_hash make_torrent bt_dht_node copysources get_range subconv testrss
+	rm -f svg_converter.exe mld_hash.exe make_torrent.exe bt_dht_node.exe copysources.exe get_range.exe subconv.exe testrss.exe
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)
@@ -1572,16 +1580,16 @@ $(LOCAL)/ocamlopt-$(REQUIRED_OCAML)/ocamlopt: $(LOCAL)/ocamlopt-$(REQUIRED_OCAML
 	cd $(LOCAL)/ocamlopt-$(REQUIRED_OCAML); $(MAKE)
 
 ifeq ("$(BITTORRENT)", "yes")
-MAKE_TORRENT=make_torrent
-MAKE_TORRENT_BYTE=$(MAKE_TORRENT).byte
-MAKE_TORRENT_STATIC=$(MAKE_TORRENT).static
-MAKE_TORRENT_BYTE_STATIC=$(MAKE_TORRENT_BYTE).static
+BT_UTILS=make_torrent bt_dht_node
+BT_UTILS_BYTE=$(foreach x, $(BT_UTILS), $(x).byte)
+BT_UTILS_STATIC=$(foreach x, $(BT_UTILS), $(x).static)
+BT_UTILS_BYTE_STATIC=$(foreach x, $(BT_UTILS), $(x).byte.static)
 endif
 
-utils.byte: mld_hash.byte $(MAKE_TORRENT_BYTE) copysources.byte get_range.byte subconv.byte
-utils.opt: svg_converter mld_hash $(MAKE_TORRENT) copysources get_range subconv
-utils.opt.static: svg_converter mld_hash.static $(MAKE_TORRENT_STATIC) copysources.static get_range.static subconv.static
-utils.byte.static: mld_hash.byte.static $(MAKE_TORRENT_BYTE_STATIC) copysources.byte.static get_range.byte.static subconv.byte.static
+utils.byte: mld_hash.byte $(BT_UTILS_BYTE) copysources.byte get_range.byte subconv.byte
+utils.opt: svg_converter mld_hash $(BT_UTILS) copysources get_range subconv
+utils.opt.static: svg_converter mld_hash.static $(BT_UTILS_STATIC) copysources.static get_range.static subconv.static
+utils.byte.static: mld_hash.byte.static $(BT_UTILS_BYTE_STATIC) copysources.byte.static get_range.byte.static subconv.byte.static
 utils.static: 
 	if test "$(TARGET_TYPE)" = "byte"; then \
 		$(MAKE) utils.byte.static; \
@@ -1674,10 +1682,10 @@ release.mlnet.distri: mlnet mlnet.static
 	mv $(DISDIR).tar mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 	$(COMPRESS) mldonkey-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
-release.utils.shared: mld_hash $(MAKE_TORRENT)
+release.utils.shared: mld_hash $(BT_UTILS)
 	rm -rf mldonkey-*
 	mkdir -p $(DISDIR)
-	for i in "mld_hash $(MAKE_TORRENT)"; do \
+	for i in "mld_hash $(BT_UTILS)"; do \
 	   cp -f $$i $(DISDIR)/$$i && \
 	   if [ "$(SYSTEM)" != "macos" ]; then \
 	     strip $(DISDIR)/$$i; \
@@ -1688,12 +1696,12 @@ release.utils.shared: mld_hash $(MAKE_TORRENT)
 	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).shared.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
-release.utils.static: mld_hash.static $(MAKE_TORRENT_STATIC)
+release.utils.static: mld_hash.static $(BT_UTILS_STATIC)
 	rm -rf mldonkey-*
 	mkdir -p $(DISDIR)
 	cp -f mld_hash.static $(DISDIR)/mld_hash && strip  $(DISDIR)/mld_hash
 ifeq ("$(BITTORRENT)", "yes")
-	cp -f make_torrent.static $(DISDIR)/make_torrent && strip  $(DISDIR)/make_torrent
+	for i in "$(BT_UTILS_STATIC)"; do cp -f $$i $(DISDIR)/$$i && strip $(DISDIR)/$$i; done
 endif
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
