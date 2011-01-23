@@ -14,6 +14,27 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/01/23
+7442: BT: DHT tracker support (ygrek)
+- new options BT-dht_port, BT-use_trackers, BT-dht_bootstrap_nodes
+- new verbosity level "dht"
+-------------------------------------------------------------------------------
+2011/01/22: version 3.0.7 = tag release-3-0-7
+
+2011/01/06
+6012: Fix bug in Http_client.wget_string (ygrek)
+
+2010/12/22
+7418: Ignore setsockopt_float exception while sending mail
+
+2010/12/19
+7303: UPNP: added BT_tracker-port
+7418: SMTP auth implementation (ygrek)
+- new options smtp_login and smtp_password
+- added socket timeout for mail server communication, fix bug #22713
+7412: tar.gzip: fix harmless error message (ygrek)
+7388: DC: fix sharing on Windows (ygrek)
+-------------------------------------------------------------------------------
 2010/11/15: version 3.0.6 = tag release-3-0-6
 
 2010/11/13

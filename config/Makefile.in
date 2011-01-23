@@ -1382,7 +1382,7 @@ EXPAND(BTVIEW,btview)
 EXPAND(CLUSTER,cluster)
 EXPAND(TESTRSS,testrss)
 EXPAND(SVG_CONVERTER,svg_converter)
-EXPAND(TESTS,tests)
+EXPAND(TESTS,tests,NO,MLNET,GD,CRYPTOPP,MAGIC,BITSTRING,UPNP_NATPMP)
 
 #######################################################################
 
@@ -1472,6 +1472,7 @@ clean:
 	rm -f mlfasttrack mlfasttrack+gui mlfasttrack.exe
 	rm -f svg_converter svg_converter.byte mld_hash make_torrent bt_dht_node copysources get_range subconv testrss
 	rm -f svg_converter.exe mld_hash.exe make_torrent.exe bt_dht_node.exe copysources.exe get_range.exe subconv.exe testrss.exe
+	rm -f tests tests.exe
 	(for i in $(SUBDIRS); do \
 		rm -f  $$i/*.cm? $$i/*.o $$i/*.annot ; \
 	done)

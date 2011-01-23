@@ -405,33 +405,23 @@ let output t head body =
     write_num8 buf 329 head.t_devmajor;
     write_num8 buf 337 head.t_devminor;
     write_str buf 345 155 head.t_prefix;
-  if head.t_format = OLDGNU_FORMAT then
-    write_oldgnu_header head buf;
-  let chksum = compute_chksum buf in
-  write_padded_num buf 148 chksum;
-  t.ochan#output buf 0 blocksize;
-  if head.t_format = GNU_FORMAT && isdigit buf.[156] then
-  begin
-    let buf2 = String.copy empty_block in
-    write_gnu_header head buf2;
-    t.ochan#output buf2 0 blocksize
-  end;
-  if size > 0 then
-  begin
-(*  ? why output by blocks ?
-    let blocks = size / blocksize in
-    for n = 0 to blocks do
-      let pos = n * blocksize in
-      let len = min (size - pos) blocksize in
-      t.ochan#output body pos len;
-    done;
-*)
+    if head.t_format = OLDGNU_FORMAT then
+      write_oldgnu_header head buf;
+    let chksum = compute_chksum buf in
+      write_padded_num buf 148 chksum;
+      t.ochan#output buf 0 blocksize;
+      if head.t_format = GNU_FORMAT && isdigit buf.[156] then begin
+	let buf2 = String.copy empty_block in
+	  write_gnu_header head buf2;
+	  t.ochan#output buf2 0 blocksize
+      end;
+      if size > 0 then begin
     t.ochan#output body 0 size;
-    let align = blocksize - (size mod blocksize) in
-    if align > 0 && align < blocksize then
-      t.ochan#output empty_block 0 align
-  end
-
+	  let align = blocksize - (size mod blocksize) in
+	    if align > 0 && align < blocksize then 
+	      t.ochan#output empty_block 0 align
+      end
+      
 let flush t =
   t.ochan#output empty_block 0 blocksize;
   t.ochan#flush ()

@@ -465,6 +465,7 @@ or getting a binary compiled with glibc %s.\n\n")
       if ((upnp_port_forwarding ())) then
         match String2.split_simplify s ' ' with
           | [ "client_port" ; tcpudp   ]
+          | [ "tracker_port" ; tcpudp   ]
           | [ "overnet_port" ; tcpudp  ]
           | [ "kademlia_port" ; tcpudp ] ->
           if (String2.contains tcpudp "TCP") then 

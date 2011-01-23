@@ -2110,6 +2110,8 @@ action=\\\"javascript:pluginSubmit();\\\"\\>";
 			strings_of_option mail;
 			strings_of_option smtp_port;
 			strings_of_option smtp_server;
+			strings_of_option smtp_login;
+			strings_of_option smtp_password;
 			strings_of_option add_mail_brackets;
 			strings_of_option filename_in_subject;
 			strings_of_option url_in_mail;

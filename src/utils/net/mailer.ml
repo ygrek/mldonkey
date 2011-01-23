@@ -160,8 +160,8 @@ let sendmail smtp_server smtp_port new_style mail =
 (* a completely synchronous function (BUG) *)
   try
     let s = simple_connect smtp_server smtp_port in
-    Unix.setsockopt_float s Unix.SO_RCVTIMEO 30.;
-    Unix.setsockopt_float s Unix.SO_SNDTIMEO 30.;
+    (try Unix.setsockopt_float s Unix.SO_RCVTIMEO 30. with _ -> ());
+    (try Unix.setsockopt_float s Unix.SO_SNDTIMEO 30. with _ -> ());
     let ic = in_channel_of_descr s in
     let oc = out_channel_of_descr s in
     let auth_login_enabled = ref false in
