@@ -160,7 +160,7 @@ let list_options_html o list =
                                 o.option_value (if o.option_value="true" then "false" else "true")
           else
             Printf.bprintf buf "\\<input style=\\\"font-family: verdana; font-size: 10px;\\\"
-                                type=text name=value size=20 value=\\\"%s\\\"\\>"
+                                type=text name=value onchange=\\\"track_changed(this)\\\" size=20 value=\\\"%s\\\"\\>"
                                 o.option_value;
         end;
         Printf.bprintf buf "\\</td\\>\\</form\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>" (shorten o.option_default 40);
@@ -201,7 +201,7 @@ let list_options oo list =
               \\<tr\\>\\<td\\>\\<form action=\\\"submit\\\" $S\\>
 \\<input type=hidden name=setoption value=q\\>
 \\<input type=hidden name=option value=%s\\> %s \\</td\\>\\<td\\>
-              \\<input type=text name=value size=40 value=\\\"%s\\\"\\>
+              \\<input type=text name=value onchange=\\\"track_changed(this)\\\" size=40 value=\\\"%s\\\"\\>
 \\</td\\>\\</tr\\>
 \\</form\\>
               " o.option_name o.option_name o.option_value

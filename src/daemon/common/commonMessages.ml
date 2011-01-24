@@ -101,6 +101,7 @@ input.but2 {
 input.but {
   background: @color_input_button@;
   }
+input.changed { border: 2px solid red; }
 a:link, a:active, a:visited {
   text-decoration: none;
   font-family: verdana;
@@ -610,6 +611,14 @@ function servers() {
 		f.submit();
 		f.elements[\"q\"].value = t;
 	}
+}
+
+function track_changed(obj)
+{
+  if (obj.value != obj.defaultValue)
+    obj.className += \" changed\";
+  else
+    obj.className = obj.className.replace(/\\bchanged\\b/,'');
 }
 
 //-->
