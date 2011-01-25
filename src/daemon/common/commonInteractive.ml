@@ -114,12 +114,14 @@ let send_dirfull_warning dir full line1 =
       if full then Hashtbl.replace last_sent_dir_warning dir current_time;
       CommonEvent.add_event (Console_message_event
         (Printf.sprintf "\nWARNING: %s %s, %s\n" dir status line1));
-      if !!mail <> "" then
+      match String2.tokens !!mail with
+      | [] -> ()
+      | mails ->
         let module M = Mailer in
         let subject = Printf.sprintf "[mldonkey@%s] AUTOMATED WARNING: %s %s" (Unix.gethostname ()) dir status in
         let mail = {
-          M.mail_to = !!mail;
-          M.mail_from = !!mail;
+          M.mail_to = mails;
+          M.mail_from = List.hd mails;
           M.mail_subject = subject;
           M.mail_body = line1;
           M.smtp_login = !!smtp_login;
@@ -207,7 +209,7 @@ let script_for_file file incoming new_name =
 	    ("USER_MAIL", ( if (file_owner file).user_mail <> "" then
                               (file_owner file).user_mail
                             else
-                              if !!mail <> "" then !!mail else ""));
+                              match String2.tokens !!mail with [] -> "" | x::_ -> x));
 	    ("FILE_GROUP_CNT", string_of_int (fst (file_group_info)));
 	    ]
             @ snd (file_group_info))
@@ -330,7 +332,8 @@ let file_cancel file user =
 
 let mail_for_completed_file file =
   let usermail = (file_owner file).user_mail in
-  if (!!mail <> "" || usermail <> "") && !!smtp_server <> "" && !!smtp_port <> 0 then begin
+  let mail = String2.tokens !!mail in
+  if (mail <> [] || usermail <> "") && !!smtp_server <> "" && !!smtp_port <> 0 then begin
     let module M = Mailer in
     let info = file_info file in
     let line1 = "mldonkey has completed the download of:\r\n\r\n" in
@@ -379,7 +382,7 @@ let mail_for_completed_file file =
     let send_mail address admin =
       let mail = {
         M.mail_to = address;
-        M.mail_from = address;
+        M.mail_from = List.hd address;
         M.mail_subject = subject;
         M.mail_body = line1 ^ line2 ^ line3 ^ line4 ^ line5 ^ (if admin then line6 else "") ^ line7;
         M.smtp_login = !!smtp_login;
@@ -387,8 +390,8 @@ let mail_for_completed_file file =
       } in
         M.sendmail !!smtp_server !!smtp_port !!add_mail_brackets mail
     in
-    if !!mail <> "" then send_mail !!mail true; (* Multiuser ToDo: this mail is for the admin user, optional? *)
-    if usermail <> "" && usermail <> !!mail then (try send_mail usermail false with Not_found -> ())
+    if mail <> [] then send_mail mail true; (* Multiuser ToDo: this mail is for the admin user, optional? *)
+    if usermail <> "" && [usermail] <> mail then (try send_mail [usermail] false with Not_found -> ())
   end
 
 let file_completed (file : file) =
@@ -588,7 +591,7 @@ let start_download file =
 	    ("USER_MAIL", ( if (file_owner file).user_mail <> "" then
                               (file_owner file).user_mail
                             else
-                              if !!mail <> "" then !!mail else ""));
+                              match String2.tokens !!mail with [] -> "" | x::_ -> x));
 	    ("FILE_GROUP_CNT", string_of_int (fst (file_group_info)));
 	    ]
             @ snd (file_group_info))

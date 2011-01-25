@@ -1178,19 +1178,19 @@ let smtp_password = define_option current_section ["smtp_password"]
   string_option ""
 
 let mail = define_option current_section ["mail"]
-  "Your e-mail if you want to receive mails when downloads are completed"
+  (_s"Email address to receive notifications when downloads are completed or disk is full (leave empty to disable, separate multiple addresses with space)")
     string_option ""
 
 let add_mail_brackets = define_option current_section ["add_mail_brackets"]
-  "Set to false if your mail server cannot handle angle-brackets around addresses (RFC 5321)"
+  (_s"Set to false if your mail server cannot handle angle-brackets around addresses (RFC 5321)")
     bool_option true
 
 let filename_in_subject = define_option current_section ["filename_in_subject"]
-  "Send filename in mail subject"
+  (_s"Send filename in mail subject")
     bool_option true
 
 let url_in_mail = define_option current_section ["url_in_mail"]
-  "Put a prefix for the filename here which shows up in the notification mail"
+  (_s"Put a prefix for the filename here which shows up in the notification mail")
     string_option ""
 
 
