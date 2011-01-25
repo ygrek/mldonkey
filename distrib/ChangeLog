@@ -15,7 +15,7 @@ ChangeLog
 =========
 
 2011/01/23
-7442: BT: DHT tracker support (ygrek)
+7442: BT: DHT support (ygrek)
 - new options BT-dht_port, BT-use_trackers, BT-dht_bootstrap_nodes
 - new verbosity level "dht"
 -------------------------------------------------------------------------------
