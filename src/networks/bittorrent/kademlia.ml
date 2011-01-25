@@ -8,49 +8,13 @@
 let bucket_nodes = 8
 
 (* do not use CommonOptions directly so that tools/bt_dht_node can be compiled separately *)
-let verbose = ref false
+let verb = ref false
+let debug = ref false
 
 module H = Md4.Sha1
 
-let log_prefix = "btkad"
+let log_prefix = "[btkad]"
 let lprintf_nl fmt = Printf2.lprintf_nl2 log_prefix fmt
-
-type 'a pr = ?exn:exn -> ('a, unit, string, unit) format4 -> 'a
-type level = [ `Debug | `Info | `User | `Warn | `Error ]
-
-class logger prefix = 
-  let int_level = function
-    | `Debug -> 0
-    | `Info -> 1
-    | `User -> 2
-    | `Warn -> 3
-    | `Error -> 4
-  in
-  let print_log limit prefix level ?exn fmt =
-    let put s =
-      let b = match level with 
-      | 0 -> false
-      | 1 -> !verbose
-      | _ -> true
-      in 
-      match b,exn with
-      | false, _ -> ()
-      | true, None -> Printf2.lprintf_nl "[%s] %s" prefix s
-      | true, Some exn -> Printf2.lprintf_nl "[%s] %s : exn %s" prefix s (Printexc2.to_string exn)
-    in
-    Printf.ksprintf put fmt
-in
-object
-val mutable limit = int_level `Info
-method debug : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 0 ?exn fmt
-method info  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 1 ?exn fmt
-method user  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 2 ?exn fmt
-method warn  : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 3 ?exn fmt
-method error : 'a. 'a pr = fun ?exn fmt -> print_log limit prefix 4 ?exn fmt
-method allow (level:level) = limit <- int_level level
-end
-
-let log = new logger log_prefix
 
 (** node ID type *)
 type id = H.t
@@ -207,7 +171,8 @@ exception Nothing
 
 let make_node id addr st = { id = id; addr = addr; last = now (); status = st; }
 let mark n st =
-  log #info "mark [%s] as %s" (show_node n) (show_status st);
+  if !debug then
+    lprintf_nl "mark [%s] as %s" (show_node n) (show_status st);
   n.last <- now ();
   n.status <- st
 let touch b = b.last_change <- now ()
@@ -222,7 +187,7 @@ let rec delete table id =
 *)
 
 let rec update ping table st id data =
-(*   log #debug "insert %s" (show_id node.id); *)
+(*  if !debug then lprintf_nl "insert %s" (show_id node.id); *)
   let rec loop = function
   | N (l,mid,r) -> (match cmp id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
   | L b ->
@@ -230,7 +195,8 @@ let rec update ping table st id data =
       match cmp n.id id = EQ, n.addr = data with
       | true, true -> mark n st; touch b; raise Nothing
       | true, false | false, true -> 
-          log #warn "conflict [%s] with %s %s, replacing" (show_node n) (show_id id) (show_addr data);
+          if !verb then
+            lprintf_nl "conflict [%s] with %s %s, replacing" (show_node n) (show_id id) (show_addr data);
           b.nodes.(i) <- make_node id data st; (* replace *)
           touch b;
           raise Nothing
@@ -238,7 +204,8 @@ let rec update ping table st id data =
     end b.nodes;
     if Array.length b.nodes <> bucket_nodes then
     begin
-      log #info "insert %s %s" (show_id id) (show_addr data);
+      if !debug then
+        lprintf_nl "insert %s %s" (show_id id) (show_addr data);
       b.nodes <- Array.of_list (make_node id data st :: Array.to_list b.nodes);
       touch b;
       raise Nothing
@@ -247,7 +214,8 @@ let rec update ping table st id data =
       if n.status = Good && now () - n.last > node_period then mark n Unknown;
       if n.status = Bad || (n.status = Pinged && now () - n.last > node_period) then
       begin
-        log #info "replace [%s] with %s" (show_node b.nodes.(i)) (show_id id);
+        if !debug then
+          lprintf_nl "replace [%s] with %s" (show_node b.nodes.(i)) (show_id id);
         b.nodes.(i) <- make_node id data st; (* replace *)
         touch b;
         raise Nothing
@@ -256,7 +224,8 @@ let rec update ping table st id data =
     | [] ->
     if inside b table.self && gt_big_int (distance b.lo b.hi) (big_int_of_int 256) then
     begin
-      log #info "split %s %s" (H.to_hexa b.lo) (H.to_hexa b.hi);
+      if !debug then
+        lprintf_nl "split %s %s" (H.to_hexa b.lo) (H.to_hexa b.hi);
       let mid = split b.lo b.hi in
       let (nodes1,nodes2) = List.partition (fun n -> cmp n.id mid = LT) (Array.to_list b.nodes) in
       let new_node = N (
@@ -268,17 +237,20 @@ let rec update ping table st id data =
     end
     else
     begin
-      log #info "bucket full (%s)" (show_id id);
+      if !debug then
+        lprintf_nl "bucket full (%s)" (show_id id);
       raise Nothing
     end
     | unk ->
       let count = ref (List.length unk) in
-      log #info "ping %d unknown nodes" !count;
+      if !debug then
+        lprintf_nl "ping %d unknown nodes" !count;
       let cb n = fun res ->
         decr count; mark n (match res with Some _ -> Good | None -> Bad); 
         if !count = 0 then (* retry *)
         begin 
-          log #info "all %d pinged, retry %s" (List.length unk) (show_id id); 
+          if !debug then
+            lprintf_nl "all %d pinged, retry %s" (List.length unk) (show_id id); 
           touch b; 
           update ping table st id data 
         end
@@ -290,16 +262,18 @@ let rec update ping table st id data =
     try while true do table.root <- loop table.root done with Nothing -> () (* loop until no new splits *)
 
 let insert_node table node =
-(*   log #debug "insert %s" (show_id node.id); *)
+(*  if !debug then lprintf_nl "insert %s" (show_id node.id); *)
   let rec loop = function
   | N (l,mid,r) -> (match cmp node.id mid with LT | EQ -> N (loop l, mid, r) | GT -> N (l, mid, loop r))
   | L b ->
     Array.iter begin fun n ->
       match cmp n.id node.id = EQ, n.addr = node.addr with
-      | true, true -> log #warn "insert_node: duplicate entry %s" (show_node n); raise Nothing
+      | true, true ->
+        if !verb then lprintf_nl "insert_node: duplicate entry %s" (show_node n);
+        raise Nothing
       | true, false | false, true ->
-          log #warn "insert_node: conflict [%s] with [%s]" (show_node n) (show_node node);
-          raise Nothing
+        if !verb then lprintf_nl "insert_node: conflict [%s] with [%s]" (show_node n) (show_node node);
+        raise Nothing
       | _ -> ()
     end b.nodes;
     if Array.length b.nodes <> bucket_nodes then
@@ -321,7 +295,7 @@ let insert_node table node =
     end
     else
     begin
-      log #warn "insert_node: bucket full [%s]" (show_node node);
+      if !verb then lprintf_nl "insert_node: bucket full [%s]" (show_node node);
       raise Nothing
     end
   in
@@ -442,12 +416,12 @@ let value_to_table v =
               self = self; }
     in
     List.iter (insert_node t) nodes;
-    if !verbose then show_table t;
+    if !debug then show_table t;
     t
   | _ -> failwith "RoutingTableOption.value_to_table"
 
 let table_to_value t =
-  if !verbose then show_table t;
+  if !debug then show_table t;
   Module [
     "self", string_to_value (H.to_hexa t.self);
     "nodes", list_to_value node_to_value (all_nodes t)
