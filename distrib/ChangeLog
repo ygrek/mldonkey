@@ -14,6 +14,11 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/01/31
+7448: BT: support for partial download (jave, pango & ygrek)
+- partial files are not committed, location in temp dir is shown so that users
+  can easily locate downloaded subfiles
+
 2011/01/23
 7442: BT: DHT support (ygrek)
 - new options BT-dht_port, BT-use_trackers, BT-dht_bootstrap_nodes

@@ -454,6 +454,14 @@ module MultiFile = struct
           find_file
             (if file_pos < pos then tree1 else tree2) file_pos
 
+    let rec subfile_tree_map indent tree f=
+      match tree with
+        | Leaf file -> 
+            f file.filename file.pos file.len file.current_len
+        | Node (pos, tree1, tree2) ->
+            subfile_tree_map (indent ^ "  ") tree1 f;
+            subfile_tree_map (indent ^ "  ") tree2 f
+              
     let rec print_tree indent tree =
       match tree with
         Leaf file -> lprintf_nl "%s  - %s (%Ld,%Ld)"
@@ -1657,6 +1665,28 @@ when these two files have already been partially downloaded ? This
       ()
 *)      
   end
+
+(* subfile tree map function*)
+let subfile_tree_map t f =
+  match t.file_kind with
+    | MultiFile t -> MultiFile.subfile_tree_map "" t.MultiFile.tree f; ()
+    | _ -> ()
+        
+
+let find_file t chunk_begin = 
+  match t.file_kind with
+    | MultiFile t ->  
+        let (sf, tail) = (MultiFile.find_file t chunk_begin) in
+          (sf.MultiFile.filename, sf.MultiFile.pos , sf.MultiFile.len)
+    | _ -> ("unimplemeted" , 0L, 0L)
+
+let find_file_index t index = 
+  match t.file_kind with
+    | MultiFile t ->  
+        let sf = List.nth t.MultiFile.files index in
+          (sf.MultiFile.filename, sf.MultiFile.pos , sf.MultiFile.len)
+    | _ -> ("unimplemeted" , 0L, 0L)
+
 type t = file
 
 (*

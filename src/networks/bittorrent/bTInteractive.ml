@@ -209,8 +209,69 @@ let auto_links =
   let re = Str.regexp_case_fold "\\(https?://[a-zA-Z0-9_.!~*'();/?:@&=+$,%-]+\\)" in
   fun s -> Str.global_replace re "\\<a href=\\\"\\1\\\"\\>\\1\\</a\\>" s
 
+(** Get swarming info for subfiles (priorities and progress)
+  @return empty list if no swarmer *)
+let get_subfiles file =
+  match try Some (CommonSwarming.file_swarmer (as_file file)) with _ -> None with
+  | None -> []
+  | Some swarmer -> 
+  match CommonSwarming.get_swarmer_priorities_intervals swarmer with
+  | [] -> []
+  | ((_,prio)::_ as l) ->
+  let intervals = ref l in
+  let prio = ref prio in
+  let rec count_intervals_till bytes =
+    let rec loop acc_prio = function
+    | (i_start,i_prio) :: tail when i_start < bytes ->
+        prio := i_prio;
+        loop (min acc_prio i_prio) tail
+    | ((i_start,i_prio) :: _ as l) when i_start = bytes ->
+        prio := i_prio;
+        intervals := l;
+        acc_prio
+    | l -> intervals := l; acc_prio
+    in
+    loop !prio !intervals
+  in
+  let downloaded = CommonSwarming.get_swarmer_block_verified swarmer in
+  let r = ref [] in
+  Unix32.subfile_tree_map (file_fd file)
+    begin fun fname start length current_length ->
+      let prio = count_intervals_till (start ++ length) in
+(*       let (blockstart,blockend) = CommonSwarming.blocks_of_ *)
+      let stop = if length <> 0L then (start ++ length -- 1L) else start in
+      let blockstart = try CommonSwarming.compute_block_num swarmer start with _ -> 0 in
+      let blockend = try CommonSwarming.compute_block_num swarmer stop with _ -> 0 in
+      let ok = ref 0 in
+      for i = blockstart to blockend do
+        if VB.State_verified = VB.get downloaded i then incr ok;
+      done;
+      let progress = float !ok /. float (blockend - blockstart + 1) in
+      r := (fname, length, prio, progress) :: !r
+    end;
+  List.rev !r
+
+
 let op_file_print file o =
 
+  let subfiles =
+    let subfiles = ref (get_subfiles file) in
+    List.map begin fun (name,size,magic) ->
+    let magic = match magic with None -> "" | Some m -> Printf.sprintf " / %s" m in
+    match !subfiles with
+    | [] -> (name,size,magic,"",None)
+    | (i_name,i_size,i_prio,progress)::t ->
+(*
+      lprintf_nl "%S = %S %Ld = %Ld | priority %d" name i_name size i_size i_prio;
+*)
+      subfiles := t;
+      let progress = Printf.sprintf ", %.0f%%" (100. *. progress) in
+      if name = i_name && size = i_size then (* sanity check *)
+        (name,size,magic,progress,Some i_prio)
+      else 
+        (name,size,magic,progress,None)
+    end file.file_files 
+  in
   let buf = o.conn_buf in
   if use_html_mods o then
   begin
@@ -338,17 +399,33 @@ let op_file_print file o =
   end;
   (* -- End bad -- *)
 
+  let extra =
+    match List.fold_left (fun acc subfile ->
+      match acc, subfile with
+      | (Some false|None),(_,_,_,_,Some prio) when prio > 0 -> Some true
+      | None,(_,_,_,_,Some 0) -> Some false
+      | None,(_,_,_,_,None) -> None
+      | acc,_ -> acc) None subfiles
+    with
+    | None -> ""
+    | Some dl ->
+      Printf.sprintf ", \\<a title=\\\"toggle all files\\\" href=\\\"submit?q=debug_set_subfile_prio+%d+%d+%d+%d\\\"\\>%s\\</a\\>"
+        (file_num file) (if dl then 0 else 1) 0 (List.length subfiles - 1)
+        (if dl then "unselect all" else "select all")
+  in
+  emit (_s"Full path"^extra) ~desc:(_s"Full path to the download") (file_disk_name file);
+
   let cntr = ref 0 in
-  List.iter (fun (filename, size, magic) ->
-    let fs = Printf.sprintf "File %d" !cntr in
-    let magic_string =
-      match magic with 
+  List.iter (fun (filename, size, magic, progress, prio) ->
+    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+    let fs = Printf.sprintf (_b"File %d") !cntr in
+    let extra = match prio with
       | None -> ""
-      | Some m -> Printf.sprintf " / %s" m;
+      | Some prio -> Printf.sprintf ", \\<a title=\\\"toggle file\\\" href=\\\"submit?q=debug_set_subfile_prio+%d+%d+%d\\\"\\>priority %d\\</a\\>" (file_num file) (if prio = 0 then 1 else 0) !cntr prio
     in
-    emit fs (Printf.sprintf "%s (%Ld bytes)%s" filename size magic_string);
+    emit (fs^extra) ~desc:fs (Printf.sprintf "%s (%Ld bytes%s)%s" filename size progress magic);
     incr cntr;
-  ) file.file_files
+  ) subfiles 
   end (* use_html_mods *)
   else begin
 
@@ -370,17 +447,14 @@ let op_file_print file o =
   if s <> "" then Printf.bprintf buf "Creation date: %s\n" s;
   if file.file_modified_by <> "" then Printf.bprintf buf "Modified by %s\n" file.file_modified_by;
   if file.file_encoding <> "" then Printf.bprintf buf "Encoding: %s\n" file.file_encoding;
+  Printf.bprintf buf (_b"Full path: %s\n") (file_disk_name file);
   if file.file_files <> [] then Printf.bprintf buf "Subfiles: %d\n" (List.length file.file_files);
   let cntr = ref 0 in
-  List.iter (fun (filename, size, magic) ->
+  List.iter (fun (filename, size, magic, progress, prio) ->
     incr cntr;
-    let magic_string =
-      match magic with 
-        None -> ""
-      | Some m -> Printf.sprintf " / %s" m;
-    in
-    Printf.bprintf buf "File %d: %s (%Ld bytes)%s\n" !cntr filename size magic_string
-  ) file.file_files
+    let prio = match prio with Some n -> Printf.sprintf ", priority %d" n | None -> "" in
+    Printf.bprintf buf "File %d%s: %s (%Ld bytes%s)%s\n" !cntr prio filename size progress magic
+  ) subfiles
   end
 
 let op_file_print_sources file o =

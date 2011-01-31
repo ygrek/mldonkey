@@ -143,6 +143,9 @@ and swarmer = {
     mutable s_strategy : swarming_strategy;
 
     mutable s_verified_bitmap : VerificationBitmap.t;
+    mutable s_priorities_bitmap : string;
+    mutable s_priorities_intervals : (int64 * int) list;
+                                       (* beginning, priority *)
     mutable s_disk_allocated : Bitv.t;
     mutable s_availability : int array;
     mutable s_nuploading : int array;
@@ -579,6 +582,8 @@ let dummy_swarmer = {
     s_networks = [];
     s_strategy = AdvancedStrategy;
     s_verified_bitmap = VB.create 0 VB.State_missing;
+    s_priorities_bitmap = "";
+    s_priorities_intervals = [(zero, 1)];
     s_disk_allocated = Bitv.create 0 false;
     s_blocks = [||];
     s_block_pos = [||];
@@ -586,10 +591,93 @@ let dummy_swarmer = {
     s_nuploading = [||];
   }
 
+let insert_prio_interval intervals last_end (new_start,new_end,new_prio) =
+  assert (new_start < new_end);
+  assert (new_end <= last_end);
+  let rec insert_end prev_prio = function
+    | [] -> if new_end = last_end then [] else if new_prio <> prev_prio then [new_end, prev_prio] else []
+    | (pos,prio as this) :: tail ->
+      match Int64.compare pos new_end with
+      | -1 -> insert_end prio tail (* eat it *)
+      | 1 ->
+        if new_prio <> prev_prio then
+          (new_end, prev_prio) :: this :: tail
+        else
+          this :: tail
+      | 0 ->
+        assert (prio <> prev_prio);
+        if new_prio <> prio then this :: tail else tail
+      | _ -> assert false
+  in
+  let rec insert prev_prio = function (* not tail rec ! *)
+    | [] -> 
+      if new_prio <> prev_prio then
+        (new_start, new_prio) :: insert_end prev_prio []
+      else
+        insert_end prev_prio []
+    | (pos, prio as this) :: tail ->
+      match Int64.compare pos new_start with
+      | -1 -> this :: insert prio tail (* leave current and continue searching *)
+      | 1 -> 
+        if new_prio <> prev_prio then
+          (new_start, new_prio) :: insert_end prev_prio (this::tail) (* mark new interval and search interval end *)
+        else
+          insert_end prev_prio (this::tail) (* start of new interval gets merged with previous interval *)
+      | 0 ->
+        assert (prio <> prev_prio); (* invariant *)
+        if new_prio <> prev_prio then
+          (new_start, new_prio) :: insert_end prio tail
+        else
+          insert_end prio tail
+      | _ -> assert false
+  in
+  insert (-1) intervals
+
+let rec validate_intervals limit = function
+  | (p1,prio1)::((p2,prio2)::_ as tail) when prio1 <> prio2 && p1 < p2 -> validate_intervals limit tail
+  | [p,_] when p < limit -> true
+  | _ -> false
+
+let priority_zero = Char.chr 0
+
+let swarmer_recompute_priorities_bitmap s =
+  String.fill s.s_priorities_bitmap 0
+    (String.length s.s_priorities_bitmap) priority_zero;
+  let mark interval_begin interval_end priority =
+    if interval_end > interval_begin && s.s_size >= interval_end && interval_begin >= 0L then
+      if priority = 0 then
+        () (* do not mark - zero blocks will not overwrite boundaries of non-zero blocks *)
+      else
+      begin
+        let i_begin = compute_block_num s interval_begin in
+        let i_end = compute_block_num s (Int64.pred interval_end) in
+        let priochar = Char.chr (max 0 (min priority 255)) in
+  (*       String.fill s.s_priorities_bitmap i_begin (i_end - i_begin + 1) priochar *)
+        for i = i_begin to i_end do
+          s.s_priorities_bitmap.[i] <- priochar
+        done
+      end
+    else
+      lprintf_nl "WARNING: recompute_priorities %Ld %Ld %Ld" interval_begin interval_end s.s_size
+  in
+  let rec loop = function
+  | (i_begin, priority) :: ((i_end,_) :: _ as tail) -> mark i_begin i_end priority; loop tail
+  | [i_begin, priority] -> mark i_begin s.s_size priority
+  | [] -> lprintf_nl "WARNING: recompute_priorities []"
+  in
+  loop s.s_priorities_intervals
+
+(* Intervals with fixed byte positions are needed to recompute priorities bitmap 
+  after merge, cause priobitmap depends on block size *)
+let swarmer_set_interval s (p1,p2,prio as new_interval) =
+  if !verbose then
+    lprintf_nl "swarmer_set_interval %S %Ld (%Ld,%Ld,%u)" s.s_filename s.s_size p1 p2 prio;
+  s.s_priorities_intervals <- insert_prio_interval s.s_priorities_intervals s.s_size new_interval;
+  swarmer_recompute_priorities_bitmap s
+
 (** if a swarmer is already associated with that [file_name], return it;
     Otherwise create a new one with default values, that will be fixed
     by the first frontend association *)
-
 let create_swarmer file_name file_size =
   try
     HS.find swarmers_by_name
@@ -619,6 +707,8 @@ let create_swarmer file_name file_size =
       s_strategy = AdvancedStrategy;
 
       s_verified_bitmap = VB.create nblocks VB.State_missing;
+      s_priorities_bitmap = String.make nblocks priority_zero;
+      s_priorities_intervals = [(zero, 1)]; (* JAVE init all prios to 1, thus all chunks will be downloaded as usual *)
       s_disk_allocated = Bitv.create ndiskblocks false;
       s_blocks = Array.create nblocks EmptyBlock ;
       s_block_pos = Array.create nblocks zero;
@@ -627,6 +717,7 @@ let create_swarmer file_name file_size =
 (*      s_last_seen = Array.create nblocks 0; *)
     }
     in
+    swarmer_recompute_priorities_bitmap s;
     HS.add swarmers_by_name s;
     s
 
@@ -749,6 +840,7 @@ let split_blocks s chunk_size =
 
   s.s_blocks <- Array.create nblocks EmptyBlock;
   s.s_verified_bitmap <- VB.create nblocks VB.State_missing;
+  s.s_priorities_bitmap <- String.make nblocks priority_zero;
   s.s_block_pos <- Array.create nblocks zero;
   s.s_availability <- Array.create nblocks 0; (* not preserved ? *)
   s.s_nuploading <- Array.create nblocks 0; (* not preserved ? *)
@@ -783,7 +875,9 @@ let split_blocks s chunk_size =
 
         iter (i+1) tail
   in
-  iter 0 blocks
+  iter 0 blocks;
+  swarmer_recompute_priorities_bitmap s
+
 
 (** Associate a(n additional) frontend to a swarmer *)
 
@@ -1950,7 +2044,7 @@ let linear_select_blocks up =
     up.up_npartial <- n-1;
     let t = up.up_t in
     let s = t.t_s in
-    (* priority bitmap <> 0 here ? *)
+    if s.s_priorities_bitmap.[b] = priority_zero then iter_partial up else
     let chunk = t.t_chunk_of_block.(b) in
     match s.s_blocks.(b) with
     | CompleteBlock | VerifiedBlock ->
@@ -1976,7 +2070,7 @@ let linear_select_blocks up =
       up.up_ncomplete <- n-1;
       let t = up.up_t in
       let s = t.t_s in
-      (* priority bitmap <> 0 here ? *)
+      if s.s_priorities_bitmap.[b] = priority_zero then iter_complete up else
       let chunk = t.t_chunk_of_block.(b) in
       match s.s_blocks.(b) with
       | CompleteBlock | VerifiedBlock ->
@@ -2124,8 +2218,10 @@ let select_blocks up =
  			else acc) 0 t.t_blocks_of_chunk.(chunk)) (t.t_num, i))
  	      ) 0 s.s_networks) i in
 
+(*
 	let preview_beginning = 9000000L in
 	let preview_end = (s.s_size ** 98L) // 100L in
+*)
 
 	(* sources_per_chunk was initially for edonkey only *)
 	let data_per_source = 9728000L // (Int64.of_int !!sources_per_chunk) in
@@ -2145,9 +2241,7 @@ let select_blocks up =
 	  {
 	    choice_num = n;
 	    choice_block = b;
-	    choice_user_priority = (* priority bitmap here instead ? *)
-	      if block_begin < preview_beginning then 3 else
-		if block_end > preview_end then 2 else 1;
+            choice_user_priority = Char.code s.s_priorities_bitmap.[b];
 	    choice_remaining = remaining;
             choice_preallocated = is_fully_preallocated t block_begin block_end;
 	    choice_unselected_remaining = unselected_remaining;
@@ -2296,7 +2390,8 @@ let select_blocks up =
 	  Array2.subarray_fold_lefti (fun 
 	    ((current_chunk_num, current_chunk_blocks_indexes, 
 	    best_choices, specimen) as acc) n b ->
-	    if not (should_download_block s b) then acc 
+            if s.s_priorities_bitmap.[b] = priority_zero ||
+              not (should_download_block s b) then acc
 	    else
 	      let chunk_num = t.t_chunk_of_block.(b) in
 	      if chunk_num = current_chunk_num then
@@ -2361,7 +2456,8 @@ let select_blocks up =
 	  if probably_buggy then begin
             lprintf_nl "Probably buggy choice (%d):" chunk;
 	    Array2.subarray_fold_lefti (fun () n b ->
-	      if should_download_block s b then
+              if s.s_priorities_bitmap.[b] <> priority_zero &&
+                 should_download_block s b then
 		let this_choice = create_choice n b in
 		if List.mem n blocks then lprintf "** "
 		else if List.exists (List.mem n) best_choices then
@@ -2640,7 +2736,8 @@ let find_range up range_size =
 	  let block = up.up_complete_blocks.(i) in
 	  if not (List.exists (fun b -> b.up_block.block_num = block
 			      ) up.up_blocks) then
-	    if should_download_block s block then (* priority bitmap <> 0 here ? *)
+            if s.s_priorities_bitmap.[block] <> priority_zero && 
+              should_download_block s block then
 	      let partial_found = match s.s_blocks.(block) with
 		| EmptyBlock -> true
 		| CompleteBlock | VerifiedBlock -> false
@@ -2977,7 +3074,7 @@ let value_to_int64_pair v =
   | List [v1;v2] | SmallList [v1;v2] ->
       (value_to_int64 v1, value_to_int64 v2)
   | _ ->
-      failwith "Options: Not an int32 pair"
+      failwith "Options: Not an int64 pair"
 
 (*************************************************************************)
 (*                                                                       *)
@@ -3240,6 +3337,13 @@ let subfiles t =
 
 module SwarmerOption = struct
 
+  let value_to_priority_interval v =
+    match v with
+    | List [v1;p] | SmallList [v1;p] ->
+      (value_to_int64 v1, value_to_int p)
+    | _ -> 
+      failwith "Options: Not a priority interval"
+
     let value_to_swarmer v =
       match v with
       | Module assocs ->
@@ -3266,6 +3370,16 @@ module SwarmerOption = struct
           List.iter (fun bsize ->
               split_blocks s bsize
           ) block_sizes;
+          let intervals = 
+            try
+              get_value "file_priorities_intervals" (value_to_list value_to_priority_interval) 
+            with Not_found -> [(zero, 1)]
+          in
+          if validate_intervals s.s_size intervals then
+            s.s_priorities_intervals <- intervals
+          else
+            lprintf_nl "Failed to validate priority intervals, using default. File %s" file_name;
+          swarmer_recompute_priorities_bitmap s;
           s
 
       | _ -> assert false
@@ -3278,6 +3392,10 @@ module SwarmerOption = struct
 	  (Bitv.to_string s.s_disk_allocated));
         ("file_chunk_sizes", list_to_value int64_to_value
             (List.map (fun t -> t.t_chunk_size) s.s_networks));
+        ("file_priorities_intervals", List
+          (List.map 
+            (fun (i_begin, priority) -> SmallList [int64_to_value i_begin; int_to_value priority])
+            s.s_priorities_intervals));
         ("file_download_random", bool_to_value
             (match s.s_strategy with
              | AdvancedStrategy -> true
@@ -3428,6 +3546,24 @@ let _ =
       Printf.bprintf buf "  Storage: %d bytes\n" !storage;
   )
 
+(* functions for priority bitmask *)
+
+let file_swarmer f =
+  HS.find swarmers_by_name { dummy_swarmer with s_filename = file_disk_name f }
+
+(*
+(** set the priority bitmask for each chunk in a file *)
+let set_swarmer_chunk_priorities f priobitmap =
+  let s = file_swarmer f in
+  if String.length priobitmap = VB.length s.s_verified_bitmap then
+    s.s_priorities_bitmap <- priobitmap
+*)
+
+(** get the priority bitmask for a file (do not mutate the string directly, use swarmer_set_interval) *)
+let get_swarmer_block_priorities s = s.s_priorities_bitmap
+let get_swarmer_block_verified s = s.s_verified_bitmap
+let get_swarmer_priorities_intervals s = s.s_priorities_intervals
+
 (* using compute_block_num outside of swarming code is probably
    broken, networks supports are aware of chunks, not blocks 
    maybe other block-related functions should be censored in the same
@@ -3435,4 +3571,4 @@ let _ =
    tag block numbers are chunk numbers so they're not inadvertedly
    mistaken for each other ?
 *)
-let compute_block_num = ()
+(* let compute_block_num = () *)
