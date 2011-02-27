@@ -673,7 +673,7 @@ let splash_screen_window gui =
   let (splash_screen_pix , _ ) = GdkPixbuf.create_pixmap splash_screen_pb in
   let wpix = `PIXMAP splash_screen_pix in
   let window =
-    GWindow.window ~position:`CENTER_ALWAYS ~kind:`POPUP
+    GWindow.window ~position:`CENTER_ALWAYS ~type_hint:`SPLASHSCREEN
       ~width ~height ()
   in
   Widget.realize window#as_widget ;
