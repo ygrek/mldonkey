@@ -784,16 +784,17 @@ let decoder_list = [
 
 let parse_software s =
   let default = (Brand_unknown, "") in
-  let rec iter l =
-    match l with
-      [] -> lprintf_nl "Unknown BT client software version, report the next line to http://mldonkey.sourceforge.net/UnknownBtClients%s\nBTUC:\"%s\"" Autoconf.current_version (String.escaped s);
-            default
-      | d :: t -> match (d s) with 
-                  | None    -> iter t
-                  | Some bv -> let (brand, version) = bv in
-                               if !verbose_msg_clienttags then
-                                 lprintf_nl "BTKC:\"%s\"; ID: \"%s\"; version:\"%s\"" (String.escaped s) (brand_to_string brand) version;
-                               bv
+  let rec iter = function
+  | [] ->
+    if !verbose_msg_clienttags then lprintf_nl "BTUC: %S" s;
+    default
+  | d :: t ->
+    match (d s) with
+    | None -> iter t
+    | Some (brand, version as bv) ->
+      if !verbose_msg_clienttags then
+        lprintf_nl "BTKC: %S; ID: %S; version: %S" s (brand_to_string brand) version;
+      bv
   in
   if Sha1.direct_of_string s = Sha1.null then
     default
