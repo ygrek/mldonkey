@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2011/03/10
+7499: BT/DHT: fix logging (ygrek)
 7498: BT/DHT: make token more robust against broken nodes (ygrek)
 7497: HTML: mark not saved values in options (ygrek)
 7496: BT: stop asking users to submit unknown client ids (ygrek)

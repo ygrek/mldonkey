@@ -135,7 +135,7 @@ let enable () =
   ()
 
 let _ =
-  CommonOptions.verbose_dht := Kademlia.verbose;
+  CommonOptions.verbose_dht := Kademlia.verb;
   network.op_network_is_enabled <- (fun _ -> !!CommonOptions.enable_bittorrent);
   option_hook enable_bittorrent (fun _ ->
       if !CommonOptions.start_running_plugins then
