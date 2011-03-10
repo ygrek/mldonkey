@@ -458,7 +458,8 @@ let valid t s =
 
 end
 
-let make_token addr h secret = string_of_int (Hashtbl.hash [show_addr addr; H.direct_to_string h; secret])
+(* do not hash port cause some broken implementations change it all the time *)
+let make_token (ip,_) h secret = string_of_int (Hashtbl.hash (Ip.to_string ip, H.direct_to_string h, secret))
 
 let valid_token addr h secret token =
   token = make_token addr h (Secret.get secret) ||
