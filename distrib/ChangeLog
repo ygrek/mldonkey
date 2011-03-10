@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2011/03/10
+7494: GTK2 GUI: fix too obtrusive splash window (bugmenot, ygrek)
 7493: BT: open DHT port by UPnP (tathar)
 
 2011/01/31
