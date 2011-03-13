@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2011/03/13
+7456: Mail: Multiple mail addresses for admin (ygrek)
 7500: Diskinfo: Recognize BTRFS
 
 2011/03/10

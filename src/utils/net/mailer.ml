@@ -25,7 +25,7 @@ open Date
 open Md4
  
 type mail = {
-    mail_to : string;
+    mail_to : string list;
     mail_from : string;
     mail_subject : string;
     mail_body : string;
@@ -115,11 +115,18 @@ let read_response ic =
 let mail_address new_style s = if new_style then "<"^s^">" else s
 
 let make_mail mail new_style =
+  let (mail_to,mail_cc) =
+    match mail.mail_to with
+    | [] -> failwith "no recipients specified"
+    | x::xs -> x,xs
+  in
   let mail_date = Date.mail_string (Unix.time ()) in
+  let addr = mail_address new_style in
 	Printf.sprintf 
-	"From: mldonkey %s\r\nTo: %s\r\n%s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
-	(mail_address new_style mail.mail_from)
-	mail.mail_to
+	"From: mldonkey %s\r\nTo: %s\r\n%s%s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
+	(addr mail.mail_from)
+	(addr mail_to)
+	(match mail_cc with [] -> "" | l -> Printf.sprintf "Cc: %s\r\n" (String.concat ", " (List.map addr l)))
 	(rfc2047_encode "Subject: " "utf-8" mail.mail_subject)
 	mail_date
 	mail.mail_body
@@ -225,8 +232,10 @@ let sendmail smtp_server smtp_port new_style mail =
       send1 oc "MAIL FROM:" (mail_address new_style (canon_addr mail.mail_from));
       if read_response ic <> 250 then bad_response ();
 
-      send1 oc "RCPT TO:" (mail_address new_style (canon_addr mail.mail_to));
-      if read_response ic <> 250 then bad_response ();
+      List.iter begin fun address ->
+        send1 oc "RCPT TO:" (mail_address new_style (canon_addr address));
+        if read_response ic <> 250 then bad_response ();
+      end mail.mail_to;
 
       send oc "DATA";
       if read_response ic <> 354 then bad_response ();
