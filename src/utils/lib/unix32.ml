@@ -1821,7 +1821,7 @@ let filesystem dir =
     | 0x00414A53L -> "EFS_SUPER_MAGIC"
     | 0x137DL -> "EXT_SUPER_MAGIC"
     | 0xEF51L -> "ext2" (* EXT2_OLD_SUPER_MAGIC *)
-    | 0xEF53L -> "ext2/3" (* EXT2/3_SUPER_MAGIC *)
+    | 0xEF53L -> "ext2/3/4" (* EXT2/3/4_SUPER_MAGIC *)
     | 0x4244L -> "HFS_SUPER_MAGIC"
     | 0xF995E849L -> "HPFS_SUPER_MAGIC"
     | 0x958458f6L -> "HUGETLBFS_MAGIC"
@@ -1856,6 +1856,7 @@ let filesystem dir =
     | 0x012FF7B4L -> "XENIX_SUPER_MAGIC"
     | 0x58465342L -> "xfs" (* XFS_SUPER_MAGIC *)
     | 0x012FD16DL -> "_XIAFS_SUPER_MAGIC"
+    | 0x9123683EL -> "btrfs"
     | 5L -> "iso9660" (* Cygwin *)
     | 6L -> "fat" (* Cygwin *)
     | 0x700FFL -> "ntfs" (* Cygwin *)
@@ -1863,7 +1864,7 @@ let filesystem dir =
     | _ -> if s.f_basetype <> "-1" then
 	     s.f_basetype
 	   else
-	     Printf.sprintf "unknown (%Ld)" s.f_type
+	     Printf.sprintf "unknown (%LX)" s.f_type
   with e -> "not supported"
 
 let set_max_cache_size v =

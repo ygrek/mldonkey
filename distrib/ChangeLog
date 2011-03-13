@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/03/13
+7500: Diskinfo: Recognize BTRFS
+
 2011/03/10
 7499: BT/DHT: fix logging (ygrek)
 7498: BT/DHT: make token more robust against broken nodes (ygrek)
