@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/03/14
+7501: Options: Disable Overnet by default and remove contact.dat from web_infos
+
 2011/03/13
 7456: Mail: Multiple mail addresses for admin (ygrek)
 7500: Diskinfo: Recognize BTRFS
