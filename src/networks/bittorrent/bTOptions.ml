@@ -165,8 +165,8 @@ let get_user_agent () =
   else !!user_agent
 
 let dht_port = define_option bittorrent_section ["dht_port"]
-  "The UDP port to bind the DHT node to (0 to disable)"
-  port_option 12345
+  "DHT port (UDP, set 0 to disable)"
+  port_option (2000 + Random.int 20000)
 
 let use_trackers = define_option bittorrent_section ["use_trackers"]
   "Send announces to trackers"
