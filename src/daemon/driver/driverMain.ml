@@ -466,6 +466,7 @@ or getting a binary compiled with glibc %s.\n\n")
         match String2.split_simplify s ' ' with
           | [ "client_port" ; tcpudp   ]
           | [ "tracker_port" ; tcpudp   ]
+          | [ "dht_port" ; tcpudp      ]
           | [ "overnet_port" ; tcpudp  ]
           | [ "kademlia_port" ; tcpudp ] ->
           if (String2.contains tcpudp "TCP") then 

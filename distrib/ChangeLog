@@ -14,8 +14,29 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/03/14
+7501: Options: Disable Overnet by default and remove contact.dat from web_infos
+
+2011/03/13
+7456: Mail: Multiple mail addresses for admin (ygrek)
+7500: Diskinfo: Recognize BTRFS
+
+2011/03/10
+7499: BT/DHT: fix logging (ygrek)
+7498: BT/DHT: make token more robust against broken nodes (ygrek)
+7497: HTML: mark not saved values in options (ygrek)
+7496: BT: stop asking users to submit unknown client ids (ygrek)
+7495: Fix compilation of Ocaml 3.12.0 with recent binutils (ecc, glondu)
+7494: GTK2 GUI: fix too obtrusive splash window (bugmenot, ygrek)
+7493: BT: open DHT port by UPnP (tathar)
+
+2011/01/31
+7448: BT: support for partial download (jave, pango & ygrek)
+- partial files are not committed, location in temp dir is shown so that users
+  can easily locate downloaded subfiles
+
 2011/01/23
-7442: BT: DHT tracker support (ygrek)
+7442: BT: DHT support (ygrek)
 - new options BT-dht_port, BT-use_trackers, BT-dht_bootstrap_nodes
 - new verbosity level "dht"
 -------------------------------------------------------------------------------

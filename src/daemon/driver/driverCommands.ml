@@ -50,6 +50,8 @@ open DriverInteractive
 open Gettext
 open Autoconf
 
+module VB = VerificationBitmap
+
 let log_prefix = "[dCmd]"
 
 let lprintf_nl fmt =
@@ -3205,11 +3207,12 @@ let _ =
 				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='files'\\\"\\>Display all files\\</a\\>\\</td\\>
 				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:parent.fstatus.location.href='submit?q=verify_chunks+%d'\\\"\\>Verify chunks\\</a\\>\\</td\\>
 				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:window.location.href='preview_download?q=%d'\\\"\\>Preview\\</a\\>\\</td\\>
+				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:window.location.href='submit?q=debug_get_download_prio+%d'\\\"\\>Debug\\</a\\>\\</td\\>
 				\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\</td\\>
 				\\<td class=downloaded width=100%%\\>\\</td\\>
 				\\</tr\\>\\</table\\>
 				\\</td\\>\\</tr\\>
-				\\<tr\\>\\<td\\>" num num
+				\\<tr\\>\\<td\\>" num num num
                 else begin
                     Printf.bprintf  buf "\\<a href=\\\"files\\\"\\>Display all files\\</a\\>  ";
                     Printf.bprintf  buf "\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>  " num;
@@ -3866,6 +3869,96 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
 let _ =
   register_commands "Driver/Xpert"
     [
+
+(*
+      "debug_set_download_prio", Arg_two 
+        (fun arg priostring  o ->
+           let num = int_of_string arg in
+           let file = file_find num in
+             CommonSwarming.set_swarmer_chunk_priorities file priostring;
+             "set prio"
+
+        ), ":\t\t\t\t\tset block download priorities for a file. 0=never download, >0=download largest prio first";
+*)
+
+      "debug_get_download_prio", Arg_one 
+        (fun arg o ->
+           let buf = o.conn_buf in
+           let pr fmt = Printf.bprintf buf fmt in
+           let num = int_of_string arg in
+           let file = file_find num in
+           let swarmer = CommonSwarming.file_swarmer file in
+           let prio = CommonSwarming.get_swarmer_block_priorities swarmer in
+           let downloaded = CommonSwarming.get_swarmer_block_verified swarmer in
+           pr "\\<code\\>";
+           pr "priorities: ";
+           String.iter (fun c ->
+             let c = max 0 (min 9 (Char.code c)) in
+             let c = Char.chr (c + Char.code '0') in 
+             Buffer.add_char buf c) prio;
+           pr "\n";
+           pr "downloaded: %s\n" (VB.to_string downloaded);
+
+           Unix32.subfile_tree_map (file_fd file)
+           begin fun fname start length current_length ->
+             let stop = if length <> 0L then (start ++ length -- 1L) else start in
+             let blockstart = try CommonSwarming.compute_block_num swarmer start with _ -> 0 in
+             let blockend = try CommonSwarming.compute_block_num swarmer stop with _ -> 0 in
+             pr "sf:%5Ld ef:%5Ld l:%Ld cl:%Ld > sc:%5d ec:%5d filename:%-30s \n" 
+                      start
+                      stop
+                      length
+                      current_length
+                      blockstart
+                      blockend
+                      fname;
+             (*make a chunk downloaded status string for a subfile*)
+             (try 
+                for i = blockstart to blockend do
+                  Buffer.add_char buf (VB.state_to_char (VB.get downloaded i));
+                done;
+                pr "\n";
+              with _ -> ())
+           end;
+           pr "\\</code\\>";
+           "";
+    ), ":\t\t\t\t\tget file block priorities for a file, and show subfile completion status";
+
+    "debug_set_subfile_prio", Arg_multiple 
+      (fun args o ->
+        let buf = o.conn_buf in
+        match args with
+        | filenum :: priochar :: subfilestart :: q ->
+            let filenum = int_of_string filenum in
+            let priochar = int_of_string priochar in
+            let subfilestart = int_of_string subfilestart in
+            let subfileend =
+              match q with
+              | subfileend :: _ -> int_of_string subfileend
+              | _ -> subfilestart in
+            let file = file_find filenum in
+            let swarmer = CommonSwarming.file_swarmer file in
+(*
+            let priostring = 
+              CommonSwarming.get_swarmer_chunk_priorities file in
+*)
+            let subfile1 = Unix32.find_file_index (file_fd file) subfilestart in
+            let subfile2 = Unix32.find_file_index (file_fd file) subfileend in
+            let subfile_pos = function (_,y,_) -> y in
+            let subfile_len = function (_,_,y) -> y in
+            let start = subfile_pos subfile1 in
+            let stop = 
+              subfile_pos subfile2 ++ subfile_len subfile2 
+(*                 -- if subfile_len subfile2 > 0L then 1L else 0L  *)
+            in
+            Printf.bprintf buf "file %s\nstart %Ld stop %Ld prio %u\n" 
+              swarmer.CommonSwarming.s_filename start stop priochar;
+            CommonSwarming.swarmer_set_interval swarmer (start,stop,priochar);
+            (* show file *)
+            execute_command !CommonNetwork.network_commands o "vd" [string_of_int filenum];
+            ""
+        | _ -> bad_number_of_args "" ""
+    ), "debug_set_subfile_prio <download id> <prio> <1st subfile> <optional last subfile>";
 
     "reload_messages", Arg_none (fun o ->
         CommonMessages.load_message_file ();

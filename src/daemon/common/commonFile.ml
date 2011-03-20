@@ -700,6 +700,23 @@ let file_print file o =
   let buf = o.conn_buf in
   let srcs = file_all_sources file in
 
+  let chunks_counts chunks = 
+	  let tc = VerificationBitmap.length chunks in
+	  let c0 = ref 0 in
+	  let c1 = ref 0 in
+	  let c2 = ref 0 in
+	  let c3 = ref 0 in
+
+	  VerificationBitmap.iteri (fun _ c ->
+            match c with
+            | VerificationBitmap.State_missing -> incr c0
+            | VerificationBitmap.State_partial -> incr c1
+            | VerificationBitmap.State_complete -> incr c2
+            | VerificationBitmap.State_verified -> incr c3
+	  ) chunks;
+  	Printf.sprintf "%d = %d + %d + %d + %d" tc !c0 !c1 !c2 !c3
+  in
+
   if use_html_mods o then begin
 
       html_mods_cntr_init ();
@@ -807,35 +824,21 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
-      (match info.G.file_chunks with 
+      begin match info.G.file_chunks with 
       | None -> ()
       | Some chunks ->
-	  let tt = "0=Missing, 1=Partial, 2=Complete, 3=Verified" in
-	  let tc = VerificationBitmap.length chunks in
-	  let c0 = ref 0 in
-	  let c1 = ref 0 in
-	  let c2 = ref 0 in
-	  let c3 = ref 0 in   
-
-	  VerificationBitmap.iteri (fun _ c ->
-            match c with
-            | VerificationBitmap.State_missing -> incr c0
-            | VerificationBitmap.State_partial -> incr c1
-            | VerificationBitmap.State_complete -> incr c2
-            | VerificationBitmap.State_verified -> incr c3
-	  ) chunks;
-      
-	  let header = Printf.sprintf "%d (%d+%d+%d+%d): " tc !c0 !c1 !c2 !c3 in
+        let tt = "Total = Missing + Partial + Complete + Verified" in
+        let summary = chunks_counts chunks in
 
 	  html_mods_td buf [
             (tt, "sr br", "Chunks");
             (tt, "sr", 
-            header ^ if !!html_vd_chunk_graph then
+            summary ^ if !!html_vd_chunk_graph then
               colored_chunks chunks
             else
               VerificationBitmap.to_string chunks
             ) ]
-      );
+      end;
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [
@@ -874,10 +877,9 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
 	(match file_group file with
 	   Some group -> Printf.sprintf "%s" group.group_name
 	 | None -> "private");
-      Printf.bprintf buf "Chunks: [%-s]\n"
 	(match info.G.file_chunks with
-	| None -> ""
-	| Some chunks -> VerificationBitmap.to_string chunks);
+      | None -> () 
+      | Some chunks -> Printf.bprintf buf "Chunks: %s\n" (chunks_counts chunks));
       (match impl.impl_file_probable_name with
           None -> ()
         | Some filename ->

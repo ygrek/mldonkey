@@ -105,3 +105,6 @@ val diskused : string -> int64 option
 val percentused : string -> int option
 val percentfree : string -> int option
 val filesystem : string -> string
+val subfile_tree_map : t -> (string -> int64 -> int64 -> int64-> unit)  ->  unit
+val find_file : t -> int64 -> (string * int64 * int64)
+val find_file_index : t -> int -> (string * int64 * int64)

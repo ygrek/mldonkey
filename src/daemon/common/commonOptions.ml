@@ -1054,8 +1054,6 @@ let web_infos = define_option current_section ["web_infos"]
         "http://www.bluetack.co.uk/config/level1.gz");
       ("server.met", 0,
         "http://www.gruk.org/server.met.gz");
-      ("contact.dat", 168,
-        "http://download.overnet.org/contact.dat");
       ("geoip.dat", 0,
         "http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz");
       ("nodes.gzip", 0,
@@ -1667,7 +1665,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 let options_version = define_expert_option current_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 21
+    int_option 22
 
 let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
   "Maximum number of comments per file"
@@ -1767,14 +1765,13 @@ let _ =
   match name with
   | "mldc" -> enable_directconnect =:= true
   | "mlgnut" -> enable_gnutella =:= true
-  | "mldonkey" -> enable_donkey =:= true; enable_overnet =:= true
+  | "mldonkey" -> enable_donkey =:= true;
   | "mlslsk" -> enable_soulseek =:= true
   | "mlbt" -> enable_bittorrent =:= true
   | "mlnap" -> enable_opennap =:= true
   | _ ->
 (* default *)
       enable_donkey =:= true;
-      enable_overnet =:= true;
       enable_bittorrent =:= true
 
 let win_message =
@@ -2267,5 +2264,10 @@ let rec update_options () =
         "http://www.maxmind.com/download/geoip/database/GeoIP.dat.gz"
         "http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz";
       update 21
+
+  | 21 ->
+      web_infos_remove "http://download.overnet.org/contact.dat";
+      enable_overnet =:= false;
+      update 22
 
   | _ -> ()

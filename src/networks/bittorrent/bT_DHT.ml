@@ -12,10 +12,10 @@ let store_peer_timeout = minutes 30
 let secret_timeout = minutes 10
 let alpha = 3
 
-let log_prefix = "dht"
-let lprintf_nl fmt = Printf2.lprintf_nl2 log_prefix fmt
-
-let log = new logger log_prefix
+let log_prefix = "[dht]"
+let lprintf_nl ?exn fmt = ksprintf (fun s ->
+    let exn = match exn with Some exn -> " : exn "^Printexc.to_string exn | None -> "" in
+    Printf2.lprintf_nl2 log_prefix "%s%s" s exn) fmt
 
 let catch f x = try `Ok (f x) with e -> `Exn e
 let (&) f x = f x
@@ -104,7 +104,9 @@ let decode_exn s =
   | _ -> failwith "type"
   in (txn, ver, msg)
   with
-  exn -> log #warn ~exn "err"; raise (Protocol_error (txn,"Invalid argument"))
+  exn ->
+    if !verb then lprintf_nl ~exn "err";
+    raise (Protocol_error (txn,"Invalid argument"))
 
 open BasicSocket
 open UdpSocket
@@ -112,7 +114,7 @@ open UdpSocket
 let udp_set_reader socket f =
   set_reader socket begin fun _ ->
     try read_packets socket f with exn -> 
-      log #warn ~exn "udp reader";
+      if !verb then lprintf_nl ~exn "udp reader";
       close socket (Closed_for_exception exn)
   end
 
@@ -120,7 +122,7 @@ module A = Assoc2
 
 let send sock (ip,port as addr) txnmsg =
   let s = encode txnmsg in
-  log #debug "KRPC to %s : %S" (show_addr addr) s;
+  if !debug then lprintf_nl "KRPC to %s : %S" (show_addr addr) s;
   write sock false s ip port
 
 type t = UdpSocket.t * (addr, string, (addr -> dict -> unit) * (unit -> unit) * int) A.t
@@ -144,19 +146,20 @@ let create port enabler bw_control answer : t =
     let bad = ref [] in
     let total = ref 0 in
     A.iter h (fun addr txn (_,kerr,t) -> incr total; if t < now then bad := (addr,txn,kerr) :: !bad);
-    log #info "timeouted %d of %d DHT queries" (List.length !bad) !total;
+    if !debug then lprintf_nl "timeouted %d of %d DHT queries" (List.length !bad) !total;
     List.iter (fun (addr,txn,kerr) ->
       A.remove h addr txn;
-      try kerr () with exn -> log #info ~exn "timeout for %s" (show_addr addr)) !bad;
+      try kerr () with exn -> if !debug then lprintf_nl ~exn "timeout for %s" (show_addr addr)) !bad;
   in
   BasicSocket.add_session_timer enabler 5. (fun () -> timeout h);
   let handle addr (txn,ver,msg) =
-    let version = match ver with Some s -> sprintf "client %S " s | None -> "" in
-    log #debug "KRPC from %s %stxn %S : %s" (show_addr addr) version txn (show_msg msg);
+    let version = lazy (match ver with Some s -> sprintf " client %S" s | None -> "") in
+    if !debug then lprintf_nl "KRPC from %s %stxn %S : %s" (show_addr addr) !!version txn (show_msg msg);
     match msg with
-    | Error _ ->
+    | Error (code,msg) ->
+        if !verb then lprintf_nl "error received from %s%s : %Ld %S" (show_addr addr) !!version code msg;
         begin match A.find h addr txn with
-        | None -> log #warn "no txn %S for %s %s (error received)" txn (show_addr addr) version
+        | None -> if !verb then lprintf_nl "no txn %S for %s%s" txn (show_addr addr) !!version
         | Some (_, kerr, _) -> A.remove h addr txn; kerr ()
         end
     | Query (name,args) ->
@@ -164,7 +167,7 @@ let create port enabler bw_control answer : t =
         send socket addr (txn, ret)
     | Response ret ->
         match A.find h addr txn with
-        | None -> log #warn "no txn %S for %s %s" txn (show_addr addr) version
+        | None -> if !verb then lprintf_nl "no txn %S for %s%s" txn (show_addr addr) !!version
         | Some (k,_,_) -> A.remove h addr txn; k addr ret
   in
   let handle p =
@@ -174,13 +177,12 @@ let create port enabler bw_control answer : t =
       let addr = (Ip.of_inet_addr inet_addr, port) in
       let ret = ref None in
       try
-(*         log #debug "recv %S" p.udp_content; *)
         let r = decode_exn p.udp_content in
         ret := Some r;
         handle addr r
       with exn ->
         let version = match !ret with Some (_,Some s,_) -> sprintf " client %S" s | _ -> "" in
-        log #warn ~exn "dht handle packet from %s%s : %S" (show_addr addr) version p.udp_content;
+        if !verb then lprintf_nl ~exn "handle packet from %s%s : %S" (show_addr addr) version p.udp_content;
         let error txn code str = send socket addr (txn,(Error (Int64.of_int code,str))) in
         match exn,!ret with
         | Malformed_packet x, Some (txn, _, _)
@@ -195,7 +197,7 @@ let create port enabler bw_control answer : t =
 let shutdown (socket,h) =
   close socket Closed_by_user;
   A.iter h (fun addr _ (_,kerr,_) ->
-    try kerr () with exn -> log #warn ~exn "shutdown for %s" (show_addr addr));
+    try kerr () with exn -> if !verb then lprintf_nl ~exn "shutdown for %s" (show_addr addr));
   A.clear h
 
 let write (socket,h) msg addr k ~kerr =
@@ -357,10 +359,10 @@ type t = {
 }
 
 let dht_query t addr q k ~kerr =
-  log #info "DHT query to %s : %s" (show_addr addr) (show_query q);
+  if !debug then lprintf_nl "DHT query to %s : %s" (show_addr addr) (show_query q);
   KRPC.write t.rpc (make_query t.rt.self q) addr begin fun addr dict ->
     let (id,r) = try parse_response_exn q dict with exn -> kerr (); raise exn in
-    log #info "DHT response from %s (%s) : %s" (show_addr addr) (show_id id) (show_response r);
+    if !debug then lprintf_nl "DHT response from %s (%s) : %s" (show_addr addr) (show_id id) (show_response r);
     k (id,addr) r
   end ~kerr
 
@@ -397,7 +399,7 @@ let manage_timeouts enabler h =
       in
       if Peers.is_empty m then Hashtbl.remove h id else Hashtbl.replace h id m
     ) torrents;
-    log #info "Removed %d of %d peers for announced torrents" !rm !total
+    if !debug then lprintf_nl "Removed %d of %d peers for announced torrents" !rm !total
   end
 
 let create rt dht_port bw_control answer =
@@ -458,11 +460,13 @@ let valid t s =
 
 end
 
-let make_token addr h secret = string_of_int (Hashtbl.hash [show_addr addr; H.direct_to_string h; secret])
+(* do not hash port cause some broken implementations change it all the time *)
+let make_token (ip,_) h secret = string_of_int (Hashtbl.hash (Ip.to_string ip, H.direct_to_string h, secret))
 
 let valid_token addr h secret token =
-  token = make_token addr h (Secret.get secret) ||
-  token = make_token addr h (Secret.get_prev secret)
+  let cur = Secret.get secret in
+  let prev = Secret.get_prev secret in
+  token = make_token addr h cur || token = make_token addr h prev
 
 module LimitedSet = struct
 
@@ -521,7 +525,7 @@ exception Break
 
 (** @param nodes nodes to start search from, will not be inserted into routing table *)
 let lookup_node dht ?nodes target k =
-  log #info "lookup %s" (show_id target);
+  if !debug then lprintf_nl "lookup %s" (show_id target);
   let start = BasicSocket.last_time () in
   let module S = LimitedSet.Make(struct
     type t = id * addr
@@ -534,7 +538,7 @@ let lookup_node dht ?nodes target k =
     if 0 = !active then
     begin
       let result = S.elements found in
-      log #info "lookup_node %s done, queried %d, found %d, elapsed %ds" 
+      if !debug then lprintf_nl "lookup_node %s done, queried %d, found %d, elapsed %ds" 
         (show_id target) (Hashtbl.length queried) (List.length result) (BasicSocket.last_time () - start);
       k result
     end
@@ -551,15 +555,15 @@ let lookup_node dht ?nodes target k =
   and query store (id,addr as node) =
     incr active;
     Hashtbl.add queried node true;
-    log #info "will query node %s" (show_node node);
+    if !debug then lprintf_nl "will query node %s" (show_node node);
     M.find_node dht addr target begin fun (id,addr as node) nodes ->
       if store then update dht Good id addr;
       decr active;
       let inserted = round nodes in
       let s = try sprintf ", best %s" (show_id (fst (S.min_elt found))) with _ -> "" in
-      log #info "got %d nodes from %s, useful %d%s" (List.length nodes) (show_node node) inserted s;
+      if !debug then lprintf_nl "got %d nodes from %s, useful %d%s" (List.length nodes) (show_node node) inserted s;
       check_ready ()
-    end ~kerr:(fun () -> decr active; log #info "timeout from %s" (show_node node); check_ready ())
+    end ~kerr:(fun () -> decr active; if !debug then lprintf_nl "timeout from %s" (show_node node); check_ready ())
   in
   begin match nodes with
   | None -> let (_:int) = round (M.self_find_node dht target) in ()
@@ -579,36 +583,36 @@ let show dht = show_table dht.M.rt; show_torrents dht.M.torrents
 let bootstrap dht host addr k =
   M.ping dht addr begin function
     | Some node ->
-      log #info "bootstrap node %s (%s) is up" (show_node node) host;
+      if !verb then lprintf_nl "bootstrap node %s (%s) is up" (show_node node) host;
       lookup_node dht ~nodes:[node] dht.M.rt.self (fun l ->
-        log #info "bootstrap via %s (%s) : found %s" (show_addr addr) host (strl show_node l);
+        if !debug then lprintf_nl "bootstrap via %s (%s) : found %s" (show_addr addr) host (strl show_node l);
         k (List.length l >= Kademlia.bucket_nodes))
     | None ->
-      log #warn "bootstrap node %s (%s) is down" (show_addr addr) host;
+      if !verb then lprintf_nl "bootstrap node %s (%s) is down" (show_addr addr) host;
       k false
   end
 
 let bootstrap dht (host,port) k =
   Ip.async_ip host
     (fun ip -> bootstrap dht host (ip,port) k)
-    (fun n -> log #warn "boostrap node %s cannot be resolved (%d)" host n; k false)
+    (fun n -> if !verb then lprintf_nl "boostrap node %s cannot be resolved (%d)" host n; k false)
 
 let bootstrap ?(routers=[]) dht =
   lookup_node dht dht.M.rt.self begin fun l ->
-    log #info "auto bootstrap : found %s" (strl show_node l);
+    if !debug then lprintf_nl "auto bootstrap : found %s" (strl show_node l);
     let rec loop l ok =
       match ok,l with
-      | true,_ -> log #user "bootstrap ok, total nodes : %d" (size dht.M.rt)
-      | false,[] -> log #warn "boostrap failed, total nodes : %d" (size dht.M.rt)
+      | true,_ -> if !verb then lprintf_nl "bootstrap ok, total nodes : %d" (size dht.M.rt)
+      | false,[] -> if !verb then lprintf_nl "boostrap failed, total nodes : %d" (size dht.M.rt)
       | false,(node::nodes) -> bootstrap dht node (loop nodes)
     in
     loop routers (List.length l >= Kademlia.bucket_nodes)
   end
 
 let query_peers dht id k =
-  log #info "query_peers: start %s" (H.to_hexa id);
+  if !debug then lprintf_nl "query_peers: start %s" (H.to_hexa id);
   lookup_node dht id (fun nodes ->
-    log #info "query_peers: found nodes %s" (strl show_node nodes);
+    if !debug then lprintf_nl "query_peers: found nodes %s" (strl show_node nodes);
 (*
     let found = ref Peers.empty in
     let check =
@@ -618,7 +622,7 @@ let query_peers dht id k =
 *)
     List.iter begin fun node ->
       M.get_peers dht (snd node) id begin fun node token peers nodes ->
-        log #info "query_peers: got %d peers and %d nodes from %s with token %S" 
+        if !debug then lprintf_nl "query_peers: got %d peers and %d nodes from %s with token %S" 
           (List.length peers) (List.length nodes) (show_node node) token;
         k node token peers;
 (*
@@ -626,7 +630,7 @@ let query_peers dht id k =
         check ()
 *)
         end
-        ~kerr:(fun () -> log #info "query_peers: get_peers error from %s" (show_node node)(*; check ()*));
+        ~kerr:(fun () -> if !debug then lprintf_nl "query_peers: get_peers error from %s" (show_node node)(*; check ()*));
 (*       check () *)
     end nodes)
 
@@ -634,10 +638,9 @@ let start rt port bw_control =
   let secret = Secret.create secret_timeout in
   let rec dht = lazy (M.create rt port bw_control answer)
   and answer addr name args =
-    try
     let (id,q) = parse_query_exn name args in
     let node = (id,addr) in
-    log #info "DHT query from %s : %s" (show_node node) (show_query q);
+    if !debug then lprintf_nl "DHT query from %s : %s" (show_node node) (show_query q);
     update !!dht Good id addr;
     let response =
       match q with
@@ -647,36 +650,34 @@ let start rt port bw_control =
         let token = make_token addr h (Secret.get secret) in
         let peers = M.self_get_peers !!dht h in
         let nodes = M.self_find_node !!dht h in
-        log #info "answer with %d peers and %d nodes" (List.length peers) (List.length nodes);
+        if !debug then lprintf_nl "answer with %d peers and %d nodes" (List.length peers) (List.length nodes);
         Peers (token,peers,nodes)
       | Announce (h,port,token) ->
-        if not (valid_token addr h secret token) then failwith "bad token in announce";
+        if not (valid_token addr h secret token) then failwith ("invalid token " ^ token);
         M.store !!dht h (fst addr, port);
         Ack
     in
-    log #info "DHT response to %s : %s" (show_node node) (show_response response);
+    if !debug then lprintf_nl "DHT response to %s : %s" (show_node node) (show_response response);
     make_response (!!dht).M.rt.self response
-    with
-    exn -> log #warn ~exn "query %s from %s" name (show_addr addr); raise exn
   in
   let refresh () =
     let ids = Kademlia.refresh (!!dht).M.rt in
-    log #info "will refresh %d buckets" (List.length ids);
+    if !debug then lprintf_nl "will refresh %d buckets" (List.length ids);
     let cb prev_id (id,addr as node) l =
       update !!dht Good id addr; (* replied *)
       if prev_id <> id then
       begin
-        log #info "refresh: node %s changed id (was %s)" (show_node node) (show_id prev_id);
+        if !debug then lprintf_nl "refresh: node %s changed id (was %s)" (show_node node) (show_id prev_id);
         update !!dht Bad prev_id addr;
       end;
-      log #info "refresh: got %d nodes from %s" (List.length l) (show_node node);
+      if !debug then lprintf_nl "refresh: got %d nodes from %s" (List.length l) (show_node node);
       List.iter (fun (id,addr) -> update !!dht Unknown id addr) l
     in
     List.iter (fun (target, nodes) ->
       List.iter (fun (id,addr) -> M.find_node !!dht addr target (cb id) ~kerr:(fun () -> ())) nodes)
     ids
   in
-  log #info "DHT size : %d self : %s" (size (!!dht).M.rt) (show_id (!!dht).M.rt.self); 
+  if !debug then lprintf_nl "DHT size : %d self : %s" (size (!!dht).M.rt) (show_id (!!dht).M.rt.self); 
   BasicSocket.add_session_timer (!!dht).M.enabler 60. refresh;
   !!dht
 

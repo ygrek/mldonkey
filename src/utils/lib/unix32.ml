@@ -454,6 +454,14 @@ module MultiFile = struct
           find_file
             (if file_pos < pos then tree1 else tree2) file_pos
 
+    let rec subfile_tree_map indent tree f=
+      match tree with
+        | Leaf file -> 
+            f file.filename file.pos file.len file.current_len
+        | Node (pos, tree1, tree2) ->
+            subfile_tree_map (indent ^ "  ") tree1 f;
+            subfile_tree_map (indent ^ "  ") tree2 f
+              
     let rec print_tree indent tree =
       match tree with
         Leaf file -> lprintf_nl "%s  - %s (%Ld,%Ld)"
@@ -1657,6 +1665,28 @@ when these two files have already been partially downloaded ? This
       ()
 *)      
   end
+
+(* subfile tree map function*)
+let subfile_tree_map t f =
+  match t.file_kind with
+    | MultiFile t -> MultiFile.subfile_tree_map "" t.MultiFile.tree f; ()
+    | _ -> ()
+        
+
+let find_file t chunk_begin = 
+  match t.file_kind with
+    | MultiFile t ->  
+        let (sf, tail) = (MultiFile.find_file t chunk_begin) in
+          (sf.MultiFile.filename, sf.MultiFile.pos , sf.MultiFile.len)
+    | _ -> ("unimplemeted" , 0L, 0L)
+
+let find_file_index t index = 
+  match t.file_kind with
+    | MultiFile t ->  
+        let sf = List.nth t.MultiFile.files index in
+          (sf.MultiFile.filename, sf.MultiFile.pos , sf.MultiFile.len)
+    | _ -> ("unimplemeted" , 0L, 0L)
+
 type t = file
 
 (*
@@ -1791,7 +1821,7 @@ let filesystem dir =
     | 0x00414A53L -> "EFS_SUPER_MAGIC"
     | 0x137DL -> "EXT_SUPER_MAGIC"
     | 0xEF51L -> "ext2" (* EXT2_OLD_SUPER_MAGIC *)
-    | 0xEF53L -> "ext2/3" (* EXT2/3_SUPER_MAGIC *)
+    | 0xEF53L -> "ext2/3/4" (* EXT2/3/4_SUPER_MAGIC *)
     | 0x4244L -> "HFS_SUPER_MAGIC"
     | 0xF995E849L -> "HPFS_SUPER_MAGIC"
     | 0x958458f6L -> "HUGETLBFS_MAGIC"
@@ -1826,6 +1856,7 @@ let filesystem dir =
     | 0x012FF7B4L -> "XENIX_SUPER_MAGIC"
     | 0x58465342L -> "xfs" (* XFS_SUPER_MAGIC *)
     | 0x012FD16DL -> "_XIAFS_SUPER_MAGIC"
+    | 0x9123683EL -> "btrfs"
     | 5L -> "iso9660" (* Cygwin *)
     | 6L -> "fat" (* Cygwin *)
     | 0x700FFL -> "ntfs" (* Cygwin *)
@@ -1833,7 +1864,7 @@ let filesystem dir =
     | _ -> if s.f_basetype <> "-1" then
 	     s.f_basetype
 	   else
-	     Printf.sprintf "unknown (%Ld)" s.f_type
+	     Printf.sprintf "unknown (%LX)" s.f_type
   with e -> "not supported"
 
 let set_max_cache_size v =
