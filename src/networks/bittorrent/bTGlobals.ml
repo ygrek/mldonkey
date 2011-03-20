@@ -925,7 +925,7 @@ Define a function to be called when the "mem_stats" command
 
 **************************************************************)
 
-let _ =
+let () =
   Heap.add_memstat "BittorrentGlobals" (fun level buf ->
      Printf.bprintf buf "Number of old files: %d\n" (List.length !!old_files);
      let downloads = ref 0 in
@@ -940,3 +940,28 @@ let _ =
      Printf.bprintf buf "files_by_uid: %d\n" (Hashtbl.length files_by_uid);
      Printf.bprintf buf "ft_by_num: %d\n" (Hashtbl.length ft_by_num);
   )
+
+open BT_DHT
+
+let () =
+  Heap.add_memstat "BittorrentDHT" (fun _level buf ->
+    match !bt_dht with
+    | None -> ()
+    | Some dht ->
+    let (buckets,nodes,keys,peers) = stat dht in
+    Printf.bprintf buf "Routing : %d nodes in %d buckets\n" nodes buckets;
+    Printf.bprintf buf "Storage : %d keys with %d peers\n" keys peers;
+    List.iter (fun s -> Printf.bprintf buf "%s\n" s) (rpc_stats dht);
+    let queries = ["PING",`Ping;"FIND_NODE",`FindNode;"GET_PEERS",`GetPeers;"ANNOUNCE",`Announce] in
+    Printf.bprintf buf "Outgoing queries : ok/error/timeout\n";
+    List.iter begin fun (name,qt) ->
+      let get k = try Hashtbl.find dht.M.stats (qt,`Out k) with Not_found -> 0 in
+      Printf.bprintf buf "%s: %d/%d/%d\n" name (get `Answer) (get `Error) (get `Timeout);
+      end queries;
+    Printf.bprintf buf "Incoming queries\n";
+    List.iter begin fun (name,qt) ->
+      let get () = try Hashtbl.find dht.M.stats (qt,`In) with Not_found -> 0 in
+      Printf.bprintf buf "%s: %d\n" name (get ())
+      end queries
+  )
+

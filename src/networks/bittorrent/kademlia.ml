@@ -352,6 +352,7 @@ let rec fold f acc = function
   | L b -> f acc b
 
 let size t = fold (fun acc b -> acc + Array.length b.nodes) 0 t.root
+let buckets t = fold (fun acc b -> acc + 1) 0 t.root
 
 (*
 module NoNetwork : Network = struct 

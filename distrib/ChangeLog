@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/03/20
+7506: BT/DHT: show stats, choose random port (ygrek)
+
 2011/03/14
 7501: Options: Disable Overnet by default and remove contact.dat from web_infos
 
