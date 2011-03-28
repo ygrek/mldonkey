@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2011/03/28
+7517: http: fix XSS in error handler (ygrek)
 7495: Fix compilation of Ocaml 3.11.* with recent binutils (ecc, glondu)
 
 2011/03/20
