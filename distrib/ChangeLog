@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/03/28
+7495: Fix compilation of Ocaml 3.11.* with recent binutils (ecc, glondu)
+
 2011/03/20
 7506: BT/DHT: show stats, choose random port (ygrek)
 
