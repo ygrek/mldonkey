@@ -1402,6 +1402,11 @@ let http_handler o t r =
                   html_open_page buf t r true;
                   send_custom_query o.conn_user buf query args
 
+              | [ ("api", cmd) ] ->
+                  clear_page o.conn_buf;
+                  eval (ref true) cmd o;
+                  Buffer.add_string buf (Buffer.contents o.conn_buf)
+
               | [ "setoption", _ ; "option", name; "value", value ] ->
                   html_open_page buf t r true;
                   let gui_type, ip, port =
