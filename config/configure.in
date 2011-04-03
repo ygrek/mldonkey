@@ -712,6 +712,12 @@ if test "$DEBUG" = "yes"; then
     OCAMLOPT="$OCAMLOPT -g"
 fi
 
+if test "$TARGET_TYPE" = "byte"; then
+    OCAMLBEST="$OCAMLC"
+else
+    OCAMLBEST="$OCAMLOPT"
+fi
+
 echo -e "\n----------------------------------"
 echo "     Checking system headers."
 echo "----------------------------------"
@@ -1419,6 +1425,7 @@ AC_SUBST(CONFIG_INCLUDES)
 AC_SUBST(OCAMLC)
 AC_SUBST(OCAMLLIB)
 AC_SUBST(OCAMLOPT)
+AC_SUBST(OCAMLBEST)
 AC_SUBST(OCAMLLEX)
 AC_SUBST(OCAMLYACC)
 AC_SUBST(OCAMLDEP)

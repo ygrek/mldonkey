@@ -1434,10 +1434,10 @@ ocamldoc_html: $(CORE_DOC) $(libclient_DOC)
 	$(OCAMLDOC) -sort -dump ocamldoc/ocamldocdump -html -d ocamldoc $(INCLUDES) $(libclient_DOC) $(CORE_DOC)
 
 $(LIB)/md4_cc.o: $(LIB)/md4.c
-	$(OCAMLC) -ccopt "$(CFLAGS) -O6 -o $(LIB)/md4_cc.o" -ccopt "" -c $(LIB)/md4.c
+	$(OCAMLBEST) -ccopt "$(CFLAGS) -O6 -o $(LIB)/md4_cc.o" -ccopt "" -c $(LIB)/md4.c
 
 $(CDK)/heap_c.o: $(CDK)/heap_c.c
-	$(OCAMLC) -ccopt "$(CFLAGS) $(MORECFLAGS) -o $(CDK)/heap_c.o" -ccopt "" -c $(CDK)/heap_c.c
+	$(OCAMLBEST) -ccopt "$(CFLAGS) $(MORECFLAGS) -o $(CDK)/heap_c.o" -ccopt "" -c $(CDK)/heap_c.c
 
 $(LIB)/md4_as.o: $(LIB)/md4_$(MD4ARCH).s
 	as -o $(LIB)/md4_as.o $(LIB)/md4_$(MD4ARCH).s
@@ -1876,7 +1876,7 @@ rpm: sourcedist
 	@$(OCAMLPP) -pp $< > $@
 
 .c.o :
-	$(OCAMLC) -verbose -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" $(LIBS_flags) -c $<
+	$(OCAMLBEST) -verbose -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" $(LIBS_flags) -c $<
 
 .cc.o :
 	$(CXX) $(CXXFLAGS) $(CRYPTOPPFLAGS) -o $*.o "-I$(OCAMLLIB)" -c $<
