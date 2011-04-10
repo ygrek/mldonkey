@@ -877,7 +877,6 @@ fi
 if test "$UPNP_NATPMP" = "yes"; then
   AC_DEFINE(ENABLE_UPNP_NATPMP, 1, [Define to 1 if you have libminiupnpc & libnatpmp for port forwarding support.])
   UPNP_NATPMP_LIBS="-lminiupnpc -lnatpmp $LIBS"
-  UPNP_NATPMP_STATIC_LIBS="-lminiupnpc -lnatpmp $LIBS"
 fi
 
 if test "$MAGIC" != "no"; then
@@ -1542,7 +1541,6 @@ AC_SUBST(MAGIC)
 AC_SUBST(MAGICLIB)
 AC_SUBST(UPNP_NATPMP)
 AC_SUBST(UPNP_NATPMP_LIBS)
-AC_SUBST(UPNP_NATPMP_STATIC_LIBS)
 BUILD_SYSTEM="`uname -s` `uname -m` `uname -r`"
 AC_SUBST(BUILD_SYSTEM)
 AC_SUBST(GLIBC_VERSION)
@@ -1712,8 +1710,8 @@ else
   echo "        disabled"
 fi
 
+echo -n -e "\n - GUI build        "
 if test "$LABLGTK_CONFIG" = "yes"; then
-  echo -n -e "\n - GUI support       "
   if test "$GUI" = "newgui1"; then
     echo "GTK1 newgui"
   else
@@ -1723,10 +1721,8 @@ if test "$LABLGTK_CONFIG" = "yes"; then
       echo "GTK1 oldgui"
     fi
   fi
-fi
-
-if test "$OLDGUI_NO_31" = "yes"; then
-  echo " - GUI support       GTK1 oldgui does not work with Ocaml 3.1*, disabled"
+else
+  echo "         disabled"
 fi
 
 if test "$TARGET_TYPE" = "byte"; then
@@ -1741,7 +1737,7 @@ if test "x$CXX" != "x"; then
 fi
 echo -e "\nNow execute '$GNU_MAKE' to start compiling. Good luck!"
 
-echo -e "\nTo compile a static code execute:     $GNU_MAKE mlnet$COMPILE_TARGET.static"
+echo -e "\nTo compile a static core execute:     $GNU_MAKE mlnet$COMPILE_TARGET.static"
 echo      "To produce a release tarball execute: $GNU_MAKE release.mlnet.static"
 echo      "To clean the build directory execute: $GNU_MAKE maintainerclean"
 if test "$DONKEY_SUI" = "yes"; then
