@@ -34,10 +34,6 @@ LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa nums.cmxa
 BIGARRAY_LIBS_opt=bigarray.cmxa
 BIGARRAY_LIBS_byte=bigarray.cma
 
-CRYPT_LIBS_opt=-cclib -lcrypt
-CRYPT_LIBS_byte=-cclib -lcrypt
-
-
 #######################################################################
 
 ##              General options
@@ -124,14 +120,15 @@ endif
 
 #######################################################################
 
-LIBS_flags += -ccopt "$(LDFLAGS) $(CPPFLAGS)" -cclib "$(LIBS)"
+LIBS_flags += -ccopt "$(LDFLAGS) $(CPPFLAGS)"
+CCLIB += $(LIBS)
 
 ifeq ("$(OS_FILES2)", "mingw")
-  LIBS_flags += -cclib "-lws2_32 -lgdi32 -luser32 -ladvapi32 -lwsock32 -limm32 -lshell32 -lole32 resfile.o"
+  CCLIB += -lws2_32 -lgdi32 -luser32 -ladvapi32 -lwsock32 -limm32 -lshell32 -lole32 resfile.o
 endif
 
 ifeq ("$(OS_FILES2)", "cygwin")
-  LIBS_flags += -cclib "resfile.o"
+  CCLIB += resfile.o
 endif
 
 BITSTRING_SRCS = \
@@ -139,7 +136,7 @@ BITSTRING_SRCS = \
   $(BITSTRING)/bitstring_c.c
 
 ifeq ("$(BZIP2)", "yes")
-  LIBS_flags += -cclib -lbz2
+  CCLIB += -lbz2
   CDK_SRCS +=  $(CDK)/bzlib.ml $(CDK)/bzip2.ml
 endif
 
@@ -169,8 +166,7 @@ ifneq ("$(PTHREAD_MINGW_CFLAGS)" , "")
 endif
 
 ifneq ("$(PTHREAD_LIBS)" , "")
-  LIBS_flags += -cclib "$(PTHREAD_LIBS)"
-#  LIBS_byte += -cclib "$(PTHREAD_LIBS)"
+  CCLIB += $(PTHREAD_LIBS)
 endif
 
 MP3TAG_SRCS=     $(MP3)/mp3_info.ml  $(MP3)/mp3_genres.ml \
@@ -200,7 +196,7 @@ LIB_SRCS=   \
   $(LIB)/verificationBitmap.ml
 
 ifeq ("$(MAGIC)", "yes")
-  MAGIC_LIBS_flags += -cclib -lmagic
+  MAGIC_CCLIB += -lmagic
   MAGIC_SRCS = $(LIB)/magiclib.ml $(LIB)/magic_magic.ml $(LIB)/magiclib_stub.c
 else
   MAGIC_SRCS = $(LIB)/magic_nomagic.ml
@@ -554,9 +550,10 @@ CORE_SRCS += $(OPENFT_SRCS)
 endif
 
 ifeq ("$(GD)", "yes")
-  GD_LIBS_flags=-cclib "-lgd $(GD_LIBS)" -ccopt "$(GD_LDFLAGS)"
+  GD_LIBS_flags=-ccopt "$(GD_LDFLAGS)"
+  GD_CCLIB=-lgd $(GD_LIBS)
   ifneq ("$(GD_STATIC_LIBS)", "")
-    GD_STATIC_LIBS_opt=-cclib "-lgd $(GD_STATIC_LIBS)" -ccopt "$(GD_LDFLAGS)"
+    GD_STATIC_CCLIB=-lgd $(GD_STATIC_LIBS)
   endif
   DRIVER_SRCS= \
     $(CDK)/gd.ml \
@@ -568,8 +565,8 @@ else
 endif
 
 ifeq ("$(UPNP_NATPMP)", "yes")
-  UPNP_NATPMP_LIBS_flags=-cclib "$(UPNP_NATPMP_LIBS)" -ccopt "$(UPNP_NATPMP_LDFLAGS)"
-  UPNP_NATPMP_STATIC_LIBS_flags=-cclib "$(UPNP_NATPMP_STATIC_LIBS)" -ccopt "$(UPNP_NATPMP_LDFLAGS)"
+  UPNP_NATPMP_LIBS_flags=-ccopt "$(UPNP_NATPMP_LDFLAGS)"
+  UPNP_NATPMP_CCLIB=$(UPNP_NATPMP_LIBS)
 endif
 
 DRIVER_SRCS+= \
@@ -656,9 +653,10 @@ install:: opt
 ifneq ("$(GUI)" , "no")
   ifeq ("$(GUI)", "newgui2")
     SUBDIRS += $(SRC_GUI) $(SRC_GUI)/x11 $(SRC_GUI)/win32 $(ICONS_CHOICE) +lablgtk2
-    GTK_LIBS_byte=-ccopt "$(GTKLLIBS)" -cclib "$(GTKLFLAGS)" -I +lablgtk2 $(LABLGL_CMA) lablgtk.cma gtkInit.cmo lablrsvg.cma
-    GTK_LIBS_opt=-ccopt "$(GTKLLIBS)" -cclib "$(GTKLFLAGS)" -I +lablgtk2 $(LABLGL_CMXA) lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
-    GTK_STATIC_LIBS_opt=-ccopt "$(GTKLLIBS)" -cclib "$(GTKLFLAGS)" -I +lablgtk2 lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
+		GTK_CCLIB=$(GTKLFLAGS)
+    GTK_LIBS_byte=-ccopt "$(GTKLLIBS)" -I +lablgtk2 $(LABLGL_CMA) lablgtk.cma gtkInit.cmo lablrsvg.cma
+    GTK_LIBS_opt=-ccopt "$(GTKLLIBS)" -I +lablgtk2 $(LABLGL_CMXA) lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
+    GTK_STATIC_LIBS_opt=-ccopt "$(GTKLLIBS)" -I +lablgtk2 lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
   else
     SUBDIRS += $(SRC_GUI) $(CONFIGWIN) $(OKEY) $(GPATTERN) $(ICONS_CHOICE) +lablgtk $(SRC_PROGRESS)
     GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
@@ -669,8 +667,7 @@ ifneq ("$(GUI)" , "no")
 SVG_CONVERTER_SRCS = \
   $(EXTLIB_SRCS) $(CDK_SRCS) $(LIB_SRCS) tools/svg_converter.ml
 
-CURSES_LIBS_byte=-cclib -lncurses
-CURSES_LIBS_opt=-cclib -lncurses
+CURSES_CCLIB=-lncurses
 
 
 CONFIGWIN_SRCS= \
@@ -1282,27 +1279,29 @@ TMPSOURCES += $($1_ML4:.ml4=.ml) $($1_MLC4:.mlc4=.ml) $($1_MLT:.mlt=.ml) $($1_ML
 $2: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$(OCAMLOPT) -linkall -o $[[@]] \
 	$($1_OBJS) $(LIBS_opt) $(LIBS_flags) \
-	$($3_LIBS_opt) $($3_LIBS_flags) \
-	$($5_LIBS_opt) $($5_LIBS_flags) \
-	$($6_LIBS_opt) $($6_LIBS_flags) \
-	$($7_LIBS_opt) $($7_LIBS_flags) \
-	$($8_LIBS_opt) $($8_LIBS_flags) \
-	$($9_LIBS_opt) $($9_LIBS_flags) \
+	$($3_LIBS_flags) $($3_LIBS_opt) \
+	$($5_LIBS_flags) $($5_LIBS_opt) \
+	$($6_LIBS_flags) $($6_LIBS_opt) \
+	$($7_LIBS_flags) $($7_LIBS_opt) \
+	$($8_LIBS_flags) $($8_LIBS_opt) \
+	$($9_LIBS_flags) $($9_LIBS_opt) \
+	-cclib "$(CCLIB) $($3_CCLIB) $($5_CCLIB) $($6_CCLIB) $($7_CCLIB) $($8_CCLIB) $($9_CCLIB)" \
 	-I build $($1_CMXAS) $($1_CMXS) 
  
 $2.byte: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 	$(OCAMLC) -linkall -o $[[@]] \
 	$($1_OBJS) $(LIBS_byte) $(LIBS_flags) \
-	$($3_LIBS_byte) $($3_LIBS_flags) \
-	$($5_LIBS_byte) $($5_LIBS_flags) \
-	$($6_LIBS_byte) $($6_LIBS_flags) \
-	$($7_LIBS_byte) $($7_LIBS_flags) \
-	$($8_LIBS_byte) $($8_LIBS_flags) \
-	$($9_LIBS_byte) $($9_LIBS_flags) \
+	$($3_LIBS_flags) $($3_LIBS_byte) \
+	$($5_LIBS_flags) $($5_LIBS_byte) \
+	$($6_LIBS_flags) $($6_LIBS_byte) \
+	$($7_LIBS_flags) $($7_LIBS_byte) \
+	$($8_LIBS_flags) $($8_LIBS_byte) \
+	$($9_LIBS_flags) $($9_LIBS_byte) \
+	-cclib "$(CCLIB) $($3_CCLIB) $($5_CCLIB) $($6_CCLIB) $($7_CCLIB) $($8_CCLIB) $($9_CCLIB)" \
 	-I build $($1_CMAS) $($1_CMOS) 
  
 $2.static: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
-	$(OCAMLOPT) -linkall -ccopt -static -o $[[@]] \
+	$(OCAMLOPT) -linkall -o $[[@]] \
 	$($1_OBJS) $(LIBS_opt) $(LIBS_flags) \
 	$($3_LIBS_flags) $($3_STATIC_LIBS_opt) \
 	$($5_LIBS_flags) $($5_STATIC_LIBS_opt) \
@@ -1310,10 +1309,11 @@ $2.static: $($1_OBJS) $($1_CMXS) $($1_CMXAS)
 	$($7_LIBS_flags) $($7_STATIC_LIBS_opt) \
 	$($8_LIBS_flags) $($8_STATIC_LIBS_opt) \
 	$($9_LIBS_flags) $($9_STATIC_LIBS_opt) \
-	-I build $($1_CMXAS) $($1_CMXS)
+	-cclib "-Wl,-Bstatic $(CCLIB) $($3_CCLIB) $($5_CCLIB) $($6_CCLIB) $($7_CCLIB) $($8_CCLIB) $($9_CCLIB) -Wl,-Bdynamic" \
+	-I build $($1_CMXAS) $($1_CMXS) 
 
 $2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
-	$(OCAMLC) -linkall -ccopt -static -o $[[@]] \
+	$(OCAMLC) -linkall -o $[[@]] \
 	$($1_OBJS) $(LIBS_byte) $(LIBS_flags) \
 	$($3_LIBS_flags) $($3_STATIC_LIBS_opt) \
 	$($5_LIBS_flags) $($5_STATIC_LIBS_opt) \
@@ -1321,7 +1321,8 @@ $2.byte.static: $($1_OBJS) $($1_CMOS) $($1_CMAS)
 	$($7_LIBS_flags) $($7_STATIC_LIBS_opt) \
 	$($8_LIBS_flags) $($8_STATIC_LIBS_opt) \
 	$($9_LIBS_flags) $($9_STATIC_LIBS_opt) \
-	-I build $($1_CMAS) $($1_CMOS) 
+	-cclib "-Wl,-Bstatic $(CCLIB) $($3_CCLIB) $($5_CCLIB) $($5_STATIC_CCLIB) $($6_CCLIB) $($7_CCLIB) $($8_CCLIB) $($9_CCLIB) -Wl,-Bdynamic" \
+	-I build $($1_CMAS) $($1_CMOS)
 ]])
 
 # $1 = source-code collection
@@ -1369,8 +1370,6 @@ EXPAND(MAKE_TORRENT,make_torrent,NO,NO,NO,NO,MAGIC,BITSTRING,UPNP_NATPMP)
 EXPAND(BT_DHT_NODE,bt_dht_node,NO,NO,NO,NO,NO,BITSTRING,UPNP_NATPMP)
 EXPAND(SUBCONV,subconv)
 EXPAND(MLSPLIT,mlsplit)
-EXPAND(CONTESTER,contester,CRYPT)
-EXPAND(SAFEEXEC,safeexec,CRYPT)
 EXPAND(GET_RANGE,get_range)
 EXPAND(COPYSOURCES,copysources)
 EXPAND(INSTALLER,mldonkey_installer,GTK,INSTALLER)
