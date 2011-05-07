@@ -14,6 +14,10 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/05/07
+7540: CryptoPP: Fix compile error with g++ 4.6 (glondu)
+- fixes Debian bug 625051
+
 2011/03/28
 7518: Configure: Ocaml VCS moved to SVN
 - replace --enable-ocamlver=CVS with --enable-ocamlver=SVN to compile SVN trunk
