@@ -621,6 +621,32 @@ function track_changed(obj)
     obj.className = obj.className.replace(/\\bchanged\\b/,'');
 }
 
+function xhr_ok_handler(f) {
+ return function() {
+// alert(this.readyState);
+   if (this.readyState != 4) return;
+   if (this.status == 200) { f(this.responseText); }
+ }
+}
+
+function xhr_get(url,f) {
+var client = new XMLHttpRequest();
+client.onreadystatechange = xhr_ok_handler(f);
+client.open(\"GET\", url);
+client.send();
+}
+
+function toggle_priority(o,file,sub)
+{
+  return function(prio) {
+    var p = \"0\";
+    if (prio == \"0\") p = \"1\";
+    o.onclick = function() {
+      xhr_get(\"submit?api=set_subfile_prio+\"+file+\"+\"+p+\"+\"+sub, toggle_priority(o,file,sub)); };
+    o.innerText = \"priority \"+prio;
+  }
+}
+
 //-->
   "
 

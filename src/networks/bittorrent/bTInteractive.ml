@@ -409,7 +409,7 @@ let op_file_print file o =
     with
     | None -> ""
     | Some dl ->
-      Printf.sprintf ", \\<a title=\\\"toggle all files\\\" href=\\\"submit?q=debug_set_subfile_prio+%d+%d+%d+%d\\\"\\>%s\\</a\\>"
+      Printf.sprintf ", \\<a title=\\\"toggle all files\\\" href=\\\"submit?q=set_subfile_prio+%d+%d+%d+%d\\\"\\>%s\\</a\\>"
         (file_num file) (if dl then 0 else 1) 0 (List.length subfiles - 1)
         (if dl then "unselect all" else "select all")
   in
@@ -421,7 +421,7 @@ let op_file_print file o =
     let fs = Printf.sprintf (_b"File %d") !cntr in
     let extra = match prio with
       | None -> ""
-      | Some prio -> Printf.sprintf ", \\<a title=\\\"toggle file\\\" href=\\\"submit?q=debug_set_subfile_prio+%d+%d+%d\\\"\\>priority %d\\</a\\>" (file_num file) (if prio = 0 then 1 else 0) !cntr prio
+      | Some prio -> Printf.sprintf ", \\<a title=\\\"toggle file\\\" href=\\\"javascript:void(0)\\\" onclick=\\\"xhr_get('submit?api=set_subfile_prio+%d+%d+%d',toggle_priority(this,%d,%d))\\\"\\>priority %d\\</a\\>" (file_num file) (if prio = 0 then 1 else 0) !cntr (file_num file) !cntr prio
     in
     emit (fs^extra) ~desc:fs (Printf.sprintf "%s (%Ld bytes%s)%s" filename size progress magic);
     incr cntr;

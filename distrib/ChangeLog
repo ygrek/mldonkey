@@ -15,6 +15,9 @@ ChangeLog
 =========
 
 2011/05/07
+7541: BT: better UI for subfile selection (ygrek)
+- remove debug prefix from set_subfile_prio command
+- do not reload page when toggling subfiles (ajax)
 7540: CryptoPP: Fix compile error with g++ 4.6 (glondu)
 - fixes Debian bug 625051
 

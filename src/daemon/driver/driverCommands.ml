@@ -3924,9 +3924,8 @@ let _ =
            "";
     ), ":\t\t\t\t\tget file block priorities for a file, and show subfile completion status";
 
-    "debug_set_subfile_prio", Arg_multiple 
+    "set_subfile_prio", Arg_multiple 
       (fun args o ->
-        let buf = o.conn_buf in
         match args with
         | filenum :: priochar :: subfilestart :: q ->
             let filenum = int_of_string filenum in
@@ -3951,14 +3950,16 @@ let _ =
               subfile_pos subfile2 ++ subfile_len subfile2 
 (*                 -- if subfile_len subfile2 > 0L then 1L else 0L  *)
             in
+(*
             Printf.bprintf buf "file %s\nstart %Ld stop %Ld prio %u\n" 
               swarmer.CommonSwarming.s_filename start stop priochar;
+*)
             CommonSwarming.swarmer_set_interval swarmer (start,stop,priochar);
             (* show file *)
-            execute_command !CommonNetwork.network_commands o "vd" [string_of_int filenum];
-            ""
+(*             execute_command !CommonNetwork.network_commands o "vd" [string_of_int filenum]; *)
+            string_of_int priochar
         | _ -> bad_number_of_args "" ""
-    ), "debug_set_subfile_prio <download id> <prio> <1st subfile> <optional last subfile>";
+    ), "set_subfile_prio <download id> <prio> <1st subfile (0-based)> <optional last subfile>";
 
     "reload_messages", Arg_none (fun o ->
         CommonMessages.load_message_file ();
