@@ -640,7 +640,7 @@ let bootstrap dht host addr k =
 let bootstrap dht (host,port) k =
   Ip.async_ip host
     (fun ip -> bootstrap dht host (ip,port) k)
-    (fun n -> if !verb then lprintf_nl "boostrap node %s cannot be resolved (%d)" host n; k false)
+    (fun () -> if !verb then lprintf_nl "boostrap node %s cannot be resolved" host; k false)
 
 let bootstrap ?(routers=[]) dht =
   lookup_node dht dht.M.rt.self begin fun l ->

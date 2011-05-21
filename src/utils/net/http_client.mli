@@ -53,22 +53,19 @@ type content_handler =
   int64 -> (string * string) list -> TcpBufferedSocket.t -> int -> unit
 
 val basic_request : request
-  
-val get_page : request -> content_handler -> (unit -> unit) -> (int -> unit) -> unit
+
+(** either HTTP error code or low-level network error or DNS *)
+type error = [ `HTTP of int | `RST of BasicSocket.close_reason | `DNS ]
+val show_error : error -> string
+
+val get_page : request -> content_handler -> (unit -> unit) -> (error -> unit) -> unit
 val wget : request -> (string -> unit) -> unit
 val whead : request -> ( (string * string) list -> unit) -> unit
-val whead2 : request -> ( (string * string) list -> unit) -> (int -> unit) -> unit
+val whead2 : request -> ( (string * string) list -> unit) -> (error -> unit) -> unit
 
-val wget_string : request -> (string -> unit) -> ?ferr:(int -> unit) ->
+val wget_string : request -> (string -> unit) -> ?ferr:(error -> unit) ->
   (int -> int64 -> unit) -> unit
 
-  
-  
-  (*
-val default_headers_handler : (int -> TcpBufferedSocket.t -> int -> unit) ->
-  headers_handler
-*)
-  
 val split_header : string -> string list
 val cut_headers : string list -> (string * (string * string)) list
-  
+

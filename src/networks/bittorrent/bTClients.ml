@@ -202,9 +202,9 @@ let talk_to_udp_tracker host port args file t need_sources =
     Ip.async_ip host (fun ip ->
 (*       lprintf_nl "udpt resolved %s to ip %s" host (Ip.to_string ip); *)
       try interact ip with exn -> lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn))
-      (fun n -> 
+      (fun () -> 
         if !verbose_msg_servers then
-          lprintf_nl "udpt failed to resolve %s (%d)" host n)
+          lprintf_nl "udpt failed to resolve %s" host)
   with
   exn -> 
     lprintf_nl "udpt start exn %s" (Printexc2.to_string exn)

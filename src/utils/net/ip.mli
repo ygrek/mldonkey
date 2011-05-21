@@ -66,13 +66,13 @@ val equal : t -> t -> bool
 val value_to_ip : Options.option_value -> t
 val ip_to_value : t -> Options.option_value
   
-val async_ip : string -> (t -> unit) -> (int -> unit) -> unit
+val async_ip : string -> (t -> unit) -> (unit -> unit) -> unit
   
 type addr =
   AddrIp of t | AddrName of string
   
 val ip_of_addr : addr -> t
-val async_ip_of_addr : addr -> (t -> unit) -> (int -> unit) -> unit
+val async_ip_of_addr : addr -> (t -> unit) -> (unit -> unit) -> unit
 val string_of_addr : addr -> string
 val addr_of_ip : t -> addr
 val addr_of_string : string -> addr

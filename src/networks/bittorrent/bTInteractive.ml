@@ -106,8 +106,8 @@ let perform_porttests tests =
     } in
     H.wget_string r 
       (fun s -> porttest_result := PorttestResult (last_time (), interpret s))
-      ~ferr:(fun code -> 
-        porttest_result := PorttestResult (last_time (), Printf.sprintf "Remote service error (%d)" code);
+      ~ferr:(fun e ->
+        porttest_result := PorttestResult (last_time (), Printf.sprintf "Error : %s" (H.show_error e));
         loop other)
       (fun _ _ -> ())
   in

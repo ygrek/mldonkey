@@ -384,12 +384,7 @@ let http_check_size file url start_download_file =
         None -> failwith "Unable to start download (HEAD failed)"
     | Some result_size -> start_download_file result_size);
   )
-  (fun c ->
-    match c with 
-     x when x < 200 || x > 299 -> 
-       pause_for_cause file (string_of_int x) (CommonUserDb.admin_user ());
-    | _ -> ()
-  )
+  (fun e -> pause_for_cause file (H.show_error e) (CommonUserDb.admin_user ()))
 
 (*************************************************************************)
 (*                                                                       *)

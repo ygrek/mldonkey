@@ -288,7 +288,7 @@ type job = {
     mutable entries : Unix.inet_addr array;
     mutable error : bool;
     handler : (t -> unit);
-    err_handler : (int -> unit);
+    err_handler : (unit -> unit);
   }
 
 let exn_log name f x = 
@@ -361,7 +361,7 @@ let _ =
               job.handler ip
             end else begin
               lprintf_nl (_b "[DNS] could not resolve %s, check URL") job.name;
-              job.err_handler 0;
+              job.err_handler ();
               raise Not_found
             end
           end else raise Exit
