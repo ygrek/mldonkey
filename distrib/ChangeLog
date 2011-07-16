@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2011/07/16
+7573: http: better error reporting (ygrek)
 7529: configure: better help strings (ygrek)
 
 2011/05/07

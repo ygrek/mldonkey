@@ -38,6 +38,13 @@ type http_request =
 | DELETE
 | TRACE
 
+type error = [ `HTTP of int | `RST of BasicSocket.close_reason | `DNS ]
+
+let show_error = function
+| `HTTP code -> Printf.sprintf "HTTP error code %d" code
+| `RST reason -> Printf.sprintf "Connection closed : %s" (BasicSocket.string_of_reason reason)
+| `DNS -> Printf.sprintf "DNS resolution failed"
+
 let verbose = ref false
 
 type request = {
@@ -218,13 +225,13 @@ let http_reply_handler nr headers_handler sock nread =
   read_header (parse_header headers_handler) sock nread
   
 
-let def_ferr = (fun c -> ())
+let def_ferr = (fun _ -> ())
 
 let rec get_page r content_handler f ferr =
   let ok = ref false in
   let ferr =
     let err_done = ref false in (* call not more than once *)
-    fun n -> if not !err_done then begin err_done := true; ferr n; end 
+    fun c -> if not !err_done then begin err_done := true; ferr c; end 
   in
   let rec get_url level r =
   try
@@ -246,7 +253,7 @@ let rec get_page r content_handler f ferr =
 (*             if !verbose then lprintf_nl "Event %s" (string_of_event e); *)
             match e with (* FIXME content-length check *)
             | BASIC_EVENT (CLOSED (Closed_by_user | Closed_by_peer)) when !ok -> f ()
-            | BASIC_EVENT (CLOSED _) -> ferr 0
+            | BASIC_EVENT (CLOSED reason) -> ferr (`RST reason)
             | BASIC_EVENT LTIMEOUT -> close sock Closed_for_lifetime
             | _ -> ())
         in
@@ -260,7 +267,7 @@ let rec get_page r content_handler f ferr =
         set_rtimeout sock 5.;
         set_lifetime sock r.req_max_total_time;
     )
-    ferr;
+    (fun () -> ferr `DNS);
   with e -> 
     lprintf_nl "error in get_url"; 
     raise Not_found
@@ -345,7 +352,7 @@ let rec get_page r content_handler f ferr =
     | 404 ->
         lprintf_nl "404: Not found for: %s" (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
-        ferr ans_code;
+        ferr (`HTTP ans_code);
         raise Not_found
 
     | 502 | 503 | 504 ->
@@ -363,7 +370,7 @@ let rec get_page r content_handler f ferr =
     end
         else begin
           lprintf_nl "more than %d retries, aborting." r.req_max_retry;
-          ferr ans_code;
+          ferr (`HTTP ans_code);
           raise Not_found
         end
           
@@ -371,7 +378,7 @@ let rec get_page r content_handler f ferr =
         lprintf_nl "%d: bad reply for: %s"
           ans_code (Url.to_string_no_args r.req_url);
         close sock (Closed_for_error "bad reply");
-        ferr ans_code;
+        ferr (`HTTP ans_code);
         raise Not_found
   in
   get_url 0 r

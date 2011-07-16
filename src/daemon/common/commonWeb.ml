@@ -150,8 +150,8 @@ let mldonkey_wget_url w f =
 	  end
       )
       (fun c ->
-	match c with
-          | x when x > 0 && (x < 200 || x > 299) -> begin
+          match c with
+          | `HTTP x when (x < 200 || x > 299) -> begin
             (* use local version if wget fail and file exists *)
             let file = Filename.concat "web_infos" (Filename.basename r.H.req_url.Url.short_file) in
             (* mark this job downloaded *)
@@ -185,7 +185,7 @@ let mldonkey_wget_url w f =
               lprintf_nl (_b "local file %s not found, HTTP request failed (error %d)") file x;
               w.state <- None
             end
-	  | _ -> ()
+          | _ -> ()
       )
     with e -> 
       w.state <- None;
