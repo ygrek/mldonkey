@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/07/16
+7529: configure: better help strings (ygrek)
+
 2011/05/07
 7541: BT: better UI for subfile selection (ygrek)
 - remove debug prefix from set_subfile_prio command
