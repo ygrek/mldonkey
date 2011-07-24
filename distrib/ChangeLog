@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/07/24
+7499: BT/DHT: fix logging in tools/bt_dht_node.ml
+
 2011/07/16
 7573: http: better error reporting (ygrek)
 7529: configure: better help strings (ygrek)
