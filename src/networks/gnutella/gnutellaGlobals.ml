@@ -335,7 +335,7 @@ let new_file file_temporary file_name file_size file_uids user group =
       file_nconnected_clients = 0;      
       file_ttr = None;
     } and file_impl =  {
-      dummy_file_impl with
+      (dummy_file_impl ()) with
       impl_file_fd = Some t;
       impl_file_size = file_size;
       impl_file_downloaded = Int64.zero;

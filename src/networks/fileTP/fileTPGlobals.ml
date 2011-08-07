@@ -151,7 +151,7 @@ let new_file file_id file_name file_size user group =
       file_clients_queue = Queues.workflow (fun _ -> false);
       file_nconnected_clients = 0;
     } and file_impl =  {
-      dummy_file_impl with
+      (dummy_file_impl ()) with
       impl_file_owner = user;
       impl_file_group = group;
       impl_file_fd = Some t;

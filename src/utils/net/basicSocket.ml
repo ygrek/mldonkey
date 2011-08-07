@@ -389,17 +389,35 @@ let rec iter_task old_tasks time =
 (*                                                                       *)
 (*************************************************************************)
 
-let rec iter_timer timers time =
+let rec iter_timer_filter timers time acc =
   match timers with
-    [] -> []
+    [] -> acc
   | t :: timers ->
       if t.applied then
-        iter_timer timers time
+        iter_timer_filter timers time acc
       else
         begin
           timeout := minf (t.next_time -. time) !timeout;
-          t :: (iter_timer timers time)
+          iter_timer_filter timers time (t::acc)
         end
+
+(* fast version that doesn't allocate new list if no timers have expired
+  TODO use double-linked list instead? *)
+let iter_timer timers time =
+  let rec loop l =
+    match l with
+    | [] -> timers
+    | t :: l ->
+      if t.applied then
+        (* need to filter, reiterate and rebuild the list *)
+        iter_timer_filter timers time []
+      else
+        begin
+          timeout := minf (t.next_time -. time) !timeout;
+          loop l
+        end
+  in
+  loop timers
 
 (*************************************************************************)
 (*                                                                       *)

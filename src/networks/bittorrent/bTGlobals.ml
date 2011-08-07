@@ -304,7 +304,7 @@ let new_file file_id t torrent_diskname file_temp file_state user group =
           file_last_dht_announce = 0;
           file_private = t.torrent_private;
         } and file_impl =  {
-          dummy_file_impl with
+          (dummy_file_impl ()) with
           impl_file_owner = user;
           impl_file_group = group;
           impl_file_fd = Some file_fd;
@@ -370,7 +370,7 @@ let new_ft file_name user =
       ft_filename = file_name;
       ft_retry = (fun _ -> ());
     } and file_impl =  {
-      dummy_file_impl with
+      (dummy_file_impl ()) with
       impl_file_owner = user;
       impl_file_group = user.user_default_group;
       impl_file_fd = None;
