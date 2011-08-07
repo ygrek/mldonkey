@@ -56,7 +56,7 @@ type 'a file_impl = {
     mutable impl_file_fd : Unix32.t option;
     mutable impl_file_downloaded : int64;
     mutable impl_file_received : int64;
-    mutable impl_file_last_received : (int64 * int) list;
+    impl_file_last_received : (int64 * int) Queue.t; (* NB Queue is mutable *)
     mutable impl_file_last_rate : float;
     mutable impl_file_best_name : string;
     mutable impl_file_filenames : string list;
@@ -120,7 +120,7 @@ let file_num file =
   let impl = as_file_impl  file in
   impl.impl_file_num
 
-let dummy_file_impl = {
+let dummy_file_impl () = {
     impl_file_update = 1;
     impl_file_state = FileNew;
     impl_file_num = 0;
@@ -131,7 +131,7 @@ let dummy_file_impl = {
     impl_file_fd = None;
     impl_file_downloaded = Int64.zero;
     impl_file_received = Int64.zero;
-    impl_file_last_received = [];
+    impl_file_last_received = Queue.create ();
     impl_file_last_rate = 0.0;
     impl_file_best_name = "<UNKNOWN>";
     impl_file_filenames = [];
@@ -145,7 +145,7 @@ let dummy_file_impl = {
     impl_file_group = Some (admin_group ());
   }
 
-let dummy_file = as_file dummy_file_impl
+let dummy_file = as_file (dummy_file_impl ())
 
 (*************************************************************************)
 (*                                                                       *)
@@ -456,7 +456,7 @@ let file_print file o =
 
 let file_find num =
   H.find files_by_num (as_file {
-    dummy_file_impl   with impl_file_num = num
+    (dummy_file_impl ()) with impl_file_num = num
   })
 
 let file_add_source (file : file) c =
@@ -466,34 +466,34 @@ let file_add_source (file : file) c =
 let file_remove_source (file : file) c =
   CommonEvent.add_event (File_remove_source_event (file,c))
 
-let rec last = function
-    [x] -> x
-  | _ :: l -> last l
-  | _ -> (Int64.zero, 0)
+let queue_last q =
+  if Queue.is_empty q then None else
+  Some (Queue.fold (fun _ x -> x) (Queue.top q) q)
 
 let sample_timer () =
-  let trimto list length =
-    let (list, _) = List2.cut length list in
-    list 
-  in
   let time = BasicSocket.last_time () in
   H.iter (fun file ->
       let impl = as_file_impl file in
-      impl.impl_file_last_received <-
-        trimto ((impl.impl_file_received, time) ::
-        impl.impl_file_last_received) 
-      !!CommonOptions.download_sample_size;
-      match impl.impl_file_last_received with
-        _ :: (last_received, _) :: _ ->
+      let last = queue_last impl.impl_file_last_received in
+      Queue.add (impl.impl_file_received, time) impl.impl_file_last_received;
+      if Queue.length impl.impl_file_last_received > max 0 !!CommonOptions.download_sample_size then
+        ignore (Queue.pop impl.impl_file_last_received);
+      match last with
+      | Some (last_received, _) ->
           if last_received = impl.impl_file_received &&
             impl.impl_file_last_rate > 0. then
             file_must_update_downloaded file
-      | _ -> ()
+      | None -> ()
   ) files_by_num
 
 let file_download_rate impl =
   let time = BasicSocket.last_time () in
-  let (last_received, file_last_time) = last impl.impl_file_last_received in
+  let (last_received, file_last_time) = 
+    if Queue.is_empty impl.impl_file_last_received then
+      (Int64.zero, 0)
+    else
+      Queue.top impl.impl_file_last_received
+  in
   let time = time - file_last_time in
   let diff = Int64.sub impl.impl_file_received last_received in
   let rate = if time > 0 && diff > Int64.zero then begin

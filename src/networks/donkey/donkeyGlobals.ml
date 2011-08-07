@@ -420,7 +420,7 @@ let new_file file_diskname file_state md4 file_size filename writable user group
           file_comments = [];
         }
       and file_impl = {
-          dummy_file_impl with
+          (dummy_file_impl ()) with
           impl_file_owner = user;
           impl_file_group = group;
           impl_file_val = file;

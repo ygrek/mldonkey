@@ -490,7 +490,7 @@ let new_upfile dcsh fd =
     (*file_tiger_array = [||];*)
     file_autosearch_count = 0;
   } and impl = {
-    dummy_file_impl with
+    (dummy_file_impl ()) with
     impl_file_fd = Some fd;
     impl_file_size = Unix32.getsize64 fd;
     impl_file_downloaded = Int64.zero;
@@ -541,7 +541,7 @@ let new_file tiger_root (directory:string) (filename:string) (file_size:int64) =
         (*file_tiger_array = [||];*)
         file_autosearch_count = 0;
         } and impl = {
-          dummy_file_impl with
+          (dummy_file_impl ()) with
         impl_file_fd = Some temp_file;
           impl_file_size = file_size;
           impl_file_downloaded = current_size;

@@ -32,7 +32,7 @@ type 'a file_impl = {
   mutable impl_file_fd : Unix32.t option;
   mutable impl_file_downloaded : int64;
   mutable impl_file_received : int64;
-  mutable impl_file_last_received : (int64 * int) list;
+  impl_file_last_received : (int64 * int) Queue.t;
   mutable impl_file_last_rate : float;
   mutable impl_file_best_name : string;
   mutable impl_file_filenames : string list;
@@ -69,7 +69,7 @@ and 'a file_ops = {
 val as_file : 'a file_impl -> CommonTypes.file
 val as_file_impl : CommonTypes.file -> 'a file_impl
 val file_num : CommonTypes.file -> int
-val dummy_file_impl : int file_impl
+val dummy_file_impl : unit -> int file_impl
 val dummy_file : CommonTypes.file
 val file_counter : int ref
 val ni : CommonTypes.network -> string -> string
@@ -109,7 +109,6 @@ val file_find : int -> CommonTypes.file
 val file_state : CommonTypes.file -> CommonTypes.file_state
 val file_add_source : CommonTypes.file -> CommonTypes.client -> unit
 val file_remove_source : CommonTypes.file -> CommonTypes.client -> unit
-val last : (int64 * int) list -> int64 * int
 val sample_timer : unit -> unit
 val file_download_rate : 'a file_impl -> float
 val add_file_downloaded : CommonTypes.file -> Int64.t -> unit
