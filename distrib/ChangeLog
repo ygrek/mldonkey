@@ -14,6 +14,31 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2011/08/07: version 3.1.0 = tag release-3-1-0
+
+2011/07/24
+7499: BT/DHT: fix logging in tools/bt_dht_node.ml
+
+2011/07/16
+7573: http: better error reporting (ygrek)
+7529: configure: better help strings (ygrek)
+
+2011/05/07
+7541: BT: better UI for subfile selection (ygrek)
+- remove debug prefix from set_subfile_prio command
+- do not reload page when toggling subfiles (ajax)
+7540: CryptoPP: Fix compile error with g++ 4.6 (glondu)
+- fixes Debian bug 625051
+
+2011/03/28
+7518: Configure: Ocaml VCS moved to SVN
+- replace --enable-ocamlver=CVS with --enable-ocamlver=SVN to compile SVN trunk
+7517: http: fix XSS in error handler (ygrek)
+7495: Fix compilation of Ocaml 3.11.* with recent binutils (ecc, glondu)
+
+2011/03/20
+7506: BT/DHT: show stats, choose random port (ygrek)
+
 2011/03/14
 7501: Options: Disable Overnet by default and remove contact.dat from web_infos
 

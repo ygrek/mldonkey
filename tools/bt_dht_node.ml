@@ -18,7 +18,7 @@ let store file (t:Kademlia.table) =
     with_open_out_bin temp (fun ch -> Marshal.to_channel ch t []; Unix2.fsync (Unix.descr_of_out_channel ch));
     Sys.rename temp file
   with exn ->
-    log #warn ~exn "write to %S failed" file; Sys.remove temp
+    lprintf_nl ~exn "write to %S failed" file; Sys.remove temp
 
 let init file = try load file with _ -> Kademlia.create ()
 
@@ -36,7 +36,7 @@ let run_queries =
   fun dht ->
   let id = Kademlia.H.of_hexa ids.(Random.int (Array.length ids)) in
   query_peers dht id (fun node token peers ->
-    log #info "run_queries : %s returned %d peers : %s"
+    lprintf_nl "run_queries : %s returned %d peers : %s"
       (show_node node) (List.length peers) (strl Kademlia.show_addr peers))
 
 let () =
@@ -58,5 +58,5 @@ let () =
       BasicSocket.loop ()
     | _ -> Printf.eprintf "Usage : %s <storage> <port>\n" Sys.argv.(0)
   with
-    exn -> log #error "main : %s" (Printexc.to_string exn)
+    exn -> lprintf_nl "main : %s" (Printexc.to_string exn)
 

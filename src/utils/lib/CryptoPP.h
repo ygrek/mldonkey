@@ -695,6 +695,7 @@ class CRYPTOPP_DLL NullNameValuePairs : public NameValuePairs
 {
 public:
 	bool GetVoidValue(const char* /* name */, const std::type_info& /* valueType */, void* /* pValue */) const {return false;}
+	NullNameValuePairs() {}
 };
 
 //! _
