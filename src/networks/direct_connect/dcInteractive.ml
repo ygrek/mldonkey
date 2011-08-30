@@ -1148,10 +1148,10 @@ msgWindow.location.reload();
       [ Printf.sprintf "%d files" (Hashtbl.length dc_shared_files_by_hash) ] @
       match !dc_files_to_hash with [] -> [] | l -> [ Printf.sprintf "%d queued" (List.length l) ] @
       match !dc_tiger_computing with
-      | None -> []
-      | Some dcsh ->
+      | Some dcsh when dcsh.dc_shared_size > 0L ->
         let progress = Int64.to_float dcsh.dc_shared_pos /. Int64.to_float dcsh.dc_shared_size *. 100. in
-        [ Printf.sprintf "hashing %S (%3.0f%%)" (Filename.basename dcsh.dc_shared_fullname) progress ]
+        [ Printf.sprintf "hashing: %s (%3.0f%%)" (Filename.basename dcsh.dc_shared_fullname) progress ]
+      | _ -> []
     in
     let list = [
       ("Hub supports", (DcProtocol.Supports.create_supports_string (HubSupports mldonkey_dc_hub_supports)) );
