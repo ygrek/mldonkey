@@ -1144,16 +1144,26 @@ msgWindow.location.reload();
     html_mods_cntr_init ();
     if use_html_mods o then dc_info_html_header buf;
     let nservers = List.length !connected_servers in
+    let hashed =
+      [ Printf.sprintf "%d files" (Hashtbl.length dc_shared_files_by_hash) ] @
+      match !dc_files_to_hash with [] -> [] | l -> [ Printf.sprintf "%d queued" (List.length l) ] @
+      match !dc_tiger_computing with
+      | None -> []
+      | Some dcsh ->
+        let progress = Int64.to_float dcsh.dc_shared_pos /. Int64.to_float dcsh.dc_shared_size *. 100. in
+        [ Printf.sprintf "hashing %S (%3.0f%%)" (Filename.basename dcsh.dc_shared_fullname) progress ]
+    in
     let list = [
       ("Hub supports", (DcProtocol.Supports.create_supports_string (HubSupports mldonkey_dc_hub_supports)) );
       ("Client supports", (DcProtocol.Supports.create_supports_string (ClientSupports mldonkey_dc_client_supports)) );
       ("All/Open slots", Printf.sprintf "%d / %d" (open_slots ()) (current_slots ()) );
       ("Mode", (if !!firewalled then "Passive" else "Active") );
       ("Connected servers", (if nservers > 0 then string_of_int nservers else ""));
-      ("  Server list:", empty_string ); ]      
+      ("  Server list:", empty_string ); ]
       @ server_list @ [
-      ("Hubs", (Printf.sprintf "Normal:%d  Vipped:%d  Opped:%d" norm_hubs reg_hubs opped_hubs) ); ]
-    in  
+      ("Hubs", (Printf.sprintf "Normal:%d  Vipped:%d  Opped:%d" norm_hubs reg_hubs opped_hubs) );
+      ("Hashed", String.concat ", " hashed);
+    ] in
     let counter = ref 0 in
     List.iter (fun (info,data) -> 
       dc_info_print info data line o;
