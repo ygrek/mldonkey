@@ -1702,7 +1702,7 @@ release.utils.static: mld_hash.static $(BT_UTILS_STATIC)
 	mkdir -p $(DISDIR)
 	cp -f mld_hash.static $(DISDIR)/mld_hash && strip  $(DISDIR)/mld_hash
 ifeq ("$(BITTORRENT)", "yes")
-	for i in "$(BT_UTILS_STATIC)"; do cp -f $$i $(DISDIR)/$$i && strip $(DISDIR)/$$i; done
+	for i in $(BT_UTILS); do cp -f $$i.static $(DISDIR)/$$i && strip $(DISDIR)/$$i; done
 endif
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)

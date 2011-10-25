@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2011/10/25
+7644: Fix broken target release.utils.static
 7642: Update GNU config.guess and config.sub to version 2011/10
 7641: DC: fix ownership for downloads by non-admin users (ygrek)
 7593: Less allocations (ygrek)
