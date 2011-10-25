@@ -216,7 +216,7 @@ let _ =
     !connected_servers <> []
   );
   network.op_network_parse_url <- (fun url user group -> DcInteractive.parse_url url user group);
-  network.op_network_download <- (fun r _ _ -> DcInteractive.start_result_download r);
+  network.op_network_download <- DcInteractive.start_result_download;
   network.op_network_ports <- (fun _ ->
     [
     !!dc_port, "client_port TCP+UDP";
