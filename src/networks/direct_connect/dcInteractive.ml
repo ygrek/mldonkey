@@ -54,13 +54,13 @@ let lprintf_nl fmt =
   lprintf_nl2 log_prefix fmt
 
 (* Start new dowload from result *)
-let start_new_download u tth fdir fname fsize =
+let start_new_download u tth fdir fname fsize user group =
     try
       ignore (Hashtbl.find dc_shared_files_by_hash tth);
       if !verbose_download then lprintf_nl "Shared file with same hash exists (%s) (%s)" fname tth;
       None 
     with _ ->
-        let f = new_file tth fdir fname fsize in   (* ...create new file *)
+        let f = new_file tth fdir fname fsize user group in   (* ...create new file *)
         match (file_state f) with
         | FileDownloaded | FileShared -> if !verbose_download then lprintf_nl "File already downloaded"; None
         | FileDownloading -> if !verbose_download then lprintf_nl "File being downloaded"; None
@@ -82,10 +82,10 @@ let start_new_download u tth fdir fname fsize =
               Some f
 
 (* Start downloading of a file by user selection from resultlist *) 
-let start_result_download r =
+let start_result_download r user group =
   let filename = List.hd r.result_names in
   let rinfo = Hashtbl.find dc_result_info r.result_num in
-  let newfile = start_new_download (Some rinfo.user) rinfo.tth rinfo.directory filename r.result_size in
+  let newfile = start_new_download (Some rinfo.user) rinfo.tth rinfo.directory filename r.result_size user group in
   (match newfile with 
   | Some f -> as_file f.file_file (* return CommonFile.file *) 
   | _ -> raise Not_found )
@@ -1020,7 +1020,8 @@ msgWindow.location.reload();
         Printf.bprintf buf "Trying to download file: %s from user: %s\n" !sname uname;
         (try 
           let u = search_user_by_name uname in
-          ignore (start_new_download (Some u) tth !sdir !sname (Int64.of_string fsize))
+          let user = o.conn_user.ui_user in
+          ignore (start_new_download (Some u) tth !sdir !sname (Int64.of_string fsize) user user.user_default_group)
         with _ -> if !verbose_download then lprintf_nl "dcloadfile: No user found" )
     | _ ->
         if !verbose_unexpected_messages then

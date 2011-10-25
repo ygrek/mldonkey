@@ -471,7 +471,7 @@ let filelist_already_downloading u =
 let user_has_new_messages user = (List.length user.user_messages) > user.user_read_messages
 
 (* file impl for uploading clients *)
-let new_upfile dcsh fd =
+let new_upfile dcsh fd user =
   let filename,directory =
     (match dcsh with 
     | Some dcsh -> 
@@ -499,11 +499,13 @@ let new_upfile dcsh fd =
     impl_file_ops = file_ops;
     impl_file_age = last_time ();
     impl_file_best_name = filename;
+    impl_file_owner = user;
+    impl_file_group = user.user_default_group;
   } in
   file
 
 (* Return existing file or create new one *)
-let new_file tiger_root (directory:string) (filename:string) (file_size:int64) =
+let new_file tiger_root (directory:string) (filename:string) (file_size:int64) user group =
   (try
     let f = Hashtbl.find dc_files_by_unchecked_hash tiger_root in
     if !verbose_download then 
@@ -532,27 +534,29 @@ let new_file tiger_root (directory:string) (filename:string) (file_size:int64) =
             Int64.zero )
       in
       let rec file = {
-          file_file = impl;
+        file_file = impl;
         file_unchecked_tiger_root = tiger_root;
         file_directory = directory;
         file_name = filename;
-          file_clients = [];
+        file_clients = [];
         file_search = None;
         (*file_tiger_array = [||];*)
         file_autosearch_count = 0;
         } and impl = {
           (dummy_file_impl ()) with
-        impl_file_fd = Some temp_file;
+          impl_file_fd = Some temp_file;
           impl_file_size = file_size;
           impl_file_downloaded = current_size;
-        impl_file_received = current_size;
+          impl_file_received = current_size;
           impl_file_val = file;
           impl_file_ops = file_ops;
           impl_file_age = last_time ();
-        impl_file_best_name = filename;
+          impl_file_best_name = filename;
+          impl_file_owner = user;
+          impl_file_group = group;
         } in
       file_add impl FileNew;  (* CommonInteractive.file_add *)
-            current_files := file :: !current_files;
+      current_files := file :: !current_files;
       if tiger_root <> empty_string then Hashtbl.add dc_files_by_unchecked_hash tiger_root file;
       Hashtbl.add dc_files_by_key key file;
       if !verbose_download then 

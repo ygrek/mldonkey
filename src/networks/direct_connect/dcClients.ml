@@ -1203,7 +1203,7 @@ let rec client_reader c t sock =
             let file_fd = Unix32.create_ro fname in
             c.client_state <- DcUploadList file_fd; 
             c.client_endpos <- Unix32.getsize64 file_fd;
-            let file = new_upfile None file_fd in
+            let file = new_upfile None file_fd (CommonUserDb.admin_user ()) in (* FIXME user? *)
             c.client_file <- Some file;
             set_clients_upload c (as_file file.file_file);
         | DcUploadStarting (dcsh,start_pos,bytes) -> 
@@ -1218,8 +1218,8 @@ let rec client_reader c t sock =
             let file_fd = Unix32.create_ro dcsh.dc_shared_fullname in
             c.client_state <- DcUpload (dcsh,file_fd,start_pos,bytes);
             c.client_endpos <- endpos;
-            let file = new_upfile (Some dcsh) file_fd in 
-            c.client_file <- Some file;  
+            let file = new_upfile (Some dcsh) file_fd (CommonUserDb.admin_user ()) in (* FIXME user? *)
+            c.client_file <- Some file;
             set_clients_upload c (as_file file.file_file);
         | _ -> failwith "Wrong client state in Send" );
 

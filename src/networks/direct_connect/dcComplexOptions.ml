@@ -163,7 +163,7 @@ let value_to_file file_size file_state user group assocs =
   let f_name = get_value "file_filename" value_to_string in
   let f_size = get_value "file_size" value_to_int64 in
   let f_downloaded = get_value "file_downloaded" value_to_int64 in
-  let f = DcGlobals.new_file f_unchecked_tiger_root f_directory f_name f_size in
+  let f = DcGlobals.new_file f_unchecked_tiger_root f_directory f_name f_size user group in
   if (file_downloaded f) <> f_downloaded then
     failwith "Disk file size don't match downloaded info";  
   if f_downloaded <> f_size then begin            (* check if file is downloaded already *)
