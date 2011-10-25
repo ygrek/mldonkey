@@ -200,7 +200,7 @@ let new_file file_id file_name file_size =
           file_clients = [];
         } 
       and file_impl = {
-          dummy_file_impl with
+          (dummy_file_impl ()) with
           impl_file_ops = file_ops;
           impl_file_val = file; 
           impl_file_fd = Some t;

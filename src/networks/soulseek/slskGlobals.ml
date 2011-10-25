@@ -272,7 +272,7 @@ let new_file file_id name file_size =
       file_clients = [];
       file_swarmer = None;
     } and file_impl =  {
-      dummy_file_impl with
+      (dummy_file_impl ()) with
       impl_file_fd = Some t;
       impl_file_size = file_size;
       impl_file_val = file;
