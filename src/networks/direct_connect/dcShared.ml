@@ -258,16 +258,15 @@ let find_dir_exn name =
 (* Compute (at most) one TigerTree chunk from unhashed shared files *)
 let dc_check_hashed_files () =
   let module M = CommonHasher in
-  if not !dc_tiger_computing then begin
-    (match !dc_files_to_hash with
-    | [] -> ()
-    | dcsh :: files ->
-        (try
+    match !dc_tiger_computing, !dc_files_to_hash with
+    | _, [] | Some _, _ -> ()
+    | None, dcsh :: files ->
+      try
           if not (Sys.file_exists dcsh.dc_shared_fullname) then raise Not_found;
           if Unix32.getsize dcsh.dc_shared_fullname <> dcsh.dc_shared_size then
             raise (Wrong_file_size ((Unix32.getsize dcsh.dc_shared_fullname), dcsh.dc_shared_size));
 
-          dc_tiger_computing := true;
+          dc_tiger_computing := Some dcsh;
           let end_pos = dcsh.dc_shared_pos ++ CommonUploads.tiger_block_size in
           let end_pos = min end_pos dcsh.dc_shared_size in
           let len = end_pos -- dcsh.dc_shared_pos in
@@ -298,7 +297,7 @@ let dc_check_hashed_files () =
                   DcComplexOptions.dc_saved_shared_files =:= dcsh :: !!DcComplexOptions.dc_saved_shared_files;
                 end
               end;
-              dc_tiger_computing := false
+              dc_tiger_computing := None
           )
         with
         | Wrong_file_size (real,computed) ->
@@ -308,11 +307,10 @@ let dc_check_hashed_files () =
             computed real dcsh.dc_shared_fullname
         | e ->
             dc_files_to_hash := files;
-            dc_tiger_computing := false;
+            dc_tiger_computing := None;
             if !verbose_upload || !verbose_unexpected_messages then
               lprintf_nl "Exception %s prevents sharing of %s"
-                (Printexc2.to_string e) dcsh.dc_shared_fullname ) )
-  end
+                (Printexc2.to_string e) dcsh.dc_shared_fullname
 
 let dc_updatesharesize () =
   let dc_sharesize = ref Int64.zero in
@@ -320,7 +318,7 @@ let dc_updatesharesize () =
     dc_sharesize := !dc_sharesize ++ dcsh.dc_shared_size) dc_shared_files_by_codedname;
   !dc_sharesize
 
-let _ = 
+let () =
   network.op_network_share <- (fun fullname codedname size -> (* this is called once/60s with all shared files *)
     (* file path in DC network should use '/' as separator, convert local path accordingly *)
     let codedname =
