@@ -394,6 +394,39 @@ let mail_for_completed_file file =
     if usermail <> "" && [usermail] <> mail then (try send_mail [usermail] false with Not_found -> ())
   end
 
+open DBus
+    
+let notif_interface = "org.freedesktop.Notifications"
+let notif_name = notif_interface
+let notif_path = "/org/freedesktop/Notifications"
+let print_dbus_ty_list l =
+  List.iter (fun o -> Printf.printf "%s\n" (DBus.string_of_ty o)) l
+
+let send_msg ~bus ~destination ~path ~intf ~serv ~params =
+	let msg = DBus.Message.new_method_call destination path intf serv in
+	DBus.Message.append msg params;
+	(*print_dbus_ty_list (DBus.Message.get msg);*)
+	let r = DBus.Connection.send_with_reply_and_block bus msg (-1) in
+	let l = DBus.Message.get r in
+	l
+
+let send_notif_msg = send_msg ~destination:notif_name ~path:notif_path ~intf:notif_interface
+let dbus_notification (file : file) =
+  let bus = DBus.Bus.get DBus.Bus.Session in
+  let params = [
+    DBus.String "y";
+    DBus.UInt32 1l;
+    DBus.String "x";
+    DBus.String "z";
+    DBus.String       (file_best_name file);
+    DBus.Array (DBus.Strings []);
+    DBus.Array (DBus.Dicts ((DBus.SigString, DBus.SigVariant), []));
+    DBus.Int32 4000l;
+  ] in	
+  let r = send_notif_msg ~bus ~serv:"Notify" ~params in
+  print_dbus_ty_list r;
+  ()
+
 let file_completed (file : file) =
   try
     let impl = as_file_impl file in
@@ -406,6 +439,7 @@ let file_completed (file : file) =
         (try mail_for_completed_file file with e ->
               lprintf_nl "Exception %s in sendmail" (Printexc2.to_string e);
               );
+        dbus_notification file;
       end
   with e ->
       lprintf_nl "Exception in file_completed: %s" (Printexc2.to_string e)
