@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2012/02/22
+7726: Add support for Debian/Hurd
+
 2011/10/25
 7647: Update options description of allow_local_network (ygrek)
 7646: Include .desktop file in source package (ported from Arch Linux)
