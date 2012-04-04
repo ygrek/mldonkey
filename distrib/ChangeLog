@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2012/04/04
+7732: Remove the non-existant -O6 optimization level (blickly)
 7755: CryptoPP: Fix build with GCC 4.7
 
 2012/02/22
