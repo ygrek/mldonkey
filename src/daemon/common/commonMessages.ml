@@ -1006,10 +1006,10 @@ onclick=\"showTab(6);mSub('fstatus','version');mSub('output','help');\">" ^ _s
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onclick=\"dllink();\">" ^ _s
 "DL" ^ "</TD></TR></TBODY></TABLE></TD>
-<TD noWrap width=100% title=\\\" " ^ _s "Input mldonkey commands here" ^ " \\\">
+<TD noWrap width=\"100%\" title=\" " ^ _s "Input mldonkey commands here" ^ " \">
 <TABLE cellSpacing=0 cellpadding=0 width=\"100%\"><TBODY><TR>
 <TD style=\"height: 1%; padding: 0px; border: 0px; padding-left: 5px;\" title=\" " ^ _s "Input mldonkey command here" ^ " \">
-<INPUT class=\"txt2\" style=\"WIDTH: 99%;\" name=q><body onload=\"document.cmdFormular.q.focus();\">
+<INPUT class=\"txt2\" style=\"WIDTH: 99%;\" name=q>
 </TD></TR></TBODY></TABLE></TD><TD noWrap>
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\"><TBODY><TR>
 <TD class=\"bu bbigm\" style=\"padding-top: 0px; padding-bottom: 0px;\" title=\" " ^ _s "Input Command" ^ " \">
@@ -1018,6 +1018,11 @@ onclick=\"dllink();\">" ^ _s
 </TD>
 </TR></TABLE>
 <!-- End Main Table -->
+
+<!-- set focus -->
+<script type=\"text/javascript\">
+document.forms['cmdFormular'].elements['q'].focus();
+</script>
 
 <DIV ID=\"tab1\" style=\"display: none\">
 <TABLE class=commands cellSpacing=0 cellPadding=0 width=\"100%\">
