@@ -1519,14 +1519,17 @@ let http_handler o t r =
         | s ->  http_send_bin_pictures r buf (String.lowercase s)
       with
       | Not_found ->
-	  let _, error_text_long, header = Http_server.error_page "404" "" ""
+	  let _, error_text_long, head = Http_server.error_page "404" "" ""
 			(Ip.to_string (TcpBufferedSocket.my_ip r.sock))
 			(string_of_int !!http_port)
 			(Some (Url_not_found r.get_url.Url.full_file)) in
-	  r.reply_head <- header;
+	  r.reply_head <- head;
+          http_add_html_header r;
 	  Buffer.add_string buf error_text_long
       | e ->
-          Printf.bprintf buf "\nException %s\n" (Printexc2.to_string e);
+          http_add_text_header r TEXTS;
+          Printf.bprintf buf "%sException %s\n"
+            (if Buffer.length buf = 0 then "" else "\n") (Printexc2.to_string e);
           r.reply_stream <- None
     end;
 
