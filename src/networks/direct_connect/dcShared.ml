@@ -257,7 +257,7 @@ let find_dir_exn name =
 
 (* Compute (at most) one TigerTree chunk from unhashed shared files *)
 let dc_check_hashed_files () =
-    let module M = CommonHasher in
+  let module M = CommonHasher in
     match !dc_tiger_computing, !dc_files_to_hash with
     | _, [] | Some _, _ -> ()
     | None, dcsh :: files ->

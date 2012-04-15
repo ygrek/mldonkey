@@ -1160,7 +1160,7 @@ msgWindow.location.reload();
       ("All/Open slots", Printf.sprintf "%d / %d" (open_slots ()) (current_slots ()) );
       ("Mode", (if !!firewalled then "Passive" else "Active") );
       ("Connected servers", (if nservers > 0 then string_of_int nservers else ""));
-      ("  Server list:", empty_string ); ]
+      ("  Server list:", empty_string ); ]      
       @ server_list @ [
       ("Hubs", (Printf.sprintf "Normal:%d  Vipped:%d  Opped:%d" norm_hubs reg_hubs opped_hubs) );
       ("Hashed", String.concat ", " hashed);

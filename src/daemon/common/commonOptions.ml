@@ -1685,8 +1685,7 @@ let max_comment_length = define_expert_option current_section ["max_comment_leng
 let current_section = debug_section
 
 let allow_local_network = define_expert_option current_section ["allow_local_network"]
-  "If this option is set, IP addresses on the local network are allowed
-  (only for debugging)"
+  "If this option is set, IP addresses on the local network are allowed"
      bool_option false
 
 let log_size = define_expert_option current_section ["log_size"]

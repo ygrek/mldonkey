@@ -22,7 +22,7 @@ cd config
 
 MAJOR_VERSION=3
 MINOR_VERSION=1
-SUB_VERSION=0   # range 0-7 due to eMule limitations
+SUB_VERSION=1   # range 0-7 due to eMule limitations
 
 # **********                                                                                  **********
 # **********                                  check for C compiler                            **********
@@ -160,6 +160,9 @@ END
       echo "Apple cpp produces broken files, your system lacks sed or grep to fix it"
       exit 1
     fi
+    ;;
+  *unknown-gnu*)
+    SYSTEM=hurd
     ;;
 esac
 if test "x$SYSTEM" = "xunknown"; then

@@ -14,6 +14,26 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2012/04/05: version 3.1.1 = tag release-3-1-1
+
+2012/04/04
+7732: Remove the non-existant -O6 optimization level (blickly)
+7755: CryptoPP: Fix build with GCC 4.7
+
+2012/02/22
+7728: Update GNU config.guess and config.sub to version 2012-02-10
+7727: Makefile: call `$(CPP) -x c` instead of `cpp` (ygrek)
+7726: Add support for Debian/Hurd
+
+2011/10/25
+7647: Update options description of allow_local_network (ygrek)
+7646: Include .desktop file in source package (ported from Arch Linux)
+7645: DC: show hashing progress in dcinfo (ygrek)
+7644: Fix broken target release.utils.static
+7642: Update GNU config.guess and config.sub to version 2011/10
+7641: DC: fix ownership for downloads by non-admin users (ygrek)
+7593: Less allocations (ygrek)
+-------------------------------------------------------------------------------
 2011/08/07: version 3.1.0 = tag release-3-1-0
 
 2011/07/24

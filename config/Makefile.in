@@ -1434,7 +1434,7 @@ ocamldoc_html: $(CORE_DOC) $(libclient_DOC)
 	$(OCAMLDOC) -sort -dump ocamldoc/ocamldocdump -html -d ocamldoc $(INCLUDES) $(libclient_DOC) $(CORE_DOC)
 
 $(LIB)/md4_cc.o: $(LIB)/md4.c
-	$(OCAMLC) -ccopt "$(CFLAGS) -O6 -o $(LIB)/md4_cc.o" -ccopt "" -c $(LIB)/md4.c
+	$(OCAMLC) -ccopt "$(CFLAGS) -O3 -o $(LIB)/md4_cc.o" -ccopt "" -c $(LIB)/md4.c
 
 $(CDK)/heap_c.o: $(CDK)/heap_c.c
 	$(OCAMLC) -ccopt "$(CFLAGS) $(MORECFLAGS) -o $(CDK)/heap_c.o" -ccopt "" -c $(CDK)/heap_c.c
@@ -1702,7 +1702,7 @@ release.utils.static: mld_hash.static $(BT_UTILS_STATIC)
 	mkdir -p $(DISDIR)
 	cp -f mld_hash.static $(DISDIR)/mld_hash && strip  $(DISDIR)/mld_hash
 ifeq ("$(BITTORRENT)", "yes")
-	for i in "$(BT_UTILS_STATIC)"; do cp -f $$i $(DISDIR)/$$i && strip $(DISDIR)/$$i; done
+	for i in $(BT_UTILS); do cp -f $$i.static $(DISDIR)/$$i && strip $(DISDIR)/$$i; done
 endif
 	mv $(DISDIR) $(DISDIR)-$(CURRENT_VERSION)
 	tar cf $(DISDIR).tar $(DISDIR)-$(CURRENT_VERSION)
