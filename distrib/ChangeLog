@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2012/05/13
+7726: Add support for Debian/Hurd, really ;)
+
 2012/04/05: version 3.1.1 = tag release-3-1-1
 
 2012/04/04

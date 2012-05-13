@@ -161,7 +161,7 @@ END
       exit 1
     fi
     ;;
-  *unknown-gnu*)
+  *-gnu*)
     SYSTEM=hurd
     ;;
 esac
