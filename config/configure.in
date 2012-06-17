@@ -485,7 +485,8 @@ fi
 
 OCAML_PATH=
 
-echo -e "\n--------------------------------"
+echo ""
+echo "--------------------------------"
 echo "     Checking system tools."
 echo "--------------------------------"
 
@@ -529,8 +530,8 @@ WGET="$ac_cv_prog_WGET"
 
 echo "----------------------------------------"
 echo "     Checking system tools finished."
-echo -e "----------------------------------------\n"
-
+echo "----------------------------------------"
+echo ""
 echo "--------------------------------"
 echo "     Checking Ocaml compiler."
 echo "--------------------------------"
@@ -772,7 +773,8 @@ if test "$DEBUG" = "yes"; then
     OCAMLOPT="$OCAMLOPT -g"
 fi
 
-echo -e "\n----------------------------------"
+echo ""
+echo "----------------------------------"
 echo "     Checking system headers."
 echo "----------------------------------"
 
@@ -826,7 +828,8 @@ AC_CHECK_HEADERS([sys/param.h sys/mount.h],,,
 ])
 echo "-------------------------------------------"
 echo "     Checking system headers finished."
-echo -e "-------------------------------------------\n"
+echo "-------------------------------------------"
+echo ""
 echo "-----------------------------------"
 echo "     Checking system libraries."
 echo "-----------------------------------"
@@ -1133,7 +1136,8 @@ esac
 
 echo "---------------------------------------------"
 echo "     Checking system libraries finished."
-echo -e "---------------------------------------------\n"
+echo "---------------------------------------------"
+echo ""
 
 CXX_VERSION=
 CRYPTOPPFLAGS=
@@ -1572,17 +1576,20 @@ diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTO
 
 cd ..
 
-echo -e "\nBuilding dependencies (if it blocks, try '$GNU_MAKE depend' to see the problem)"
+echo ""
+echo "Building dependencies (if it blocks, try '$GNU_MAKE depend' to see the problem)"
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
 
-echo -e -n "\nConfiguring MLDonkey" $MLDONKEY_VERSION
+echo ""
+printf "Configuring MLDonkey %s" "$MLDONKEY_VERSION"
 if test ! -z "$SCM_VERSION"; then
-  echo -n " - SCM: $SCM_VERSION"
+  printf " - SCM: %s" "$SCM_VERSION"
 fi
-echo " completed."
+ec " completed.\n"
 
-echo -e "\nNetwork modules:"
-echo -n " - eDonkey           "
+echo ""
+echo "Network modules:"
+printf " - eDonkey           "
 if test "$DONKEY" = "yes"; then
   if test "$DONKEY_SUI" = "yes"; then
     echo "enabled (eMule SUI enabled)"
@@ -1593,119 +1600,120 @@ else
   echo "        disabled"
 fi
 
-echo -n " - BitTorrent        "
+printf " - BitTorrent        "
 if test "$BITTORRENT" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
 fi
 
-echo -n " - FileTP (aka wget) "
+printf " - FileTP (aka wget) "
 if test "$FILETP" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
 fi
 
-echo -n " - Fasttrack         "
+printf " - Fasttrack         "
 if test "$FASTTRACK" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
 fi
 
-echo -n " - Gnutella          "
+printf " - Gnutella          "
 if test "$GNUTELLA" = "yes"; then
   echo "enabled (warning: this network module is unmaintained)"
 else
   echo "        disabled - unmaintained"
 fi
 
-echo -n " - Gnutella2         "
+printf " - Gnutella2         "
 if test "$GNUTELLA2" = "yes"; then
   echo "enabled (warning: this network module is unmaintained)"
 else
   echo "        disabled - unmaintained"
 fi
 
-echo -n " - Direct Connect    "
+printf " - Direct Connect    "
 if test "$DIRECT_CONNECT" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
 fi
 
-echo -n " - Open Napster      "
+printf " - Open Napster      "
 if test "$OPEN_NAPSTER" = "yes"; then
   echo "enabled          - currently not usable"
 else
   echo "        disabled - currently not usable"
 fi
 
-echo -n " - Soulseek          "
+printf " - Soulseek          "
 if test "$SOULSEEK" = "yes"; then
   echo "enabled          - currently not usable"
 else
   echo "        disabled - currently not usable"
 fi
 
-echo -n " - OpenFT            "
+printf " - OpenFT            "
 if test "$OPENFT" = "yes"; then
   echo "enabled          - currently not usable"
 else
   echo "        disabled - currently not usable"
 fi
 
-echo -e "\nCore features:"
+echo ""
+echo "Core features:"
 
 echo " - zlib (required)   enabled"
 
-echo -n " - threads           "
+printf " - threads           "
 if test "$USE_PTHREAD" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
 fi
 
-echo -n " - bzip2             "
+printf " - bzip2             "
 if test "$BZIP2" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
 fi
 
-echo -n " - iconv             "
+printf " - iconv             "
 if test "$ICONV" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
 fi
 
-echo -n " - libmagic          "
+printf " - libmagic          "
 if test "$MAGIC" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
 fi
 
-echo -n " - upnp & natpmp     "
+printf " - upnp & natpmp     "
 if test "$UPNP_NATPMP" = "yes"; then
   echo "enabled"
 else
   echo "        disabled"
 fi
 
-echo -n " - graphical stats   "
+printf " - graphical stats   "
 if test "$GD" = "yes"; then
   echo "enabled"
-  echo -n "   - png support     "
+  printf "   - png support     "
   if test "$GD_PNG" = "yes"; then
     echo "enabled"
   else
     echo "        disabled"
   fi
 
-  echo -n "   - jpg support     "
+  printf "   - jpg support     "
   if test "$GD_JPG" = "yes"; then
     echo "enabled"
   else
@@ -1715,6 +1723,8 @@ else
   echo "        disabled"
 fi
 
+echo ""
+printf " - GUI build        "
 if test "$LABLGTK_CONFIG" = "yes"; then
   echo -n -e "\n - GUI support       "
   if test "$GUI" = "newgui1"; then
@@ -1736,17 +1746,21 @@ if test "$TARGET_TYPE" = "byte"; then
   OCAML_TYPE="- byte code"
   COMPILE_TARGET=".byte"
 fi
-echo -e "\nCompilers:"
-echo -e " - Ocaml version     $OCAMLVERSION $OCAML_TYPE"
-echo -e " - $CC version       $CC_VERSION"
+echo ""
+printf "Compilers:"
+echo " - Ocaml version     $OCAMLVERSION $OCAML_TYPE"
+echo " - $CC version       $CC_VERSION"
 if test "x$CXX" != "x"; then
-  echo -e " - $CXX version       $CXX_VERSION"
+  echo " - $CXX version       $CXX_VERSION"
 fi
-echo -e "\nNow execute '$GNU_MAKE' to start compiling. Good luck!"
+echo ""
+echo "Now execute '$GNU_MAKE' to start compiling. Good luck!"
 
-echo -e "\nTo compile a static code execute:     $GNU_MAKE mlnet$COMPILE_TARGET.static"
-echo      "To produce a release tarball execute: $GNU_MAKE release.mlnet.static"
-echo      "To clean the build directory execute: $GNU_MAKE maintainerclean"
+echo ""
+echo "To compile a static core execute:     $GNU_MAKE mlnet$COMPILE_TARGET.static"
+echo "To produce a release tarball execute: $GNU_MAKE release.mlnet.static"
+echo "To clean the build directory execute: $GNU_MAKE maintainerclean"
 if test "$DONKEY_SUI" = "yes"; then
-  echo -e "\nCompiling CryptoPP.cc can take several minutes, on slow machines up to half an hour."
+  echo ""
+  echo "Compiling CryptoPP.cc can take several minutes, on slow machines up to half an hour."
 fi
