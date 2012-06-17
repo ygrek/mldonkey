@@ -1,6 +1,6 @@
 (***********************************************************************)
 (*                                                                     *)
-(*                           xlib for Ocaml                            *)
+(*                           xlib for OCaml                            *)
 (*                                                                     *)
 (*       Fabrice Le Fessant, projet Para/SOR, INRIA Rocquencourt       *)
 (*                                                                     *)

@@ -130,7 +130,7 @@ module Marshal = struct
 
     let to_string v _ =
       let v = Marshal.to_string v [] in
-(* The header depends on Ocaml version. Remove it. *)
+(* The header depends on OCaml version. Remove it. *)
       let v = String.sub v (Marshal.header_size)
         (String.length v - Marshal.header_size) in
       v
