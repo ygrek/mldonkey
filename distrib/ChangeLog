@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2012/06/24
+7800: Improve error message visibility (ygrek)
 7799: HTML: fix validation errors (ygrek)
 7798: Fix Mac OS X compilation (ygrek)
 7797: allow build with upcoming OCaml 4.00 (ygrek)
