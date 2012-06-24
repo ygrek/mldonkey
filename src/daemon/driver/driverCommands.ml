@@ -2088,6 +2088,7 @@ action=\\\"javascript:pluginSubmit();\\\"\\>";
                       [
 			strings_of_option previewer;
 			strings_of_option temp_directory;
+			strings_of_option filenames_utf8;
 			strings_of_option share_scan_interval;
 			strings_of_option hdd_temp_minfree;
 			strings_of_option hdd_temp_stop_core;

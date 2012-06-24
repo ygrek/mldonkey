@@ -84,7 +84,7 @@ let canonize_basename name =
         Charset.add_uchar buf uc'
       end
   done;
-  if not Autoconf.windows then
+  if not Autoconf.windows && not !!filenames_utf8 then
     Charset.Locale.to_locale (Buffer.contents buf)
   else
     Buffer.contents buf (* Windows uses patched OCaml which always uses Unicode chars *)

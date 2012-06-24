@@ -1396,8 +1396,9 @@ let mldonkey_gui = define_expert_option current_section ["mldonkey_gui"]
   "Name of GUI to start"
     string_option (Filename.concat bin_dir "mlgui")
 
-
-
+let filenames_utf8 = define_option current_section ["filenames_utf8"]
+  "Use UTF-8 for filenames (instead of automatic locale detection)."
+    bool_option false
 
 (*************************************************************************)
 (*                                                                       *)
