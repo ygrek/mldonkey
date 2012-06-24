@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2012/06/24
+7798: Fix Mac OS X compilation (ygrek)
 7797: allow build with upcoming OCaml 4.00 (ygrek)
 7795: spelling fix, official language name is "OCaml" (ygrek)
 7796: configure: fix non-portable use of echo (ygrek)
