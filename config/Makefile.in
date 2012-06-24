@@ -1448,7 +1448,7 @@ $(LIB)/md4_comp.o: $(LIB)/md4_$(MD4COMP).o
 
 zogml:
 	(for i in $(GUI_CODE)/gui*_base.zog ; do \
-		$(CAMLP4) pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i > $(GUI_CODE)/`basename $$i zog`ml ;\
+		$(CAMLP4) pa_o.cmo pa_zog.cma pr_o.cmo -impl $$i -o $(GUI_CODE)/`basename $$i zog`ml ;\
 	done)
 
 #######################################################################
@@ -1863,17 +1863,16 @@ rpm: sourcedist
 	@$(OCAMLYACC) $<
 
 .zog.ml:
-	@$(CAMLP4) pa_o.cmo ./pa_zog.cma pr_o.cmo -impl $< > $@
+	@$(CAMLP4) pa_o.cmo ./pa_zog.cma pr_o.cmo -impl $< -o $@
 
 .ml4.ml:
-	@echo '# 1 "$<"' > $@
-	@$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< >> $@
+	@$(CAMLP4) pa_o.cmo pa_op.cmo pr_o.cmo -impl $< -o $@
 
 .mlc4.ml:
 	@$(CAMLP4OF) -I +camlp4 -impl $< -o $@
 
 .mlt.ml:
-	@$(OCAMLPP) -pp $< > $@
+	@$(OCAMLPP) -o $@ -pp $<
 
 .c.o :
 	$(OCAMLC) -verbose -ccopt "-I $(OCAML_SRC)/byterun -o $*.o" -ccopt "$(CFLAGS)" $(LIBS_flags) -c $<
