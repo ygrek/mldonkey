@@ -3136,18 +3136,23 @@ let _ =
     ), "<num> :\t\t\tverify chunks of file <num>";
 
     "pause", Arg_multiple (fun args o ->
-        if args = ["all"] && user2_is_admin o.conn_user.ui_user then
-          List.iter (fun file ->
-              file_pause file (admin_user ())
-          ) !!files
-        else
-          List.iter (fun num ->
-              let num = int_of_string num in
-              List.iter (fun file ->
-                  if (as_file_impl file).impl_file_num = num then
-                      file_pause file o.conn_user.ui_user
-              ) !!files) args; ""
-    ), "<num|all> :\t\t\tpause a download (use arg 'all' for all files)";
+      let filter = 
+        match args with (* TODO richer condition language *)
+        | ["where";"priority";(">"|"<" as op);n] ->
+          let n = int_of_string n in
+          let op = if op = ">" then (>) else (<) in
+          (fun file -> op (file_priority file) n)
+        | ["all"] -> (fun _ -> true)
+        | l ->
+          let l = List.map int_of_string l in
+          (fun file -> List.mem (file_num file) l)
+      in
+      List.iter begin fun file ->
+        if filter file then
+          file_pause file o.conn_user.ui_user
+      end !!files;
+      ""
+    ), "<num|all|where priority < prio> :\t\t\tpause a download (use arg 'all' for all files)";
 
     resume_alias "resume";
     resume_alias "unpause";

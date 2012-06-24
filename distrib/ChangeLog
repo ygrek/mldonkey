@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2012/06/24
+7803: pause conditions: "pause where priority < X" (ygrek)
 7802: Do not leave empty files if code generation fails (ygrek)
 7801: HTML: Fix content-type for 401 error (ygrek)
 7800: Improve error message visibility (ygrek)
