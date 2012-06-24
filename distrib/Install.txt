@@ -57,7 +57,7 @@ You have now two options to compile mldonkey:
 
 The configure script will download ocaml and lablgtk, compile and install them
 locally so that they can be used to compile mldonkey. Steps below can be skipped
-now. Be patient. Ocaml and lablgtk tools take a while to compile and install.
+now. Be patient. OCaml and lablgtk tools take a while to compile and install.
 
 Note: At least 70 M of free disk space is required on the partition where mldonkey
 is compiled.
@@ -100,7 +100,7 @@ is compiled.
 
     To build GTK1 newgui: ./configure --enable-gui=newgui1
     To build GTK1 oldgui: ./configure --enable-gui=oldgui
-      - note: oldgui does not compile with Ocaml >= 3.10
+      - note: oldgui does not compile with OCaml >= 3.10
     To build GTK2 GUI:    ./configure --enable-gui[=newgui2]
     lablgtk-1.2.7 and lablgtk-2.10.1 can both be installed at the same time.
 

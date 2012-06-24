@@ -249,9 +249,9 @@ let temp_dir_name () =
     | _ ->
       (try Sys.getenv "TEMP" with Not_found -> ".")
 
-(* this code is copied from Ocaml stdlib/filename.ml but
+(* this code is copied from OCaml stdlib/filename.ml but
    extended to respect runtime changes to $MLDONKEY_TEMP,
-   Ocaml uses variable $TMPDIR/$TEMP instead *)
+   OCaml uses variable $TMPDIR/$TEMP instead *)
 external open_desc: string -> open_flag list -> int -> int = "caml_sys_open"
 external close_desc: int -> unit = "caml_sys_close"
 

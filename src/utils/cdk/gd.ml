@@ -1,5 +1,5 @@
 (*
- * Ocaml-Gd. An interface to the Gd library for generating simple images
+ * OCaml-Gd. An interface to the Gd library for generating simple images
  * Based on Shawn Wagner's OCamlGD 0.7.0. with some mods from GD4O 
  * Copyright (C) 2002  Shawn Wagner
  * Copyright (C) 2003  Matthew C. Gushee

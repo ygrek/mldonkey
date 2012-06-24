@@ -1878,7 +1878,7 @@ let buildinfo html buf =
     );
   tack list 
     (
-      "Ocaml version:\t", 
+      "OCaml version:\t", 
       Sys.ocaml_version ^ 
       " - C compiler version: " ^ Autoconf.cc_version ^
       (if Autoconf.cxx_version <> "" then 

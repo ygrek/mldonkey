@@ -811,7 +811,7 @@ void tiger_tree_string(char *s, size_t len, size_t pos, size_t block_size, char 
 /**************************************************************************
 
 
-                      Ocaml stubs (copied from md4_c.c)
+                      OCaml stubs (copied from md4_c.c)
  
 
 ***************************************************************************/

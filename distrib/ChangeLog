@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2012/06/24
+7795: spelling fix, official language name is "OCaml" (ygrek)
 7796: configure: fix non-portable use of echo (ygrek)
 
 2012/05/23
