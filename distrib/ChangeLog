@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2012/07/01
+7813: Fix segfault on Solaris/OpenIndiana in md4 code written in C (dcoppa)
 7812: FreeBSD: proper version identification (lioux)
 
 2012/06/24
