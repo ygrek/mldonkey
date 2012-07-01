@@ -4,9 +4,292 @@ ChangeLog
 All numbers mentioned here can be found as patches on
 http://savannah.nongnu.org/patch/?group=mldonkey
 
-2009/10/23: spiralvoice
+2012/07/01: spiralvoice
 
-Split Changelog, all stuff newer than 2.8.7 is now in distrib/ChangeLog
+Split Changelog, all stuff newer than 2.9.7 is now in distrib/ChangeLog
+-------------------------------------------------------------------------------
+2009/01/20: version 2.9.7 = tag release-2-9-7
+6727: Web_infos: Replace old GeoIP URL with new one
+- old code added the new URL, even if GeoIP was not present in web_infos
+
+2009/01/04
+6714: BT: Fix bug when computing limits for max_bt_uploaders
+6713: GeoIP: New web_infos URL for country list (thx to Choby)
+- old URLs are updated to:
+  http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz
+
+2008/12/13
+6689: Allow compilation with Ocaml 3.11.0
+
+2008/09/01
+6629: Mail: Move hostname from subject to body (eydaimon)
+Updated Mozilla protocol handler to version 2.5
+- original source from http://www.informatik.uni-oldenburg.de/~dyna/mldonkey
+6628: IP discover: Use http://whatismyip.org, old URL is not working anymore
+-------------------------------------------------------------------------------
+2008/08/04: version 2.9.6 = tag release-2-9-6
+6599: Allow values lower than max_upload_slots for BT-max_bt_uploaders
+
+2008/07/29
+6593: CryptoPP performance fix for ARM (Marc Pignat)
+6592: HTML: Fix invalid html respond when login is invalid
+
+2008/07/17
+6571: Runinfo: Include DirectConnect in list of enabled nets
+
+2008/07/02
+6558: Fix text relocation warnings on hardened distributions (Davide Pesavento)
+6557: BT: Send correct downloaded value when download is stopped to tracker
+      (Fox Mulder)
+-------------------------------------------------------------------------------
+2008/05/02: version 2.9.5 = tag release-2-9-5
+6503: Remove release status when download is finished
+
+2008/03/31
+6465: BT: Send correct downloaded value when download starts to tracker
+      (colchaodemola)
+6477: Use $MLDONKEY_DIR/mlnet_tmp instead of /tmp
+- This patch fixes problems with hash checking of multifile BT
+  downloads when /tmp is too small.
+- To override $MLDONKEY_DIR/mlnet_tmp use variable $MLDONKEY_TEMP.
+  This patch has nothing to do with option temp_directory.
+6472: Multiuser: Count only files in download queue for user/group statistics
+6471: Clean logfile
+6470: BT: Use default of max_upload_slots as minimum for BT-max_bt_uploaders
+      instead of hard-coded value
+
+2008/03/18
+6466: Fix option_hook loop when changing max_upload_slots < 3,
+      caused by patch #6451
+
+2008/03/14
+6462: Multiuser: Restrict chown to admin users only
+
+2008/03/11
+6458: Fix commit bug when filesystem reports negative values
+      for maximum filename length
+
+2008/03/07
+6451: BT: Implement minimum of 3 (like max_upload_slots)
+      for option max_bt_uploaders
+-------------------------------------------------------------------------------
+2008/03/02: version 2.9.4 = tag release-2-9-4
+6440: GTK2 GUI: Compile with lablgtk-2.10.1 by default
+- lablgtk-2.10.0 does not compile with Ocaml 3.10.2
+
+2008/02/29
+6439: Configure: Make Ocaml 3.10.2 the default compiler
+
+2008/02/06
+6407: New options run_as_group/run_as_groupgid
+- works the same way as options run_as_user/run_as_useruid
+- display system user:group running MLDonkey core in runinfo
+6406: Mail: Fix bug in rfc2047 encoding
+
+2008/02/05
+6404: New option release_new_downloads
+- set to true to activate release slot feature for all newly started downloads
+
+2008/02/04
+6080: HTTP interface: new command/button "logout" (Schlumpf)
+6077: bw_toggle: support new option "max_opened_connections_2" (Schlumpf)
+6401: Swarmer: Correctly update file_downloaded during recover_temp (pango)
+6400: EDK: Correctly update filename after recover_temp
+6396: Log: Print user:group when starting a download
+6395: Makefile: Do not strip shared linked binaries on Mac OS X, clean Makefile
+
+2008/01/24
+6381: Multiuser: Block commands "shares" and "share" for non-admin users
+-------------------------------------------------------------------------------
+2008/01/16: version 2.9.3 = tag release-2-9-3
+6379: bwstats: Show downloaded bytes (pango)
+
+2008/01/16
+6377: Configure: Make Ocaml 3.10.1 the default compiler
+- Ocaml 3.10.1 fixes crashes in MLDonkeys eDonkey module when compiled with
+  Ocaml 3.10.0 on 64bit systems
+
+2008/01/15
+6373: Swarmer: Ignore received data when file is queued
+
+2008/01/08
+6367: FileTP: Fix bug when starting downloads > 4GB via dllink
+
+2008/01/07
+6364: MinGW: Fix broken share priorities (thx to vbnuy6)
+6365: HTML: Use option max_name_len in upstats for unhashed files
+
+2008/01/04
+6362: Small Geoip updates
+- new countries + flags: Saint Barthelemy, Saint Martin
+- updates flags: Georgia, Democratic Republic of the Congo, Western Sahara, Lesotho
+
+2008/01/02
+6361: GUI: Send console messages to admin users after unsharing a file
+6349: DirectConnect: Correctly report total shared filesize to server (LuCasn)
+6360: BT: New command print_torrent <file_num>,
+      new link in HTML, upstats to display .torrent details
+
+2007/12/19
+6351: Allow compilation with upcoming Ocaml 3.10.1
+
+2007/12/17
+6342: HTML: fix broken vm output in Opera (schlumpf)
+6346: Environment variables for file_started_cmd (see option help text)
+
+2007/12/13
+6343: gcc-4.3 compile fix for CryptoPP (brian m. carlson)
+
+2007/12/09
+6337: Fix inequality test for option html_mods_theme (pango)
+
+2007/11/03
+6255: Fix compile warnings for GTK2 GUI and DC++ (pango)
+-------------------------------------------------------------------------------
+2007/10/20: version 2.9.2 = tag release-2-9-2
+6242: Allow deactivation of [telnet|gui|gift]_port by setting it to 0
+
+2007/10/17
+6240: GTK1 oldgui: Hide password in server settings
+6239: Update GNU config.guess and config.sub to version 2007/07
+Updated Mozilla protocol handler to version 2.2
+- original source from http://www.informatik.uni-oldenburg.de/~dyna/mldonkey
+6238: Fix statvfs code on alpha platform (Alexander Kotelnikov)
+6237: EDK: Load server.met files from archives even if unpack fails
+- http://www.gruk.org/server.met.gz is not a gz archive at the moment...
+
+2007/10/10
+6231: Swarming: Propagate chunks of finished file before commit (pango)
+      to other downloading files
+
+2007/10/04
+6223: GTK2 GUI: Compile with lablgtk-2.10.0 by default
+- this patch changes the lablgtk2 version used by ./configure
+- self-compiled lablgtk-2.10.0 must be patched with patches/lablgtk-2.10.0.patch
+
+2007/09/30
+6221: Configure: Remove unneeded checks
+6220: GTK2 GUI: Fix compile bug due to changed API in lablgtk-2.10.0
+- GTK2 GUI still compiles with older versions of lablgtk2
+
+2007/09/13
+6197: Options backup: Better log messages, remove useless exception
+-------------------------------------------------------------------------------
+2007/09/09: version 2.9.1 = tag release-2-9-1
+6192: EDK: Use discovered client_ip when lowid
+
+2007/09/05
+6187: BT: Fix wrong file order of multifile torrents due to patch #6174
+
+2007/09/01
+6179: BT: Send correct downloaded amount to tracker when download completed
+6174: BT: Encode non-UTF8 filenames using "encoding" or "codepage" data
+      from .torrent if present
+
+2007/08/31
+6175: Yet another patch for share_scan_interval
+- new default 30 minutes for newly created ini files
+- still use 0 to disable
+- hard-coded global minimum of 5 minutes, this updates old default 1 to 5
+- automated options update, if update is needed (options_version <= 19) and
+  share_scan_interval = 5 (because of new hard-coded minimum, which is
+  processed earlier) its changed to new default of 30
+6145: EDK: Update options description of max_connected_servers (Schlumpf)
+6172: EDK: properly advertise and honour noviewshared tag (TripleM)
+
+2007/08/23
+6160: BT: Another fix for share_scan_interval
+- Old hard-coded default was 300s, now with share_scan_interval its
+  possible to use a minimum of 60s which produces high CPU load.
+  This patch implements a minimum of 300s for the BT share_files timer.
+
+2007/08/04
+6128: New default for option messages_filter (unease)
+6132: HTML: Fix group display in vd <num> for admin users
+      view of other users files
+6130: Change API for network_parse_url, support user group
+6127: HTML: Display file_chunk_sizes/file_piece_size in vd <num>
+6135: BT: Fix high CPU load when share_scan_interval = 0
+      due to buggy patch #6049 (thx to darkman)
+-------------------------------------------------------------------------------
+2007/07/27: version 2.9.0 = tag release-2-9-0
+6118: Configure: Update defaults
+- enable DirectConnect by default 
+- disable Gnutella & Gnutella2 by default
+  - MLDonkey does not support UDP host cache and contains
+    non-working GWebCache URLs
+  - Gnutella/G2 code has not been updated for several years,
+    its officially unmaintained for now
+  - remove non-existing GWebCache URLs
+
+2007/07/25
+6087: Fix logging of verbosity "bw", remove obsolete options
+6085: BT: Improve UTF8 support
+- parse field "encoding"
+- use field "name.utf8" instead of "name", if available
+
+2007/07/10
+5996: BT: Recognize more client types (orbit)
+6065: DirectConnect: Support dc++ hublist in web_infos
+6063: BT: Better detect single-file torrents
+
+2007/07/03
+6068: BT: Fix download start when torrents/downloads filesystem
+      allows more than 16M chars
+
+2007/07/01
+6064: BT: Earlier first scan of torrents/incoming/*
+6053: HTML: Send correct filename when previewing (chandlerding)
+6061: Options: New type port_option, values are bound to be >= 0 and <= 65535
+6060: Do not send mail notifications when smtp_server = ""
+6059: Multiuser: Avoid double group entries in user_groups
+6056: Log username, IP:port and old/new value when changing options
+
+2007/06/30
+6049: BT: Support user_commit_dir when seeding,
+      reshare every share_scan_interval minutes
+
+2007/06/26
+Move docs/multiuser.txt to distrib/multiuser.txt
+6048: Make Ocaml 3.10.0 the default compiler
+- MLDonkey can still be compiled with Ocaml 3.08.3/4 & 3.09.*
+- if you need GTK1 oldgui you must use Ocaml < 3.10.0 to compile
+
+2007/06/24
+6044: BT: Limit max_bt_uploaders to max_upload_slots (pango)
+6043: Discover WAN IP
+- new command "discover_ip" to force discovery
+- new option "discover_ip" to enable automatic discovery on startup
+  and after SIGHUP, default true
+- this patch is important for BT-only usage, without this patch the
+  WAN IP was discovered only by using EDK server replies
+6034: Load $MLDONKEY/web_infos/* before activating network modules
+- this fixes a security hole when networks started connecting
+  before IP blocklist was loaded
+6025: Extend command "links" to optionally display all downloading files
+- "links" displays all files, not only shared ones like before
+- "links shared" lists only shared files
+- "links downloading" lists only downloading files
+
+2007/06/18
+6024: Multiuser: New parameters for command useradd:
+      user_mail + user_max_concurrent_downloads
+
+2007/06/17
+6021: Remove leftovers from optional zlib support,
+      replace Autoconf.zlib__* with Zlib.* functions
+6005: Swarmer: Implement new download mechanism
+- its now possible to switch the order blocks are downloaded from random
+  (first and last block first, default) to linear
+- new command: download_order <file number> <random|linear>
+6017: Multiuser: New optional parameters group/commit_dir for command useradd
+6020: Multiuser: Fix handling of user "admin", its user_commit_dir was not
+      used when MLDonkey was not restarted between download start and commit
+6019: BT: Disable user_commit_dir for multifile torrents to fix seeding
+6011: BT: Send no_peer_id to trackers to save some bandwidth (berni)
+6010: Update syslog.ml to version 1.4
+5995: EDK: Better handle permission denied errors for shared/downloading files
+5992: BT/IP block: Fix country-based IP blocking
 -------------------------------------------------------------------------------
 2007/06/03: version 2.8.7 = tag release-2-8-7
 5988: BT: Completely parse handshake packet of newer BT clients (thx to Berni)
