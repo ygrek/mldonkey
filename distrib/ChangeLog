@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2012/07/01
+7812: FreeBSD: proper version identification (lioux)
+
 2012/06/24
 7805: Update upnp libraries
 7804: new option filenames_utf8 (ygrek)
