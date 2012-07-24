@@ -216,7 +216,8 @@ With payload:
           int: length (power of 2, 2 ^ 15)
     * 9 - DHT port announcement
           int16: UDP port
-
+    * 20 - extended
+          byte: extended message ID (0 = handshake)
 Choke/unchoke every 10 seconds
 *)
 
@@ -266,6 +267,7 @@ module TcpMessages = struct
     | Ping
     | PeerID of string
     | DHT_Port of int
+    | Extended of int * string
 
     let to_string msg =
       match msg with
@@ -284,6 +286,7 @@ module TcpMessages = struct
       | Ping -> "Ping"
       | PeerID s ->  Printf.sprintf  "PeerID [%s]" (String.escaped s)
       | DHT_Port n -> Printf.sprintf "DHT_Port %d" n
+      | Extended (n, s) -> Printf.sprintf  "Extended [%d %s]" n (String.escaped s)
 
     let parsing opcode m =
         match opcode with
@@ -297,6 +300,7 @@ module TcpMessages = struct
         | 7 -> Piece (get_int m 0, get_uint64_32 m 4, m, 8, String.length m - 8)
         | 8 -> Cancel (get_int m 0, get_uint64_32 m 4, get_uint64_32 m 8)
         | 9 -> DHT_Port (get_int16 m 0)
+        | 20 -> Extended (get_int8 m 0, String.sub m 1 (String.length m - 1))
         | -1 -> PeerID m
         | _ -> raise Not_found
 
@@ -325,6 +329,7 @@ module TcpMessages = struct
         | PeerID _ -> ()
         | Ping -> ()
         | DHT_Port n -> buf_int8 buf 9; buf_int16 buf n
+        | Extended (n,msg) -> buf_int8 buf 20; buf_int8 buf n; Buffer.add_string buf msg
       end;
       let s = Buffer.contents buf in
       str_int s 0 (String.length s - 4);

@@ -540,6 +540,7 @@ let max_range_requests = 5
 let reserved () =
   let s = String.make 8 '\x00' in
   s.[7] <- (match !bt_dht with None -> '\x00' | Some _ -> '\x01');
+  s.[5] <- '\x10'; (* TODO bep9, bep10, notify clients about extended*)
   s
 
 (** handshake *)
@@ -569,6 +570,7 @@ let send_interested c =
 *)
 
 let send_bitfield c =
+  if not c.client_file.file_metadata_downloading then
   send_client c (BitField
       (
       match c.client_file.file_swarmer with
@@ -606,6 +608,21 @@ let parse_reserved rbits c =
   c.client_utorrent_extension <- has_bit 5 0x10;
 
   c.client_azureus_messaging_protocol <- has_bit 0 0x80
+
+let send_extended_handshake c file =
+  let module B = Bencode in
+  let msg = (B.encode (B.Dictionary [(* "e",B.Int 0L; *)
+                                     "m", (B.Dictionary ["ut_metadata", B.Int 1L]);
+                                     (* "metadata_size", B.Int (-1L) *)])) in begin
+    send_client c (Extended (Int64.to_int 0L, msg));
+  end
+
+let send_extended_piece_request c piece file =
+  let module B = Bencode in
+  let msg = (B.encode (B.Dictionary ["msg_type", B.Int 0L; (* 0 is request subtype*)
+                                     "piece", B.Int piece; ])) in begin
+    send_client c (Extended (Int64.to_int c.client_ut_metadata_msg, msg));
+  end
 
 let show_client c =
   let (ip,port) = c.client_host in
@@ -705,6 +722,7 @@ let rec client_parse_header counter cc init_sent gconn sock
       begin
         c.client_incoming <- true;
         send_init !!client_uid file_id sock;
+        send_extended_handshake c file;
       end;
     connection_ok c.client_connection_control;
     if !verbose_msg_clients then
@@ -977,7 +995,7 @@ and client_to_client c sock msg =
       (int_of_float timeout)
       (int_of_float next)
       (TcpMessages.to_string msg);
-    end;
+  end;
 
   let file = c.client_file in
 
@@ -1079,12 +1097,15 @@ and client_to_client c sock msg =
 
     | BitField p ->
         (*A bitfield is a summary of what a client have*)
+      if !verbose_msg_clients then
+        lprintf_file_nl (as_file file) "Bitfield message,  metadata state %B" c.client_file.file_metadata_downloading;
+      if not c.client_file.file_metadata_downloading then
         begin
           match c.client_file.file_swarmer with
             None -> ()
           | Some swarmer ->
               c.client_new_chunks <- [];
-              
+
               let npieces = CommonSwarming.partition_size swarmer in
               let nbits = String.length p * 8 in
 
@@ -1125,6 +1146,7 @@ and client_to_client c sock msg =
 
     | Have n ->
         (* A client can send a "Have" without sending a Bitfield *)
+        if not c.client_file.file_metadata_downloading then
         begin
           match c.client_file.file_swarmer with
             None -> ()
@@ -1247,6 +1269,172 @@ and client_to_client c sock msg =
           if !verbose_msg_clients then
             lprintf_file_nl (as_file file) "Error: received cancel request but client has no slot"
 
+    | Extended (extmsg, payload) ->
+      (* extmsg: 0 handshake, N other message previously declared in handshake.
+         atm ignore extended messages if were not currently in metadata state.
+         TODO when were not in metadata state we should be friendly and answer metadata requests
+      *)
+      let module B = Bencode in
+      if file.file_metadata_downloading then begin
+        (* since we got at least one extended handshake from the peer, it should be okay to
+           send a handshake back now. we need to send it so the remote client knows how
+           to send us messages back.
+           this should of course be moved but I dont know where yet.
+           also we shouldnt send more than one handshake of course...
+        *)
+        if !verbose_msg_clients then
+          lprintf_file_nl (as_file file) "Got extended msg: %d %s" extmsg (String.escaped payload);
+
+        match extmsg with
+            0x0 ->
+            if !verbose_msg_clients then
+              lprintf_file_nl (as_file file) "Got extended handshake";
+            let dict = Bencode.decode payload in begin
+              match dict with
+                  B.Dictionary list ->
+                    List.iter (fun (key,value) ->
+                      match key, value with
+                        | "metadata_size", B.Int n ->
+                            if !verbose_msg_clients then
+                              lprintf_file_nl (as_file file) "Got metadata size %Ld" n;
+                            c.client_file.file_metadata_size <- n;
+                        | "m", B.Dictionary  mdict ->
+                          if !verbose_msg_clients then
+                            lprintf_file_nl (as_file file) "Got meta dict";
+                          List.iter (fun (key,value) ->
+                            match key, value with
+                                "ut_metadata", B.Int n ->
+                                  if !verbose_msg_clients then
+                                    lprintf_file_nl (as_file file) "ut_metadata is %Ld " n;
+                                  c.client_ut_metadata_msg <- n;
+                              | _ -> ();
+                          ) mdict;
+
+                        | _ -> () ;
+                    ) list;
+                    (* okay so now we know what to ask for, so ask for metadata now
+                       since metadata can be larger than 16k which is the limit, the transfer needs to be chunked, so
+                       it is not really right to make the query here. but its a start.
+                       also im just asking for piece 0.
+                       (we should also check that we actually got the metadata info before proceeding)
+                    *)
+                    send_extended_handshake c file;
+                    send_extended_piece_request c c.client_file.file_metadata_piece file;
+                  |_ -> () ;
+            end;
+          | 0x01 -> (* ut_metadata is 1 because we asked it to be 1 in the handshake
+                       the msg_type is probably
+                       1 for data,
+                       but could be 0 for request(unlikely since we didnt advertise we had the meta)
+                       2 for reject, also unlikely since peers shouldnt advertise if they dont have(but will need handling in the end)
+
+                       {'msg_type': 1, 'piece': 0, 'total_size': 3425}
+                       after the dict comes the actual piece
+                    *)
+            if !verbose_msg_clients then
+              lprintf_file_nl (as_file file) "Got extended ut_metadata message";
+            let msgtype = ref 0L in begin
+              begin
+                match B.decode payload with
+                    B.Dictionary list ->
+                      List.iter (fun (key,value) ->
+                        match key, value with
+                            "msg_type", B.Int n ->
+                              if !verbose_msg_clients then
+                                lprintf_file_nl (as_file file) "msg_type %Ld" n;
+                              msgtype := n;
+                          | "piece", B.Int n ->
+                            if !verbose_msg_clients then
+                              lprintf_file_nl (as_file file) "piece %Ld" n;
+                            file.file_metadata_piece <- n;
+                          | "total_size", B.Int n ->
+                             if !verbose_msg_clients then
+                              lprintf_file_nl (as_file file) "total_size %Ld" n; (* should always be the same as received in the initial handshake i suppose *)
+                          |_ -> () ;
+                      ) list;
+                  |_ -> () ;
+              end;
+              match !msgtype with
+                  1L ->
+                    let last_piece_index = (Int64.div file.file_metadata_size 16384L) in
+                    if !verbose_msg_clients then
+                      lprintf_file_nl (as_file file) "handling metadata piece %Ld of %Ld"
+                        file.file_metadata_piece
+                        last_piece_index;
+                        (* store the metadata piece in memory *)
+                    file.file_metadata_chunks.(1 + (Int64.to_int file.file_metadata_piece)) <- payload;
+                        (* possibly write metadata to disk *)
+                    if file.file_metadata_piece >=
+                      (Int64.div file.file_metadata_size 16384L) then begin
+                        if !verbose_msg_clients then
+                          lprintf_file_nl (as_file file) "this was the last piece";
+                            (* here we should simply delete the current download, and wait for mld to pick up the new torrent file *)
+                            (* the entire payload is currently in the array, TODO *)
+                        let newtorrentfile = (Printf.sprintf "%s/BT-%s.torrent"
+                                                      (Filename2.temp_dir_name ())
+                                                      (Sha1.to_string file.file_id)) in
+                        let fd = Unix32.create_rw  newtorrentfile  in
+                        let fileindex = ref 0L in
+                        begin
+                          (* the ee is so we can use the same method to find the
+                             start of the payload for the real payloads as well as the synthetic ones
+                             *)
+                          file.file_metadata_chunks.(0) <- "eed4:info";
+                          file.file_metadata_chunks.(2 + Int64.to_int last_piece_index) <- "eee";
+                          try
+                            Array.iteri (fun index chunk ->
+                            (* regexp ee is a fugly way to find the end of the 1st dict before the real payload *)
+                              let metaindex = (2 + (Str.search_forward  (Str.regexp_string "ee") chunk 0 )) in
+                              let chunklength = ((String.length chunk) - metaindex) in
+                              Unix32.write fd !fileindex chunk
+                                metaindex
+                                chunklength;
+                              fileindex := Int64.add !fileindex  (Int64.of_int chunklength);
+                              ();
+                            ) file.file_metadata_chunks;
+                          with e -> begin
+                            (* TODO ignoring errors for now, the array isnt really set up right anyway yet *)
+                            (*
+                            lprintf_file_nl (as_file file) "Error %s saving metadata"
+                              (Printexc2.to_string e)
+                            *) ()
+                          end;
+                          (* Yay, now the new torrent is on disk! amazing! However, now we need to kill the dummy torrent
+                             and restart it with the fresh real torrent *)
+
+                          (* it seems we need to use the dynamic interface... *)
+                          if !verbose then
+                            lprintf_file_nl (as_file file) "cancelling metadata download ";
+                          let owner = file.file_file.impl_file_owner in
+                          let group = file.file_file.impl_file_group in begin
+                            CommonInteractive.file_cancel (as_file file) owner ;
+                            (* hack_op_file_cancel c.client_file;   *)
+                            if !verbose then
+                              lprintf_file_nl (as_file file) "starting download from metadata torrent %s" newtorrentfile  ;
+                            ignore(CommonNetwork.network_parse_url BTGlobals.network newtorrentfile owner group);
+                          end;
+                          (try Sys.remove newtorrentfile with _ -> ())
+                        end;
+
+                      end
+                    else begin
+                          (* now ask for the next metadata piece, if any *)
+                      let nextpiece = (Int64.succ file.file_metadata_piece) in begin
+                        if !verbose_msg_clients then
+                          lprintf_file_nl (as_file file) "asking for the next piece %Ld" nextpiece;
+                        send_extended_piece_request c nextpiece file;
+                      end;
+                    end;
+                |_ ->
+                  if !verbose_msg_clients then
+                    lprintf_file_nl (as_file file) "unmatched extended subtype" ;
+            end;
+
+          | _ ->
+            if !verbose_msg_clients then
+              lprintf_file_nl (as_file file) "Got extended other msg ";
+      end;
+
     | DHT_Port port ->
         match !bt_dht with
         | None ->
@@ -1332,6 +1520,8 @@ let connect_client c =
                     lprintf_file_nl (as_file file) "READY TO DOWNLOAD FILE";
 
                   send_init !!client_uid file.file_id sock;
+                  send_extended_handshake c file;
+
 (* Fabrice: Initialize the client bitmap and uploader fields to <> None *)
                   update_client_bitmap c;
 (*              (try get_from_client sock c with _ -> ());*)

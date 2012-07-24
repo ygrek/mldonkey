@@ -289,6 +289,7 @@ type client = {
     mutable client_utorrent_extension : bool;
     mutable client_azureus_messaging_protocol : bool;
 
+    mutable client_ut_metadata_msg : int64;
   }
 
 and tracker_info = {
@@ -335,6 +336,12 @@ and file = {
     mutable file_session_downloaded : int64;
     (** DHT specific *)
     mutable file_last_dht_announce : int;
+
+    mutable file_metadata_size : int64;
+    mutable file_metadata_piece : int64;
+    mutable file_metadata_downloading : bool;
+    mutable file_metadata_chunks : string array;
+
     file_private : bool;
   }
 

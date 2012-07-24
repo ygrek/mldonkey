@@ -116,8 +116,9 @@ let uid_of_string s =
   | "ttr" -> TigerTree (TigerTree.of_string rem)
   | "md5" ->  Md5 (Md5.of_string rem)
   | "sig2dat" -> Md5Ext (Md5Ext.of_base32 rem)
-  | "bt" | "bittorrent" | "btih" -> 
-      BTUrl (Sha1.of_string rem)
+  | "bt" | "btih" ->
+    (* accept both base32 (32 chars) and base16 (40 chars) *)
+    BTUrl (if String.length rem = 40 then Sha1.of_hexa rem else Sha1.of_string rem)
   | "filetp" -> FileTP (Md4.of_string rem)
   | _ -> raise (Illegal_urn (s ^ " at " ^ sign ^ " is not known"))
 
@@ -211,6 +212,7 @@ let parse_magnet_url url =
     let uids = ref [] in
     let name = ref "" in
     let size = ref None in
+    let trackers = ref [] in
     let each k v =
       match String2.split k '.' with
       | "xt"::_ -> uids := Uid.of_string v :: !uids
@@ -220,7 +222,7 @@ let parse_magnet_url url =
       | "xs"::_ -> () (* eXtra source *)
       | "mt"::_ -> () (* manifest topic: url or urn, see http://rakjar.de/gnuticles/MAGMA-Specsv22.txt *)
       | "kt"::_ -> () (* keywords topic *)
-      | "tr"::_ -> () (* BT tracker *)
+      | "tr"::_ -> trackers := Url.decode v :: !trackers
       | "x"::_ -> () (* extensions *)
 (*
       | _ when v = "" ->
@@ -234,7 +236,12 @@ let parse_magnet_url url =
       try each k v
       with exn -> lprintf_nl "MAGNET: field %S=%S, exn %s" k v (Printexc2.to_string exn)
     ) url.Url.args;
-    object method name = !name method size = !size method uids = List.map Uid.to_uid (Uid.expand !uids) end
+    object
+      method name = !name
+      method size = !size
+      method uids = List.map Uid.to_uid (Uid.expand !uids)
+      method trackers = !trackers
+    end
   else 
     raise Not_found
 
