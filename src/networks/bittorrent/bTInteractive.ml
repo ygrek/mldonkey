@@ -322,6 +322,7 @@ let op_file_print file o =
   if !bt_dht <> None then
     emit (_s"Last DHT announce") ~desc:(_s"Last time this torrent was announced in DHT")
       (string_of_date file.file_last_dht_announce);
+  emit (_s"Metadata downloading") (if file.file_metadata_downloading then _s "yes" else _s "no");
 
   let rec print_first_tracker l =
     match l with
@@ -837,7 +838,8 @@ let share_files _ =
   List.iter (fun file ->
       (* if !verbose_share then lprintf_nl "Checking torrent share for %s" file.file_torrent_diskname; *)
       if not (Sys.file_exists file.file_torrent_diskname) &&
-        file_state file = FileShared then
+        file_state file = FileShared &&
+        not (file.file_metadata_downloading) then
         begin
           if !verbose_share then lprintf_nl "Removing torrent share for %s" file.file_torrent_diskname;
           BTClients.file_stop file;
@@ -898,6 +900,46 @@ let get_regexp_string text r =
   String.sub text a (b - a)
 
 let op_network_parse_url url user group =
+        let exn_catch f x = try `Ok (f x) with exn -> `Exn exn in
+        match exn_catch parse_magnet_url url with
+          | `Ok magnet ->
+            (
+            if !verbose then begin
+              lprintf_nl "Got magnet url %S" url;
+              List.iter (fun(v) -> lprintf_nl "magnet %s" (string_of_uid v)) magnet#uids;
+              List.iter (fun(v) -> lprintf_nl "magnet trackers %s" v) magnet#trackers;
+            end;
+            match List2.filter_map (function BTUrl btih -> Some btih | _ -> None) magnet#uids with
+              | [] -> "No btih found in magnet url", false;
+              | btih::_ ->
+                if !verbose then
+                  lprintf_nl "Got btih %S" (Sha1.to_string btih);
+                let hashstr = (Sha1.to_string btih) in 
+                let torrent = {
+                  torrent_name = hashstr; (*magnet#name*)
+                  torrent_filename = hashstr;
+                  torrent_name_utf8 = hashstr;
+                  torrent_comment = "";
+                  torrent_pieces = Array.of_list [];  
+                  torrent_piece_size = 1L;  
+                  torrent_files = []; 
+                  torrent_length = 1L;
+                  torrent_created_by = ""; 
+                  torrent_creation_date = 1000000L;
+                  torrent_modified_by = ""; 
+                  torrent_encoding = ""; 
+                  torrent_private = false; 
+                  torrent_announce =
+                    (match magnet#trackers with
+                     | h::q -> h
+                     | [] -> "");
+                  torrent_announce_list = magnet#trackers;
+                }  in
+                ignore(new_download ~metadata:true btih torrent "" user group);
+                magnet#name, true; 
+              )
+          | `Exn _ ->
+  (
   let location_regexp = "Location: \\(.*\\)" in
   try
     let real_url = get_regexp_string url (Str.regexp location_regexp) in
@@ -964,6 +1006,7 @@ let op_network_parse_url url user group =
        let s = Printf.sprintf "Can not load load torrent file: %s"
          (Printexc2.to_string e) in
        s, false
+  )
 
 let op_client_info c =
   check_client_country_code c;

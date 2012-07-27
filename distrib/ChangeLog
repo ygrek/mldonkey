@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2012/07/27
+7756: BT: Add support for magnet links (ygrek, jave)
+
 2012/07/01
 7813: Fix segfault on Solaris/OpenIndiana in md4 code written in C (dcoppa)
 7812: FreeBSD: proper version identification (lioux)
