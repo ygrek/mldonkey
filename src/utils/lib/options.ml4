@@ -251,7 +251,18 @@ let exec_chooks o =
        try f o with
          _ -> ())
     o.option_class.class_hooks  
-  
+
+let count_lines ic pos =
+  seek_in ic 0;
+  let prev = ref 0 in
+  let lines = ref 0 in
+  while pos_in ic < pos do
+    prev := pos_in ic;
+    incr lines;
+    ignore (input_line ic);
+  done;
+  !lines, pos - !prev
+
 let really_load filename sections =
   let temp_file = filename ^ ".tmp" in
   if Sys.file_exists temp_file then
@@ -271,8 +282,9 @@ let really_load filename sections =
         try 
 	  parse_gwmlrc stream 
 	with e ->
-          lprintf "Syntax error while parsing file %s at pos %d:(%s)\n"
-            filename (Stream.count s) (Printexc2.to_string e);
+          let (line,col) = count_lines ic (Stream.count s) in
+          lprintf "Syntax error while parsing file %s at position %d:%d: %s\n"
+            filename line col (Printexc2.to_string e);
           lprintf "it seems that %s is corrupt,\n" filename;
           lprintf "try to use a backup from %s\n"
             (Filename.concat (Sys.getcwd ()) "old_config");
