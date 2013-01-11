@@ -22,7 +22,7 @@ cd config
 
 MAJOR_VERSION=3
 MINOR_VERSION=1
-SUB_VERSION=1   # range 0-7 due to eMule limitations
+SUB_VERSION=3   # range 0-7 due to eMule limitations
 
 # **********                                                                                  **********
 # **********                                  check for C compiler                            **********
@@ -161,7 +161,7 @@ END
       exit 1
     fi
     ;;
-  *unknown-gnu*)
+  *-gnu*)
     SYSTEM=hurd
     ;;
 esac
@@ -853,30 +853,30 @@ fi
 if test "$UPNP_NATPMP_FORCE" = "yes"; then
 	UPNP_NATPMP=yes
 	cd $PATCH_DIR
-	$WGET http://miniupnp.tuxfamily.org/files/miniupnpc-1.4.20100609.tar.gz
-	$WGET http://miniupnp.tuxfamily.org/files/libnatpmp-20100202.tar.gz
+	$WGET http://miniupnp.tuxfamily.org/files/miniupnpc-1.6.tar.gz
+	$WGET http://miniupnp.tuxfamily.org/files/libnatpmp-20110808.tar.gz
 	mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
 	cd $BUILD_DIR
-	rm -rf libnatpmp-20100202 miniupnpc-1.4.20100609
-	tar -xzf $PATCH_DIR/miniupnpc-1.4.20100609.tar.gz
-	tar -xzf $PATCH_DIR/libnatpmp-20100202.tar.gz
-	cd $BUILD_DIR/libnatpmp-20100202
+	rm -rf libnatpmp-20110808 miniupnpc-1.6
+	tar -xzf $PATCH_DIR/miniupnpc-1.6.tar.gz
+	tar -xzf $PATCH_DIR/libnatpmp-20110808.tar.gz
+	cd $BUILD_DIR/libnatpmp-20110808
 	make all install PREFIX=$LOCAL_DIR
-	cd $BUILD_DIR/miniupnpc-1.4.20100609
+	cd $BUILD_DIR/miniupnpc-1.6
 	make all install PREFIX=$LOCAL_DIR
 	cd $CONFIG_DIR
-	rm -rf $BUILD_DIR/libnatpmp-20100202 $BUILD_DIR/miniupnpc-1.4.20100609
+	rm -rf $BUILD_DIR/libnatpmp-20110808 $BUILD_DIR/miniupnpc-1.6
 	CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
 	LDFLAGS="${LDFLAGS} -L$LOCAL_DIR/usr/lib"
 fi
 
 if test "$UPNP_NATPMP" = "yes"; then
-  echo "----- checking libminiupnpc >= 1.4.20100609 (optional)"
+  echo "----- checking libminiupnpc >= 1.6 (optional)"
   AC_CHECK_HEADERS(miniupnpc/miniupnpc.h,[AC_CHECK_LIB(miniupnpc,upnpDiscover,[UPNP_NATPMP=yes],[UPNP_NATPMP=no])],[UPNP_NATPMP=no])
 fi
 
 if test "$UPNP_NATPMP" = "yes"; then
-  echo "----- checking libnatpmp >= 20100202 (optional)"
+  echo "----- checking libnatpmp >= 20110808 (optional)"
   AC_CHECK_HEADERS(natpmp.h,[AC_CHECK_LIB(natpmp,initnatpmp,[UPNP_NATPMP=yes],[UPNP_NATPMP=no])],[UPNP_NATPMP=no])
 fi
 
@@ -1726,7 +1726,8 @@ fi
 echo ""
 printf " - GUI build        "
 if test "$LABLGTK_CONFIG" = "yes"; then
-  echo -n -e "\n - GUI support       "
+  echo ""
+  printf "\n - GUI support       "
   if test "$GUI" = "newgui1"; then
     echo "GTK1 newgui"
   else
