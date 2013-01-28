@@ -1,0 +1,1 @@
+see http://niki.hammler.net/wiki/Patch:_MLDonkey_und_LDAP_Authentifizierung

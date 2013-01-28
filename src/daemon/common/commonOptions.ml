@@ -1437,7 +1437,26 @@ let comments_filter = define_option current_section ["comments_filter"]
   "Regexp of comments to filter out, example: string1|string2|string3"
     string_option "http://|https://|www\\."
 
-
+let auth_cmd = define_option current_section ["auth_cmd"]
+  "A command that is called when authorizing a user (i.e. on startup and
+  on auth command. The following environment variables are set:
+    $USERNAME - the username
+    $PASSWORD - the users password
+  
+  The command should return a value indicating if the authentication
+  is successful:
+    0 - The authentication is immidiately accepted IF the user exists
+    1 - The authentication is immidiately rejected
+    2 - An addition check against the MD4 has is performed.
+  
+  If the user does not exist in the internal database, the authentication
+  will fail, also when the program returns 0.
+  
+  If this value is not set, a normal authentication against the internal
+  database is performed.
+  If this option is set and there is an error running the command the
+  authentication will fail."
+    string_option ""
 
 
 (*************************************************************************)

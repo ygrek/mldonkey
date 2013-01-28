@@ -316,11 +316,34 @@ let user2_user_password user =
 let user2_user_set_password user pass_string =
   user.user_pass <- Md4.string pass_string
 
-let valid_password user pass =
+let valid_password user pass = 
   try
-    user2_user_password user = Md4.string pass
-  with Not_found -> false
+    if !!auth_cmd <> "" && user2_user_exists user
+    then
+      try
+        let pid = Unix.create_process_env !!auth_cmd
+          [|""|]
+          (Array.of_list (Printf.sprintf "USERNAME=%s" user :: Printf.sprintf "PASSWORD=%s" pass :: []))
+          Unix.stdin Unix.stdout Unix.stderr in
 
+        let _pid, status = Unix.waitpid [] pid in
+        match status with
+        | Unix.WEXITED exitcode -> 
+          (match exitcode with
+	  | 0 -> true
+	  | 1 -> false
+	  | _ -> user2_user_password user = Md4.string pass
+	  )
+        | Unix.WSIGNALED signal -> false
+        | Unix.WSTOPPED signal -> false
+      with Unix.Unix_error (code, f, arg) -> false
+    (*
+      Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else " on " ^ arg) (Unix.error_message code)
+    *)
+    else
+      user2_user_password user = Md4.string pass
+  with Not_found -> false
+    
 let has_empty_password user =
   valid_password user.user_name ""
 
