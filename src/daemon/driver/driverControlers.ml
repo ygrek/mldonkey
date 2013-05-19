@@ -964,9 +964,7 @@ let http_handler o t r =
   if not (valid_password user r.options.passwd) || (r.get_url.Url.short_file = "logout") then begin
       clear_page buf;
       http_file_type := HTM;
-      let _, error_text_long, head = Http_server.error_page "401" "" ""
-	(Ip.to_string (TcpBufferedSocket.my_ip r.sock))
-	(string_of_int !!http_port) None in
+      let _, error_text_long, head = Http_server.error_page Unauthorized (TcpBufferedSocket.my_ip r.sock) !!http_port in
       Buffer.add_string buf error_text_long;
       r.reply_head <- head;
       http_add_html_header r;
@@ -1519,10 +1517,9 @@ let http_handler o t r =
         | s ->  http_send_bin_pictures r buf (String.lowercase s)
       with
       | Not_found ->
-	  let _, error_text_long, head = Http_server.error_page "404" "" ""
-			(Ip.to_string (TcpBufferedSocket.my_ip r.sock))
-			(string_of_int !!http_port)
-			(Some (Url_not_found r.get_url.Url.full_file)) in
+	  let _, error_text_long, head = Http_server.error_page (Not_Found r.get_url.Url.full_file)
+			(TcpBufferedSocket.my_ip r.sock) !!http_port
+    in
 	  r.reply_head <- head;
           http_add_html_header r;
 	  Buffer.add_string buf error_text_long

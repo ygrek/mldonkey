@@ -93,9 +93,11 @@ type auth =
 | Write_auth
 
 type error_reason =
-| Blocked
-| Not_allowed
-| Url_not_found of string
+| Blocked of Ip.t
+| Not_allowed of Ip.t
+| Not_Found of string
+| Unauthorized
+| Moved of string
 
 type header =
   Unknown of string * string
@@ -228,33 +230,35 @@ let split_head s =
   in
   iter 0 []
 
-let error_page code from_ip from_port my_ip my_port reason =
-  let error_text, error_text_long =
-    match code with
-    | "401" -> "Unauthorized", "<p>Please login using a valid username and password</p>"
-    | "403" -> "Forbidden", 
-		(match reason with
-		   Some Not_allowed -> Printf.sprintf
-"<p>Connection from %s rejected (see downloads.ini, <a href=\"http://mldonkey.sourceforge.net/Allowed_ips\">allowed_ips</a>)</p>"
-				    from_ip
-		 | Some Blocked -> Printf.sprintf "IP %s is blocked, its part of the used IP blocklist " from_ip
-		 | _ -> "")
-    | "404" -> "Not found", Printf.sprintf "The requested URL %swas not found on this server."
-			      (match reason with Some (Url_not_found url) -> html_escaped url ^ " " | _ -> "")
-    | _ -> Printf.sprintf "Unknown error %s" (html_escaped code), ""
+let error_page reason my_ip my_port =
+  let http_code, headers, error_text, error_text_long =
+    match reason with
+    | Moved url -> 301, ["Location",url], "Moved Permanently", Printf.sprintf "Redirecting to %s" (html_escaped url)
+    | Unauthorized -> 401, [], "Unauthorized", "<p>Please login using a valid username and password</p>"
+    | Not_allowed from_ip ->
+      403, [], "Forbidden",
+      Printf.sprintf "<p>Connection from %s rejected " (Ip.to_string from_ip) ^
+      "(see downloads.ini, <a href=\"http://mldonkey.sourceforge.net/Allowed_ips\">allowed_ips</a>)</p>"
+    | Blocked from_ip ->
+      403, [], "Forbidden",
+      Printf.sprintf "IP %s is blocked, its part of the used IP blocklist " (Ip.to_string from_ip)
+    | Not_Found url ->
+      404, [], "Not Found",
+      Printf.sprintf "The requested URL %s was not found on this server." (html_escaped url)
   in
   let reject_message = Printf.sprintf
 "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n<html>
-<head><title>%s %s</title></head>\n<h1>%s %s</h1>\n%s
-<hr><address>MLDonkey/%s at %s Port %s</address></html>"
-    code error_text code error_text error_text_long
-    Autoconf.current_version my_ip my_port
+<head><title>%d %s</title></head>\n<h1>%d %s</h1>\n%s
+<hr><address>MLDonkey/%s at %s Port %d</address></html>"
+    http_code error_text http_code error_text error_text_long
+    Autoconf.current_version (Ip.to_string my_ip) my_port
   in
+  let headers = String.concat "\n" (List.map (fun (k,v) -> k ^ ": " ^ v) headers) in
   Printf.sprintf
-"HTTP/1.1 %s %s\nServer: MLDonkey/%s\nConnection: close
-Content-Type: text/html; charset=iso-8859-1\nContent-length: %d\r\n"
-    code error_text Autoconf.current_version (String.length reject_message), reject_message,
-  Printf.sprintf "%s %s" code error_text
+"HTTP/1.1 %d %s\nServer: MLDonkey/%s\nConnection: close
+Content-Type: text/html; charset=iso-8859-1\n%sContent-length: %d\r\n"
+    http_code error_text Autoconf.current_version headers (String.length reject_message), reject_message,
+  Printf.sprintf "%d %s" http_code error_text
 
 let parse_head sock s =
   let h = split_head s in
@@ -855,12 +859,10 @@ let handler config t event =
 	  (if ip_is_blocked from_ip then "IP is blocked" else "see allowed_ips setting");
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple token "http connection" s in
-	let s1,s2,_ = error_page "403"
-	    (Ip.to_string from_ip)
-	    (string_of_int from_port)
-	    (Ip.to_string (TcpBufferedSocket.my_ip sock))
-	    (string_of_int config.port)
-	    (if not (ip_is_allowed from_ip) then Some Not_allowed else Some Blocked)
+	let s1,s2,_ = error_page
+      (if not (ip_is_allowed from_ip) then Not_allowed from_ip else Blocked from_ip)
+	    (TcpBufferedSocket.my_ip sock)
+	    config.port
 	in
 	TcpBufferedSocket.write_string sock (Printf.sprintf "%s\n%s" s1 s2);
         shutdown sock Closed_connect_failed;

@@ -17,7 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 type auth = No_auth | Read_auth | Write_auth
-type error_reason = Blocked | Not_allowed | Url_not_found of string
+type error_reason =
+  | Blocked of Ip.t
+  | Not_allowed of Ip.t
+  | Not_Found of string
+  | Unauthorized
+  | Moved of string
 and header =
     Unknown of string * string
   | Referer of Url.url
@@ -78,4 +83,4 @@ val verbose : bool ref
   
 val request_range : request -> int64 * (int64 option)
 val parse_range : string -> int64 * int64 option * int64 option
-val error_page : string -> string -> string -> string -> string -> error_reason option -> string * string * string
+val error_page : error_reason -> Ip.t -> int -> string * string * string
