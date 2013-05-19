@@ -185,6 +185,11 @@ let write_reqs sock reqs =
 (*                                                                       *)
 (*************************************************************************)
 
+let get_path_components s =
+  match List.rev (List.map (Url.decode ~raw:true) (String2.split s '/')) with
+  | file::path -> String.concat "/" (List.rev path), file
+  | [] -> ("","") (* empty path *)
+
 let ftp_send_range_request c (x,y) sock d =
 
   if !verbose then lprintf_nl "Asking range %Ld-%Ld" x y;
@@ -230,8 +235,14 @@ let ftp_send_range_request c (x,y) sock d =
                   let reqs = ["TYPE I"] in
                   write_reqs sock reqs;
                 | "200 " -> 
-                  let reqs = [Printf.sprintf "CWD %s" (Filename.dirname file)] in
-                  write_reqs sock reqs; 
+                  let reqs =
+                    match get_path_components file with
+                    | ("",_) -> (* no CWD needed *) ["PASV"]
+                    | (dir,_) -> [Printf.sprintf "CWD %s" dir]
+                  in
+                  (* FIXME should really issue several CWDs (one for each directory)
+                     TODO implement state for protocol *)
+                  write_reqs sock reqs;
                 | "227 " ->
                   (try
                   let pos = String.index line '(' in
@@ -252,8 +263,8 @@ let ftp_send_range_request c (x,y) sock d =
                 with e ->
                     lprintf_nl "Error %s in reader" (Printexc.to_string e);
                     close sock Closed_by_user)
-                | "350 " ->  
-                    let reqs = [Printf.sprintf "RETR %s" (Filename.basename file)] in
+                | "350 " ->
+                    let reqs = [Printf.sprintf "RETR %s" (snd (get_path_components file))] in
                     write_reqs sock reqs; 
                 | "150 " ->
                     if !verbose then begin
@@ -372,8 +383,7 @@ let ftp_check_size file url start_download_file =
 
 *)
 
-  let dirname =  Filename.dirname url.Url.full_file in
-  let basename = Filename.basename url.Url.full_file in
+  let (dirname,basename) = get_path_components url.Url.full_file in
   let server, port = url.Url.server, url.Url.port in
 (*    lprintf "async_ip ...\n"; *)
   Ip.async_ip server (fun ip ->
@@ -417,7 +427,11 @@ let ftp_check_size file url start_download_file =
                       let reqs = ["TYPE I"] in
                       write_reqs sock reqs;
                     | "200 " ->
-                      let reqs = [Printf.sprintf "CWD %s" dirname] in
+                      let reqs =
+                        match dirname with
+                        | "" -> (* no CWD needed *) [Printf.sprintf "SIZE %s" basename]
+                        | dir -> [Printf.sprintf "CWD %s" dir]
+                      in
                       write_reqs sock reqs;
                     | "250 " -> 
                       let reqs = [Printf.sprintf "SIZE %s" basename] in
