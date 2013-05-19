@@ -55,20 +55,8 @@ open FileTPClients
 let default_user = "anonymous"
 let default_pass = "-mldonkey@"
 
-let get_user url = 
-  let url_user = url.Url.user in
-  let user = if url_user <> "" 
-    then url_user 
-    else default_user
-  in user
-
-let get_pass url = 
-  let url_pass = url.Url.passwd in
-  let pass = if url_pass <> "" 
-    then "-" ^ url_pass 
-    else default_pass
-  in pass
-
+let get_user url = if url.Url.user = "" then default_user else url.Url.user
+let get_pass url = if url.Url.passwd = "" then default_pass else url.Url.passwd
 
 let reg530 = Str.regexp ".*not connect more.*\\|.*too many.*\\|.*overloaded.*\\|.*try \\(again \\|back \\)?later.*\\|.*is restricted to.*\\|.*maximum number.*\\|.*only.*session.*allowed.*\\|.*more connection.*"
 
