@@ -836,7 +836,7 @@ let discover_ip force =
       if !verbose then lprintf_nl "started IP discovery";
       let module H = Http_client in
       let r = { H.basic_request with
-        H.req_url = Url.of_string "http://automation.whatismyip.com/n09230945.asp";
+        H.req_url = Url.of_string "http://dynupdate.no-ip.com/ip.php";
         H.req_proxy = !CommonOptions.http_proxy;
         H.req_max_retry = 10;
         H.req_user_agent = get_user_agent () }
