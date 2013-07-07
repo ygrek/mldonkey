@@ -25,6 +25,7 @@ open AnyEndian
 
 open CommonTypes
 open CommonGlobals
+open CommonOptions
 
 open DonkeyTypes
 open DonkeyMftp
@@ -499,8 +500,7 @@ let parse magic s =
     | _ -> raise Exit
   with
     e ->
-      lprintf "From UDP:\n";
-      dump s;
+      if !verbose_unknown_messages then begin lprintf "Unknown UDP request:\n"; dump s end;
       UnknownUdpReq (magic, s)
 
 let print t =
