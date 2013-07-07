@@ -336,7 +336,7 @@ table.shares, table.vc, table.results, table.networkInfo, table.memstats {
   border: @color_general_border@ solid 1px;
   border-collapse: collapse;
   }
-table.sourcesInfo, table.serversC {
+table.sourcesInfo, table.subfilesInfo, table.serversC {
   width: 100%;
   margin-right: auto;
   margin-left: auto;
@@ -1464,7 +1464,7 @@ tr.dl-2, td.dl-2 { background: @color_dl2_back@; }
 table.uploaders, table.friends, table.bw_stats, table.vo, table.cs, table.servers,
 table.shares, table.downloaders, table.scan_temp, table.upstats, table.messages,
 table.shares, table.vc, table.results, table.networkInfo { border: @color_general_border@; }
-table.sourcesInfo, table.serversC { border: @color_general_border@; }
+table.sourcesInfo, table.subfilesInfo, table.serversC { border: @color_general_border@; }
 table.sources { border: @color_general_border@;}
 td.srb { border-right: @color_general_border@; border-bottom: @color_general_border@;
 border-left: @color_general_border@; border-top: @color_general_border@; }

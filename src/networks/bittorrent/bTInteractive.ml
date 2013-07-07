@@ -17,6 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Printf
+
 open Int64ops
 open Options
 open Printf2
@@ -251,36 +253,78 @@ let get_subfiles file =
     end;
   List.rev !r
 
+(** @return parent directories of [path] *)
+let parent_dirs path =
+  let rec loop acc path =
+    match Filename.dirname path with
+    | "." -> acc
+    | dir -> loop (dir :: acc) dir
+  in
+  loop [] path
+
+let show_progress f = sprintf "%.0f%%" (100. *. f)
 
 let op_file_print file o =
 
+  (* merge swarming info with file tree *)
   let subfiles =
     let subfiles = ref (get_subfiles file) in
     List.map begin fun (name,size,magic) ->
     let magic = match magic with None -> "" | Some m -> Printf.sprintf " / %s" m in
     match !subfiles with
-    | [] -> (name,size,magic,"",None)
+    | [] -> (name,size,magic,0.,None)
     | (i_name,i_size,i_prio,progress)::t ->
 (*
       lprintf_nl "%S = %S %Ld = %Ld | priority %d" name i_name size i_size i_prio;
 *)
       subfiles := t;
-      let progress = Printf.sprintf ", %.0f%%" (100. *. progress) in
       if name = i_name && size = i_size then (* sanity check *)
         (name,size,magic,progress,Some i_prio)
       else 
         (name,size,magic,progress,None)
     end file.file_files 
   in
+  let merge_priority acc prio =
+    match acc, prio with
+    | (Some false|None),Some prio when prio > 0 -> Some true
+    | None,Some 0 -> Some false
+    | None,None -> None
+    | acc,_ -> acc
+  in
+  (* calculate subfile ranges covered by directories *)
+  let directories =
+    let h = Hashtbl.create 16 in
+    List2.iteri begin fun i (path,size,_,progress,prio) ->
+      List.iter begin fun dir ->
+        let (i_from,_,acc_size,acc_progress,acc_prio) = try Hashtbl.find h dir with Not_found -> (i,i,0L,0.,None) in
+        let new_size = Int64.add acc_size size in
+        let acc_progress =
+          if new_size > 0L then
+            (acc_progress *. Int64.to_float acc_size +. progress *. Int64.to_float size) /. Int64.to_float new_size
+          else
+            0.
+        in
+        Hashtbl.replace h dir (i_from,i,new_size,acc_progress,merge_priority acc_prio prio)
+      end (parent_dirs path)
+    end subfiles;
+    h
+  in
   let buf = o.conn_buf in
   if use_html_mods o then
   begin
-  let emit text ?(desc=text) value =
+  let emit_tds l =
     Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-    html_mods_td buf [ 
+    html_mods_td buf l
+  in
+  let emit text ?(desc=text) value =
+    emit_tds [
       (desc, "sr br", text);
-      ("", "sr", value)
+      ("", "sr", value);
     ]
+  in
+  let emit_file text ?(desc=text) ~value ~size ~progress ~extra =
+    let l = List.map (fun v -> "", "sr", v) [value; size_of_int64 size; show_progress progress; extra] in
+    emit_tds ((desc, "sr br", text) :: l)
   in
 
   emit (_s"Filename") file.file_name;
@@ -400,33 +444,57 @@ let op_file_print file o =
   end;
   (* -- End bad -- *)
 
+  (* this will reload the page because we must toggle multiple select/unselect states,
+     TODO javascript toggle_priority function should operate on ranges too *)
+  let toggle_priority ?(all=false) i_from i_to = function
+  | None -> ""
+  | Some dl ->
+    let all = if all then " all" else "" in
+    Printf.sprintf ", \\<a title=\\\"toggle%s files\\\" href=\\\"submit?q=set_subfile_prio+%d+%d+%d+%d\\\"\\>%s%s\\</a\\>"
+      all (file_num file) (if dl then 0 else 1) i_from i_to
+      (if dl then "unselect" else "select") all
+  in
+
   let extra =
-    match List.fold_left (fun acc subfile ->
-      match acc, subfile with
-      | (Some false|None),(_,_,_,_,Some prio) when prio > 0 -> Some true
-      | None,(_,_,_,_,Some 0) -> Some false
-      | None,(_,_,_,_,None) -> None
-      | acc,_ -> acc) None subfiles
-    with
-    | None -> ""
-    | Some dl ->
-      Printf.sprintf ", \\<a title=\\\"toggle all files\\\" href=\\\"submit?q=set_subfile_prio+%d+%d+%d+%d\\\"\\>%s\\</a\\>"
-        (file_num file) (if dl then 0 else 1) 0 (List.length subfiles - 1)
-        (if dl then "unselect all" else "select all")
+    let root_priority = List.fold_left merge_priority None (List.map (fun (_,_,_,_,prio) -> prio) subfiles) in
+    toggle_priority ~all:true 0 (List.length subfiles - 1) root_priority
   in
   emit (_s"Full path"^extra) ~desc:(_s"Full path to the download") (file_disk_name file);
 
-  let cntr = ref 0 in
-  List.iter (fun (filename, size, magic, progress, prio) ->
-    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-    let fs = Printf.sprintf (_b"File %d") !cntr in
-    let extra = match prio with
+  if subfiles <> [] then
+  begin
+    Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\<br\\>";
+
+    let header_list = [
+      ( Str, "srh br", "File", "File" ) ;
+      ( Str, "srh", "Path", "Path" ) ;
+      ( Num, "srh", "Size", "Size" ) ;
+      ( Num, "srh", "Download progress", "%" ) ;
+      ( Str, "srh", "Additional information", "Details" ) ;
+    ] in
+    html_mods_table_header buf "subfilesInfo" "subfilesInfo" header_list;
+  end;
+
+  List2.iteri begin fun cntr (filename, size, magic, progress, prio) ->
+
+    (* check whether it is new directory *)
+    List.iter begin fun dir ->
+      match try Some (Hashtbl.find directories dir) with Not_found -> None with
+      | None -> ()
+      | Some (i_from,i_to,size,progress,prio) ->
+        Hashtbl.remove directories dir; (* output each dir once *)
+        let desc = "Directory" in
+        let cmd = toggle_priority i_from i_to prio in
+        emit_file (desc ^ cmd) ~desc ~value:dir ~size ~progress ~extra:(sprintf "%d files" (i_to - i_from + 1));
+    end (parent_dirs filename);
+
+    let desc = Printf.sprintf (_b"File %d") cntr in
+    let cmd = match prio with
       | None -> ""
-      | Some prio -> Printf.sprintf ", \\<a title=\\\"toggle file\\\" href=\\\"javascript:void(0)\\\" onclick=\\\"xhr_get('submit?api=set_subfile_prio+%d+%d+%d',toggle_priority(this,%d,%d))\\\"\\>priority %d\\</a\\>" (file_num file) (if prio = 0 then 1 else 0) !cntr (file_num file) !cntr prio
+      | Some prio -> Printf.sprintf ", \\<a title=\\\"toggle file\\\" href=\\\"javascript:void(0)\\\" onclick=\\\"xhr_get('submit?api=set_subfile_prio+%d+%d+%d',toggle_priority(this,%d,%d))\\\"\\>priority %d\\</a\\>" (file_num file) (if prio = 0 then 1 else 0) cntr (file_num file) cntr prio
     in
-    emit (fs^extra) ~desc:fs (Printf.sprintf "%s (%Ld bytes%s)%s" filename size progress magic);
-    incr cntr;
-  ) subfiles 
+    emit_file (desc ^ cmd) ~desc ~value:(Filename.basename filename) ~size ~progress ~extra:magic;
+  end subfiles
   end (* use_html_mods *)
   else begin
 
@@ -454,7 +522,7 @@ let op_file_print file o =
   List.iter (fun (filename, size, magic, progress, prio) ->
     incr cntr;
     let prio = match prio with Some n -> Printf.sprintf ", priority %d" n | None -> "" in
-    Printf.bprintf buf "File %d%s: %s (%Ld bytes%s)%s\n" !cntr prio filename size progress magic
+    Printf.bprintf buf "File %d%s: %s (%s, %s)%s\n" !cntr prio filename (size_of_int64 size) (show_progress progress) magic
   ) subfiles
   end
 

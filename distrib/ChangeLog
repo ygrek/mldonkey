@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2013/07/07:
+8112: BT/HTML: select/unselect whole directories in BT multifile downloads (ygrek)
 8110: http_server: refactor error_page (ygrek)
 8109: FTP: fix CWD (ygrek)
 8108: FTP: fix authentication (ygrek)
