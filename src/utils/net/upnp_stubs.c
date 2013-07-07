@@ -32,6 +32,7 @@
 
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #ifdef __MORPHOS__
 #include <inttypes.h>
@@ -871,8 +872,22 @@ upnpNatpmpThread( )
 		if ( g_running ){
 			deltatime.tv_sec = time(NULL) + 30;
 			deltatime.tv_nsec = 0;
+#if defined(_POSIX_TIMEOUTS) && (_POSIX_TIMEOUTS - 200112L) >= 0L
 			err = pthread_mutex_timedlock(&g_delay_mutex, &deltatime);
 			dbg_printf("%d seconds timedlock err=%d, running...\n", deltatime.tv_sec, err);
+#else
+			do {
+				err = pthread_mutex_trylock(&g_delay_mutex);
+				if(err == EBUSY){
+					struct timespec ts;
+					ts.tv_sec = 0;
+					ts.tv_nsec = 100000000;
+					int status = -1;
+					while (status == -1) status = nanosleep(&ts, &ts);
+				} else break;
+				//dbg_printf("trylock err=%d, running...\n", err);
+			} while (err != 0 && (time(NULL) < deltatime.tv_sec));
+#endif
 		}else{
 			break;
 		}
