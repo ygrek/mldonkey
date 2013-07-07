@@ -49,3 +49,5 @@ val shuffle: 'a list -> 'a list
 (** [filter_map f l] *)
 val filter_map : ('a -> 'b option) -> 'a list -> 'b list
 
+(** [iteri f l] call [f] on each element of [l] with the corresponding index, starting from zero *)
+val iteri : (int -> 'a -> unit) -> 'a list -> unit

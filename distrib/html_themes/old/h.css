@@ -86,7 +86,13 @@ table.shares, table.vc, table.results {
  border: #000 solid 1px;
  border-collapse: collapse;
 }
-table.sourcesInfo, table.serversC { width: 100%; margin-right: auto; margin-left: auto; border: 1; border: #000 solid 1px; border-collapse: collapse;}
+table.sourcesInfo, table.subfilesInfo, table.serversC {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto; 
+  border: #000 solid 1px;
+  border-collapse: collapse;
+}
 table.sources {border: 1; border: #000 solid 1px; border-collapse: collapse; }
 table.main { margin-right: auto; margin-left: auto; }
 div.main, div.uploaders, div.friends, div.cs, div.shares, div.upstats, div.servers, div.serversC, div.vo,

@@ -3941,7 +3941,8 @@ let _ =
             let subfileend =
               match q with
               | subfileend :: _ -> int_of_string subfileend
-              | _ -> subfilestart in
+              | [] -> subfilestart
+            in
             let file = file_find filenum in
             let swarmer = CommonSwarming.file_swarmer file in
 (*
