@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2013/07/07:
+8115: Use magnet: links without dllink
 8114: Fix --enable-force-ocaml with Ocaml 4.00.x
 8111: http: New option http_root_url specifies root url for the web interface (ygrek)
 8113: IP discover: Fix broken URL
