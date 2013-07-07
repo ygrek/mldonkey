@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2013/07/07:
+8105: Config: report line and position for syntax errors in config files (ygrek)
 8104: BT: suppress warning for peers6 entry in tracker response (ygrek)
 7954: Fix handling of full disc (jcea)
 7917: Allow upnp_stub.c to be compiled on Mac OS X (zbroyar)
