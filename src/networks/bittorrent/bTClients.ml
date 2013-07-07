@@ -1815,7 +1815,8 @@ let talk_to_tracker file need_sources =
                   iter_comp p 0 (String.length p)
             | "private", Int n -> ()
               (* TODO: if set to 1, disable peer exchange *)
-
+            | "peers6", _ -> ()
+              (* TODO IPv6 support required *)
             | key, _ -> lprintf_file_nl (as_file file) "received unknown entry in answer from tracker: %s : %s" key (Bencode.print value)
         ) list;
        (*Now, that we have added new clients to a file, it's time
