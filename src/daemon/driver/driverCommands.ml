@@ -2005,6 +2005,7 @@ action=\\\"javascript:pluginSubmit();\\\"\\>";
 			strings_of_option gui_port;
 			strings_of_option telnet_port;
 			strings_of_option http_port;
+			strings_of_option http_root_url;
 			strings_of_option http_realm;
 			strings_of_option allowed_ips;
                       ]

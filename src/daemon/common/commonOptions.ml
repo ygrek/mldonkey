@@ -507,6 +507,10 @@ let telnet_port = define_option current_section ["telnet_port"]
   "port for user interaction, 0 to deactivate telnet interface"
     port_option 4000
 
+let http_root_url = define_expert_option current_section ["http_root_url"]
+  "Root url for the http interface (makes http proxy setup in front of mldonkey easier)"
+  string_option "/"
+
 let http_bind_addr = define_expert_option current_section ["http_bind_addr"]
   ~restart: true
   "The IP address used to bind the http server"

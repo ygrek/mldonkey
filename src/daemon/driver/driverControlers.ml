@@ -953,7 +953,20 @@ let http_handler o t r =
   CommonInteractive.display_vd := false;
   CommonInteractive.display_bw_stats := false;
   clear_page buf;
-  if !Http_server.verbose && r.get_url.Url.short_file <> "" then
+  let short_file =
+    let file = r.get_url.Url.short_file in
+    match !!http_root_url with
+    | "" | "/" -> `File file
+    | root ->
+      let root = if not (String2.starts_with root "/") then "/" ^ root else root in
+      (* we want to treat "/root" requests as invalid and redirect them to "/root/" *)
+      let root_dir = if root <> "" && root.[String.length root - 1] = '/' then root else root ^ "/" in
+      if String2.starts_with ("/"^file) root_dir then
+        `File (String2.after file (String.length root_dir - 1))
+      else
+        `Redirect root_dir
+  in
+  if !Http_server.verbose && short_file <> `File "" then
     lprintf_nl "received URL %s %s"
       r.get_url.Url.short_file
       (let b = Buffer.create 100 in
@@ -961,7 +974,7 @@ let http_handler o t r =
 	 if Buffer.contents b <> "" then Printf.sprintf "(%s)" (Buffer.contents b) else "");
 
   let user = if r.options.login = "" then (admin_user ()).CommonTypes.user_name else r.options.login in
-  if not (valid_password user r.options.passwd) || (r.get_url.Url.short_file = "logout") then begin
+  if not (valid_password user r.options.passwd) || (short_file = `File "logout") then begin
       clear_page buf;
       http_file_type := HTM;
       let _, error_text_long, head = Http_server.error_page Unauthorized (TcpBufferedSocket.my_ip r.sock) !!http_port in
@@ -981,7 +994,18 @@ let http_handler o t r =
             user.ui_http_conn <- Some oo; oo
       in
       try
-        match r.get_url.Url.short_file with
+        match short_file with
+        | `Redirect url ->
+          let _, error_text_long, head = Http_server.error_page (Moved url)
+            (TcpBufferedSocket.my_ip r.sock)
+            !!http_port
+          in
+          r.reply_head <- head;
+          add_reply_header r "Location" url;
+          http_add_html_header r;
+          Buffer.add_string buf error_text_long
+        | `File short_file ->
+        match short_file with
         | "wap.wml" ->
             begin
               clear_page buf;
