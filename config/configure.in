@@ -615,6 +615,9 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
           $WGET http://caml.inria.fr/pub/distrib/ocaml-3.10/ocaml-"$REQUIRED_OCAML".tar.gz
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-4.00/ocaml-"$REQUIRED_OCAML".tar.gz
+        fi
+        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           echo "********        download OCaml $REQUIRED_OCAML not successful, try do download it manually       *********" 1>&2;
           echo "********        from http://caml.inria.fr/pub/distrib/                                   *********" 1>&2;
           echo "********        and copy the tar.gz into $PATCH_DIR              *********" 1>&2;
