@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2013/07/07:
+8108: FTP: fix authentication (ygrek)
 8107: HTML: fix "Request URI too large" errors (ygrek)
       drop unused selectPriority parameters
 8106: EDK: do not dump unknown messages by default (ygrek)
