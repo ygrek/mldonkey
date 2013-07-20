@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2013/07/20:
+8123: configure: Fix GD version check for GD 2.1.x
+
 2013/07/07:
 8115: Use magnet: links without dllink
 8114: Fix --enable-force-ocaml with Ocaml 4.00.x

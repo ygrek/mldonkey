@@ -932,13 +932,30 @@ if test "$GD" != "no"; then
     GDMAJORVERSION=`$GDLIBCONFIG --majorversion`
     GDMINORVERSION=`$GDLIBCONFIG --minorversion`
     GDREVISION=`$GDLIBCONFIG --revision`
-    if [ [ $GDMAJORVERSION = 2 ] && [ $GDMINORVERSION = 0 ] && [ $GDREVISION -gt 14 ]]; then
-	AC_MSG_RESULT($GDVERSION)
-	LIBGD=yes
-    else
-	AC_MSG_RESULT(no (found $GDVERSION))
-	LIBGD=no
-    fi
+    case $GDMAJORVERSION in
+        1)
+            AC_MSG_RESULT(no (found $GDVERSION))
+            LIBGD=no
+            ;;
+        2)
+            if test $GDMINORVERSION -ge 1; then
+                AC_MSG_RESULT($GDVERSION)
+                LIBGD=yes
+            else
+                if test $GDREVISION -gt 14; then
+                    AC_MSG_RESULT($GDVERSION)
+                    LIBGD=yes
+                else
+                    AC_MSG_RESULT(no (found $GDVERSION))
+                    LIBGD=no
+                fi
+            fi
+            ;;
+        *)
+            AC_MSG_RESULT($GDVERSION)
+            LIBGD=yes
+            ;;
+    esac
   else
     LIBGD=yes
   fi
