@@ -38,12 +38,13 @@ type http_request =
 | DELETE
 | TRACE
 
-type error = [ `HTTP of int | `RST of BasicSocket.close_reason | `DNS ]
+type error = [ `HTTP of int | `RST of BasicSocket.close_reason | `DNS | `Block of Ip.t ]
 
 let show_error = function
 | `HTTP code -> Printf.sprintf "HTTP error code %d" code
 | `RST reason -> Printf.sprintf "Connection closed : %s" (BasicSocket.string_of_reason reason)
 | `DNS -> Printf.sprintf "DNS resolution failed"
+| `Block ip -> Printf.sprintf "Blocked connection to %s" (Ip.to_string ip)
 
 let verbose = ref false
 
@@ -61,6 +62,7 @@ type request = {
     req_max_retry : int;
     req_save : bool;
     req_max_total_time : float;
+    req_filter_ip : (Ip.t -> bool);
   }
 
 type content_handler = 
@@ -85,8 +87,9 @@ let basic_request = {
     req_max_retry = 0;
     req_save = false;
     req_max_total_time = infinite_timeout;
+    req_filter_ip = (fun _ -> true);
   }
-      
+
 let make_full_request r =
   let url = r.req_url in
   let args = url.args in
@@ -245,6 +248,9 @@ let rec get_page r content_handler f ferr =
     in
 (*    lprintf "async_ip ...\n"; *)
     Ip.async_ip server (fun ip ->
+        match r.req_filter_ip ip with
+        | false -> ferr (`Block ip)
+        | true ->
 (*         lprintf "IP done %s:%d\n" (Ip.to_string ip) port;*)
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.connect token "http client connecting"

@@ -47,6 +47,10 @@ type request = {
     req_save : bool;
     (** maximum time whole request processing is allowed to take, in seconds *)
     req_max_total_time : float;
+    (** this function is called after DNS resolution,
+        returning [false] will block connection to the given ip
+        and HTTP request will fail with `Block error *)
+    req_filter_ip : (Ip.t -> bool);
   }
 
 type content_handler = 
@@ -55,7 +59,7 @@ type content_handler =
 val basic_request : request
 
 (** either HTTP error code or low-level network error or DNS *)
-type error = [ `HTTP of int | `RST of BasicSocket.close_reason | `DNS ]
+type error = [ `HTTP of int | `RST of BasicSocket.close_reason | `DNS | `Block of Ip.t ]
 val show_error : error -> string
 
 val get_page : request -> content_handler -> (unit -> unit) -> (error -> unit) -> unit
