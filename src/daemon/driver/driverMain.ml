@@ -727,7 +727,6 @@ for config files at the end. *)
     end;
 
   lprintf_nl (_b "Core started");
-  pause_new_downloads =:= false;
   core_included := true;
 
   CommonGlobals.do_at_exit (fun _ ->
