@@ -56,6 +56,10 @@ module VB = VerificationBitmap
 
 let porttest_result = ref PorttestNotStarted
 
+(*
+
+(* not used - services are down *)
+
 let interpret_azureus_porttest s =
   let failure_message fmt = 
     Printf.sprintf ("Port test failure, " ^^ fmt) in
@@ -114,6 +118,7 @@ let perform_porttests tests =
       (fun _ _ -> ())
   in
   loop tests
+*)
 
 let op_file_all_sources file =
   let list = ref [] in
@@ -1515,6 +1520,9 @@ let _ =
     ] @ (match !bt_dht with None -> [] | Some dht -> [dht.BT_DHT.M.dht_port,"dht_port UDP"]));
   network.op_network_porttest_result <- (fun _ -> !porttest_result);
   network.op_network_porttest_start <- (fun _ -> 
+    let udp = match !bt_dht with None -> None | Some dht -> Some dht.BT_DHT.M.dht_port in
+    CommonInteractive.run_porttest ~tcp:!!client_port ?udp porttest_result
+(*
       azureus_porttest_random := (Random.int 100000);
       let tests = [
         Printf.sprintf "http://www.utorrent.com/testport?port=%d" !!client_port, interpret_utorrent_porttest;
@@ -1522,6 +1530,7 @@ let _ =
           !!client_port !azureus_porttest_random, interpret_azureus_porttest;
       ] in
       perform_porttests tests
+*)
   );
   network.op_network_check_upload_slots <- (fun _ -> check_bt_uploaders ());
   client_ops.op_client_info <- op_client_info;
