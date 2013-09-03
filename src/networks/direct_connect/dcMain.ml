@@ -244,7 +244,7 @@ let _ =
   network.op_network_reset <- (fun _ -> ());
   network.op_network_porttest_result <- (fun _ -> !porttest_result);
   network.op_network_porttest_start <- (fun _ -> 
-    CommonInteractive.run_porttest ~tcp:!!dc_port ~udp:!!dc_port porttest_result);
+    CommonInteractive.run_porttest ~tcp:!!dc_port porttest_result);
   network.op_network_check_upload_slots <- (fun _ -> ());
 
   CommonInteractive.register_gui_options_panel "DC" gui_dc_options_panel; 
