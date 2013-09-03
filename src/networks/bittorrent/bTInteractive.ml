@@ -1520,8 +1520,7 @@ let _ =
     ] @ (match !bt_dht with None -> [] | Some dht -> [dht.BT_DHT.M.dht_port,"dht_port UDP"]));
   network.op_network_porttest_result <- (fun _ -> !porttest_result);
   network.op_network_porttest_start <- (fun _ -> 
-    let udp = match !bt_dht with None -> None | Some dht -> Some dht.BT_DHT.M.dht_port in
-    CommonInteractive.run_porttest ~tcp:!!client_port ?udp porttest_result
+    CommonInteractive.run_porttest ~tcp:!!client_port porttest_result
 (*
       azureus_porttest_random := (Random.int 100000);
       let tests = [

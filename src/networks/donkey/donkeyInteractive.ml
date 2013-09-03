@@ -1655,7 +1655,7 @@ let _ =
   network.op_network_close_search <- (fun s -> ());
   network.op_network_check_upload_slots <- (fun _ -> ());
   network.op_network_porttest_start <- (fun _ ->
-    CommonInteractive.run_porttest porttest_result ~tcp:(!!donkey_port) ~udp:(!!donkey_port+4)
+    CommonInteractive.run_porttest porttest_result ~tcp:(!!donkey_port)
   );
   network.op_network_forget_search <- forget_search
 
