@@ -19,5 +19,5 @@
 
 val set_strings_file : string -> unit
 
-val _b : string -> ('a, 'b, 'c) format -> ('a, 'b, 'c) format
+val _b : string -> ('a, 'b, 'c, 'd) format4 -> ('a, 'b, 'c, 'd) format4
 val _s : string -> string -> string
