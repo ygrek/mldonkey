@@ -1399,11 +1399,9 @@ let bad_login = _s  "Bad login/password"
 
 let full_access = _s "Full access enabled"
 
-let download_started = message "download_started"
-    (T.boption (T.int T.bformat)) "Download of file %d started<br>"
+let download_started n = _s (Printf.sprintf "Download of file %d started<br>" n)
 
-let no_such_command  = message "no_such_command"
-    (T.boption (T.string T.bformat))   "No such command %s\n"
+let no_such_command s = _s (Printf.sprintf "No such command %s\n" s)
 
 let bad_number_of_args cmd help = _s (Printf.sprintf "Bad number of arguments, see help for correct use:\n%s %s" cmd help)
 

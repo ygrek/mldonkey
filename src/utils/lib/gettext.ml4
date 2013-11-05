@@ -29,15 +29,15 @@ let lprintf_n fmt =
   lprintf2 log_prefix fmt
 
 type expected_types =
-  Type_int
+| Type_int
 | Type_char
 | Type_string
-| Type_float  
+| Type_float
 | Type_bool
 | Type_int32
 | Type_int64
 | Type_nativeint
-  
+
 let ty_arrow x y = x :: y
 
 (* Taken from ocaml-3.04, typing/typecore.ml *)
@@ -135,81 +135,6 @@ let type_format fmt =
         bad_format i j
   in
   scan_format 0
-  
-type 'a variable
-type 'a arrow 
-
-
-let arrow_add_variable
-  (x : 'a variable)
-  (y : 'b arrow) = 
-  let x = Obj.magic x in
-  let y = Obj.magic y in
-  (Obj.magic (x :: y) : ('a -> 'b) arrow)
-
-
-  
-open Options
-  
-let value_to_text (expected_type : 'a arrow) v =
-  let s = value_to_string v in
-  let expected_type = Obj.magic expected_type in
-  let format_type = type_format s in
-  if format_type = expected_type then 
-    (Obj.magic s : ('a, unit, string) format) else
-    failwith "Bad format"
-
-let text_to_value v = 
-  let v = Obj.magic v in
-  string_to_value v
-    
-let text_option (expected_type : 'a arrow)
-  = 
-  define_option_class "Text" 
-    (value_to_text expected_type) 
-  text_to_value
-
-let gettext v = Printf.sprintf !!v
-  
-let buftext buf (v : ('a, Buffer.t, unit) format Options.option_record) = 
-  Printf.bprintf buf !!v
-  
-module T = struct
-    let int x = arrow_add_variable (Obj.magic Type_int : int variable) x
-    let char x = arrow_add_variable (Obj.magic Type_char : char variable) x
-    let string x = arrow_add_variable (Obj.magic Type_string : string variable) x
-    let float x = arrow_add_variable (Obj.magic Type_float : float variable) x
-    let bool x = arrow_add_variable (Obj.magic Type_bool : bool variable) x
-    let int32 x = arrow_add_variable (Obj.magic Type_int32 : int32 variable) x
-    let int64 x = arrow_add_variable (Obj.magic Type_int64 : int64 variable) x
-    let nativeint x = arrow_add_variable (Obj.magic Type_nativeint : nativeint variable) x
-    let format = (Obj.magic [] : string arrow)
-    let bformat = (Obj.magic [] : unit arrow)
-    let option = text_option
-    let boption x = (Obj.magic text_option) x
-  end
-
-
-(********* Some tests ************)
-
-(*
-let option_file = create_options_file "test.ini"
-  
-let nshared = define_option option_file
-  ["nshared"] "Text for Nshared option"
-    (text_option 
-      (T.int (T.int32 T.format))) 
-  "Shared: %d/%ld"
-  
-let _ =
-  try 
-    load option_file
-  with Sys_error _ ->
-      save_with_help option_file
-      
-let _ =
-  lprint_string (Printf.sprintf !! nshared 23 (Int32.one));
-  *)
 
 type 'a _string = {
     name : string;
@@ -283,14 +208,6 @@ let translate modname s t =
       save_strings_file := true;
       !translation.(m.index) <- t
     end
-(*
-    let  x = 
-      let y = (Obj.magic x : string) in
-      Obj.magic (register y : string message)
-
-    let s_ x = register x
-*)
-
 
 let verify index translated = 
   let index_type = type_format !default.(index) in
@@ -305,8 +222,8 @@ let verify index translated =
       false
     end
 
-let ss_ modname (x : string) = register modname x
-let _ss m = 
+let ss_ : string -> string -> string _string = register
+let _ss : string _string -> string = fun m ->
   let index = m.index in
   !requests.(index) <- !requests.(index) + 1;
   let translation = !translation.(index) in
@@ -319,9 +236,9 @@ let _ss m =
 
 let _s modname (x : string) = _ss (ss_ modname x)
 
-let bb_ x = Obj.magic (ss_ x)
-let _bb m = 
-    let index = m.index in
+let bb_ : string -> ('a, 'b, 'c) format -> ('a, 'b, 'c) format _string = fun modname -> Obj.magic (ss_ modname)
+let _bb : ('a, 'b, 'c) format _string -> ('a, 'b, 'c) format = fun m ->
+  let index = m.index in
   !requests.(index) <- !requests.(index) + 1;
   let translation = !translation.(index) in
   let s= if translation == no_translation then
@@ -334,8 +251,7 @@ let _bb m =
   Obj.magic s 
 
 let _b modname x = _bb (bb_ modname x)
-  
-  
+
 let save_strings () =
   match !strings_file with 
     None -> ()
