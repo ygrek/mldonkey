@@ -1,15 +1,14 @@
 
+open Prelude
 open OUnit
 
-let (@@) f x = f x
-
-let sample () =
-  assert_equal 4 (2 + 2);
+let http () =
+  assert_equal (`Ok "hello") (Web.http_get "http://localhost/hello");
   ()
 
 let run () =
   ignore @@ run_test_tt ("test" >::: [
-    "sample" >:: sample
+    "sample" >:: http
   ])
 
 let () =

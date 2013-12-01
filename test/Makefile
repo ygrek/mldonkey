@@ -9,7 +9,7 @@ test: build
 	./test.native
 
 build:
-	$(OCAMLBUILD) -use-ocamlfind -pkg oUnit test.native
+	$(OCAMLBUILD) -use-ocamlfind test.native
 
 clean:
 	$(OCAMLBUILD) -clean
