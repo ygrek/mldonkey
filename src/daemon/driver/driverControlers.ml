@@ -659,6 +659,7 @@ type file_ext =
 | TEXTS
 | UNKN
 | WML
+| JSON
 
 let http_file_type = ref UNK
 
@@ -698,6 +699,7 @@ let extension_to_file_ext extension =
   | "ogg" -> OGG
   | "txt" -> TEXTS
   | "wml" -> WML
+  | "json" -> JSON
   | _ -> UNKN
 
 let ext_to_file_type ext =
@@ -724,6 +726,7 @@ let ext_to_file_type ext =
   | OGG -> BIN
   | TEXTS -> TXT
   | WML -> TXT
+  | JSON -> TXT
 
 let ext_to_mime_type ext =
   match ext with
@@ -749,6 +752,7 @@ let ext_to_mime_type ext =
   | OGG -> "application/ogg" (* is that correct ? *)
   | TEXTS -> "text/plain"
   | WML -> "text/vnd.wap.wml"
+  | JSON -> "application/json"
 
 let default_charset = "charset=UTF-8"
 
@@ -1007,6 +1011,21 @@ let http_handler o t r =
           Buffer.add_string buf error_text_long
         | `File short_file ->
         match short_file with
+        | "api/v1/downloads.json" ->
+          begin
+            clear_page buf;
+            http_add_text_header r JSON;
+            let files = List2.tail_map file_info !!files in
+            let files = List.map (fun file ->
+              `Assoc [
+                "id", `Int file.file_num;
+                "name", `String (short_name file);
+                "size", `Intlit (Int64.to_string file.file_size);
+                "rate", `Float file.file_download_rate
+              ]) files
+            in
+            Printf.bprintf buf "%s" (Yojson.Safe.pretty_to_string ~std:true (`List files))
+          end
         | "wap.wml" ->
             begin
               clear_page buf;

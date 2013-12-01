@@ -28,8 +28,13 @@ NO_LIBS_opt=
 NO_STATIC_LIBS_opt=
 NO_CMXA=
 
-LIBS_byte=-custom bigarray.cma unix.cma str.cma nums.cma
-LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa nums.cmxa
+OTHERLIBS=yojson
+OTHERLIBS_byte:=$(shell ocamlfind query -predicates byte -r -separator ' ' -format "-I %d %a" $(OTHERLIBS))
+OTHERLIBS_opt:=$(shell ocamlfind query -predicates native -r -separator ' ' -format "-I %d %a" $(OTHERLIBS))
+OTHERLIBS_INCLUDES:=$(shell ocamlfind query -i-format $(OTHERLIBS))
+
+LIBS_byte=-custom bigarray.cma unix.cma str.cma nums.cma $(OTHERLIBS_byte)
+LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa nums.cmxa $(OTHERLIBS_opt)
 
 BIGARRAY_LIBS_opt=bigarray.cmxa
 BIGARRAY_LIBS_byte=bigarray.cma
@@ -89,7 +94,7 @@ SRC_FILETP=src/networks/fileTP
 SUBDIRS=$(EXTLIB) $(CDK) $(BITSTRING) $(LIB) $(RSS) $(XML) $(NET) tools \
    $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
 
-INCLUDES += $(foreach file, $(SUBDIRS), -I $(file)) -I +camlp4
+INCLUDES += $(foreach file, $(SUBDIRS), -I $(file)) -I +camlp4 $(OTHERLIBS_INCLUDES)
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES) $(GTKCFLAGS) $(GD_CFLAGS)
 
