@@ -13,7 +13,8 @@ let curl_default_setup h =
 (*   set_maxredirs h 1; *)
   set_sslverifypeer h true;
   set_sslverifyhost h SSLVERIFYHOST_HOSTNAME;
-  set_encoding h CURL_ENCODING_ANY
+(*   set_encoding h CURL_ENCODING_ANY; *)
+  ()
 
 let log_curl h ?attr ?(extra="") code =
   let url = Curl.get_effectiveurl h in
