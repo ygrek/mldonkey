@@ -1,10 +1,24 @@
 open Prelude;;
 open OUnit2;;
 
+let assert_equal_json expected result =
+  (* TODO: Make the results be json formatting agnostic *)
+  OUnit2.assert_equal expected result
+    ~printer:(fun x -> x)
+;;
+
+
+exception Bad_query;;
+
+
 class server =
-  object
+  object (self)
     method query (path : string) =
-      "0.1"
+      match path with
+      | "api_version" -> "0.1";
+      | "downloads" -> "[]";
+      | _ -> raise Bad_query;
+
   end
 ;;
 
@@ -27,10 +41,24 @@ let fixture1 context = bracket
 
 let suite = "HTTP server" >::: [
 
+  "test_badquery" >:: fun context -> (
+    let server = (fixture1 context).server in
+
+    assert_raises Bad_query (fun _ -> server#query "bad_query")
+    ); ;
+
   "test_version" >:: fun context -> (
     let server = (fixture1 context).server in
-    let result = server#query "api_version" in
-    assert_equal "0.1" result;
+
+    assert_equal_json "0.1" (server#query "api_version");
+    ); ;
+
+  "test_downloads_whenNoSearch" >:: fun context -> (
+    let server = (fixture1 context).server in
+
+    assert_equal_json
+      ("[]")
+      (server#query "downloads");
     ); ;
 
   ]
