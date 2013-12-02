@@ -9,14 +9,17 @@ let assert_request url expected =
   assert_equal (`Ok expected) (Web.http_get url);
 ;;
 
-let setup _ =
-  {
-    url="http://localhost/hello";
-  }
-;;
-
-let teardown fixture context =
-  ();
+let fixture1 context = bracket
+  (* set_up *)
+    (fun ctx ->
+      {
+        url="http://localhost/hello";
+      }
+    )
+  (* tear_down *)
+    (fun fix ctx -> ())
+  (* test_ctxt *)
+    context
 ;;
 
 
@@ -28,13 +31,13 @@ let suite = "HTTP server" >::: [
     ); ;
 
   "test_case2" >:: fun context -> (
-    let fixture = bracket setup teardown context in
-    assert_equal "http://localhost/hello" fixture.url;
+    let afixture = fixture1 context in
+    assert_equal "http://localhost/hello" afixture.url;
     ); ;
 
   "test_http" >:: fun context -> (
-    let fixture = bracket setup teardown context in
-    assert_request fixture.url "hello";
+    let afixture = fixture1 context in
+    assert_request afixture.url "hello";
     ); ;
 
   ]
