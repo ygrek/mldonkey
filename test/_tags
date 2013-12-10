@@ -1,2 +1,0 @@
-true: annot, debug, warn_A, warn_e
-true: package(oUnit,curl,extlib)

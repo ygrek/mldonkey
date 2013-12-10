@@ -1,7 +1,7 @@
 .SUFFIXES:
 .PHONY: build test
 
-OCAMLBUILD=ocamlbuild
+OPTIONS=-g -annot -w +a-4
 
 default: test
 
@@ -9,7 +9,7 @@ test: build
 	./test.native
 
 build:
-	$(OCAMLBUILD) -use-ocamlfind test.native
+	ocamlfind ocamlopt -linkpkg -package curl,oUnit,extlib $(OPTIONS) prelude.ml web.ml $(wildcard *_test.ml) test.ml -o test.native
 
 clean:
-	$(OCAMLBUILD) -clean
+	rm -f *.cmx *.cmo *.cmi *.o *.native *.byte *.annot
