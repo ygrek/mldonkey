@@ -39,7 +39,7 @@ let fixture1 context = bracket
 ;;
 
 
-let suite = "HTTP server" >::: [
+Test_collector.register("Json Api" >::: [
 
   "test_badquery" >:: fun context -> (
     let server = (fixture1 context).server in
@@ -62,6 +62,7 @@ let suite = "HTTP server" >::: [
     ); ;
 
   ]
+)
 ;;
 
 

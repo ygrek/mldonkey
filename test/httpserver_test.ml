@@ -23,7 +23,7 @@ let fixture1 context = bracket
 ;;
 
 
-let suite = "HTTP server" >::: [
+Test_collector.register("HTTP server" >::: [
 
   "test_case1" >:: fun _ -> (
     let a =4 in
@@ -42,6 +42,7 @@ let suite = "HTTP server" >::: [
     ); ;
 
   ]
+)
 ;;
 
 
