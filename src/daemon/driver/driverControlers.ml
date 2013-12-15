@@ -1016,12 +1016,25 @@ let http_handler o t r =
             clear_page buf;
             http_add_text_header r JSON;
             let files = List2.tail_map file_info !!files in
-            let files = List.map (fun file -> { DriverApi_t.id=file.file_num;
-              name = short_name file;
-              size = file.file_size;
-              download_rate = file.file_download_rate; }) files
+            let files = List.map (fun file -> { DriverApi_t.file_id=file.file_num;
+              file_name = short_name file;
+              file_size = file.file_size;
+              file_download_rate = file.file_download_rate; }) files
             in
             Buffer.add_string buf (DriverApi_j.string_of_files files)
+          end
+        | "api/v1/searches.json" ->
+          begin
+            clear_page buf;
+            http_add_text_header r JSON;
+            let searches = List.map (fun { CommonTypes.search_num; search_string; search_waiting; search_nresults; } ->
+              { DriverApi_t.search_id = search_num;
+                search_query = search_string;
+                search_waiting = search_waiting;
+                search_results = search_nresults;
+              }) o.conn_user.ui_user_searches
+            in
+            Buffer.add_string buf (DriverApi_j.string_of_searches searches)
           end
         | "wap.wml" ->
             begin

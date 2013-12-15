@@ -4,6 +4,15 @@ type file = {
   name : string;
   size : int <ocaml repr="int64">;
   download_rate : float;
-}
+} <ocaml field_prefix="file_">
 
 type files = file list
+
+type search = {
+  id : int;
+  query : string;
+  waiting : int;
+  results : int;
+} <ocaml field_prefix="search_">
+
+type searches = search list
