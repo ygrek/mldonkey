@@ -1016,15 +1016,12 @@ let http_handler o t r =
             clear_page buf;
             http_add_text_header r JSON;
             let files = List2.tail_map file_info !!files in
-            let files = List.map (fun file ->
-              `Assoc [
-                "id", `Int file.file_num;
-                "name", `String (short_name file);
-                "size", `Intlit (Int64.to_string file.file_size);
-                "rate", `Float file.file_download_rate
-              ]) files
+            let files = List.map (fun file -> { DriverApi_t.id=file.file_num;
+              name = short_name file;
+              size = file.file_size;
+              download_rate = file.file_download_rate; }) files
             in
-            Printf.bprintf buf "%s" (Yojson.Safe.pretty_to_string ~std:true (`List files))
+            Buffer.add_string buf (DriverApi_j.string_of_files files)
           end
         | "wap.wml" ->
             begin

@@ -1,0 +1,9 @@
+
+type file = {
+  id : int;
+  name : string;
+  size : int <ocaml repr="int64">;
+  download_rate : float;
+}
+
+type files = file list
