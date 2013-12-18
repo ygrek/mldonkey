@@ -2220,7 +2220,13 @@ let print_option_help o option =
   else
     Printf.bprintf buf "\n\t--Helptext--\n%s\n" help_text
 
-let dllink_print_result html url header results =
+let dllink_print_result html url (status,results) =
+  let header =
+    match status with
+    | `Web -> "Parsing HTTP url"
+    | `Ok -> "Added link"
+    | `No_match -> "Unable to match URL"
+  in
   let buf = Buffer.create 100 in
   if html then
     begin
@@ -2244,9 +2250,9 @@ let dllink_print_result html url header results =
   if html then Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>";
   Buffer.contents buf
 
-let dllink_query_networks html url user group =
+let dllink_query_networks url user group =
   let result = ref [] in
-  if not (networks_iter_until_true (fun n ->
+  let ok = networks_iter_until_true (fun n ->
     try
       let s,r = network_parse_url n url user group in
         if s = "" then
@@ -2261,13 +2267,12 @@ let dllink_query_networks html url user group =
       in
         result := s1 :: !result;
         false
-  )) then
-    dllink_print_result html url "Unable to match URL" !result
-  else
-    dllink_print_result html url "Added link" !result
+  ) in
+  (if ok then `Ok else `No_match), !result
 
-let dllink_parse html url user =
-  if (String2.starts_with url "http") then (
+let dllink_start url user =
+  if (String2.starts_with url "http") then
+  begin
     let u = Url.of_string url in
     let module H = Http_client in
     let r = {
@@ -2300,14 +2305,17 @@ let dllink_parse html url user =
       let concat_headers =
         (List.fold_right (fun (n, c) t -> n ^ ": " ^ c ^ "\n" ^ t) headers "")
       in
-      ignore (dllink_query_networks html concat_headers user user.user_default_group)
+      ignore (dllink_query_networks concat_headers user user.user_default_group)
     );
-    dllink_print_result html url "Parsing HTTP url" [])
-  else
+    `Web, []
+  end else
     if (String2.starts_with url "ftp") then
-      dllink_query_networks html (Printf.sprintf "Location: %s" url) user user.user_default_group
+      dllink_query_networks (Printf.sprintf "Location: %s" url) user user.user_default_group
     else
-      dllink_query_networks html url user user.user_default_group
+      dllink_query_networks url user user.user_default_group
+
+let dllink_parse html url user =
+  dllink_print_result html url (dllink_start url user)
 
 module UnionFind = struct
   type t = int array

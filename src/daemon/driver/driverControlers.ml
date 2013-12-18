@@ -36,6 +36,7 @@ open DriverGraphics
 open DriverInteractive
 open CommonOptions
 open CommonUserDb
+open ExtLib
 
 let log_prefix = "[dCon]"
 
@@ -139,7 +140,7 @@ let eval auth cmd o =
               Printf.bprintf buf "\\</tr\\>\n";
           in
           List.iter show 
-            (List.sort (fun (c1,_, _,_) (c2,_, _,_) -> compare c1 c2)
+            (List.sort ~cmp:(fun (c1,_, _,_) (c2,_, _,_) -> compare c1 c2)
               (List.filter (fun (c,_,_,_) -> filter c) !CommonNetwork.network_commands));
           Printf.bprintf buf "\\</table\\>\\</div\\>";
           html_mods_table_header buf "helpTable" "results" [];
@@ -153,9 +154,9 @@ let eval auth cmd o =
         begin
           Buffer.add_string  buf M.available_commands_are;
           let list = Hashtbl2.to_list2 commands_by_kind in
-          let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) list in
+          let list = List.sort ~cmp:(fun (s1,_) (s2,_) -> compare s1 s2) list in
           List.iter (fun (s,list) ->
-              match List.sort (fun (s1,_) (s2,_) -> compare s1 s2) (List.filter (fun (s,_) -> filter s) !list) with
+              match List.sort ~cmp:(fun (s1,_) (s2,_) -> compare s1 s2) (List.filter (fun (s,_) -> filter s) !list) with
               | [] -> ()
               | list ->
                 Printf.bprintf buf "\n   $b%s$n:\n" s;
@@ -998,6 +999,11 @@ let http_handler o t r =
                                     conn_info = Some (WEB, peer_addr t)} in
             user.ui_http_conn <- Some oo; oo
       in
+      let answer_api json =
+        clear_page buf;
+        http_add_text_header r JSON;
+        Buffer.add_string buf json
+      in
       try
         match short_file with
         | `Redirect url ->
@@ -1013,17 +1019,23 @@ let http_handler o t r =
         match short_file with
         | "api/v1/downloads.json" ->
           begin
-            clear_page buf;
-            http_add_text_header r JSON;
             let files = List2.tail_map DriverApi.of_file !!files in
-            Buffer.add_string buf (DriverApi_j.string_of_files files)
+            answer_api (DriverApi_j.string_of_files files)
           end
         | "api/v1/searches.json" ->
           begin
-            clear_page buf;
-            http_add_text_header r JSON;
             let searches = List.map DriverApi.of_search o.conn_user.ui_user_searches in
-            Buffer.add_string buf (DriverApi_j.string_of_searches searches)
+            answer_api (DriverApi_j.string_of_searches searches)
+          end
+        | "api/v1/downloads/start.json" ->
+          begin
+            let urls = List.filter_map (function ("url",s) -> Some s | _ -> None) r.get_url.Url.args in
+            let result = List.map (fun url ->
+                let (status,results) = dllink_start url o.conn_user.ui_user in
+                { DriverApi_t.dl_url = url; dl_status = status; dl_info = results; }
+              ) urls
+            in
+            answer_api (DriverApi_j.string_of_dlstarts result)
           end
         | "wap.wml" ->
             begin

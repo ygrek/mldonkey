@@ -30,3 +30,11 @@ type search = {
 } <ocaml field_prefix="search_">
 
 type searches = search list
+
+type dlstart = {
+  dl_url : string;
+  dl_status : [ Ok | No_match | Web ];
+  dl_info : string list;
+}
+
+type dlstarts = dlstart list
