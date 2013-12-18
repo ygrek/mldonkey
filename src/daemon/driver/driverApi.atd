@@ -1,9 +1,23 @@
 
+type file_state <ocaml predef module="CommonTypes"> = [
+| FileDownloading
+| FileQueued
+| FilePaused
+| FileDownloaded
+| FileShared
+| FileCancelled
+| FileNew
+| FileAborted of string
+] <ocaml repr="classic">
+
 type file = {
   id : int;
   name : string;
   size : int <ocaml repr="int64">;
+  downloaded : int <ocaml repr="int64">;
   download_rate : float;
+  state : file_state;
+  network : string;
 } <ocaml field_prefix="file_">
 
 type files = file list

@@ -586,6 +586,7 @@ DRIVER_SRCS+= \
 	$(DRIVER)/driverApi_j.mli \
   $(DRIVER)/driverGraphics.ml  \
   $(DRIVER)/driverInteractive.ml  \
+	$(DRIVER)/driverApi.ml \
   $(DRIVER)/driverCommands.ml  \
   $(DRIVER)/driverControlers.ml  \
   $(DRIVER)/driverInterface.ml \
