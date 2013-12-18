@@ -252,7 +252,7 @@ let parse_head sock s =
               match String.lowercase name with
                 "authorization" ->
                 let _, pass = String2.cut_at value ' ' in
-                let pass = Base64.decode pass in
+                let pass = FastBase64.decode pass in
                 let login, pswd = String2.cut_at pass ':' in
                 { options with
                   login = login;

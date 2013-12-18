@@ -205,8 +205,8 @@ let sendmail smtp_server smtp_port new_style mail =
           match get_response ic with
           | (334,true,s) ->
             (* RFC 2195 *)
-            let digest = hmac_md5 mail.smtp_password (Base64.decode s) in
-            send oc (Base64.encode (Printf.sprintf "%s %s" mail.smtp_login digest));
+            let digest = hmac_md5 mail.smtp_password (FastBase64.decode s) in
+            send oc (FastBase64.encode (Printf.sprintf "%s %s" mail.smtp_login digest));
             if read_response ic <> 235 then bad_response ()
           | _ -> bad_response ()
         end
@@ -215,16 +215,16 @@ let sendmail smtp_server smtp_port new_style mail =
           send oc "AUTH LOGIN";
           if read_response ic <> 334 then bad_response (); 
 
-          send oc (Base64.encode mail.smtp_login);
+          send oc (FastBase64.encode mail.smtp_login);
           if read_response ic <> 334 then bad_response (); 
 
-          send oc (Base64.encode mail.smtp_password);
+          send oc (FastBase64.encode mail.smtp_password);
           if read_response ic <> 235 then bad_response ()
         end
         else if !auth_plain_enabled then
         begin
           let auth = Printf.sprintf "\x00%s\x00%s" mail.smtp_login mail.smtp_password in
-          send1 oc "AUTH PLAIN" (Base64.encode auth);
+          send1 oc "AUTH PLAIN" (FastBase64.encode auth);
           if read_response ic <> 235 then bad_response ()
         end
       end;

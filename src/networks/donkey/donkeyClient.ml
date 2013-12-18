@@ -1942,7 +1942,7 @@ end else *)
       log_chat_message cip (client_num c) c.client_name s;
 
   | M.EmuleCaptchaReq t ->
-      let b64data = Base64.encode t in
+      let b64data = FastBase64.encode t in
       let cip = string_of_client_addr c in
       log_chat_message cip (client_num c) c.client_name ("data:image/bmp;base64," ^ b64data)
 
