@@ -339,8 +339,10 @@ FORCE_OCAML=no
 FORCE_MINGW=no
 PROFILE=no
 DEBUG=no
+DEV=no
 GUI=no
 CHECKBOUNDS=false
+DEVFLAGS=
 
 # **********                                                                                  **********
 # **********                Network and Feature configure switches and dependency             **********
@@ -429,7 +431,13 @@ AC_ARG_ENABLE(profile,
 AC_ARG_ENABLE(debug,
   AS_HELP_STRING([--enable-debug], [compile with debugging information]),
   [DEBUG="$enableval"])
+AC_ARG_ENABLE(dev,
+  AS_HELP_STRING([--enable-dev], [development mode (enables debug and annot information)]),
+  [DEV="$enableval"])
 if test "$PROFILE" = "yes"; then
+  DEBUG="yes"
+fi
+if test "$DEV" = "yes"; then
   DEBUG="yes"
 fi
 AC_ARG_ENABLE(gui,
@@ -771,6 +779,13 @@ fi
 if test "$DEBUG" = "yes"; then
     OCAMLC="$OCAMLC -g"
     OCAMLOPT="$OCAMLOPT -g"
+fi
+
+if test "$DEV" = "yes"; then
+  case "$OCAMLVERSION" in
+    3.*) DEVFLAGS="-annot" ;;
+    *) DEVFLAGS="-annot -bin-annot" ;;
+  esac
 fi
 
 echo ""
@@ -1557,6 +1572,7 @@ AC_SUBST(CC_VERSION)
 AC_SUBST(CXX_VERSION)
 AC_SUBST(CONFIGURE_ARGUMENTS)
 AC_SUBST(CONFIGURE_RUN)
+AC_SUBST(DEVFLAGS)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
