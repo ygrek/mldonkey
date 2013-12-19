@@ -1,13 +1,13 @@
 
 type file_state <ocaml predef module="CommonTypes"> = [
-| FileDownloading
-| FileQueued
-| FilePaused
-| FileDownloaded
-| FileShared
-| FileCancelled
-| FileNew
-| FileAborted of string
+| Downloading <ocaml name="FileDownloading">
+| Queued      <ocaml name="FileQueued">
+| Paused      <ocaml name="FilePaused">
+| Downloaded  <ocaml name="FileDownloaded">
+| Shared      <ocaml name="FileShared">
+| Cancelled   <ocaml name="FileCancelled">
+| New         <ocaml name="FileNew">
+| Aborted     <ocaml name="FileAborted"> of string
 ] <ocaml repr="classic">
 
 type file = {
@@ -32,9 +32,9 @@ type search = {
 type searches = search list
 
 type dlstart = {
-  dl_url : string;
-  dl_status : [ Ok | No_match | Web ];
-  dl_info : string list;
-}
+  url : string;
+  status : [ Ok | No_match | Web ];
+  info : string list;
+} <ocaml field_prefix="dl_">
 
 type dlstarts = dlstart list
