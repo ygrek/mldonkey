@@ -102,6 +102,132 @@ let rec dollar_escape o with_frames s =
       if c = '$' then true else
         (Buffer.add_char b c; false)) s
 
+let output_help html buf =
+  let module M = CommonMessages in
+  match html with
+  | true ->
+     Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>";
+     html_mods_table_header buf "helpTable" "results" [];
+     Buffer.add_string buf "\\<tr\\>";
+     html_mods_td buf [
+       ("", "srh", M.main_commands_are);
+       ("", "srh", ""); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$bServers:$n");
+       ("", "sr", ""); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$r\\<a href=\\\"submit?q=vm\\\"\\>" ^
+         "vm\\</a\\>$n");
+       ("", "sr", "list connected servers"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$r\\<a href=\\\"submit?q=vma\\\"\\>" ^
+         "vma\\</a\\>$n");
+       ("", "sr", "list all servers"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$rc/x <num>$n");
+       ("", "sr", "connect/disconnect from a server"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$bDownloads:$n");
+       ("", "sr", ""); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$r\\<a href=\\\"submit?q=vd\\\"\\>" ^
+         "vd\\</a\\>$n");
+       ("", "sr", "view current downloads"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$rcancel/pause/resume <num>$n");
+       ("", "sr", "cancel/pause/resume download <num>"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$bSearches:$n");
+       ("", "sr", ""); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$rs  <keywords>$n");
+       ("", "sr", "start a search for keywords <keywords> on the network"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$r\\<a href=\\\"submit?q=vr\\\"\\>" ^
+         "vr\\</a\\>$n");
+       ("", "sr", "view results of the last search"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$rd <num>$n");
+       ("", "sr", "download result number <num>"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$r\\<a href=\\\"submit?q=vs\\\"\\>" ^
+         "vs\\</a\\>$n");
+       ("", "sr", "view previous searches"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$rvr <num>$n");
+       ("", "sr", "view results of search <num>"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$bGeneral:$n");
+       ("", "sr", ""); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$r\\<a href=\\\"submit?q=save\\\"\\>" ^
+         "save\\</a\\>$n");
+       ("", "sr", "save configuration files"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$rkill$n");
+       ("", "sr", "kill mldonkey properly"); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "$rq$n");
+       ("", "sr", "quit this interface"); ];
+     Buffer.add_string buf "\\</tr\\>\\</table\\>\\</div\\>\n";
+     html_mods_table_header buf "helpTable" "results" [];
+     Buffer.add_string buf "\\<tr class=\\\"dl-1\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "Use '$r\\<a href=\\\"submit?q=longhelp\\\"\\>" ^
+         "longhelp\\</a\\>$n' or '$r\\<a href=\\\"submit?q=longhelp\\\"\\>" ^
+         "??\\</a\\>$n' for all commands. Specify substring to filter."); ];
+     Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
+     html_mods_td buf [
+       ("", "sr", "Use '$rhelp command$n' or '$r? command$n' for help on a command."); ];
+     Buffer.add_string buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>\n"
+
+  | false ->
+     Buffer.add_string  buf
+     "Main commands are:
+
+$bServers:$n
+          $rvm$n : list connected servers
+          $rvma$n : list all servers
+          $rc/x <num>$n : connect/disconnect from a server
+
+$bDownloads:$n
+          $rvd$n : view current downloads
+          $rcancel/pause/resume <num>$n : cancel/pause/resume download <num>
+
+$bSearches:$n
+          $rs <keywords>$n : start a search for keywords <keywords> on the network
+          $rvr$n : view results of the last search
+          $rd <num>$n : download result number <num>
+          $rvs$n : view previous searches
+          $rvr <num>$n : view results of search <num>
+
+$bGeneral:$n
+          $rsave$n : save configuration files
+          $rkill$n : kill mldonkey properly
+          $rq$n : quit this interface
+
+Use '$rlonghelp$n' or '$r??$n' for all commands.
+Use '$rlonghelp str$n' or '$r?? str$n' for all commands that contain specified substring.
+Use '$rhelp command$n' or '$r? command$n' for help on a command.
+            "
+
 let eval auth cmd o =
   let buf = o.conn_buf in
   let cmd =
@@ -165,130 +291,8 @@ let eval auth cmd o =
         end
 
     | ["help"] | ["?"] | ["man"] ->
-          let module M = CommonMessages in
-           if o.conn_output = HTML then
-             begin
-               Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>";
-               html_mods_table_header buf "helpTable" "results" [];
-               Buffer.add_string buf "\\<tr\\>";
-               html_mods_td buf [
-                 ("", "srh", M.main_commands_are);
-                 ("", "srh", ""); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$bServers:$n");
-                 ("", "sr", ""); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$r\\<a href=\\\"submit?q=vm\\\"\\>" ^
-                   "vm\\</a\\>$n");
-                 ("", "sr", "list connected servers"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$r\\<a href=\\\"submit?q=vma\\\"\\>" ^
-                   "vma\\</a\\>$n");
-                 ("", "sr", "list all servers"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$rc/x <num>$n");
-                 ("", "sr", "connect/disconnect from a server"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$bDownloads:$n");
-                 ("", "sr", ""); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$r\\<a href=\\\"submit?q=vd\\\"\\>" ^
-                   "vd\\</a\\>$n");
-                 ("", "sr", "view current downloads"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$rcancel/pause/resume <num>$n");
-                 ("", "sr", "cancel/pause/resume download <num>"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$bSearches:$n");
-                 ("", "sr", ""); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$rs  <keywords>$n");
-                 ("", "sr", "start a search for keywords <keywords> on the network"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$r\\<a href=\\\"submit?q=vr\\\"\\>" ^
-                   "vr\\</a\\>$n");
-                 ("", "sr", "view results of the last search"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$rd <num>$n");
-                 ("", "sr", "download result number <num>"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$r\\<a href=\\\"submit?q=vs\\\"\\>" ^
-                   "vs\\</a\\>$n");
-                 ("", "sr", "view previous searches"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$rvr <num>$n");
-                 ("", "sr", "view results of search <num>"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$bGeneral:$n");
-                 ("", "sr", ""); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$r\\<a href=\\\"submit?q=save\\\"\\>" ^
-                   "save\\</a\\>$n");
-                 ("", "sr", "save configuration files"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$rkill$n");
-                 ("", "sr", "kill mldonkey properly"); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-2\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "$rq$n");
-                 ("", "sr", "quit this interface"); ];
-               Buffer.add_string buf "\\</tr\\>\\</table\\>\\</div\\>\n";
-               html_mods_table_header buf "helpTable" "results" [];
-               Buffer.add_string buf "\\<tr class=\\\"dl-1\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "Use '$r\\<a href=\\\"submit?q=longhelp\\\"\\>" ^
-                   "longhelp\\</a\\>$n' or '$r\\<a href=\\\"submit?q=longhelp\\\"\\>" ^
-                   "??\\</a\\>$n' for all commands. Specify substring to filter."); ];
-               Buffer.add_string buf "\\</tr\\>\\<tr class=\\\"dl-1\\\"\\>";
-               html_mods_td buf [
-                 ("", "sr", "Use '$rhelp command$n' or '$r? command$n' for help on a command."); ];
-               Buffer.add_string buf "\\</tr\\>\\</table\\>\\</div\\>\\</div\\>\n"
-            end
-          else
-              Buffer.add_string  buf
-              "Main commands are:
+          output_help (o.conn_output = HTML) buf
 
-$bServers:$n
-          $rvm$n : list connected servers
-          $rvma$n : list all servers
-          $rc/x <num>$n : connect/disconnect from a server
-
-$bDownloads:$n
-          $rvd$n : view current downloads
-          $rcancel/pause/resume <num>$n : cancel/pause/resume download <num>
-
-$bSearches:$n
-          $rs <keywords>$n : start a search for keywords <keywords> on the network
-          $rvr$n : view results of the last search
-          $rd <num>$n : download result number <num>
-          $rvs$n : view previous searches
-          $rvr <num>$n : view results of search <num>
-
-$bGeneral:$n
-          $rsave$n : save configuration files
-          $rkill$n : kill mldonkey properly
-          $rq$n : quit this interface
-
-Use '$rlonghelp$n' or '$r??$n' for all commands.
-Use '$rlonghelp str$n' or '$r?? str$n' for all commands that contain specified substring.
-Use '$rhelp command$n' or '$r? command$n' for help on a command.
-            ";
     | "?" :: args | "help" :: args | "man" :: args ->
           List.iter (fun arg ->
               match List.filter (fun (cmd, _, _, _) -> cmd = arg) !CommonNetwork.network_commands with
@@ -999,11 +1003,6 @@ let http_handler o t r =
                                     conn_info = Some (WEB, peer_addr t)} in
             user.ui_http_conn <- Some oo; oo
       in
-      let answer_api json =
-        clear_page buf;
-        http_add_text_header r JSON;
-        Buffer.add_string buf json
-      in
       try
         match short_file with
         | `Redirect url ->
@@ -1017,26 +1016,6 @@ let http_handler o t r =
           Buffer.add_string buf error_text_long
         | `File short_file ->
         match short_file with
-        | "api/v1/downloads.json" ->
-          begin
-            let files = List2.tail_map DriverApi.of_file !!files in
-            answer_api (DriverApi_j.string_of_files files)
-          end
-        | "api/v1/searches.json" ->
-          begin
-            let searches = List.map DriverApi.of_search o.conn_user.ui_user_searches in
-            answer_api (DriverApi_j.string_of_searches searches)
-          end
-        | "api/v1/downloads/start.json" ->
-          begin
-            let urls = List.filter_map (function ("url",s) -> Some s | _ -> None) r.get_url.Url.args in
-            let result = List.map (fun url ->
-                let (status,results) = dllink_start url o.conn_user.ui_user in
-                { DriverApi_t.dl_url = url; dl_status = status; dl_info = results; }
-              ) urls
-            in
-            answer_api (DriverApi_j.string_of_dlstarts result)
-          end
         | "wap.wml" ->
             begin
               clear_page buf;
@@ -1569,7 +1548,18 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.download_html_js_mods0
               else !!CommonMessages.download_html_js_old)
-        | s ->  http_send_bin_pictures r buf (String.lowercase s)
+        | s when String.starts_with s "api/v1/" && String.ends_with s ".json" ->
+          let s = String.slice ~last:(-5) s in
+          begin match String.nsplit s "/" with
+          | "api"::"v1"::l ->
+            clear_page buf;
+            http_add_text_header r JSON;
+            Buffer.add_string buf (DriverApi.handle buf o r l)
+          | _ ->
+            assert false
+          end;
+        | s ->
+          http_send_bin_pictures r buf (String.lowercase s)
       with
       | Not_found ->
 	  let _, error_text_long, head = Http_server.error_page (Not_Found r.get_url.Url.full_file)
