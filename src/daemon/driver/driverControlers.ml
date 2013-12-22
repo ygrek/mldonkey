@@ -1554,7 +1554,19 @@ let http_handler o t r =
           | "api"::"v1"::l ->
             clear_page buf;
             http_add_text_header r JSON;
-            Buffer.add_string buf (DriverApi.handle buf o r l)
+            let answer =
+              try DriverApi.handle buf o r l
+              with exn ->
+                r.reply_head <- "404 Not Found";
+                let error = match exn with
+                | DriverApi.Error s -> [ "error", s ]
+                | exn ->
+                  [ "error", Printf.sprintf "unhandled exception %s" (Printexc.to_string exn);
+                    "backtrace", Printexc.get_backtrace () ]
+                in
+                Yojson.Basic.to_string (`Assoc (List.map (fun (k,v) -> k, `String v) error))
+            in
+            Buffer.add_string buf answer 
           | _ ->
             assert false
           end;

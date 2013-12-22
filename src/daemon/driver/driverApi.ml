@@ -6,6 +6,9 @@ open ExtLib
 
 module T = DriverApiTypes
 
+exception Error of string
+let error fmt = Printf.ksprintf (fun s -> raise (Error s)) fmt
+
 let (@@) f x = f x
 let (|>) x f = f x
 
@@ -30,7 +33,7 @@ let handle buf o r api =
 
   | "searches"::"start"::(["local"] | ["remote"] | [] as typ) ->
     let typ = match typ with ["local"] -> LocalSearch | _ -> RemoteSearch in
-    let query = try List.assoc "query" args with Not_found -> "" in
+    let query = try List.assoc "query" args with Not_found -> error "no query specified" in
     let query, net = CommonSearch.search_of_args @@ String2.tokens query in
     let buf = Buffer.create 10 in
     let s = CommonInteractive.start_search user
@@ -52,10 +55,10 @@ let handle buf o r api =
       | "all" -> List.iter (fun s -> forget s.search_num) user.ui_user_searches
       | "last" -> (match user.ui_user_searches with [] -> () | s :: _ -> forget s.search_num)
       | n ->
-        let n = try int_of_string n with _ -> raise Not_found in (* FIXME api error *)
+        let n = try int_of_string n with _ -> error "not a number : %S" n in
         forget n
     end;
     Yojson.Basic.to_string (`Assoc [])
 
   | _ ->
-    raise Not_found
+    error "unknown api call"
