@@ -4,32 +4,55 @@ open CommonComplexOptions
 open CommonTypes
 open ExtLib
 
-module T = DriverApiTypes
+module M = DriverApiTypes
+module T = DriverApi_t
+module J = DriverApi_j
 
 exception Error of string
 let error fmt = Printf.ksprintf (fun s -> raise (Error s)) fmt
 
 let (@@) f x = f x
 let (|>) x f = f x
+let tuck l x = l := x :: !l
 
-let handle buf o r api =
+let as_int s = try int_of_string s with _ -> error "not a number : %S" s
+let str = Yojson.Basic.to_string
+let dummy = str (`Assoc [])
+
+let handle o r cmd =
   let args = r.Http_server.get_url.Url.args in
   let user = o.conn_user in
-  match api with
+  let with_files spec f =
+    let open CommonFile in
+    let failed = ref [] in
+    begin match spec with
+    | "all" -> List.iter (fun file -> try f file user.ui_user with exn -> tuck failed (file,exn)) !!files
+    | n -> f (file_find @@ as_int n) user.ui_user
+    end;
+    let failed = List.map (fun (file,exn) -> { T.info_id = file_num file; info_info = Printexc.to_string exn; }) !failed in
+    match failed with
+    | [] -> dummy
+    | l -> J.string_of_failed { T.failed = l; }
+  in
+  match cmd with
   | "downloads" :: [] ->
-    DriverApi_j.string_of_files @@ List.map T.of_file !!files
+    J.string_of_files @@ List.map M.of_file !!files
 
   | "downloads" :: "start" :: [] ->
     let urls = List.filter_map (function ("url",s) -> Some s | _ -> None) args in
     let result = List.map (fun url ->
         let (status,results) = DriverInteractive.dllink_start url user.ui_user in
-        { DriverApi_t.dl_url = url; dl_status = status; dl_info = results; }
+        { T.dl_url = url; dl_status = status; dl_info = results; }
       ) urls
     in
-    DriverApi_j.string_of_dlstarts result
+    J.string_of_dlstarts result
+
+  | "downloads" :: spec :: "pause" :: [] -> with_files spec CommonFile.file_pause
+  | "downloads" :: spec :: ("resume"|"unpause") :: [] -> with_files spec CommonFile.file_resume
+  | "downloads" :: spec :: "cancel" :: [] -> with_files spec CommonInteractive.file_cancel
 
   | "searches" :: [] ->
-    DriverApi_j.string_of_searches @@ List.map T.of_search user.ui_user_searches
+    J.string_of_searches @@ List.map M.of_search user.ui_user_searches
 
   | "searches"::"start"::(["local"] | ["remote"] | [] as typ) ->
     let typ = match typ with ["local"] -> LocalSearch | _ -> RemoteSearch in
@@ -45,8 +68,7 @@ let handle buf o r api =
         G.search_network = net;
       }) buf
     in
-    let r = { DriverApi_t.search_start_id = s.search_num; search_start_info = Buffer.contents buf; } in
-    DriverApi_j.string_of_search_start r
+    J.string_of_info { T.info_id = s.search_num; info_info = Buffer.contents buf; }
 
   | "searches"::spec::"forget"::[] ->
     begin
@@ -54,11 +76,9 @@ let handle buf o r api =
       match spec with
       | "all" -> List.iter (fun s -> forget s.search_num) user.ui_user_searches
       | "last" -> (match user.ui_user_searches with [] -> () | s :: _ -> forget s.search_num)
-      | n ->
-        let n = try int_of_string n with _ -> error "not a number : %S" n in
-        forget n
+      | n -> forget @@ as_int n
     end;
-    Yojson.Basic.to_string (`Assoc [])
+    dummy
 
   | _ ->
     error "unknown api call"

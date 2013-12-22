@@ -1555,7 +1555,7 @@ let http_handler o t r =
             clear_page buf;
             http_add_text_header r JSON;
             let answer =
-              try DriverApi.handle buf o r l
+              try DriverApi.handle o r l
               with exn ->
                 r.reply_head <- "404 Not Found";
                 let error = match exn with

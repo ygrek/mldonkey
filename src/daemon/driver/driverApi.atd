@@ -31,10 +31,10 @@ type search = {
 
 type searches = search list
 
-type search_start = {
+type info = {
   id : int;
   info : string;
-} <ocaml field_prefix="search_start_">
+} <ocaml field_prefix="info_">
 
 type dlstart = {
   url : string;
@@ -43,3 +43,7 @@ type dlstart = {
 } <ocaml field_prefix="dl_">
 
 type dlstarts = dlstart list
+
+type failed = {
+  failed : info list;
+}
