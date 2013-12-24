@@ -72,10 +72,12 @@ let handle o r cmd =
       let forget n = CommonSearch.search_forget user (CommonSearch.search_find n) in
       match spec with
       | "all" -> List.iter (fun s -> forget s.search_num) user.ui_user_searches
-      | "last" -> (match user.ui_user_searches with [] -> () | s :: _ -> forget s.search_num)
       | n -> forget @@ as_int n
     end;
     dummy
+
+  | "searches"::n::"results"::[] ->
+    J.string_of_results @@ List.mapi M.of_result @@ DriverInteractive.get_search_results @@ CommonSearch.search_find @@ as_int n
 
   | _ ->
     error "unknown api call"

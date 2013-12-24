@@ -38,6 +38,7 @@ open CommonGlobals
 open CommonOptions
 open CommonUserDb
 open Int64ops
+open Prelude
 
 module VB = VerificationBitmap
 
@@ -1700,18 +1701,18 @@ let print_results stime buf o results =
     (List.rev !files);
   Printf.bprintf buf "%d sources, total available %s\n" !nsources (size_of_int64 !totalsize)
 
+let get_search_results s =
+  let results = ref [] in
+  s.search_results |> Intmap.iter begin fun r_num (avail,rs) ->
+    tuck results (rs, IndexedResults.get_result rs, !avail);
+  end;
+  List.sort (fun (_,r1,_) (_,r2,_) -> compare r2.result_size r1.result_size) !results
 
 let print_search buf s o =
   let user = o.conn_user in
   user.ui_last_search <- Some s;
   user.ui_last_results <- [];
-  let results = ref [] in
-  Intmap.iter (fun r_num (avail,rs) ->
-      let r = IndexedResults.get_result rs in
-      results := (rs, r, !avail) :: !results) s.search_results;
-  let results = List.sort (fun (_, r1,_) (_, r2,_) ->
-        compare r2.result_size r1.result_size
-    ) !results in
+  let results = get_search_results s in
 
   Printf.bprintf buf "Result of search %d\n" s.search_num;
   Printf.bprintf buf "%d results (%s)\n" s.search_nresults

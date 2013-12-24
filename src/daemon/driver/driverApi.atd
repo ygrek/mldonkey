@@ -47,3 +47,16 @@ type dlstarts = dlstart list
 type failed = {
   failed : info list;
 }
+
+type result = {
+  id : int;
+  size : int <ocaml repr="int64">;
+  avail : int;
+  downloaded : bool;
+  comment : string;
+  names : string list;
+  tags : string list;
+  uids : string list;
+} <ocaml field_prefix="result_">
+
+type results = result list
