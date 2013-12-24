@@ -3,6 +3,7 @@ open Options
 open CommonComplexOptions
 open CommonTypes
 open ExtLib
+open Prelude
 
 module M = DriverApiTypes
 module T = DriverApi_t
@@ -10,10 +11,6 @@ module J = DriverApi_j
 
 exception Error of string
 let error fmt = Printf.ksprintf (fun s -> raise (Error s)) fmt
-
-let (@@) f x = f x
-let (|>) x f = f x
-let tuck l x = l := x :: !l
 
 let as_int s = try int_of_string s with _ -> error "not a number : %S" s
 let str = Yojson.Basic.to_string
