@@ -3122,20 +3122,23 @@ let _ =
     "verify_chunks", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         match args with
-          [arg] ->
-            let num = int_of_string arg in
-              List.iter
-                (fun file -> if (as_file_impl file).impl_file_num = num then
-                    begin
-                      Printf.bprintf  buf "Verifying Chunks of file %d" num;
-                      file_check file;
-                    end
-              )
+        | [] -> ""
+        | "all"::[] ->
+            Printf.bprintf buf "Verifying chunks of all file";
+            List.iter file_check !!files;
+            _s "done"
+        | l ->
+            let l = List.map int_of_string l in
+            List.iter
+              (fun file ->
+                if List.mem (file_num file) l then
+                begin
+                  Printf.bprintf  buf "Verifying chunks of file %d : %s" (file_num file) (file_best_name file);
+                  file_check file;
+                end)
               !!files;
             ""
-        | _ -> ();
-            _s "done"
-    ), "<num> :\t\t\tverify chunks of file <num>";
+    ), "<num|all> :\t\t\tverify chunks of file <num> (use 'all' for all files)";
 
     "pause", Arg_multiple (fun args o ->
       let filter = 
