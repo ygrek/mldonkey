@@ -60,3 +60,5 @@ type result = {
 } <ocaml field_prefix="result_">
 
 type results = result list
+
+type result_download = { started : int }

@@ -1560,6 +1560,7 @@ let http_handler o t r =
                 r.reply_head <- "404 Not Found";
                 let error = match exn with
                 | DriverApi.Error s -> [ "error", s ]
+                | Not_found -> [ "error", "resource not found" ]
                 | exn ->
                   [ "error", Printf.sprintf "unhandled exception %s" (Printexc.to_string exn);
                     "backtrace", Printexc.get_backtrace () ]

@@ -34,8 +34,8 @@ let strings_of_tags =
       Some (match tag_value with String s -> s | (Uint64 i | Fint64 i)  -> Int64.to_string i | _ -> "???")
   )
 
-let of_result i (rs,r,avail) =
-  { T.result_id = i + 1;
+let of_result (rs,r,avail) =
+  { T.result_id = r.result_num;
     result_size = r.result_size;
     result_avail = avail;
     result_downloaded = r.result_done;

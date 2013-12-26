@@ -77,7 +77,13 @@ let handle o r cmd =
     dummy
 
   | "searches"::n::"results"::[] ->
-    J.string_of_results @@ List.mapi M.of_result @@ DriverInteractive.get_search_results @@ CommonSearch.search_find @@ as_int n
+    J.string_of_results @@ List.map M.of_result @@ DriverInteractive.get_search_results @@ CommonSearch.search_find @@ as_int n
+
+  | "results"::n_r::"download"::[] ->
+    let result = CommonResult.find_result @@ as_int n_r in
+    let files = CommonResult.result_download result [] false user.ui_user in
+    List.iter CommonInteractive.start_download files;
+    J.string_of_result_download { T.started = List.length files }
 
   | _ ->
     error "unknown api call"
