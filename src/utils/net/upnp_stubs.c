@@ -153,7 +153,7 @@ typedef struct ml_upnpmp_t
 
     unsigned int       natpmpMapped;
     int                natpmpDiscovered;
-    ml_upnp_state      natpmpState;
+    ml_natpmp_state    natpmpState;
     time_t             renewTime;
     time_t             commandTime;
     natpmp_t           natpmp;
@@ -681,7 +681,11 @@ upnpPulse( ml_upnpmp_t * map )
         snprintf( type, sizeof( type ), "%s", ( map->isTcp ? "TCP" : "UDP" ) );
         i = UPNP_GetSpecificPortMappingEntry( map->upnpUrls.controlURL,
                                               map->upnpData.first.servicetype, portStr,
-                                              type, intClient, intPort, NULL, NULL, NULL );
+                                              type,
+#if MINIUPNPC_API_VERSION >= 10
+                                              NULL, /* remoteHost */
+#endif
+                                              intClient, intPort, NULL, NULL, NULL );
         if( i != UPNPCOMMAND_SUCCESS )
         {
             dbg_printf( "Port %d isn't forwarded\n", map->extPort );

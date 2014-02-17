@@ -868,7 +868,7 @@ fi
 if test "$UPNP_NATPMP_FORCE" = "yes"; then
 	UPNP_NATPMP=yes
 	cd $PATCH_DIR
-	MINIUPNPC=miniupnpc-1.8
+	MINIUPNPC=miniupnpc-1.9
 	LIBNATPMP=libnatpmp-20131126
 	$WGET http://miniupnp.tuxfamily.org/files/$MINIUPNPC.tar.gz
 	$WGET http://miniupnp.tuxfamily.org/files/$LIBNATPMP.tar.gz
