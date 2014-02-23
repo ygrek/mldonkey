@@ -200,8 +200,11 @@ let talk_to_udp_tracker host port args file t need_sources =
     if !verbose_msg_servers then
       lprintf_nl "udpt start with %s:%d" host port;
     Ip.async_ip host (fun ip ->
-(*       lprintf_nl "udpt resolved %s to ip %s" host (Ip.to_string ip); *)
-      try interact ip with exn -> lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn))
+(*         lprintf_nl "udpt resolved %s to ip %s" host (Ip.to_string ip); *)
+        if not (Ip.equal Ip.localhost ip) then
+          try interact ip with exn -> lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn)
+        else if !verbose_msg_servers then
+          lprintf_nl "udpt ignoring tracker %s (resolves to localhost)" host)
       (fun () -> 
         if !verbose_msg_servers then
           lprintf_nl "udpt failed to resolve %s" host)
@@ -339,11 +342,12 @@ let connect_trackers file event need_sources f =
               let module H = Http_client in
               let r = {
                   H.basic_request with
-                  H.req_url = Url.of_string ~args: args url;
+                  H.req_url = Url.of_string ~args url;
                   H.req_proxy = !CommonOptions.http_proxy;
                   H.req_user_agent = get_user_agent ();
                   (* #4541 [egs]  supports redirect *)
                   H.req_max_retry = !!max_tracker_redirect;
+                  H.req_filter_ip = (fun ip -> not (Ip.equal Ip.localhost ip));
                 } in
 
               if !verbose_msg_servers then

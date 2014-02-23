@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2014/02/23:
+8326: BT: disable announcing to 127.0.0.1 (ygrek)
 8325: do not reset option pause_new_downloads at startup (ygrek)
 8324: BT: dump failing UDP tracker packets (ygrek)
 8323: Config: fix minor typos (ygrek)
