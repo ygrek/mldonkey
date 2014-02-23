@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2014/02/23:
+7916: Use GNU make when compiling upnp/natpmp on FreeBSD (zbroyar)
+
 2013/07/20:
 8123: configure: Fix GD version check for GD 2.1.x
 

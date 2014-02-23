@@ -864,9 +864,9 @@ if test "$UPNP_NATPMP_FORCE" = "yes"; then
 	tar -xzf $PATCH_DIR/miniupnpc-1.6.tar.gz
 	tar -xzf $PATCH_DIR/libnatpmp-20110808.tar.gz
 	cd $BUILD_DIR/libnatpmp-20110808
-	make all install PREFIX=$LOCAL_DIR
+	$GNU_MAKE all install PREFIX=$LOCAL_DIR
 	cd $BUILD_DIR/miniupnpc-1.6
-	make all install PREFIX=$LOCAL_DIR
+	$GNU_MAKE all install PREFIX=$LOCAL_DIR
 	cd $CONFIG_DIR
 	rm -rf $BUILD_DIR/libnatpmp-20110808 $BUILD_DIR/miniupnpc-1.6
 	CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
