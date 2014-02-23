@@ -28,8 +28,8 @@ val log_time : unit -> string
 
 val lprintf :  ('a, unit, string, unit) format4 -> 'a
 val lprintf2 :  string -> ('a, unit, string, unit) format4 -> 'a
-val lprintf_nl :  ('a, unit, string, unit) format4 -> 'a
-val lprintf_nl2 : string -> ('a, unit, string, unit) format4 -> 'a
+val lprintf_nl :  ?exn:exn -> ('a, unit, string, unit) format4 -> 'a
+val lprintf_nl2 : ?exn:exn -> string -> ('a, unit, string, unit) format4 -> 'a
 val lprint_newline : unit -> unit
 val lprint_char : char -> unit
 val lprint_string : string -> unit
