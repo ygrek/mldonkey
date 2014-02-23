@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2014/02/23:
+8329: printf2: reduce complexity, use Printf.ksprintf (ygrek)
 8328: gettext: reduce complexity, drop unused code (ygrek)
 8327: GTK2 GUI: fix wrong url on splash screen (ygrek)
 8326: BT: disable announcing to 127.0.0.1 (ygrek)

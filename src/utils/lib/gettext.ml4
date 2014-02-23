@@ -236,8 +236,8 @@ let _ss : string _string -> string = fun m ->
 
 let _s modname (x : string) = _ss (ss_ modname x)
 
-let bb_ : string -> ('a, 'b, 'c) format -> ('a, 'b, 'c) format _string = fun modname -> Obj.magic (ss_ modname)
-let _bb : ('a, 'b, 'c) format _string -> ('a, 'b, 'c) format = fun m ->
+let bb_ : string -> ('a, 'b, 'c, 'd) format4 -> ('a, 'b, 'c, 'd) format4 _string = fun modname -> Obj.magic (ss_ modname)
+let _bb : ('a, 'b, 'c, 'd) format4 _string -> ('a, 'b, 'c, 'd) format4 = fun m ->
   let index = m.index in
   !requests.(index) <- !requests.(index) + 1;
   let translation = !translation.(index) in

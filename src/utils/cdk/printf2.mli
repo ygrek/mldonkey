@@ -25,21 +25,17 @@ val lprintf_original_output : out_channel option ref
 val keep_console_output : unit -> bool
 
 val log_time : unit -> string
-val cprintf : (string -> unit) -> ('a, unit, unit) format -> 'a
-(** [cprintf k format arguments] is the same as [printf format arguments],
-    except that the resulting string is passed as argument to [k]; the
-    result of [k] is then returned as the result of [cprintf]. *)
 
-val lprintf :  ('a, unit, unit) format -> 'a
-val lprintf2 :  string -> ('a, unit, unit) format -> 'a
-val lprintf_nl :  ('a, unit, unit) format -> 'a
-val lprintf_nl2 : string -> ('a, unit, unit) format -> 'a
-val lprint_newline : unit -> unit  
-val lprint_char : char -> unit  
-val lprint_string : string -> unit  
-val lprint_int : int -> unit  
+val lprintf :  ('a, unit, string, unit) format4 -> 'a
+val lprintf2 :  string -> ('a, unit, string, unit) format4 -> 'a
+val lprintf_nl :  ('a, unit, string, unit) format4 -> 'a
+val lprintf_nl2 : string -> ('a, unit, string, unit) format4 -> 'a
+val lprint_newline : unit -> unit
+val lprint_char : char -> unit
+val lprint_string : string -> unit
+val lprint_int : int -> unit
 val lprintf_max_size : int ref
-  
+
 val detach : unit -> unit
 val log_to_file : out_channel -> unit
 val log_to_buffer : Buffer.t -> unit
