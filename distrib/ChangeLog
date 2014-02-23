@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2014/02/23:
+8328: gettext: reduce complexity, drop unused code (ygrek)
 8327: GTK2 GUI: fix wrong url on splash screen (ygrek)
 8326: BT: disable announcing to 127.0.0.1 (ygrek)
 8325: do not reset option pause_new_downloads at startup (ygrek)

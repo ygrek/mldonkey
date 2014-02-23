@@ -87,7 +87,7 @@ let execute_command arg_list output cmd args =
     let rec iter list =
       match list with
         [] ->
-          Gettext.buftext buf no_such_command cmd
+          Buffer.add_string buf (no_such_command cmd)
       | (command, _, arg_kind, help) :: tail ->
           if command = cmd then begin
             if !verbose_user_commands && not (user2_is_admin output.conn_user.ui_user) then
