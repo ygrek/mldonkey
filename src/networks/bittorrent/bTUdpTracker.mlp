@@ -22,7 +22,7 @@ let connect_response s exp_txn =
   | { 0l : 32 ; txn : 32 ; conn_id : 64 } -> 
     if txn = exp_txn then conn_id else fail "error connect_response txn %ld expected %ld" txn exp_txn
   | { :error_response } -> fail "error connect_response txn %ld : %s" txn msg
-  | { }  -> fail "error connect_response"
+  | { }  -> fail "error connect_response : %s" (AnyEndian.dump_hex_s s)
 
 (** announce *)
 let announce_request conn txn ~info_hash ~peer_id (downloaded,left,uploaded) event ?(ip=0l) ?(key=0l) ~numwant port =
@@ -56,5 +56,4 @@ let announce_response s exp_txn =
         else
           fail "error announce_response txn %ld expected %ld" txn exp_txn
   | { :error_response } -> fail "error announce_response txn %ld : %s" txn msg
-  | { } -> fail "error announce_response"
-
+  | { } -> fail "error announce_response : %s" (AnyEndian.dump_hex_s s)

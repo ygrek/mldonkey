@@ -125,12 +125,15 @@ let bdump_hex buf s =
     end;
   in
   iter 0
-        
-let dump_hex s =
-  let buf = Buffer.create 1000 in
+
+let dump_hex_s s =
+  let buf = Buffer.create (String.length s * 4) in
   bdump_hex buf s;
-  lprintf "%s" (Buffer.contents buf) 
-      
+  Buffer.contents buf
+
+let dump_hex s =
+  lprintf "%s" (dump_hex_s s)
+
 let bdump_ascii buf s =
   let len = String.length s in
   Printf.bprintf buf "ascii: [";

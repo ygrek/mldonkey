@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2014/02/23:
+8324: BT: dump failing UDP tracker packets (ygrek)
 8323: Config: fix minor typos (ygrek)
 7916: Use GNU make when compiling upnp/natpmp on FreeBSD (zbroyar)
 
