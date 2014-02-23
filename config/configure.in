@@ -1605,7 +1605,7 @@ printf "Configuring MLDonkey %s" "$MLDONKEY_VERSION"
 if test ! -z "$SCM_VERSION"; then
   printf " - SCM: %s" "$SCM_VERSION"
 fi
-ec " completed.\n"
+echo " completed."
 
 echo ""
 echo "Network modules:"
@@ -1766,7 +1766,7 @@ if test "$TARGET_TYPE" = "byte"; then
   COMPILE_TARGET=".byte"
 fi
 echo ""
-printf "Compilers:"
+echo "Compilers:"
 echo " - OCaml version     $OCAMLVERSION $OCAML_TYPE"
 echo " - $CC version       $CC_VERSION"
 if test "x$CXX" != "x"; then
