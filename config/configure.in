@@ -1038,6 +1038,7 @@ if test "$GD" != "no"; then
       if test "$LIBGD_PNG" = "yes"; then
         GD=yes
 	GD_PNG=yes
+        GD_LIBS="$GD_LIBS $PNG_LIBS"
         AC_MSG_RESULT(yes)
 	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1,)])
         AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
@@ -1070,6 +1071,7 @@ if test "$GD" != "no"; then
       if test "$LIBGD_JPG" = "yes"; then
         GD=yes
 	GD_JPG=yes
+        GD_LIBS="$GD_LIBS -ljpeg"
         AC_DEFINE(HAVE_GD_JPG, 1, [Define to 1 if you have jpg support in libgd.])
         AC_MSG_RESULT(yes)
       else

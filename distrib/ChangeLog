@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2014/02/23:
+8336: GD: Fix linking to libpng & libjpeg
 8335: Version bump miniupnpc 1.9 (ygrek)
 8334: Version bump libnatpmp 20131126 & miniupnpc 1.8 (ygrek)
 8333: Config: New configure option --enable-dev (ygrek)
