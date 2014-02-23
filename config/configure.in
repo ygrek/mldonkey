@@ -871,19 +871,21 @@ fi
 if test "$UPNP_NATPMP_FORCE" = "yes"; then
 	UPNP_NATPMP=yes
 	cd $PATCH_DIR
-	$WGET http://miniupnp.tuxfamily.org/files/miniupnpc-1.6.tar.gz
-	$WGET http://miniupnp.tuxfamily.org/files/libnatpmp-20110808.tar.gz
+	MINIUPNPC=miniupnpc-1.8
+	LIBNATPMP=libnatpmp-20131126
+	$WGET http://miniupnp.tuxfamily.org/files/$MINIUPNPC.tar.gz
+	$WGET http://miniupnp.tuxfamily.org/files/$LIBNATPMP.tar.gz
 	mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
 	cd $BUILD_DIR
-	rm -rf libnatpmp-20110808 miniupnpc-1.6
-	tar -xzf $PATCH_DIR/miniupnpc-1.6.tar.gz
-	tar -xzf $PATCH_DIR/libnatpmp-20110808.tar.gz
-	cd $BUILD_DIR/libnatpmp-20110808
+	rm -rf $LIBNATPMP $MINIUPNPC
+	tar -xzf $PATCH_DIR/$MINIUPNPC.tar.gz
+	tar -xzf $PATCH_DIR/$LIBNATPMP.tar.gz
+	cd $BUILD_DIR/$LIBNATPMP
 	$GNU_MAKE all install PREFIX=$LOCAL_DIR
-	cd $BUILD_DIR/miniupnpc-1.6
+	cd $BUILD_DIR/$MINIUPNPC
 	$GNU_MAKE all install PREFIX=$LOCAL_DIR
 	cd $CONFIG_DIR
-	rm -rf $BUILD_DIR/libnatpmp-20110808 $BUILD_DIR/miniupnpc-1.6
+	rm -rf $BUILD_DIR/$LIBNATPMP $BUILD_DIR/$MINIUPNPC
 	CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
 	LDFLAGS="${LDFLAGS} -L$LOCAL_DIR/usr/lib"
 fi
