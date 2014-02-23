@@ -15,6 +15,7 @@ ChangeLog
 =========
 
 2014/02/23:
+8333: Config: New configure option --enable-dev (ygrek)
 8332: New option "all" for command verify_chunks (ygrek)
 8331: printf2: add ?exn parameter for easy exception printing (ygrek)
 8330: printexc2: reduce complexity, drop unused code (ygrek)
