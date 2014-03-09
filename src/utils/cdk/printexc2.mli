@@ -21,10 +21,3 @@
 
 val to_string : exn -> string
 (** [Printexc2.to_string e] returns a string representation of the exception [e]. *)
-
-val catch : string -> ('a -> unit) -> 'a -> unit
-val catch2 : string -> ('a -> 'b -> unit) -> 'a -> 'b -> unit
-(** [catch msg f x] executes the function [f] and returns unit. If an 
-    exception is raised during the execution of [f], the message [msg] is 
-    printed on standard output with the exception using [printexn], and unit
-    is returned. *)

@@ -53,18 +53,15 @@ let chmod_config () =
   let save_config =
     base_config ^ ".old"
   in
-  begin
-    if Sys.file_exists base_config then
-      Printexc2.catch2 "Unix.chmod" Unix.chmod base_config 0o600 
-    else
-      ()
-  end;
-  begin
-    if Sys.file_exists save_config then
-      Printexc2.catch2 "Unix.chmod" Unix.chmod save_config 0o600
-    else
-      ()
-  end
+  let chmod file =
+    if Sys.file_exists file then
+      try
+        Unix.chmod file 0o600 
+      with
+        exn -> lprintf' "Exception: chmod %s 0600 : %s\n" file (Printexc2.to_string exn)
+  in
+  chmod base_config;
+  chmod save_config
 
 (* {2 Handling core messages} *)
 
