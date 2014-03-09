@@ -177,7 +177,6 @@ let dht_bootstrap_nodes = define_option bittorrent_section ["dht_bootstrap_nodes
   (list_option addr_option)
   [
     "service.ygrek.org.ua",6881;
-    "router.utorrent.com",6881;
-    "router.transmission.com",6881;
+    "router.bittorrent.com", 8991;
   ]
 
