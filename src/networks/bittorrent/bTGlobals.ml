@@ -165,8 +165,8 @@ let bt_upload_counter = ref Int64.zero
 
 let log_prefix = "[BT]"
 
-let lprintf_nl fmt =
-  lprintf_nl2 log_prefix fmt
+let lprintf_nl ?exn fmt =
+  lprintf_nl2 ?exn log_prefix fmt
 
 let lprintf_n fmt =
   lprintf2 log_prefix fmt
