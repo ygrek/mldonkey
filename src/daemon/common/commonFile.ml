@@ -1265,8 +1265,8 @@ let impl_file_info impl =
     T.file_release = impl.impl_file_release;
   }
 
-let lprintf_file_nl file fmt =
-  lprintf_nl2 ("[" ^ (file_network file).network_shortname ^
+let lprintf_file_nl ?exn file fmt =
+  lprintf_nl2 ?exn ("[" ^ (file_network file).network_shortname ^
 	       "] [file_num " ^ (string_of_int (file_num file)) ^ "]" ^
 	       "[temp " ^ (file_disk_name file) ^ "]") fmt
 

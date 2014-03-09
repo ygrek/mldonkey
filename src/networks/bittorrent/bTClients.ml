@@ -134,7 +134,7 @@ let talk_to_udp_tracker host port args file t need_sources =
     let set_reader f =
       set_reader socket begin fun _ -> 
         try f () with exn ->
-          lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn);
+          lprintf_nl ~exn "udpt interact with %s" host;
           close socket (Closed_for_exception exn)
       end
     in
@@ -202,7 +202,7 @@ let talk_to_udp_tracker host port args file t need_sources =
     Ip.async_ip host (fun ip ->
 (*         lprintf_nl "udpt resolved %s to ip %s" host (Ip.to_string ip); *)
         if not (Ip.equal Ip.localhost ip) then
-          try interact ip with exn -> lprintf_nl "udpt interact exn %s" (Printexc2.to_string exn)
+          try interact ip with exn -> lprintf_nl ~exn "udpt interact with %s" host
         else if !verbose_msg_servers then
           lprintf_nl "udpt ignoring tracker %s (resolves to localhost)" host)
       (fun () -> 
@@ -210,7 +210,7 @@ let talk_to_udp_tracker host port args file t need_sources =
           lprintf_nl "udpt failed to resolve %s" host)
   with
   exn -> 
-    lprintf_nl "udpt start exn %s" (Printexc2.to_string exn)
+    lprintf_nl ~exn "udpt start"
 
 end (* include *)
 
@@ -768,10 +768,10 @@ let rec client_parse_header counter cc init_sent gconn sock
           if !verbose_unexpected_messages then
             lprintf_nl "Client %s:%d requested a file that is not shared [%s]"
               (Ip.to_string ip) port (Sha1.to_hexa file_id)
-      | e ->
-          lprintf_nl "Exception %s in client_parse_header" (Printexc2.to_string e);
-          close sock (Closed_for_exception e);
-          raise e
+      | exn ->
+          lprintf_nl ~exn "client_parse_header";
+          close sock (Closed_for_exception exn);
+          raise exn
 
 
 (** Update the bitmap of a client. Unclear if it is still useful.
@@ -1537,10 +1537,9 @@ let connect_client c =
                   set_bt_sock sock !verbose_msg_clients
                     (BTHeader (client_parse_header !counter (ref ((Some c), c.client_country_code)) true))
                 end
-            with e ->
-                lprintf_nl "Exception %s while connecting to client"
-                  (Printexc2.to_string e);
-                disconnect_client c (Closed_for_exception e)
+            with exn ->
+                lprintf_nl ~exn "connecting to client";
+                disconnect_client c (Closed_for_exception exn)
         );
       (*Since this is a pending connection put ConnectionWaiting
         in client_sock
@@ -1628,10 +1627,9 @@ let listen () =
       ) in
     listen_sock := Some s;
     ()
-  with e ->
+  with exn ->
       if !verbose_connect then
-        lprintf_nl "Exception %s while init bittorrent server"
-          (Printexc2.to_string e)
+        lprintf_nl ~exn "init bittorrent server"
 
 
 (** This function send keepalive messages to all connected clients
@@ -1672,9 +1670,9 @@ let resume_clients file =
                else
                  print_control c.client_connection_control
              with _ -> ())
-      with e ->
+      with exn ->
           if !verbose_connect then
-            lprintf_file_nl (as_file file) "Exception %s in resume_clients"   (Printexc2.to_string e)
+            lprintf_file_nl ~exn (as_file file) "resume_clients"
   ) file.file_clients
 
 let () =
@@ -1929,9 +1927,9 @@ let rec iter_upload sock c =
 (*          lprintf "sending piece\n"; *)
           send_client c (Piece (num, pos, upload_buffer, 0, len));
           iter_upload sock c
-        with e -> 
+        with exn -> 
           if !verbose then 
-            lprintf_nl "Exception %s in iter_upload" (Printexc2.to_string e)
+            lprintf_nl ~exn "iter_upload"
         end else
         begin
 (*          lprintf "client is waiting for another piece\n"; *)
