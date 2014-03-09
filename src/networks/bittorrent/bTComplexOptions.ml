@@ -314,12 +314,33 @@ let save _ =
 
 let guptime () = !!guptime - !diff_time
 
-let _ =
+let rec update_options () =
+  let update v =
+      lprintf_nl "Updating options to version %i" v;
+      options_version =:= v;
+      update_options ()
+  in
+
+  match !!options_version with
+  | 0 ->
+      let present = ref false in
+      (* drop obsolete addresses, add new *)
+      dht_bootstrap_nodes =:= List.filter (function
+        | "router.utorrent.com", 6881 -> false
+        | "router.transmission.com", 6881 -> false
+        | "router.bittorrent.com", 8991 -> present := true; true
+        | _ -> true) !!dht_bootstrap_nodes;
+      if not !present then
+        dht_bootstrap_nodes =:= ("router.bittorrent.com", 8991) :: !!dht_bootstrap_nodes;
+      update 1
+  | _ -> ()
+
+let () =
   network.op_network_file_of_option <- value_to_file;
   file_ops.op_file_to_option <- file_to_value;
 
   (* Shut up message "Network.save/load_complex_options not implemented by BitTorrent" *)
   network.op_network_load_complex_options <- load;
   network.op_network_save_complex_options <- save;
-  network.op_network_update_options <- (fun _ -> ());
+  network.op_network_update_options <- update_options;
   network.op_network_save_sources <- (fun _ -> ())

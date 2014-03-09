@@ -20,6 +20,15 @@ let store file (t:Kademlia.table) =
   with exn ->
     lprintf_nl ~exn "write to %S failed" file; Sys.remove temp
 
+let parse_peer s =
+  try
+    match String2.split s ':' with
+    | [addr;port] -> addr, int_of_string port
+    | _ -> raise Not_found
+  with _ ->
+    Printf.eprintf "E: bad peer %S, expecting <addr>:<port>\n%!" s;
+    exit 2
+
 let init file = try load file with _ -> Kademlia.create ()
 
 let run_queries =
@@ -42,8 +51,9 @@ let run_queries =
 let () =
   Random.self_init ();
   try
-    match Sys.argv with
-    | [|_;file;port|] ->
+    match List.tl (Array.to_list Sys.argv) with
+    | file::port::peers ->
+      let peers = List.map parse_peer peers in
       let bw = UdpSocket.new_bandwidth_controler 
         (TcpBufferedSocket.create_write_bandwidth_controler "UNLIMIT" 0) in
       let dht = start (init file) (int_of_string port) bw in
@@ -53,10 +63,10 @@ let () =
       Sys.set_signal Sys.sighup (Sys.Signal_handle (fun _ -> show dht));
       BasicSocket.add_infinite_timer 1800. (fun () -> run_queries dht);
       BasicSocket.add_infinite_timer 3600. (fun () -> store file dht.M.rt);
-      let routers = ["router.utorrent.com", 6881; "router.transmission.com",6881] in
+      let routers = ["router.bittorrent.com", 8991] @ peers in
       bootstrap dht ~routers;
       BasicSocket.loop ()
-    | _ -> Printf.eprintf "Usage : %s <storage> <port>\n" Sys.argv.(0)
+    | _ -> Printf.eprintf "Usage : %s <storage> <port> [<peer_addr:port>]*\n" Sys.argv.(0)
   with
     exn -> lprintf_nl "main : %s" (Printexc.to_string exn)
 
