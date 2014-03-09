@@ -145,9 +145,9 @@ CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zip.ml $(CDK)/gzip.ml $(CDK)/zlibstubs.c $(CD
 CDK_SRCS += $(LIB)/autoconf.ml
 
 
-CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(LIB)/syslog.ml $(CDK)/printf2.ml \
-  $(CDK)/heap.ml \
-  $(CDK)/printexc2.ml $(CDK)/genlex2.ml \
+CDK_SRCS+= $(LIB)/fifo.ml $(CDK)/arg2.ml $(LIB)/syslog.ml \
+  $(CDK)/printexc2.ml $(CDK)/printf2.ml \
+  $(CDK)/heap.ml $(CDK)/genlex2.ml \
   $(CDK)/filepath.ml $(CDK)/string2.ml \
   $(CDK)/filename2.ml $(CDK)/array2.ml $(CDK)/hashtbl2.ml \
   $(CDK)/unix2.ml $(CDK)/file.ml \
