@@ -13,9 +13,7 @@ let secret_timeout = minutes 10
 let alpha = 3
 
 let log_prefix = "[dht]"
-let lprintf_nl ?exn fmt = ksprintf (fun s ->
-    let exn = match exn with Some exn -> " : exn "^Printexc.to_string exn | None -> "" in
-    Printf2.lprintf_nl2 log_prefix "%s%s" s exn) fmt
+let lprintf_nl ?exn fmt = Printf2.lprintf_nl2 ?exn log_prefix fmt
 
 let catch f x = try `Ok (f x) with e -> `Exn e
 let (&) f x = f x

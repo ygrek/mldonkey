@@ -46,18 +46,13 @@ open TcpBufferedSocket
 open DonkeyOptions
 open CommonOptions
 open DonkeyComplexOptions
+open DonkeyThieves
 open DonkeyGlobals
 open DonkeyStats
-open DonkeyTypes  
+open DonkeyTypes
 open DonkeyReliability
-open DonkeyThieves
 
 module VB = VerificationBitmap
-
-let log_prefix = "[EDK]"
-
-let lprintf_nl fmt =
-  lprintf_nl2 log_prefix fmt
 
 module Udp = DonkeyProtoUdp
 
@@ -289,8 +284,7 @@ let disconnect_client c reason =
           c.client_file_queue <- [];  
           c.client_session_downloaded <- 0L;
         
-        with e -> lprintf_nl "Exception %s in disconnect_client"
-              (Printexc2.to_string e));
+        with exn -> lprintf_nl ~exn "disconnect_client");
       set_client_disconnected c reason;
       DonkeySources.source_disconnected c.client_source
   
@@ -1325,9 +1319,8 @@ let client_to_client for_files c t sock =
           c.client_all_files <- Some !list;
           client_must_update c
         
-        with e ->
-            lprintf_nl "Exception in ViewFilesReply %s"
-              (Printexc2.to_string e); 
+        with exn ->
+            lprintf_nl ~exn "ViewFilesReply"
       end;
 
   | M.AvailableSlotReq _ ->
@@ -1511,13 +1504,12 @@ other one for unlimited sockets.  *)
           try
             let file = find_file t.Q.md4 in
               received_client_bitmap c file t.Q.chunks
-          with e ->
+          with exn ->
       client_send c (M.NoSuchFileReq t.Q.md4);
-      if !verbose then lprintf_nl
-        "QueryChunksReply: Client (%s) asked for file_md4 %s, Exception %s"
+      if !verbose then lprintf_nl ~exn
+        "QueryChunksReply: Client (%s) asked for file_md4 %s"
         (full_client_identifier c)
         (Md4.to_string t.Q.md4)
-        (Printexc2.to_string e)
       end
   
   | M.QueryChunkMd4ReplyReq t ->
@@ -1783,9 +1775,8 @@ is checked for the file.
             if !verbose_unexpected_messages then
               lprintf_nl "donkeyClient: QueryFileReq: Client %s queried unpublished file %s"
           (full_client_identifier c) (Md4.to_string md4)
-        | e -> 
-            lprintf_nl "Exception %s in QueryFileReq"
-              (Printexc.to_string e)
+        | exn -> 
+            lprintf_nl ~exn "QueryFileReq"
       end
 
   | M.EmuleSignatureReq t ->
@@ -2509,11 +2500,11 @@ can be increased by AvailableSlotReq, BlocReq, QueryBlocReq
           (Ip.to_string ip) port;
                     set_client_disconnected c (Closed_connect_failed);
                     DonkeySources.source_disconnected c.client_source
-    | e -> 
-                    lprintf_nl "Exception %s in client connection to IP %s:%d"
-                      (Printexc2.to_string e) (Ip.to_string ip) port;
+    | exn -> 
+                    lprintf_nl ~exn "client connection to IP %s:%d"
+                      (Ip.to_string ip) port;
 (*                    connection_failed c.client_connection_control; *)
-                    set_client_disconnected c (Closed_for_exception e);
+                    set_client_disconnected c (Closed_for_exception exn);
                     DonkeySources.source_disconnected c.client_source
             )
           in
@@ -2628,12 +2619,10 @@ let client_connection_handler overnet t event =
                     (DonkeyProtoCom.client_handler2 c (read_first_message overnet is_connecting_server cc)
                     (client_to_client []));
                 
-                with e -> lprintf_nl "Exception %s in init_connection"
-                      (Printexc2.to_string e);
+                with exn -> lprintf_nl ~exn "init_connection"
                     );
-            with e ->
-                lprintf_nl "Exception %s in client_connection_handler"
-                  (Printexc2.to_string e);
+            with exn ->
+                lprintf_nl ~exn "client_connection_handler";
                 Unix.close s)
         end     
       else
@@ -2689,9 +2678,9 @@ let _ =
                   M.QueryChunksReq file.file_md4);
         ignore (DonkeySources.add_request c.client_source 
             file.file_sources (last_time ()))        
-      with e -> 
+      with exn -> 
         if !verbose then
-          lprintf_nl "query_source: exception %s" (Printexc2.to_string e)
+          lprintf_nl ~exn "query_source"
         );
   
   DonkeySources.functions.DonkeySources.function_connect <-
@@ -2707,9 +2696,9 @@ let _ =
        if Ip.reachable server_ip then
               query_id server_ip server_port id; 
                   
-      with e -> 
+      with exn -> 
        if !verbose then begin
-         lprintf_nl "connect_source: exception %s" (Printexc2.to_string e);
+         lprintf_nl "connect_source"
        end
   );
   
@@ -2743,9 +2732,9 @@ a FIFO from where they are removed after 30 minutes. What about using
       
       with
       | Not_found -> ()
-      | e -> 
+      | exn -> 
         if !verbose then
-          lprintf_nl "add_location: exception %s" (Printexc2.to_string e)
+          lprintf_nl ~exn "add_location"
   );
   
   DonkeySources.functions.DonkeySources.function_remove_location <- (fun
@@ -2758,8 +2747,8 @@ a FIFO from where they are removed after 30 minutes. What about using
         
       with
       | Not_found -> ()
-      | e -> 
+      | exn -> 
         if !verbose then
-          lprintf_nl "remove_location for file_md4 %s: exception %s"
-	    file_uid (Printexc2.to_string e)
+          lprintf_nl ~exn "remove_location for file_md4 %s"
+	    file_uid
   )

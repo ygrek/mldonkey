@@ -44,8 +44,8 @@ open CommonOptions
 
 let log_prefix = "[EDK]"
 
-let lprintf_nl fmt =
-  lprintf_nl2 log_prefix fmt
+let lprintf_nl ?exn fmt =
+  lprintf_nl2 ?exn log_prefix fmt
 
 (*************************************************************
 

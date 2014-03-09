@@ -26,8 +26,8 @@ open Printf2
 
 let log_prefix = "[EDK]"
     
-let lprintf_nl fmt =
-  lprintf_nl2 log_prefix fmt
+let lprintf_nl ?exn fmt =
+  lprintf_nl2 ?exn log_prefix fmt
     
 let lprintf_n fmt =
   lprintf2 log_prefix fmt
