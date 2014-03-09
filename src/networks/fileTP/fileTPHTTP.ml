@@ -46,14 +46,6 @@ open FileTPProtocol
 
 open FileTPClients
 
-let log_prefix = "[FileTP]"
-
-let lprintf_nl fmt =
-  lprintf_nl2 log_prefix fmt
-
-let lprintf_n fmt =
-  lprintf2 log_prefix fmt
-
 (*************************************************************************)
 (*                                                                       *)
 (*                         MAIN                                          *)

@@ -34,13 +34,17 @@ let lprintf_handler = ref (fun s time ->
       Printf.printf "%sMessage [%s] discarded\n" time s;
   )
 
-let show_exn = function None -> "" | Some exn -> Printf.sprintf " : %s" (Printexc.to_string exn)
+let show_exn exn s =
+  match exn with 
+  | None -> s^"\n"
+  | Some exn -> Printf.sprintf "Exception in %s : %s\n" s (Printexc2.to_string exn)
+
 let lprintf fmt = Printf.ksprintf (fun s -> try !lprintf_handler "" s with _ -> ()) fmt
 let lprintf2 m fmt = Printf.ksprintf (fun s -> try !lprintf_handler (log_time ()) (m^" "^s) with _ -> ()) fmt
 let lprintf_nl ?exn fmt =
-  Printf.ksprintf (fun s -> try !lprintf_handler (log_time ()) (s^show_exn exn^"\n") with _ -> ()) fmt
+  Printf.ksprintf (fun s -> try !lprintf_handler (log_time ()) (show_exn exn s) with _ -> ()) fmt
 let lprintf_nl2 ?exn m fmt =
-  Printf.ksprintf (fun s -> try !lprintf_handler (log_time ()) (m^" "^s^show_exn exn^"\n") with _ -> ()) fmt
+  Printf.ksprintf (fun s -> try !lprintf_handler (log_time ()) (m^" "^show_exn exn s) with _ -> ()) fmt
 
 let lprint_newline () = lprintf "\n"
 let lprint_char = lprintf "%c"

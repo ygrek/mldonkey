@@ -103,8 +103,8 @@ end_pos !counter_pos b.len to_read;
             if new_downloaded = file_size file then
               download_finished file;
 
-      with e ->
-        lprintf_nl "Exception %s in CommonSwarming.received" (Printexc2.to_string e)
+      with exn ->
+        lprintf_nl ~exn "CommonSwarming.received"
   end;
   c.client_failed_attempts <- 0;
   c.client_reconnect <- true;
@@ -260,8 +260,8 @@ let ftp_send_range_request c (x,y) sock d =
                   | _ ->
                       lprintf_nl "Cannot read ip address [%s]\n" line;
                       close sock Closed_by_user)
-                with e ->
-                    lprintf_nl "Error %s in reader" (Printexc.to_string e);
+                with exn ->
+                    lprintf_nl ~exn "reader";
                     close sock Closed_by_user)
                 | "350 " ->
                     let reqs = [Printf.sprintf "RETR %s" (snd (get_path_components file))] in
