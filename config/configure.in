@@ -1191,6 +1191,15 @@ echo "--------------------------------------"
       if test "$DONKEY_SUI" = "yes"; then
 	AC_PROG_CXX
 
+# GCC miscompiles cryptopp.cc with -O2 on armhf
+# http://mldonkey.sourceforge.net/phpBB2/viewtopic.php?p=32309#32309
+# https://bugs.launchpad.net/ubuntu/+source/mldonkey/+bug/1060007
+	case "$host" in
+		armv7l-*-linux-gnueabihf)
+			CXXFLAGS="-g -Os"
+			;;
+	esac
+
 	AC_CHECK_TOOL(NEWCXX, [$CXX], [no])
 	AC_MSG_CHECKING(eMule SUI)
 	if test x"$NEWCXX" = x"no"

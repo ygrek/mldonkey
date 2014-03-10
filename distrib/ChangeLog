@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2014/03/10:
+8350: CryptoPP: Fix compilation on armhf (ygrek)
+
 2014/02/23:
 8336: GD: Fix linking to libpng & libjpeg
 8335: Version bump miniupnpc 1.9 (ygrek)
