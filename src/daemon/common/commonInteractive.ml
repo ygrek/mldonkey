@@ -1153,3 +1153,32 @@ let _ =
   option_hook max_concurrent_downloads (fun _ ->
       ignore (force_download_quotas ())
   )
+
+let run_porttest ?udp ~tcp result =
+  result := PorttestInProgress (last_time ());
+  let module H = Http_client in
+  let url = Printf.sprintf "http://porttest.emule-project.net:81/ct_noframe.php?lang=&tcpport=%d" tcp in
+  let url = match udp with
+  | None -> url
+  | Some udp -> url ^ Printf.sprintf "&udpport=%d" udp
+  in
+  let r = { H.basic_request with
+    H.req_url = Url.of_string url;
+    (* no sense to test ports via proxy! *)
+(*       H.req_proxy = !CommonOptions.http_proxy; *)
+    H.req_max_retry = 3;
+    H.req_user_agent = get_user_agent () }
+  in
+  H.wget r begin fun file ->
+    Unix2.tryopen_read file begin fun cin ->
+      try
+        while true do
+          let line = input_line cin in
+          try
+            if Str.string_match (Str.regexp "^<P>Testing IP") line 0 then
+              result := PorttestResult (last_time (), line)
+          with _ -> ()
+        done
+      with End_of_file -> ()
+    end
+  end
