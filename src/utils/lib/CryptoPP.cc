@@ -1700,7 +1700,7 @@ static const char s_RunAtStartup = (AssignIntToInteger = FunctionAssignIntToInte
 template <class T>
 CPP_TYPENAME AllocatorBase<T>::pointer AlignedAllocator<T>::allocate(size_type n, const void *)
 {
-	CheckSize(n);
+	this->CheckSize(n);
 	if (n == 0)
 		return NULL;
 	if (n >= 4)
