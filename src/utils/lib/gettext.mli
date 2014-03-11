@@ -17,7 +17,52 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
+open Autoconf
+
+type 'a variable
+type 'a arrow
+ 
+val text_option : 'a arrow ->
+  ('a, unit, string) format Options.option_class
+  
+(*  
+let nshared = 
+  (arrow_variable int_variable int32_variable) 
+  "Shared: %d/%ld"
+    *)
+
+val save_strings : unit -> unit
 val set_strings_file : string -> unit
 
 val _b : string -> ('a, 'b, 'c, 'd) format4 -> ('a, 'b, 'c, 'd) format4
 val _s : string -> string -> string
+
+type 'a _string
+
+val bb_ : string -> ('a, 'b, 'c) format -> ('a, 'b, 'c) format _string
+val _bb : ('a, 'b, 'c) format _string -> ('a, 'b, 'c) format
+
+val ss_ : string -> string -> string _string    
+val _ss : string _string -> string      
+
+  
+module T :
+  sig
+    val int : 'b arrow -> (int -> 'b) arrow
+    val char : 'b arrow -> (char -> 'b) arrow
+    val string :  'b arrow -> (string -> 'b) arrow
+    val float :  'b arrow -> (float -> 'b) arrow
+    val bool :  'b arrow -> (bool -> 'b) arrow
+    val int32 :  'b arrow -> (int32 -> 'b) arrow
+    val int64 :  'b arrow -> (int64 -> 'b) arrow
+    val nativeint :  'b arrow -> (nativeint -> 'b) arrow
+    val format : string arrow
+    val bformat : unit arrow
+    val option : 'a arrow ->
+      ('a, unit, string) format Options.option_class
+    val boption : 'a arrow ->
+      ('a, Buffer.t, unit) format Options.option_class
+  end
+
+val gettext : ('a, unit, string) format Options.option_record -> 'a
+val buftext : Buffer.t -> ('a, Buffer.t, unit) format Options.option_record -> 'a
