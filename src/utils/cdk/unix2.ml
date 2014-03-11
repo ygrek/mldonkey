@@ -224,6 +224,8 @@ let can_write_to_directory dirname =
   | Unix.Unix_error (Unix.EACCES, _, _) ->
       lprintf_nl "can not create files in directory %s, check rights..." dirname; 
       exit 73
+  | Unix.Unix_error (Unix.ENOSPC,_,_) ->
+      lprintf_nl "directory %s is full..." dirname; 
   | Unix.Unix_error (Unix.ENOENT, _, _) ->
       (try
         safe_mkdir dirname;

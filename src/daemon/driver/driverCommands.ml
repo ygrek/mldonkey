@@ -3124,7 +3124,7 @@ let _ =
         match args with
         | [] -> ""
         | "all"::[] ->
-            Printf.bprintf buf "Verifying chunks of all file";
+            Printf.bprintf buf "Verifying chunks of all files";
             List.iter file_check !!files;
             _s "done"
         | l ->

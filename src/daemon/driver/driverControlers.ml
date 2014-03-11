@@ -105,6 +105,7 @@ let eval auth cmd o =
   let buf = o.conn_buf in
   let cmd =
     if String2.check_prefix cmd "ed2k://" ||
+       String2.check_prefix cmd "magnet:" ||
        String2.check_prefix cmd "ftp://" ||
        String2.check_prefix cmd "http://" then "dllink " ^ cmd
     else if String2.check_prefix cmd "fha://" then "ovlink " ^ cmd

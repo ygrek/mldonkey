@@ -22,7 +22,7 @@ cd config
 
 MAJOR_VERSION=3
 MINOR_VERSION=1
-SUB_VERSION=3   # range 0-7 due to eMule limitations
+SUB_VERSION=4   # range 0-7 due to eMule limitations
 
 # **********                                                                                  **********
 # **********                                  check for C compiler                            **********
@@ -623,6 +623,9 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
           $WGET http://caml.inria.fr/pub/distrib/ocaml-3.10/ocaml-"$REQUIRED_OCAML".tar.gz
         fi
         if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
+          $WGET http://caml.inria.fr/pub/distrib/ocaml-4.00/ocaml-"$REQUIRED_OCAML".tar.gz
+        fi
+        if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
           echo "********        download OCaml $REQUIRED_OCAML not successful, try do download it manually       *********" 1>&2;
           echo "********        from http://caml.inria.fr/pub/distrib/                                   *********" 1>&2;
           echo "********        and copy the tar.gz into $PATCH_DIR              *********" 1>&2;
@@ -946,13 +949,30 @@ if test "$GD" != "no"; then
     GDMAJORVERSION=`$GDLIBCONFIG --majorversion`
     GDMINORVERSION=`$GDLIBCONFIG --minorversion`
     GDREVISION=`$GDLIBCONFIG --revision`
-    if [ [ $GDMAJORVERSION = 2 ] && [ $GDMINORVERSION = 0 ] && [ $GDREVISION -gt 14 ]]; then
-	AC_MSG_RESULT($GDVERSION)
-	LIBGD=yes
-    else
-	AC_MSG_RESULT(no (found $GDVERSION))
-	LIBGD=no
-    fi
+    case $GDMAJORVERSION in
+        1)
+            AC_MSG_RESULT(no (found $GDVERSION))
+            LIBGD=no
+            ;;
+        2)
+            if test $GDMINORVERSION -ge 1; then
+                AC_MSG_RESULT($GDVERSION)
+                LIBGD=yes
+            else
+                if test $GDREVISION -gt 14; then
+                    AC_MSG_RESULT($GDVERSION)
+                    LIBGD=yes
+                else
+                    AC_MSG_RESULT(no (found $GDVERSION))
+                    LIBGD=no
+                fi
+            fi
+            ;;
+        *)
+            AC_MSG_RESULT($GDVERSION)
+            LIBGD=yes
+            ;;
+    esac
   else
     LIBGD=yes
   fi
@@ -1018,6 +1038,7 @@ if test "$GD" != "no"; then
       if test "$LIBGD_PNG" = "yes"; then
         GD=yes
 	GD_PNG=yes
+        GD_LIBS="$GD_LIBS $PNG_LIBS"
         AC_MSG_RESULT(yes)
 	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1,)])
         AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
@@ -1050,6 +1071,7 @@ if test "$GD" != "no"; then
       if test "$LIBGD_JPG" = "yes"; then
         GD=yes
 	GD_JPG=yes
+        GD_LIBS="$GD_LIBS -ljpeg"
         AC_DEFINE(HAVE_GD_JPG, 1, [Define to 1 if you have jpg support in libgd.])
         AC_MSG_RESULT(yes)
       else
@@ -1168,6 +1190,15 @@ echo "--------------------------------------"
       AC_MSG_RESULT(yes)
       if test "$DONKEY_SUI" = "yes"; then
 	AC_PROG_CXX
+
+# GCC miscompiles cryptopp.cc with -O2 on armhf
+# http://mldonkey.sourceforge.net/phpBB2/viewtopic.php?p=32309#32309
+# https://bugs.launchpad.net/ubuntu/+source/mldonkey/+bug/1060007
+	case "$host" in
+		armv7l-*-linux-gnueabihf)
+			CXXFLAGS="-g -Os"
+			;;
+	esac
 
 	AC_CHECK_TOOL(NEWCXX, [$CXX], [no])
 	AC_MSG_CHECKING(eMule SUI)
@@ -1741,8 +1772,6 @@ else
   echo "        disabled"
 fi
 
-echo ""
-printf " - GUI build        "
 if test "$LABLGTK_CONFIG" = "yes"; then
   echo ""
   printf "\n - GUI support       "
@@ -1773,10 +1802,10 @@ if test "x$CXX" != "x"; then
   echo " - $CXX version       $CXX_VERSION"
 fi
 echo ""
-echo "Now execute '$GNU_MAKE' to start compiling. Good luck!"
+echo "\nNow execute '$GNU_MAKE' to start compiling. Good luck!"
 
 echo ""
-echo "To compile a static core execute:     $GNU_MAKE mlnet$COMPILE_TARGET.static"
+echo "To compile a static code execute:     $GNU_MAKE mlnet$COMPILE_TARGET.static"
 echo "To produce a release tarball execute: $GNU_MAKE release.mlnet.static"
 echo "To clean the build directory execute: $GNU_MAKE maintainerclean"
 if test "$DONKEY_SUI" = "yes"; then
