@@ -1548,10 +1548,10 @@ let http_handler o t r =
                 read_theme_page this_page else
               if !!html_mods then !!CommonMessages.download_html_js_mods0
               else !!CommonMessages.download_html_js_old)
-        | s when String.starts_with s "api/v1/" && String.ends_with s ".json" ->
+        | s when String.starts_with s "api/1/" && String.ends_with s ".json" ->
           let s = String.slice ~last:(-5) s in
           begin match String.nsplit s "/" with
-          | "api"::"v1"::l ->
+          | "api"::"1"::l ->
             clear_page buf;
             http_add_text_header r JSON;
             let answer =

@@ -276,14 +276,17 @@ let net_name gf =
 	let n = network_find_by_num gf.file_network in
 	n.network_name
 
-let short_net_name gf =
-    let nn = net_name gf in
-	match nn with
-   | "OpenNapster" -> "N"
-   | "Direct Connect" -> "C"
-   | "FileTP" -> "T"
-   | _ -> String.sub nn 0 1
+let net_shortname gf =
+	let n = network_find_by_num gf.file_network in
+	n.network_shortname
 
+let net_name_char gf =
+  match net_name gf with
+  | "OpenNapster" -> 'N'
+  | "Direct Connect" -> 'C'
+  | "FileTP" -> 'T'
+  | "" -> '?'
+  | s -> s.[0]
 
 module Html = struct
     let begin_td buf = Printf.bprintf buf "\\<td\\>"
@@ -768,8 +771,8 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
 
           (if !!html_mods_vd_network then
 			Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
-			title=\\\"%s\\\" class=\\\"dl al\\\"\\>%s\\</td\\>"
-			file.file_num (net_name file) (short_net_name file) else "");
+			title=\\\"%s\\\" class=\\\"dl al\\\"\\>%c\\</td\\>"
+			file.file_num (net_name file) (net_name_char file) else "");
 
           ( let size = Int64.to_float file.file_size in
             let downloaded = Int64.to_float file.file_downloaded in
@@ -1003,13 +1006,13 @@ let simple_print_file_list finished buf files format =
                   (if !!term_ansi then (color)
                   else "")
                   (if format.conn_output = HTML then
-                   (Printf.sprintf "\\<a href=\\\"submit\\?q\\=vd\\+%d\\\" $S\\>%0s%4d\\</a\\>"
+                   (Printf.sprintf "\\<a href=\\\"submit\\?q\\=vd\\+%d\\\" $S\\>%c%4d\\</a\\>"
                     file.file_num
-                    (short_net_name file)
+                    (net_name_char file)
                     file.file_num)
                    else
-                    (Printf.sprintf "%0s%4d"
-                (short_net_name file)
+                    (Printf.sprintf "%c%4d"
+                (net_name_char file)
                 file.file_num))
                   (if format.conn_output = HTML then
                     Printf.sprintf "[\\<a href=\\\"submit\\?q\\=cancel\\+%d\\\" $S\\>CANCEL\\</a\\>][\\<a href=\\\"submit\\?q\\=%s\\+%d\\\" $S\\>%s\\</a\\>] "

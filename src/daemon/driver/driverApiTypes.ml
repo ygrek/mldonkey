@@ -15,7 +15,7 @@ let of_file f =
     file_size = f.file_size;
     file_downloaded = f.file_downloaded;
     file_download_rate = f.file_download_rate;
-    file_network = net_name f;
+    file_network = net_shortname f;
     file_state = f.file_state;
   }
 
