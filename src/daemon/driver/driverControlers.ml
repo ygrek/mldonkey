@@ -1296,7 +1296,7 @@ let http_handler o t r =
                         List.iter CommonInteractive.start_download files;
 
                         let module M = CommonMessages in
-                        Buffer.add_string buf (M.download_started num)
+                        Gettext.buftext buf M.download_started num
                       with  e ->
                           Printf.bprintf buf "Error %s with %s<br>"
                             (Printexc2.to_string e) value;
