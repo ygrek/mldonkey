@@ -14,7 +14,7 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
-2014/03/22
+2014/03/22: version 3.1.5 = tag release-3-1-5
 8415: Revert patch #8328 to fix GTK2 gui's compilation (ygrek)
 
 2014/03/10: version 3.1.4 = tag release-3-1-4
