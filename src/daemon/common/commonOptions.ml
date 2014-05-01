@@ -1046,7 +1046,7 @@ let web_infos = define_option current_section ["web_infos"]
     web_infos = [
     (\"server.met\", 0, \"http://www.gruk.org/server.met.gz\");
     (\"hublist\", 0, \"http://dchublist.com/hublist.xml.bz2\");
-    (\"guarding.p2p\", 96, \"http://www.bluetack.co.uk/config/level1.gz\");
+    (\"guarding.p2p\", 96, \"http://upd.emule-security.org/ipfilter.zip\");
     (\"ocl\", 24, \"http://members.lycos.co.uk/appbyhp2/FlockHelpApp/contact-files/contact.ocl\");
     (\"contact.dat\", 168, \"http://download.overnet.org/contact.dat\");
     (\"geoip.dat\", 168, \"http://www.maxmind.com/download/geoip/database/GeoLiteCountry/GeoIP.dat.gz\");
@@ -1055,7 +1055,7 @@ let web_infos = define_option current_section ["web_infos"]
     (list_option (tuple3_option (string_option, int_option, string_option)))
     [
       ("guarding.p2p", 96,
-        "http://www.bluetack.co.uk/config/level1.gz");
+        "http://upd.emule-security.org/ipfilter.zip");
       ("server.met", 0,
         "http://www.gruk.org/server.met.gz");
       ("geoip.dat", 0,
@@ -1670,7 +1670,7 @@ let max_displayed_results = define_expert_option current_section ["max_displayed
 let options_version = define_expert_option current_section ["options_version"]
   ~internal: true
   "(internal option)"
-    int_option 22
+    int_option 23
 
 let max_comments_per_file = define_expert_option current_section ["max_comments_per_file"]
   "Maximum number of comments per file"
@@ -2273,5 +2273,10 @@ let rec update_options () =
       web_infos_remove "http://download.overnet.org/contact.dat";
       enable_overnet =:= false;
       update 22
+
+  | 22 ->
+      web_infos_remove "http://www.bluetack.co.uk/config/level1.gz";
+      web_infos_add "guarding.p2p" 0 "http://upd.emule-security.org/ipfilter.zip";
+      update 23
 
   | _ -> ()
