@@ -260,11 +260,15 @@ let sprint_socket s =
 (*                                                                       *)
 (*************************************************************************)
 
-let exn_log name f x = 
-  try 
-    f x
-  with e -> 
-    lprintf_nl "[bS] %s : unexpected exn %s" name (Printexc2.to_string e)
+let exn_log name f x =
+  let b = Printexc.backtrace_status () in
+  try
+    Printexc.record_backtrace true;
+    let r = f x in
+    Printexc.record_backtrace b;
+  with e ->
+    Printexc.record_backtrace b;
+    lprintf_nl "[bS] %s : unexpected exn %s\n%s" name (Printexc2.to_string e) (Printexc.get_backtrace ())
 
 let close t msg =
   if t.fd <> dummy_fd then begin
@@ -523,7 +527,7 @@ let rec exec_timers = function
       (
         if (not t.applied) && t.next_time <= !current_time then begin
             t.applied <- true;
-            begin try t.time_handler t with _ -> () end (* exn_log -> many Fifo.empty *)
+            exn_log "time handler" t.time_handler t
           end
       );
       exec_timers tail
