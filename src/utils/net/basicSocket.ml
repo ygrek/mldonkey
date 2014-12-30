@@ -261,13 +261,14 @@ let sprint_socket s =
 (*************************************************************************)
 
 let exn_log name f x =
-  let b = Printexc.backtrace_status () in
+(*   let b = Printexc.backtrace_status () in *)
   try
-    Printexc.record_backtrace true;
-    let r = f x in
-    Printexc.record_backtrace b;
+(*     Printexc.record_backtrace true; *)
+    let () = f x in
+    ()
+(*     Printexc.record_backtrace b; *)
   with e ->
-    Printexc.record_backtrace b;
+(*     Printexc.record_backtrace b; *)
     lprintf_nl "[bS] %s : unexpected exn %s\n%s" name (Printexc2.to_string e) (Printexc.get_backtrace ())
 
 let close t msg =
