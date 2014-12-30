@@ -123,7 +123,7 @@ let encode_with_options b64 equal s pos len linelen crlf =
 
 (* If required, add another line end: *)
   
-  if linelen > 3 & !q > 0 then begin
+  if linelen > 3 && !q > 0 then begin
       if crlf then begin
           t.[ !j ] <- '\013';
           t.[ !j+1 ] <- '\010';
@@ -170,7 +170,7 @@ let decode_substring t ~pos ~len ~url_variant:p_url ~accept_spaces:p_spaces =
           match String.unsafe_get t i with
             (' '|'\t'|'\r'|'\n') -> ()
           | ('='|'.') as ch ->
-              if ch = '.' & not p_url then
+              if ch = '.' && not p_url then
                 invalid_arg "Netencoding.Base64.decode_substring";
               incr c;
               incr p;
@@ -194,11 +194,11 @@ let decode_substring t ~pos ~len ~url_variant:p_url ~accept_spaces:p_spaces =
       ( if len mod 4 <> 0 then
           invalid_arg "Netencoding.Base64.decode_substring";
         if len > 0 then (
-            if String.sub t (len - 2) 2 = "==" or 
-              (p_url & String.sub t (len - 2) 2 = "..") then 2
+            if String.sub t (len - 2) 2 = "==" ||
+              (p_url && String.sub t (len - 2) 2 = "..") then 2
             else 
-            if String.sub t (len - 1) 1 = "=" or 
-              (p_url & String.sub t (len - 1) 1 = ".") then 1
+            if String.sub t (len - 1) 1 = "=" ||
+              (p_url && String.sub t (len - 1) 1 = ".") then 1
             else
               0
           )
@@ -285,14 +285,14 @@ let decode_substring t ~pos ~len ~url_variant:p_url ~accept_spaces:p_spaces =
       let c2 = next_char() in
       let c3 = next_char() in
       
-      if (c2 = '=' & c3 = '=') or (p_url & c2 = '.' & c3 = '.') then begin
+      if (c2 = '=' && c3 = '=') or (p_url && c2 = '.' && c3 = '.') then begin
           let n0 = decode_char c0 in
           let n1 = decode_char c1 in
           let x0 = (n0 lsl 2) lor (n1 lsr 4) in
           s.[ q ]   <- Char.chr x0;
         end
       else
-      if (c3 = '=') or (p_url & c3 = '.') then begin
+      if (c3 = '=') or (p_url && c3 = '.') then begin
           let n0 = decode_char c0 in
           let n1 = decode_char c1 in
           let n2 = decode_char c2 in

@@ -198,7 +198,7 @@ let match_ip_aux bl ip =
       let rec short_march_aux a ip_hi ip_lo n =
 	if n < Array2.length a then 
 	  let br = Array2.get a n in
-	  if (compare_split ip_hi ip_lo br.short_begin_high (begin_low_bits br.short_low_hits) >= 0) &
+	  if (compare_split ip_hi ip_lo br.short_begin_high (begin_low_bits br.short_low_hits) >= 0) &&
 	    (compare_split ip_hi ip_lo br.sort_end_high (end_low_bits br.short_low_hits) <= 0) then begin
 	      br.short_low_hits <- succ_hits br.short_low_hits;
 	      n

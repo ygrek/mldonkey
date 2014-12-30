@@ -241,22 +241,22 @@ let register modname x =
       if !next_slot = Array.length !translation then begin
 
 (*              lprintf "Incrementing size\n"; *)
-          let new_array = Array.create (2 * !next_slot+ 1) false
+          let new_array = Array.make (2 * !next_slot+ 1) false
           in
           Array.blit !verified 0 new_array 0 !next_slot;
           verified := new_array;
           
-          let new_array = Array.create (2 * !next_slot+ 1) no_translation
+          let new_array = Array.make (2 * !next_slot+ 1) no_translation
           in
           Array.blit !translation 0 new_array 0 !next_slot;
           translation := new_array;
           
-          let new_array = Array.create (2 * !next_slot+ 1) 0 
+          let new_array = Array.make (2 * !next_slot+ 1) 0 
           in
           Array.blit !requests 0 new_array 0 !next_slot;
           requests := new_array;
           
-          let new_array = Array.create (2 * !next_slot+ 1) no_translation
+          let new_array = Array.make (2 * !next_slot+ 1) no_translation
           in
           Array.blit !default 0 new_array 0 !next_slot;
           default := new_array;

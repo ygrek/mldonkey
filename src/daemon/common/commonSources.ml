@@ -115,7 +115,7 @@ let queue_name = [|
 
 let nqueues = Array.length queue_name
 
-let queue_period = Array.create nqueues 600
+let queue_period = Array.make nqueues 600
 
 let () =
   queue_period.(new_sources_queue) <- 0;
@@ -527,10 +527,10 @@ module Make(M:
 
        let list_sum = List.fold_left (+) 0 in
 
-       let nsources_per_queue = Array.create nqueues 0 in
-       let nready_per_queue = Array.create nqueues 0 in
-       let nindirect_per_queue = Array.create nqueues 0 in
-       let ninvalid_per_queue = Array.create nqueues 0 in
+       let nsources_per_queue = Array.make nqueues 0 in
+       let nready_per_queue = Array.make nqueues 0 in
+       let nindirect_per_queue = Array.make nqueues 0 in
+       let ninvalid_per_queue = Array.make nqueues 0 in
        let nall = ref 0 in
        let naact = ref 0 in
        let naneed = ref 0 in
@@ -2015,8 +2015,8 @@ connected if needed *)
      let () =
        Heap.add_memstat M.module_name (fun level buf ->
 
-         let nsources_per_queue = Array.create nqueues 0 in
-         let nready_per_queue = Array.create nqueues 0 in
+         let nsources_per_queue = Array.make nqueues 0 in
+         let nready_per_queue = Array.make nqueues 0 in
          List.iter (fun m ->
            for i = 0 to nqueues -1 do
              let q = m.manager_sources.(i) in

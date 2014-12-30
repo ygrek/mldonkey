@@ -1324,7 +1324,7 @@ let _ =
   
   for best_gui_version = best_gui_version downto 24 do
 (*     lprintf "best_gui_version: %d\n" best_gui_version; *)
-    let proto = Array.create (to_gui_last_opcode+1) best_gui_version in
+    let proto = Array.make (to_gui_last_opcode+1) best_gui_version in
     let to_gui = to_gui proto in
     let check_to_gui = 
       check to_gui (GuiDecoding.to_gui proto) in

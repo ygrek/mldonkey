@@ -99,7 +99,7 @@ let file_store file str =
   if pos >= len_all_pos then begin
       let new_size = (len_all_pos + 10) * 2 in
       Unix2.c_ftruncate64 file.file_fd (Int64.of_int (new_size * file.file_entry_size)) false;
-      let new_tab = Array.create new_size 0 in
+      let new_tab = Array.make new_size 0 in
       let new_weak = Weak.create new_size in
       (try Array.blit file.file_all_pos 0 new_tab 0 pos
         with e ->
@@ -175,7 +175,7 @@ let add t v =
   let len_all_doc = Array.length t.store_all_doc in
   if doc >= len_all_doc then begin
       let new_size = (len_all_doc + 10) * 2 in
-      let new_tab = Array.create new_size 0 in
+      let new_tab = Array.make new_size 0 in
       (try Array.blit t.store_all_doc 0 new_tab 0 doc
         with e -> lprintf_nl "Error in blit %d/%d" doc len_all_doc;
             raise e)

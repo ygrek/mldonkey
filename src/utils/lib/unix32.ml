@@ -1039,7 +1039,7 @@ module SparseFile = struct
           len = zero;
           fd = fd;
         } in
-        let new_array = Array.create (nchunks+1) chunk in
+        let new_array = Array.make (nchunks+1) chunk in
         Array.blit t.chunks 0 new_array 0 nchunks;
         t.chunks <- new_array
 
@@ -1055,7 +1055,7 @@ module SparseFile = struct
             len = zero;
             fd = fd;
           } in
-          let new_array = Array.create (nchunks+1) chunk in
+          let new_array = Array.make (nchunks+1) chunk in
           Array.blit t.chunks 0 new_array 0 index;
           Array.blit t.chunks index new_array (index+1) (nchunks-index);
           t.chunks <- new_array;

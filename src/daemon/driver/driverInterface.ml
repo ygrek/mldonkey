@@ -533,9 +533,9 @@ let gui_reader (gui: gui_record) t _ =
     
     | GuiProtocol version ->
         let version = min GuiProto.best_gui_version version in
-        gui.gui_proto_to_gui_version <- Array.create 
+        gui.gui_proto_to_gui_version <- Array.make 
           (to_gui_last_opcode + 1) version;
-        gui.gui_proto_from_gui_version <- Array.create 
+        gui.gui_proto_from_gui_version <- Array.make 
           (from_gui_last_opcode + 1) version;
         if not !verbose_no_login then lprintf_nl "GUI protocol %d" version    
     
@@ -1159,8 +1159,8 @@ let new_gui gui_send gui_auth sock gui_type =
       gui_sock = sock;
       gui_search_nums = [];
       gui_events = gui_events ();
-      gui_proto_to_gui_version = Array.create (to_gui_last_opcode+1) 0;
-      gui_proto_from_gui_version = Array.create (from_gui_last_opcode+1) 0;
+      gui_proto_to_gui_version = Array.make (to_gui_last_opcode+1) 0;
+      gui_proto_from_gui_version = Array.make (from_gui_last_opcode+1) 0;
       gui_num = !gui_counter;
       gui_auth = gui_auth;
       gui_poll = false;

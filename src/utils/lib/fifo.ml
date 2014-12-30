@@ -75,7 +75,7 @@ let create () = {
     empty = true;
     inpos = 0;
     outpos = 0;
-    array = Array.create 4 (Obj.magic ());
+    array = Array.make 4 (Obj.magic ());
     size = 3;
   }
 
@@ -114,7 +114,7 @@ let mem t v =
 
 let realloc t =
   let len = Array.length t.array in
-  let tab = Array.create (2*len) t.array.(0) in
+  let tab = Array.make (2*len) t.array.(0) in
   let start = len - t.inpos in
   Array.blit t.array t.inpos tab 0 start;
   Array.blit t.array 0 tab start (len - start);
@@ -126,7 +126,7 @@ let realloc t =
 let shrink t =
   if t.size > 3 then begin
     let len = Array.length t.array in
-    let tab = Array.create (len/2) t.array.(0) in
+    let tab = Array.make (len/2) t.array.(0) in
     if t.outpos < t.inpos then begin
       Array.blit t.array t.outpos tab 0 (t.inpos - t.outpos);
       t.inpos <- t.inpos - t.outpos;
@@ -154,7 +154,7 @@ lprintf "FIFO NOT EMPTY %s" (string_of_bool t.empty); lprint_newline ();
 
 let clear t =
 (*  lprintf "FIFO CLEAR"; lprint_newline (); *)
-  let tab = Array.create 4 t.array.(0) in
+  let tab = Array.make 4 t.array.(0) in
   t.array <- tab;
   t.size <- 3;
   t.empty <- true;
@@ -189,13 +189,13 @@ let to_list t =
   if t.empty then [] else
   if t.inpos > t.outpos then
     let len = t.inpos - t.outpos in
-    let tab = Array.create len t.array.(0) in
+    let tab = Array.make len t.array.(0) in
     Array.blit t.array t.outpos tab 0 len;
     Array.to_list tab
   else
   let s = Array.length t.array in
   let len = s + t.inpos - t.outpos in
-  let tab = Array.create len t.array.(0) in
+  let tab = Array.make len t.array.(0) in
   Array.blit t.array t.outpos tab 0 (s - t.outpos);
   Array.blit t.array 0 tab (s - t.outpos) t.inpos;
   Array.to_list tab
@@ -204,13 +204,13 @@ let to_array t =
   if t.empty then [||] else
   if t.inpos > t.outpos then
     let len = t.inpos - t.outpos in
-    let tab = Array.create len t.array.(0) in
+    let tab = Array.make len t.array.(0) in
     Array.blit t.array t.outpos tab 0 len;
     tab
   else
   let s = Array.length t.array in
   let len = s + t.inpos - t.outpos in
-  let tab = Array.create len t.array.(0) in
+  let tab = Array.make len t.array.(0) in
   Array.blit t.array t.outpos tab 0 (s - t.outpos);
   Array.blit t.array 0 tab (s - t.outpos) t.inpos;
   tab
@@ -231,7 +231,7 @@ let reformat t =
   if not t.empty then begin
       let s = Array.length t.array in
       let len = s + t.inpos - t.outpos in
-      let tab = Array.create s t.array.(0) in
+      let tab = Array.make s t.array.(0) in
       Array.blit t.array t.outpos tab 0 (s - t.outpos);
       Array.blit t.array 0 tab (s - t.outpos) t.inpos;
       t.array <- tab;

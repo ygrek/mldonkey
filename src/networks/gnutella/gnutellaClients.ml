@@ -231,7 +231,7 @@ save it on disk in the next version. *)
               lprintf "[TTR] ttr loaded\n";
             let ttr = Buffer.contents buf in
             let tiger_pos = CommonUploads.tiger_pos nblocks in
-            let array = Array.create nblocks TigerTree.null in
+            let array = Array.make nblocks TigerTree.null in
             for i = 0 to nblocks - 1 do
               array.(i) <- TigerTree.direct_of_string 
                 (String.sub ttr ((tiger_pos + i) * 24) 24)

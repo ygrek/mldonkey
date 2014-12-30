@@ -78,25 +78,25 @@ they will be merged further with the pixmap "body" when we will
 call pixmap_from_xpm_d *)
 let set_downloads_pixmap_headers w h col1 col2 =
   let header =
-    Array.create 1 (Printf.sprintf "%d %d 3 1" w h) in
+    Array.make 1 (Printf.sprintf "%d %d 3 1" w h) in
   let color_none =
-    Array.create 1 (Printf.sprintf ". c None") in
+    Array.make 1 (Printf.sprintf ". c None") in
   let color1 =
-    Array.create 1 ((Printf.sprintf "a c ") ^ col1) in
+    Array.make 1 ((Printf.sprintf "a c ") ^ col1) in
   let color2 =
-    Array.create 1 ((Printf.sprintf "b c ") ^ col2) in
+    Array.make 1 ((Printf.sprintf "b c ") ^ col2) in
   downloads_pixmap_headers :=
     Some (Array.concat [header;color_none;color1;color2])
 
 let set_uploads_pixmap_headers w h col1 col2 =
   let header =
-    Array.create 1 (Printf.sprintf "%d %d 3 1" w h) in
+    Array.make 1 (Printf.sprintf "%d %d 3 1" w h) in
   let color_none =
-    Array.create 1 (Printf.sprintf ". c None") in
+    Array.make 1 (Printf.sprintf ". c None") in
   let color1 =
-    Array.create 1 ((Printf.sprintf "a c ") ^ col1) in
+    Array.make 1 ((Printf.sprintf "a c ") ^ col1) in
   let color2 =
-    Array.create 1 ((Printf.sprintf "b c ") ^ col2) in
+    Array.make 1 ((Printf.sprintf "b c ") ^ col2) in
   uploads_pixmap_headers :=
     Some (Array.concat [header;color_none;color1;color2])
 
@@ -501,7 +501,7 @@ class box () =
           download_rate_range := d;
           download_timeout := (!download_time_range * 1000 / !width );
           downloads_pixmap :=
-            Some (Array.create !height (String.make !width '.')) (*;
+            Some (Array.make !height (String.make !width '.')) (*;
           Printf.printf "DOWNLOADS GRAPH PROPERTIES HAVE CHANGED\ndownload_timeout : %d\n"
             !download_timeout;
           flush stdout*)
@@ -516,7 +516,7 @@ class box () =
           upload_rate_range := d;
           upload_timeout := (!upload_time_range * 1000 / !width );
           uploads_pixmap :=
-            Some (Array.create !height (String.make !width '.')) (*;
+            Some (Array.make !height (String.make !width '.')) (*;
           Printf.printf "UPLOADS GRAPH PROPERTIES HAVE CHANGED\nupload_timeout : %d\n"
             !upload_timeout;
           flush stdout*)
@@ -530,14 +530,14 @@ class box () =
         match !downloads_pixmap with
             None ->
               downloads_pixmap :=
-                Some (Array.create !height (String.make !width '.'));
+                Some (Array.make !height (String.make !width '.'));
           | _ -> ()
       in
       let () =
         match !uploads_pixmap with
             None ->
               uploads_pixmap :=
-                Some (Array.create !height (String.make !width '.'));
+                Some (Array.make !height (String.make !width '.'));
           | _ -> ()
       in
       draw_downloads ();

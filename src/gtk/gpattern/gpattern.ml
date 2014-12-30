@@ -318,9 +318,9 @@ class virtual ['a] filtered_plist
     method private add_hidden_item i =
       if nitems = Array.length items then begin
           let nis = nitems * 2 + 8 in
-          let is = Array.create nis i in
+          let is = Array.make nis i in
           Array.blit items 0 is 0 nitems;
-          contents <- Array.create nis dummy_line;
+          contents <- Array.make nis dummy_line;
           items <- is
         end else begin
           items.(nitems) <- i;
@@ -604,11 +604,11 @@ class virtual ['a] filtered_ptree
                  ) l;
                  let length = Array.length !array_of_children in
                  let new_nitems = nitems + length in
-                 let new_items = Array.create new_nitems {data = i.data; children = []} in
+                 let new_items = Array.make new_nitems {data = i.data; children = []} in
                  Array.blit items 0 new_items 0 (row + 1);
                  Array.blit !array_of_children 0 new_items (row + 1) length;
                  Array.blit items (row + 1) new_items (row + length + 1) (nitems - row - 1);
-                 let new_contents = Array.create new_nitems dummy_line in
+                 let new_contents = Array.make new_nitems dummy_line in
                  Array.blit contents 0 new_contents 0 (row + 1);
                  Array.blit contents row new_contents (row + length + 1) (nitems - row - 1);
                  nitems <- new_nitems;
@@ -631,10 +631,10 @@ class virtual ['a] filtered_ptree
          let (row, _) = self#find (get_key i) in
          let length = List.assoc (get_key i) is_expanded in
          let new_nitems = nitems - length in
-         let new_items = Array.create new_nitems {data = i.data; children = []} in
+         let new_items = Array.make new_nitems {data = i.data; children = []} in
          Array.blit items 0 new_items 0 (row + 1);
          Array.blit items (row + length + 1) new_items (row + 1) (nitems - row - length - 1);
-         let new_contents = Array.create new_nitems dummy_line in
+         let new_contents = Array.make new_nitems dummy_line in
          Array.blit contents 0 new_contents 0 (row + 1);
          Array.blit contents (row + length + 1) new_contents (row + 1) (nitems - row - length - 1);
          nitems <- new_nitems;
@@ -822,9 +822,9 @@ class virtual ['a] filtered_ptree
     method private add_hidden_item i =
       if nitems = Array.length items then begin
           let nis = nitems * 2 + 8 in
-          let is = Array.create nis i in
+          let is = Array.make nis i in
           Array.blit items 0 is 0 nitems;
-          contents <- Array.create nis dummy_line;
+          contents <- Array.make nis dummy_line;
           items <- is
         end else begin
           items.(nitems) <- i;

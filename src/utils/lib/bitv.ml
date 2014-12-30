@@ -47,7 +47,7 @@ let max_length = Sys.max_array_length * bpi
 let bit_j = Array.init bpi (fun j -> 1 lsl j)
 let bit_not_j = Array.init bpi (fun j -> max_int - bit_j.(j))
 
-let low_mask = Array.create (succ bpi) 0
+let low_mask = Array.make (succ bpi) 0
 let _ = 
   for i = 1 to bpi do low_mask.(i) <- low_mask.(i-1) lor bit_j.(pred i) done
 
@@ -64,10 +64,10 @@ let create n b =
   let initv = if b then max_int else 0 in
   let r = n mod bpi in
   if r = 0 then
-    { length = n; bits = Array.create (n / bpi) initv }
+    { length = n; bits = Array.make (n / bpi) initv }
   else begin
     let s = n / bpi in
-    let b = Array.create (succ s) initv in
+    let b = Array.make (succ s) initv in
     b.(s) <- b.(s) land low_mask.(r);
     { length = n; bits = b }
   end
@@ -109,12 +109,12 @@ let unsafe_set v n b =
 (*s The corresponding safe operations test the validiy of the access. *)
 
 let get v n =
-  if n < 0 or n >= v.length then invalid_arg "Bitv.get";
+  if n < 0 || n >= v.length then invalid_arg "Bitv.get";
   let (i,j) = pos n in 
   ((Array.unsafe_get v.bits i) land (Array.unsafe_get bit_j j)) > 0
 
 let set v n b =
-  if n < 0 or n >= v.length then invalid_arg "Bitv.set";
+  if n < 0 || n >= v.length then invalid_arg "Bitv.set";
   let (i,j) = pos n in
   if b then
     Array.unsafe_set v.bits i
@@ -200,8 +200,8 @@ let unsafe_blit v1 ofs1 v2 ofs2 len =
   end
 
 let blit v1 ofs1 v2 ofs2 len =
-  if len < 0 or ofs1 < 0 or ofs1 + len > v1.length
-             or ofs2 < 0 or ofs2 + len > v2.length
+  if len < 0 || ofs1 < 0 || ofs1 + len > v1.length
+             || ofs2 < 0 || ofs2 + len > v2.length
   then invalid_arg "Bitv.blit";
   unsafe_blit v1.bits ofs1 v2.bits ofs2 len
 
@@ -209,7 +209,7 @@ let blit v1 ofs1 v2 ofs2 len =
     new vector of length [len] and blitting the subvector of [v] inside. *)
 
 let sub v ofs len =
-  if ofs < 0 or len < 0 or ofs + len > v.length then invalid_arg "Bitv.sub";
+  if ofs < 0 || len < 0 || ofs + len > v.length then invalid_arg "Bitv.sub";
   let r = create len false in
   unsafe_blit v.bits ofs r.bits 0 len;
   r
@@ -282,7 +282,7 @@ let blit_ones v ofs len =
   end
 
 let fill v ofs len b =
-  if ofs < 0 or len < 0 or ofs + len > v.length then invalid_arg "Bitv.fill";
+  if ofs < 0 || len < 0 || ofs + len > v.length then invalid_arg "Bitv.fill";
   if b then blit_ones v.bits ofs len else blit_zeros v.bits ofs len
 
 (*s All the iterators are implemented as for traditional arrays, using
@@ -361,7 +361,7 @@ let bw_and v1 v2 =
   let b1 = v1.bits 
   and b2 = v2.bits in
   let n = Array.length b1 in
-  let a = Array.create n 0 in
+  let a = Array.make n 0 in
   for i = 0 to n - 1 do
     a.(i) <- b1.(i) land b2.(i)
   done;
@@ -373,7 +373,7 @@ let bw_or v1 v2 =
   let b1 = v1.bits 
   and b2 = v2.bits in
   let n = Array.length b1 in
-  let a = Array.create n 0 in
+  let a = Array.make n 0 in
   for i = 0 to n - 1 do
     a.(i) <- b1.(i) lor b2.(i)
   done;
@@ -385,7 +385,7 @@ let bw_xor v1 v2 =
   let b1 = v1.bits 
   and b2 = v2.bits in
   let n = Array.length b1 in
-  let a = Array.create n 0 in
+  let a = Array.make n 0 in
   for i = 0 to n - 1 do
     a.(i) <- b1.(i) lxor b2.(i)
   done;
@@ -394,7 +394,7 @@ let bw_xor v1 v2 =
 let bw_not v = 
   let b = v.bits in
   let n = Array.length b in
-  let a = Array.create n 0 in
+  let a = Array.make n 0 in
   for i = 0 to n - 1 do
     a.(i) <- max_int land (lnot b.(i))
   done;

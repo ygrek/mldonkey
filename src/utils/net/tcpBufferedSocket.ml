@@ -352,7 +352,7 @@ let min_buffer_read = 2000
 let min_read_size = min_buffer_read - 100
 
 let old_strings_size = 20
-let old_strings = Array.create old_strings_size ""
+let old_strings = Array.make old_strings_size ""
 let old_strings_len = ref 0
 
 let new_string () =
@@ -885,7 +885,7 @@ let create_read_bandwidth_controler name rate =
       allow_io = ref true;
       remaining_bytes_user = (fun _ _ -> ());
       moved_bytes = Int64.zero;
-      lost_bytes = Array.create 3600 0;
+      lost_bytes = Array.make 3600 0;
       forecast_bytes = 0;
       ndone_last_second = 0;
   } in
@@ -902,7 +902,7 @@ let create_write_bandwidth_controler name rate =
       allow_io = ref true;
       remaining_bytes_user = (fun _ _ -> ());
       moved_bytes = Int64.zero;
-      lost_bytes = Array.create 3600 0;
+      lost_bytes = Array.make 3600 0;
       forecast_bytes = 0;
       ndone_last_second = 0;
     } in

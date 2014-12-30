@@ -44,9 +44,9 @@ let when_disconnected (gui : gui) =
   gui.clear ()
 
   
-let to_gui_protocol_used = Array.create (to_gui_last_opcode+1) 
+let to_gui_protocol_used = Array.make (to_gui_last_opcode+1) 
   GuiProto.best_gui_version
-let from_gui_protocol_used = Array.create
+let from_gui_protocol_used = Array.make
     (from_gui_last_opcode+1) 
   GuiProto.best_gui_version
   
