@@ -285,7 +285,7 @@ let map f s =
   let len = String.length s in
   if len = 0 then [||] else
   let v = f s.[0] in
-  let array = Array.create len v in
+  let array = Array.make len v in
   for i = 1 to len -1 do 
     array.(i) <- f s.[i]
   done;

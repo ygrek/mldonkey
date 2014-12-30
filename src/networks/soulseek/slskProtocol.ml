@@ -321,8 +321,8 @@ module S2C = struct
 
 (*
           let nrooms = get_int s 0 in
-          let room_names = Array.create nrooms "" in
-          let room_nusers = Array.create nrooms 0 in
+          let room_names = Array.make nrooms "" in
+          let room_nusers = Array.make nrooms 0 in
           let rec iter_names nleft pos =
             if nleft = 0 then pos else
             let name, pos = get_string s pos in

@@ -101,8 +101,8 @@ module Make(Doc : sig
             end;
         done;
         if pos = len then begin
-            let new_docs = Array.create (len + len/2 + 2) doc in
-            let new_fields = Array.create (len + len/2 + 2) 0 in
+            let new_docs = Array.make (len + len/2 + 2) doc in
+            let new_fields = Array.make (len + len/2 + 2) 0 in
             Array.blit node.docs 0 new_docs 0 len;
             Array.blit node.fields 0 new_fields 0 len;
             node.docs <- new_docs;
@@ -124,7 +124,7 @@ module Make(Doc : sig
       let n = new_node () in
       let len = Array.length node.nodes in
       if len <= c then begin
-          let new_nodes = Array.create (c+1) None in
+          let new_nodes = Array.make (c+1) None in
           Array.blit node.nodes 0 new_nodes 0 len;
           node.nodes <- new_nodes;
         end;

@@ -283,7 +283,7 @@ module QueryMake(Index: Index) = struct
         None -> [||] 
       | Some doc ->
           let max_docs = min !count max_search_results in
-          let array = Array.create max_docs doc in
+          let array = Array.make max_docs doc in
           count := 0;
           (try
               Intmap.iter (fun num doc ->

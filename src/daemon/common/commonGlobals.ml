@@ -592,7 +592,7 @@ let update_upload_history () =
   done
 
 let update_h_download_history () =
-  if (!history_h_step = history_size * history_step) or ( (Fifo.length download_history) <= (!history_size_for_h_graph+1)) then 
+  if (!history_h_step = history_size * history_step) || ( (Fifo.length download_history) <= (!history_size_for_h_graph+1)) then 
     Fifo.put download_h_history ((List.fold_left (+) 0 (Fifo.to_list download_history)) / ((Fifo.length download_history))) 
   else 
     Fifo.put download_h_history ((List.fold_left (+) 0 
@@ -606,7 +606,7 @@ let update_h_download_history () =
 
 let update_h_upload_history () =
 	(* Fifo.put upload_h_history ((Fifo.length upload_history) / 720); *)
-  if (!history_h_step = history_size * history_step) or ((Fifo.length upload_history) <= (!history_size_for_h_graph+1)) then 
+  if (!history_h_step = history_size * history_step) || ((Fifo.length upload_history) <= (!history_size_for_h_graph+1)) then 
     Fifo.put upload_h_history ((List.fold_left (+) 0 (Fifo.to_list upload_history)) / ((Fifo.length upload_history))) 
   else 
     Fifo.put upload_h_history ((List.fold_left (+) 0 

@@ -1088,7 +1088,7 @@ let parse_udp_packet ip port buf =
     if nCount > 1 then begin
         let my_part = (get_uint8 buf 6)-1 in
 (*        lprintf "part %d on %d\n" my_part nCount; *)
-        let needed = Array.create nCount None in
+        let needed = Array.make nCount None in
         Fifo.iter (fun (p_ip, p_port, nSeq, nPart, nFlags, data) ->
             if p_port = port && nSeq = nSequence
                 && p_ip = ip then needed.(nPart) <- Some data
@@ -1505,7 +1505,7 @@ let create_qrt_table2 words table_size =
   if !verbose then
     lprintf "table_length %d\n" table_length;
 
-  let array = Array.create table_length 0 in
+  let array = Array.make table_length 0 in
   List.iter (fun w ->
       let pos = bloom_hash w table_size in
       let pos = Int64.to_int pos in

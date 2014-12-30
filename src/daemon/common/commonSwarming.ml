@@ -710,11 +710,11 @@ let create_swarmer file_name file_size =
       s_priorities_bitmap = String.make nblocks priority_zero;
       s_priorities_intervals = [(zero, 1)]; (* JAVE init all prios to 1, thus all chunks will be downloaded as usual *)
       s_disk_allocated = Bitv.create ndiskblocks false;
-      s_blocks = Array.create nblocks EmptyBlock ;
-      s_block_pos = Array.create nblocks zero;
-      s_availability = Array.create nblocks 0;
-      s_nuploading = Array.create nblocks 0;
-(*      s_last_seen = Array.create nblocks 0; *)
+      s_blocks = Array.make nblocks EmptyBlock ;
+      s_block_pos = Array.make nblocks zero;
+      s_availability = Array.make nblocks 0;
+      s_nuploading = Array.make nblocks 0;
+(*      s_last_seen = Array.make nblocks 0; *)
     }
     in
     swarmer_recompute_priorities_bitmap s;
@@ -838,13 +838,13 @@ let split_blocks s chunk_size =
   if Array2.exists ((<>) 0) s.s_nuploading then
     lprintf_nl "WARNING: splitting a swarmer beging uploaded to";
 
-  s.s_blocks <- Array.create nblocks EmptyBlock;
+  s.s_blocks <- Array.make nblocks EmptyBlock;
   s.s_verified_bitmap <- VB.create nblocks VB.State_missing;
   s.s_priorities_bitmap <- String.make nblocks priority_zero;
-  s.s_block_pos <- Array.create nblocks zero;
-  s.s_availability <- Array.create nblocks 0; (* not preserved ? *)
-  s.s_nuploading <- Array.create nblocks 0; (* not preserved ? *)
-(*  s.s_last_seen <- Array.create nblocks 0; *)
+  s.s_block_pos <- Array.make nblocks zero;
+  s.s_availability <- Array.make nblocks 0; (* not preserved ? *)
+  s.s_nuploading <- Array.make nblocks 0; (* not preserved ? *)
+(*  s.s_last_seen <- Array.make nblocks 0; *)
 
   let rec iter i list =
     match list with
@@ -894,9 +894,9 @@ let associate is_primary t s =
 
   t.t_s <- s;
   t.t_converted_verified_bitmap <- VB.create t.t_nchunks VB.State_missing;
-  t.t_last_seen <- Array.create t.t_nchunks 0;
+  t.t_last_seen <- Array.make t.t_nchunks 0;
   t.t_chunk_of_block <- [||];
-  t.t_blocks_of_chunk <- Array.create t.t_nchunks [];
+  t.t_blocks_of_chunk <- Array.make t.t_nchunks [];
 
 (* invariant: primary frontend is at the head of swarmer's
    [s_networks], and is the first associated with the swarmer *)
@@ -934,8 +934,8 @@ the t_chunk_of_block and t_blocks_of_chunk fields. *)
   (* For all networks, adjust the chunks and mappings *)
   List.iter (fun t ->
       let nchunks = VB.length t.t_converted_verified_bitmap in
-      t.t_chunk_of_block <- Array.create nblocks 0;
-      t.t_blocks_of_chunk <- Array.create nchunks [];
+      t.t_chunk_of_block <- Array.make nblocks 0;
+      t.t_blocks_of_chunk <- Array.make nchunks [];
 
       let chunk_size = t.t_chunk_size in
       for i = 0 to nblocks - 1 do
@@ -983,13 +983,13 @@ let create ss file chunk_size =
       t_nverified_chunks = 0;
 
       t_converted_verified_bitmap = VB.create nchunks VB.State_missing;
-      t_last_seen = Array.create nchunks 0;
+      t_last_seen = Array.make nchunks 0;
 
       t_verifier = NoVerification;
       t_verified = (fun _ _ -> ());
 
       t_chunk_of_block = [||];
-      t_blocks_of_chunk = Array.create nchunks [];
+      t_blocks_of_chunk = Array.make nchunks [];
     }
   in
   HT.add frontends_by_num t;

@@ -416,7 +416,7 @@ let make_torrent announce filename comment is_private =
   Unix32.flush_fd t;
   let length = Unix32.getsize64 t in
   let npieces = 1+ Int64.to_int ((length -- one) // chunk_size) in
-  let pieces = Array.create npieces Sha1.null in
+  let pieces = Array.make npieces Sha1.null in
   for i = 0 to npieces - 1 do
     let begin_pos = chunk_size *.. i in
 

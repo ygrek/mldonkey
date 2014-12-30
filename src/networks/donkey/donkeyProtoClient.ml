@@ -446,7 +446,7 @@ module QueryChunkMd4Reply = struct (* Request 80 *)
       let md4 = get_md4 s 1 in
       let nchunks = get_int16 s 17 in
 (*      lprintf "nchunks : %d" nchunks; lprint_newline (); *)
-      let chunks = Array.create nchunks md4  in
+      let chunks = Array.make nchunks md4  in
       for i = 0 to nchunks - 1 do
         chunks.(i) <- get_md4 s (19 + i * 16)
       done;
@@ -1035,7 +1035,7 @@ module EmuleRequestSourcesReply = struct
         if ncount = 0 then [||] else
         let slen = (len - 19) / ncount in
 (*        lprintf "PER SOURCES LEN: %d\n" slen; *)
-        let sources = Array.create ncount dummy_source in
+        let sources = Array.make ncount dummy_source in
         let rec iter pos i =
           if i < ncount then
             let ss =

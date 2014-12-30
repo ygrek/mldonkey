@@ -815,8 +815,8 @@ let create_qrt_table words table_size =
     lprintf "create_qrt_table\n";
   let infinity = 7 in
   let table_length = 1 lsl table_size in
-  let old_array = Array.create table_length infinity in
-  let array = Array.create table_length infinity in
+  let old_array = Array.make table_length infinity in
+  let array = Array.make table_length infinity in
   List.iter (fun w ->
       let pos = bloom_hash w table_size in
       if !verbose then

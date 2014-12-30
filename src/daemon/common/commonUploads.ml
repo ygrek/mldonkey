@@ -399,7 +399,7 @@ let flatten_tiger_array array =
 
 let unflatten_tiger_array s =
   let len = String.length s / TigerTree.length in
-  let array = Array.create len TigerTree.null in
+  let array = Array.make len TigerTree.null in
   for i = 0 to len - 1 do
     array.(i) <- TigerTree.direct_of_string
       (String.sub s (i * TigerTree.length) TigerTree.length)
@@ -409,7 +409,7 @@ let unflatten_tiger_array s =
 let make_tiger_tree array =
   let len = Array.length array in
   let pos, list = tiger_pos2 len in
-  let s = Array.create (pos + len) TigerTree.null in
+  let s = Array.make (pos + len) TigerTree.null in
   for i = 0 to len - 1 do
     s.(pos+i) <- array.(i)
   done;

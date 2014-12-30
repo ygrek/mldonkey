@@ -167,7 +167,7 @@ let get_tag (names_of_tag : (string * field) list) s pos =
         Uint16 v, pos2 + 2
     | 9 -> let v = get_uint8 s pos2 in
         Uint8 v, pos2 + 1
-    | _ when t >= 0x11 & t <= 0x20 -> let v = String.sub s pos2 (t-0x10) in
+    | _ when t >= 0x11 && t <= 0x20 -> let v = String.sub s pos2 (t-0x10) in
         String v, pos2 + t - 0x10
     | _ -> 
         if !verbose_unknown_messages then

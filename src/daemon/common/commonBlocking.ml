@@ -29,7 +29,7 @@ let ip_blocking_list = ref Ip_set.bl_empty
 let web_ip_blocking_list = ref Ip_set.bl_empty
 let country_blocking_block = ref false
 let country_blocking_list = 
-  Array.create (Array.length Geoip.country_code_array) false
+  Array.make (Array.length Geoip.country_code_array) false
 
 (* Keep a copy of valid values from !!ip_blocking_countries to
    check if geoip_hit needs really to compute the country code.

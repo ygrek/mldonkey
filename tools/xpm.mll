@@ -201,7 +201,7 @@ let readPixmapDataFromFile filename =
   try
     let lexbuf = Lexing.from_channel ic in
     let (dx,dy,ncolors,nchars) = first_line lexbuf in
-    let colors = Array.create ncolors NoColor in
+    let colors = Array.make ncolors NoColor in
     let codes = Hashtbl.create ncolors in
     for i = 0 to ncolors - 1 do
       code := String.create nchars;
@@ -209,7 +209,7 @@ let readPixmapDataFromFile filename =
       colors.(i) <- color_def lexbuf;
       Hashtbl.add codes !code i;
     done;
-    let table = Array.init dy (fun _ -> Array.create dx 0) in
+    let table = Array.init dy (fun _ -> Array.make dx 0) in
     let code = String.create nchars in
     for y = 0 to dy - 1 do
       let line = xpm_line lexbuf in

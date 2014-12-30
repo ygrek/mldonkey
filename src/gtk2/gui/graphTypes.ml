@@ -156,7 +156,7 @@ module GStack = struct
     if q.gstack_empty
     then [||]
     else begin
-      let r = Array.create (q.gstack_inpos - q.gstack_outpos) (f(Array.unsafe_get q.gstack_queue q.gstack_outpos)) in
+      let r = Array.make (q.gstack_inpos - q.gstack_outpos) (f(Array.unsafe_get q.gstack_queue q.gstack_outpos)) in
       for i = q.gstack_outpos to q.gstack_inpos - 1 do
         Array.unsafe_set r (i - q.gstack_outpos) (f(Array.unsafe_get q.gstack_queue i))
       done;
@@ -167,7 +167,7 @@ module GStack = struct
     if q.gstack_empty
     then [||]
     else begin
-      let r = Array.create (q.gstack_inpos - q.gstack_outpos) (f(Array.unsafe_get q.gstack_queue (q.gstack_inpos - 1))) in
+      let r = Array.make (q.gstack_inpos - q.gstack_outpos) (f(Array.unsafe_get q.gstack_queue (q.gstack_inpos - 1))) in
       for i = q.gstack_inpos - 1 downto q.gstack_outpos do
         Array.unsafe_set r (i - q.gstack_outpos) (f(Array.unsafe_get q.gstack_queue i))
       done;
@@ -178,7 +178,7 @@ module GStack = struct
     if q.gstack_empty
     then [||]
     else begin
-      let r = Array.create (q.gstack_inpos - q.gstack_outpos) (f 0 (Array.unsafe_get q.gstack_queue q.gstack_outpos)) in
+      let r = Array.make (q.gstack_inpos - q.gstack_outpos) (f 0 (Array.unsafe_get q.gstack_queue q.gstack_outpos)) in
       for i = q.gstack_outpos to q.gstack_inpos - 1 do
         Array.unsafe_set r (i - q.gstack_outpos) (f (i - q.gstack_outpos) (Array.unsafe_get q.gstack_queue i))
       done;
@@ -189,7 +189,7 @@ module GStack = struct
     if q.gstack_empty
     then [||]
     else begin
-      let r = Array.create (q.gstack_inpos - q.gstack_outpos) (f 0 (Array.unsafe_get q.gstack_queue (q.gstack_inpos - 1))) in
+      let r = Array.make (q.gstack_inpos - q.gstack_outpos) (f 0 (Array.unsafe_get q.gstack_queue (q.gstack_inpos - 1))) in
       for i = q.gstack_inpos - 1 downto q.gstack_outpos do
         Array.unsafe_set r (i - q.gstack_outpos) (f (i - q.gstack_outpos) (Array.unsafe_get q.gstack_queue i))
       done;

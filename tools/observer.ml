@@ -362,8 +362,8 @@ let print_record t ip_firewall s =
               | "DKNB" ->  
                   
                   let len = get_int s 0 in
-                  let ngood_propositions = Array.create len zero in
-                  let nbad_propositions = Array.create len zero in
+                  let ngood_propositions = Array.make len zero in
+                  let nbad_propositions = Array.make len zero in
                   let pos = 4 in
                   for i = 0 to len - 1 do
                     ngood_propositions.(i) <- get_int64 s (pos+i*16);

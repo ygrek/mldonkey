@@ -364,7 +364,7 @@ let print_table_text buf alignments titles lines =
       if len > !max_cols then max_cols := len
   ) lines;
   let ncols = !max_cols in
-  let cols = Array.create ncols 0 in
+  let cols = Array.make ncols 0 in
   List.iter (fun line ->
       let len = Array.length line in
       for i = 0 to len-1 do
@@ -377,7 +377,7 @@ let print_table_text buf alignments titles lines =
       Buffer.add_string buf col_sep;
   ) titles;
   Buffer.add_char buf '\n';
-  let aligns = Array.create ncols Align_Center in
+  let aligns = Array.make ncols Align_Center in
   Array.iteri (fun i al -> aligns.(i) <- al) alignments;
   List.iter (fun line ->
       let len = Array.length line in
