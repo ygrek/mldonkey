@@ -2970,20 +2970,39 @@ let _ =
 (*                                                                       *)
 (*************************************************************************)
 
-let _ =
+(* TODO richer condition language *)
+let parse_filter args =
+  match args with
+  | ["where";"priority";(">"|"<"|">="|"<="|"="|"<>" as op);n] ->
+    let n = int_of_string n in
+    let op = match op with
+    | ">" -> (>)
+    | "<" -> (<)
+    | ">=" -> (>=)
+    | "<=" -> (<=)
+    | "=" -> (=)
+    | "<>" -> (<>)
+    | _ -> assert false
+    in
+    `Filter (fun file -> op (file_priority file) n)
+  | ["all"] -> `All
+  | l -> `Files (List.map int_of_string l)
+
+let filter_files args k =
+  match parse_filter args with
+  | `All -> List.iter k !!files
+  | `Filter filter -> List.iter (fun file -> if filter file then k file) !!files
+  | `Files l -> List.iter begin fun num ->
+      match try Some (file_find num) with _ -> None with
+      | None -> ()
+      | Some file -> k file
+    end l
+
+let () =
   let resume_alias s = s, Arg_multiple (fun args o ->
-        if args = ["all"] && user2_is_admin o.conn_user.ui_user then
-          List.iter (fun file ->
-              file_resume file (admin_user ())
-          ) !!files
-        else
-          List.iter (fun num ->
-              let num = int_of_string num in
-              List.iter (fun file ->
-                  if (as_file_impl file).impl_file_num = num then
-                      file_resume file o.conn_user.ui_user
-              ) !!files) args; ""
-    ), "<num|all> :\t\t\tresume a paused download (use arg 'all' for all files)" 
+    filter_files args (fun file -> file_resume file o.conn_user.ui_user);
+    ""
+    ), "<nums|all|where filter> :\t\t\tresume a paused download (use arg 'all' for all files)"
   in
   register_commands "Driver/Downloads"
     [
@@ -2994,24 +3013,20 @@ let _ =
           p :: files ->
             let absolute, p = if String2.check_prefix p "=" then
                 true, int_of_string (String2.after p 1)
-              else false, int_of_string p in
-            List.iter (fun arg ->
-                try
-                  let file = file_find (int_of_string arg) in
-                  let priority = if absolute then p
-                    else (file_priority file) + p in
-                  let priority = if priority < -100 then -100 else
-                    if priority > 100 then 100 else priority in
-                  set_file_priority file priority;
-                  Printf.bprintf buf "Setting priority of %s to %d\n"
-                    (file_best_name file) (file_priority file);
-                with _ -> failwith (Printf.sprintf "No file number %s" arg)
-            ) files;
+              else false, int_of_string p
+            in
+            filter_files files begin fun file ->
+              let priority = if absolute then p else file_priority file + p in
+              let priority = max (-100) (min 100 priority) in
+              set_file_priority file priority;
+              Printf.bprintf buf "Setting priority of %s to %d\n"
+                (file_best_name file) (file_priority file)
+            end;
             force_download_quotas ();
             _s "done"
         | [] -> "Bad number of args"
 
-    ), "<priority> <files numbers> :\tchange file priorities";
+    ), "<priority> <nums|all|where filter> :\tchange file priorities";
 
     "download_order", Arg_two (fun num v o ->
         try
@@ -3141,23 +3156,9 @@ let _ =
     ), "<num|all> :\t\t\tverify chunks of file <num> (use 'all' for all files)";
 
     "pause", Arg_multiple (fun args o ->
-      let filter = 
-        match args with (* TODO richer condition language *)
-        | ["where";"priority";(">"|"<" as op);n] ->
-          let n = int_of_string n in
-          let op = if op = ">" then (>) else (<) in
-          (fun file -> op (file_priority file) n)
-        | ["all"] -> (fun _ -> true)
-        | l ->
-          let l = List.map int_of_string l in
-          (fun file -> List.mem (file_num file) l)
-      in
-      List.iter begin fun file ->
-        if filter file then
-          file_pause file o.conn_user.ui_user
-      end !!files;
+      filter_files args (fun file -> file_pause file o.conn_user.ui_user);
       ""
-    ), "<num|all|where priority < prio> :\t\t\tpause a download (use arg 'all' for all files)";
+    ), "<nums|all|where priority < prio> :\t\t\tpause a download (use arg 'all' for all files)";
 
     resume_alias "resume";
     resume_alias "unpause";
