@@ -191,7 +191,7 @@ value camlzip_inflateEnd(value vzs)
 
 value camlzip_update_crc32(value crc, value buf, value pos, value len)
 {
-  return copy_int32(crc32((uint32) Int32_val(crc), 
+  return copy_int32(crc32((uint32_t) Int32_val(crc), 
                           &Byte_u(buf, Long_val(pos)),
                           Long_val(len)));
 }
