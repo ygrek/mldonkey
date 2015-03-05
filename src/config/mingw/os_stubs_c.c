@@ -110,13 +110,13 @@ int os_getdtablesize()
 
 *******************************************************************/
 
-int64 os_getfdsize(OS_FD fd)
+int64_t os_getfdsize(OS_FD fd)
 {
   long len_high;
-  int64 ret;
+  int64_t ret;
 
   ret = GetFileSize(fd, &len_high);
-  return ((int64) len_high << 32 | ret);
+  return ((int64_t) len_high << 32 | ret);
 }
 
 /*******************************************************************
@@ -127,7 +127,7 @@ int64 os_getfdsize(OS_FD fd)
 
 *******************************************************************/
 
-int64 os_getfilesize(char *path)
+int64_t os_getfilesize(char *path)
 {
   OS_FD fd = CreateFile(path, GENERIC_READ, FILE_SHARE_READ,
 			NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
@@ -137,7 +137,7 @@ int64 os_getfilesize(char *path)
   if (fd != INVALID_HANDLE_VALUE){
     ret = GetFileSize(fd, &len_high);
     CloseHandle(fd);
-    return  ((int64) len_high << 32 | ret);
+    return  ((int64_t) len_high << 32 | ret);
   } else {
     long err = GetLastError();
     if (err != NO_ERROR) {
