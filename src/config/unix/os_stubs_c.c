@@ -66,7 +66,7 @@ ssize_t os_read(OS_FD fd, char *buf, size_t len)
 
 void os_ftruncate(OS_FD fd, OFF_T len, /* bool */ int sparse)
 {
-  int64 cursize;
+  int64_t cursize;
   if(!fd) failwith("ftruncate32: file is closed");
   
   cursize = os_getfdsize(fd);
@@ -109,7 +109,7 @@ int os_getdtablesize()
 
 *******************************************************************/
 
-int64 os_getfdsize(OS_FD fd)
+int64_t os_getfdsize(OS_FD fd)
 {
   struct stat buf;
 
@@ -127,7 +127,7 @@ int64 os_getfdsize(OS_FD fd)
 
 *******************************************************************/
 
-int64 os_getfilesize(char *path)
+int64_t os_getfilesize(char *path)
 {
   struct stat buf;
 
