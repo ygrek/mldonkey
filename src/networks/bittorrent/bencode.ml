@@ -19,46 +19,6 @@
 
 open Printf2
 
-(*
- {
- "announce" = "http://sucs.org:6969/announce";
- "info" =  {
- "files" =  [
-  {
-  "length" =  682164224;
-  "path" =  [
-  "Mandrake91-cd1-inst.i586.iso";
-   ]
-   ;
-    }
-    ;
-     {
-     "length" =  681279488;
-     "path" =  [
-     "Mandrake91-cd2-ext.i586.iso";
-      ]
-      ;
-       }
-       ;
-        {
-        "length" =  681574400;
-        "path" =  [
-        "Mandrake91-cd3-i18n.i586.iso";
-         ]
-         ;
-          }
-          ;
-           ]
-           ;
-           "name" = "mandrake9.1";
-           "piece length" =  262144;
-           "pieces" =  "[EAd\155ã´gÛ ÓþËf\134Ê«\025\016ôÍµ,1U\150À
-\132\147îª\n%ù\\é,\012ÿC\008GÈÓd!æ¾öuL!\134Ô\016\152&\017¾\008³¢d\029Ë3\031Ï\134#»×\025\137¡=¢.®\019§´\138î.ñ\151O\137Ùÿ,£ç&\019ÀÛ¢Ã§\156.ù\150<Eªª\153\018\145\149d\147[+J=º\155l\139Î\028¡dVÉ\000-\017°Å¤\013\154¼>A¹Ã5ïIt\007\020©ãÚÀÈÈ\014O®ô1\152UÄ\026K\021^ãúì5Í¿ü \026\149\131q\024\015¸]Òþ£\027&\148\\ã-©\028WMÂ5...";
- }
- ;
-  }
-
-*)
 type value =
   | String of string
   | Int of int64
@@ -89,7 +49,8 @@ let decode s =
             | _ -> iter_i s (pos+1) len
         in
         let end_pos = iter_i s (pos+1) len in
-        (Int (Int64.of_string (String.sub s (pos+1) (end_pos-pos-1)))),
+        let number = String.sub s (pos+1) (end_pos-pos-1) in
+        (Int (try Int64.of_string number with _ -> Int64.of_float (float_of_string number))),
           (end_pos+1)
    | 'l' ->
         let rec iter s pos len list =
