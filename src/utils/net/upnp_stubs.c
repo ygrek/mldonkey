@@ -640,7 +640,17 @@ upnpPulse( ml_upnpmp_t * map )
     {
         struct UPNPDev * devlist;
         errno = 0;
-        devlist = upnpDiscover( 2000, NULL, NULL, 0, 0, 0 );
+        devlist = upnpDiscover(
+          2000, /* delay */
+          NULL, /* multicastif */
+          NULL, /* minissdpsock */
+          0,    /* localport */
+          0,    /* ipv6 */
+#if MINIUPNPC_API_VERSION >= 14
+          2,    /* ttl */
+#endif
+          NULL  /* error */
+        );
         if( devlist == NULL )
         {
             dbg_printf( "upnpDiscover failed (errno %d - %s)\n", errno,  str_errno( errno ) );
