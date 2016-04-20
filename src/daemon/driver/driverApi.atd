@@ -62,3 +62,16 @@ type result = {
 type results = result list
 
 type result_download = { started : int }
+
+type client = {
+  software : string;
+  ?os : string option;
+  version : string;
+  queue_length : int;
+  total_uploaded : int <ocaml repr="int64">;
+  total_downloaded : int <ocaml repr="int64">;
+  session_uploaded : int <ocaml repr="int64">;
+  session_downloaded : int <ocaml repr="int64">;
+} <ocaml field_prefix="client_">
+
+type clients = client list

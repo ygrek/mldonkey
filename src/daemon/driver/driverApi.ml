@@ -32,6 +32,12 @@ let handle o r cmd =
     | l -> J.string_of_failed { T.failed = l; }
   in
   match cmd with
+  | "clients"::[] ->
+    let l = CommonClient.clients_get_all () in
+    J.string_of_clients @@ List.map (fun num ->
+      let c = CommonClient.client_find num in
+      M.of_client @@ CommonClient.client_info c) l
+
   | "downloads" :: [] ->
     J.string_of_files @@ List.map M.of_file !!files
 

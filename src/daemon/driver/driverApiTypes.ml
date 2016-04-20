@@ -26,6 +26,14 @@ let of_search { CommonTypes.search_num; search_string; search_waiting; search_nr
       search_results = search_nresults;
     }
 
+let of_client { GuiTypes.client_software; client_os; client_release; client_file_queue;
+        client_total_uploaded; client_total_downloaded; client_session_uploaded;
+        client_session_downloaded; } =
+    { T.client_software; client_os; client_version=client_release; client_queue_length = List.length client_file_queue;
+      client_total_uploaded; client_total_downloaded; client_session_uploaded;
+      client_session_downloaded;
+    }
+
 let strings_of_tags =
   List.filter_map (fun { tag_name; tag_value; } ->
     match tag_name with
