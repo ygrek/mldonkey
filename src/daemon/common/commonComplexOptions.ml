@@ -154,7 +154,7 @@ module FileOption = struct
           set_file_state file file_state;       
 
           (try
-              set_file_best_name file filename "" 0
+              set_file_best_name file filename 0
             with _ -> ());
 
           (try

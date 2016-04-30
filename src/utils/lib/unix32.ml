@@ -1804,68 +1804,73 @@ let percentfree dir =
       end
   | _ -> None
 
-let filesystem dir =
+type fstype = [ `Win | `Posix | `Mac | `Unknown ]
+
+let filesystem' dir =
   try
     let s = statfs dir in
     match s.f_type with
 (* values copied from statfs(2) manpage *)
-    | 0xadf5L -> "ADFS_SUPER_MAGIC"
-    | 0xADFFL -> "AFFS_SUPER_MAGIC"
-    | 0x42465331L -> "BEFS_SUPER_MAGIC"
-    | 0x1BADFACEL -> "BFS_MAGIC"
-    | 0xFF534D42L -> "CIFS_MAGIC_NUMBER"
-    | 0x73757245L -> "CODA_SUPER_MAGIC"
-    | 0x012FF7B7L -> "COH_SUPER_MAGIC"
-    | 0x28cd3d45L -> "CRAMFS_MAGIC"
-    | 0x1373L -> "DEVFS_SUPER_MAGIC"
-    | 0x00414A53L -> "EFS_SUPER_MAGIC"
-    | 0x137DL -> "EXT_SUPER_MAGIC"
-    | 0xEF51L -> "ext2" (* EXT2_OLD_SUPER_MAGIC *)
-    | 0xEF53L -> "ext2/3/4" (* EXT2/3/4_SUPER_MAGIC *)
-    | 0x4244L -> "HFS_SUPER_MAGIC"
-    | 0xF995E849L -> "HPFS_SUPER_MAGIC"
-    | 0x958458f6L -> "HUGETLBFS_MAGIC"
-    | 0x9660L -> "ISOFS_SUPER_MAGIC"
-    | 0x4000L -> "ISOFS_SUPER_MAGIC_WIN" (* from coreutils-5.2.1, stat.c *)
-    | 0x4004L -> "ISOFS_SUPER_MAGIC_R_WIN" (* from coreutils-5.2.1, stat.c *)
-    | 0x72b6L -> "JFFS2_SUPER_MAGIC"
-    | 0x3153464aL -> "JFS_SUPER_MAGIC"
-    | 0x137FL -> "MINIX_SUPER_MAGIC"
-    | 0x138FL -> "MINIX_SUPER_MAGIC2"
-    | 0x2468L -> "MINIX2_SUPER_MAGIC"
-    | 0x2478L -> "MINIX2_SUPER_MAGIC2"
-    | 0x4d44L -> "msdos" (* MSDOS_SUPER_MAGIC *)
-    | 0x4006L -> "fat" (* from coreutils-5.2.1, stat.c *)
-    | 0x564cL -> "NCP_SUPER_MAGIC"
-    | 0x6969L -> "NFS_SUPER_MAGIC"
-    | 0x5346544eL -> "ntfs" (* NTFS_SB_MAGIC *)
-    | 0x9fa1L -> "OPENPROM_SUPER_MAGIC"
-    | 0x9fa0L -> "PROC_SUPER_MAGIC"
-    | 0x002fL -> "QNX4_SUPER_MAGIC"
-    | 0x52654973L -> "reiserfs" (* REISERFS_SUPER_MAGIC *)
-    | 0x52345362L -> "reiser4"
-    | 0x7275L -> "ROMFS_MAGIC"
-    | 0x517BL -> "smb" (* SMB_SUPER_MAGIC *)
-    | 0x012FF7B6L -> "SYSV2_SUPER_MAGIC"
-    | 0x012FF7B5L -> "SYSV4_SUPER_MAGIC"
-    | 0x01021994L -> "tmpfs" (* TMPFS_MAGIC *)
-    | 0x15013346L -> "UDF_SUPER_MAGIC"
-    | 0x00011954L -> "UFS_MAGIC"
-    | 0x9fa2L -> "USBDEVICE_SUPER_MAGIC"
-    | 0xa501FCF5L -> "VXFS_SUPER_MAGIC"
-    | 0x012FF7B4L -> "XENIX_SUPER_MAGIC"
-    | 0x58465342L -> "xfs" (* XFS_SUPER_MAGIC *)
-    | 0x012FD16DL -> "_XIAFS_SUPER_MAGIC"
-    | 0x9123683EL -> "btrfs"
-    | 5L -> "iso9660" (* Cygwin *)
-    | 6L -> "fat" (* Cygwin *)
-    | 0x700FFL -> "ntfs" (* Cygwin *)
-    | 0xC3L -> "ext2/3" (* Cygwin *)
+    | 0xadf5L -> "ADFS_SUPER_MAGIC", `Unknown
+    | 0xADFFL -> "AFFS_SUPER_MAGIC", `Unknown
+    | 0x42465331L -> "BEFS_SUPER_MAGIC", `Unknown
+    | 0x1BADFACEL -> "BFS_MAGIC", `Unknown
+    | 0xFF534D42L -> "CIFS_MAGIC_NUMBER", `Win
+    | 0x73757245L -> "CODA_SUPER_MAGIC", `Unknown
+    | 0x012FF7B7L -> "COH_SUPER_MAGIC", `Unknown
+    | 0x28cd3d45L -> "CRAMFS_MAGIC", `Unknown
+    | 0x1373L -> "DEVFS_SUPER_MAGIC", `Unknown
+    | 0x00414A53L -> "EFS_SUPER_MAGIC", `Unknown
+    | 0x137DL -> "EXT_SUPER_MAGIC", `Posix
+    | 0xEF51L -> "ext2", `Posix (* EXT2_OLD_SUPER_MAGIC *)
+    | 0xEF53L -> "ext2/3/4", `Posix (* EXT2/3/4_SUPER_MAGIC *)
+    | 0x4244L -> "HFS_SUPER_MAGIC", `Mac
+    | 0xF995E849L -> "HPFS_SUPER_MAGIC", `Unknown
+    | 0x958458f6L -> "HUGETLBFS_MAGIC", `Unknown
+    | 0x9660L -> "ISOFS_SUPER_MAGIC", `Win
+    | 0x4000L -> "ISOFS_SUPER_MAGIC_WIN", `Win (* from coreutils-5.2.1, stat.c *)
+    | 0x4004L -> "ISOFS_SUPER_MAGIC_R_WIN", `Win (* from coreutils-5.2.1, stat.c *)
+    | 0x72b6L -> "JFFS2_SUPER_MAGIC", `Posix
+    | 0x3153464aL -> "JFS_SUPER_MAGIC", `Posix
+    | 0x137FL -> "MINIX_SUPER_MAGIC", `Posix
+    | 0x138FL -> "MINIX_SUPER_MAGIC2", `Posix
+    | 0x2468L -> "MINIX2_SUPER_MAGIC", `Posix
+    | 0x2478L -> "MINIX2_SUPER_MAGIC2", `Posix
+    | 0x4d44L -> "msdos", `Win (* MSDOS_SUPER_MAGIC *)
+    | 0x4006L -> "fat", `Win (* from coreutils-5.2.1, stat.c *)
+    | 0x564cL -> "NCP_SUPER_MAGIC", `Unknown
+    | 0x6969L -> "NFS_SUPER_MAGIC", `Unknown
+    | 0x5346544eL -> "ntfs", `Win (* NTFS_SB_MAGIC *)
+    | 0x9fa1L -> "OPENPROM_SUPER_MAGIC", `Unknown
+    | 0x9fa0L -> "PROC_SUPER_MAGIC", `Posix
+    | 0x002fL -> "QNX4_SUPER_MAGIC", `Posix
+    | 0x52654973L -> "reiserfs", `Posix (* REISERFS_SUPER_MAGIC *)
+    | 0x52345362L -> "reiser4", `Posix
+    | 0x7275L -> "ROMFS_MAGIC", `Unknown
+    | 0x517BL -> "smb", `Win (* SMB_SUPER_MAGIC *)
+    | 0x012FF7B6L -> "SYSV2_SUPER_MAGIC", `Posix
+    | 0x012FF7B5L -> "SYSV4_SUPER_MAGIC", `Posix
+    | 0x01021994L -> "tmpfs", `Posix (* TMPFS_MAGIC *)
+    | 0x15013346L -> "UDF_SUPER_MAGIC", `Win
+    | 0x00011954L -> "UFS_MAGIC", `Win
+    | 0x9fa2L -> "USBDEVICE_SUPER_MAGIC", `Unknown
+    | 0xa501FCF5L -> "VXFS_SUPER_MAGIC", `Unknown
+    | 0x012FF7B4L -> "XENIX_SUPER_MAGIC", `Posix
+    | 0x58465342L -> "xfs", `Posix (* XFS_SUPER_MAGIC *)
+    | 0x012FD16DL -> "_XIAFS_SUPER_MAGIC", `Unknown
+    | 0x9123683EL -> "btrfs", `Posix
+    | 5L -> "iso9660", `Win (* Cygwin *)
+    | 6L -> "fat", `Win (* Cygwin *)
+    | 0x700FFL -> "ntfs", `Win (* Cygwin *)
+    | 0xC3L -> "ext2/3", `Win (* Cygwin *)
     | _ -> if s.f_basetype <> "-1" then
-	     s.f_basetype
+	     s.f_basetype, `Unknown
 	   else
-	     Printf.sprintf "unknown (%LX)" s.f_type
-  with e -> "not supported"
+	     Printf.sprintf "unknown (%LX)" s.f_type, `Unknown
+  with e -> "not supported", `Unknown
+
+let filesystem dir = fst (filesystem' dir)
+let filesystem_type dir = snd (filesystem' dir)
 
 let set_max_cache_size v =
   max_cache_size := v;

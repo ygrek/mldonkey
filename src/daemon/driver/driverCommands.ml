@@ -3256,7 +3256,7 @@ let () =
         let num = int_of_string arg in
         try
           let file = file_find num in
-          set_file_best_name file new_name "" 0;
+          set_file_best_name file new_name 0;
           Printf.sprintf (_b "Download %d renamed to %s") num (file_best_name file)
         with e -> Printf.sprintf (_b "No file number %d, error %s") num (Printexc2.to_string e)
     ), "<num> \"<new name>\" :\t\tchange name of download <num> to <new name>";
