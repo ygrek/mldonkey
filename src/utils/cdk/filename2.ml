@@ -138,7 +138,7 @@ let basename filename =
   in
   iter (path_of_filename filename) filename
 
-let filesystem_compliant name fs namemax =
+let filesystem_compliant name fstype namemax =
   (* replace all illegal characters with a valid one.
      assumes all filesystems accept '_'s in filenames *)
   let escape_chars p filename =
@@ -200,12 +200,12 @@ let filesystem_compliant name fs namemax =
     escape_chars macosx_filter name in
 
   let sys_checked_name =
-    if Autoconf.windows then 
-      windows_compliant name
-    else if Autoconf.system = "macos" then 
-      macosx_compliant name
-    else 
-      posix_compliant name in
+    match fstype with
+    | `Win -> windows_compliant name
+    | `Mac -> macosx_compliant name
+    | `Posix
+    | `Unknown -> posix_compliant name
+  in
 
   let fs_checked_name =
     let remove_last_spaces s =
@@ -221,9 +221,10 @@ let filesystem_compliant name fs namemax =
       else String.sub s 0 last_space
     in
 (* FAT filesystems do not allow files with space as last char *)
-    match fs with
-      "msdos" -> remove_last_spaces sys_checked_name
-    | _ -> sys_checked_name in
+    match fstype with
+    | `Win -> remove_last_spaces sys_checked_name
+    | _ -> sys_checked_name
+  in
 
   let length_checked_name =
     if namemax < 1 || String.length sys_checked_name < namemax then

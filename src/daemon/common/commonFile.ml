@@ -323,7 +323,7 @@ let file_best_name (file : file) =
   let file = as_file_impl file in
   file.impl_file_best_name
   
-let set_file_best_name file name fs namemax =
+let set_file_best_name file name ?(fs=`Unknown) namemax =
   let file = as_file_impl file in
   let old_name = file.impl_file_best_name in
   let real_name = Filename2.filesystem_compliant name fs namemax in
@@ -1271,7 +1271,7 @@ let lprintf_file_nl ?exn file fmt =
 	       "[temp " ^ (file_disk_name file) ^ "]") fmt
 
 let concat_file dir filename =
-  let fs = Unix32.filesystem dir in
+  let fs = Unix32.filesystem_type dir in
   let namemax =
     match Unix32.fnamelen dir with
     | None -> 0

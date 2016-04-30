@@ -92,7 +92,7 @@ val set_file_release : CommonTypes.file -> bool -> CommonTypes.userdb -> unit
 val file_release : CommonTypes.file -> bool
 val set_file_state : CommonTypes.file -> CommonTypes.file_state -> unit
 val file_best_name : CommonTypes.file -> string
-val set_file_best_name : CommonTypes.file -> string -> string -> int -> unit
+val set_file_best_name : CommonTypes.file -> string -> ?fs:Unix32.fstype -> int -> unit
 val add_file_filenames : CommonTypes.file -> string -> unit
 val shorten_all_file_filenames : int -> unit
 val set_file_format : CommonTypes.file -> CommonTypes.format -> unit

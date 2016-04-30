@@ -324,7 +324,7 @@ let update_best_name file =
       match impl.impl_file_probable_name with
         None -> ()
       | Some best_name ->
-          set_file_best_name file best_name "" 0
+          set_file_best_name file best_name 0
     with Not_found -> ()
 
 let new_file file_diskname file_state md4 file_size filename writable user group =

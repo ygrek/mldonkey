@@ -615,7 +615,7 @@ let parse_donkey_url url user group =
         let md4 = if String.length md4 > 32 then
           String.sub md4 0 32 else md4 in
 	let name =
-	  let name2 = Filename2.filesystem_compliant name "" 0 in
+	  let name2 = Filename2.filesystem_compliant name `Unknown 0 in
 	    if name2 = "" then
 	      Printf.sprintf "urn_ed2k_%s" md4
 	    else
@@ -1297,7 +1297,7 @@ let _ =
 let _ =
   file_ops.op_file_save_as <- (fun file name ->
       add_file_filenames (as_file file) name;
-      set_file_best_name (as_file file) name "" 0
+      set_file_best_name (as_file file) name 0
   );
   file_ops.op_file_shared <- (fun file ->
       match file.file_shared with

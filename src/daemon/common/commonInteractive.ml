@@ -135,7 +135,7 @@ let send_dirfull_warning dir full line1 =
 
 let file_committed_name incoming_dir file =
   (try Unix2.safe_mkdir incoming_dir with _ -> ());
-  let fs = Unix32.filesystem incoming_dir in
+  let fs = Unix32.filesystem_type incoming_dir in
   let namemax =
     match Unix32.fnamelen incoming_dir with
     | None -> 0
@@ -157,7 +157,7 @@ let file_committed_name incoming_dir file =
       in
       iter 1
     else new_name in
-  set_file_best_name file (file_best_name file) fs namemax;
+  set_file_best_name file (file_best_name file) ~fs namemax;
   Filename.concat incoming_dir new_name
 
 let script_for_file file incoming new_name =
