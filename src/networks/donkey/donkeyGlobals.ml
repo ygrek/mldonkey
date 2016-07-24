@@ -781,7 +781,6 @@ let set_client_name c name md4 =
       c.client_md4 <- md4;
     end
 
-exception ClientFound of client
 let find_client_by_name name =
   try
     H.iter (fun c ->
