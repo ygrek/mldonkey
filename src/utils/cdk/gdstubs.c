@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include <caml/mlvalues.h>
 #include <caml/custom.h>
@@ -489,7 +490,7 @@ int ml_image_pngversion(void)
   CAMLlocal1 (v);
 #ifdef HAVE_PNGVERSION
   #include <png.h>
-  v = copy_int32 ((int32)png_access_version_number());
+  v = copy_int32 ((int32_t)png_access_version_number());
   CAMLreturn (v);
 #else
   raise_constant(*(value *)caml_named_value("gd type not supported"));
