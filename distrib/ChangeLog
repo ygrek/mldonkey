@@ -14,6 +14,9 @@ http://mldonkey.sourceforge.net/Windows#MinGW_Installation
 ChangeLog
 =========
 
+2017/01/22: ygrek
+Changes after 3.1.5 are in CHANGES file in the project root directory
+
 2014/03/22: version 3.1.5 = tag release-3-1-5
 8415: Revert patch #8328 to fix GTK2 gui's compilation (ygrek)
 

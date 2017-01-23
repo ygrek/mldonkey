@@ -1,0 +1,20 @@
+Bugs mentioned as #<N> are referencing github issues
+at https://github.com/ygrek/mldonkey/issues
+
+Changelog
+=========
+
+2017/01/22:
+* BT: better diagnostics of wrong udp tracker reply
+* BT/DHT: update public router addresses
+* fix buffer overflows in DNS resolution
+* update default blocklist url (Closes #4)
+* fix build with OCaml 4.02 (closes #6)
++ extend command conditions (pause, resume, priority) (ref #9)
+* Fix compilation errors with gcc5 (closes #12) (Christopher Meng)
+* BT: relaxed parsing of bencoded numbers
+* fix build with libminiupnpc 1.9 (closes #13)
+* escape filename based on filesystem, not OS type
+* Fix compilation with OCaml 4.03.0 (Bastien Dejean)
+
+See distrib/ChangeLog for older entries
