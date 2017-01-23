@@ -4,7 +4,9 @@ at https://github.com/ygrek/mldonkey/issues
 Changelog
 =========
 
-2017/01/22:
+3.1.6 - 2017/01/22
+------------------
+
 * BT: better diagnostics of wrong udp tracker reply
 * BT/DHT: update public router addresses
 * fix buffer overflows in DNS resolution
