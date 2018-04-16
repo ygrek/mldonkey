@@ -28,8 +28,8 @@ NO_LIBS_opt=
 NO_STATIC_LIBS_opt=
 NO_CMXA=
 
-LIBS_byte=-custom bigarray.cma unix.cma str.cma nums.cma
-LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa nums.cmxa
+LIBS_byte=-custom bigarray.cma unix.cma str.cma
+LIBS_opt= bigarray.cmxa unix.cmxa str.cmxa
 
 BIGARRAY_LIBS_opt=bigarray.cmxa
 BIGARRAY_LIBS_byte=bigarray.cma
@@ -591,6 +591,8 @@ BITSTRING_CMXA=bitstring.cmxa
 BITSTRING_CMA=bitstring.cma
 endif
 ifeq ("$(BITTORRENT)", "yes")
+LIBS_byte += nums.cma
+LIBS_opt += nums.cmxa
 BITSTRING_CMXA=bitstring.cmxa
 BITSTRING_CMA=bitstring.cma
 endif
