@@ -1850,7 +1850,7 @@ rpm: sourcedist
 	$(OCAMLC) $(DEVFLAGS) $(INCLUDES) -c $<
 
 .mlcpp.ml:
-	@$(CPP) -x c -P $< $(FIX_BROKEN_CPP) > $@
+	@$(CPP) -x c -DOCAMLVERSION_MAJOR=$(OCAMLVERSION_MAJOR) -P $< $(FIX_BROKEN_CPP) > $@
 
 %.ml: %.mlp $(BITSTRING)/pa_bitstring.cmo
 	$(CAMLP4OF) build/bitstring.cma $(BITSTRING)/bitstring_persistent.cmo $(BITSTRING)/pa_bitstring.cmo -impl $< -o $@

@@ -222,11 +222,7 @@ type geoip_database = {
   segments: int;
   record_length: int;
   map: (int, int8_unsigned_elt, c_layout) Array1.t;
-} 
-
-let new_map file =
-  Array1.map_file (Unix.descr_of_in_channel file) 
-    int8_unsigned c_layout false (-1)
+}
 
 let unpack filename =
   let ext = String.lowercase (Filename2.extension filename) in
@@ -281,7 +277,7 @@ let open_geoip_db filename =
   try
     let f = open_in filename in
     let size = in_channel_length f in
-    let map = new_map f in
+    let map = Misc2.map_file f in
 
     let new_database ?offset dbtype =
       let read_segment_size () =

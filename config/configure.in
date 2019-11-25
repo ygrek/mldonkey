@@ -732,6 +732,7 @@ fi
 fi
 
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
+OCAMLVERSION_MAJOR=`echo $OCAMLVERSION | sed -n -e 's/^\([[0-9]]*\.[[0-9]]*\).*/\1/' -e 's/\.//gp'`
 OCAMLLIB=`$OCAMLC -where`
 
 # check if native dynlink is supported and therefore needed for linking
@@ -1621,6 +1622,7 @@ AC_SUBST(CXX_VERSION)
 AC_SUBST(CONFIGURE_ARGUMENTS)
 AC_SUBST(CONFIGURE_RUN)
 AC_SUBST(DEVFLAGS)
+AC_SUBST(OCAMLVERSION_MAJOR)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
