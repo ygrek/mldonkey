@@ -111,8 +111,6 @@ let gz_extract filename =
     (try if !file <> "" then Sys.remove !file with _ -> ()); 
     raise e
 
-open Misc2
-
 let archive_extract filename archive_type =
   match archive_type with
     "zip" -> zip_extract filename; ""

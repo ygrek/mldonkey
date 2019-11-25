@@ -17,8 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Autoconf
-
 val syslog_oc : Syslog.t option ref
 
 val lprintf_original_output : out_channel option ref

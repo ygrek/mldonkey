@@ -18,10 +18,8 @@
 *)
 
 open Md4
-open CommonOptions
 open Options
-open GnutellaNetwork
-  
+
 let gnutella_ini = create_options_file GnutellaNetwork.config_file
 
 let gnutella_section = file_section gnutella_ini ["Gnutella"] "Gnutella options"  

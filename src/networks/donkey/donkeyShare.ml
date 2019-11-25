@@ -19,17 +19,11 @@
 
 open Int64ops
 open CommonGlobals
-open Printf2
 open Md4
-open CommonDownloads
 open CommonFile
 open CommonShared
 open CommonTypes
 open Options
-open BasicSocket
-open TcpBufferedSocket
-open DonkeyMftp
-open DonkeyImport
 open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions

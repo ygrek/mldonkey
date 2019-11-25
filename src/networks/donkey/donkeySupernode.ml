@@ -33,19 +33,11 @@ open Printf2
 open Md4
 open Options
 
-open CommonResult
 open CommonTypes
 open CommonOptions
-open CommonRoom
-open CommonShared
 open CommonGlobals
-open CommonFile
-open CommonClient
-open CommonComplexOptions
-open GuiProto
 open BasicSocket
 open TcpBufferedSocket
-open DonkeyMftp
 open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions

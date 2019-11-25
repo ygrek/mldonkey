@@ -19,7 +19,6 @@
 
 open Printf2
 
-open Options
 open CommonTypes
   
 type 'a user_impl = {

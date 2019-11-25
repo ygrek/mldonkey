@@ -20,19 +20,10 @@
 open Printf2
 open Md4
 
-open CommonShared
-open CommonServer
-open CommonComplexOptions
-open GuiProto
-open CommonClient
-open CommonFile
-open CommonUser
 open CommonSearch
 open CommonTypes
 open Options
 open BasicSocket
-open TcpBufferedSocket
-open DonkeyMftp
 open DonkeyOneFile
 open DonkeyProtoCom
 open DonkeyTypes
@@ -42,7 +33,6 @@ open DonkeyOptions
 open CommonOptions
 open DonkeyClient
 open CommonGlobals
-open DonkeyStats
 
 module Udp = DonkeyProtoUdp
 

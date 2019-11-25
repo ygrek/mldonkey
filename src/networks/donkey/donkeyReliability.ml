@@ -96,10 +96,7 @@ open Printf2
 
 open CommonTypes
 open CommonNetwork
-open GuiTypes
-open TcpBufferedSocket
 open DonkeyTypes
-open DonkeyGlobals
 
 let (reliable_ips : (Ip.t, reliability) Hashtbl.t) = Hashtbl.create 1023
 

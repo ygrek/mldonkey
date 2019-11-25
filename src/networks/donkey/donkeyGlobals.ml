@@ -19,24 +19,18 @@
 
 open Int64ops
 open TcpBufferedSocket
-open Queues
 open Printf2
 open Md4
 open Options
 open BasicSocket
 
-open CommonDownloads
 open CommonSwarming
 open CommonInteractive
-open CommonResult
 open CommonFile
 open CommonServer
-open CommonComplexOptions
 open CommonClient
 open CommonTypes
-open CommonOptions
 open CommonGlobals
-open CommonNetwork
 
 open DonkeyTypes
 open DonkeyOptions

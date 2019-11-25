@@ -21,15 +21,11 @@ open Printf2
 open Int64ops
 open CommonInteractive
 open CommonClient
-open CommonComplexOptions
 open CommonTypes
 open CommonFile
-open Options
-open BasicSocket
 open TcpBufferedSocket
 
 open CommonGlobals
-open CommonOptions
 
 module Basic = struct
 (*

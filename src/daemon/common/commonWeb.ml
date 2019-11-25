@@ -20,13 +20,8 @@
 open Options
 open Printf2
 
-open AnyEndian
-open LittleEndian
-
 open BasicSocket
-open TcpBufferedSocket
 
-open CommonGlobals
 open CommonOptions
 open CommonTypes
 open Gettext

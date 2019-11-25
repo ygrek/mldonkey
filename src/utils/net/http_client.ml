@@ -24,7 +24,6 @@
 
 open Printf2
 open BasicSocket
-open Unix
 open Url
 open TcpBufferedSocket
 open Int64ops

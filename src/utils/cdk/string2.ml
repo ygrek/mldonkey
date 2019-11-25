@@ -170,7 +170,7 @@ let upp_initial s =
     s
     
 (* not optimal !*)
-let rec subequal s1 pos1 s2 pos2 len =
+let subequal s1 pos1 s2 pos2 len =
   let len1 = String.length s1 in
   let len2 = String.length s2 in
   pos1 + len <= len1 &&

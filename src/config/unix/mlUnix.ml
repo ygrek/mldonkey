@@ -18,7 +18,6 @@
 *)
 
 open Printf2
-open Unix
 
 let execvp_command cmd args handler = 
   let (in_read, output) = Unix.pipe() in

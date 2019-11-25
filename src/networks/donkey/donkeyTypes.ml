@@ -17,9 +17,7 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Queues
 open Md4
-open CommonDownloads
 open CommonTypes
 open CommonStats
 open Printf2
@@ -668,7 +666,6 @@ type shared_file_info = {
 open CommonFile
 open CommonClient
 open CommonServer
-open CommonResult
 
 let set_client_state c s =
   let cc = as_client c.client_client in

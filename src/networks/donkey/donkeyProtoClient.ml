@@ -17,7 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Options
 open Int64ops
 open AnyEndian
 open Printf2
@@ -27,7 +26,6 @@ open LittleEndian
 open CommonGlobals
 open CommonOptions
 
-open DonkeyOptions
 open DonkeyTypes
 open DonkeyMftp
 

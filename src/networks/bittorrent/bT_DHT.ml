@@ -512,6 +512,7 @@ module type S = sig
 type elt
 type t
 val create : int -> t
+
 (** @return whether the element was really added *)
 val insert : t -> elt -> bool
 val elements : t -> elt list

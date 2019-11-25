@@ -19,11 +19,7 @@
 
 open Gettext
 open Printf2
-open Md4
-open BasicSocket
-open TcpBufferedSocket
 open Options
-open Unix
 open CommonTypes
 
 let log_prefix = "[cO]"

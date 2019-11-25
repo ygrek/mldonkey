@@ -22,10 +22,8 @@ functions are defined in downloadOneFile.ml *)
 open Int64ops
 open Printf2
 open Md4
-open Ip_set
 
 open CommonSources
-open CommonDownloads  
 open CommonRoom
 open CommonShared
 open CommonGlobals
@@ -34,19 +32,14 @@ open CommonClient
 open CommonComplexOptions
 open CommonSwarming
   
-open GuiTypes
-open GuiProto
-open CommonResult
 open CommonTypes
 open Options
 open BasicSocket
-open DonkeyMftp
 open DonkeyProtoCom
 open TcpBufferedSocket
 open DonkeyOptions
 open CommonOptions
 open DonkeyComplexOptions
-open DonkeyThieves
 open DonkeyGlobals
 open DonkeyStats
 open DonkeyTypes
@@ -2080,7 +2073,7 @@ end else *)
         set_rtimeout sock !!upload_timeout;
 
         let up, waiting = match c.client_upload with
-          | Some ({ up_file = f } as up) when f == file ->
+          | Some ({ up_file = f; _ } as up) when f == file ->
 	      (* zones are received in the order they're sent, so we
 		 know that the oldest of the zones "in fly" must have
 		 been received when this QueryBlockReq was sent *)
@@ -2205,7 +2198,7 @@ make 1500 connections/10 minutes.  *)
 let init_client sock c =
   set_handler sock WRITE_DONE (fun s ->
       match c.client_upload with
-      | Some ({ up_chunks = _ :: _ } as up) ->
+      | Some ({ up_chunks = _ :: _; _ } as up) ->
           if not up.up_waiting && !CommonGlobals.has_upload = 0 then begin
               up.up_waiting <- true;
               CommonUploads.ready_for_upload (as_client c)
@@ -2539,7 +2532,7 @@ let query_locations_reply s t =
     ) t.Q.locs;
   with Not_found -> ()
       
-let rec matches_3 l ip =
+let matches_3 l ip =
   let rec iter l (a,b,c,d) =
     match l with
       [] -> Ip.null

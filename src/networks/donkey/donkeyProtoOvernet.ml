@@ -18,7 +18,6 @@
 *)
 
 open Printf2
-open Md4
 open AnyEndian
 open BasicSocket
 open CommonOptions

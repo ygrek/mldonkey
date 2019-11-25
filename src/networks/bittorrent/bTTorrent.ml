@@ -23,11 +23,6 @@ open Options
 open CommonOptions
 open Printf2
 
-open BasicSocket
-
-open CommonGlobals
-
-open BTOptions
 open BTTypes
 open Bencode
 

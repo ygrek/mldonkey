@@ -17,24 +17,18 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open BasicSocket
-
 open BigEndian
 open AnyEndian
 open Printf2
-open Options
 open Md4
 open TcpBufferedSocket
 
 open CommonHosts
-open CommonInteractive
-open CommonUploads
 open CommonGlobals
 open CommonTypes
 open CommonOptions
 
 open FasttrackNetwork
-open FasttrackOptions
 open FasttrackTypes
 open FasttrackProtocol
 open FasttrackGlobals

@@ -17,18 +17,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Printf2
 open CommonNetwork
 open FileTPClients
 open CommonOptions
-open CommonFile
-open CommonComplexOptions
 open BasicSocket
 open Options
-open FileTPComplexOptions
 open FileTPOptions
 open FileTPGlobals
-open FileTPTypes
 open CommonTypes
 
 let is_enabled = ref false

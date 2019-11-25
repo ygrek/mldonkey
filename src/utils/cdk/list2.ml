@@ -25,7 +25,7 @@ let rec removeq_rec ele list tail =
       else
         removeq_rec ele list (e :: tail)
 
-let rec removeq ele list =
+let removeq ele list =
   removeq_rec ele list []
 
 let rec remove_rec ele list tail =

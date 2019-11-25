@@ -23,7 +23,6 @@ open Printf2
 open CommonClient
 open CommonShared
 open CommonServer
-open CommonNetwork
 open CommonResult
 open CommonFile
 open CommonComplexOptions
@@ -32,7 +31,6 @@ open GuiTypes
 open CommonNetwork
 open Options
 open BasicSocket
-open TcpBufferedSocket
 open CommonTypes
 open CommonGlobals
 open CommonOptions

@@ -17,29 +17,17 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int64ops
-open Options
-open Queues
 open Printf2
-open Md4
-open BasicSocket
-open TcpBufferedSocket
 
 open AnyEndian
 open LittleEndian
   
 open CommonOptions
-open CommonSearch
-open CommonServer
-open CommonComplexOptions
-open CommonFile
-open CommonDownloads
 open CommonTypes
 open CommonGlobals
   
 open DonkeyTypes
 open DonkeyProtoClient
-open DonkeyOptions
 
 type t = UDP | TCP
 
@@ -133,8 +121,8 @@ let client_parse c opcode s =
             let tags = info.P.EmuleClientInfo.tags in
             update_emule_proto_from_tags emule tags;
         
-        | P.ConnectReq { P.Connect.tags = tags }
-        | P.ConnectReplyReq { P.Connect.tags = tags } ->
+        | P.ConnectReq { P.Connect.tags = tags; _ }
+        | P.ConnectReplyReq { P.Connect.tags = tags; _ } ->
             
             begin
               try

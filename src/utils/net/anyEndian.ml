@@ -26,7 +26,6 @@ Little Endian: weakest byte first
   *)
 open Md4
 open Autoconf
-open Int64ops
 
     
 external get_byte: string -> int -> int = "%string_safe_get"

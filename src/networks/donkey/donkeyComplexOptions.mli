@@ -18,7 +18,6 @@
 *)
 
 open Md4
-open Options
 
 val force_add_server : Ip.t -> int -> DonkeyTypes.server
 val check_add_server : Ip.t -> int -> DonkeyTypes.server

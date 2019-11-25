@@ -27,7 +27,6 @@ open Printf2
 open Md4
 
 open CommonOptions
-open CommonComplexOptions
 open CommonGlobals
 open Options
 open CommonTypes

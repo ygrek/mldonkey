@@ -18,31 +18,16 @@
 *)
 
 open Int64ops
-open Printf2
-open Md4
 
 open CommonShared
-open CommonServer
-open CommonComplexOptions
-open GuiProto
 open CommonClient
-open CommonFile
-open CommonUser
-open CommonSearch
-open CommonTypes
-open CommonInteractive
 open Options
-open BasicSocket
 open TcpBufferedSocket
-open DonkeyMftp
-open DonkeyOneFile
 open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyGlobals
-open DonkeyComplexOptions
 open DonkeyOptions
 open CommonOptions
-open DonkeyClient  
 open CommonGlobals
 open DonkeyStats
 
@@ -74,7 +59,7 @@ module NewUpload = struct
 	    M.CloseSlotReq Q.t)
 *)
     
-    let rec send_small_block c sock file begin_pos len_int = 
+    let send_small_block c sock file begin_pos len_int = 
 (*      lprintf "send_small_block %d\n" len_int; *)
 (*      let len_int = Int32.to_int len in *)
       try
@@ -127,7 +112,7 @@ module NewUpload = struct
 (*      lprintf "send_client_block\n"; *)
       if per_client > 0 && can_write_len sock max_msg_size then
         match c.client_upload with
-        | Some ({ up_chunks = current_chunk :: chunks } as up)  ->
+        | Some ({ up_chunks = current_chunk :: chunks; _ } as up)  ->
             if up.up_file.file_shared = None then begin
 (* Is there a message to warn that a file is not shared anymore ? *)
                 c.client_upload <- None;
@@ -175,7 +160,7 @@ module NewUpload = struct
           let size = min max_msg_size size in
           send_client_block c sock size;
            (match c.client_upload with
-            | Some ({ up_chunks = _ :: _ }) ->
+            | Some ({ up_chunks = _ :: _; _ }) ->
                 if !CommonGlobals.has_upload = 0 then
                   CommonUploads.ready_for_upload (as_client c)
 	    | _ -> ()

@@ -781,7 +781,7 @@ if test "$DEBUG" = "yes"; then
 fi
 
 if test "$DEV" = "yes"; then
-  DEVFLAGS="-annot -bin-annot"
+  DEVFLAGS="-annot -bin-annot -w @a\$(MINUS_WARNING)"
 fi
 
 echo ""

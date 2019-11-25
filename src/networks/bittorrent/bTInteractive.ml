@@ -25,28 +25,19 @@ open Printf2
 open Md4
 open BasicSocket
 
-open CommonSearch
 open CommonGlobals
-open CommonUser
 open CommonClient
 open CommonOptions
-open CommonServer
-open CommonResult
 open CommonTypes
 open CommonComplexOptions
 open CommonFile
-open CommonDownloads
 open CommonShared
 open CommonInteractive
-open Autoconf
 
 open BTTypes
 open BTOptions
 open BTGlobals
-open BTComplexOptions
 open BTProtocol
-
-open Bencode
 
 open Gettext
 let _s x = _s "BTInteractive" x
@@ -227,7 +218,7 @@ let get_subfiles file =
   | ((_,prio)::_ as l) ->
   let intervals = ref l in
   let prio = ref prio in
-  let rec count_intervals_till bytes =
+  let count_intervals_till bytes =
     let rec loop acc_prio = function
     | (i_start,i_prio) :: tail when i_start < bytes ->
         prio := i_prio;

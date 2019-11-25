@@ -18,7 +18,6 @@
 *)
 
 open CommonTypes
-open DonkeyTypes
 
 val count_seen : DonkeyTypes.client -> unit
 val count_banned : DonkeyTypes.client -> unit

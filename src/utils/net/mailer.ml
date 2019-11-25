@@ -19,9 +19,7 @@
 
 
 open Printf2
-open Options
 open Unix
-open Date
 open Md4
  
 type mail = {

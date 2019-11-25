@@ -22,7 +22,6 @@ open AnyEndian
 open Printf2
 open LittleEndian
 open Int64ops
-open TcpBufferedSocket
 
 open CommonTypes
 open CommonGlobals
@@ -97,7 +96,7 @@ let buf_tag buf tag names_of_tag =
       buf_int8 buf n
   | Pair _ -> assert false
       
-let rec buf_tags buf tags names_of_tag =
+let buf_tags buf tags names_of_tag =
   buf_int buf (List.length tags);
   let rec iter_tags tags =
     match tags with

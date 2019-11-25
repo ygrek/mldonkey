@@ -20,20 +20,9 @@
 open CommonGlobals
 open CommonTypes
 
-open Options
-open DonkeyMftp
 open DonkeyProtoCom
-open DonkeyServers
-open BasicSocket
-open TcpBufferedSocket
-open DonkeyOneFile
-open DonkeyFiles
-open DonkeyComplexOptions
 open DonkeyTypes
-open DonkeyOptions
-open CommonOptions
 open DonkeyGlobals
-open DonkeyClient
 
 module P = GuiProto
 

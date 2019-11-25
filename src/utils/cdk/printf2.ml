@@ -18,16 +18,11 @@
 *)
 
 
-open Autoconf
-open Syslog
-
 let syslog_oc = ref None
 
 let log_time () =
   let t = Unix.localtime (Unix.time ()) in
-  let { Unix.tm_year = tm_year; Unix.tm_mon = tm_mon; Unix.tm_mday = tm_mday;
-        Unix.tm_hour = tm_hour; Unix.tm_min = tm_min; Unix.tm_sec = tm_sec } = t
-  in
+  let { Unix.tm_year; tm_mon; tm_mday; tm_hour; tm_min; tm_sec; _ } = t in
   Printf.sprintf "%4d/%02d/%02d %02d:%02d:%02d " (tm_year+1900) (tm_mon+1) tm_mday tm_hour tm_min tm_sec
 
 let lprintf_handler = ref (fun s time ->
@@ -115,14 +110,14 @@ let log_to_buffer buf =
 
 let html_mods_commands buf n c l =
     (* Name Class List *)
-    Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\"
-    name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0
+    Printf.bprintf buf "\\<div class=\\\"%s\\\"\\>\\<table id=\\\"%s\\\" \
+    name=\\\"%s\\\" class=\\\"%s\\\" cellspacing=0 cellpadding=0 \
     width=\\\"100pc\\\"\\>\\<tbody\\>\\<tr\\>"
     c n n c;
     List.iter (fun (w,x,y,z)  ->
      (* Class Title Onclick Value *)
-     Printf.bprintf buf "\\<td class=\\\"%s\\\"
-     title=\\\"%s\\\" onMouseOver=\\\"mOvr(this,'mOvr1');\\\" onMouseOut=\\\"mOut(this);\\\"
+     Printf.bprintf buf "\\<td class=\\\"%s\\\" \
+     title=\\\"%s\\\" onMouseOver=\\\"mOvr(this,'mOvr1');\\\" onMouseOut=\\\"mOut(this);\\\" \
      onClick=\\\"%s\\\" \\>%s\\</td\\>"
      w x y z;
     ) l;

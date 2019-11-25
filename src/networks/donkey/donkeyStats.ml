@@ -22,12 +22,9 @@ open Printf2
 open Options
 open CommonTypes
 open CommonOptions
-open CommonGlobals
 open CommonNetwork
-open CommonInteractive
 open CommonStats
 
-open DonkeyOptions
 open DonkeyTypes
 open DonkeyGlobals
 open DonkeyComplexOptions

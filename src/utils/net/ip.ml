@@ -20,7 +20,6 @@
 (* This module uses 2 ints to save IPv4 numbers. *)
 
 open Gettext
-open Int64ops
 open Printf2
 
 let _s x = _s "Ip" x

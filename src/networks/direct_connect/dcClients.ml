@@ -17,7 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonInteractive
 open Printf2
 open Int64ops
 open Md4
@@ -30,13 +29,8 @@ open CommonOptions
 open TcpBufferedSocket
 open CommonGlobals
 open CommonFile
-open CommonUser
-open CommonRoom
-open CommonServer
-open CommonResult
 open CommonTypes
 open CommonShared
-open CommonSearch
 open Options
 
 open DcTypes
@@ -891,20 +885,20 @@ let rec client_reader c t sock =
 
       let req = 
         match t with
-        | AdcGetReq { AdcGet.zl = true } ->
+        | AdcGetReq { AdcGet.zl = true; _ } ->
             failwith "ZLib not yet supported"
 
-        | AdcGetReq { AdcGet.adctype = AdcList (dir,re1) } -> `PartialList (dir,re1)
+        | AdcGetReq { AdcGet.adctype = AdcList (dir,re1); _ } -> `PartialList (dir,re1)
 
-        | AdcGetReq { AdcGet.adctype = AdcFile (NameSpecial name) }
-        | GetReq { Get.filename = name }
-        | UGetBlockReq { UGetBlock.ufilename = name } 
+        | AdcGetReq { AdcGet.adctype = AdcFile (NameSpecial name); _ }
+        | GetReq { Get.filename = name; _ }
+        | UGetBlockReq { UGetBlock.ufilename = name; _ } 
             when name = mylist || name = mylistxmlbz2 -> `FullList name
 
-        | AdcGetReq { AdcGet.adctype = AdcFile (NameSpecial name) } ->
+        | AdcGetReq { AdcGet.adctype = AdcFile (NameSpecial name); _ } ->
             failwith ("ADCGET special name not supported : " ^ name)
 
-        | AdcGetReq { AdcGet.adctype = AdcFile (NameTTH tth); start_pos=start; bytes=bytes } ->
+        | AdcGetReq { AdcGet.adctype = AdcFile (NameTTH tth); start_pos=start; bytes=bytes; _ } ->
             `File (`TTH tth, start, bytes)
 
         | GetReq t ->

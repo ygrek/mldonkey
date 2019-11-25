@@ -19,11 +19,9 @@
 
 open CommonInteractive
 open Printf2
-open UdpSocket
 open CommonShared
 open CommonEvent
 open CommonRoom
-open CommonTypes
 open CommonComplexOptions
 open CommonUser
 open CommonSearch

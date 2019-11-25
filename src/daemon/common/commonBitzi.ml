@@ -20,16 +20,9 @@
 
 open Int64ops
 open Printf2
-open Options
-open BasicSocket
-open TcpBufferedSocket
 open Md4
 
-open CommonClient
-open CommonComplexOptions
 open CommonTypes
-open CommonFile
-open CommonGlobals
 open CommonOptions
 
 

@@ -19,7 +19,6 @@
 
 open Queues
 open Printf2
-open Md4
 open Options
 open BasicSocket
 
@@ -384,7 +383,7 @@ module Make(M:
 	 ) 0 !file_sources_managers
 
 
-     let rec find_max_overloaded q managers =
+     let find_max_overloaded q managers =
        let _, remaining_managers =
 	 List.fold_left (fun ((current_max, remaining_managers) as acc) m ->
 	    let ready_sources = count_file_ready_sources m q true in
@@ -1333,7 +1332,7 @@ module Make(M:
 (*                                                                       *)
 (*************************************************************************)
 
-     let rec set_request_score s file score =
+     let set_request_score s file score =
        try
          let r = find_request s file in
          if (not (

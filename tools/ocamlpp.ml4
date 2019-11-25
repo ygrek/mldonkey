@@ -1,5 +1,3 @@
-open Str
-
 let outch = ref stdout
 
 (*

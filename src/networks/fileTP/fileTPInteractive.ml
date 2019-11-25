@@ -17,31 +17,20 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open CommonDownloads
 open Int64ops
-open Xml
 open Printf2
 open Md4
-open CommonSearch
 open CommonGlobals
-open CommonUser
 open CommonClient
 open CommonOptions
-open CommonServer
-open CommonResult
 open CommonTypes
-open CommonComplexOptions
 open CommonFile
-open CommonInteractive
 open Options
 open FileTPTypes
 open FileTPOptions
 open FileTPGlobals
 open FileTPComplexOptions
 open BasicSocket
-open Autoconf
-
-open FileTPProtocol
 
 open Gettext
 let _s x = _s "FileTPInteractive" x
@@ -314,9 +303,6 @@ let op_network_parse_url url user group =
 
 let _ =
   network.op_network_parse_url <- op_network_parse_url
-
-open Queues
-open GuiTypes
 
 let commands = [
     "http", "Network/FileTP", Arg_multiple (fun args o ->

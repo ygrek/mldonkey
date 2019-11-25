@@ -19,9 +19,6 @@
 
 open Options
 open CommonOptions
-open CommonTypes
-
-open DcTypes
 
   
 let directconnect_ini = create_options_file "directconnect.ini"

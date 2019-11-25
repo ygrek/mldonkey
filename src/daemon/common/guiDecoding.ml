@@ -22,13 +22,11 @@
 open BasicSocket
 open Int64ops
 open Printf2
-open Md4
   
 open CommonGlobals
 open CommonTypes
 open GuiTypes
 open GuiProto
-open AnyEndian  
 open AnyEndian
 open LittleEndian
 open TcpBufferedSocket

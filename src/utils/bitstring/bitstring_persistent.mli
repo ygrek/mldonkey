@@ -260,8 +260,6 @@ v}
    {3 Types}
 *)
 
-open Camlp4
-
 type patt = Camlp4.PreCast.Syntax.Ast.patt
 type expr = Camlp4.PreCast.Syntax.Ast.expr
 type loc_t = Camlp4.PreCast.Syntax.Ast.Loc.t

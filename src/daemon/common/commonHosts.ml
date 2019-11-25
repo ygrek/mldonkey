@@ -24,11 +24,8 @@ list of potential servers. We need to add:
 *)
 
 open Queues
-open Printf2
-open Md4
 open BasicSocket
 open Options
-open TcpBufferedSocket
 open CommonOptions
 
 type host_kind = Peer | Ultrapeer | IndexServer

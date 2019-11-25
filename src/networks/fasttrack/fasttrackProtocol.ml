@@ -18,22 +18,14 @@
 *)
 
 open Int64ops
-open BasicSocket
 open Printf2
-open Options
 open Md4
-open LittleEndian
-open AnyEndian
 open TcpBufferedSocket
 
-open CommonUploads
 open CommonTypes
 open CommonOptions
-open CommonGlobals
 open CommonShared
 
-open FasttrackNetwork
-open FasttrackOptions
 open FasttrackTypes
 open FasttrackGlobals
 

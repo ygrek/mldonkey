@@ -849,7 +849,7 @@ module Buffer = struct
       add_bit t bit
     done
 
-  let add_bits ({ buf = buf; len = len } as t) str slen =
+  let add_bits ({ buf = buf; len = len; last = _ } as t) str slen =
     if slen > 0 then (
       if len land 7 = 0 then (
 	if slen land 7 = 0 then

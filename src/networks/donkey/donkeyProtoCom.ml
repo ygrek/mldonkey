@@ -27,7 +27,6 @@ open LittleEndian
 
 open CommonOptions
 open CommonTypes
-open CommonGlobals
 open CommonFile
 open CommonGlobals
 

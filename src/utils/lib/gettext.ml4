@@ -18,7 +18,6 @@
 *)
 
 open Printf2
-open Autoconf
 
 let log_prefix = "[Gettext]"
 

@@ -19,7 +19,6 @@
 
 open Printf2
 open CommonOptions
-open CommonGlobals
 open CommonNetwork
 open Options
 open CommonUser

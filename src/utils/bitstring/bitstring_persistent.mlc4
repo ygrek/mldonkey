@@ -115,7 +115,7 @@ let _string_of_field { flen = flen;
 		       endian = endian; signed = signed; t = t;
 		       _loc = _loc;
 		       offset = offset; check = check; bind = bind;
-		       save_offset_to = save_offset_to } =
+		       save_offset_to = save_offset_to; field = _ } =
   let flen = expr_printer flen in
   let endian =
     match endian with
@@ -155,10 +155,10 @@ let _string_of_field { flen = flen;
     flen t endian signed offset check bind save_offset_to
     loc_fname loc_line loc_char
 
-let rec string_of_pattern_field ({ field = patt } as field) =
+let string_of_pattern_field ({ field = patt; _ } as field) =
   sprintf "%s : %s" (patt_printer patt) (_string_of_field field)
 
-and string_of_constructor_field ({ field = expr } as field) =
+and string_of_constructor_field ({ field = expr; _ } as field) =
   sprintf "%s : %s" (expr_printer expr) (_string_of_field field)
 
 let string_of_pattern pattern =

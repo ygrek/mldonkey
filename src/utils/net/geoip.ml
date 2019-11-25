@@ -18,8 +18,6 @@
 *)
 (* This product includes GeoIP data created by MaxMind, available from http://maxmind.com/ *)
 
-open Unix
-open Ip
 open Int64ops
 open Printf2
 open Gettext

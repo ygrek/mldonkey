@@ -283,7 +283,7 @@ le mot apparait.
       List.iter (fun (doc, _) ->
           lprintf_nl "    %d" (Doc.num doc)) w.word_docs
     
-    let rec print_suffix_docs suffix = 
+    let print_suffix_docs suffix = 
       List.iter (fun w ->
           print_word_docs w
       ) (match suffix.suffix_word with

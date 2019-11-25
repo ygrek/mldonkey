@@ -28,24 +28,15 @@ open Md4
 open Queues
   
 open CommonSwarming
-open CommonShared
 open CommonUploads
 open CommonOptions
-open CommonDownloads
 open CommonInteractive
-open CommonClient
-open CommonComplexOptions
 open CommonTypes
-open CommonFile
 open CommonGlobals
-open CommonDownloads  
 
-open GnutellaNetwork
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
-open GnutellaComplexOptions
-open GnutellaProto
 open GnutellaProtocol
   
 (*************************************************************************)

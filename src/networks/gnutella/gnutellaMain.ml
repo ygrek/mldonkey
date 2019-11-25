@@ -23,16 +23,12 @@ open CommonNetwork
 open CommonHosts
 open GnutellaClients
 open CommonOptions
-open CommonFile
-open CommonComplexOptions
 open BasicSocket
 open Options
-open GnutellaComplexOptions
 open GnutellaOptions
 open GnutellaGlobals
 open GnutellaTypes
 open CommonTypes
-open GnutellaServers
 
 let is_enabled = ref false
    

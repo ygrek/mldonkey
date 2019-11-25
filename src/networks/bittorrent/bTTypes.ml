@@ -20,7 +20,6 @@
 
 open Md4
 open CommonTypes
-open CommonDownloads
 open CommonStats
 open BTRate
 

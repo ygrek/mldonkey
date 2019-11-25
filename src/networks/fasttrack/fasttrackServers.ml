@@ -21,19 +21,12 @@ open Int64ops
 open Options
 open Queues
 open Printf2
-open Md4
 open BasicSocket
 open TcpBufferedSocket
 
-open AnyEndian
-
 open CommonHosts
 open CommonOptions
-open CommonSearch
 open CommonServer
-open CommonComplexOptions
-open CommonFile
-open CommonDownloads
 open CommonTypes
 open CommonGlobals
 
@@ -42,7 +35,6 @@ open FasttrackTypes
 open FasttrackGlobals
 open FasttrackOptions
 open FasttrackProtocol
-open FasttrackComplexOptions
 open FasttrackProto
 
 let load_nodes_file filename = 

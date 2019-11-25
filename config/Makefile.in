@@ -1844,10 +1844,10 @@ rpm: sourcedist
 	./svg_converter.byte $@
 
 .ml.cmx :
-	$(OCAMLOPT) $(DEVFLAGSOPT) $(DEVFLAGS) $(INCLUDES) -c $<
+	$(OCAMLOPT) $(INCLUDES) -c $<
 
 .ml.cmo :
-	$(OCAMLC) $(DEVFLAGS) $(INCLUDES) -c $<
+	$(OCAMLC) $(INCLUDES) -c $<
 
 .mlcpp.ml:
 	@$(CPP) -x c -DOCAMLVERSION_MAJOR=$(OCAMLVERSION_MAJOR) -P $< $(FIX_BROKEN_CPP) > $@

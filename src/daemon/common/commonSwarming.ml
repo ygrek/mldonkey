@@ -75,10 +75,7 @@ let lprintf_nl fmt =
 let lprintf_n fmt =
   lprintf2 log_prefix fmt
 
-open CommonTypes
-
 open CommonFile
-open CommonTypes
 open CommonClient
 
 module VB = VerificationBitmap
@@ -401,7 +398,7 @@ let block_ranges_fold f acc b =
 (** (internal) assigns range [r], and all other ranges along
     [range_next] links, to block [b] *)
 
-let rec own_ranges b r =
+let own_ranges b r =
   ranges_iter (fun r -> r.range_block <- b) r
 
 (** (internal) 
@@ -695,7 +692,7 @@ let create_swarmer file_name file_size =
 	(round_up64 (max 1L (file_size // 200L)) (megabytes 1)) in
     let ndiskblocks =
       1 + Int64.to_int (Int64.pred file_size // disk_allocation_block_size) in
-    let rec s = {
+    let s = {
 
       s_num = !swarmer_counter;
       s_filename = file_name;
@@ -1658,7 +1655,7 @@ let range_received maybe_t r interval_begin interval_end =
 (** Split a range at [cut_pos] offset, if needed;
     ranges stay linked together *)
 
-let rec split_range r cut_pos =
+let split_range r cut_pos =
 (*  lprintf "   split_range: cut_pos %Ld\n" cut_pos; *)
   if r.range_begin < cut_pos && r.range_end > cut_pos then
     (* "right" half *)
@@ -1740,7 +1737,7 @@ let set_present s intervals =
 (** reverse absent/present in the list and call set_present *)
 
 let set_absent s list_absent =
-(** Build the complementary list of intervals of [intervals] in 
+(* Build the complementary list of intervals of [intervals] in 
     [set_begin, set_end[ *)
   let rec complementary acc set_begin set_end intervals =
     match intervals with
@@ -2298,7 +2295,7 @@ let select_blocks up =
 	    (choice_availability c) 
 	    (choice_preallocated c) in
 
-	(** > 0 == c1 is best, < 0 = c2 is best, 0 == they're equivalent *)
+	(* > 0 == c1 is best, < 0 = c2 is best, 0 == they're equivalent *)
 	let compare_choices c1 c2 =
 	  (* "RULES" *)
 	  (* Avoid stepping on each other's feet *)
@@ -2615,7 +2612,7 @@ let is_dummy_cluster cluster =
 
 let find_range up range_size =
 
-  (** merge two consecutive ranges in the first, if possible;
+  (* merge two consecutive ranges in the first, if possible;
       Return true if successful *)
   let merge_ranges r r2 =
     match r.range_next with

@@ -219,7 +219,7 @@ module Part = struct
       ] @ file_common_tags
     
     
-    let rec read_file s pos =
+    let read_file s pos =
 (*      lprintf "file at pos %d" pos; lprint_newline (); *)
       let md4 = get_md4 s (pos) in
       let nblocks = get_int16 s (pos+16) in

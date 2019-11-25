@@ -22,12 +22,9 @@ open Printf2
 open Md4
 open Options
 open BasicSocket
-open TcpBufferedSocket
-open Ip_set
 
 open GuiTypes
 
-open CommonDownloads
 open CommonResult
 open CommonMessages
 open CommonGlobals
@@ -42,13 +39,10 @@ open CommonComplexOptions
 open CommonOptions
 open CommonUserDb
 open CommonInteractive
-open CommonEvent
-open UpnpClient
 
 open DriverInteractive
 
 open Gettext
-open Autoconf
 
 module VB = VerificationBitmap
 

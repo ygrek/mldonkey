@@ -17,21 +17,11 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int64ops
 open BasicSocket
 open Printf2
-open Options
-open Md4
-open LittleEndian
-open AnyEndian
 open TcpBufferedSocket
 
 open CommonOptions
-open CommonGlobals
-
-open FileTPOptions
-open FileTPTypes
-open FileTPGlobals
 
 type ghandler =
   HttpHeader of (gconn -> TcpBufferedSocket.t -> string -> unit)

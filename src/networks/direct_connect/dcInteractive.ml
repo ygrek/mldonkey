@@ -17,7 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int64ops
 open Options
 open Printf2
 open Md4
@@ -28,16 +27,12 @@ open GuiTypes
 open CommonInteractive
 open CommonOptions
 open CommonGlobals
-open CommonComplexOptions
 open CommonClient
 open CommonFile
 open CommonUser
 open CommonNetwork
-open CommonRoom
 open CommonServer
-open CommonResult
 open CommonTypes
-open CommonSearch
   
 open DcTypes
 open DcOptions

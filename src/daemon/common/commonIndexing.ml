@@ -17,11 +17,8 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open BasicSocket
 open Printf2
 open CommonGlobals
-open CommonNetwork
-open Options
 open CommonTypes
 
 
@@ -169,8 +166,8 @@ module Make(Stored : sig
               index_string s format_bit
           | { tag_name = Field_Type; tag_value = String s } -> 
               index_string  s media_bit
-          | { tag_name = Field_Length } -> ()
-          | { tag_value = String s } -> 
+          | { tag_name = Field_Length; tag_value = _ } -> ()
+          | { tag_name = _; tag_value = String s } -> 
               index_string s name_bit
           | _ -> ()
       ) (Stored.result_tags r);
@@ -299,7 +296,6 @@ module Make(Stored : sig
         end) = struct      
         
         open FilterResult
-        open Document
         
         let index = DocIndexer.create ()
         

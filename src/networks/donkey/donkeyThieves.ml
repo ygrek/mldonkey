@@ -25,14 +25,8 @@
 open Printf2
 
 open BasicSocket
-open CommonTypes
 open CommonOptions
-open CommonNetwork
 open Md4
-open GuiTypes
-open TcpBufferedSocket
-open DonkeyTypes
-open DonkeyGlobals
 
 
 let log_prefix = "[eDThieves]"

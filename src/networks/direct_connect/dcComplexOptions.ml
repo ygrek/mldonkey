@@ -19,21 +19,15 @@
 
 open CommonInteractive
 open Printf2
-open Md4
 open CommonOptions
 open CommonClient
 open CommonFile
-open CommonRoom
-open CommonComplexOptions
 open CommonServer
-open CommonResult
 open CommonTypes
 open CommonGlobals
-open BasicSocket
 open Options
 
 open DcTypes
-open DcOptions
 open DcGlobals
 
 let log_prefix = "[dcCO]"

@@ -17,18 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Int64ops
-open BasicSocket
-open AnyEndian
-open Printf2
-open Options
 open Md4
-open TcpBufferedSocket
 
-open CommonGlobals
 open CommonTypes
-open CommonOptions
-open CommonHosts
 
 
 (* any = 0 *)

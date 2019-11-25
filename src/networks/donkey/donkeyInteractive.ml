@@ -21,8 +21,6 @@ open Int64ops
 open Printf2
 open Md4
 open Options
-open LittleEndian
-open AnyEndian
 
 open BasicSocket
 open TcpBufferedSocket
@@ -34,19 +32,13 @@ open CommonServer
 open CommonResult
 open CommonClient
 open CommonUser
-open CommonInteractive
 open CommonNetwork
-open CommonDownloads
 open CommonTypes
-open CommonComplexOptions
 open CommonFile
 
-open DonkeySearch
-open DonkeyMftp
 open DonkeyProtoCom
 open DonkeyServers
 open DonkeyOneFile
-open DonkeyFiles
 open DonkeyComplexOptions
 open DonkeyTypes
 open DonkeyOptions
@@ -54,7 +46,6 @@ open DonkeyGlobals
 open DonkeyClient
 open CommonGlobals
 open CommonOptions
-open DonkeyStats
 open DonkeyUdp
 
 open Gettext

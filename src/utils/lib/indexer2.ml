@@ -170,7 +170,7 @@ module Make(Doc : sig
     
     let clear index = index.node <- new_node () 
 
-    let rec filter_node node bool =
+    let filter_node node bool =
 (*      lprintf "filter node"; lprint_newline (); *)
       for i = 0 to node.next_doc - 1 do
 (*        lprintf "filter doc %s\n" (string_of_bool bool); *)
@@ -253,12 +253,7 @@ module Make(Doc : sig
       
     let filtered doc = Doc.filtered doc
 
-      
-      
-    open Indexer
-      
-      
-      
+
     let find node s = 
       let len = String.length s in
       let rec iter node pos =

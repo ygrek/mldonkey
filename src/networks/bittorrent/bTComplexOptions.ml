@@ -18,13 +18,10 @@
 *)
 
 open Int64ops
-open Printf2
 open BasicSocket
 open Md4
 open Options
 
-open CommonGlobals
-open CommonDownloads
 open CommonTypes
 open CommonFile
 

@@ -21,12 +21,6 @@ open AnyEndian
 open Printf2
 open Md4
 open LittleEndian
-  
-open CommonTypes
-open CommonGlobals
-  
-open DonkeyTypes
-open DonkeyMftp
 
 let dump_file filename =
   Unix2.tryopen_read_bin filename (fun ic ->

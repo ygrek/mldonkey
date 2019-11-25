@@ -25,7 +25,6 @@ open BasicSocket
 
 open CommonInteractive
 
-open CommonDownloads
 open CommonTypes
 open CommonOptions
 open CommonUserDb

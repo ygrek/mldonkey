@@ -21,7 +21,6 @@ open Printf2
 open Options
 open BasicSocket
 open CommonTypes
-open CommonGlobals
 open CommonNetwork
 open CommonOptions
 open CommonServer
@@ -29,10 +28,7 @@ open CommonServer
 open DcTypes
 open DcGlobals
 open DcOptions  
-open DcShared
-open DcProtocol
 open DcServers
-open DcClients
 
 let log_prefix = "[dcM]"
 

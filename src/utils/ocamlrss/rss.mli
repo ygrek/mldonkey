@@ -42,6 +42,7 @@ val float_to_date : float -> date
 val string_of_date : ?fmt: string -> date -> string
 
 type email = string (** can be, for example: foo\@bar.com (Mr Foo Bar) *)
+
 type url = string
 type category = 
     {

@@ -17,17 +17,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Autoconf
 open Int64ops
-open Xml_types
 open Printf2
 open Md4
 open Options
 open BasicSocket
 
 open CommonUploads
-open CommonDownloads
-open CommonSearch
 open CommonGlobals
 open CommonUser
 open CommonClient
@@ -35,7 +31,6 @@ open CommonOptions
 open CommonServer
 open CommonResult
 open CommonTypes
-open CommonComplexOptions
 open CommonFile
 open CommonInteractive
 open CommonHosts
@@ -44,8 +39,6 @@ open GnutellaHandler
 open GnutellaTypes
 open GnutellaOptions
 open GnutellaGlobals
-open GnutellaComplexOptions
-open GnutellaProtocol
 
 module VB = VerificationBitmap
 
@@ -529,7 +522,6 @@ let _ =
   )
 
 open Queues
-open GuiTypes
   
 let commands = [
     "gstats", "Network/Gnutella", Arg_none (fun o ->

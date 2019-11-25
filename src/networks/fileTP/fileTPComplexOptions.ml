@@ -17,13 +17,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Queues
 open Printf2
 open Md4
 open Options
-open BasicSocket
 
-open CommonDownloads
 open CommonTypes
 open CommonFile
 

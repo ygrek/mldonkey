@@ -25,7 +25,6 @@ open BasicSocket
 
 open CommonOptions
 open CommonHosts
-open CommonDownloads
 open CommonTypes
 open CommonFile
 open CommonSwarming

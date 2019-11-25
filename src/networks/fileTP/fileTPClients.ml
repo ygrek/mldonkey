@@ -27,23 +27,16 @@ open BasicSocket
 open TcpBufferedSocket
 
 open CommonSwarming
-open CommonShared
-open CommonUploads
 open CommonOptions
-open CommonDownloads
 open CommonInteractive
-open CommonClient
-open CommonComplexOptions
 open CommonTypes
 open CommonFile
 open CommonGlobals
-open CommonDownloads
 
 open FileTPTypes
 open FileTPOptions
 open FileTPGlobals
 open FileTPComplexOptions
-open FileTPProtocol
 
       (*
 let max_range_size = Int64.of_int (256 * 1024)

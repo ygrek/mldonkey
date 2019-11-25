@@ -1,10 +1,7 @@
 
 
 {
-  open CommonTypes
-  open GuiProto
-  open GuiTypes
-  open GiftParser    
+  open GiftParser
     
   let buf = Buffer.create 100
     

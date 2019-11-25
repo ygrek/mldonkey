@@ -17,14 +17,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Printf2
 (* opposite of network order
 
 Big Endian:    strongest byte first (network order)
 Little Endian: weakest byte first
 
   *)
-open Md4
 open Autoconf
 open Int64ops
 open AnyEndian

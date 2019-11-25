@@ -19,7 +19,6 @@
 
 open Printf2
 open Md4
-open Autoconf
 open LittleEndian
 open AnyEndian
 
@@ -325,7 +324,6 @@ end
 module QueryServersUdp = DonkeyProtoServer.QueryServers
 module QueryServersReplyUdp = DonkeyProtoServer.QueryServersReply
 module QueryLocationUdp = struct
-  open DonkeyProtoServer.QueryLocation
 
     type t = Md4.t list
 

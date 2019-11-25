@@ -604,7 +604,7 @@ translation, i.e. Field_Artist = "Artist" instead of "artist" *)
       lprintf "QUERY";
       print_query t
 
-    let rec bprint_query oc t =
+    let bprint_query oc t =
       match t with
         QOr (q1, q2) ->
           print_query q1;

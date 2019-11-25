@@ -17,12 +17,6 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Options
-
-open CommonGlobals
-open CommonOptions
-open Printf2
-
 module type Graphics =
 sig
   val do_draw_pic :

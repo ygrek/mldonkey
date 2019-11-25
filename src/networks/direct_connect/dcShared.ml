@@ -20,22 +20,11 @@ open Int64ops
 open Printf2
 open Md4
 
-open CommonFile
 open CommonOptions
-open CommonResult
-open BasicSocket
-open CommonGlobals
-open CommonTypes
-open CommonComplexOptions
 open Options
 open CommonTypes
-open CommonShared
-open CommonUploads
-open CommonNetwork
 
 open DcTypes
-open DcOptions
-open DcComplexOptions
 open DcGlobals
 
 let log_prefix = "[dcSh]"

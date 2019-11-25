@@ -128,7 +128,7 @@ let _ =
             max_bt_uploaders =:= int_of_string (strings_of_option max_bt_uploaders).option_default;
         check_bt_uploaders ()
         );
-    option_hook max_tracker_redirect   (** #4541 [egs] **)
+    option_hook max_tracker_redirect   (* #4541 [egs] **)
       (fun _ ->
         if !!max_tracker_redirect < 0 then max_tracker_redirect =:= 0
         else if !!max_tracker_redirect > 10 then max_tracker_redirect =:= 10) ;

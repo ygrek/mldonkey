@@ -25,14 +25,9 @@ open Printf2
 
 open BasicSocket
 
-open CommonGlobals
-
 open BTOptions
-open BTTypes
 open BTGlobals
 open Bencode
-open BTTorrent
-open BTProtocol
 
 open Gettext
 let _s x = _s "BTTracker" x

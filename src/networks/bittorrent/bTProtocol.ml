@@ -223,10 +223,8 @@ Choke/unchoke every 10 seconds
 
 
 open BasicSocket
-open CommonTypes
 open Printf2
 open CommonOptions
-open Options
 open Md4
 open CommonGlobals
 open BigEndian
@@ -538,7 +536,7 @@ let bt_handler parse_fun handler c sock =
           (Printexc2.to_string e)
 
 let handlers info gconn =
-  let rec iter_read sock nread =
+  let iter_read sock nread =
     (* lprintf "iter_read %d\n" nread; *)
     let b = TcpBufferedSocket.buf sock in
     if b.len > 0 then

@@ -25,7 +25,6 @@ open Options
 
 open CommonOptions
 open CommonTypes
-open CommonGlobals
 
 open BTRate
 open BTTypes

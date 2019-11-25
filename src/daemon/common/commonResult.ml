@@ -18,8 +18,6 @@
 *)
 
 open Int64ops
-open Printf2
-open Options
 open CommonTypes
 
 module StoredResult = struct

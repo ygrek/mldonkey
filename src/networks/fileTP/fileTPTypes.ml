@@ -17,13 +17,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open Queues
 open Md4
 
-open GuiTypes
-
 open CommonTypes
-open CommonDownloads
 
 type client = {
     client_client : client CommonClient.client_impl;

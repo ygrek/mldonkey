@@ -21,28 +21,18 @@ open Printf2
 open Options
 
 open BasicSocket
-open TcpBufferedSocket
   
-open CommonDownloads
 open CommonNetwork
 open CommonInteractive
-open CommonClient
-open CommonFile
-open CommonComplexOptions
 open CommonTypes
 open CommonOptions
 open CommonGlobals
   
-open DonkeyMftp
 open DonkeyProtoCom
-open DonkeyServers
 open DonkeyComplexOptions
-open DonkeyOneFile
-open DonkeyFiles
 open DonkeyTypes  
 open DonkeyGlobals
 open DonkeyClient
-open DonkeyThieves
 open DonkeyOptions
 
 let log_prefix = "[EDK]"

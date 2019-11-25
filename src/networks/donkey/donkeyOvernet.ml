@@ -23,10 +23,7 @@ open Md4
 open Options
 
 open BasicSocket
-open TcpBufferedSocket
-open LittleEndian
 
-open GuiTypes
 open CommonTypes
 open CommonGlobals
 open CommonInteractive
@@ -36,8 +33,6 @@ open CommonSources
 
 open DonkeyTypes
 open DonkeyGlobals
-open DonkeyOptions
-open DonkeyMftp
 
 (*
 * Store published files.

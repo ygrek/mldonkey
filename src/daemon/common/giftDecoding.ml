@@ -1,8 +1,7 @@
 open Printf2
 
   
-open CommonTypes  
-open GiftLexer
+open CommonTypes
 open GuiProto
 open GuiTypes
 open TcpBufferedSocket

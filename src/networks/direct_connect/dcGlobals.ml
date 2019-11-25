@@ -18,26 +18,17 @@
 *)
 open Int64ops
 open Printf2
-open Md4
 
 open CommonFile
 open CommonOptions
-open CommonSearch
 open CommonResult
 open BasicSocket
-open TcpBufferedSocket
 open CommonGlobals
 open CommonTypes
 open CommonClient
-open CommonComplexOptions
-open GuiProto
 open Options
 open CommonUser
-open CommonRoom
-open CommonTypes
-open CommonShared
 open CommonServer
-open CommonUploads
 open CommonInteractive
 open CommonNetwork
 
@@ -1011,7 +1002,7 @@ let new_result user tiger_root (directory:string) (filename:string) (filesize:in
           end
         end else [filename]
       in
-      let rec r = {                  (* add new result *)
+      let r = {                  (* add new result *)
           dummy_result with
         result_names = result_names;
         result_tags = [ {tag_name = Field_UNKNOWN user.user_nick; tag_value = String ""} ];

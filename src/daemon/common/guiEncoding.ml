@@ -19,7 +19,6 @@
 
 open BasicSocket
 open Printf2
-open CommonFile
 open Md4
 open CommonGlobals
 open CommonTypes

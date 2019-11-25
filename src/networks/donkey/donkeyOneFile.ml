@@ -18,7 +18,6 @@
 *)
 
 open Int64ops
-open Printf2
 open Md4
 open Options
   
@@ -27,25 +26,18 @@ open TcpBufferedSocket
 
 open CommonSwarming
 open CommonSources
-open CommonDownloads
 open CommonInteractive
-open CommonSearch
 open CommonGlobals
-open CommonComplexOptions
 open CommonFile
 open CommonClient
-open CommonComplexOptions
 open CommonTypes
 open CommonOptions
 
-open DonkeyMftp
-open DonkeyImport
 open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions
 open DonkeyComplexOptions
 open DonkeyGlobals
-open DonkeyReliability
 open DonkeyStats
     
 (* Sort files in clients file queue in order of priority and percentage downloaded
@@ -129,7 +121,7 @@ let unshare_file file =
       begin
         H.iter (fun c ->
             match c.client_upload with
-              Some { up_file = f } when f == file ->
+              Some { up_file = f; _ } when f == file ->
                 remove_client_slot c
             | _ -> ()
         ) clients_by_kind

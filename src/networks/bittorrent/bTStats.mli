@@ -18,7 +18,6 @@
 *)
 
 open CommonTypes
-open BTTypes
 
 val count_seen : BTTypes.client -> unit
 val count_banned : BTTypes.client -> unit

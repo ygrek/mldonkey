@@ -17,26 +17,18 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 *)
 
-open AnyEndian
-open LittleEndian
 open Int64ops
-open Md4
-open Misc
 open Printf2
 open CommonOptions
 open BasicSocket
-open TcpBufferedSocket
 open Options
 
 open CommonClient
-open CommonServer
 open CommonNetwork
-open CommonOptions
 open CommonUserDb
 open CommonFile
 open CommonGlobals
 open CommonSearch
-open CommonResult
 open CommonServer
 open CommonTypes
 open CommonComplexOptions
@@ -894,7 +886,7 @@ let all_active_network_opfile_network_names () =
        !names
 
 let apply_on_fully_qualified_options name f =
-  let rec iter prefix opfile =
+  let iter prefix opfile =
     let args = simple_options prefix opfile true in
     List.iter (fun o ->
         if o.option_name = name then
@@ -1097,8 +1089,8 @@ let force_download_quotas () =
 
     (* sort the assoc list itself with user with highest quota first *)
     let files_by_user = 
-      List.sort (fun (_owner1, { downloads_allowed = allowed1 }) 
-		     (_owner2, { downloads_allowed = allowed2 }) ->
+      List.sort (fun (_owner1, { downloads_allowed = allowed1; file_list = _ }) 
+		     (_owner2, { downloads_allowed = allowed2; file_list = _ }) ->
         match allowed1, allowed2 with
 	| None, None -> 0
 	| None, _ -> -1
@@ -1117,10 +1109,10 @@ let force_download_quotas () =
 	    if served = [] then () (* nothing left to rotate *)
 	    else (* new round *)
 	      iter downloads_left served []
-	| (_owner, { file_list = [] }) :: others ->
+	| (_owner, { file_list = []; downloads_allowed = _ }) :: others ->
 	    (* user satisfied, remove from lists *)
 	    iter downloads_left others served
-	| ((_owner, { downloads_allowed = Some 0 }) as first) :: others ->
+	| ((_owner, { downloads_allowed = Some 0; file_list = _ }) as first) :: others ->
 	    (* reached quota, remove from future rounds *)
 	    queue_user_file_list first;
 	    iter downloads_left others served

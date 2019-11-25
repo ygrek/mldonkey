@@ -18,26 +18,18 @@
 *)
 
 
-open Int64ops
 open Options
-open Md4
 open Printf2
 
 open BasicSocket
 open LittleEndian
-open AnyEndian
 open TcpBufferedSocket
 
 open GnutellaNetwork
 open GnutellaTypes
-open GnutellaGlobals
 open GnutellaOptions
 
-open CommonTypes
-open CommonGlobals
 open CommonOptions
-open CommonShared
-open CommonUploads
 
 type log_message = 
   LogReceive of Ip.t * int * string  

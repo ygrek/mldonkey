@@ -91,7 +91,7 @@ let country_stats_find cc =
   try
     List.find (fun c -> c.country_code = cc) !!country_stats
   with Not_found ->
-    let rec cs = {
+    let cs = {
       country_code = cc;
       country_name = Geoip.country_name_array.(Hashtbl.find Geoip.country_index cc);
       country_continent = Geoip.country_continent_name_array.(Hashtbl.find Geoip.country_index cc);

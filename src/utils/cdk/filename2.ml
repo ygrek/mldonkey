@@ -63,7 +63,7 @@ let normalize filename =
   file
 ;;
 
-let rec dirname name =
+let dirname name =
   let name = normalize name in
   try
     match String.rindex name slash with

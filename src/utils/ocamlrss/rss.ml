@@ -38,6 +38,7 @@ let float_to_date t = Rss_date.create t
 let string_of_date ?(fmt="%d %b %Y") date = Rss_date.format ~fmt date
 
 type email = string (** can be, for example: foo@bar.com (Mr Foo Bar) *)
+
 type url = string
 type category = Rss_types.category =
     {

@@ -27,17 +27,13 @@ open TcpBufferedSocket
 open CommonInteractive
 open CommonUser
 open CommonSearch
-open CommonComplexOptions
 open CommonServer
-open CommonOptions
 open CommonTypes
 open CommonOptions
 open CommonGlobals
 open CommonSources
 open CommonShared
 
-open DonkeyMftp
-open DonkeyImport
 open DonkeyProtoCom
 open DonkeyTypes
 open DonkeyOptions
@@ -639,7 +635,7 @@ let force_check_server_connections user =
     in
     iter num
 
-let rec check_server_connections () =
+let check_server_connections () =
   force_check_server_connections false
 
 
@@ -916,8 +912,6 @@ let check_for_preferred_servers () =
       lprintf_nl "%s" message;
       startup_message := !startup_message ^ message
     end
-
-open LittleEndian
 
 let _ =
   server_ops.op_server_sort <- ( fun s ->

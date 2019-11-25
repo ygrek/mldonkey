@@ -39,7 +39,6 @@ module type Base = sig
   end
   
 module Base16 = struct 
-    open Misc
     
     let hexa_digit x =
       if x >= 10 then Char.chr (Char.code 'A' + x - 10)

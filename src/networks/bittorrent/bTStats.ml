@@ -18,16 +18,12 @@
 *)
 
 open Int64ops
-open Printf2
 open Options
 open CommonOptions
 open CommonTypes
-open CommonGlobals
 open CommonNetwork
-open CommonInteractive
 open CommonStats
 
-open BTOptions
 open BTTypes
 open BTGlobals
 open BTComplexOptions

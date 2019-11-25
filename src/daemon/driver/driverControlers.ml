@@ -45,7 +45,7 @@ let lprintf_nl fmt =
 let lprintf_n fmt =
   lprintf2 log_prefix fmt
 
-let rec dollar_escape o with_frames s =
+let dollar_escape o with_frames s =
   String2.convert false (fun b escaped c ->
       if escaped then
         match c with
@@ -437,6 +437,7 @@ let user_reader o telnet sock nread  =
       after_telnet_output o sock
         *)
 
+(*
 type telnet_state =
   EMPTY
 | STRING
@@ -447,6 +448,7 @@ type telnet_state =
 | DONT
 | NAWS
 | SB
+*)
 
 type telnet_conn = {
     telnet_buffer : Buffer.t;

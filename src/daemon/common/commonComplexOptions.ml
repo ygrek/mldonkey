@@ -1110,8 +1110,6 @@ let save_sources () =
   lprintf_nl (_b "Sources correctly saved")
   end
 
-open Zip
-
 let backup_zip archive files =
   try 
     Unix2.tryopen_umask 0o066 (fun _old_umask ->

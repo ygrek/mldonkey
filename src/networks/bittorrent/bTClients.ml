@@ -40,27 +40,22 @@ open Md4
 open Options
 open BasicSocket
 open TcpBufferedSocket
-open Ip_set
 
 open CommonShared
 open CommonUploads
 open CommonOptions
-open CommonDownloads
 open CommonInteractive
 open CommonClient
-open CommonComplexOptions
 open CommonTypes
 open CommonFile
 open CommonSwarming
 open CommonGlobals
-open CommonDownloads
 
 open BTRate
 open BTTypes
 open BTProtocol
 open BTOptions
 open BTGlobals
-open BTComplexOptions
 open BTChooser
 open BTStats
 open TcpMessages
@@ -1983,7 +1978,7 @@ let file_stop file =
           file.file_tracker_connected <- false)
     end
 
-(**
+(*
   Create the 'hooks'
 *)
 let _ =

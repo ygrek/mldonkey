@@ -23,22 +23,14 @@ open TcpBufferedSocket
 open Options
 open CommonOptions
 open CommonUser
-open CommonRoom
 open CommonServer
-open CommonComplexOptions
-open CommonSearch
-open CommonResult
 open CommonTypes
 open CommonGlobals
-open CommonUploads
-open CommonShared
 
 open DcTypes
 open DcOptions
-open DcComplexOptions
 open DcGlobals
 open DcProtocol
-open DcClients
 
 let log_prefix = "[dcSer]"
             
