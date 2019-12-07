@@ -628,9 +628,6 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
         $WGET http://caml.inria.fr/pub/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$REQUIRED_OCAML".tar.gz
       fi
       if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
-        $WGET http://caml.inria.fr/pub/distrib/ocaml-4.08/ocaml-4.08.0.tar.gz
-      fi
-      if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
         echo "********        download OCaml $REQUIRED_OCAML not successful, try do download it manually       *********" 1>&2;
         echo "********        from http://caml.inria.fr/pub/distrib/                                   *********" 1>&2;
         echo "********        and copy the tar.gz into $PATCH_DIR              *********" 1>&2;
@@ -648,7 +645,11 @@ if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
         patch -p1 < $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch
       fi
       echo Configuring ...
-      ./configure -prefix $LOCAL_DIR -host $host -cc $CC
+      if test "$REQUIRED_OCAML" \< "4.08.0"; then
+        ./configure -prefix "$LOCAL_DIR" -host "$host" -cc "$CC"
+      else
+        ./configure CC="$CC" -prefix "$LOCAL_DIR" -host "$host"
+      fi
       cd config
       cp -f Makefile Makefile.old
       sed "s/OTHERLIBRARIES=.*/OTHERLIBRARIES=unix dynlink num str bigarray threads/" Makefile.old > Makefile
