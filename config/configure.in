@@ -307,8 +307,8 @@ if test ! -z "$SUB_VERSION3"; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION3
 fi
 
-MINIMUM_OCAML=4.02.3
-DEFAULT_OCAML=4.08.0
+MINIMUM_OCAML=4.00.0
+DEFAULT_OCAML=4.01.0
 REQUIRED_OCAML=$DEFAULT_OCAML
 
 REQUIRED_LABLGTK=1.2.7
@@ -746,6 +746,10 @@ if test "$OCAMLVERSION" \< "$MINIMUM_OCAML"; then
   exit 1
 fi
 
+if test ! "$OCAMLVERSION" \< "4.03.0"; then
+  OCAMLC="$OCAMLC -unsafe-string"
+fi
+
 if test "$OCAMLOPT" = "no"; then
   TARGET_TYPE=byte
   OCAMLLIB_EXT=cma
@@ -759,6 +763,10 @@ else
     echo "******** Expected ocamlopt version $OCAMLVERSION , but got $OCAMLOPTVERSION *********" 1>&2;
     echo "*******  Check http://ocaml.org/  ********" 1>&2;
     exit 1; }
+
+  if test ! "$OCAMLVERSION" \< "4.03.0"; then
+    OCAMLOPT="$OCAMLOPT -unsafe-string"
+  fi
 
 fi
 
