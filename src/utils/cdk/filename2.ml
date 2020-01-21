@@ -36,7 +36,7 @@ let normalize filename =
     | "" :: l -> iter l
     | "." :: l -> iter l
     | ".." :: l -> let l,_ = iter l in ("..":: l), false
-    | x :: ".." :: l -> 
+    | _ :: ".." :: l -> 
         let l,_ = iter l in l, true
     | x :: l -> 
         let l, redo = iter l in if redo then iter (x :: l) else (x :: l), false

@@ -540,7 +540,7 @@ let copy_file_to_entry infilename ofile ?(extra = "") ?(comment = "")
   let ic = open_in_bin infilename in
   let mtime' =
     match mtime with 
-      Some t -> mtime
+      Some _ -> mtime
     | None ->
         try Some((Unix.LargeFile.stat infilename).Unix.LargeFile.st_mtime)
         with Unix.Unix_error(_,_,_) -> None in

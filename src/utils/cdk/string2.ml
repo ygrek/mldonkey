@@ -104,7 +104,7 @@ let rec unsplit l c =
   match l with
     [] -> ""
   | [x] -> x
-  | x :: ((y :: l) as tail) ->
+  | x :: ((_ :: _) as tail) ->
       Printf.sprintf "%s%c%s" x c (unsplit tail c)
 ;;
 

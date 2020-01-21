@@ -139,7 +139,7 @@ let rec output oz buf pos len =
       Bzlib.compress oz.out_stream buf pos len
                                  oz.out_buffer oz.out_pos oz.out_avail
                                  Bzlib.BZ_RUN
-    with Bzlib.Error(f, e) ->
+    with Bzlib.Error(_, e) ->
       raise (Error(Bzlib.string_of_error e)) in
   oz.out_pos <- oz.out_pos + used_out;
   oz.out_avail <- oz.out_avail - used_out;

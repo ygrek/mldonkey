@@ -240,7 +240,7 @@ let rec dep filedep filename env depends =
                 dep filedep filename 
                   { env with regexps = regexps2 @ env.regexps } depends;
                 env
-            | Line (line, filename) ->
+            | Line (_line, filename) ->
                 add_depend filedep filename depends;
                 env
             | Regexps regexps2 ->
@@ -249,8 +249,8 @@ let rec dep filedep filename env depends =
           | e ->
               Printf.fprintf stderr "Line [%s]:\n"
                 (String.escaped line);
-              Printf.fprintf stderr "Error \"%s\" line %d (%d)\n" 
-                filename i (Stream.count s + 1);
+              Printf.fprintf stderr "Error %s in \"%s\" line %d (%d)\n" 
+                (Printexc.to_string e) filename i (Stream.count s + 1);
               exit 2
         end
       else env

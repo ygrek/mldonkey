@@ -162,11 +162,11 @@ let openlog
     open_connection loginfo;
     loginfo
 
-let log_console msg = ()
+let log_console _msg = ()
 
 let ascdate {tm_sec=sec;tm_min=min;tm_hour=hour;
-	     tm_mday=mday;tm_mon=mon;tm_year=year;
-	     tm_wday=wday;tm_yday=yday;tm_isdst=isdst} =
+	     tm_mday=mday;tm_mon=mon;tm_year=_;
+	     tm_wday=_;tm_yday=_;tm_isdst=_} =
   let asc_mon =
     match mon with
 	0 -> "Jan"

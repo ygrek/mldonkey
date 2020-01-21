@@ -152,9 +152,9 @@ let copy oldname newname =
       | Some stats ->
       let descr = Unix.descr_of_out_channel oc in
       (try Unix.fchown descr stats.Unix.LargeFile.st_uid stats.Unix.LargeFile.st_gid 
-       with e -> lprintf_nl "copy: failed to preserve owner");
-      (try Unix.fchmod descr stats.Unix.LargeFile.st_perm 
-       with e -> lprintf_nl "copy: failed to preserve mode"));
+       with e -> lprintf_nl "copy: failed to preserve owner : %s" (Printexc.to_string e));
+      (try Unix.fchmod descr stats.Unix.LargeFile.st_perm
+       with e -> lprintf_nl "copy: failed to preserve mode : %s" (Printexc.to_string e)));
       let buffer_len = 8192 in
       let buffer = String.create buffer_len in
       let rec copy_file () =
@@ -177,7 +177,7 @@ let rename oldname newname =
         copied := true;
         Sys.remove oldname 
       with 
-        e -> 
+        _ -> 
           if not !copied then
             Sys.remove newname
       

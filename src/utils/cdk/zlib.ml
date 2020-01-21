@@ -34,7 +34,7 @@ let zlib_version_num () =
   begin
     try
       zlib_version ()
-    with e -> ""
+    with _ -> ""
   end
 
 let buffer_size = 1024

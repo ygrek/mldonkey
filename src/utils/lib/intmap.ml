@@ -78,20 +78,20 @@ let rec find x = function
 let rec mem x = function
     Empty ->
       false
-  | Node(l, v, d, r, _) ->
+  | Node(l, v, _d, r, _) ->
       x = v || mem x (if x < v then l else r)
 
 let rec merge t1 t2 =
   match (t1, t2) with
     (Empty, t) -> t
   | (t, Empty) -> t
-  | (Node(l1, v1, d1, r1, h1), Node(l2, v2, d2, r2, h2)) ->
+  | (Node(l1, v1, d1, r1, _h1), Node(l2, v2, d2, r2, _h2)) ->
       bal l1 v1 d1 (bal (merge r1 l2) v2 d2 r2)
 
 let rec remove x = function
     Empty ->
       Empty
-  | Node(l, v, d, r, h) ->
+  | Node(l, v, d, r, _h) ->
       if x = v then
         merge l r
       else if x < v then
@@ -121,7 +121,7 @@ let rec fold f m accu =
       
 let rec length_aux len = function
     Empty -> len
-  | Node(l, v, d, r, _) ->
+  | Node(l, _v, _d, r, _) ->
       length_aux (length_aux (1+len) l) r
 
 let length map = 
@@ -129,15 +129,15 @@ let length map =
   
 let top = function
     Empty -> raise Not_found
-  | Node(l, v, d, r, _) -> v, d
+  | Node(_l, v, d, _r, _) -> v, d
 
 let rec infix_nth map res =
   match res, map with
-    (count, Some _), _ -> res
-  | (count, None), Empty -> res
-  | (count, None), Node(l, v, d, r, _) ->
+    (_count, Some _), _ -> res
+  | (_count, None), Empty -> res
+  | (_count, None), Node(l, _v, d, r, _) ->
       infix_nth r (match infix_nth l res with
-          (count, Some _) as res -> res
+          (_count, Some _) as res -> res
         | (count, None) -> 
             if count = 0 then (count, Some d)
             else (count - 1, None)) 
