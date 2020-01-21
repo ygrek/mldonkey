@@ -698,31 +698,31 @@ if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc.opt ; then
   CAMLP4OF=$LOCAL_OCAML/camlp4of
 else
   if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc ; then
-  OCAML_PATH="$LOCAL_OCAML"/
-  if test -f "$LOCAL_OCAML/ocamlopt"; then
-    OCAMLOPT=$LOCAL_OCAML/ocamlopt
+    OCAML_PATH="$LOCAL_OCAML"/
+    if test -f "$LOCAL_OCAML/ocamlopt"; then
+      OCAMLOPT=$LOCAL_OCAML/ocamlopt
+    else
+      OCAMLOPT=no
+    fi
+    OCAMLDOC=$LOCAL_OCAML/ocamldoc
+    OCAMLMKTOP=$LOCAL_OCAML/ocamlmktop
+    OCAMLDEP=$LOCAL_OCAML/ocamldep
+    OCAMLLEX=$LOCAL_OCAML/ocamllex
+    OCAMLYACC=$LOCAL_OCAML/ocamlyacc
+    CAMLP4=$LOCAL_OCAML/camlp4
+    CAMLP4OF=$LOCAL_OCAML/camlp4of
   else
-    OCAMLOPT=no
+    AC_PATH_PROG(OCAMLOPT, ocamlopt.opt, ,[$PATH])
+    AC_PATH_PROG(OCAMLOPT, ocamlopt, no, [$PATH])
+    AC_PATH_PROG(OCAMLDEP, ocamldep, ocamldep, [$PATH])
+    AC_PATH_PROG(OCAMLLEX, ocamllex.opt, , [$PATH])
+    AC_PATH_PROG(OCAMLLEX, ocamllex, ocamllex, [$PATH])
+    AC_PATH_PROG(OCAMLYACC, ocamlyacc, ocamlyacc, [$PATH])
+    AC_PATH_PROG(OCAMLDOC, ocamldoc, ocamldoc, [$PATH])
+    AC_PATH_PROG(OCAMLMKTOP, ocamlmktop, ocamlmktop, [$PATH])
+    AC_PATH_PROG(CAMLP4, camlp4, camlp4, [$PATH])
+    AC_PATH_PROG(CAMLP4OF, camlp4of, $CAMLP4 pa_o.cmo pr_o.cmo Camlp4QuotationExpander.cmo Camlp4GrammarParser.cmo, [$PATH])
   fi
-  OCAMLDOC=$LOCAL_OCAML/ocamldoc
-  OCAMLMKTOP=$LOCAL_OCAML/ocamlmktop
-  OCAMLDEP=$LOCAL_OCAML/ocamldep
-  OCAMLLEX=$LOCAL_OCAML/ocamllex
-  OCAMLYACC=$LOCAL_OCAML/ocamlyacc
-  CAMLP4=$LOCAL_OCAML/camlp4
-  CAMLP4OF=$LOCAL_OCAML/camlp4of
-  else
-  AC_CHECK_PROG(OCAMLOPT, ocamlopt.opt, ocamlopt.opt)
-  AC_CHECK_PROG(OCAMLOPT, ocamlopt, ocamlopt, no)
-  AC_CHECK_PROG(OCAMLDEP, ocamldep, ocamldep)
-  AC_CHECK_PROG(OCAMLLEX, ocamllex.opt, ocamllex.opt)
-  AC_CHECK_PROG(OCAMLLEX, ocamllex, ocamllex)
-  AC_CHECK_PROG(OCAMLYACC, ocamlyacc, ocamlyacc)
-  AC_CHECK_PROG(OCAMLDOC, ocamldoc, ocamldoc)
-  AC_CHECK_PROG(OCAMLMKTOP, ocamlmktop, ocamlmktop)
-  AC_CHECK_PROG(CAMLP4, camlp4, camlp4)
-  AC_CHECK_PROG(CAMLP4OF, camlp4of, camlp4of, $CAMLP4 pa_o.cmo pr_o.cmo Camlp4QuotationExpander.cmo Camlp4GrammarParser.cmo)
-fi
 fi
 
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
