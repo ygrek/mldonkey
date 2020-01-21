@@ -325,8 +325,6 @@ let op_file_print file o =
 
   emit (_s"Filename") file.file_name;
   emit (_s"Hash") ~desc:(_s"Torrent metadata hash") (Sha1.to_hexa file.file_id);
-  emit (_s"Torrent search") ~desc:(_s"Search for similar torrent files") (Printf.sprintf
-    "\\<a target=\\\"_blank\\\" href=\\\"http://isohunt.com/%s\\\"\\>IsoHunt\\</a\\>" file.file_name);
 
   let tracker_header_printed = ref false in
   List.iter (fun tracker ->
