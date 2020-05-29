@@ -1,0 +1,27 @@
+opam-version: "2.0"
+name: "mldonkey"
+synopsis: "Cross-platform multi-network peer-to-peer daemon"
+description: """
+Supported networks include:
+ * eDonkey (with Overnet and Kad)
+ * BitTorrent (with DHT)
+ * Direct Connect
+ * HTTP/FTP
+MLdonkey core runs as a background daemon and provides several control
+interfaces : telnet, web, and binary protocol for third party GUIs."""
+maintainer: "ygrek@autistici.org"
+authors: "mldonkey team"
+license: "GPL-2.0-only"
+homepage: "http://mldonkey.sourceforge.net/"
+dev-repo: "git+https://github.com/ygrek/mldonkey.git"
+bug-reports: "https://github.com/ygrek/mldonkey/issues"
+depends: [
+  "ocaml" {>= "4.00.0"}
+  "camlp4"
+  "conf-zlib"
+  "num"
+]
+build: [
+  ["./configure" "--enable-debug" "--prefix" prefix]
+  [make]
+]
