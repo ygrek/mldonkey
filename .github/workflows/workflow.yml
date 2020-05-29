@@ -6,14 +6,10 @@ on:
 
 jobs:
   build:
-    continue-on-error: ${{ matrix.experimental }}
+    continue-on-error: ${{ ! matrix.required }}
     strategy:
       fail-fast: false
       matrix:
-        experimental:
-          - false
-        os:
-          - ubuntu-latest
         ocaml-version:
           - 4.00.1
           - 4.01.0
@@ -25,14 +21,20 @@ jobs:
           - 4.07.1
           - 4.08.1
           - 4.09.1
-          - 4.10.0
+        required:
+          - true
+        os:
+          - ubuntu-latest
         include:
-          - os: macos-latest
-            ocaml-version: 4.09.1
-            experimental: false
-          - os: windows-latest
-            ocaml-version: 4.09.1
-            experimental: true
+          - ocaml-version: 4.09.1
+            required: true
+            os: macos-latest
+          - ocaml-version: 4.09.1
+            required: false
+            os: windows-latest
+          - ocaml-version: 4.10.0
+            required: false
+            os: ubuntu-latest
 
     runs-on: ${{ matrix.os }}
 
