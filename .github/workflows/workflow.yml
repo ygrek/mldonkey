@@ -1,0 +1,56 @@
+name: Main workflow
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        experimental:
+          - false
+        os:
+          - ubuntu-latest
+        ocaml-version:
+          - 4.00.1
+          - 4.01.0
+          - 4.02.3
+          - 4.03.0
+          - 4.04.2
+          - 4.05.0
+          - 4.06.1
+          - 4.07.1
+          - 4.08.1
+          - 4.09.1
+          - 4.10.0
+        include:
+          - os: macos-latest
+            ocaml-version: 4.09.1
+            experimental: false
+          - os: windows-latest
+            ocaml-version: 4.09.1
+            experimental: true
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use OCaml ${{ matrix.ocaml-version }}
+        uses: avsm/setup-ocaml@v1
+        with:
+          ocaml-version: ${{ matrix.ocaml-version }}
+
+      - run: opam pin add mldonkey.dev . --no-action
+
+      - run: opam depext mldonkey --yes --with-doc --with-test
+
+      - run: opam install . --deps-only --with-doc --with-test
+
+      - run: opam exec -- ./configure --enable-debug
+
+      - run: opam exec -- make
