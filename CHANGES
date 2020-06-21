@@ -4,6 +4,14 @@ at https://github.com/ygrek/mldonkey/issues
 Changelog
 =========
 
+3.1.7 - 2020/06/21
+
+* improvements to build process
+* fix build with OCaml up to 4.09.0
+* BT: drop isoHunt link
+
+NB When building with OCaml >= 4.06 and Bittorrent network enabled - ocaml num library has to be present
+
 3.1.6 - 2017/01/22
 ------------------
 
