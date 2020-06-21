@@ -1242,19 +1242,16 @@ onClick=\"mSub('output','porttest')\">" ^ _s
 "Porttest" ^ "</TD>
 <TD class=\"bu bbig\" title=\" " ^ _s "View ChangeLog" ^ " \"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"parent.frames[_getFrameByName('output')].location.href='http://savannah.nongnu.org/cgi-bin/viewcvs/mldonkey/mldonkey/distrib/ChangeLog?rev=HEAD&amp;content-type=text/vnd.viewcvs-markup'\">" ^ _s
+onClick=\"parent.frames[_getFrameByName('output')].location.href='https://raw.githubusercontent.com/ygrek/mldonkey/master/CHANGES'\">" ^ _s
 "ChangeLog" ^ "</TD>
 <TD class=\"bu bbig\" title=\" " ^ _s "Homepage" ^ " \"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"parent.frames[_getFrameByName('output')].location.href='http://mldonkey.sourceforge.net'\">" ^ _s
 "Homepage" ^ "</TD>
-<TD class=\"bu bbig\" title=\" " ^ _s "Support forum english" ^ " \"
+<TD class=\"bu bbig\" title=\" " ^ _s "Support forum" ^ " \"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"parent.frames[_getFrameByName('output')].location.href='http://mldonkey.sourceforge.net/forums'\">" ^ _s
 "English support" ^ "</TD>
-<TD class=\"bu bbig\" title=\" " ^ _s "Support forum german" ^ " \"
-onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
-onClick=\"parent.frames[_getFrameByName('output')].location.href='http://mldonkey.org/phpbb2'\">German forum" ^ "</TD>
 <TD class=\"bu bbig\" title=\" " ^ _s "View core log" ^ " \"
 onMouseOver=\"mOvr(this,'mOvr1');\" onMouseOut=\"mOut(this);\"
 onClick=\"mSub('output','log')\">" ^ _s
@@ -1348,7 +1345,7 @@ let web_common_header_old = define_option message_section ["web_common_header_ol
   "
 <table width=\"100%\" border=\"0\">
 <tr>
-<td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://www.mldonkey.org/\" $O><b>MLDonkey Home</b></a></td>
+<td align=\"left\" valign=\"middle\" width=\"*\"><a href=\"http://mldonkey.sf.net/\" $O><b>MLDonkey Home</b></a></td>
 <form action=\"submit\" $O name=\"cmdFormular\" onSubmit=\"return CheckInput();\">
 <td><input type=\"text\" name=\"q\" size=60 value=\"\"></td>
 <td><input type=\"submit\" value=\"Execute\"></td>
@@ -1383,7 +1380,7 @@ let web_common_header_old = define_option message_section ["web_common_header_ol
 <td><a href=\"submit?q=vr\" onMouseOver=\"window.status='View results to your queries';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Search results</a></td>
 <td><a href=\"submit?q=ovweb\" onMouseOver=\"window.status='Boot Overnet peers from http list';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $S>Load Overnet peers</a></td>
 <td><a class=\"extern\" href=\"http://mldonkey.sf.net/forums/\" onMouseOver=\"window.status='MLDonkey World';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>English forum</a></td>
-<td><a class=\"extern\" href=\"http://www.mldonkey.org/\" onMouseOver=\"window.status='German Forum';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>German forum</a></td>
+<td><a class=\"extern\" href=\"http://mldonkey.sf.net/\" onMouseOver=\"window.status='German Forum';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>German forum</a></td>
 <td><a href=\"submit?q=kill\" onMouseOver=\"window.status='Save and quit MLDonkey';return true;\" onMouseOut=\"window.status='';return true;\" onFocus=\"this.blur();\" $O>Kill MLDonkey</a></td>
   </tr>
   </table>

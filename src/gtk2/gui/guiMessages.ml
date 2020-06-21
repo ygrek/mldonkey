@@ -1258,7 +1258,7 @@ let help_string version = Printf.sprintf "
                       ========
 
 Release: %s
-Authors: MLDonkey project, http://www.mldonkey.org/
+Authors: MLDonkey project, http://mldonkey.sf.net/
 
 This documentation file is now obsolete. Read the FAQ instead (either
 on the project WEB site or in the FAQ.html file).
@@ -1268,7 +1268,7 @@ For help, see:
 IRC channel: irc.freenode.net, chat #mldonkey
 
 Web sites:
-http://www.mldonkey.org          Official site
+http://mldonkey.sf.net          Official site
 
 Mailing-lists:
 mldonkey-users@nongnu.org

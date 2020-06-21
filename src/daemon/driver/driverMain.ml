@@ -380,7 +380,7 @@ let _ =
       with _ -> false
     in
     let hostnames =
-      ["www.mldonkey.org"; "mldonkey.sf.net"; "www.mldonkey.net"; "www.google.com"]
+      ["mldonkey.sf.net"; "www.google.com"]
     in
     DriverInteractive.dns_works := List.exists resolve_name hostnames;
 
@@ -454,7 +454,7 @@ or getting a binary compiled with glibc %s.\n\n")
 
   discover_ip false;
 
-  lprintf_nl (_b "Check http://www.mldonkey.org for updates");
+  lprintf_nl (_b "Check http://mldonkey.sf.net for updates");
   networks_iter (fun r -> network_load_complex_options r);
   lprintf_nl (_b "enabling networks: ");
   if (upnp_port_forwarding ()) then

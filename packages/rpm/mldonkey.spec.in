@@ -8,7 +8,7 @@ Version:        %{version}
 Summary:        %{summary}
 License:        GPL
 Source0:        %{name}.sources.tar.bz2
-URL:            http://www.mldonkey.org
+URL:            http://mldonkey.sf.net
 Group:          System/Servers
 BuildRoot:      %{_tmppath}/%{name}-buildroot
 

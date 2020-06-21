@@ -68,7 +68,7 @@
 
 " : print version number and exit" = " : вывод номера версии и выход из программы"
 
-"Check http://www.mldonkey.org for updates" = "Посетите сайт http://www.mldonkey.org для проверки на наличие обновлений"
+"Check http://mldonkey.sf.net for updates" = "Посетите сайт http://mldonkey.sf.net для проверки на наличие обновлений"
 
 "enabling networks: " = "используются протоколы пиринговых сетей: "
 

@@ -209,7 +209,7 @@ let _ =
         "Quick Howto:\n" ^
         "- create a new torrent:\n" ^
         "make_torrent -tracker http://ip:port/announce -torrent file.torrent " ^
-        "-comment \"www.mldonkey.org\" -create file\n\n" ^
+        "-comment \"mldonkey.sf.net\" -create file\n\n" ^
         "- change the tracker of a torrent file:\n" ^
         "make_torrent -tracker http://ip:port/tracker -torrent myfile.torrent -change\n\n" ^
         "- print the infos of a torrent file:\n" ^

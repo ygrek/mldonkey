@@ -175,7 +175,7 @@ let () =
   if uname = "" then
     begin
       lprintf_nl "Unknown operating system, please report to the MLDonkey development team";
-      lprintf_nl "at http://savannah.nongnu.org/bugs/?group=mldonkey"
+      lprintf_nl "at https://github.com/ygrek/mldonkey/issues"
     end
   else
     if not (Unix32.os_supported ()) then begin
