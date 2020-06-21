@@ -1,6 +1,0 @@
-*.cm?
-tar.ml
-xmlyacc.mli
-xmlyacc.ml
-xmllex.ml
-*.annot

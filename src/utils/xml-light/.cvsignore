@@ -1,5 +1,0 @@
-xml_lexer.ml
-xml_parser.ml
-xml_parser.mli
-*.cm?
-*.annot
