@@ -1711,8 +1711,7 @@ endif
 	mv $(DISDIR).tar mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 	$(COMPRESS) mldonkey-tools-$(CURRENT_VERSION).static.$(MD4ARCH)-`uname -s | sed "s/\//_/"`$(GLIBC_VERSION_ARCH).tar
 
-release.sources: 
-	rm -rf **/CVS
+release.sources:
 	rm -f config/Makefile.config
 	cd ..; tar zcf mldonkey-$(CURRENT_VERSION).sources.tar.gz mldonkey
 
@@ -1721,7 +1720,6 @@ distrib: $(DISDIR)
 $(DISDIR):  static distrib/Readme.txt
 	rm -rf mldonkey-*
 	cp -R distrib $(DISDIR)
-	rm -rf $(DISDIR)/CVS
 	for i in $(RELEASE_TARGETS); do \
 	   cp $$i.static $(DISDIR)/$$i && strip  $(DISDIR)/$$i; \
 	done
@@ -1736,7 +1734,6 @@ shared: $(SHADIR)
 $(SHADIR):  static distrib/Readme.txt
 	rm -rf mldonkey-*
 	cp -R distrib $(SHADIR)
-	rm -rf $(SHADIR)/CVS
 	for i in $(RELEASE_TARGETS); do \
 	   cp $$i.static $(SHADIR)/$$i && strip  $(SHADIR)/$$i; \
 	done
