@@ -737,16 +737,16 @@ if test "$DEV" = "yes"; then
   DEVFLAGS="-annot -bin-annot -w @a\$(MINUS_WARNING)"
 fi
 
+NUMS_INCLUDE=
+NUMS=yes
 AC_MSG_CHECKING([ocaml num library])
-if test -f $OCAMLLIB/nums.$OCAMLLIB_EXT; then
-  NUMS=
-else
+if ! test -f $OCAMLLIB/nums.$OCAMLLIB_EXT; then
   if test -f $OCAMLLIB/num/nums.$OCAMLLIB_EXT; then
-    NUMS="-I +num"
+    NUMS_INCLUDE="-I +num"
   else
     NUMS_PATH="`ocamlfind query num 2> /dev/null`"
     if test "$NUMS_PATH" != ""; then
-      NUMS="-I $NUMS_PATH"
+      NUMS_INCLUDE="-I $NUMS_PATH"
     else
       NUMS=no
     fi
@@ -756,7 +756,7 @@ fi
 if test "$NUMS" = "no"; then
   AC_MSG_RESULT([no])
 else
-  AC_MSG_RESULT([found $NUMS])
+  AC_MSG_RESULT([found $NUMS_INCLUDE])
 fi
 
 echo ""
@@ -1580,7 +1580,7 @@ AC_SUBST(CONFIGURE_ARGUMENTS)
 AC_SUBST(CONFIGURE_RUN)
 AC_SUBST(DEVFLAGS)
 AC_SUBST(OCAMLVERSION_MAJOR)
-AC_SUBST(NUMS)
+AC_SUBST(NUMS_INCLUDE)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
