@@ -16,7 +16,8 @@
 /packages/rpm/mldonkey.spec
 /packages/slackware/mldonkey.options
 
-/patches
+/patches/*
+!/patches/*.patch
 
 *.annot
 *.cm*
