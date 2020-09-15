@@ -333,7 +333,7 @@ type query =
 | QHasMinVal of field * int64
 | QHasMaxVal of field * int64
 | QNone (** temporary, used when no value is available ;
-	   must be simplified before transforming into strings *)
+           must be simplified before transforming into strings *)
 
   
 type client_type = int

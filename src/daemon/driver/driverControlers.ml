@@ -588,8 +588,8 @@ let telnet_handler t event =
             conn_height = 0;
             conn_info = Some (TELNET, (from_ip, from_port));
           } in
-	(match Ip_set.match_ip !allowed_ips_set from_ip with
-	| true -> 
+        (match Ip_set.match_ip !allowed_ips_set from_ip with
+        | true -> 
         TcpBufferedSocket.prevent_close sock;
         TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (user_reader o telnet);
@@ -601,23 +601,23 @@ let telnet_handler t event =
 
         before_telnet_output o sock;
         TcpBufferedSocket.write_string sock
-	   (Printf.sprintf "Welcome to MLDonkey %s\n" Autoconf.current_version);
+           (Printf.sprintf "Welcome to MLDonkey %s\n" Autoconf.current_version);
 
         TcpBufferedSocket.write_string sock (dollar_escape o false
             "$cWelcome on mldonkey command-line$n\n\nUse $r?$n for help\n\n");
 
         after_telnet_output o sock
 
-	| false ->
+        | false ->
         before_telnet_output o sock;
-	let reject_message =
-	  Printf.sprintf "Telnet connection from %s rejected (see allowed_ips setting)\n"
-	    (Ip.to_string from_ip)
-	in
-	TcpBufferedSocket.write_string sock (dollar_escape o false reject_message);
-	shutdown sock Closed_connect_failed;
+        let reject_message =
+          Printf.sprintf "Telnet connection from %s rejected (see allowed_ips setting)\n"
+            (Ip.to_string from_ip)
+        in
+        TcpBufferedSocket.write_string sock (dollar_escape o false reject_message);
+        shutdown sock Closed_connect_failed;
         if not !verbose_no_login then lprintf_n "%s" reject_message;
-	Unix.close s)
+        Unix.close s)
 
   | _ -> ()
 
@@ -973,8 +973,8 @@ let http_handler o t r =
     lprintf_nl "received URL %s %s"
       r.get_url.Url.short_file
       (let b = Buffer.create 100 in
-	 List.iter (fun (arg, value) -> Printf.bprintf b " %s %s" arg value) r.get_url.Url.args;
-	 if Buffer.contents b <> "" then Printf.sprintf "(%s)" (Buffer.contents b) else "");
+         List.iter (fun (arg, value) -> Printf.bprintf b " %s %s" arg value) r.get_url.Url.args;
+         if Buffer.contents b <> "" then Printf.sprintf "(%s)" (Buffer.contents b) else "");
 
   let user = if r.options.login = "" then (admin_user ()).CommonTypes.user_name else r.options.login in
   if not (valid_password user r.options.passwd) || (short_file = `File "logout") then begin
@@ -1125,12 +1125,12 @@ let http_handler o t r =
         | "oneframe.html" ->
             html_open_page buf t r true;
             Buffer.add_string buf (Printf.sprintf "<br><div align=\"center\"><h3>%s %s</h3></div>"
-	      (Printf.sprintf (_b "Welcome to MLDonkey")) Autoconf.current_version);
-	    if !!motd_html <> "" then Buffer.add_string buf !!motd_html;
-	    if user2_is_admin o.conn_user.ui_user then
-	    (match DriverInteractive.real_startup_message () with
-	       Some s -> Buffer.add_string buf (Printf.sprintf "<p><pre><b><h3>%s</b></h3></pre>" s);
-	     | None -> ())
+              (Printf.sprintf (_b "Welcome to MLDonkey")) Autoconf.current_version);
+            if !!motd_html <> "" then Buffer.add_string buf !!motd_html;
+            if user2_is_admin o.conn_user.ui_user then
+            (match DriverInteractive.real_startup_message () with
+               Some s -> Buffer.add_string buf (Printf.sprintf "<p><pre><b><h3>%s</b></h3></pre>" s);
+             | None -> ())
 
         | "bw_updown.png" ->
             (match http_error_no_gd "png" with
@@ -1370,12 +1370,12 @@ let http_handler o t r =
                 | [ "jvcmd", "multidllink" ; "links", links] ->
                     html_open_page buf t r true;
                     List.iter (fun url ->
-		      let url = fst (String2.cut_at url '\013') in
-		      if url <> "" then
-		        begin
+                      let url = fst (String2.cut_at url '\013') in
+                      if url <> "" then
+                        begin
                           Buffer.add_string buf (html_escaped (dllink_parse (o.conn_output = HTML) url o.conn_user.ui_user));
                           Buffer.add_string buf (html_escaped "\\<P\\>")
-			end
+                        end
                     ) (String2.split links '\n')
 
               | ("q", cmd) :: other_args ->
@@ -1413,7 +1413,7 @@ let http_handler o t r =
                     | "version" | "rename" | "force_download" | "close_fds"
                     | "vd" | "vo" | "voo" | "upstats" | "shares" | "share"
                     | "unshare" | "stats" | "users" | "block_list" -> 
-			drop_pre := true;
+                        drop_pre := true;
                     | _ -> ());
                   Printf.bprintf buf "%s\n"
                     (if use_html_mods o && !drop_pre then s else "\n<pre>\n" ^ s ^ "</pre>");
@@ -1438,14 +1438,14 @@ let http_handler o t r =
                     | None -> None, None, None
                     | Some (gui_type, (ip, port)) -> Some gui_type, Some ip, Some port
                   in
-		  if user2_is_admin o.conn_user.ui_user then
-		    begin
+                  if user2_is_admin o.conn_user.ui_user then
+                    begin
                       CommonInteractive.set_fully_qualified_options name value
                         ~user:(Some o.conn_user.ui_user.CommonTypes.user_name)
                         ~ip:ip ~port:port ~gui_type:gui_type ();
                       Buffer.add_string buf "Option value changed"
-		    end
-		  else
+                    end
+                  else
                     Buffer.add_string buf "You are not allowed to change options"
 
               | args ->
@@ -1464,9 +1464,9 @@ let http_handler o t r =
                   let file = file_find file_num in
                   let fd = file_fd file in
                   let size = file_size file in
-		  let filename = file_best_name file in
-		  let exten = Filename2.last_extension filename in
-		    send_preview r file fd size filename exten
+                  let filename = file_best_name file in
+                  let exten = Filename2.last_extension filename in
+                    send_preview r file fd size filename exten
 
               | args ->
                   List.iter (fun (s,v) ->
@@ -1481,19 +1481,19 @@ let http_handler o t r =
               match r.get_url.Url.args with
                 ["q", file_num] ->
                   let file_num = int_of_string file_num in
-		  let file = shared_find file_num in
-		  let impl = as_shared_impl file in
-		  let info = shared_info file in
-		  let filename = impl.impl_shared_fullname in
-		  let exten = Filename2.last_extension impl.impl_shared_codedname in
-		  if not (Sys.file_exists filename) then
-		    begin
+                  let file = shared_find file_num in
+                  let impl = as_shared_impl file in
+                  let info = shared_info file in
+                  let filename = impl.impl_shared_fullname in
+                  let exten = Filename2.last_extension impl.impl_shared_codedname in
+                  if not (Sys.file_exists filename) then
+                    begin
           lprintf_nl "file %s not found" filename;
-		      raise Not_found
-		    end;
-		  let fd = Unix32.create_ro filename in
-		  let size = info.shared_size in
-		    send_preview r file fd size filename exten
+                      raise Not_found
+                    end;
+                  let fd = Unix32.create_ro filename in
+                  let size = info.shared_size in
+                    send_preview r file fd size filename exten
 
               | args ->
                   List.iter (fun (s,v) ->
@@ -1544,12 +1544,12 @@ let http_handler o t r =
         | s ->  http_send_bin_pictures r buf (String.lowercase s)
       with
       | Not_found ->
-	  let _, error_text_long, head = Http_server.error_page (Not_Found r.get_url.Url.full_file)
-			(TcpBufferedSocket.my_ip r.sock) !!http_port
+          let _, error_text_long, head = Http_server.error_page (Not_Found r.get_url.Url.full_file)
+                        (TcpBufferedSocket.my_ip r.sock) !!http_port
     in
-	  r.reply_head <- head;
+          r.reply_head <- head;
           http_add_html_header r;
-	  Buffer.add_string buf error_text_long
+          Buffer.add_string buf error_text_long
       | e ->
           http_add_text_header r TEXTS;
           Printf.bprintf buf "%sException %s\n"

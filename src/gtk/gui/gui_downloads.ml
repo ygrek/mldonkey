@@ -120,17 +120,17 @@ let file_availability f =
   | None -> "---"
   | Some chunks ->
       match f.file_availability with
-	(_,avail) :: _ ->
-	  let rec loop i p n =
+        (_,avail) :: _ ->
+          let rec loop i p n =
             if i < 0 then
               if n = 0 then "---"
               else Printf.sprintf "%5.1f" ((float p) /. (float n) *. 100.0)
             else 
-	      loop (i - 1)
-		(if CommonGlobals.partial_chunk (VerificationBitmap.get chunks i) then p + 1 else p)
-		(if avail.[i] <> (char_of_int 0) then n + 1 else n)
-	  in
-	  loop ((String.length avail) - 1) 0 0
+              loop (i - 1)
+                (if CommonGlobals.partial_chunk (VerificationBitmap.get chunks i) then p + 1 else p)
+                (if avail.[i] <> (char_of_int 0) then n + 1 else n)
+          in
+          loop ((String.length avail) - 1) 0 0
       | _ -> "---"
 
 let string_availability f =
@@ -151,13 +151,13 @@ let string_of_format format =
   match format with
     AVI f ->
       Printf.sprintf "AVI: %s %dx%d %g fps %d bpf"
-	f.avi_codec f.avi_width f.avi_height 
-	(float_of_int(f.avi_fps) *. 0.001) f.avi_rate
+        f.avi_codec f.avi_width f.avi_height 
+        (float_of_int(f.avi_fps) *. 0.001) f.avi_rate
   | MP3 (tag, _) ->
       let module M = Mp3tag.Id3v1 in
       Printf.sprintf "MP3: %s - %s (%d): %s"
-	tag.M.artist tag.M.album 
-	tag.M.tracknum tag.M.title
+        tag.M.artist tag.M.album 
+        tag.M.tracknum tag.M.title
   | _ -> (gettext M.unknown)
 
 let max_eta = 1000.0 *. 60.0 *. 60.0 *. 24.0
@@ -495,57 +495,57 @@ let draw_chunks (drawing : unit GDraw.drawable) file =
   
       if wx > nchunks*dx && dx > 0 then
     
-	let offset = (wx - nchunks * dx) / 2 in
-	let offset = if offset < 0 then 0 else offset in
-	let dx2 = if dx <= 2 then dx else dx - 1 in
-	for i = 0 to nchunks - 1 do
-	  drawing#set_foreground (
+        let offset = (wx - nchunks * dx) / 2 in
+        let offset = if offset < 0 then 0 else offset in
+        let dx2 = if dx <= 2 then dx else dx - 1 in
+        for i = 0 to nchunks - 1 do
+          drawing#set_foreground (
             match VerificationBitmap.get chunks i with
             | VerificationBitmap.State_missing -> colorRed
             | VerificationBitmap.State_partial -> colorBlue
             | VerificationBitmap.State_complete -> colorBlack
             | VerificationBitmap.State_verified -> colorGreen);
-	  drawing#rectangle ~filled: true
-	    ~x:(offset + i*dx) ~y: 0 
+          drawing#rectangle ~filled: true
+            ~x:(offset + i*dx) ~y: 0 
             ~width: dx2 ~height:wy ()
-	done          
+        done          
       else
   
-	let group = (nchunks+wx-1) / wx in
-	let chunk n =
-	  let p = n * group in
-	  let get i = 
+        let group = (nchunks+wx-1) / wx in
+        let chunk n =
+          let p = n * group in
+          let get i = 
             if i < nchunks then VerificationBitmap.get chunks i
-	    else VerificationBitmap.State_complete
-	  in
-	  let current = ref 0 in
-	  for i = p to p+group-1 do
-	    match get i with
-	    | VB.State_missing -> ()
-	    | VB.State_partial -> if !current = 0 then current := 1
-	    | VB.State_complete | VB.State_verified ->
-		current := 2
-	  done;
-	  String.make 1 (char_of_int !current)
-	in
-	let dx = 1 in
-	let nchunks = nchunks / group in  
+            else VerificationBitmap.State_complete
+          in
+          let current = ref 0 in
+          for i = p to p+group-1 do
+            match get i with
+            | VB.State_missing -> ()
+            | VB.State_partial -> if !current = 0 then current := 1
+            | VB.State_complete | VB.State_verified ->
+                current := 2
+          done;
+          String.make 1 (char_of_int !current)
+        in
+        let dx = 1 in
+        let nchunks = nchunks / group in  
   
-	let offset = (wx - nchunks * dx) / 2 in
-	let offset = if offset < 0 then 0 else offset in
-	let dx2 = if dx <= 2 then dx else dx - 1 in
-	for i = 0 to nchunks - 1 do
-	  let chunk = chunk i in
-	  drawing#set_foreground (
+        let offset = (wx - nchunks * dx) / 2 in
+        let offset = if offset < 0 then 0 else offset in
+        let dx2 = if dx <= 2 then dx else dx - 1 in
+        for i = 0 to nchunks - 1 do
+          let chunk = chunk i in
+          drawing#set_foreground (
             match VerificationBitmap.get chunks i with
             | VerificationBitmap.State_missing -> colorRed
             | VerificationBitmap.State_partial -> colorBlue
             | VerificationBitmap.State_complete -> colorBlack
             | VerificationBitmap.State_verified -> colorGreen);
-	  drawing#rectangle ~filled: true
-	    ~x:(offset + i*dx) ~y: 0 
-	    ~width: dx2 ~height:wy ()
-	done
+          drawing#rectangle ~filled: true
+            ~x:(offset + i*dx) ~y: 0 
+            ~width: dx2 ~height:wy ()
+        done
   
 let draw_availability (drawing: unit GDraw.drawable) availability =
   let wx, wy = drawing#size in
@@ -1080,16 +1080,16 @@ class pane_downloads () =
       match f.file_state with
         FileNew -> assert false
       | FileCancelled -> 
-	  dls#h_cancelled f
+          dls#h_cancelled f
       |	FileDownloaded ->
-	  dls#h_cancelled f;
-	  dled#h_downloaded f
+          dls#h_cancelled f;
+          dled#h_downloaded f
       |	FileShared -> 
           dled#h_removed f
       |	FilePaused | FileQueued | FileAborted _ -> 
-	  dls#h_paused f
+          dls#h_paused f
       | FileDownloading ->
-	  dls#h_downloading f
+          dls#h_downloading f
 
     method h_file_availability = dls#h_file_availability
     method h_file_age = dls#h_file_age

@@ -76,48 +76,48 @@ let register_client_hash ip hash =
   match !by_ip with
     _, _, 0 ->
       (* no hash was previously known for that IP. We do not check if the
-	 hash was previously used somewhere else, as it could be legitimate
-	 (client switching IP address). *)
+         hash was previously used somewhere else, as it could be legitimate
+         (client switching IP address). *)
       by_ip := new_record;
       by_hash := new_record;
       true
   | _, previous_hash, _ ->
       if Md4.equal previous_hash hash then begin
-	(* no change, all is fine; just update timestamps *)
-	by_ip := new_record;
-	by_hash := new_record;
-	true
+        (* no change, all is fine; just update timestamps *)
+        by_ip := new_record;
+        by_hash := new_record;
+        true
       end else
       (* peer changed in hash, what's happening ? *)
       match !by_hash with
-	  _, _, 0 ->
-	    (* that hash is original, all is fine *)
-	    (* forget old hash *)
-	    Md4_hashtbl.remove hashes_usage previous_hash;
-	    by_ip := new_record;
-	    by_hash := new_record;
-	    true
-	| _, _, _ ->
-	    (* it switched to a hash that's used somewhere else,
-	       that's certainly a theft. *)
-	    if !verbose then
+          _, _, 0 ->
+            (* that hash is original, all is fine *)
+            (* forget old hash *)
+            Md4_hashtbl.remove hashes_usage previous_hash;
+            by_ip := new_record;
+            by_hash := new_record;
+            true
+        | _, _, _ ->
+            (* it switched to a hash that's used somewhere else,
+               that's certainly a theft. *)
+            if !verbose then
         lprintf_nl "client_md4 %s (ip:%s) was already used somewhere else, that's certainly a theft!"
-	        (Md4.to_string hash) (Ip.to_string ip);
-	    false
+                (Md4.to_string hash) (Ip.to_string ip);
+            false
 ;;
 let clean_thieves () =
   let timelimit = last_time () - 3 * 3600 in
   let obsolete_ips = Hashtbl.fold (fun ip r l ->
-				     match !r with _, _, time ->
-				       if time < timelimit then
-				         ip :: l
-				       else l) client_hashes [] in
+                                     match !r with _, _, time ->
+                                       if time < timelimit then
+                                         ip :: l
+                                       else l) client_hashes [] in
   List.iter (fun ip -> Hashtbl.remove client_hashes ip) obsolete_ips;
   let obsolete_hashes = Md4_hashtbl.fold (fun hash r l ->
-					    match !r with _, _, time ->
-					      if time < timelimit then
-					        hash :: l
-					      else l) hashes_usage [] in
+                                            match !r with _, _, time ->
+                                              if time < timelimit then
+                                                hash :: l
+                                              else l) hashes_usage [] in
   List.iter (fun hash -> Md4_hashtbl.remove hashes_usage hash) obsolete_hashes
 
 module Marshal = struct

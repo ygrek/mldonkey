@@ -6,18 +6,18 @@ val create_ml_port_map   : int -> int -> int -> int -> string -> ml_port_map
 *)
 
 type ml_port_map = {
-	mutable enabled : int;
-	mutable intPort : int;
-	mutable extPort : int;
-	mutable isTcp   : int;
-	mutable natpmpStatus : int;
-	mutable upnpStatus : int;
-	mutable notes   : string;
+        mutable enabled : int;
+        mutable intPort : int;
+        mutable extPort : int;
+        mutable isTcp   : int;
+        mutable natpmpStatus : int;
+        mutable upnpStatus : int;
+        mutable notes   : string;
 }
 
 val string_of_map_status : int -> string
 val strings_port_map : ml_port_map -> string
-	
+        
 external init_maps : unit -> unit = "ml_upnpInitMaps" "noalloc"
 (*external set_maps  : unit -> unit = "ml_upnpSetMaps" *)
 external dump_maps : unit -> unit = "ml_upnpDumpMaps" "noalloc"

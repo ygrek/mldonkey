@@ -39,10 +39,10 @@ and gnu_extras = {
 class in_chan i = object
   method really_input str pos len = 
     try Pervasives.really_input i str pos len with
-	End_of_file -> raise (Error "Unexpected end of file")
+        End_of_file -> raise (Error "Unexpected end of file")
   method input str pos len = 
     try Pervasives.input i str pos len with
-	End_of_file -> raise (Error "Unexpected end of file")
+        End_of_file -> raise (Error "Unexpected end of file")
   method dispose () = ()
   method close () = Pervasives.close_in i
 end
@@ -50,10 +50,10 @@ end
 class gzin_chan i = object
   method really_input str pos len =
     try Gzip.really_input i str pos len with
-	End_of_file -> raise (Error "Unexpected end of file")
+        End_of_file -> raise (Error "Unexpected end of file")
   method input str pos len =
     try Gzip.input i str pos len with
-	End_of_file -> raise (Error "Unexpected end of file")
+        End_of_file -> raise (Error "Unexpected end of file")
   method dispose () = Gzip.dispose i
   method close () = Gzip.close_in i
 end
@@ -62,10 +62,10 @@ end
 class bzin_chan i = object
   method really_input str pos len =
     try Bzip2.really_input i str pos len with
-	End_of_file -> raise (Error "Unexpected end of file")
+        End_of_file -> raise (Error "Unexpected end of file")
   method input str pos len =
     try Bzip2.input i str pos len with
-	End_of_file -> raise (Error "Unexpected end of file")
+        End_of_file -> raise (Error "Unexpected end of file")
   method dispose () = Bzip2.dispose i
   method close () = Bzip2.close_in i
 end
@@ -78,9 +78,9 @@ let open_inchan comp chan =
     | `Gzip -> new gzin_chan (Gzip.open_in (IO.input_channel chan))
     | `Bzip2 -> 
 #ifdef USE_BZIP2
-	new bzin_chan (Bzip2.open_in_chan chan)
+        new bzin_chan (Bzip2.open_in_chan chan)
 #else
-	failwith "bzip2 not supported"
+        failwith "bzip2 not supported"
 #endif
 
 let pick_comp_type filename = function
@@ -89,17 +89,17 @@ let pick_comp_type filename = function
   | `Plain -> `Plain
   | `Guess ->
       if Filename.check_suffix filename ".tar" then
-	`Plain
+        `Plain
 #ifdef USE_BZIP2
       else if Filename.check_suffix filename ".bz2" then
-	`Bzip2
+        `Bzip2
 #endif
       else if Filename.check_suffix filename ".gz"
-	|| Filename.check_suffix filename ".Z"
-	|| Filename.check_suffix filename ".tgz" then
-	  `Gzip
+        || Filename.check_suffix filename ".Z"
+        || Filename.check_suffix filename ".tgz" then
+          `Gzip
       else
-	`Plain
+        `Plain
 
 type t_in = {
   chan: in_chan;
@@ -168,14 +168,14 @@ let align_at_header t =
   match t.last_header with
     | None -> ()
     | Some h ->
-	let entry_size = ((h.t_size/blocksize) + 1) * blocksize
-	and buf = String.create blocksize
-	and discarded = ref 0 in
-	  while !discarded < entry_size do
-	    let read = t.chan#input buf 0 blocksize in
-	      discarded := !discarded + read
-	  done;
-	  t.last_header <- None
+        let entry_size = ((h.t_size/blocksize) + 1) * blocksize
+        and buf = String.create blocksize
+        and discarded = ref 0 in
+          while !discarded < entry_size do
+            let read = t.chan#input buf 0 blocksize in
+              discarded := !discarded + read
+          done;
+          t.last_header <- None
 
 let empty_block = String.make blocksize '\000'
 
@@ -194,8 +194,8 @@ let read_magic header typec =
     match magic with
       | "ustar  \000" -> OLDGNU_FORMAT
       | "ustar\00000" -> begin match typec with
-	  | '0' .. '7' -> POSIX_FORMAT | _ -> GNU_FORMAT
-	end
+          | '0' .. '7' -> POSIX_FORMAT | _ -> GNU_FORMAT
+        end
       | _ -> V7_FORMAT
 
 let read_oldgnu_header header =
@@ -220,32 +220,32 @@ let read_header t =
     t.chan#really_input buf 0 blocksize;
     if buf = empty_block then raise End_of_file;
     let head1 = { t_name = c_string buf 0;
-		 t_mode = extract_num buf 100 8;
-		 t_uid = extract_num buf 108 8;
-		 t_gid = extract_num buf 116 8;
-		 t_size = extract_num buf 124 12;
-		 t_mtime = extract_int32 buf 136 12;
-		 t_chksum = extract_num buf 148 8;
-		 t_typeflag = typeflag buf.[156];
-		 t_linkname = c_string buf 157;
-		 t_format = read_magic buf buf.[156];
-		 t_uname = c_string buf 265;
-		 t_gname = c_string buf 297;
-		 t_devmajor = extract_num buf 329 8;
-		 t_devminor = extract_num buf 337 8;
-		 t_prefix = String.sub buf 345 155;
-		 t_gnu = None;
-	       } in
+                 t_mode = extract_num buf 100 8;
+                 t_uid = extract_num buf 108 8;
+                 t_gid = extract_num buf 116 8;
+                 t_size = extract_num buf 124 12;
+                 t_mtime = extract_int32 buf 136 12;
+                 t_chksum = extract_num buf 148 8;
+                 t_typeflag = typeflag buf.[156];
+                 t_linkname = c_string buf 157;
+                 t_format = read_magic buf buf.[156];
+                 t_uname = c_string buf 265;
+                 t_gname = c_string buf 297;
+                 t_devmajor = extract_num buf 329 8;
+                 t_devminor = extract_num buf 337 8;
+                 t_prefix = String.sub buf 345 155;
+                 t_gnu = None;
+               } in
     let chksum = compute_chksum buf in
       if chksum <> head1.t_chksum then
-	raise (Error (Printf.sprintf "Invalid checksum in tar header. Calculated %d, expected %d" chksum head1.t_chksum));
+        raise (Error (Printf.sprintf "Invalid checksum in tar header. Calculated %d, expected %d" chksum head1.t_chksum));
       let head =
-	if head1.t_format = OLDGNU_FORMAT then
-	  {head1 with t_gnu = Some (read_oldgnu_header buf) }
-	else if head1.t_format = GNU_FORMAT then
-	  {head1 with t_gnu = Some (read_gnu_header t) }
-	else
-	  head1 in	
+        if head1.t_format = OLDGNU_FORMAT then
+          {head1 with t_gnu = Some (read_oldgnu_header buf) }
+        else if head1.t_format = GNU_FORMAT then
+          {head1 with t_gnu = Some (read_gnu_header t) }
+        else
+          head1 in	
       t.last_header <- Some head;
       head
 
@@ -267,11 +267,11 @@ let read_body t =
     else let buf = String.create header.t_size in
       t.chan#really_input buf 0 header.t_size;
       let align = blocksize - (header.t_size mod blocksize) in
-	if align <> blocksize then begin
-	  let leftover = String.create blocksize in	    
-	    t.chan#really_input leftover 0 align
-	end;
-	buf
+        if align <> blocksize then begin
+          let leftover = String.create blocksize in	    
+            t.chan#really_input leftover 0 align
+        end;
+        buf
 
 let read_entry t =
   let head = read_header t in
@@ -304,9 +304,9 @@ let open_outchan comp chan =
     | `Gzip -> new gzout_chan (Gzip.open_out (IO.output_channel chan))
     | `Bzip2 -> 
 #ifdef USE_BZIP2
-	new bzout_chan (Bzip2.open_out_chan chan)
+        new bzout_chan (Bzip2.open_out_chan chan)
 #else
-	failwith "bzip2 not supported"
+        failwith "bzip2 not supported"
 #endif
 
 type t_out = {
@@ -411,15 +411,15 @@ let output t head body =
       write_padded_num buf 148 chksum;
       t.ochan#output buf 0 blocksize;
       if head.t_format = GNU_FORMAT && isdigit buf.[156] then begin
-	let buf2 = String.copy empty_block in
-	  write_gnu_header head buf2;
-	  t.ochan#output buf2 0 blocksize
+        let buf2 = String.copy empty_block in
+          write_gnu_header head buf2;
+          t.ochan#output buf2 0 blocksize
       end;
       if size > 0 then begin
     t.ochan#output body 0 size;
-	  let align = blocksize - (size mod blocksize) in
-	    if align > 0 && align < blocksize then 
-	      t.ochan#output empty_block 0 align
+          let align = blocksize - (size mod blocksize) in
+            if align > 0 && align < blocksize then 
+              t.ochan#output empty_block 0 align
       end
       
 let flush t =

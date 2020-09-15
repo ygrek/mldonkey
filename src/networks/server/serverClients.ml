@@ -62,20 +62,20 @@ let print_loc loc =  lprintf("localisation %s port %d valide to %f")
 
 let print_files_shared files = 
         List.iter (fun md4 -> 
-		     try
-		       let tags = ServerIndexer.get_def md4 in
-			 print_tags tags.f_tags
-		     with _ ->
-		       lprintf " NO file def for %s\n" (Md4.to_string md4)
-				    
-		  ) files
+                     try
+                       let tags = ServerIndexer.get_def md4 in
+                         print_tags tags.f_tags
+                     with _ ->
+                       lprintf " NO file def for %s\n" (Md4.to_string md4)
+                                    
+                  ) files
 
 
 let rec print_client_stat c option =
         lprintf("Client %s ") (Ip.to_string c.client_id);
         match option with 
             'a' ->  print_loc c.client_location;
-	      print_files_shared c.client_files
+              print_files_shared c.client_files
           | 'l' ->  print_loc c.client_location
           | 'f' -> print_files_shared c.client_files
           | _ -> print_client_stat c 'a'
@@ -89,8 +89,8 @@ let print table =
            lprintf("FIN liste des clients");
            lprint_newline()
         with _ -> lprintf " Liste des clients vide"; lprint_newline()
-	  
-	  
+          
+          
 let bprint_loc buf loc =  
   Printf.bprintf buf "localisation %s port %d valide to %f\n"
     (Ip.to_string loc.loc_ip)
@@ -100,12 +100,12 @@ let bprint_loc buf loc =
 
 let bprint_files_shared buf files = 
         List.iter (fun md4 -> 
-		     try
-		       let tags = ServerIndexer.get_def md4 in
-			 bprint_tags buf tags.f_tags
-		     with _ ->
-		       Printf.bprintf buf " NO file def for %s\n" (Md4.to_string md4)
-		  ) files
+                     try
+                       let tags = ServerIndexer.get_def md4 in
+                         bprint_tags buf tags.f_tags
+                     with _ ->
+                       Printf.bprintf buf " NO file def for %s\n" (Md4.to_string md4)
+                  ) files
 
 let bprint_nb_files_shared buf files =
   let nb = List.length files in
@@ -116,14 +116,14 @@ let rec bprint_client_stat buf c option =
         Printf.bprintf buf ("Client %s\n") (Ip.to_string c.client_id);
         match option with 
             "a" ->  bprint_loc buf c.client_location;
-	      bprint_files_shared buf c.client_files
+              bprint_files_shared buf c.client_files
         | "l" ->  bprint_loc buf c.client_location
         | "f" -> bprint_files_shared buf c.client_files
-	| "i" -> bprint_nb_files_shared buf c.client_files
+        | "i" -> bprint_nb_files_shared buf c.client_files
         | _ -> begin 
-	    bprint_loc buf c.client_location;
-	    bprint_files_shared buf c.client_files
-	      end
+            bprint_loc buf c.client_location;
+            bprint_files_shared buf c.client_files
+              end
 
 let rec bprint_remote_client_stat buf c option =
   Printf.bprintf buf ("Client %s ") (Ip.to_string c.remote_client_local_id);
@@ -131,25 +131,25 @@ let rec bprint_remote_client_stat buf c option =
   bprint_nb_files_shared buf c.remote_client_files
     (*match option with 
         "a" ->  bprint_loc buf c.client_location;
-	  bprint_files_shared buf c.client_files
+          bprint_files_shared buf c.client_files
       | "l" ->  bprint_loc buf c.client_location
       | "f" -> bprint_files_shared buf c.client_files
       | "i" -> bprint_nb_files_shared buf c.client_files
       | _ -> begin 
-	  bprint_loc buf c.client_location;
-	  bprint_files_shared buf c.client_files
-	end*)
+          bprint_loc buf c.client_location;
+          bprint_files_shared buf c.client_files
+        end*)
 
 let bprint buf table arg=
   Printf.bprintf buf ("Liste des clients\n");
   Hashtbl.iter (fun md4 c -> 
-		  match c with
-		      LocalClient c ->
+                  match c with
+                      LocalClient c ->
                         Printf.bprintf buf "LocalClient\n";
-			bprint_client_stat buf c arg
-		    | RemoteClient c -> Printf.bprintf buf "RemoteClient\n";
-			bprint_remote_client_stat buf c arg
-	       ) table
+                        bprint_client_stat buf c arg
+                    | RemoteClient c -> Printf.bprintf buf "RemoteClient\n";
+                        bprint_remote_client_stat buf c arg
+               ) table
       
 
 
@@ -180,28 +180,28 @@ let reply_to_client_connection c =
     | Some sock ->
         (match c.client_kind with
             Firewalled_client ->
-	      begin
-		try
-		  if c.client_files = [] then
-		    begin
-		      Hashtbl.remove clients_by_id c.client_id;
-		      c.client_id <- (get_client_num ());
-		      Hashtbl.add clients_by_id c.client_id (LocalClient c);
-		    end;
-		  c.client_location.loc_ip <- c.client_id;
-		  c.client_location.loc_port <- 0;
-		     
-		with _ -> lprintf "fuck nico\n"
-	      end
+              begin
+                try
+                  if c.client_files = [] then
+                    begin
+                      Hashtbl.remove clients_by_id c.client_id;
+                      c.client_id <- (get_client_num ());
+                      Hashtbl.add clients_by_id c.client_id (LocalClient c);
+                    end;
+                  c.client_location.loc_ip <- c.client_id;
+                  c.client_location.loc_port <- 0;
+                     
+                with _ -> lprintf "fuck nico\n"
+              end
           | KnownLocation (ip,port) ->
-	      begin
-		c.client_location.loc_ip <- ip;
-		c.client_location.loc_port <- port
-	      end);
-	direct_server_send sock  (M.SetIDReq c.client_id)
+              begin
+                c.client_location.loc_ip <- ip;
+                c.client_location.loc_port <- port
+              end);
+        direct_server_send sock  (M.SetIDReq c.client_id)
   )
-		(*lprintf ("Nouvel identifiant %s") (Ip.to_string id);
-		  lprint_newline()*)
+                (*lprintf ("Nouvel identifiant %s") (Ip.to_string id);
+                  lprint_newline()*)
 
       (*Hashtbl.add clients_by_id id (LocalClient c);*)
 
@@ -269,8 +269,8 @@ let remove_md4_source c =
       loc_local=true;
     } in
       List.iter (fun md4 -> 
-		   ServerLocate.supp md4 loc;
-		   if !!relais_cooperation_protocol then
+                   ServerLocate.supp md4 loc;
+                   if !!relais_cooperation_protocol then
                      ServerServer.supp_source_to_notify c md4 
                 ) c.client_files;
       c.client_files <- []
@@ -281,14 +281,14 @@ let remove_md4_source c =
 (* send the number of clients and the number of files on the server *)
 let send_stat_to_clients timer =
         Hashtbl.iter ( fun k x ->
-			   match x with 
-			   LocalClient x ->
-			     (match x.client_sock with
+                           match x with 
+                           LocalClient x ->
+                             (match x.client_sock with
                               None -> ()
-			      | Some sock ->
+                              | Some sock ->
                               direct_server_send  sock (M.InfoReq
                                 (*(!nconnected_clients,!nshared_md4)*)
-						       (243,1000)))
+                                                       (243,1000)))
                            | RemoteClient x ->
                               ()
                      ) clients_by_id
@@ -298,16 +298,16 @@ let rec check_and_remove lst md4 =
   match lst with 
       [] -> raise Not_found
     | hd :: tl -> (if md4 = hd then
-		     tl 
-		   else
-		     hd :: check_and_remove tl md4;)
-	
+                     tl 
+                   else
+                     hd :: check_and_remove tl md4;)
+        
 let rec print_liste lst = 
   match lst with 
       [] -> ()
     | hd :: tl -> lprintf " el: %s\n" (Md4.to_string hd);
-	print_liste tl
-	  
+        print_liste tl
+          
 let rec print_liste_2 lst = 
    match lst with 
     [] -> ()
@@ -359,7 +359,7 @@ let server_to_client c t sock =
             }))
     
     | M.ShareReq list ->
-	(*ServerLocate.print();*)
+        (*ServerLocate.print();*)
 
         let tmp = c.client_files in
 
@@ -373,63 +373,63 @@ let server_to_client c t sock =
           else (e :: l) in*)
           
           List.iter ( fun file ->
-			try
-			  removed_files := check_and_remove !removed_files file.f_md4; 
+                        try
+                          removed_files := check_and_remove !removed_files file.f_md4; 
                           current_files := file.f_md4 :: !current_files;
-			with Not_found ->
-			  if not (List.exists (fun old_file -> file.f_md4 = old_file.f_md4) !added_files) then
-			    added_files := file :: !added_files;
-		    ) list;
-	  (*
-	  lprintf "remove file\n";
-	  print_liste !removed_files;
+                        with Not_found ->
+                          if not (List.exists (fun old_file -> file.f_md4 = old_file.f_md4) !added_files) then
+                            added_files := file :: !added_files;
+                    ) list;
+          (*
+          lprintf "remove file\n";
+          print_liste !removed_files;
 
-	  lprintf "From %s\n" (Ip.to_string c.client_id);
-	  lprintf "\nadd file\n";
-	  List.iter (fun file -> lprintf " %s" (Md4.to_string file.f_md4)) !added_files;
-	  lprintf "\nlast file\n";
-	  print_liste c.client_files;
+          lprintf "From %s\n" (Ip.to_string c.client_id);
+          lprintf "\nadd file\n";
+          List.iter (fun file -> lprintf " %s" (Md4.to_string file.f_md4)) !added_files;
+          lprintf "\nlast file\n";
+          print_liste c.client_files;
 
-	  List.iter (fun file ->
-		       let count = ref 0 in
-			 List.iter (fun im ->
-				      if im.f_md4 = file.f_md4 then
-					incr count;
-				      if !count > 1 then
-					lprintf "Quel con!!\n";
-				   ) !added_files
-		    ) !added_files;
-	  
+          List.iter (fun file ->
+                       let count = ref 0 in
+                         List.iter (fun im ->
+                                      if im.f_md4 = file.f_md4 then
+                                        incr count;
+                                      if !count > 1 then
+                                        lprintf "Quel con!!\n";
+                                   ) !added_files
+                    ) !added_files;
+          
 
-	  lprintf "\ncurrent file\n";
-	  print_liste !current_files;
-	  lprintf "\n";*)
+          lprintf "\ncurrent file\n";
+          print_liste !current_files;
+          lprintf "\n";*)
           
           c.client_files <- !removed_files;
           remove_md4_source c;           
           c.client_files <- !current_files;
-	  
-	  begin
+          
+          begin
             try
               List.iter (fun tmp ->
-			   ServerIndexer.add tmp; 
-			   ServerLocate.add tmp.f_md4
-			     {
-			       loc_ip=c.client_id;
-			       loc_port=c.client_location.loc_port;
-			       loc_expired=c.client_location.loc_expired;
-			       loc_local = true;
-			     };
-			 c.client_files <- tmp.f_md4 :: c.client_files;
-			 if !!relais_cooperation_protocol then
-			   begin
-			     (*lprintf "Notif add to list\n";*)
-			     ServerServer.add_source_to_notify c tmp.f_md4; 
-			   end
-			) !added_files;
+                           ServerIndexer.add tmp; 
+                           ServerLocate.add tmp.f_md4
+                             {
+                               loc_ip=c.client_id;
+                               loc_port=c.client_location.loc_port;
+                               loc_expired=c.client_location.loc_expired;
+                               loc_local = true;
+                             };
+                         c.client_files <- tmp.f_md4 :: c.client_files;
+                         if !!relais_cooperation_protocol then
+                           begin
+                             (*lprintf "Notif add to list\n";*)
+                             ServerServer.add_source_to_notify c tmp.f_md4; 
+                           end
+                        ) !added_files;
             with _ -> (*lprintf "Too Many Files Shared\n"*)
-	      direct_server_send sock (M.MessageReq (String.concat "" ["Too many files index in my server, so I can index ";(string_of_int (List.length c.client_files));" of your files"]))
-	  end;
+              direct_server_send sock (M.MessageReq (String.concat "" ["Too many files index in my server, so I can index ";(string_of_int (List.length c.client_files));" of your files"]))
+          end;
           
           (* Update list of known tag name *)
           (*List.iter (fun file ->
@@ -466,8 +466,8 @@ let server_to_client c t sock =
                        (* Clean matching list *)
                        subs_match := [])
             !added_files;
-	  (*ServerLocate.print()*)
-	  ()
+          (*ServerLocate.print()*)
+          ()
 
     
     | M.QueryReq t ->
@@ -507,23 +507,23 @@ let server_to_client c t sock =
                       lprint_newline ();
                       raise Not_found)
             | RemoteClient cc ->
-		(match cc.remote_client_kind, sock, c.client_kind with
+                (match cc.remote_client_kind, sock, c.client_kind with
                    | KnownLocation (ip, port), sock, _
-		       ->
+                       ->
                        let module QI = M.QueryIDReply in
-			 direct_server_send sock (M.QueryIDReplyReq {
-						    QI.ip = ip;
-						    QI.port = port;
-						  })
+                         direct_server_send sock (M.QueryIDReplyReq {
+                                                    QI.ip = ip;
+                                                    QI.port = port;
+                                                  })
                    | Firewalled_client, _, KnownLocation (ip, port) 
                        ->
-		       let s = Hashtbl.find servers_by_id cc.remote_client_server in
-		       let module QU = ServerMessages.QueryUserConnect in
-			 ServerServer.send_to s ( ServerMessages.QueryUserConnectReq {
-						    QU.local_client_id = cc.remote_client_remote_id;
-						    QU.client_ip = ip;
-						    QU.client_port = port;
-						  })
+                       let s = Hashtbl.find servers_by_id cc.remote_client_server in
+                       let module QU = ServerMessages.QueryUserConnect in
+                         ServerServer.send_to s ( ServerMessages.QueryUserConnectReq {
+                                                    QU.local_client_id = cc.remote_client_remote_id;
+                                                    QU.client_ip = ip;
+                                                    QU.client_port = port;
+                                                  })
                    | _ ->
                        lprintf "QueryIDReq on remote client can't return reply"; 
                        raise Not_found)
@@ -545,7 +545,7 @@ let server_to_client c t sock =
 (*M.QueryLocationReply.print peer_list;*)
 (* send back QueryLocationReplyReq *)
               if (!!save_log) then
-		ServerLog.add_note  ("Number of Location:\n"^(string_of_int (List.length peer_list.R.locs))^"\n");
+                ServerLog.add_note  ("Number of Location:\n"^(string_of_int (List.length peer_list.R.locs))^"\n");
               direct_server_send sock (M.QueryLocationReplyReq peer_list);  
           with Not_found -> 
 (* what does the normal server reply when there are no source for a file ? *)
@@ -555,28 +555,28 @@ let server_to_client c t sock =
 (* Now, check if it is a mldonkey client *)
         
         begin
-	  if c.client_mldonkey = 0 || c.client_mldonkey = 1 then
+          if c.client_mldonkey = 0 || c.client_mldonkey = 1 then
             if c.client_mldonkey = 0 && t = Md4.null then
-	      (* c.client_mldonkey = 0 ==> First location query *)
+              (* c.client_mldonkey = 0 ==> First location query *)
               c.client_mldonkey <- 1
             else
-	      (* c.client_mldonkey = 1 ==> Might be mldonkey client *)
+              (* c.client_mldonkey = 1 ==> Might be mldonkey client *)
               if c.client_mldonkey = 1 && t = Md4.one then 
-		begin
-		  c.client_mldonkey <- 2;
+                begin
+                  c.client_mldonkey <- 2;
 (*		  direct_server_send sock (M.Mldonkey_MldonkeyUserReplyReq) *)
-		end
-	      else
-		if client_is_mldonkey2 c then
-		begin
-		  c.client_mldonkey <- 3;
-		  direct_server_send sock (M.Mldonkey_MldonkeyUserReplyReq)
-		end
-	      else
+                end
+              else
+                if client_is_mldonkey2 c then
+                begin
+                  c.client_mldonkey <- 3;
+                  direct_server_send sock (M.Mldonkey_MldonkeyUserReplyReq)
+                end
+              else
 (* It is a classical client *)
-		let mess = "For best performance, you'd better use a mldonkey client (http://www.freesoftware.fsf.org/mldonkey)" in
-		  c.client_mldonkey <- (-1);
-		  direct_server_send sock (M.MessageReq mess); 
+                let mess = "For best performance, you'd better use a mldonkey client (http://www.freesoftware.fsf.org/mldonkey)" in
+                  c.client_mldonkey <- (-1);
+                  direct_server_send sock (M.MessageReq mess); 
         end
     
     | M.QueryUsersReq t ->
@@ -673,10 +673,10 @@ let remove_client c sock s =
     
       c.client_sock <- None;
       if (!!save_log) then
-	begin
-	  ServerLog.something_append  c.client_location.loc_ip c.client_md4 s;
-	  ServerLog.add_to_liste () 
-	end;
+        begin
+          ServerLog.something_append  c.client_location.loc_ip c.client_md4 s;
+          ServerLog.add_to_liste () 
+        end;
       
       (*remave client of clients_dy_id*)
       
@@ -685,8 +685,8 @@ let remove_client c sock s =
       (*Pervasives.flush Pervasives.stdout;*)
       (*remove all subscription made by this cient*)
       List.iter (fun n ->
-		   Hashtbl.remove notifications (c.client_md4, n.notif_num)
-		) c.client_subscriptions;
+                   Hashtbl.remove notifications (c.client_md4, n.notif_num)
+                ) c.client_subscriptions;
       c.client_subscriptions <- [];
       
   with _ -> 
@@ -699,10 +699,10 @@ let handler t event =
     TcpServerSocket.CONNECTION (s, Unix.ADDR_INET (from_ip, from_port)) ->
 
       if !!max_clients <= !nconnected_clients  then
-	begin
-	  (*lprintf "too many clients\n";*)
+        begin
+          (*lprintf "too many clients\n";*)
           Unix.close s
-	end
+        end
       else
       let sock = TcpBufferedSocket.create "server client connection" s (fun _ _ -> ()) 
         (*server_msg_to_string*)
@@ -712,7 +712,7 @@ let handler t event =
       let client = {
           client_id = get_client_id ip;
           client_conn_ip = ip;
-	  client_mldonkey = 0;
+          client_mldonkey = 0;
           client_sock = Some sock;
           client_kind = Firewalled_client;
           client_files = [];
@@ -722,7 +722,7 @@ let handler t event =
             loc_ip  = ip;
             loc_port = 0;
             loc_expired = 0.0;
-	    loc_local = true;
+            loc_local = true;
           };
           client_results = { docs = [||]; next_doc = 0; };
           client_subscriptions = [];

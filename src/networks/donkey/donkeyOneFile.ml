@@ -161,7 +161,7 @@ let check_file_downloaded file =
       | Some swarmer ->
           let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
 (*          lprintf "Verified bitmap: [%s]\n" bitmap; *)
-	  let verified = VB.for_all (( = ) VB.State_verified) bitmap in
+          let verified = VB.for_all (( = ) VB.State_verified) bitmap in
           
           let downloaded = CommonSwarming.downloaded swarmer in
           if file_downloaded file <> downloaded then begin
@@ -186,7 +186,7 @@ let check_files_downloaded () =
             None -> ()
           | Some swarmer ->
               let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
-	      if VB.existsi (fun _ s -> s = VB.State_verified) bitmap then
+              if VB.existsi (fun _ s -> s = VB.State_verified) bitmap then
                 DonkeyShare.must_share_file file
   ) files_by_md4
 
@@ -220,7 +220,7 @@ let send_get_range_request c file ranges =
     match rangelist with
     | [] -> false
     | (x,y,_ : (int64 * int64 * range))::tail_range ->
-	    (x > old_max_emule_file_size) || (y > old_max_emule_file_size) || (check_large tail_range)
+            (x > old_max_emule_file_size) || (y > old_max_emule_file_size) || (check_large tail_range)
   in
   let is_large_request = check_large ranges in
   if file_is_largefile file && c.client_emule_proto.emule_largefiles <> 1 then
@@ -398,15 +398,15 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
     None -> 
       if !verbose then
         lprintf_nl "block_received for unknown file (md4 %s) for data from %s"
-	  (Md4.to_string md4) (full_client_identifier c)
+          (Md4.to_string md4) (full_client_identifier c)
   | Some (file, up) ->
       
       if file.file_md4 <> md4 then begin
           if !verbose then
             lprintf_nl "block_received for wrong file, received: %s, expected: %s, from %s"
-	      (Md4.to_string md4)
-	      (Md4.to_string file.file_md4)
-	      (full_client_identifier c)
+              (Md4.to_string md4)
+              (Md4.to_string file.file_md4)
+              (full_client_identifier c)
         end else begin
           DonkeySources.set_request_result c.client_source file.file_sources File_upload;
           
@@ -434,7 +434,7 @@ let block_received c md4 begin_pos bloc bloc_pos bloc_len =
                 CommonEvent.add_event (Console_message_event m);
                 if e <> End_of_file then begin
                     let m = Printf.sprintf "File %s paused, exception %s.\n"
-			      (file_best_name file) (Printexc2.to_string e) in
+                              (file_best_name file) (Printexc2.to_string e) in
                     Printf2.lprint_string m;
                     CommonEvent.add_event (Console_message_event m);
                     file_pause (as_file file) (CommonUserDb.admin_user ());
@@ -472,7 +472,7 @@ let search_found filter search md4 tags =
         { tag_name = Field_Filename; tag_value = String s } -> file_name := s
       | { tag_name = Field_Size; tag_value = Uint64 v } -> file_size := v
       | { tag_name = Field_Size_Hi; tag_value = Uint8 v } ->
-      	  file_size := Int64.logor !file_size (Int64.shift_left (Int64.of_int v) 32)
+          file_size := Int64.logor !file_size (Int64.shift_left (Int64.of_int v) 32)
       | { tag_name = Field_Availability; tag_value = (Uint64 v| Fint64 v) } ->
           availability := Int64.to_int v;  new_tags := tag :: !new_tags
       | _ -> new_tags := tag :: !new_tags

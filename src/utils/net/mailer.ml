@@ -120,14 +120,14 @@ let make_mail mail new_style =
   in
   let mail_date = Date.mail_string (Unix.time ()) in
   let addr = mail_address new_style in
-	Printf.sprintf 
-	"From: mldonkey %s\r\nTo: %s\r\n%s%s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
-	(addr mail.mail_from)
-	(addr mail_to)
-	(match mail_cc with [] -> "" | l -> Printf.sprintf "Cc: %s\r\n" (String.concat ", " (List.map addr l)))
-	(rfc2047_encode "Subject: " "utf-8" mail.mail_subject)
-	mail_date
-	mail.mail_body
+        Printf.sprintf 
+        "From: mldonkey %s\r\nTo: %s\r\n%s%s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\nDate: %s\r\n\r\n%s"
+        (addr mail.mail_from)
+        (addr mail_to)
+        (match mail_cc with [] -> "" | l -> Printf.sprintf "Cc: %s\r\n" (String.concat ", " (List.map addr l)))
+        (rfc2047_encode "Subject: " "utf-8" mail.mail_subject)
+        mail_date
+        mail.mail_body
 
 let canon_addr s = 
   let len = String.length s in

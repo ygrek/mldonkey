@@ -218,20 +218,20 @@ let list_calendar o list =
       List.iter (fun (wdays, hours, command) ->
           Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
           let wdays_string = ref "" in
-	  let hours_string = ref "" in
-	  List.iter (fun day ->
-	      if !wdays_string = "" then
-	        wdays_string := string_of_int day
-	      else
-	        wdays_string := Printf.sprintf "%s %s" !wdays_string (string_of_int day)) wdays;
-	  List.iter (fun hour ->
-	      if !hours_string = "" then
-	        hours_string := string_of_int hour
-	      else
-	        hours_string := Printf.sprintf "%s %s" !hours_string (string_of_int hour)) hours;
+          let hours_string = ref "" in
+          List.iter (fun day ->
+              if !wdays_string = "" then
+                wdays_string := string_of_int day
+              else
+                wdays_string := Printf.sprintf "%s %s" !wdays_string (string_of_int day)) wdays;
+          List.iter (fun hour ->
+              if !hours_string = "" then
+                hours_string := string_of_int hour
+              else
+                hours_string := Printf.sprintf "%s %s" !hours_string (string_of_int hour)) hours;
           Printf.bprintf buf "
               \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-	      \\<td class=\\\"sr\\\"\\>%s\\</td\\>" command !wdays_string !hours_string;
+              \\<td class=\\\"sr\\\"\\>%s\\</td\\>" command !wdays_string !hours_string;
           Printf.bprintf buf "
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>
               \\</tr\\>" command
@@ -242,17 +242,17 @@ let list_calendar o list =
       Printf.bprintf buf "weekdays / hours / command :\n";
       List.iter (fun (wdays, hours, command) ->
           let wdays_string = ref "" in
-	  let hours_string = ref "" in
-	  List.iter (fun day ->
-	      if !wdays_string = "" then
-	        wdays_string := string_of_int day
-	      else
-	        wdays_string := Printf.sprintf "%s %s" !wdays_string (string_of_int day)) wdays;
-	  List.iter (fun hour ->
-	      if !hours_string = "" then
-	        hours_string := string_of_int hour
-	      else
-	        hours_string := Printf.sprintf "%s %s" !hours_string (string_of_int hour)) hours;
+          let hours_string = ref "" in
+          List.iter (fun day ->
+              if !wdays_string = "" then
+                wdays_string := string_of_int day
+              else
+                wdays_string := Printf.sprintf "%s %s" !wdays_string (string_of_int day)) wdays;
+          List.iter (fun hour ->
+              if !hours_string = "" then
+                hours_string := string_of_int hour
+              else
+                hours_string := Printf.sprintf "%s %s" !hours_string (string_of_int hour)) hours;
           Printf.bprintf buf "%s\n%s\n%s\n" !wdays_string !hours_string command
       )list
     end
@@ -283,29 +283,29 @@ let _ =
 
     "alias", Arg_multiple ( fun args o ->
         let out = ref "" in
-	if List.length args = 0 then begin
-	  out := "List of aliases\n\n";
-	  List.iter (
-	    fun (a,b) ->
-	      out := !out ^ a ^ " -> " ^ b ^ "\n"
-	  ) !!alias_commands;
-	end
-	else begin
-	  match args with
-	      [] | [_] -> out := "Too few arguments"
-	    | al::def ->
-		(try
-		   let old_def = List.assoc al !!alias_commands in
-		   out := "removing " ^ al ^ " -> " ^ old_def ^ "\n";
-		   alias_commands =:= List.remove_assoc al !!alias_commands;
-		 with _ -> ());
+        if List.length args = 0 then begin
+          out := "List of aliases\n\n";
+          List.iter (
+            fun (a,b) ->
+              out := !out ^ a ^ " -> " ^ b ^ "\n"
+          ) !!alias_commands;
+        end
+        else begin
+          match args with
+              [] | [_] -> out := "Too few arguments"
+            | al::def ->
+                (try
+                   let old_def = List.assoc al !!alias_commands in
+                   out := "removing " ^ al ^ " -> " ^ old_def ^ "\n";
+                   alias_commands =:= List.remove_assoc al !!alias_commands;
+                 with _ -> ());
 
-		let definition = String.concat " " def in
-		alias_commands =:=  (al,definition) :: !!alias_commands;
-		out := !out ^ "Alias added";
-	end;
+                let definition = String.concat " " def in
+                alias_commands =:=  (al,definition) :: !!alias_commands;
+                out := !out ^ "Alias added";
+        end;
 
-	!out
+        !out
     ), ":\t\t\t\t\t$badd a command alias\n"
        ^"\t\t\t\t\tfor example: \"alias ca cancel all\" makes an alias\n"
        ^"\t\t\t\t\t\"ca\" performing \"cancel all\"\n"
@@ -315,11 +315,11 @@ let _ =
 
     "unalias", Arg_one (
       fun arg o ->
-	(try
-	   let old_def = List.assoc arg !!alias_commands in
-	   alias_commands =:= List.remove_assoc arg !!alias_commands;
-	   "removing " ^ arg ^ " -> " ^ old_def
-	 with _ -> "Alias not found");
+        (try
+           let old_def = List.assoc arg !!alias_commands in
+           alias_commands =:= List.remove_assoc arg !!alias_commands;
+           "removing " ^ arg ^ " -> " ^ old_def
+         with _ -> "Alias not found");
 
     ), ":\t\t\t\t$bdelete a command alias\n"
        ^"\t\t\t\t\texample: \"unalias ca\"$n";
@@ -351,10 +351,10 @@ let _ =
 
     "kill", Arg_none (fun o ->
         if user2_is_admin o.conn_user.ui_user then
-	  begin
+          begin
             CommonInteractive.clean_exit 0;
-	    _s "exit"
-	  end
+            _s "exit"
+          end
         else
           _s "You are not allowed to kill MLDonkey"
         ), ":\t\t\t\t\t$bsave and kill the server$n";
@@ -365,7 +365,7 @@ let _ =
           | [kind; url] -> kind, url, 0
           | _  -> failwith "Bad number of arguments"
         in
-	web_infos_add kind period url;
+        web_infos_add kind period url;
         (match web_infos_find url with
         | None -> ()
         | Some w -> CommonWeb.load_url true w);
@@ -473,18 +473,18 @@ let _ =
     ), "<num|all> :\t\t\t\tview client (use arg 'all' for all clients)";
 
     "version", Arg_none (fun o ->
-	print_command_result o (CommonGlobals.version ());
+        print_command_result o (CommonGlobals.version ());
         ""
     ), ":\t\t\t\tprint mldonkey version";
 
     "uptime", Arg_none (fun o ->
-	print_command_result o (log_time () ^ "- up " ^
-	  Date.time_to_string (last_time () - start_time) "verbose");
+        print_command_result o (log_time () ^ "- up " ^
+          Date.time_to_string (last_time () - start_time) "verbose");
         ""
     ), ":\t\t\t\tcore uptime";
 
     "sysinfo", Arg_none (fun o ->
-	let buf = o.conn_buf in
+        let buf = o.conn_buf in
         ignore(buildinfo (o.conn_output = HTML) buf);
         if o.conn_output = HTML then Printf.bprintf buf "\\<P\\>";
         ignore(runinfo (o.conn_output = HTML) buf o);
@@ -496,25 +496,25 @@ let _ =
     ), ":\t\t\t\tprint mldonkey core build, runtime and disk information";
 
     "buildinfo", Arg_none (fun o ->
-	let buf = o.conn_buf in
+        let buf = o.conn_buf in
         ignore(buildinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey core build information";
 
     "runinfo", Arg_none (fun o ->
-	let buf = o.conn_buf in
+        let buf = o.conn_buf in
         ignore(runinfo (o.conn_output = HTML) buf o);
         ""
     ), ":\t\t\t\tprint mldonkey runtime information";
 
     "portinfo", Arg_none (fun o ->
-	let buf = o.conn_buf in
+        let buf = o.conn_buf in
         ignore(portinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey port usage information";
 
     "diskinfo", Arg_none (fun o ->
-	let buf = o.conn_buf in
+        let buf = o.conn_buf in
         ignore(diskinfo (o.conn_output = HTML) buf);
         ""
     ), ":\t\t\t\tprint mldonkey disk information";
@@ -618,7 +618,7 @@ let _ =
             let c = client_find cnum in
             let g = client_info c in
             client_say c msg;
-	    log_chat_message "FROM ME" cnum ("TO: " ^ g.client_name) msg;
+            log_chat_message "FROM ME" cnum ("TO: " ^ g.client_name) msg;
             Printf.sprintf "Sending msg to client #%d: %s" cnum msg;
         | _ ->
             if use_html_mods o then begin
@@ -710,18 +710,18 @@ formID.msgText.value=\\\"\\\";
         if use_html_mods o then begin
             Printf.bprintf buf "\\<div class=\\\"vo\\\"\\>
                 \\<table class=main cellspacing=0 cellpadding=0\\>\\<tr\\>\\<td\\>";
-	    if !!calendar = [] then
+            if !!calendar = [] then
               html_mods_table_one_row buf "serversTable" "servers" [
                 ("", "srh", "no jobs defined"); ]
-	    else
+            else
               list_calendar o !!calendar;
             Printf.bprintf buf "\\</td\\>\\</tr\\>\\</table\\>\\</div\\>\\<P\\>";
-	    print_option_help o calendar
+            print_option_help o calendar
           end
         else
-	  if List.length !!calendar = 0 then
-	    Printf.bprintf buf "no jobs defined"
-	  else
+          if List.length !!calendar = 0 then
+            Printf.bprintf buf "no jobs defined"
+          else
             list_calendar o !!calendar;
         ""
     ), ":\t\t\t\t\tprint calendar";
@@ -784,34 +784,34 @@ let _ =
     ""), ":\t\t\t\t\tlist all known servers";
 
     "rem", Arg_multiple (fun args o ->
-	let counter = ref 0 in
-	match args with
-	  ["all"] ->
+        let counter = ref 0 in
+        match args with
+          ["all"] ->
             Intmap.iter ( fun _ s ->
               server_remove s;
-	      incr counter
+              incr counter
             ) !!servers;
             Printf.sprintf (_b "Removed all %d servers") !counter
-	| ["blocked"] ->
+        | ["blocked"] ->
             Intmap.iter ( fun _ s ->
               if server_blocked s then
-		begin
-		  server_remove s;
-		  incr counter
-		end
+                begin
+                  server_remove s;
+                  incr counter
+                end
             ) !!servers;
             Printf.sprintf (_b "Removed %d blocked servers") !counter
-	| ["disc"] ->
+        | ["disc"] ->
             Intmap.iter (fun _ s ->
-	      match server_state s with
-		NotConnected _ ->
-		  begin
-		    server_remove s;
-		    incr counter
-		  end
-	      | _ -> ()) !!servers;
+              match server_state s with
+                NotConnected _ ->
+                  begin
+                    server_remove s;
+                    incr counter
+                  end
+              | _ -> ()) !!servers;
             Printf.sprintf (_b "Removed %d disconnected servers") !counter
-	| _ ->
+        | _ ->
             List.iter (fun num ->
                 let num = int_of_string num in
                 let s = server_find num in
@@ -830,20 +830,20 @@ let _ =
     ), "<num> :\t\t\tprint banner of connected server <num>";
 
     "server_shares", Arg_one (fun num o ->
-	if user2_is_admin o.conn_user.ui_user then
+        if user2_is_admin o.conn_user.ui_user then
         let s = server_find (int_of_string num) in
         (match server_state s with
            Connected _ -> let list = ref [] in
-	    List.iter (fun f -> 
-	      match file_shared f with
-		None -> ()
-	      | Some sh -> list := (as_shared_impl sh) :: !list)
-	      (server_published s);
-	    print_upstats o !list (Some s)
-	  | _ -> ()
-	)
-	else print_command_result o "You are not allowed to use this command";
-	_s ""
+            List.iter (fun f -> 
+              match file_shared f with
+                None -> ()
+              | Some sh -> list := (as_shared_impl sh) :: !list)
+              (server_published s);
+            print_upstats o !list (Some s)
+          | _ -> ()
+        )
+        else print_command_result o "You are not allowed to use this command";
+        _s ""
     ), "<num> :\t\t\tshow list of files published on server <num>";
 
     "c", Arg_multiple (fun args o ->
@@ -1002,20 +1002,20 @@ let _ =
                   (html_mods_cntr ());
 
                 Printf.bprintf buf "
-			\\<td title=\\\"Client number\\\"
-			onClick=\\\"location.href='submit?q=files+%d'\\\"
-			class=\\\"srb\\\"\\>%d\\</td\\>
-			\\<td title=\\\"Remove friend\\\"
-			onClick=\\\"parent.fstatus.location.href='submit?q=friend_remove+%d'\\\"
-			class=\\\"srb\\\"\\>Remove\\</td\\>
-			\\<td title=\\\"Network\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-			\\<td title=\\\"Name (click to view files)\\\"
-			onClick=\\\"location.href='submit?q=files+%d'\\\"
-			class=\\\"sr\\\"\\>%s\\</td\\>
-	 		\\<td title=\\\"Click to view files\\\"
+                        \\<td title=\\\"Client number\\\"
+                        onClick=\\\"location.href='submit?q=files+%d'\\\"
+                        class=\\\"srb\\\"\\>%d\\</td\\>
+                        \\<td title=\\\"Remove friend\\\"
+                        onClick=\\\"parent.fstatus.location.href='submit?q=friend_remove+%d'\\\"
+                        class=\\\"srb\\\"\\>Remove\\</td\\>
+                        \\<td title=\\\"Network\\\" class=\\\"sr\\\"\\>%s\\</td\\>
+                        \\<td title=\\\"Name (click to view files)\\\"
+                        onClick=\\\"location.href='submit?q=files+%d'\\\"
+                        class=\\\"sr\\\"\\>%s\\</td\\>
+                        \\<td title=\\\"Click to view files\\\"
             onClick=\\\"location.href='submit?q=files+%d'\\\"
             class=\\\"sr\\\"\\>%s\\</td\\>
-			\\</tr\\>"
+                        \\</tr\\>"
                   i.client_num
                   i.client_num
                   i.client_num
@@ -1094,8 +1094,8 @@ let _ =
         print_command_result o
         (Printf.sprintf "upload disabled for %d minutes (remaining credits %d)"
           !CommonGlobals.has_upload !CommonGlobals.upload_credit)
-	end else
-	  print_command_result o "You are not allowed to disable upload"; ""
+        end else
+          print_command_result o "You are not allowed to disable upload"; ""
     ), "<m> :\t\t\t\tdisable upload during <m> minutes, queue all files";
 
     "vu", Arg_none (fun o ->
@@ -1147,35 +1147,35 @@ let _ =
     ), ":\t\t\t\tprint current bandwidth stats";
 
     "bw_toggle", Arg_multiple (fun args o ->
-	let change_bw () =
-		let ul_bkp = !!max_hard_upload_rate_2 in
-		let dl_bkp = !!max_hard_download_rate_2 in
-		let max_conn = !!max_opened_connections_2 in
-		max_hard_upload_rate_2 =:= !!max_hard_upload_rate;
-		max_hard_download_rate_2 =:= !!max_hard_download_rate;
-		max_opened_connections_2 =:= !!max_opened_connections;
-		max_hard_upload_rate =:= ul_bkp;
-		max_hard_download_rate =:=  dl_bkp;
-		max_opened_connections =:= max_conn;
-	in
-	if user2_is_admin o.conn_user.ui_user then begin
-	(
-		match (List.map String.lowercase args) with
-		| ["high"] ->
-			if !!max_opened_connections < !!max_opened_connections_2 then
-				change_bw ()
-		| ["low"] ->
-			if !!max_opened_connections > !!max_opened_connections_2 then
-				change_bw ()
-		| _ -> change_bw ()
-		);
-		print_command_result o (Printf.sprintf
-		  "new upload rate: %d | new download rate: %d | new max opened connections: %d"
-		    !!max_hard_upload_rate !!max_hard_download_rate !!max_opened_connections)
-		end
-	else
-	  print_command_result o "You are not allowed to toggle bandwidth";
-	""
+        let change_bw () =
+                let ul_bkp = !!max_hard_upload_rate_2 in
+                let dl_bkp = !!max_hard_download_rate_2 in
+                let max_conn = !!max_opened_connections_2 in
+                max_hard_upload_rate_2 =:= !!max_hard_upload_rate;
+                max_hard_download_rate_2 =:= !!max_hard_download_rate;
+                max_opened_connections_2 =:= !!max_opened_connections;
+                max_hard_upload_rate =:= ul_bkp;
+                max_hard_download_rate =:=  dl_bkp;
+                max_opened_connections =:= max_conn;
+        in
+        if user2_is_admin o.conn_user.ui_user then begin
+        (
+                match (List.map String.lowercase args) with
+                | ["high"] ->
+                        if !!max_opened_connections < !!max_opened_connections_2 then
+                                change_bw ()
+                | ["low"] ->
+                        if !!max_opened_connections > !!max_opened_connections_2 then
+                                change_bw ()
+                | _ -> change_bw ()
+                );
+                print_command_result o (Printf.sprintf
+                  "new upload rate: %d | new download rate: %d | new max opened connections: %d"
+                    !!max_hard_upload_rate !!max_hard_download_rate !!max_opened_connections)
+                end
+        else
+          print_command_result o "You are not allowed to toggle bandwidth";
+        ""
     ), "[<high|low>]:\t\t\ttoggle between the two rate and opened connection sets, high/low depend on option max_open_connections*";
 
     "costats", Arg_multiple (fun args o ->
@@ -1183,7 +1183,7 @@ let _ =
           match (List.map String.lowercase args) with
           | [] -> cs.country_total_upload <> 0L || cs.country_total_download <> 0L
           | ["all"] -> true
-	  | args ->
+          | args ->
               let match_star = Str.regexp "\\*" in
               let regexp = Str.regexp ("^\\("
                 ^ (List.fold_left (fun acc a -> acc
@@ -1227,16 +1227,16 @@ let _ =
               if filter cs then begin
                 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
                 html_mods_td buf [
-		    ("", "sr", cs.country_name);
-		    (cs.country_code, "sr", CommonPictures.flag_html cs.country_code);
-		    ("", "sr", cs.country_continent);
-		    ("", "sr ar", size_of_int64 cs.country_session_upload);
-		    ("", "sr ar", size_of_int64 cs.country_session_download);
-		    ("", "sr ar", Printf.sprintf "%Ld" cs.country_session_seen);
-		    ("", "sr ar", size_of_int64 cs.country_total_upload);
-		    ("", "sr ar", size_of_int64 cs.country_total_download);
-		    ("", "sr ar", Printf.sprintf "%Ld" cs.country_total_seen);
-		    ];
+                    ("", "sr", cs.country_name);
+                    (cs.country_code, "sr", CommonPictures.flag_html cs.country_code);
+                    ("", "sr", cs.country_continent);
+                    ("", "sr ar", size_of_int64 cs.country_session_upload);
+                    ("", "sr ar", size_of_int64 cs.country_session_download);
+                    ("", "sr ar", Printf.sprintf "%Ld" cs.country_session_seen);
+                    ("", "sr ar", size_of_int64 cs.country_total_upload);
+                    ("", "sr ar", size_of_int64 cs.country_total_download);
+                    ("", "sr ar", Printf.sprintf "%Ld" cs.country_total_seen);
+                    ];
                 Printf.bprintf buf "\\</tr\\>\n";
                 csu := !csu ++ cs.country_session_upload;
                 csd := !csd ++ cs.country_session_download;
@@ -1249,16 +1249,16 @@ let _ =
               Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
 
               html_mods_td buf [ (* Display totals *)
-		("", "sr total", "Total");
-		("", "sr total", "");
-		("", "sr total", "");
-		("", "sr ar total", size_of_int64 !csu);
-		("", "sr ar total", size_of_int64 !csd);
-		("", "sr ar total", Printf.sprintf "%Ld" !css);
-		("", "sr ar total", size_of_int64 !ctu);
-		("", "sr ar total", size_of_int64 !ctd);
-		("", "sr ar total", Printf.sprintf "%Ld" !cts);
-		];
+                ("", "sr total", "Total");
+                ("", "sr total", "");
+                ("", "sr total", "");
+                ("", "sr ar total", size_of_int64 !csu);
+                ("", "sr ar total", size_of_int64 !csd);
+                ("", "sr ar total", Printf.sprintf "%Ld" !css);
+                ("", "sr ar total", size_of_int64 !ctu);
+                ("", "sr ar total", size_of_int64 !ctd);
+                ("", "sr ar total", Printf.sprintf "%Ld" !cts);
+                ];
               Printf.bprintf buf "\\</tr\\>\\</table\\>\\</td\\>\\</tr\\>\\</table\\>\n"
           end
         else
@@ -1356,22 +1356,22 @@ let _ =
       _s ""), ":\t\t\t\t\tdisplay transfer statistics";
 
     "gdstats", Arg_none (fun o ->
-	if Autoconf.has_gd then
+        if Autoconf.has_gd then
           if use_html_mods o then
             print_gdstats o
           else
             print_command_result o (_s "Only available on HTML interface")
-	else
+        else
           print_command_result o (_s "Gd support was not compiled");
       _s ""), ":\t\t\t\tdisplay graphical transfer statistics";
 
     "gdremove", Arg_none (fun o ->
-	if Autoconf.has_gd then
-	  begin
-	    DriverGraphics.G.really_remove_files ();
+        if Autoconf.has_gd then
+          begin
+            DriverGraphics.G.really_remove_files ();
             print_command_result o (_s "Gd files were removed")
-	  end
-	else
+          end
+        else
           print_command_result o (_s "Gd support was not compiled");
       _s ""), ":\t\t\t\tremove graphical transfer statistics files";
 
@@ -1380,45 +1380,45 @@ let _ =
           match arg with
             c :: args ->
               let cmd = try List.assoc c !!allowed_commands with Not_found -> c in
-	      (try
-		 let pipe_out, pipe_in = Unix.pipe () in
-		 let pid = Unix.create_process cmd 
-		   (Array.of_list (Filename2.basename c :: args))
-		   Unix.stdin pipe_in pipe_in in
-		 Unix.close pipe_in;
-		 (* can't close pipe_out in the already forked+executed process... *)
-		 let output = Buffer.create 1024 in
-		 let buffersize = 1024 in
-		 let buffer = String.create buffersize in
-		 (try
-		    while true do
-		      let nread = Unix.read pipe_out buffer 0 buffersize in
-		      if nread = 0 then raise End_of_file;
-		      Buffer.add_substring output buffer 0 nread
-		    done
-		  with 
-		  | End_of_file -> ()
-		  | Unix.Unix_error (code, f, arg) ->
-		      lprintf_nl "%s failed%s: %s" f (if arg = "" then "" else " on " ^ arg) (Unix.error_message code));
-		 (try Unix.close pipe_out with _ -> ());
-		 let _pid, status = Unix.waitpid [] pid in
-		 Printf.sprintf (_b "%s\n---------------- %s") 
-		   (Buffer.contents output) 
-		   (match status with
-		    | Unix.WEXITED exitcode ->
-			Printf.sprintf "Exited with code %d" exitcode
-		    | Unix.WSIGNALED signal ->
-			Printf.sprintf "Was killed by signal %d" signal
-		    | Unix.WSTOPPED signal -> (* does it matter for us ? *)
-			Printf.sprintf "Was stopped by signal %d" signal)
-		   
-	       with Unix.Unix_error (code, f, arg) ->
-		 Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else " on " ^ arg) (Unix.error_message code))
+              (try
+                 let pipe_out, pipe_in = Unix.pipe () in
+                 let pid = Unix.create_process cmd 
+                   (Array.of_list (Filename2.basename c :: args))
+                   Unix.stdin pipe_in pipe_in in
+                 Unix.close pipe_in;
+                 (* can't close pipe_out in the already forked+executed process... *)
+                 let output = Buffer.create 1024 in
+                 let buffersize = 1024 in
+                 let buffer = String.create buffersize in
+                 (try
+                    while true do
+                      let nread = Unix.read pipe_out buffer 0 buffersize in
+                      if nread = 0 then raise End_of_file;
+                      Buffer.add_substring output buffer 0 nread
+                    done
+                  with 
+                  | End_of_file -> ()
+                  | Unix.Unix_error (code, f, arg) ->
+                      lprintf_nl "%s failed%s: %s" f (if arg = "" then "" else " on " ^ arg) (Unix.error_message code));
+                 (try Unix.close pipe_out with _ -> ());
+                 let _pid, status = Unix.waitpid [] pid in
+                 Printf.sprintf (_b "%s\n---------------- %s") 
+                   (Buffer.contents output) 
+                   (match status with
+                    | Unix.WEXITED exitcode ->
+                        Printf.sprintf "Exited with code %d" exitcode
+                    | Unix.WSIGNALED signal ->
+                        Printf.sprintf "Was killed by signal %d" signal
+                    | Unix.WSTOPPED signal -> (* does it matter for us ? *)
+                        Printf.sprintf "Was stopped by signal %d" signal)
+                   
+               with Unix.Unix_error (code, f, arg) ->
+                 Printf.sprintf "%s failed%s: %s" f (if arg = "" then "" else " on " ^ arg) (Unix.error_message code))
           | [] -> _s "no command given"
         else
         match arg with
           [arg] ->
-	    (try
+            (try
             let cmd = List.assoc arg !!allowed_commands in
             let tmp = Filename2.temp_file "com" ".out" in
             let ret = Sys.command (Printf.sprintf "%s > %s"
@@ -1426,7 +1426,7 @@ let _ =
             let output = File.to_string tmp in
             Sys.remove tmp;
             Printf.sprintf (_b "%s\n---------------- Exited with code %d") output ret
-	    with e -> "For arbitrary commands, you must set 'allowed_any_command'")
+            with e -> "For arbitrary commands, you must set 'allowed_any_command'")
         | [] ->
             _s "no command given"
         | _ -> "For arbitrary commands, you must set 'allowed_any_command'"
@@ -1452,26 +1452,26 @@ let _ =
     ) , ":\t\t\t\tprint all networks";
 
     "enable", Arg_one (fun num o ->
-	if user2_is_admin o.conn_user.ui_user then
-	  begin
-	    let n = network_find_by_num (int_of_string num) in
-	    network_enable n;
-	    print_command_result o "network enabled"
-	  end
-	else
-	  print_command_result o "You are not allowed to enable networks";
+        if user2_is_admin o.conn_user.ui_user then
+          begin
+            let n = network_find_by_num (int_of_string num) in
+            network_enable n;
+            print_command_result o "network enabled"
+          end
+        else
+          print_command_result o "You are not allowed to enable networks";
         _s ""
     ) , "<num> :\t\t\t\tenable a particular network";
 
     "disable", Arg_one (fun num o ->
-	if user2_is_admin o.conn_user.ui_user then
-	  begin
-	    let n = network_find_by_num (int_of_string num) in
-	    network_disable n;
-	    print_command_result o "network disabled"
-	  end
-	else
-	  print_command_result o "You are not allowed to disable networks";
+        if user2_is_admin o.conn_user.ui_user then
+          begin
+            let n = network_find_by_num (int_of_string num) in
+            network_disable n;
+            print_command_result o "network disabled"
+          end
+        else
+          print_command_result o "You are not allowed to disable networks";
         _s ""
     ) , "<num> :\t\t\t\tdisable a particular network";
     
@@ -1500,7 +1500,7 @@ let _ =
         let age time = Date.time_to_string (BasicSocket.last_time () - time) "verbose" in
         let list = ref [] in
         let put_list e = list := e :: !list in
-	networks_iter (fun n -> 
+        networks_iter (fun n -> 
         match network_porttest_result n with
          | PorttestNotAvailable ->
              put_list (n.network_name , "Porttest not available")
@@ -1671,7 +1671,7 @@ let _ =
           Printf.bprintf buf "%d custom queries defined\n"
             (List.length (customized_queries ()));
         let custom_commands = ref [] in
-	List.iter (fun (name, q) ->
+        List.iter (fun (name, q) ->
             if o.conn_output = HTML then
               begin
                 if use_html_mods o then
@@ -1710,8 +1710,8 @@ let _ =
     ), "<num> :\t\t\t\t$bfile to download$n";
 
     "force_download", Arg_none (fun o ->
-	if !forceable_download = [] then
-	  begin
+        if !forceable_download = [] then
+          begin
             let output = (if o.conn_output = HTML then begin
                 let buf = Buffer.create 100 in
                 Printf.bprintf buf "\\<div class=\\\"cs\\\"\\>";
@@ -1725,12 +1725,12 @@ let _ =
                 Printf.sprintf "No download to force"
             end) in
             _s output
-	  end
+          end
         else
-	  begin
-	    let r = List.hd !forceable_download in
-	      CommonNetwork.networks_iter (fun n ->
-	        ignore (network_download n r o.conn_user.ui_user o.conn_user.ui_user.user_default_group));
+          begin
+            let r = List.hd !forceable_download in
+              CommonNetwork.networks_iter (fun n ->
+                ignore (network_download n r o.conn_user.ui_user o.conn_user.ui_user.user_default_group));
 
             let output = (if o.conn_output = HTML then begin
                 let buf = Buffer.create 100 in
@@ -1747,7 +1747,7 @@ let _ =
                 Printf.sprintf "Forced start of : %s" (List.hd r.result_names)
             end) in
             _s output
-	  end;
+          end;
     ), ":\t\t\tforce download of an already downloaded file";
 
     ]
@@ -1763,7 +1763,7 @@ let _ =
     [
 
     "set", Arg_two (fun name value o ->
-	if user2_is_admin o.conn_user.ui_user then begin
+        if user2_is_admin o.conn_user.ui_user then begin
         try
           try
             let gui_type, ip, port =
@@ -1781,25 +1781,25 @@ let _ =
         with
         | Not_found -> Printf.sprintf "Option %s does not exist" name
         | e -> Printf.sprintf "Error %s" (Printexc2.to_string e)
-	  end
-	else
-	  _s "You are not allowed to change options"
+          end
+        else
+          _s "You are not allowed to change options"
     ), "<option_name> <option_value> :\t$bchange option value$n";
 
     "save", Arg_multiple (fun args o ->
-	if !allow_saving_ini_files then begin
+        if !allow_saving_ini_files then begin
         match args with
-	  ["options"] -> DriverInteractive.save_config (); _s "options saved"
-	| ["sources"] -> CommonComplexOptions.save_sources (); _s "sources saved"
-	| ["backup"] -> CommonComplexOptions.backup_options (); _s "backup saved"
-	| ["all"] ->
-	       DriverInteractive.save_config ();
-	       CommonComplexOptions.save_sources ();
-	       CommonComplexOptions.backup_options ();
-	        _s "options, sources and backup saved"
-	| _ -> DriverInteractive.save_config ();
-	       CommonComplexOptions.save_sources (); _s "options and sources saved"
-	end else _s "base directory full, ini file saving disabled until core shutdown"
+          ["options"] -> DriverInteractive.save_config (); _s "options saved"
+        | ["sources"] -> CommonComplexOptions.save_sources (); _s "sources saved"
+        | ["backup"] -> CommonComplexOptions.backup_options (); _s "backup saved"
+        | ["all"] ->
+               DriverInteractive.save_config ();
+               CommonComplexOptions.save_sources ();
+               CommonComplexOptions.backup_options ();
+                _s "options, sources and backup saved"
+        | _ -> DriverInteractive.save_config ();
+               CommonComplexOptions.save_sources (); _s "options and sources saved"
+        end else _s "base directory full, ini file saving disabled until core shutdown"
         ), "[<options|sources|backup>] :\tsave options and/or sources or backup (empty for options and sources)";
 
     "vo", Arg_none (fun o ->
@@ -1972,216 +1972,216 @@ action=\\\"javascript:pluginSubmit();\\\"\\>";
                   match tab with
                     1 ->
                       [
-			strings_of_option global_login;
-			strings_of_option set_client_ip;
-			strings_of_option force_client_ip;
-			strings_of_option discover_ip;
-			strings_of_option max_upload_slots;
-			strings_of_option max_release_slots;
-			strings_of_option dynamic_slots;
-			strings_of_option max_hard_upload_rate;
-			strings_of_option max_hard_download_rate;
-			strings_of_option max_opened_connections;
-			strings_of_option max_hard_upload_rate_2;
-			strings_of_option max_hard_download_rate_2;
-			strings_of_option max_opened_connections_2;
-			strings_of_option max_indirect_connections;
-			strings_of_option max_connections_per_second;
-			strings_of_option max_concurrent_downloads;
+                        strings_of_option global_login;
+                        strings_of_option set_client_ip;
+                        strings_of_option force_client_ip;
+                        strings_of_option discover_ip;
+                        strings_of_option max_upload_slots;
+                        strings_of_option max_release_slots;
+                        strings_of_option dynamic_slots;
+                        strings_of_option max_hard_upload_rate;
+                        strings_of_option max_hard_download_rate;
+                        strings_of_option max_opened_connections;
+                        strings_of_option max_hard_upload_rate_2;
+                        strings_of_option max_hard_download_rate_2;
+                        strings_of_option max_opened_connections_2;
+                        strings_of_option max_indirect_connections;
+                        strings_of_option max_connections_per_second;
+                        strings_of_option max_concurrent_downloads;
                       ]
 
                   | 2 ->
                       [
-			strings_of_option gui_bind_addr;
-			strings_of_option telnet_bind_addr;
-			strings_of_option http_bind_addr;
-			strings_of_option client_bind_addr;
-			strings_of_option gui_port;
-			strings_of_option telnet_port;
-			strings_of_option http_port;
-			strings_of_option http_root_url;
-			strings_of_option http_realm;
-			strings_of_option allowed_ips;
+                        strings_of_option gui_bind_addr;
+                        strings_of_option telnet_bind_addr;
+                        strings_of_option http_bind_addr;
+                        strings_of_option client_bind_addr;
+                        strings_of_option gui_port;
+                        strings_of_option telnet_port;
+                        strings_of_option http_port;
+                        strings_of_option http_root_url;
+                        strings_of_option http_realm;
+                        strings_of_option allowed_ips;
                       ]
                   | 3 ->
                       [
-			strings_of_option html_mods_use_relative_availability;
-			strings_of_option html_mods_human_readable;
-			strings_of_option html_mods_vd_network;
-			strings_of_option html_mods_vd_active_sources;
-			strings_of_option html_mods_vd_age;
-			strings_of_option html_mods_vd_user;
-			strings_of_option html_mods_vd_group;
-			strings_of_option html_mods_vd_last;
-			strings_of_option html_mods_vd_prio;
-			strings_of_option html_mods_show_pending;
-			strings_of_option html_mods_load_message_file;
-			strings_of_option html_mods_max_messages;
-			strings_of_option html_mods_bw_refresh_delay;
-			strings_of_option html_frame_border;
-			strings_of_option html_checkbox_vd_file_list;
-			strings_of_option html_checkbox_search_file_list;
-			strings_of_option commands_frame_height;
-			strings_of_option html_vd_barheight;
-			strings_of_option html_vd_chunk_graph;
-			strings_of_option html_vd_chunk_graph_style;
-			strings_of_option html_vd_chunk_graph_max_width;
-			strings_of_option display_downloaded_results;
-			strings_of_option vd_reload_delay;
-			strings_of_option html_use_gzip;
-			strings_of_option html_flags;
-			strings_of_option html_mods_use_js_tooltips;
-			strings_of_option html_mods_js_tooltips_wait;
-			strings_of_option html_mods_js_tooltips_timeout;
-			strings_of_option html_mods_use_js_helptext;
-			] @ (if Autoconf.has_gd then
-			[strings_of_option html_mods_vd_gfx;] else []) @
-			(if Autoconf.has_gd_jpg && Autoconf.has_gd_png
-			 then [strings_of_option html_mods_vd_gfx_png;] else []) @
-			(if Autoconf.has_gd then [
-			strings_of_option html_mods_vd_gfx_remove;
-			strings_of_option html_mods_vd_gfx_split;
-			strings_of_option html_mods_vd_gfx_stack;
-			strings_of_option html_mods_vd_gfx_fill;
-			strings_of_option html_mods_vd_gfx_flip;
-			strings_of_option html_mods_vd_gfx_mean;
-			strings_of_option html_mods_vd_gfx_transparent;
-			strings_of_option html_mods_vd_gfx_h;
-			strings_of_option html_mods_vd_gfx_h_intervall;
-			strings_of_option html_mods_vd_gfx_h_dynamic;
-			strings_of_option html_mods_vd_gfx_h_grid_time;
-			strings_of_option html_mods_vd_gfx_subgrid;
-			strings_of_option html_mods_vd_gfx_x_size;
-			strings_of_option html_mods_vd_gfx_y_size;
-			strings_of_option html_mods_vd_gfx_tag;
-			strings_of_option html_mods_vd_gfx_tag_use_source;
-			strings_of_option html_mods_vd_gfx_tag_source;
-			strings_of_option html_mods_vd_gfx_tag_png;
-			strings_of_option html_mods_vd_gfx_tag_enable_title;
-			strings_of_option html_mods_vd_gfx_tag_title;
-			strings_of_option html_mods_vd_gfx_tag_title_x_pos;
-			strings_of_option html_mods_vd_gfx_tag_title_y_pos;
-			strings_of_option html_mods_vd_gfx_tag_dl_x_pos;
-			strings_of_option html_mods_vd_gfx_tag_dl_y_pos;
-			strings_of_option html_mods_vd_gfx_tag_ul_x_pos;
-			strings_of_option html_mods_vd_gfx_tag_ul_y_pos;
-			strings_of_option html_mods_vd_gfx_tag_x_size;
-			strings_of_option html_mods_vd_gfx_tag_y_size;
-			] else [])
+                        strings_of_option html_mods_use_relative_availability;
+                        strings_of_option html_mods_human_readable;
+                        strings_of_option html_mods_vd_network;
+                        strings_of_option html_mods_vd_active_sources;
+                        strings_of_option html_mods_vd_age;
+                        strings_of_option html_mods_vd_user;
+                        strings_of_option html_mods_vd_group;
+                        strings_of_option html_mods_vd_last;
+                        strings_of_option html_mods_vd_prio;
+                        strings_of_option html_mods_show_pending;
+                        strings_of_option html_mods_load_message_file;
+                        strings_of_option html_mods_max_messages;
+                        strings_of_option html_mods_bw_refresh_delay;
+                        strings_of_option html_frame_border;
+                        strings_of_option html_checkbox_vd_file_list;
+                        strings_of_option html_checkbox_search_file_list;
+                        strings_of_option commands_frame_height;
+                        strings_of_option html_vd_barheight;
+                        strings_of_option html_vd_chunk_graph;
+                        strings_of_option html_vd_chunk_graph_style;
+                        strings_of_option html_vd_chunk_graph_max_width;
+                        strings_of_option display_downloaded_results;
+                        strings_of_option vd_reload_delay;
+                        strings_of_option html_use_gzip;
+                        strings_of_option html_flags;
+                        strings_of_option html_mods_use_js_tooltips;
+                        strings_of_option html_mods_js_tooltips_wait;
+                        strings_of_option html_mods_js_tooltips_timeout;
+                        strings_of_option html_mods_use_js_helptext;
+                        ] @ (if Autoconf.has_gd then
+                        [strings_of_option html_mods_vd_gfx;] else []) @
+                        (if Autoconf.has_gd_jpg && Autoconf.has_gd_png
+                         then [strings_of_option html_mods_vd_gfx_png;] else []) @
+                        (if Autoconf.has_gd then [
+                        strings_of_option html_mods_vd_gfx_remove;
+                        strings_of_option html_mods_vd_gfx_split;
+                        strings_of_option html_mods_vd_gfx_stack;
+                        strings_of_option html_mods_vd_gfx_fill;
+                        strings_of_option html_mods_vd_gfx_flip;
+                        strings_of_option html_mods_vd_gfx_mean;
+                        strings_of_option html_mods_vd_gfx_transparent;
+                        strings_of_option html_mods_vd_gfx_h;
+                        strings_of_option html_mods_vd_gfx_h_intervall;
+                        strings_of_option html_mods_vd_gfx_h_dynamic;
+                        strings_of_option html_mods_vd_gfx_h_grid_time;
+                        strings_of_option html_mods_vd_gfx_subgrid;
+                        strings_of_option html_mods_vd_gfx_x_size;
+                        strings_of_option html_mods_vd_gfx_y_size;
+                        strings_of_option html_mods_vd_gfx_tag;
+                        strings_of_option html_mods_vd_gfx_tag_use_source;
+                        strings_of_option html_mods_vd_gfx_tag_source;
+                        strings_of_option html_mods_vd_gfx_tag_png;
+                        strings_of_option html_mods_vd_gfx_tag_enable_title;
+                        strings_of_option html_mods_vd_gfx_tag_title;
+                        strings_of_option html_mods_vd_gfx_tag_title_x_pos;
+                        strings_of_option html_mods_vd_gfx_tag_title_y_pos;
+                        strings_of_option html_mods_vd_gfx_tag_dl_x_pos;
+                        strings_of_option html_mods_vd_gfx_tag_dl_y_pos;
+                        strings_of_option html_mods_vd_gfx_tag_ul_x_pos;
+                        strings_of_option html_mods_vd_gfx_tag_ul_y_pos;
+                        strings_of_option html_mods_vd_gfx_tag_x_size;
+                        strings_of_option html_mods_vd_gfx_tag_y_size;
+                        ] else [])
                   | 4 ->
                       [
-			strings_of_option save_options_delay;
-			strings_of_option update_gui_delay;
-			strings_of_option server_connection_timeout;
-			strings_of_option compaction_delay;
-			strings_of_option min_reask_delay;
-			strings_of_option buffer_writes;
-			strings_of_option buffer_writes_delay;
-			strings_of_option buffer_writes_threshold;
+                        strings_of_option save_options_delay;
+                        strings_of_option update_gui_delay;
+                        strings_of_option server_connection_timeout;
+                        strings_of_option compaction_delay;
+                        strings_of_option min_reask_delay;
+                        strings_of_option buffer_writes;
+                        strings_of_option buffer_writes_delay;
+                        strings_of_option buffer_writes_threshold;
                       ]
                   | 5 ->
                       [
-			strings_of_option previewer;
-			strings_of_option temp_directory;
-			strings_of_option filenames_utf8;
-			strings_of_option share_scan_interval;
-			strings_of_option hdd_temp_minfree;
-			strings_of_option hdd_temp_stop_core;
-			strings_of_option hdd_coredir_minfree;
-			strings_of_option hdd_coredir_stop_core;
-			strings_of_option hdd_send_warning_interval;
-			strings_of_option file_started_cmd;
-			strings_of_option file_completed_cmd;
-			strings_of_option allow_browse_share;
-			strings_of_option auto_commit;
-			strings_of_option pause_new_downloads;
-			strings_of_option release_new_downloads;
-			strings_of_option create_file_mode;
-			strings_of_option create_dir_mode;
-			strings_of_option create_file_sparse;
-			strings_of_option log_file;
-			strings_of_option log_file_size;
-			strings_of_option log_size;
+                        strings_of_option previewer;
+                        strings_of_option temp_directory;
+                        strings_of_option filenames_utf8;
+                        strings_of_option share_scan_interval;
+                        strings_of_option hdd_temp_minfree;
+                        strings_of_option hdd_temp_stop_core;
+                        strings_of_option hdd_coredir_minfree;
+                        strings_of_option hdd_coredir_stop_core;
+                        strings_of_option hdd_send_warning_interval;
+                        strings_of_option file_started_cmd;
+                        strings_of_option file_completed_cmd;
+                        strings_of_option allow_browse_share;
+                        strings_of_option auto_commit;
+                        strings_of_option pause_new_downloads;
+                        strings_of_option release_new_downloads;
+                        strings_of_option create_file_mode;
+                        strings_of_option create_dir_mode;
+                        strings_of_option create_file_sparse;
+                        strings_of_option log_file;
+                        strings_of_option log_file_size;
+                        strings_of_option log_size;
                       ]
                   | 6 ->
                       [
-			strings_of_option mail;
-			strings_of_option smtp_port;
-			strings_of_option smtp_server;
-			strings_of_option smtp_login;
-			strings_of_option smtp_password;
-			strings_of_option add_mail_brackets;
-			strings_of_option filename_in_subject;
-			strings_of_option url_in_mail;
+                        strings_of_option mail;
+                        strings_of_option smtp_port;
+                        strings_of_option smtp_server;
+                        strings_of_option smtp_login;
+                        strings_of_option smtp_password;
+                        strings_of_option add_mail_brackets;
+                        strings_of_option filename_in_subject;
+                        strings_of_option url_in_mail;
                       ]
                   | 7 ->
                       ( (if Autoconf.donkey = "yes" then [(strings_of_option enable_overnet)] else [])
-			@ [
-			] @
-			(if Autoconf.donkey = "yes" then [(strings_of_option enable_kademlia)] else [])
-			@ [
-			] @
-			(if Autoconf.donkey = "yes" then [(strings_of_option enable_donkey)] else [])
-			@ [
-			] @
-			(if Autoconf.bittorrent = "yes" then [(strings_of_option enable_bittorrent)] else [])
-			@ [
-			] @
-			(if Autoconf.fasttrack = "yes" then [(strings_of_option enable_fasttrack)] else [])
-			@ [
-			] @
-			(if Autoconf.opennapster = "yes" then [(strings_of_option enable_opennap)] else [])
-			@ [
-			] @
-			(if Autoconf.soulseek = "yes" then [(strings_of_option enable_soulseek)] else [])
-			@ [
-			] @
-			(if Autoconf.gnutella = "yes" then [(strings_of_option enable_gnutella)] else [])
-			@ [
-			] @
-			(if Autoconf.gnutella2 = "yes" then [(strings_of_option enable_gnutella2)] else [])
-			@ [
-			] @
-			(if Autoconf.direct_connect = "yes" then [(strings_of_option enable_directconnect)] else [])
-			@ [
-			] @
-			(if Autoconf.openft = "yes" then [(strings_of_option enable_openft)] else [])
-			@ [
-			] @
-			(if Autoconf.filetp = "yes" then [(strings_of_option enable_fileTP)] else [])
-			@ [
-			] @
-			(if Autoconf.upnp_natpmp then [(strings_of_option upnp_port_forwarding)] else [])
-			@ [
-			] @
-			(if Autoconf.upnp_natpmp then [(strings_of_option clear_upnp_port_at_exit)] else [])
-			@ [
-			strings_of_option tcpip_packet_size;
-			strings_of_option mtu_packet_size;
-			strings_of_option minimal_packet_size;
-			strings_of_option ip_blocking;
-			strings_of_option ip_blocking_descriptions;
-			strings_of_option ip_blocking_countries;
-			strings_of_option ip_blocking_countries_block;
+                        @ [
+                        ] @
+                        (if Autoconf.donkey = "yes" then [(strings_of_option enable_kademlia)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.donkey = "yes" then [(strings_of_option enable_donkey)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.bittorrent = "yes" then [(strings_of_option enable_bittorrent)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.fasttrack = "yes" then [(strings_of_option enable_fasttrack)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.opennapster = "yes" then [(strings_of_option enable_opennap)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.soulseek = "yes" then [(strings_of_option enable_soulseek)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.gnutella = "yes" then [(strings_of_option enable_gnutella)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.gnutella2 = "yes" then [(strings_of_option enable_gnutella2)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.direct_connect = "yes" then [(strings_of_option enable_directconnect)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.openft = "yes" then [(strings_of_option enable_openft)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.filetp = "yes" then [(strings_of_option enable_fileTP)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.upnp_natpmp then [(strings_of_option upnp_port_forwarding)] else [])
+                        @ [
+                        ] @
+                        (if Autoconf.upnp_natpmp then [(strings_of_option clear_upnp_port_at_exit)] else [])
+                        @ [
+                        strings_of_option tcpip_packet_size;
+                        strings_of_option mtu_packet_size;
+                        strings_of_option minimal_packet_size;
+                        strings_of_option ip_blocking;
+                        strings_of_option ip_blocking_descriptions;
+                        strings_of_option ip_blocking_countries;
+                        strings_of_option ip_blocking_countries_block;
                       ])
                   | 8 ->
                       [
-			strings_of_option term_ansi;
-			strings_of_option run_as_user;
-			strings_of_option run_as_useruid;
-			strings_of_option messages_filter;
-			strings_of_option comments_filter;
-			strings_of_option max_displayed_results;
-			strings_of_option max_name_len;
-			strings_of_option max_result_name_len;
-			strings_of_option max_filenames;
-			strings_of_option max_client_name_len;
-			strings_of_option emule_mods_count;
-			strings_of_option emule_mods_showall;
-			strings_of_option backup_options_format;
-			strings_of_option backup_options_delay;
-			strings_of_option backup_options_generations;
-			strings_of_option small_files_slot_limit;
+                        strings_of_option term_ansi;
+                        strings_of_option run_as_user;
+                        strings_of_option run_as_useruid;
+                        strings_of_option messages_filter;
+                        strings_of_option comments_filter;
+                        strings_of_option max_displayed_results;
+                        strings_of_option max_name_len;
+                        strings_of_option max_result_name_len;
+                        strings_of_option max_filenames;
+                        strings_of_option max_client_name_len;
+                        strings_of_option emule_mods_count;
+                        strings_of_option emule_mods_showall;
+                        strings_of_option backup_options_format;
+                        strings_of_option backup_options_delay;
+                        strings_of_option backup_options_generations;
+                        strings_of_option small_files_slot_limit;
                       ]
                   | 9 ->
                       changed_list
@@ -2274,75 +2274,75 @@ action=\\\"javascript:submitHtmlModsStyle();\\\"\\>";
             if Hashtbl.length web_infos_table = 0 then
               html_mods_table_one_row buf "serversTable" "servers" [
                 ("", "srh", "no jobs defined"); ]
-	    else begin
+            else begin
 
-    	      html_mods_table_header buf "web_infoTable" "vo" [
-	        ( Str, "srh ac", "Click to remove URL", "Remove" ) ;
-	        ( Str, "srh", "Download now", "DL" ) ;
-	        ( Str, "srh", "Filetype", "Type" ) ;
-	        ( Num, "srh", "Interval in hours", "Interval" ) ;
-	        ( Str, "srh", "URL", "URL" ) ;
-	        ( Str, "srh", "URL state", "State" ) ;
+              html_mods_table_header buf "web_infoTable" "vo" [
+                ( Str, "srh ac", "Click to remove URL", "Remove" ) ;
+                ( Str, "srh", "Download now", "DL" ) ;
+                ( Str, "srh", "Filetype", "Type" ) ;
+                ( Num, "srh", "Interval in hours", "Interval" ) ;
+                ( Str, "srh", "URL", "URL" ) ;
+                ( Str, "srh", "URL state", "State" ) ;
               ] ;
 
               html_mods_cntr_init ();
               Hashtbl.iter (fun key w ->
                 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-		Printf.bprintf buf "
+                Printf.bprintf buf "
         \\<td title=\\\"Click to remove URL\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
         onClick=\\\'javascript:{
-	parent.fstatus.location.href=\\\"submit?q=urlremove+\\\\\\\"%s\\\\\\\"\\\"
+        parent.fstatus.location.href=\\\"submit?q=urlremove+\\\\\\\"%s\\\\\\\"\\\"
         setTimeout(\\\"window.location.reload()\\\",1000);}'
         class=\\\"srb\\\"\\>Remove\\</td\\>" (Url.encode w.url);
-		Printf.bprintf buf "
+                Printf.bprintf buf "
         \\<td title=\\\"Download now\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
         onClick=\\\'javascript:{
-	parent.fstatus.location.href=\\\"submit?q=force_web_infos+\\\\\\\"%s\\\\\\\"\\\";}'
+        parent.fstatus.location.href=\\\"submit?q=force_web_infos+\\\\\\\"%s\\\\\\\"\\\";}'
         class=\\\"srb\\\"\\>DL\\</td\\>" (Url.encode w.url);
           Printf.bprintf buf "
               \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
-	      \\<td class=\\\"sr\\\"\\>%d\\</td\\>"  w.url w.kind w.period;
+              \\<td class=\\\"sr\\\"\\>%d\\</td\\>"  w.url w.kind w.period;
           Printf.bprintf buf "
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>" w.url;
           Printf.bprintf buf "
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>
               \\</tr\\>" (string_of_web_infos_state w.state);
               ) web_infos_table;
-	    end;
+            end;
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
 
-    	    html_mods_table_header buf "web_infoTable" "vo" [
-	      ( Str, "srh", "Web kind", "Kind" );
-	      ( Str, "srh", "Description", "Type" ) ];
+            html_mods_table_header buf "web_infoTable" "vo" [
+              ( Str, "srh", "Web kind", "Kind" );
+              ( Str, "srh", "Description", "Type" ) ];
 
             html_mods_cntr_init ();
             List.iter (fun (kind, data) ->
                 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-		Printf.bprintf buf "
+                Printf.bprintf buf "
               \\<td class=\\\"sr\\\"\\>%s\\</td\\>
-	      \\<td class=\\\"sr\\\"\\>%s\\</td\\>" kind data.description
+              \\<td class=\\\"sr\\\"\\>%s\\</td\\>" kind data.description
             ) !CommonWeb.file_kinds;
 
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
-	    print_option_help o web_infos
+            print_option_help o web_infos
 
           end
         else
-	    begin
-	      Printf.bprintf buf "kind / period / url / state :\n";
-	      Hashtbl.iter (fun key w ->
-	          Printf.bprintf buf "%s ; %d ; %s; %s\n"
+            begin
+              Printf.bprintf buf "kind / period / url / state :\n";
+              Hashtbl.iter (fun key w ->
+                  Printf.bprintf buf "%s ; %d ; %s; %s\n"
                     w.kind w.period w.url (string_of_web_infos_state w.state)
-	      ) web_infos_table;
-	      Printf.bprintf buf "\nAllowed values for kind:\n";
-	      List.iter (fun (kind, data) ->
-	          Printf.bprintf buf "%s - %s\n" kind data.description
-	      ) !CommonWeb.file_kinds
-	    end;
+              ) web_infos_table;
+              Printf.bprintf buf "\nAllowed values for kind:\n";
+              List.iter (fun (kind, data) ->
+                  Printf.bprintf buf "%s - %s\n" kind data.description
+              ) !CommonWeb.file_kinds
+            end;
         ""
     ), ":\t\t\t\t\tprint web_infos options";
 
@@ -2422,12 +2422,12 @@ let _ =
 
      "debug_disk", Arg_one (fun arg o ->
          let buf = o.conn_buf in
-	 let print_i64o = function
-	   | None -> "Unknown"
-	   | Some v -> Printf.sprintf "%Ld" v in
-	 let print_io = function
-	   | None -> "Unknown"
-	   | Some v -> Printf.sprintf "%d" v in
+         let print_i64o = function
+           | None -> "Unknown"
+           | Some v -> Printf.sprintf "%Ld" v in
+         let print_io = function
+           | None -> "Unknown"
+           | Some v -> Printf.sprintf "%d" v in
          Printf.bprintf buf "working on dir %s\n" arg;
          Printf.bprintf buf "bsize %s\n" (print_i64o (Unix32.bsize arg));
          Printf.bprintf buf "blocks %s\n" (print_i64o (Unix32.blocks arg));
@@ -2435,18 +2435,18 @@ let _ =
          Printf.bprintf buf "bavail %s\n" (print_i64o (Unix32.bavail arg));
          Printf.bprintf buf "fnamelen %s\n" (print_io (Unix32.fnamelen arg));
          Printf.bprintf buf "filesystem %s\n" (Unix32.filesystem arg);
-	 let print_i64o_amount = function
-	   | None -> "Unknown"
-	   | Some v -> Printf.sprintf "%Ld - %s" v (size_of_int64 v) in
+         let print_i64o_amount = function
+           | None -> "Unknown"
+           | Some v -> Printf.sprintf "%Ld - %s" v (size_of_int64 v) in
          Printf.bprintf buf "disktotal %s\n" (print_i64o_amount (Unix32.disktotal arg));
          Printf.bprintf buf "diskfree %s\n" (print_i64o_amount (Unix32.diskfree arg));
          Printf.bprintf buf "diskused %s\n" (print_i64o_amount (Unix32.diskused arg));
-	 let print_percento = function
-	   | None -> "Unknown"
-	   | Some p -> Printf.sprintf "%d%%" p in
+         let print_percento = function
+           | None -> "Unknown"
+           | Some p -> Printf.sprintf "%d%%" p in
          Printf.bprintf buf "percentused %s\n" (print_percento (Unix32.percentused arg));
          Printf.bprintf buf "percentfree %s\n" (print_percento (Unix32.percentfree arg));
-	 let stat = Unix.LargeFile.stat arg in
+         let stat = Unix.LargeFile.stat arg in
          Printf.bprintf buf "\nstat_device %d\n" stat.Unix.LargeFile.st_dev;
          Printf.bprintf buf "stat_inode %d\n" stat.Unix.LargeFile.st_ino;
 
@@ -2455,26 +2455,26 @@ let _ =
 
      "debug_dir", Arg_one (fun arg o ->
          let buf = o.conn_buf in
-	 let filelist = Unix2.list_directory arg in
+         let filelist = Unix2.list_directory arg in
          Printf.bprintf buf "%d entries in dir %s\n" (List.length filelist) arg;
-	 List.iter (fun file ->
+         List.iter (fun file ->
            Printf.bprintf buf "%s\n     %s\nMime %s\n\n"
-	     file
-	     (match Magic.M.magic_fileinfo (Filename.concat arg file) false with
-	        None -> "unknown"
-	      | Some fileinfo -> fileinfo)
-	     (match Magic.M.magic_fileinfo (Filename.concat arg file) true with
-	        None -> "unknown"
-	      | Some fileinfo -> fileinfo)
-	 ) filelist;
+             file
+             (match Magic.M.magic_fileinfo (Filename.concat arg file) false with
+                None -> "unknown"
+              | Some fileinfo -> fileinfo)
+             (match Magic.M.magic_fileinfo (Filename.concat arg file) true with
+                None -> "unknown"
+              | Some fileinfo -> fileinfo)
+         ) filelist;
          _s ""
      ), "debug command (example: disk .)";
 
      "debug_fileinfo", Arg_one (fun arg o ->
          let buf = o.conn_buf in
-	 (try
+         (try
             let module U = Unix.LargeFile in
-	    let s = U.stat arg in
+            let s = U.stat arg in
             Printf.bprintf buf "st_dev %d\n" s.U.st_dev;
             Printf.bprintf buf "st_ino %d\n" s.U.st_ino;
             Printf.bprintf buf "st_uid %d\n" s.U.st_uid;
@@ -2483,24 +2483,24 @@ let _ =
             Printf.bprintf buf "st_atime %s\n" (Date.to_full_string s.U.st_atime);
             Printf.bprintf buf "st_mtime %s\n" (Date.to_full_string s.U.st_mtime);
             Printf.bprintf buf "st_ctime %s\n" (Date.to_full_string s.U.st_ctime);
-	    let user,group = Unix32.owner arg in
+            let user,group = Unix32.owner arg in
             Printf.bprintf buf "username %s\n" user;
             Printf.bprintf buf "groupname %s\n" group;
-	  with e -> Printf.bprintf buf "Error %s when opening %s\n" (Printexc2.to_string e) arg);
+          with e -> Printf.bprintf buf "Error %s when opening %s\n" (Printexc2.to_string e) arg);
          _s ""
      ), "debug command (example: file .)";
 
      "debug_rlimit", Arg_none (fun o ->
          let buf = o.conn_buf in
-	 let cpu = Unix2.ml_getrlimit Unix2.RLIMIT_CPU in
-	 let fsize = Unix2.ml_getrlimit Unix2.RLIMIT_FSIZE in
-	 let data = Unix2.ml_getrlimit Unix2.RLIMIT_DATA in
-	 let stack = Unix2.ml_getrlimit Unix2.RLIMIT_STACK in
-	 let core = Unix2.ml_getrlimit Unix2.RLIMIT_CORE in
-	 let rss = Unix2.ml_getrlimit Unix2.RLIMIT_RSS in
-	 let nprof = Unix2.ml_getrlimit Unix2.RLIMIT_NPROF in
-	 let nofile = Unix2.ml_getrlimit Unix2.RLIMIT_NOFILE in
-	 let memlock = Unix2.ml_getrlimit Unix2.RLIMIT_MEMLOCK in
+         let cpu = Unix2.ml_getrlimit Unix2.RLIMIT_CPU in
+         let fsize = Unix2.ml_getrlimit Unix2.RLIMIT_FSIZE in
+         let data = Unix2.ml_getrlimit Unix2.RLIMIT_DATA in
+         let stack = Unix2.ml_getrlimit Unix2.RLIMIT_STACK in
+         let core = Unix2.ml_getrlimit Unix2.RLIMIT_CORE in
+         let rss = Unix2.ml_getrlimit Unix2.RLIMIT_RSS in
+         let nprof = Unix2.ml_getrlimit Unix2.RLIMIT_NPROF in
+         let nofile = Unix2.ml_getrlimit Unix2.RLIMIT_NOFILE in
+         let memlock = Unix2.ml_getrlimit Unix2.RLIMIT_MEMLOCK in
          let rlimit_as = Unix2.ml_getrlimit Unix2.RLIMIT_AS in
          Printf.bprintf buf "cpu %d %d\n" cpu.Unix2.rlim_cur cpu.Unix2.rlim_max;
          Printf.bprintf buf "fsize %d %d\n" fsize.Unix2.rlim_cur fsize.Unix2.rlim_max;
@@ -2516,7 +2516,7 @@ let _ =
      ), "debug command";
 
     "shares", Arg_none (fun o ->
-	if user2_is_admin o.conn_user.ui_user then begin
+        if user2_is_admin o.conn_user.ui_user then begin
         let buf = o.conn_buf in
 
         if use_html_mods o then begin
@@ -2546,8 +2546,8 @@ let _ =
 
             html_mods_cntr_init ();
             List.iter (fun shared_dir ->
-		let dir = shared_dir.shdir_dirname in
-		Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>
+                let dir = shared_dir.shdir_dirname in
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>
         \\<td title=\\\"Click to unshare this directory\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
@@ -2562,29 +2562,29 @@ let _ =
         \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
         \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
         \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-		(html_mods_cntr ())
-		(Url.encode dir)
-		shared_dir.shdir_priority
-		dir
-		shared_dir.shdir_strategy
-		(match Unix32.diskused dir with
-		| None -> "---"
-		| Some du -> size_of_int64 du)
-		(match Unix32.diskfree dir with
-		| None -> "---"
-		| Some df -> size_of_int64 df)
-		(match Unix32.percentfree dir with
-		| None -> "---"
-		| Some p -> Printf.sprintf "%d%%" p)
-	        (Unix32.filesystem dir);
+                (html_mods_cntr ())
+                (Url.encode dir)
+                shared_dir.shdir_priority
+                dir
+                shared_dir.shdir_strategy
+                (match Unix32.diskused dir with
+                | None -> "---"
+                | Some du -> size_of_int64 du)
+                (match Unix32.diskfree dir with
+                | None -> "---"
+                | Some df -> size_of_int64 df)
+                (match Unix32.percentfree dir with
+                | None -> "---"
+                | Some p -> Printf.sprintf "%d%%" p)
+                (Unix32.filesystem dir);
             )
             !!shared_directories;
   
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
-	    print_option_help o shared_directories;
+            print_option_help o shared_directories;
             Printf.bprintf buf "\\<P\\>";
 
-	    html_mods_big_header_start buf "sharesTable" ["Share strategies"];
+            html_mods_big_header_start buf "sharesTable" ["Share strategies"];
             html_mods_table_header buf "sharesTable" "shares" [
                ( Str, "srh", "Name", "Name" ) ;
                ( Str, "srh", "Incoming", "Incoming" ) ;
@@ -2596,20 +2596,20 @@ let _ =
 
             html_mods_cntr_init ();
 
-	    let int64_print v =
-	      if v = Int64.max_int then "unlimited" else Int64ops.int64_to_human_readable v in
+            let int64_print v =
+              if v = Int64.max_int then "unlimited" else Int64ops.int64_to_human_readable v in
 
             List.iter (fun (s,t) ->
                 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
                 html_mods_td buf [
-		    ("", "sr", s);
-		    ("", "sr", string_of_bool t.sharing_incoming);
-		    ("", "sr", string_of_bool t.sharing_directories);
-		    ("", "sr", string_of_bool t.sharing_recursive);
-		    ("", "sr", (int64_print t.sharing_minsize));
-		    ("", "sr", (int64_print t.sharing_maxsize));
-		    ("", "sr", (String.concat " " t.sharing_extensions));
-		    ];
+                    ("", "sr", s);
+                    ("", "sr", string_of_bool t.sharing_incoming);
+                    ("", "sr", string_of_bool t.sharing_directories);
+                    ("", "sr", string_of_bool t.sharing_recursive);
+                    ("", "sr", (int64_print t.sharing_minsize));
+                    ("", "sr", (int64_print t.sharing_maxsize));
+                    ("", "sr", (String.concat " " t.sharing_extensions));
+                    ];
                 Printf.bprintf buf "\\</tr\\>\n"
               ) !!sharing_strategies;
 
@@ -2625,13 +2625,13 @@ let _ =
 
           end;
         ""
-	  end
+          end
         else
-	  _s "You are not allowed to list shared directories"
+          _s "You are not allowed to list shared directories"
     ), ":\t\t\t\tprint shared directories";
 
     "share", Arg_multiple (fun args o ->
-	if user2_is_admin o.conn_user.ui_user then begin
+        if user2_is_admin o.conn_user.ui_user then begin
         let (prio, arg, strategy) = match args with
           | [prio; arg; strategy] -> int_of_string prio, arg, strategy
           | [prio; arg] -> int_of_string prio, arg, "only_directory"
@@ -2647,43 +2647,43 @@ let _ =
           } in
 
         if Unix2.is_directory arg then
-	  begin
-	    try
-	      let d = List.find (fun d -> d.shdir_dirname = arg) !!shared_directories in
-	      let old_prio = d.shdir_priority in
-	      d.shdir_priority <- prio;
-	      Printf.sprintf "prio of %s changed from %d to %d"
-		d.shdir_dirname old_prio d.shdir_priority
-	    with Not_found ->
+          begin
+            try
+              let d = List.find (fun d -> d.shdir_dirname = arg) !!shared_directories in
+              let old_prio = d.shdir_priority in
+              d.shdir_priority <- prio;
+              Printf.sprintf "prio of %s changed from %d to %d"
+                d.shdir_dirname old_prio d.shdir_priority
+            with Not_found ->
               shared_directories =:= shdir :: !!shared_directories;
               shared_add_directory shdir;
               Printf.sprintf "directory %s added%s"
-		shdir.shdir_dirname
-		(if shdir.shdir_priority <> 0 then
-		    Printf.sprintf " with prio %d" shdir.shdir_priority
-		 else "")
-	  end
+                shdir.shdir_dirname
+                (if shdir.shdir_priority <> 0 then
+                    Printf.sprintf " with prio %d" shdir.shdir_priority
+                 else "")
+          end
         else
           "no such directory"
-	  end
+          end
         else
-	  _s "You are not allowed to share directories"
+          _s "You are not allowed to share directories"
     ), "<priority> <dir> [<strategy>] :\tshare directory <dir> with <priority> [and sharing strategy <strategy>]";
 
     "unshare", Arg_one (fun arg o ->
 
-	if user2_is_admin o.conn_user.ui_user then begin
+        if user2_is_admin o.conn_user.ui_user then begin
         let found = ref false in
         shared_directories =:= List.filter (fun sd ->
             let diff = sd.shdir_dirname <> arg in
             if not diff then begin
-	      found := true;
-	      shared_iter (fun s ->
-	        let impl = as_shared_impl s in
-		  if (Filename.dirname impl.impl_shared_fullname) = arg
-		    then shared_unshare s
-	      )
-	    end;
+              found := true;
+              shared_iter (fun s ->
+                let impl = as_shared_impl s in
+                  if (Filename.dirname impl.impl_shared_fullname) = arg
+                    then shared_unshare s
+              )
+            end;
             diff
         ) !!shared_directories;
         if !found then begin
@@ -2691,30 +2691,30 @@ let _ =
             _s "directory removed"
           end else
           _s "directory already unshared"
-	  end
+          end
         else
-	  _s "You are not allowed to unshare directories"
+          _s "You are not allowed to unshare directories"
     ), "<dir> :\t\t\t\tunshare directory <dir>";
 
     "upstats", Arg_none (fun o ->
         if not (user2_can_view_uploads o.conn_user.ui_user) then
-	  print_command_result o "You are not allowed to see upload statistics"
+          print_command_result o "You are not allowed to see upload statistics"
         else
-	  begin
-	    let list = ref [] in
-	    shared_iter (fun s ->
-	      let impl = as_shared_impl s in
-	      list := impl :: !list
-	    );
-	    print_upstats o !list None;
-	  end;
+          begin
+            let list = ref [] in
+            shared_iter (fun s ->
+              let impl = as_shared_impl s in
+              list := impl :: !list
+            );
+            print_upstats o !list None;
+          end;
         _s ""
     ), ":\t\t\t\tstatistics on upload";
 
     "links", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
         if not (user2_can_view_uploads o.conn_user.ui_user) then
-	  print_command_result o "You are not allowed to see shared files list"
+          print_command_result o "You are not allowed to see shared files list"
         else begin
 
         let list = Hashtbl.create !shared_counter in
@@ -2759,8 +2759,8 @@ let _ =
 
         List.iter (fun f ->
           if (f.fileid <> Md4.null) then
-	    Printf.bprintf buf "%s\n" (file_print_ed2k_link
-	      (Filename.basename f.filename) f.filesize f.fileid);
+            Printf.bprintf buf "%s\n" (file_print_ed2k_link
+              (Filename.basename f.filename) f.filesize f.fileid);
         ) list;
         end;
         "Done"
@@ -2770,7 +2770,7 @@ let _ =
         let buf = o.conn_buf in
 
         if not (user2_can_view_uploads o.conn_user.ui_user) then
-	  print_command_result o "You are not allowed to see uploaders list"
+          print_command_result o "You are not allowed to see uploaders list"
         else begin
 
         let nuploaders = Intmap.length !uploaders in
@@ -2793,7 +2793,7 @@ let _ =
                   ( Str, "srh", "Client name", "Client name" ) ;
                   ( Str, "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
                   ( Str, "srh", "IP address", "IP address" ) ;
-		  ] @ (if Geoip.active () then [( Str, "srh", "Country Code/Name", "CC" )] else []) @ [
+                  ] @ (if Geoip.active () then [( Str, "srh", "Country Code/Name", "CC" )] else []) @ [
                   ( Str, "srh", "Connected time (minutes)", "CT" ) ;
                   ( Str, "srh", "Client brand", "CB" ) ;
                   ( Str, "srh", "Client release", "CR" ) ;
@@ -2845,13 +2845,13 @@ let _ =
                             ("", "sr ar", size_of_int64 i.client_total_uploaded);
                             ("", "sr ar", size_of_int64 i.client_session_downloaded);
                             ("", "sr ar", size_of_int64 i.client_session_uploaded);
-			    (let text1, text2 =
-				match client_slot c with
-				| FriendSlot -> "Friend", "F"
-				| ReleaseSlot -> "Release", "R"
-				| SmallFileSlot -> "Small file", "S"
-				| PrioSlot dir -> "Prio dir: " ^ dir, "P"
-				| _ -> "", "" in text1, "sr ar", text2);
+                            (let text1, text2 =
+                                match client_slot c with
+                                | FriendSlot -> "Friend", "F"
+                                | ReleaseSlot -> "Release", "R"
+                                | SmallFileSlot -> "Small file", "S"
+                                | PrioSlot dir -> "Prio dir: " ^ dir, "P"
+                                | _ -> "", "" in text1, "sr ar", text2);
                             ("", "sr", (match i.client_upload with
                                   Some f -> shorten f !!max_name_len
                                 | None -> "") ) ]);
@@ -2876,7 +2876,7 @@ let _ =
                   ( Str, "srh", "Client name", "Client name" ) ;
                   ( Str, "srh", "Secure User Identification [N]one, [P]assed, [F]ailed", "S" ) ;
                   ( Str, "srh", "IP address", "IP address" ) ;
-		  ] @ (if Geoip.active () then [( Str, "srh", "Country Code/Name", "CC" )] else []) @ [
+                  ] @ (if Geoip.active () then [( Str, "srh", "Country Code/Name", "CC" )] else []) @ [
                   ( Str, "srh", "Client brand", "CB" ) ;
                   ( Str, "srh", "Client release", "CR" ) ;
                   ] @
@@ -2892,11 +2892,11 @@ let _ =
 
                     try
                       let i = client_info c in
-		      let ips,cc,cn = string_of_kind_geo i.client_kind i.client_country_code in
+                      let ips,cc,cn = string_of_kind_geo i.client_kind i.client_country_code in
 
                       Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"
-					title=\\\"Add as Friend\\\" onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\"
-					onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
+                                        title=\\\"Add as Friend\\\" onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\"
+                                        onClick=\\\"parent.fstatus.location.href='submit?q=friend_add+%d'\\\"\\>"
                         (html_mods_cntr ()) cnum;
 
                       html_mods_td buf [
@@ -2921,8 +2921,8 @@ let _ =
                         ("", "sr ar", size_of_int64 i.client_session_downloaded);
                         ("", "sr ar", size_of_int64 i.client_session_uploaded);
                         ("", "sr", (match i.client_upload with
-                    	      Some f -> shorten f !!max_name_len
-                    	    | None -> "") ) ]);
+                              Some f -> shorten f !!max_name_len
+                            | None -> "") ) ]);
 
                       Printf.bprintf buf "\\</tr\\>";
                     with _ -> ();
@@ -3159,16 +3159,16 @@ let () =
     resume_alias "continue";
 
     "release", Arg_one (fun arg o ->
-	let num = int_of_string arg in
-	let file = file_find num in
-	let old_state = file_release file in
-	set_file_release file (not (file_release file)) o.conn_user.ui_user;
-	Printf.sprintf "%s, file: %s"
-	  (match old_state, file_release file with
-	      true, false -> "deactivated release state"
-	    | false, true -> "activated release state"
-	    | _ -> "unchanged status, enough rights?")
-	  (shorten (file_best_name file) !!max_name_len)
+        let num = int_of_string arg in
+        let file = file_find num in
+        let old_state = file_release file in
+        set_file_release file (not (file_release file)) o.conn_user.ui_user;
+        Printf.sprintf "%s, file: %s"
+          (match old_state, file_release file with
+              true, false -> "deactivated release state"
+            | false, true -> "activated release state"
+            | _ -> "unchanged status, enough rights?")
+          (shorten (file_best_name file) !!max_name_len)
     ), "<num> :\t\t\t\tchange release state of a download";
 
     "commit", Arg_none (fun o ->
@@ -3207,17 +3207,17 @@ let () =
               begin
                 if use_html_mods o then
                   Printf.bprintf buf "\\<div class=\\\"sourcesTable al\\\"\\>\\<table cellspacing=0 cellpadding=0\\>
-				\\<tr\\>\\<td\\>
-				\\<table cellspacing=0 cellpadding=0 width=100%%\\>\\<tr\\>
-				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='files'\\\"\\>Display all files\\</a\\>\\</td\\>
-				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:parent.fstatus.location.href='submit?q=verify_chunks+%d'\\\"\\>Verify chunks\\</a\\>\\</td\\>
-				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:window.location.href='preview_download?q=%d'\\\"\\>Preview\\</a\\>\\</td\\>
-				\\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:window.location.href='submit?q=debug_get_download_prio+%d'\\\"\\>Debug\\</a\\>\\</td\\>
-				\\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\</td\\>
-				\\<td class=downloaded width=100%%\\>\\</td\\>
-				\\</tr\\>\\</table\\>
-				\\</td\\>\\</tr\\>
-				\\<tr\\>\\<td\\>" num num num
+                                \\<tr\\>\\<td\\>
+                                \\<table cellspacing=0 cellpadding=0 width=100%%\\>\\<tr\\>
+                                \\<td nowrap class=\\\"fbig\\\"\\>\\<a onclick=\\\"javascript:window.location.href='files'\\\"\\>Display all files\\</a\\>\\</td\\>
+                                \\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:parent.fstatus.location.href='submit?q=verify_chunks+%d'\\\"\\>Verify chunks\\</a\\>\\</td\\>
+                                \\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:window.location.href='preview_download?q=%d'\\\"\\>Preview\\</a\\>\\</td\\>
+                                \\<td nowrap class=\\\"fbig\\\"\\>\\<a onClick=\\\"javascript:window.location.href='submit?q=debug_get_download_prio+%d'\\\"\\>Debug\\</a\\>\\</td\\>
+                                \\<td nowrap class=\\\"fbig pr\\\"\\>\\<a onclick=\\\"javascript:window.location.reload()\\\"\\>Reload\\</a\\>\\</td\\>
+                                \\<td class=downloaded width=100%%\\>\\</td\\>
+                                \\</tr\\>\\</table\\>
+                                \\</td\\>\\</tr\\>
+                                \\<tr\\>\\<td\\>" num num num
                 else begin
                     Printf.bprintf  buf "\\<a href=\\\"files\\\"\\>Display all files\\</a\\>  ";
                     Printf.bprintf  buf "\\<a href=\\\"submit?q=verify_chunks+%d\\\"\\>Verify chunks\\</a\\>  " num;
@@ -3257,7 +3257,7 @@ let () =
 
     "filenames_variability", Arg_none (fun o ->
       let list = List2.tail_map file_info
-	(user2_filter_files !!files o.conn_user.ui_user) in
+        (user2_filter_files !!files o.conn_user.ui_user) in
       DriverInteractive.filenames_variability o list;
       _s "done"
     ), ":\t\t\ttell which files have several very different names";
@@ -3268,12 +3268,12 @@ let () =
         ), "<link> :\t\t\t\tdownload ed2k, sig2dat, torrent or other link";
 
     "dllinks", Arg_one (fun arg o ->
-	let result = Buffer.create 100 in
+        let result = Buffer.create 100 in
         let file = File.to_string arg in
         let lines = String2.split_simplify file '\n' in
         List.iter (fun line ->
-	  Buffer.add_string result (dllink_parse (o.conn_output = HTML) line o.conn_user.ui_user);
-	  Buffer.add_string result (if o.conn_output = HTML then "\\<P\\>" else "\n")
+          Buffer.add_string result (dllink_parse (o.conn_output = HTML) line o.conn_user.ui_user);
+          Buffer.add_string result (if o.conn_output = HTML then "\\<P\\>" else "\n")
         ) lines;
         (Buffer.contents result)
     ), "<file> :\t\t\tdownload all the links contained in the file";
@@ -3331,34 +3331,34 @@ let _ =
     "userdel", Arg_one (fun user o ->
         if user <> o.conn_user.ui_user.user_name then
           if user2_is_admin o.conn_user.ui_user then
-	    if user = (admin_user ()).user_name then
-	      print_command_result o "User 'admin' can not be removed"
-	    else
-	      try
-		let u = user2_user_find user in
-	        let n = user2_num_user_dls u in
-		if n <> 0 then print_command_result o
-		  (Printf.sprintf "User %s has %d downloads, can not delete" user n)
-		else
-		  user2_user_remove user;
-		  print_command_result o (Printf.sprintf "User %s removed" user)
+            if user = (admin_user ()).user_name then
+              print_command_result o "User 'admin' can not be removed"
+            else
+              try
+                let u = user2_user_find user in
+                let n = user2_num_user_dls u in
+                if n <> 0 then print_command_result o
+                  (Printf.sprintf "User %s has %d downloads, can not delete" user n)
+                else
+                  user2_user_remove user;
+                  print_command_result o (Printf.sprintf "User %s removed" user)
               with
-	        Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
+                Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
           else
             print_command_result o "You are not allowed to remove users"
         else
           print_command_result o "You can not remove yourself";
-	_s ""
+        _s ""
     ), "<user> :\t\t\tremove a mldonkey user";
 
     "usergroupadd", Arg_two (fun user group o ->
-	if user2_is_admin o.conn_user.ui_user then
-	  begin
-	    try
-	      let u = user2_user_find user in
-	        begin
-		  try
-		    let g = user2_group_find group in
+        if user2_is_admin o.conn_user.ui_user then
+          begin
+            try
+              let u = user2_user_find user in
+                begin
+                  try
+                    let g = user2_group_find group in
                     if List.mem g u.user_groups then
                       print_command_result o
                         (Printf.sprintf "User %s already member of group %s" u.user_name g.group_name)
@@ -3368,204 +3368,204 @@ let _ =
                         print_command_result o
                           (Printf.sprintf "Added group %s to user %s" g.group_name u.user_name)
                       end
-		  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
-		end
-	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
-	  end
-	else
-	  print_command_result o "You are not allowed to add groups to a user";
-	_s ""
+                  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
+                end
+            with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
+          end
+        else
+          print_command_result o "You are not allowed to add groups to a user";
+        _s ""
     ), "<user> <group> :\t\tadd a group to a mldonkey user";
 
     "usergroupdel", Arg_two (fun user group o ->
-	if user2_is_admin o.conn_user.ui_user
-	  || o.conn_user.ui_user.user_name = user then
-	  begin
-	    try
-	      let u = user2_user_find user in
-	        begin
-		  try
-		    let g = user2_group_find group in
-		    if not (List.mem g u.user_groups) then
-		      print_command_result o (Printf.sprintf "User %s is not member of group %s" user group)
-		    else
-		      if Some g = u.user_default_group then
-			print_command_result o (Printf.sprintf "Group %s is default group of user %s, can not remove. Use command userdgroup to change default_group." group user)
-		      else
-			begin
-			  let counter = ref 0 in
-			  List.iter (fun f -> 
-			    if file_owner f = u && file_group f = Some g then
-			      begin
-				incr counter;
-				set_file_group f u.user_default_group
-			      end
-			  ) !!files;
-			  user2_user_remove_group (user2_user_find user) (user2_group_find group);
-			  print_command_result o (Printf.sprintf "Removed group %s from user %s%s"
-			    group user
-			    (if !counter = 0 then "" else Printf.sprintf ", changed file_group of %d file%s to default_group %s"
-			       !counter (Printf2.print_plural_s !counter) (user2_print_group u.user_default_group)))
-			end
-		  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
-		end
-	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
-	  end
+        if user2_is_admin o.conn_user.ui_user
+          || o.conn_user.ui_user.user_name = user then
+          begin
+            try
+              let u = user2_user_find user in
+                begin
+                  try
+                    let g = user2_group_find group in
+                    if not (List.mem g u.user_groups) then
+                      print_command_result o (Printf.sprintf "User %s is not member of group %s" user group)
+                    else
+                      if Some g = u.user_default_group then
+                        print_command_result o (Printf.sprintf "Group %s is default group of user %s, can not remove. Use command userdgroup to change default_group." group user)
+                      else
+                        begin
+                          let counter = ref 0 in
+                          List.iter (fun f -> 
+                            if file_owner f = u && file_group f = Some g then
+                              begin
+                                incr counter;
+                                set_file_group f u.user_default_group
+                              end
+                          ) !!files;
+                          user2_user_remove_group (user2_user_find user) (user2_group_find group);
+                          print_command_result o (Printf.sprintf "Removed group %s from user %s%s"
+                            group user
+                            (if !counter = 0 then "" else Printf.sprintf ", changed file_group of %d file%s to default_group %s"
+                               !counter (Printf2.print_plural_s !counter) (user2_print_group u.user_default_group)))
+                        end
+                  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
+                end
+            with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
+          end
 
-	else
-	  print_command_result o "You are not allowed to remove groups from a user";
-	_s ""
+        else
+          print_command_result o "You are not allowed to remove groups from a user";
+        _s ""
     ), "<user> <group> :\t\tremove a group from a mldonkey user";
 
     "userdgroup", Arg_two (fun user group o ->
-	if user2_is_admin o.conn_user.ui_user
-	  || o.conn_user.ui_user.user_name = user then
-	  begin
-	    try
-	      let u = user2_user_find user in
-	        begin
-		  try
-		    let g = if String.lowercase group = "none" then None else Some (user2_group_find group) in
-		    let update_dgroup () =
-		      match g with
-			None -> true
-		      | Some g1 when List.mem g1 u.user_groups -> true
-		      | _ -> false
-		    in
-		    if update_dgroup () then
-		      begin
-			user2_user_set_default_group u g;
-			print_command_result o (Printf.sprintf "Changed default group of user %s to group %s" u.user_name (user2_print_user_default_group u))
-		      end
-		    else print_command_result o (Printf.sprintf "User %s is not member of group %s" u.user_name group)
-		  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
-		end
-	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
-	  end
-	else
-	  print_command_result o "You are not allowed to change default group";
-	_s ""
+        if user2_is_admin o.conn_user.ui_user
+          || o.conn_user.ui_user.user_name = user then
+          begin
+            try
+              let u = user2_user_find user in
+                begin
+                  try
+                    let g = if String.lowercase group = "none" then None else Some (user2_group_find group) in
+                    let update_dgroup () =
+                      match g with
+                        None -> true
+                      | Some g1 when List.mem g1 u.user_groups -> true
+                      | _ -> false
+                    in
+                    if update_dgroup () then
+                      begin
+                        user2_user_set_default_group u g;
+                        print_command_result o (Printf.sprintf "Changed default group of user %s to group %s" u.user_name (user2_print_user_default_group u))
+                      end
+                    else print_command_result o (Printf.sprintf "User %s is not member of group %s" u.user_name group)
+                  with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
+                end
+            with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
+          end
+        else
+          print_command_result o "You are not allowed to change default group";
+        _s ""
     ), "<user> <group|None> :\tchange user default group";
 
     "passwd", Arg_one (fun passwd o ->
-	begin
-	  try
-	    let u = user2_user_find o.conn_user.ui_user.user_name in
-	    user2_user_set_password u passwd;
-	    print_command_result o (Printf.sprintf "Password of user %s changed" u.user_name)
-	  with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" o.conn_user.ui_user.user_name)
-	end;
-	_s ""
+        begin
+          try
+            let u = user2_user_find o.conn_user.ui_user.user_name in
+            user2_user_set_password u passwd;
+            print_command_result o (Printf.sprintf "Password of user %s changed" u.user_name)
+          with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" o.conn_user.ui_user.user_name)
+        end;
+        _s ""
     ), "<passwd> :\t\t\tchange own password";
 
     "usermail", Arg_two (fun user mail o ->
         if user2_is_admin o.conn_user.ui_user
-	  || o.conn_user.ui_user.user_name = user then
-	  begin
-	    try
-	      let u = user2_user_find user in
-	      user2_user_set_mail u mail;
-	      print_command_result o (Printf.sprintf "User %s has new mail %s" user mail)
-	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
-	  end
+          || o.conn_user.ui_user.user_name = user then
+          begin
+            try
+              let u = user2_user_find user in
+              user2_user_set_mail u mail;
+              print_command_result o (Printf.sprintf "User %s has new mail %s" user mail)
+            with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
+          end
         else print_command_result o "You are not allowed to change mail addresses";
-	_s ""
+        _s ""
     ), "<user> <mail> :\t\tchange user mail address";
 
     "userdls", Arg_two (fun user dls o ->
         if user2_is_admin o.conn_user.ui_user then
-	  begin
-	    try
-	      let u = user2_user_find user in
-	      user2_user_set_dls u (int_of_string dls);
-	      print_command_result o (Printf.sprintf "User %s has now %s downloads allowed" user (user2_print_user_dls (user2_user_find user)))
-	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
-	  end
+          begin
+            try
+              let u = user2_user_find user in
+              user2_user_set_dls u (int_of_string dls);
+              print_command_result o (Printf.sprintf "User %s has now %s downloads allowed" user (user2_print_user_dls (user2_user_find user)))
+            with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
+          end
         else print_command_result o "You are not allowed to change this value";
-	_s ""
+        _s ""
     ), "<user> <num> :\t\t\tchange number of allowed concurrent downloads";
 
     "usercommit", Arg_two (fun user dir o ->
         if user2_is_admin o.conn_user.ui_user
-	  || o.conn_user.ui_user.user_name = user then
-	  begin
-	    try
-	      let u = user2_user_find user in
-	      user2_user_set_commit_dir u dir;
-	      print_command_result o (Printf.sprintf "User %s has new commit dir %s" u.user_name u.user_commit_dir)
-	    with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
-	  end
+          || o.conn_user.ui_user.user_name = user then
+          begin
+            try
+              let u = user2_user_find user in
+              user2_user_set_commit_dir u dir;
+              print_command_result o (Printf.sprintf "User %s has new commit dir %s" u.user_name u.user_commit_dir)
+            with Not_found -> print_command_result o (Printf.sprintf "User %s does not exist" user)
+          end
         else print_command_result o "You are not allowed to change this value";
-	_s ""
+        _s ""
     ), "<user> <dir> :\t\tchange user specific commit directory";
 
     "groupadd", Arg_two (fun group admin o ->
-	let g_admin =
-	  try
-	    bool_of_string admin
-	  with _ -> false
-	in
-	if user2_is_admin o.conn_user.ui_user then
-	  if user2_group_exists group then
-	    print_command_result o (Printf.sprintf "Group %s already exists" group)
-	  else
-	    begin
-	      user2_group_add group g_admin;
-	      print_command_result o (Printf.sprintf "Group %s added" group)
-	    end
+        let g_admin =
+          try
+            bool_of_string admin
+          with _ -> false
+        in
+        if user2_is_admin o.conn_user.ui_user then
+          if user2_group_exists group then
+            print_command_result o (Printf.sprintf "Group %s already exists" group)
+          else
+            begin
+              user2_group_add group g_admin;
+              print_command_result o (Printf.sprintf "Group %s added" group)
+            end
         else
-	  print_command_result o "You are not allowed to add a group";
-	_s ""
+          print_command_result o "You are not allowed to add a group";
+        _s ""
     ), "<group> <admin: true|false> :\tadd new mldonkey group";
 
     "groupdel", Arg_one (fun group o ->
-	if user2_is_admin o.conn_user.ui_user then
-	  begin
-	    try
-	      let g = user2_group_find group in
-	      let g_dls = user2_num_group_dls g in
-	      let g_mem = user2_num_group_members g in
-	      if g_dls <> 0 then
-		print_command_result o
-		  (Printf.sprintf "Can not remove group %s, it has %d download%s"
-		    group g_dls (Printf2.print_plural_s g_dls))
-	      else
-		if g_mem <> 0 then
-		  print_command_result o
-		    (Printf.sprintf "Can not remove group %s, it has %d member%s"
-		      group g_mem (Printf2.print_plural_s g_mem))
-		else
-		  if g = admin_group () then
-		    print_command_result o (Printf.sprintf "Can not remove system group %s" group)
-		  else
-		    begin
-		      user2_group_remove g;
-		      print_command_result o (Printf.sprintf "Removed group %s" group)
-		    end
-	    with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
-	  end
+        if user2_is_admin o.conn_user.ui_user then
+          begin
+            try
+              let g = user2_group_find group in
+              let g_dls = user2_num_group_dls g in
+              let g_mem = user2_num_group_members g in
+              if g_dls <> 0 then
+                print_command_result o
+                  (Printf.sprintf "Can not remove group %s, it has %d download%s"
+                    group g_dls (Printf2.print_plural_s g_dls))
+              else
+                if g_mem <> 0 then
+                  print_command_result o
+                    (Printf.sprintf "Can not remove group %s, it has %d member%s"
+                      group g_mem (Printf2.print_plural_s g_mem))
+                else
+                  if g = admin_group () then
+                    print_command_result o (Printf.sprintf "Can not remove system group %s" group)
+                  else
+                    begin
+                      user2_group_remove g;
+                      print_command_result o (Printf.sprintf "Removed group %s" group)
+                    end
+            with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
+          end
         else
           print_command_result o "You are not allowed to remove users";
-	  _s ""
+          _s ""
     ), "<group> :\t\t\tremove an unused mldonkey group";
 
     "groupadmin", Arg_two (fun group admin o ->
-	if user2_is_admin o.conn_user.ui_user then
-	  begin
-	    try
-	      let g = user2_group_find group in
-	      if g = admin_group () then
-		print_command_result o (Printf.sprintf "Can not change state of system group %s" group)
-	      else
-		begin
-	          user2_group_admin g (bool_of_string admin);
-	          print_command_result o (Printf.sprintf "Changed admin status of group %s to %b" g.group_name g.group_admin)
-		end
-	    with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
-	  end
+        if user2_is_admin o.conn_user.ui_user then
+          begin
+            try
+              let g = user2_group_find group in
+              if g = admin_group () then
+                print_command_result o (Printf.sprintf "Can not change state of system group %s" group)
+              else
+                begin
+                  user2_group_admin g (bool_of_string admin);
+                  print_command_result o (Printf.sprintf "Changed admin status of group %s to %b" g.group_name g.group_admin)
+                end
+            with Not_found -> print_command_result o (Printf.sprintf "Group %s does not exist" group)
+          end
         else
           print_command_result o "You are not allowed to change group admin status";
-	_s ""
+        _s ""
     ), "<group> <true|false> :\tchange group admin status";
 
     "users", Arg_none (fun o ->
@@ -3599,10 +3599,10 @@ let _ =
 
             html_mods_cntr_init ();
             user2_users_iter (fun user ->
-		let u_dls = user2_num_user_dls user in
+                let u_dls = user2_num_user_dls user in
                 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
                 (html_mods_cntr ());
-		if user <> (admin_user ()) && (u_dls = 0) then Printf.bprintf buf
+                if user <> (admin_user ()) && (u_dls = 0) then Printf.bprintf buf
 "\\<td title=\\\"Click to remove user\\\"
 onMouseOver=\\\"mOvr(this);\\\"
 onMouseOut=\\\"mOut(this);\\\"
@@ -3610,38 +3610,38 @@ onClick=\\\'javascript:{
 parent.fstatus.location.href=\\\"submit?q=userdel+\\\\\\\"%s\\\\\\\"\\\";
 setTimeout(\\\"window.location.reload()\\\",1000);}'
 class=\\\"srb\\\"\\>Remove\\</td\\>" user.user_name
-		else Printf.bprintf buf
+                else Printf.bprintf buf
 "\\<td title=\\\"%s\\\"
 class=\\\"srb\\\"\\>------\\</td\\>"
   (if user.user_name = (admin_user ()).user_name then "Admin user can not be removed" else
      if u_dls <> 0 then Printf.sprintf "User has %d download%s" u_dls
      (Printf2.print_plural_s u_dls) else "");
-		html_mods_td buf [
-		  ("", "sr", user.user_name);
-		  ("", "sr ac", Printf.sprintf "%b" (user2_is_admin user));
-		  ("Click to remove group", "sr",
-		      let buf1 = Buffer.create 100 in
-		      user2_user_groups_iter user (fun group ->
-			if user2_default_group_matches_group user.user_default_group group then
-			  Printf.bprintf buf1 "%s " group.group_name
-			else
-			  Printf.bprintf buf1
+                html_mods_td buf [
+                  ("", "sr", user.user_name);
+                  ("", "sr ac", Printf.sprintf "%b" (user2_is_admin user));
+                  ("Click to remove group", "sr",
+                      let buf1 = Buffer.create 100 in
+                      user2_user_groups_iter user (fun group ->
+                        if user2_default_group_matches_group user.user_default_group group then
+                          Printf.bprintf buf1 "%s " group.group_name
+                        else
+                          Printf.bprintf buf1
 "\\<a onMouseOver=\\\"mOvr(this);\\\"
 onMouseOut=\\\"mOut(this);\\\"
 onClick=\\\'javascript:{
 parent.fstatus.location.href=\\\"submit?q=usergroupdel+\\\\\\\"%s\\\\\\\"+\\\\\\\"%s\\\\\\\"\\\";
 setTimeout(\\\"window.location.reload()\\\",1000);}'
 class=\\\"srb\\\"\\>%s\\</a\\> " user.user_name group.group_name group.group_name
-		      );
-		      Buffer.contents buf1);
-		  ("", "sr", user2_print_user_default_group user);
-		  ("", "sr", user.user_mail);
-		  ("", "sr", user.user_commit_dir);
-		  ("", "sr ar", user2_print_user_dls user);
-		  ("", "sr ar", string_of_int u_dls)];
+                      );
+                      Buffer.contents buf1);
+                  ("", "sr", user2_print_user_default_group user);
+                  ("", "sr", user.user_mail);
+                  ("", "sr", user.user_commit_dir);
+                  ("", "sr ar", user2_print_user_dls user);
+                  ("", "sr ar", string_of_int u_dls)];
             );
             Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
-	    print_option_help o userlist;
+            print_option_help o userlist;
             Printf.bprintf buf "\\<P\\>";
 
             Printf.bprintf buf "\\<div class=\\\"shares\\\"\\>\\<table class=main cellspacing=0 cellpadding=0\\>
@@ -3664,31 +3664,31 @@ class=\\\"srb\\\"\\>%s\\</a\\> " user.user_name group.group_name group.group_nam
               ( Num, "srh ar", "Member count", "Mem" );
               ( Num, "srh ar", "Download count", "DLs" ) ];
 
-	    html_mods_cntr_init ();
+            html_mods_cntr_init ();
             user2_groups_iter (fun group ->
-		let g_dls = user2_num_group_dls group in
-		let g_mem = user2_num_group_members group in
-		let is_sys_group = group = admin_group () in
-		Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-		if g_dls = 0 && g_mem = 0 && not is_sys_group then Printf.bprintf buf
+                let g_dls = user2_num_group_dls group in
+                let g_mem = user2_num_group_members group in
+                let is_sys_group = group = admin_group () in
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+                if g_dls = 0 && g_mem = 0 && not is_sys_group then Printf.bprintf buf
 "\\<td title=\\\"Click to remove group\\\"
 onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" onClick=\\\'javascript:{
 parent.fstatus.location.href=\\\"submit?q=groupdel+\\\\\\\"%s\\\\\\\"\\\";
 setTimeout(\\\"window.location.reload()\\\",1000);}'
 class=\\\"srb\\\"\\>Remove\\</td\\>" group.group_name
-		else
-		    Printf.bprintf buf "\\<td title=\\\"%s\\\" class=\\\"srb\\\"\\>------\\</td\\>"
-		      (if g_dls <> 0 then Printf.sprintf "Group is assigned to %d download%s"
-					    g_dls (Printf2.print_plural_s g_dls) else
-		        if g_mem <> 0 then Printf.sprintf "Group has %d member%s"
-					    g_mem (Printf2.print_plural_s g_mem) else
-			if is_sys_group then "System group can not be removed" else "");
+                else
+                    Printf.bprintf buf "\\<td title=\\\"%s\\\" class=\\\"srb\\\"\\>------\\</td\\>"
+                      (if g_dls <> 0 then Printf.sprintf "Group is assigned to %d download%s"
+                                            g_dls (Printf2.print_plural_s g_dls) else
+                        if g_mem <> 0 then Printf.sprintf "Group has %d member%s"
+                                            g_mem (Printf2.print_plural_s g_mem) else
+                        if is_sys_group then "System group can not be removed" else "");
 
-		html_mods_td buf [("", "sr", group.group_name)];
+                html_mods_td buf [("", "sr", group.group_name)];
 
-		if is_sys_group then 
-		  html_mods_td buf [("System group, can not change state", "sr ac", Printf.sprintf "%b" group.group_admin)]
-		else Printf.bprintf buf
+                if is_sys_group then 
+                  html_mods_td buf [("System group, can not change state", "sr ac", Printf.sprintf "%b" group.group_admin)]
+                else Printf.bprintf buf
 "\\<td title=\\\"Change admin status\\\"
 onMouseOver=\\\"mOvr(this);\\\" onMouseOut=\\\"mOut(this);\\\" onClick=\\\'javascript:{
 parent.fstatus.location.href=\\\"submit?q=groupadmin+\\\\\\\"%s\\\\\\\"+\\\\\\\"%s\\\\\\\"\\\";
@@ -3698,13 +3698,13 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
   (if group.group_admin then "false" else "true")
   (if group.group_admin then "true" else "false");
 
-		html_mods_td buf [
-		  ("", "sr ar", Printf.sprintf "%d" (user2_num_group_members group));
-		  ("", "sr ar", Printf.sprintf "%d" g_dls);
-		  ]);
+                html_mods_td buf [
+                  ("", "sr ar", Printf.sprintf "%d" (user2_num_group_members group));
+                  ("", "sr ar", Printf.sprintf "%d" g_dls);
+                  ]);
 
-	    Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
-	    print_option_help o grouplist;
+            Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>\\<P\\>";
+            print_option_help o grouplist;
             Printf.bprintf buf "\\<P\\>";
 
             Buffer.add_string buf "\\<div class=\\\"cs\\\"\\>";
@@ -3719,7 +3719,7 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
             let list = Hashtbl2.to_list2 commands_by_kind in
             let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) list in
             List.iter (fun (s,list) ->
-	      if s = "Driver/Users" then
+              if s = "Driver/Users" then
               let list = List.sort (fun (s1,_) (s2,_) -> compare s1 s2) !list in
               List.iter (fun (cmd, help) ->
                 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
@@ -3734,64 +3734,64 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
           ) list
           end
         else begin
-	  let list = ref [] in
-	  user2_users_iter (fun user -> list := [|
-	    user.user_name;
-	    Printf.sprintf "%b" (user2_is_admin user);
-	    (user2_print_user_groups " " user);
-	    (user2_print_user_default_group user);
-	    user.user_mail;
-	    user.user_commit_dir;
-	    (user2_print_user_dls user);
-	    (string_of_int (user2_num_user_dls user));
-	  |] :: !list );
-	  print_table_text buf
-	  [|
-	    Align_Left; Align_Left; Align_Left; Align_Left; Align_Left; Align_Left; Align_Right; Align_Right |]
-	  [|
-	    "User";
-	    "Admin";
-	    "Groups";
-	    "Dgroup";
-	    "Email";
-	    "Commit dir";
-	    "Max dls";
-	    "Dls";
-	  |] (List.rev !list);
-	  Printf.bprintf buf "\n";
-	  let list = ref [] in
-	  user2_groups_iter (fun group -> list := [|
-	    group.group_name;
-	    Printf.sprintf "%b" group.group_admin;
-	    (string_of_int (user2_num_group_members group));
-	    (string_of_int (user2_num_group_dls group));
-	  |] :: !list );
-	  print_table_text buf
-	  [|
-	    Align_Left; Align_Left; Align_Right; Align_Right |]
-	  [|
-	    "Group";
-	    "Admin";
-	    "Members";
-	    "Downloads";
-	  |] (List.rev !list);
+          let list = ref [] in
+          user2_users_iter (fun user -> list := [|
+            user.user_name;
+            Printf.sprintf "%b" (user2_is_admin user);
+            (user2_print_user_groups " " user);
+            (user2_print_user_default_group user);
+            user.user_mail;
+            user.user_commit_dir;
+            (user2_print_user_dls user);
+            (string_of_int (user2_num_user_dls user));
+          |] :: !list );
+          print_table_text buf
+          [|
+            Align_Left; Align_Left; Align_Left; Align_Left; Align_Left; Align_Left; Align_Right; Align_Right |]
+          [|
+            "User";
+            "Admin";
+            "Groups";
+            "Dgroup";
+            "Email";
+            "Commit dir";
+            "Max dls";
+            "Dls";
+          |] (List.rev !list);
+          Printf.bprintf buf "\n";
+          let list = ref [] in
+          user2_groups_iter (fun group -> list := [|
+            group.group_name;
+            Printf.sprintf "%b" group.group_admin;
+            (string_of_int (user2_num_group_members group));
+            (string_of_int (user2_num_group_dls group));
+          |] :: !list );
+          print_table_text buf
+          [|
+            Align_Left; Align_Left; Align_Right; Align_Right |]
+          [|
+            "Group";
+            "Admin";
+            "Members";
+            "Downloads";
+          |] (List.rev !list);
           end
-	end else print_command_result o "You are not allowed to list users";
+        end else print_command_result o "You are not allowed to list users";
           _s ""
     ), ":\t\t\t\t\tprint users";
 
     "whoami", Arg_none (fun o ->
-	print_command_result o o.conn_user.ui_user.user_name;
+        print_command_result o o.conn_user.ui_user.user_name;
         _s ""
     ), ":\t\t\t\tprint logged-in user name";
 
     "groups", Arg_none (fun o ->
-	print_command_result o (user2_print_user_groups " " o.conn_user.ui_user);
+        print_command_result o (user2_print_user_groups " " o.conn_user.ui_user);
         _s ""
     ), ":\t\t\t\tprint groups of logged-in user";
 
     "dgroup", Arg_none (fun o ->
-	print_command_result o (user2_print_user_default_group o.conn_user.ui_user);
+        print_command_result o (user2_print_user_default_group o.conn_user.ui_user);
         _s ""
     ), ":\t\t\t\tprint default group of logged-in user";
 
@@ -3799,8 +3799,8 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
         let num = int_of_string filenum in
         begin try
           let file = file_find num in
-	  if String.lowercase group = "none" then
-	    begin
+          if String.lowercase group = "none" then
+            begin
               if user2_allow_file_admin file o.conn_user.ui_user then
                 begin
                   set_file_group file None;
@@ -3808,37 +3808,37 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
                 end
               else
                 print_command_result o (Printf.sprintf (_b "You are not allowed to change group of download %d to %s") num group)
-	    end
-	  else
-	    begin
-	      try
-		let g = user2_group_find group in
-		if user2_allow_file_admin file o.conn_user.ui_user &&
-		   List.mem g (file_owner file).user_groups then
-		  begin
-		    set_file_group file (Some g);
-		    print_command_result o (Printf.sprintf (_b "Changed group of download %d to %s") num group)
-		  end
-		else		  
-		  print_command_result o (Printf.sprintf (_b "You are not allowed to change group of download %d to %s") num group)
-	      with Not_found -> print_command_result o (Printf.sprintf (_b "Group %s not found") group)
-	    end
+            end
+          else
+            begin
+              try
+                let g = user2_group_find group in
+                if user2_allow_file_admin file o.conn_user.ui_user &&
+                   List.mem g (file_owner file).user_groups then
+                  begin
+                    set_file_group file (Some g);
+                    print_command_result o (Printf.sprintf (_b "Changed group of download %d to %s") num group)
+                  end
+                else		  
+                  print_command_result o (Printf.sprintf (_b "You are not allowed to change group of download %d to %s") num group)
+              with Not_found -> print_command_result o (Printf.sprintf (_b "Group %s not found") group)
+            end
         with Not_found -> print_command_result o (Printf.sprintf (_b "File %d not found") num)
-	end;
-	_s ""
+        end;
+        _s ""
     ), "<group> <num> :\t\t\tchange group of download <num> to <group>, use group = none for private file";
 
     "chown", Arg_two (fun user filenum o ->
         let num = int_of_string filenum in
         begin
-	  try
+          try
             let file = file_find num in
-	    begin
-	      try
-	        let u = user2_user_find user in
-		if user2_is_admin o.conn_user.ui_user then
-		  begin
-		    set_file_owner file u;
+            begin
+              try
+                let u = user2_user_find user in
+                if user2_is_admin o.conn_user.ui_user then
+                  begin
+                    set_file_owner file u;
                     match file_group file with
                     | None ->
                         print_command_result o (Printf.sprintf (_b "Changed owner of download %d to %s") num user)
@@ -3852,14 +3852,14 @@ class=\\\"sr ac\\\"\\>%s\\</td\\>"
                               (_b "owner %s is not member of file_group %s, changing file_group to user_default_group %s")
                               user g.group_name (user2_print_user_default_group u))
                           end
-		  end
-		else		  
-		  print_command_result o (Printf.sprintf (_b "You are not allowed to change owner of download %d to %s") num user)
-	      with Not_found -> print_command_result o (Printf.sprintf (_b "User %s not found") user)
-	    end
+                  end
+                else		  
+                  print_command_result o (Printf.sprintf (_b "You are not allowed to change owner of download %d to %s") num user)
+              with Not_found -> print_command_result o (Printf.sprintf (_b "User %s not found") user)
+            end
           with Not_found -> print_command_result o (Printf.sprintf (_b "File %d not found") num)
-	end;
-	_s ""
+        end;
+        _s ""
     ), "<user> <num> :\t\t\tchange owner of download <num> to <user>";
 
   ]
@@ -3996,23 +3996,23 @@ let _ =
     "<width> <height> :\t\t\tset terminal width and height (devel)";
 
     "stdout", Arg_one (fun arg o ->
-	if (bool_of_string arg) then
-	  begin
-	    lprintf_nl "Enable logging to stdout...";
-	    log_to_file stdout;
-	    lprintf_nl "Logging to stdout..."
-	  end
-	else
-	  begin
-	    lprintf_nl "Disable logging to stdout...";
-	    close_log ();
-	    if !!log_file <> "" then
-	      begin
+        if (bool_of_string arg) then
+          begin
+            lprintf_nl "Enable logging to stdout...";
+            log_to_file stdout;
+            lprintf_nl "Logging to stdout..."
+          end
+        else
+          begin
+            lprintf_nl "Disable logging to stdout...";
+            close_log ();
+            if !!log_file <> "" then
+              begin
                 let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 !!log_file in
                   log_to_file oc;
                   lprintf_nl "Reopened %s" !!log_file
-	      end
-	  end;
+              end
+          end;
         Printf.sprintf (_b "log to stdout %s")
         (if (bool_of_string arg) then _s "enabled" else _s "disabled")
     ), "<true|false> :\t\t\treactivate log to stdout";
@@ -4056,12 +4056,12 @@ let _ =
 
     "open_log", Arg_none (fun o ->
         if !!log_file <> "" then
-	  begin
-	    let log = !!log_file in
-	      CommonOptions.log_file =:= log;
+          begin
+            let log = !!log_file in
+              CommonOptions.log_file =:= log;
             Printf.sprintf "opened logfile %s" !!log_file
-	  end
-	else
+          end
+        else
           Printf.sprintf "works only if log_file is set"
     ), ":\t\t\t\tenable logging to file";
 
@@ -4098,7 +4098,7 @@ let _ =
             CommonMessages.colour_changer() ;
           end;
 
-	"\\<script type='text/javascript'\\>top.window.location.replace('/');\\</script\\>"
+        "\\<script type='text/javascript'\\>top.window.location.replace('/');\\</script\\>"
     ), ":\t\t\t\ttoggle html_mods";
 
 
@@ -4115,12 +4115,12 @@ let _ =
             html_mods_theme =:= "";
             let num = int_of_string (List.hd args) in
 
-	    html_mods_style =:=
-	      if num >= 0 && num < Array.length CommonMessages.styles then
+            html_mods_style =:=
+              if num >= 0 && num < Array.length CommonMessages.styles then
                 num else 0;
             commands_frame_height =:= CommonMessages.styles.(!!html_mods_style).frame_height;
             CommonMessages.colour_changer ();
-	    "\\<script type='text/javascript'\\>top.window.location.replace('/');\\</script\\>"
+            "\\<script type='text/javascript'\\>top.window.location.replace('/');\\</script\\>"
           end
 
     ), ":\t\t\tselect html_mods_style <#>";
@@ -4169,7 +4169,7 @@ let _ =
                           ^ (Url.encode link)
                           ^ "\\\"\\ title=\\\"\\startbt\\\"\\>startbt\\</a\\>"
                         )
-		      ];
+                      ];
                       Printf.bprintf buf "\\</tr\\>"
                     end
                   else begin
@@ -4211,9 +4211,9 @@ let _ =
 
     "mem_stats", Arg_multiple (fun args o ->
         let buf = o.conn_buf in
-	let level = match args with
-	  [] -> 0
-	| n :: _ -> int_of_string n in
+        let level = match args with
+          [] -> 0
+        | n :: _ -> int_of_string n in
         Heap.print_memstats level buf (use_html_mods o);
         ""
     ), ":\t\t\t\tprint memory stats [<verbosity #num>]";
@@ -4248,48 +4248,48 @@ let _ =
     "block_list", Arg_none (fun o ->
       let buf = o.conn_buf in
       if o.conn_output = HTML then
-	List.iter (fun (tablename, l) ->
-	  html_mods_cntr_init ();
-	  html_mods_table_header buf ~total:"1" tablename "servers" [
-	    ( Str, "srh ac br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
-	    ( Num, "srh ar", "Hits", "Hits") ;
-	    ( Str, "srh ac", "Range", "Range")];
+        List.iter (fun (tablename, l) ->
+          html_mods_cntr_init ();
+          html_mods_table_header buf ~total:"1" tablename "servers" [
+            ( Str, "srh ac br", "Description (" ^ tablename ^ ")", "Description (" ^ tablename ^ ")") ;
+            ( Num, "srh ar", "Hits", "Hits") ;
+            ( Str, "srh ac", "Range", "Range")];
           let nhits = 
-	    Ip_set.bl_fold_left (fun nhits br ->
-		Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
-		  (html_mods_cntr ());
-		html_mods_td buf [
-		  ("Description", "sr br", br.Ip_set.blocking_description);
-		  ("Hits", "sr ar br", string_of_int br.Ip_set.blocking_hits);
-		  ("Range", "sr", Printf.sprintf "%s - %s"
-		    (Ip.to_string br.Ip_set.blocking_begin)
-		    (Ip.to_string br.Ip_set.blocking_end))];
-		Printf.bprintf buf "\\</tr\\>";
-	      (nhits + br.Ip_set.blocking_hits)
-	    ) 0 l 
-	  and nranges = Ip_set.bl_length l in
-	  Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
-	    (html_mods_cntr ());
-	  if nranges > 0 then
-	  html_mods_td buf [
-	    ("Total ranges", "sr br total", ("Total ranges " ^ string_of_int nranges));
-	    ("Hits", "sr ar br total", Printf.sprintf "%s" (string_of_int nhits));
-	    ("", "sr br total", "")]
-	  else begin
-	  html_mods_td buf [
-	    ("no " ^ tablename ^ " loaded", "sr", "no " ^ tablename ^ " loaded");
-	    ("", "sr", "");
-	    ("", "sr", "")];
-	  end;
-	  Printf.bprintf buf "\\</tr\\>\\</table\\>\\<P\\>";
-	) [
-	  ("Web blocking list", !CommonBlocking.web_ip_blocking_list); 
-	  ("Local blocking list", !CommonBlocking.ip_blocking_list)]
+            Ip_set.bl_fold_left (fun nhits br ->
+                Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
+                  (html_mods_cntr ());
+                html_mods_td buf [
+                  ("Description", "sr br", br.Ip_set.blocking_description);
+                  ("Hits", "sr ar br", string_of_int br.Ip_set.blocking_hits);
+                  ("Range", "sr", Printf.sprintf "%s - %s"
+                    (Ip.to_string br.Ip_set.blocking_begin)
+                    (Ip.to_string br.Ip_set.blocking_end))];
+                Printf.bprintf buf "\\</tr\\>";
+              (nhits + br.Ip_set.blocking_hits)
+            ) 0 l 
+          and nranges = Ip_set.bl_length l in
+          Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>"
+            (html_mods_cntr ());
+          if nranges > 0 then
+          html_mods_td buf [
+            ("Total ranges", "sr br total", ("Total ranges " ^ string_of_int nranges));
+            ("Hits", "sr ar br total", Printf.sprintf "%s" (string_of_int nhits));
+            ("", "sr br total", "")]
+          else begin
+          html_mods_td buf [
+            ("no " ^ tablename ^ " loaded", "sr", "no " ^ tablename ^ " loaded");
+            ("", "sr", "");
+            ("", "sr", "")];
+          end;
+          Printf.bprintf buf "\\</tr\\>\\</table\\>\\<P\\>";
+        ) [
+          ("Web blocking list", !CommonBlocking.web_ip_blocking_list); 
+          ("Local blocking list", !CommonBlocking.ip_blocking_list)]
       else begin
-	Printf.bprintf buf "Web blocking list\n";
-	Ip_set.print_list buf !CommonBlocking.web_ip_blocking_list;
-	Printf.bprintf buf "Local blocking list\n";
-	Ip_set.print_list buf !CommonBlocking.ip_blocking_list;
+        Printf.bprintf buf "Web blocking list\n";
+        Ip_set.print_list buf !CommonBlocking.web_ip_blocking_list;
+        Printf.bprintf buf "Local blocking list\n";
+        Ip_set.print_list buf !CommonBlocking.ip_blocking_list;
       end;
       _s ""
     ), ":\t\t\t\tdisplay the list of blocked IP ranges that were hit";
@@ -4308,41 +4308,41 @@ let _ =
     ), ":\t\t\tfor debugging only";
 
     "debug_upnp", Arg_multiple ( fun args o ->
-		match args with
-			| ["init"] ->  
-				UpnpClient.init_maps ();
+                match args with
+                        | ["init"] ->  
+                                UpnpClient.init_maps ();
 
-			| ["add"; intPort; extPort; isTcp; notes ] ->
-				UpnpClient.maps_add_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
-				
-			| ["start"] -> 	
-				UpnpClient.job_start ();
-				
-			| ["remove"; intPort; extPort; isTcp; notes] ->
-				UpnpClient.maps_remove_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
-				
-			| ["clear"] -> 	
-				UpnpClient.remove_all_maps 0 ;
-				
-			| ["stop"] -> 	
-				UpnpClient.job_stop 0;
-				
-			| ["show"] | [] ->
-				let buf = o.conn_buf in
-					let	maps = UpnpClient.maps_get () in
-					Printf.bprintf buf "upnp port forwarding status:\n";
-					List.iter (fun map ->
-						let msg = UpnpClient.strings_port_map map in
-						Printf.bprintf buf "%s\n" msg;
-					) maps;
-						
-			| _ -> ();
-				;
-			_s "done"
+                        | ["add"; intPort; extPort; isTcp; notes ] ->
+                                UpnpClient.maps_add_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
+                                
+                        | ["start"] -> 	
+                                UpnpClient.job_start ();
+                                
+                        | ["remove"; intPort; extPort; isTcp; notes] ->
+                                UpnpClient.maps_remove_item 1 (int_of_string intPort) (int_of_string extPort) (int_of_string isTcp) notes;
+                                
+                        | ["clear"] -> 	
+                                UpnpClient.remove_all_maps 0 ;
+                                
+                        | ["stop"] -> 	
+                                UpnpClient.job_stop 0;
+                                
+                        | ["show"] | [] ->
+                                let buf = o.conn_buf in
+                                        let	maps = UpnpClient.maps_get () in
+                                        Printf.bprintf buf "upnp port forwarding status:\n";
+                                        List.iter (fun map ->
+                                                let msg = UpnpClient.strings_port_map map in
+                                                Printf.bprintf buf "%s\n" msg;
+                                        ) maps;
+                                                
+                        | _ -> ();
+                                ;
+                        _s "done"
     ), ":\t\t\t\t\t$debugging upnp\n"
        ^"\t\t\t\t\tfor example: \"add 4662 4662 1 ed_port\" add port forwarding intPort extPort isTcp notes\n"
        ^"\t\t\t\t\t\"remove 4662 4662 1 ed_port\" remove port forwarding intPort extPort isTcp notes\n"
        ^"\t\t\t\t\t\"clear\" clear all port forwarding\n"
        ^"\t\t\t\t\t\"show\" show all port forwarding info $n";
-		
+                
   ]

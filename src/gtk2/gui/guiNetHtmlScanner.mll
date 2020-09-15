@@ -52,11 +52,11 @@ rule scan_document = parse
       { Lpi }
   | "<" name
       { let s = Lexing.lexeme lexbuf in
-	Lelement (String.sub s 1 (String.length s - 1))
+        Lelement (String.sub s 1 (String.length s - 1))
       }
   | "</" name
       { let s = Lexing.lexeme lexbuf in
-	Lelementend (String.sub s 2 (String.length s - 2))
+        Lelementend (String.sub s 2 (String.length s - 2))
       }
   | "<"                (* misplaced "<" *)
       { Cdata "<" }
@@ -68,7 +68,7 @@ rule scan_document = parse
 and scan_special = parse
   | "</" name 
       { let s = Lexing.lexeme lexbuf in
-	Lelementend (String.sub s 2 (String.length s - 2))
+        Lelementend (String.sub s 2 (String.length s - 2))
       }
   | "<"
       { Cdata "<" }
@@ -119,11 +119,11 @@ and scan_element = parse
       { Is }
   | string_literal1
       { let s = Lexing.lexeme lexbuf in
-	Literal (String.sub s 1 (String.length s - 2)) 
+        Literal (String.sub s 1 (String.length s - 2)) 
       }
   | string_literal2
       { let s = Lexing.lexeme lexbuf in
-	Literal (String.sub s 1 (String.length s - 2)) 
+        Literal (String.sub s 1 (String.length s - 2)) 
       }
   | string_literal3
       { Literal (Lexing.lexeme lexbuf) }

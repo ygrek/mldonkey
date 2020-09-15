@@ -73,7 +73,7 @@ class window () =
       tab_servers#tab_queries#set_wnote_main notebook;
       
       ignore (notebook#connect#switch_page 
-		(fun n -> current_page <- n));
+                (fun n -> current_page <- n));
 
       (* set the size of panes as they were the last time. *)
       Mi.set_hpaned tab_servers#hpaned_servers O.servers_hpane_left;
@@ -124,27 +124,27 @@ class window () =
 
       (* Keyboard shortcuts *)
       let add w ?(cond=(fun () -> true)) l ((mods, k), action) = 
-	try
-	  let f = List.assoc action l in
-	  Okey.add ~cond w ~mods k f
-	with
-	  Not_found ->
+        try
+          let f = List.assoc action l in
+          Okey.add ~cond w ~mods k f
+        with
+          Not_found ->
             lprintf "%s\n" (Gui_messages.action_unknown action)
       in
 
       (* Global shortcuts *)
       let global_actions = [
-	M.a_page_servers, itemServers#activate ;
-	M.a_page_downloads, itemDownloads#activate;
-	M.a_page_friends, itemFriends#activate;
-	M.a_page_results, itemResults#activate;
-	M.a_page_options, itemOptions#activate;
-	M.a_page_console, itemConsole#activate;
-	M.a_page_help, itemHelp#activate;
-	M.a_next_page, notebook#next_page;
-	M.a_previous_page, notebook#previous_page;
-	M.a_reconnect, itemReconnect#activate;
-	M.a_exit, itemQuit#activate;
+        M.a_page_servers, itemServers#activate ;
+        M.a_page_downloads, itemDownloads#activate;
+        M.a_page_friends, itemFriends#activate;
+        M.a_page_results, itemResults#activate;
+        M.a_page_options, itemOptions#activate;
+        M.a_page_console, itemConsole#activate;
+        M.a_page_help, itemHelp#activate;
+        M.a_next_page, notebook#next_page;
+        M.a_previous_page, notebook#previous_page;
+        M.a_reconnect, itemReconnect#activate;
+        M.a_exit, itemQuit#activate;
       ] 
       in
       List.iter (add window global_actions) !!O.keymap_global;
@@ -152,44 +152,44 @@ class window () =
       (* Servers shortcuts *)
       let bs = tab_servers#box_servers in
       let servers_actions = global_actions @
-	[
-	  M.a_connect, bs#connect ;
-	  M.a_connect_more, bs#connect_more_servers ;
-	  M.a_select_all, bs#wlist#select_all ;
-	] 
+        [
+          M.a_connect, bs#connect ;
+          M.a_connect_more, bs#connect_more_servers ;
+          M.a_select_all, bs#wlist#select_all ;
+        ] 
       in
       List.iter
-	(add window ~cond: (fun () -> current_page = 0) servers_actions)
-	!!O.keymap_servers;
+        (add window ~cond: (fun () -> current_page = 0) servers_actions)
+        !!O.keymap_servers;
 
       (* Downloads shortcuts *)
       let bdls = tab_downloads#box_downloads in
       let bdled = tab_downloads#box_downloaded in
       let downloads_actions = global_actions @ 
-	[
-	  M.a_cancel_download, bdls#cancel ;
-	  M.a_save_all_files, bdled#save_all ;
-	  M.a_menu_save_file, bdled#save ;
-	  M.a_select_all, bdls#wlist#select_all;
-	]
+        [
+          M.a_cancel_download, bdls#cancel ;
+          M.a_save_all_files, bdled#save_all ;
+          M.a_menu_save_file, bdled#save ;
+          M.a_select_all, bdls#wlist#select_all;
+        ]
       in
       List.iter
-	(add window ~cond: (fun () -> current_page = 1) downloads_actions)
-	!!O.keymap_downloads;
+        (add window ~cond: (fun () -> current_page = 1) downloads_actions)
+        !!O.keymap_downloads;
 
       (* Friends shortcuts *)
       let bf = tab_friends#box_friends in
       let bfiles = tab_friends#box_files in
       let friends_actions = global_actions @ 
-	[
-	  M.a_download_selection, bfiles#box_results#download ;
-	  M.a_remove_friend, bf#remove ;
-	  M.a_select_all, bf#wlist#select_all ;
-	]
+        [
+          M.a_download_selection, bfiles#box_results#download ;
+          M.a_remove_friend, bf#remove ;
+          M.a_select_all, bf#wlist#select_all ;
+        ]
       in
       List.iter
-	(add window ~cond: (fun () -> current_page = 2) friends_actions)
-	!!O.keymap_friends;
+        (add window ~cond: (fun () -> current_page = 2) friends_actions)
+        !!O.keymap_friends;
 
       hbox_status#pack ~expand: true tab_servers#wl_status#coerce;
       hbox_status#pack ~expand: true tab_downloads#wl_status#coerce;

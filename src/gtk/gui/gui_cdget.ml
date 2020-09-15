@@ -450,13 +450,13 @@ lprint_newline (); *)
     initializer
       (*
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.download)
-	   ~tooltip: (gettext M.download_selected_dir)
-	   ~icon: (Gui_options.pixmap M.o_xpm_download)#coerce
-	   ~callback: self#download
-	   ()
-	);*)
+        (wtool#insert_button 
+           ~text: (gettext M.download)
+           ~tooltip: (gettext M.download_selected_dir)
+           ~icon: (Gui_options.pixmap M.o_xpm_download)#coerce
+           ~callback: self#download
+           ()
+        );*)
       freedb_record.freedb_result <- (fun url artist album ->
           self#insert url artist album  
       );
@@ -658,13 +658,13 @@ lprint_newline (); *)
       
       (*
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.download)
-	   ~tooltip: (gettext M.download_selected_dir)
-	   ~icon: (Gui_options.pixmap M.o_xpm_download)#coerce
-	   ~callback: self#download
-	   ()
-	); *)
+        (wtool#insert_button 
+           ~text: (gettext M.download)
+           ~tooltip: (gettext M.download_selected_dir)
+           ~icon: (Gui_options.pixmap M.o_xpm_download)#coerce
+           ~callback: self#download
+           ()
+        ); *)
       imdb_record.imdb_result <- (fun url movie ->
           self#insert url movie 
       );

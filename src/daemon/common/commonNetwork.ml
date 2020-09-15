@@ -148,8 +148,8 @@ let networks_iter f =
     with
     | IgnoreNetwork -> ()
     | e ->
-	lprintf_nl "Exception %s in Network.iter for %s"
-	  (Printexc2.to_string e) r.network_name;
+        lprintf_nl "Exception %s in Network.iter for %s"
+          (Printexc2.to_string e) r.network_name;
   ) !networks
     
 let networks_iter_until_true f =
@@ -159,9 +159,9 @@ let networks_iter_until_true f =
     with 
     | IgnoreNetwork -> false
     | e ->
-	lprintf_nl "Exception %s in Network.iter for %s"
-	  (Printexc2.to_string e) r.network_name;
-	false
+        lprintf_nl "Exception %s in Network.iter for %s"
+          (Printexc2.to_string e) r.network_name;
+        false
   ) !networks
     
 let networks_iter_all f =
@@ -171,8 +171,8 @@ let networks_iter_all f =
     with
     | IgnoreNetwork -> ()
     | e ->
-	lprintf_nl "Exception %s in Network.iter for %s"
-	  (Printexc2.to_string e) r.network_name;
+        lprintf_nl "Exception %s in Network.iter for %s"
+          (Printexc2.to_string e) r.network_name;
   ) !networks
     
 let networks_iter_all_until_true f =
@@ -182,9 +182,9 @@ let networks_iter_all_until_true f =
     with
     | IgnoreNetwork -> false
     | e ->
-	lprintf_nl "Exception %s in Network.iter for %s"
-	  (Printexc2.to_string e) r.network_name;
-	false
+        lprintf_nl "Exception %s in Network.iter for %s"
+          (Printexc2.to_string e) r.network_name;
+        false
   ) !networks
 
 let networks_for_all f =
@@ -194,8 +194,8 @@ let networks_for_all f =
     with
     | IgnoreNetwork -> true
     | e ->
-	lprintf_nl "Exception %s in Network.for_all for %s"
-	  (Printexc2.to_string e) r.network_name; true
+        lprintf_nl "Exception %s in Network.for_all for %s"
+          (Printexc2.to_string e) r.network_name; true
   ) !networks
 
 let network_find_by_name name =

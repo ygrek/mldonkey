@@ -20,11 +20,11 @@
 open Xml_types
 
 type token =
-	| Tag of string * (string * string) list * bool
-	| PCData of string
-	| Endtag of string
-	| DocType of (string * dtd_decl)
-	| Eof
+        | Tag of string * (string * string) list * bool
+        | PCData of string
+        | Endtag of string
+        | DocType of (string * dtd_decl)
+        | Eof
 
 val init : Lexing.lexbuf -> unit 
 val close : Lexing.lexbuf -> unit

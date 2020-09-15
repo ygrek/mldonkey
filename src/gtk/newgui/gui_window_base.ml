@@ -73,43 +73,43 @@ class window () =
   let tab_downloads = new Gui_downloads.pane_downloads () in
   let _ = notebook#append_page
             ~tab_label:(tab_box 2 false main_nbk_data)#coerce
-	    ~menu_label:(menu_label_box 2 main_nbk_data)#coerce
+            ~menu_label:(menu_label_box 2 main_nbk_data)#coerce
             tab_downloads#coerce
   in
   let tab_friends = new Gui_friends.pane_friends () in
   let _ = notebook#append_page
             ~tab_label:(tab_box 3 false main_nbk_data)#coerce
-	    ~menu_label:(menu_label_box 3 main_nbk_data)#coerce
+            ~menu_label:(menu_label_box 3 main_nbk_data)#coerce
             tab_friends#coerce
   in
   let tab_queries = new Gui_queries.paned () in
   let _ = notebook#append_page
             ~tab_label:(tab_box 4 false main_nbk_data)#coerce
-	    ~menu_label:(menu_label_box 4 main_nbk_data)#coerce
+            ~menu_label:(menu_label_box 4 main_nbk_data)#coerce
             tab_queries#coerce
   in
   let tab_rooms = new Gui_rooms.pane_rooms () in
   let _ = notebook#append_page
             ~tab_label:(tab_box 5 false main_nbk_data)#coerce
-	    ~menu_label:(menu_label_box 5 main_nbk_data)#coerce
+            ~menu_label:(menu_label_box 5 main_nbk_data)#coerce
             tab_rooms#coerce
   in
   let tab_uploads = new Gui_uploads.upstats_box () in
   let _ = notebook#append_page
             ~tab_label:(tab_box 6 false main_nbk_data)#coerce
-	    ~menu_label:(menu_label_box 6 main_nbk_data)#coerce
+            ~menu_label:(menu_label_box 6 main_nbk_data)#coerce
             tab_uploads#coerce
   in
   let tab_console = new Gui_console.box () in
   let _ = notebook#append_page
             ~tab_label:(tab_box 7 false main_nbk_data)#coerce
-	    ~menu_label:(menu_label_box 7 main_nbk_data)#coerce
+            ~menu_label:(menu_label_box 7 main_nbk_data)#coerce
             tab_console#coerce
   in
   let tab_graph = new Gui_graph.box () in
   let _ = notebook#append_page
             ~tab_label:(tab_box 8 false main_nbk_data)#coerce
-	    ~menu_label:(menu_label_box 8 main_nbk_data)#coerce
+            ~menu_label:(menu_label_box 8 main_nbk_data)#coerce
             tab_graph#coerce
   in
   let vbox = GPack.vbox ~homogeneous:false ~packing:(hbox_w#pack~expand:false ~fill:false) () in
@@ -119,7 +119,7 @@ class window () =
       ~packing:(vbox#pack ~expand:true ~fill:true) ()
   in
   let buttonAbout = wtool1#insert_button
-		     ~tooltip:(Gui_messages.mW_ti_about)
+                     ~tooltip:(Gui_messages.mW_ti_about)
                      ~icon: (Gui_options.pixmap Gui_messages.o_xpm_about)#coerce
                    ();
   in

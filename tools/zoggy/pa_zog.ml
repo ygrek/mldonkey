@@ -60,20 +60,20 @@ let parse_string loc =
     "false" -> 
 (*
       let loc = 
-	(
-	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	)	
+        (
+         { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+         { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+        )	
       in
 *)
       <:expr@loc< False >>
   | "true" ->
 (*
       let loc = 
-	(
-	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	)	
+        (
+         { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+         { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+        )	
       in
 *)
       <:expr@loc< True >>
@@ -84,9 +84,9 @@ let parse_string loc =
         Gram.parse_string expr loc str
 (*
         Pcaml.expr_reloc
-	  (fun _ -> Lexing.dummy_pos, Lexing.dummy_pos) 
-	  Lexing.dummy_pos 
-	  r
+          (fun _ -> Lexing.dummy_pos, Lexing.dummy_pos) 
+          Lexing.dummy_pos 
+          r
 *)
       with
         e ->
@@ -114,14 +114,14 @@ let ast_of_prop_value loc props kind =
   with
     Not_found -> 
 (*
-      	let loc = 
-	  (
-	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
-	in
+        let loc = 
+          (
+           { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+           { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+          )	
+        in
 *)
-	<:expr@loc< "" >>
+        <:expr@loc< "" >>
 
 let get_prop_label ele prop =
   match prop.prop_kind with
@@ -218,7 +218,7 @@ let remove_blanks s =
     match c with
       ' ' | '\n' | '\t' | '\r' -> ()
     | _ ->
-	Buffer.add_char buf c
+        Buffer.add_char buf c
   in
   String.iter f s;
   Buffer.contents buf
@@ -265,23 +265,23 @@ let ast_of_creation_options_code (loc:Loc.t) ele f =
       Show_indicator | Right_justify ->
         f
     | PPixmap_file ->
-	if must_gen prop then
+        if must_gen prop then
           let v = parse_prop_value prop in
           <:expr< $f$ (GDraw.pixmap_from_xpm ~file : $v$ ()) >>
-	else
- 	  raise (Field_error (field_error_string PPixmap_file))
+        else
+          raise (Field_error (field_error_string PPixmap_file))
     | PPixmap_data ->
-	if must_gen prop then
+        if must_gen prop then
           let v = parse_prop_value prop in
           <:expr< $f$ (GDraw.pixmap_from_xpm_d ~data : $v$ ()) >>
-	else
- 	  raise (Field_error (field_error_string PPixmap_data))
+        else
+          raise (Field_error (field_error_string PPixmap_data))
     | PPixmap_code ->
-	if must_gen prop then
+        if must_gen prop then
           let v = parse_prop_value prop in
           <:expr< $f$ $v$ >>
-	else
- 	  raise (Field_error (field_error_string PPixmap_code))
+        else
+          raise (Field_error (field_error_string PPixmap_code))
     | _ ->
         if must_gen prop then
           let v = parse_prop_value prop in
@@ -296,12 +296,12 @@ let ast_of_pack_options_code loc f ele =
       Expand | Fill | Padding ->
         if must_gen prop then
 (*
-	  let loc = 
-	    (
-	     { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	     { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	    )	
-	  in
+          let loc = 
+            (
+             { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+             { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+            )	
+          in
 *)
           let v = parse_prop_value prop in
           <:expr< $f$ ~ $get_prop_label ele prop$ : $v$ >>
@@ -318,23 +318,23 @@ let ast_of_pack_code loc parent ele f =
     | Insert_page ->
         let g = 
 (*
-	  let loc = 
-	    (
-	     { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
-	     { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
-	    )	
-	  in
+          let loc = 
+            (
+             { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
+             { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
+            )	
+          in
 *)
-	  <:expr< $lid:parent.name$ >> 
-	in
-	let loc1 = loc in
+          <:expr< $lid:parent.name$ >> 
+        in
+        let loc1 = loc in
 (*
-	let loc = 
-	  (
-	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
-	in
+        let loc = 
+          (
+           { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+           { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+          )	
+        in
 *)
         <:expr<
           $f$ ~packing:
@@ -349,23 +349,23 @@ let ast_of_pack_code loc parent ele f =
         let g = 
 (*         let loc = parent.name_loc in *)
 (* FIXME
-	  let loc = 
-	    (
-	     { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
-	     { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
-	    )	
-	  in
+          let loc = 
+            (
+             { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
+             { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
+            )	
+          in
 *)
-	  <:expr< $lid:parent.name$ >> 
-	in
-	let loc1 = loc in
+          <:expr< $lid:parent.name$ >> 
+        in
+        let loc1 = loc in
 (*
-	let loc = 
-	  (
-	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
-	in
+        let loc = 
+          (
+           { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+           { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+          )	
+        in
 *)
         let p x = <:expr< $f$ ~packing: $x$ >> in
         match pack_met with
@@ -379,15 +379,15 @@ let ast_of_pack_code loc parent ele f =
   with
     Failure s -> 
 (*
-      	let loc = 
-	  (
-	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
-	in
+        let loc = 
+          (
+           { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+           { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+          )	
+        in
 *)
-	prerr_endline s; 
-	<:expr< $f$ failed >>
+        prerr_endline s; 
+        <:expr< $f$ failed >>
 
 let ast_of_custom_pack_code loc parent ele ce =
   try
@@ -396,36 +396,36 @@ let ast_of_custom_pack_code loc parent ele ce =
       No_pack -> ce
     | Insert_page ->
 
-	let g = 
+        let g = 
 (* FIXME
-	  let loc = 
-	    (
-	     { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
-	     { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
-	    )	
-	  in
+          let loc = 
+            (
+             { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
+             { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
+            )	
+          in
 *)
-	  <:expr< $lid:parent.name$>> 
-	in
+          <:expr< $lid:parent.name$>> 
+        in
         let n = 
 (* FIXME
-	  let loc = 
-	    (
-	     { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
-	     { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
-	    )	
-	  in
+          let loc = 
+            (
+             { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
+             { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
+            )	
+          in
 *)
-	  <:expr< $lid:ele.name$ >> 
-	in
-	let loc1 = loc in
+          <:expr< $lid:ele.name$ >> 
+        in
+        let loc1 = loc in
 (*
-	let loc = 
-	  (
-	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
-	in
+        let loc = 
+          (
+           { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+           { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+          )	
+        in
 *)
 
         <:class_expr<
@@ -441,23 +441,23 @@ let ast_of_custom_pack_code loc parent ele ce =
 
         let g = 
 (* FIXME
-	  let loc = 
-	    (
-	     { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
-	     { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
-	    )	
-	  in
+          let loc = 
+            (
+             { Lexing.dummy_pos with Lexing.pos_cnum = fst parent.name_loc } ,
+             { Lexing.dummy_pos with Lexing.pos_cnum = snd parent.name_loc }
+            )	
+          in
 *)
-	  <:expr< $lid:parent.name$ >> 
-	in
-	let loc1 = loc in
+          <:expr< $lid:parent.name$ >> 
+        in
+        let loc1 = loc in
 (*
-	let loc = 
-	  (
-	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
-	in
+        let loc = 
+          (
+           { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+           { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+          )	
+        in
 *)
         let r =
           match pack_met with
@@ -471,24 +471,24 @@ let ast_of_custom_pack_code loc parent ele ce =
         in
         let n = 
 (* FIXME
-	  let loc = 
-	    (
-	     { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
-	     { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
-	    )	
-	  in
+          let loc = 
+            (
+             { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
+             { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
+            )	
+          in
 *)
-	  <:expr< $lid:ele.name$ >> 
-	in
+          <:expr< $lid:ele.name$ >> 
+        in
         <:class_expr< let _ = $r$ $n$ # coerce in $ce$ >>
   with
     Failure s -> 
 (*
       let loc = 
-	(
-	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
+        (
+         { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+         { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+          )	
       in
 *)
       prerr_endline s; 
@@ -522,14 +522,14 @@ let rec ast_of_post_menu_item_creation_code loc accel_name ele ce =
         with
           "" -> 
 (*
-	    let loc = 
-	    (
-	     { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	     { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	    )	
-	    in
+            let loc = 
+            (
+             { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+             { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+            )	
+            in
 *)
-	    <:expr< [] >>
+            <:expr< [] >>
         | s -> parse_string loc s
       in
       let flags =
@@ -538,23 +538,23 @@ let rec ast_of_post_menu_item_creation_code loc accel_name ele ce =
         with
           "" ->
 (*
-	    let loc = 
-	    (
-	     { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	     { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	    )	
-	    in
+            let loc = 
+            (
+             { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+             { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+            )	
+            in
 *)
-	    <:expr< [] >>
+            <:expr< [] >>
         | s -> parse_string loc s
       in
       let loc1 = loc in
 (*
       let loc = 
-	(
-	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	)	
+        (
+         { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+         { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+        )	
       in
 *)
       <:class_expr<
@@ -573,10 +573,10 @@ and ast_of_post_menu_creation_code loc accel_name ele ce =
       in
 (*
       let loc = 
-	(
-	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	)	
+        (
+         { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+         { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+        )	
       in
 *)
       <:class_expr<
@@ -593,29 +593,29 @@ let ast_of_post_menubar_creation_code ?win loc ele ce =
           ele.children ce
       in
       let ce2 = 
-	(
-	 match win with
-	   None -> ce
-	 | Some w -> 
+        (
+         match win with
+           None -> ce
+         | Some w -> 
 (*
-	     let loc = 
-	       (
-		{ Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-		{ Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	       )	
-	     in
+             let loc = 
+               (
+                { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+                { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+               )	
+             in
 *)
-	     <:class_expr<
-	     let _ = $lid:w$#add_accel_group $lid:acc_name$ in $ce$
-	     >>
-	)      
+             <:class_expr<
+             let _ = $lid:w$#add_accel_group $lid:acc_name$ in $ce$
+             >>
+        )      
       in
 (*
       let loc = 
-	(
-	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	)	
+        (
+         { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+         { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+        )	
       in      
 *)
       <:class_expr<
@@ -646,12 +646,12 @@ let rec ast_of_ele_creations ?win loc parent_opt previous_opt ele ce =
         match ele.classe, previous_opt with
           Radio_menu_item, Some e when e.classe = Radio_menu_item ->
 (*
-	    let loc = 
-	      (
-	       { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	       { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	      )	
-	    in
+            let loc = 
+              (
+               { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+               { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+              )	
+            in
 *)
             <:expr< $f$ ~group: $lid:e.name$ #group >>
         | _ -> f
@@ -671,14 +671,14 @@ let rec ast_of_ele_creations ?win loc parent_opt previous_opt ele ce =
   gen_anonynous_name ele;
   if ele.name = "_" then  
 (*
-      	let loc = 
-	  (
-	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
-	in
+        let loc = 
+          (
+           { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+           { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+          )	
+        in
 *)
-	<:class_expr< let _ = $e$ () in $ce$  >>
+        <:class_expr< let _ = $e$ () in $ce$  >>
     else
     (* END CDK *)
   let n = 
@@ -687,7 +687,7 @@ let rec ast_of_ele_creations ?win loc parent_opt previous_opt ele ce =
       (
        { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
        { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
-	  )	
+          )	
     in 
 *)
     <:patt< $lid:ele.name$ >> 
@@ -705,16 +705,16 @@ let rec ast_of_ele_creations ?win loc parent_opt previous_opt ele ce =
   let rec ast_of_ele_methods loc ele =
     let cil =
       if ele.classe = Menubar then
-	let accel_name = accel_group_name ele in
+        let accel_name = accel_group_name ele in
 (*
-	let loc = 
-	  (
-	   { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	   { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
-	in
+        let loc = 
+          (
+           { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+           { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+          )	
+        in
 *)
-	[ <:class_str_item< method $accel_name$ = $lid:accel_name$ >> ]
+        [ <:class_str_item< method $accel_name$ = $lid:accel_name$ >> ]
       else []
     in
 (* BEGIN CDK *)
@@ -722,21 +722,21 @@ let rec ast_of_ele_creations ?win loc parent_opt previous_opt ele ce =
     let cil = if ele.name.[0] <> '_' then 
       let n = 
 (* FIXME
-	let loc = 
-	  (
-	   { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
-	   { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
-	  )	
-	in
+        let loc = 
+          (
+           { Lexing.dummy_pos with Lexing.pos_cnum = fst ele.name_loc } ,
+           { Lexing.dummy_pos with Lexing.pos_cnum = snd ele.name_loc }
+          )	
+        in
 *)
-	<:expr< $lid:ele.name$ >> 
+        <:expr< $lid:ele.name$ >> 
       in
 (*
       let loc = 
-	(
-	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	)	
+        (
+         { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+         { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+        )	
       in
 *)
       <:class_str_item< method $ele.name$ = $n$ >> :: cil else cil in
@@ -750,10 +750,10 @@ let rec ast_of_ele_vals loc ele =
       let accel_name = accel_group_name ele in
 (*
       let loc = 
-	(
-	 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-	 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	)	
+        (
+         { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+         { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+        )	
       in
 *)
       [ <:class_str_item< value $accel_name$ = $lid:accel_name$ >> ]
@@ -800,22 +800,22 @@ let ast_of_entity loc entity =
           | _ ->
               let n = 
 (* FIXME
-		let loc = 
-		  (
-		   { Lexing.dummy_pos with Lexing.pos_cnum = fst e.name_loc } ,
-		   { Lexing.dummy_pos with Lexing.pos_cnum = snd e.name_loc }
-		  )	
-		in
+                let loc = 
+                  (
+                   { Lexing.dummy_pos with Lexing.pos_cnum = fst e.name_loc } ,
+                   { Lexing.dummy_pos with Lexing.pos_cnum = snd e.name_loc }
+                  )	
+                in
 *)
     <:expr< $lid:e.name$ >> 
-	      in
+              in
 (*
-	      let loc = 
-		(
-		 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
-		 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-		)	
-	      in
+              let loc = 
+                (
+                 { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
+                 { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
+                )	
+              in
 *)
               let ci = <:class_str_item< method coerce = $n$ # coerce >> in
               cil @ [ci]
@@ -834,19 +834,19 @@ let ast_of_entity loc entity =
     match entity.en_ele with
       None -> ce
     | Some ele ->
-	let win_opt = 
-	  match ele.classe with
-	    Window -> Some ele.name
-	  | _ -> None
-	in
-	ast_of_ele_creations ?win: win_opt loc None None ele ce
+        let win_opt = 
+          match ele.classe with
+            Window -> Some ele.name
+          | _ -> None
+        in
+        ast_of_ele_creations ?win: win_opt loc None None ele ce
   in
 (*
   let loc = 
     (
      { Lexing.dummy_pos with Lexing.pos_cnum = fst loc } ,
      { Lexing.dummy_pos with Lexing.pos_cnum = snd loc }
-	  )	
+          )	
   in
 *)
   let ce =
@@ -893,16 +893,16 @@ let () =
       [ [ "<"; LIDENT "entity"; LIDENT "name"; "="; name = LIDENT;
           pl = LIST0 [ x = LIDENT -> x ]; ">"; w = OPT widget; "</"; LIDENT "entity";
           ">" ->
-	    try
+            try
               let entity = {en_name = name; en_params = pl; en_ele = w} in
-	      (
+              (
 (* 	       let loc = ((fst loc).Lexing.pos_cnum, (snd loc).Lexing.pos_cnum) in *)
-	       ast_of_entity loc entity
-	      )
+               ast_of_entity loc entity
+              )
             with Field_error m ->
               field_error m;
-	      exit 1
-	] ]
+              exit 1
+        ] ]
     ;
     widget:
       [ [ "<"; tag = LIDENT; LIDENT "name"; "="; (name, nloc) = ident;
@@ -919,17 +919,17 @@ let () =
                 (fun (x, v, vloc) ->
                    {prop_kind = Zog_misc.property_kind_of_property_name x;
                     prop_value = Zog_misc.decode v; 
-		     prop_value_loc = vloc})
+                     prop_value_loc = vloc})
 (*          ((fst vloc).Lexing.pos_cnum, (snd vloc).Lexing.pos_cnum)}) *)
                 proplist
             in
 (* 	    let nloc = ((fst loc).Lexing.pos_cnum, (snd loc).Lexing.pos_cnum) in *)
             { name = name; name_loc = loc;
               classe = Zog_misc.class_of_class_name tag; 
-	      props = proplist;
+              props = proplist;
               children = children; 
-	      expanded = false ;
-	    } ] ]
+              expanded = false ;
+            } ] ]
     ;
     tag_end:
       [ [ "</"; tag = LIDENT; ">" -> tag, loc ] ]

@@ -110,31 +110,31 @@ let load_server_met filename =
                   server.server_description <- s
               |  { tag_name = Field_KNOWN "version" ; tag_value = Uint64 s } ->
                   server.server_version <- Printf.sprintf "%d.%d"
-					    ((Int64.to_int s) lsr 16) ((Int64.to_int s) land 0xFFFF)
+                                            ((Int64.to_int s) lsr 16) ((Int64.to_int s) land 0xFFFF)
               |  { tag_name = Field_KNOWN "ping" ; tag_value = Uint64 s } ->
                   server.server_ping <- (Int64.to_int s)
               |  { tag_name = Field_KNOWN "dynip" ; tag_value = String s } ->
                   server.server_dynip <- s
               |  { tag_name = Field_KNOWN "users" ; tag_value = Uint64 s } ->
                   (match server.server_nusers with
-		  | None -> server.server_nusers <- Some s | _ -> ())
+                  | None -> server.server_nusers <- Some s | _ -> ())
               |  { tag_name = Field_KNOWN "files" ; tag_value = Uint64 s } ->
                   (match server.server_nfiles with
-		  | None -> server.server_nfiles <- Some s | _ -> ())
+                  | None -> server.server_nfiles <- Some s | _ -> ())
               |  { tag_name = Field_KNOWN "maxusers" ; tag_value = Uint64 s } ->
                   (match server.server_max_users with
-		  | None -> server.server_max_users <- Some s | _ -> ())
+                  | None -> server.server_max_users <- Some s | _ -> ())
               |  { tag_name = Field_KNOWN "softfiles" ; tag_value = Uint64 s } ->
                   (match server.server_soft_limit with
-		  | None -> server.server_soft_limit <- Some s | _ -> ())
+                  | None -> server.server_soft_limit <- Some s | _ -> ())
               |  { tag_name = Field_KNOWN "hardfiles" ; tag_value = Uint64 s } ->
                   (match server.server_hard_limit with
-		  | None -> server.server_hard_limit <- Some s | _ -> ())
+                  | None -> server.server_hard_limit <- Some s | _ -> ())
               |  { tag_name = Field_KNOWN "auxportslist" ; tag_value = String s } ->
                   server.server_auxportslist <- s
               |  { tag_name = Field_KNOWN "lowusers" ; tag_value = Uint64 s } ->
                   (match server.server_lowid_users with
-		  | None -> server.server_lowid_users <- Some s | _ -> ())
+                  | None -> server.server_lowid_users <- Some s | _ -> ())
               |  { tag_name = Field_KNOWN "tcpportobfuscation" ; tag_value = Uint64 s } ->
                   server.server_obfuscation_tcp <- Some (Int64.to_int s)
               |  { tag_name = Field_KNOWN "udpportobfuscation" ; tag_value = Uint64 s } ->
@@ -144,7 +144,7 @@ let load_server_met filename =
               |  { tag_name = Field_KNOWN "refs" ; tag_value = Uint64  s } -> ()
               | _ -> lprintf_nl "parsing server.met, unknown field %s" (string_of_tag tag)
           ) r.S.tags;
-	  server_must_update server
+          server_must_update server
         with _ -> ()
     ) ss;
     List.length ss
@@ -160,40 +160,40 @@ let unpack_server_met filename url =
     let real_ext = if last_ext = ".zip" then last_ext else ext in
     match real_ext with
       | ".zip" ->
-	  (try
-	    let result =
-	      Unix2.tryopen_read_zip filename (fun ic ->
-		try
-		  let file = Zip.find_entry ic "server.met" in
-		    lprintf_nl (_b "server.met found in %s") url;
-		  file.Zip.filename
-		with e ->
-		    lprintf_nl (_b "Exception %s while extracting server.met from %s")
-		    (Printexc2.to_string e) url;
-		  raise e) in
-	    (try
-	      ignore(Misc.archive_extract filename "zip")
-	    with e ->
-		lprintf_nl (_b "Exception %s while extracting server.met from %s")
-		(Printexc2.to_string e) url;
-	      raise e);
-	    result
-	  with
+          (try
+            let result =
+              Unix2.tryopen_read_zip filename (fun ic ->
+                try
+                  let file = Zip.find_entry ic "server.met" in
+                    lprintf_nl (_b "server.met found in %s") url;
+                  file.Zip.filename
+                with e ->
+                    lprintf_nl (_b "Exception %s while extracting server.met from %s")
+                    (Printexc2.to_string e) url;
+                  raise e) in
+            (try
+              ignore(Misc.archive_extract filename "zip")
+            with e ->
+                lprintf_nl (_b "Exception %s while extracting server.met from %s")
+                (Printexc2.to_string e) url;
+              raise e);
+            result
+          with
           | Zip.Error _ -> filename
           | e ->
             lprintf_nl "Exception %s while opening %s"
-	      (Printexc2.to_string e) url;
+              (Printexc2.to_string e) url;
             raise Not_found)
     | ".met.gz" | ".met.bz2" | ".gz" | ".bz2" ->
-	(let filetype =
-	  if ext = ".bz2" || ext = ".met.bz2" then "bz2" else "gz" in 
-	try
+        (let filetype =
+          if ext = ".bz2" || ext = ".met.bz2" then "bz2" else "gz" in 
+        try
           Misc.archive_extract filename filetype
-	with
+        with
         | Gzip.Error _ -> filename
         | e ->
           lprintf_nl "Exception %s while extracting from %s"
-	    (Printexc2.to_string e) url;
+            (Printexc2.to_string e) url;
           raise Not_found)
 (* if file is not a supported archive type try loading servers from that file anyway *)
     | _ -> filename
@@ -271,7 +271,7 @@ let really_query_download filename size md4 location old_file absents user group
           None -> assert false
         | Some swarmer ->
             let absents = 
-	      List.sort (fun (p1, _) (p2, _) -> compare p1 p2) absents in
+              List.sort (fun (p1, _) (p2, _) -> compare p1 p2) absents in
             CommonSwarming.set_absent swarmer absents
   end;
 
@@ -339,39 +339,39 @@ let query_download filename size md4 location old_file absents force user group 
     else
       begin
         let f = List.hd !forceable_download in
-	  forceable_download := [];
-	  really_query_download (List.hd f.result_names) f.result_size md4 None None None user group
+          forceable_download := [];
+          really_query_download (List.hd f.result_names) f.result_size md4 None None None user group
       end
   else
     begin
       try
         let file = find_file md4 in
-	  if (file_state file) = FileShared then
-	    raise (Already_shared (Printf.sprintf (_b "File is already shared%s")
-	      (match file.file_shared with
-		 None -> ""
-	       | Some sh -> (" in " ^ (Filename2.dirname sh.impl_shared_fullname)))))
-	  else
-	    begin
+          if (file_state file) = FileShared then
+            raise (Already_shared (Printf.sprintf (_b "File is already shared%s")
+              (match file.file_shared with
+                 None -> ""
+               | Some sh -> (" in " ^ (Filename2.dirname sh.impl_shared_fullname)))))
+          else
+            begin
 (* jave TODO: if a user currently not downloading this file is requesting the download add this user
    to the list of users currently downloading this file *)
-	      forceable_download := [];
-	      raise (Already_downloading (Printf.sprintf (_b "File is already in download queue of %s") (file_owner (as_file file)).CommonTypes.user_name))
-	    end
+              forceable_download := [];
+              raise (Already_downloading (Printf.sprintf (_b "File is already in download queue of %s") (file_owner (as_file file)).CommonTypes.user_name))
+            end
       with Not_found ->
         begin
         if List.mem md4 !!old_files then begin
           (* copy file info into result for later usage in force_download *)
           let r = { dummy_result with
-	      result_uids = [Uid.create (Ed2k md4)];
+              result_uids = [Uid.create (Ed2k md4)];
               result_names = [filename];
               result_size = size;
               result_force = true; (* marker for force_download *)
-	      result_modified = false;
+              result_modified = false;
                 result_source_network = network.network_num;
             } in
             forceable_download := [r];
-	    raise already_done
+            raise already_done
           end
         else
           begin
@@ -431,9 +431,9 @@ let import_temp temp_dir =
                 | _ -> ()
             ) f.P.tags;
             ignore (really_query_download
-		(match !filename_met with
-		   None -> filename
-		| Some s -> s) !size f.P.md4 None
+                (match !filename_met with
+                   None -> filename
+                | Some s -> s) !size f.P.md4 None
               (Some filename) (Some (List.rev f.P.absents)) user user.user_default_group);
       with _ -> ()
   ) list
@@ -559,59 +559,59 @@ let parse_donkey_url url user group =
   | "file" :: name :: size :: md4 :: "/" :: "sources" :: sources :: _ ->
 (*  ed2k://|file|Wikipedia_3.3_noimages.iso|2666311680|747735CD46B61DA92973E9A8840A9C99|/|sources,62.143.4.124:4662|/  *)
       if Int64.of_string size >= max_emule_file_size then
-	(Printf.sprintf (_b "Files > %s are not allowed")
-	  (Int64ops.int64_to_human_readable max_emule_file_size)), false
+        (Printf.sprintf (_b "Files > %s are not allowed")
+          (Int64ops.int64_to_human_readable max_emule_file_size)), false
       else
         begin
-	  let md4 = if String.length md4 > 32 then
+          let md4 = if String.length md4 > 32 then
             String.sub md4 0 32 else md4 in
-	  let new_sources = ref [] in
+          let new_sources = ref [] in
           let s = String2.split sources ',' in
             List.iter (fun s ->
               begin try
-	        match String2.split s ':' with
+                match String2.split s ':' with
                  [ip;port] ->
                     let source_ip = Ip.of_string ip in
                     let source_port = int_of_string port in
-		    new_sources := (source_ip, source_port) :: !new_sources
-	        | _ -> ()
-	      with _ -> ()
+                    new_sources := (source_ip, source_port) :: !new_sources
+                | _ -> ()
+              with _ -> ()
           end) s;
           begin
-	    try
+            try
               let file = query_download name (Int64.of_string size)
                 (Md4.of_string md4) None None None false user group in
-	      let new_file = find_file (Md4.of_string md4) in
-	      CommonInteractive.start_download file;
-	      if !new_sources <> [] then
-	        begin
-	          List.iter (fun (source_ip, source_port) ->
-    		    add_source new_file source_ip source_port Ip.null 0
-    	          ) !new_sources;
-    	          (Printf.sprintf (_b "added %d sources to new download") (List.length !new_sources)), true
-    	        end
-    	      else "", true
-    	    with
-	      Already_downloading (s)
-	    | Already_shared (s) -> s, false
-	    | e -> (Printexc2.to_string e), false
-    	  end
-    	end
+              let new_file = find_file (Md4.of_string md4) in
+              CommonInteractive.start_download file;
+              if !new_sources <> [] then
+                begin
+                  List.iter (fun (source_ip, source_port) ->
+                    add_source new_file source_ip source_port Ip.null 0
+                  ) !new_sources;
+                  (Printf.sprintf (_b "added %d sources to new download") (List.length !new_sources)), true
+                end
+              else "", true
+            with
+              Already_downloading (s)
+            | Already_shared (s) -> s, false
+            | e -> (Printexc2.to_string e), false
+          end
+        end
   | "ed2k://" :: "file" :: name :: size :: md4 :: _
   | "file" :: name :: size :: md4 :: _ ->
       if Int64.of_string size >= max_emule_file_size then
-	(Printf.sprintf (_b "Files > %s are not allowed")
-	  (Int64ops.int64_to_human_readable max_emule_file_size)), false
+        (Printf.sprintf (_b "Files > %s are not allowed")
+          (Int64ops.int64_to_human_readable max_emule_file_size)), false
       else
         let md4 = if String.length md4 > 32 then
           String.sub md4 0 32 else md4 in
-	let name =
-	  let name2 = Filename2.filesystem_compliant name `Unknown 0 in
-	    if name2 = "" then
-	      Printf.sprintf "urn_ed2k_%s" md4
-	    else
-	      name2
-	in
+        let name =
+          let name2 = Filename2.filesystem_compliant name `Unknown 0 in
+            if name2 = "" then
+              Printf.sprintf "urn_ed2k_%s" md4
+            else
+              name2
+        in
           begin try
             let file = query_download name (Int64.of_string size)
               (Md4.of_string md4) None None None false user group;
@@ -619,9 +619,9 @@ let parse_donkey_url url user group =
             CommonInteractive.start_download file;
             "", true
           with
-	    Already_downloading (s)
-	  | Already_shared (s) -> s, false
-	  | e -> (Printexc2.to_string e), false
+            Already_downloading (s)
+          | Already_shared (s) -> s, false
+          | e -> (Printexc2.to_string e), false
           end
   | "ed2k://" :: "server" :: ip :: port :: _
   | "server" :: ip :: port :: _ ->
@@ -829,7 +829,7 @@ let commands = [
     "<port> :\t\t\t\tchange connection port";
 
     "scan_temp", Arg_none (fun o ->
-	if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
+        if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
         let buf = o.conn_buf in
         let list = Unix2.list_directory !!temp_directory in
 
@@ -928,19 +928,19 @@ parent.fstatus.location.href='submit?q=rename+'+i+'+\\\"'+encodeURIComponent(for
 
         if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>";
         "" end
-	else begin
-	  print_command_result o "You are not allowed to use scan_temp";
-	"" end
+        else begin
+          print_command_result o "You are not allowed to use scan_temp";
+        "" end
 
     ), ":\t\t\t\tprint temp directory content";
 
     "sources", Arg_none (fun o ->
-	if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
+        if CommonUserDb.user2_is_admin o.conn_user.ui_user then begin
           DonkeySources.print o.conn_buf o.conn_output;
           "" end
-	else begin
-	  print_command_result o "You are not allowed to list sources";
-	  "" end
+        else begin
+          print_command_result o "You are not allowed to list sources";
+          "" end
     ), ":\t\t\t\tshow sources currently known";
 
     "xs", Arg_none (fun o ->
@@ -1134,7 +1134,7 @@ let _ =
           P.server_addr = Ip.addr_of_ip s.server_ip;
           P.server_port = s.server_port;
           P.server_realport = (match s.server_realport with Some x -> x | None -> 0);
-    	  P.server_country_code = s.server_country_code;
+          P.server_country_code = s.server_country_code;
           P.server_score = s.server_score;
           P.server_nusers = (match s.server_nusers with None -> 0L | Some v -> v);
           P.server_nfiles = (match s.server_nfiles with None -> 0L | Some v -> v);
@@ -1215,8 +1215,8 @@ let _ =
         P.client_network = network.network_num;
         P.client_kind = (match c.client_kind with
             Direct_address (ip, port) -> Known_location (ip,port)
-	  | Indirect_address (server_ip, server_port, ip, port, real_ip) -> 
-	      Indirect_location (c.client_name,c.client_md4, real_ip, port)
+          | Indirect_address (server_ip, server_port, ip, port, real_ip) -> 
+              Indirect_location (c.client_name,c.client_md4, real_ip, port)
           | _ -> Indirect_location (c.client_name,c.client_md4, c.client_ip, 0));
         P.client_country_code = c.client_country_code;
         P.client_state = client_state c;
@@ -1292,7 +1292,7 @@ let _ =
   );
   file_ops.op_file_shared <- (fun file ->
       match file.file_shared with
-	None -> None
+        None -> None
       | Some sh -> Some (as_shared sh)
   );
   file_ops.op_file_set_format <- (fun file format ->
@@ -1323,11 +1323,11 @@ let _ =
 
      let buf = o.conn_buf in
      if not (use_html_mods o) then begin
-	let cntr = ref 0 in
-	List.iter (fun (ip, n, r, c) ->
-	  incr cntr;
-	  Printf.bprintf buf
-	    "Comment %d: Rating(%d): %s (%s/%s)\n" !cntr r (Charset.Locale.to_utf8 c) n (Ip.to_string ip)) file.file_comments
+        let cntr = ref 0 in
+        List.iter (fun (ip, n, r, c) ->
+          incr cntr;
+          Printf.bprintf buf
+            "Comment %d: Rating(%d): %s (%s/%s)\n" !cntr r (Charset.Locale.to_utf8 c) n (Ip.to_string ip)) file.file_comments
      end else begin
      let tr () =
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ())
@@ -1357,7 +1357,7 @@ let _ =
 "\\<a target=\\\"_blank\\\" href=\\\"http://tothbenedek.hu/ed2kstats/ed2k?hash=%s\\\"\\>Toth File History\\</a\\>
 \\<a target=\\\"_blank\\\" href=\\\"http://ed2k.titanesel.ws/ed2k.php?hash=%s\\\"\\>Titanesel File History\\</a\\>"
             (Md4.to_string file.file_md4) (Md4.to_string file.file_md4)
-	)
+        )
        ];
       tr ();
       let ed2k = file_print_ed2k_link (file_best_name file) (file_size file) file.file_md4 in
@@ -1448,16 +1448,16 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
           ( Num, "srh ar br", "Connected time (minutes)", "CT" ) ;
           ( Str, "srh br", "Client MD4", "MD4" ) ;
           ( Str, "srh", "Chunks (absent|partial|present|verified)",
-	  match chunks with
-	  | None -> ""
-	  | Some chunks -> colored_chunks chunks) ;
+          match chunks with
+          | None -> ""
+          | Some chunks -> colored_chunks chunks) ;
           ( Num, "srh ar", "Number of full chunks", (Printf.sprintf "%d"
             (match chunks with
-	    | None -> 0
-	    | Some chunks ->
-		VerificationBitmap.fold_lefti (fun acc _ s ->
-		  if s = VerificationBitmap.State_verified then acc + 1
-		  else acc) 0 chunks))) ]);
+            | None -> 0
+            | Some chunks ->
+                VerificationBitmap.fold_lefti (fun acc _ s ->
+                  if s = VerificationBitmap.State_verified then acc + 1
+                  else acc) 0 chunks))) ]);
 
 
       html_mods_cntr_init();
@@ -1495,7 +1495,7 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
               (short_string_of_connection_state (client_state c)) );
             (String.escaped c.client_name, "sr", client_short_name c.client_name);
             (client_software (brand_to_string c.client_brand) c.client_osinfo, "sr",
-	     client_software_short (brand_to_string_short c.client_brand) c.client_osinfo);
+             client_software_short (brand_to_string_short c.client_brand) c.client_osinfo);
             ("", "sr", c.client_emule_proto.emule_release);
 
             ] @
@@ -1538,12 +1538,12 @@ parent.fstatus.location.href='submit?q=rename+%d+\\\"'+encodeURIComponent(formID
                   let _, qchunks,_ = List.find (fun (qfile, _,_) ->
                         qfile == file) qfiles in
                   let tc = ref 0 in
-		  let arr = 
-		    VerificationBitmap.init (Bitv.length qchunks) (fun i -> 
-		    if Bitv.get qchunks i then begin
-		      incr tc;
-		      VerificationBitmap.State_complete
-		    end else VerificationBitmap.State_missing) in
+                  let arr = 
+                    VerificationBitmap.init (Bitv.length qchunks) (fun i -> 
+                    if Bitv.get qchunks i then begin
+                      incr tc;
+                      VerificationBitmap.State_complete
+                    end else VerificationBitmap.State_missing) in
                   Printf.bprintf buf "%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>"
                     (CommonFile.colored_chunks arr) !tc;
                 with Not_found -> (
@@ -1591,10 +1591,10 @@ let try_recover_temp_file filename md4 =
       let file_diskname = Filename.concat !!temp_directory filename in
       let size = Unix32.getsize file_diskname in
       if size <> zero then
-	begin
-	  ignore (really_query_download (Md4.to_string md4) size md4 None (Some file_diskname) None user user.user_default_group);
-	  recover_md4s md4
-	end
+        begin
+          ignore (really_query_download (Md4.to_string md4) size md4 None (Some file_diskname) None user user.user_default_group);
+          recover_md4s md4
+        end
 
 let _ =
   network.op_network_extend_search <- (fun s e ->
@@ -1672,15 +1672,15 @@ let _ =
       if !verbose then lprintf_nl "connecting friend %s" (full_client_identifier c);
       match c.client_source.DonkeySources.source_sock with
       | Connection sock when c.client_emule_proto.emule_noviewshared <> 1 ->
-	  if !verbose then lprintf_nl "retrieving filelist from friend %s" (full_client_identifier c);
+          if !verbose then lprintf_nl "retrieving filelist from friend %s" (full_client_identifier c);
           client_send c (
             let module M = DonkeyProtoClient in
             let module C = M.ViewFiles in
             M.ViewFilesReq C.t);
       | NoConnection when c.client_emule_proto.emule_noviewshared <> 1 ->
-	  if !verbose then lprintf_nl "re-connecting friend %s"
-	    (full_client_identifier c);
-	  set_must_browse (as_client c);
+          if !verbose then lprintf_nl "re-connecting friend %s"
+            (full_client_identifier c);
+          set_must_browse (as_client c);
           reconnect_client c
       | _ -> ()
   );
@@ -1743,7 +1743,7 @@ let _ =
         | Direct_address (ip,port) ->
                     Printf.sprintf "highID %s:%d" (Ip.to_string ip) port
         | Indirect_address (server_ip, server_port, id, port, real_ip) ->
-	            Printf.sprintf "lowID %s:%d, server %s:%d"
+                    Printf.sprintf "lowID %s:%d, server %s:%d"
                       (Ip.to_string real_ip) port (Ip.to_string server_ip) server_port
         | Invalid_address (name,md4) -> Printf.sprintf "invalid"
         );

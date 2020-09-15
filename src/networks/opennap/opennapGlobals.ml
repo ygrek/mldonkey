@@ -153,9 +153,9 @@ let add_result_source r (s : user) (index : string) =
     try
       Hashtbl.find result_sources r.stored_result_num
     with _ ->
-	let ss = ref [] in
-	Hashtbl.add result_sources r.stored_result_num ss;
-	ss
+        let ss = ref [] in
+        Hashtbl.add result_sources r.stored_result_num ss;
+        ss
   in
   let key = (s, index) in
   if not (List.mem key !ss) then begin
@@ -170,7 +170,7 @@ let new_result file_name file_size =
   with _ ->
       let r = {
           dummy_result with
-	  result_names = [basename];
+          result_names = [basename];
           result_size = file_size;
         }
       in
@@ -279,7 +279,7 @@ let new_client name =
           dummy_client_impl with
           impl_client_val = c;
           impl_client_ops = client_ops;
-	  impl_client_upload = None;
+          impl_client_upload = None;
         } in
       new_client impl;
       Hashtbl.add clients_by_name name c;

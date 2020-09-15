@@ -822,12 +822,12 @@ restart. *)
                 incr connected_peers;
             end 
             else if Fifo.length prebuckets.(bucket) >= max_peers_per_prebucket then
-	    begin
+            begin
               let pp = Fifo.take prebuckets.(bucket) in
               Fifo.put prebuckets.(bucket)
 (* If the head of the bucket is not dead we should keep it *)
                 (if pp.peer_kind < 4 || pp.peer_expire > last_time () then pp else p);
-	    end  
+            end  
             else begin
                Fifo.put prebuckets.(bucket) p;
                incr pre_connected_peers
@@ -1088,11 +1088,11 @@ let udp_client_handler t p =
         new_peer_message sender;
         udp_send sender (OvernetConnectReply (get_any_peers 20))
        else
-	 begin
-	   if !verbose_overnet then
+         begin
+           if !verbose_overnet then
        lprintf_nl "Connect: invalid IP %s:%d received from %s:%d"
-	          (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
-	 end
+                  (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
+         end
 
   | OvernetConnectReply ps ->
       UdpSocket.declare_pong other_ip;
@@ -1115,10 +1115,10 @@ let udp_client_handler t p =
       if is_overnet_ip sender.peer_ip p.peer_country_code && sender.peer_port <> 0 then
         udp_send sender (OvernetPublicized (Some (my_peer ())))
        else begin
-	      if !verbose_overnet then
+              if !verbose_overnet then
           lprintf_nl "Publicize: invalid IP %s:%d received from %s:%d"
-	          (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
-	    end
+                  (Ip.to_string p.peer_ip) p.peer_port (Ip.to_string other_ip) other_port;
+            end
 
   | OvernetPublicized None ->
       ()
@@ -1196,9 +1196,9 @@ let udp_client_handler t p =
                       if is_overnet_ip ip p.peer_country_code && port <> 0 then
                         let s = DonkeySources.create_source_by_uid
                             (Direct_address (ip, port)) None in
-			if !verbose_overnet then
-			  lprintf_nl "added new source %s:%d for file %s"
-			    (Ip.to_string ip) port (Md4.to_string md4);
+                        if !verbose_overnet then
+                          lprintf_nl "added new source %s:%d for file %s"
+                            (Ip.to_string ip) port (Md4.to_string md4);
                         incr source_hits;
                         DonkeySources.set_request_result s
                            file.file_sources File_new_source;
@@ -1369,7 +1369,7 @@ let update_buckets () =
             if p.peer_kind < 3 && Fifo.length b < max_peers_per_bucket then begin
                 Fifo.put b p;
                 incr connected_peers;
-		decr pre_connected_peers;
+                decr pre_connected_peers;
             (* bad peers are removed *)    
             (* Why check is_overnet_ip? Because it may have been blocked since it was added *)
             end else if (p.peer_kind = 4 && p.peer_expire <= last_time ()) || 
@@ -1465,9 +1465,9 @@ let enable () =
           (!!overnet_port) (Proto.udp_handler udp_client_handler)) in
       udp_sock := Some sock;
       if Proto.redirector_section = "DKKO" then
-	overnet_port_info := !!overnet_port;
+        overnet_port_info := !!overnet_port;
       if Proto.redirector_section = "DKKA" then
-	kademlia_port_info := !!overnet_port;
+        kademlia_port_info := !!overnet_port;
       UdpSocket.set_write_controler sock udp_write_controler;
 
 (* copy all boot_peers to unknown_peers *)
@@ -1592,7 +1592,7 @@ let enable () =
       add_session_timer enabler 900. (fun _ ->
           if !!enable_overnet then begin
               ignore(create_search FillBuckets !!overnet_md4);
-	      (* Remove all files not actuall downloading/pause/new etc *)
+              (* Remove all files not actuall downloading/pause/new etc *)
                 (* TODO: Are there states enough? There are:  FileDownloading
                 | FileQueued
                 | FilePaused
@@ -1624,8 +1624,8 @@ let enable () =
       
       add_infinite_timer 1800. (fun _ ->
           if !!enable_overnet then begin
-	      PublishedKeywords.refresh ();
-	      PublishedFiles.refresh ();
+              PublishedKeywords.refresh ();
+              PublishedFiles.refresh ();
             end            
       );
 
@@ -1641,9 +1641,9 @@ let disable () =
             udp_sock := None;
             UdpSocket.close sock Closed_by_user);
       if Proto.redirector_section = "DKKO" then
-	overnet_port_info := 0;
+        overnet_port_info := 0;
       if Proto.redirector_section = "DKKA" then
-	kademlia_port_info := 0;
+        kademlia_port_info := 0;
     end
 
 let _ =
@@ -1703,17 +1703,17 @@ let _ =
                 | FileSearch _ -> "file"
                 | FillBuckets -> "fillbuckets" )
               (Md4.to_string s.search_md4) s.search_requests s.search_queries (last_time ()-s.search_start) s.search_lifetime;
-	   let pp p = print_peer buf p in
+           let pp p = print_peer buf p in
            Printf.bprintf buf "search_peers\n";
            Array.iter (fun a -> Fifo.iter (fun p -> pp p) a) s.search_peers;
-	   Printf.bprintf buf "search_asked_peers\n";
+           Printf.bprintf buf "search_asked_peers\n";
            KnownPeers.iter pp s.search_asked_peers;
-	   Printf.bprintf buf "search_ok_peers\n";
+           Printf.bprintf buf "search_ok_peers\n";
            KnownPeers.iter pp s.search_ok_peers;
-	   Printf.bprintf buf "search_result_asked_peers\n";
+           Printf.bprintf buf "search_result_asked_peers\n";
            KnownPeers.iter pp s.search_result_asked_peers;
-	   Printf.bprintf buf "\n";
-	 ) !overnet_searches;
+           Printf.bprintf buf "\n";
+         ) !overnet_searches;
          ""
     ), ("<bucket_nr> :\t\tdumps a search (Devel)");
     "dump_bucket", Arg_one (fun i o ->
@@ -1828,7 +1828,7 @@ let _ =
                    (if (!connected_peers + !pre_connected_peers) > 20 then "Got enough online peers" else "NOT enough online peers")
                    (if (abs(!global_last_recv - !global_last_send)) > 60 then " ,there maybe a problem with incoming udp packets" else "");
             Printf.bprintf buf "%s statistics:\n"
-	    (command_prefix_to_net);
+            (command_prefix_to_net);
             Printf.bprintf buf "  Search hits: %d\n" !search_hits;
             Printf.bprintf buf "  Source hits: %d\n" !source_hits;
             Printf.bprintf buf "  Current files: %d\n" (List.length !current_files);
@@ -1887,8 +1887,8 @@ let _ =
                           i npeers nasked nok nres); ];
                       Printf.bprintf buf "\\</tr\\>";
 
-		    end
-		  else
+                    end
+                  else
                   Printf.bprintf buf
                   "   nbits[%d] = %d peer(s) total, %d peer(s) asked, %d peer(s) ok, %d peer(s) result asked\n"
                     i npeers nasked nok nres
@@ -2108,10 +2108,10 @@ let _ =
         if !!enable_overnet && !!overnet_update_nodes then
           let n = load_contact_dat filename in
             lprintf_nl "contact.dat loaded from %s, added %d peers" url n;
-	else
-	  if not !!enable_overnet then
+        else
+          if not !!enable_overnet then
             lprintf_nl "Overnet module is disabled, ignoring..."
-	  else
+          else
             lprintf_nl "Overnet_update_nodes is disabled, ignoring..."
       );
 

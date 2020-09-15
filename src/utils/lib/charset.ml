@@ -1873,7 +1873,7 @@ let to_locale s =
     match locale with
         UTF_8 -> s
       | _ ->
-	  begin
+          begin
             try
               convert_string s locale_string "UTF-8"
             with _ ->

@@ -225,8 +225,8 @@ let check_ul_dl_ratio () =
   | None -> ()
   | Some limit ->
       if !!max_hard_download_rate = 0 ||
-	!!max_hard_download_rate > limit then
-	  max_hard_download_rate =:= limit
+        !!max_hard_download_rate > limit then
+          max_hard_download_rate =:= limit
 
 let _ =
   option_hook max_hard_upload_rate (fun _ ->
@@ -234,10 +234,10 @@ let _ =
       TcpBufferedSocket.change_rate upload_control
         (!!max_hard_upload_rate * 1024);
       payload_bandwidth :=
-	float_of_int (if !!max_hard_upload_rate = 0 then 
-	   10000 * 1024
+        float_of_int (if !!max_hard_upload_rate = 0 then 
+           10000 * 1024
          else 
-	   max (!!max_hard_upload_rate * 1024) 1024) *. 0.90;
+           max (!!max_hard_upload_rate * 1024) 1024) *. 0.90;
   );
   option_hook max_hard_download_rate (fun _ ->
       check_ul_dl_ratio ();
@@ -449,7 +449,7 @@ let log_chat_message i num n s =
   (try
     Unix2.tryopen_write_gen messages_log [Open_creat; Open_wronly; Open_append] 
       0o600 (fun oc ->
-	Printf.fprintf oc "%s: %s (%s): %s\n" (Date.simple (BasicSocket.date_of_int (last_time ()))) n i s)
+        Printf.fprintf oc "%s: %s (%s): %s\n" (Date.simple (BasicSocket.date_of_int (last_time ()))) n i s)
   with e ->
     lprintf_nl "[ERROR] Exception %s while trying to log message to %s"
       (Printexc2.to_string e) messages_log);
@@ -596,7 +596,7 @@ let update_h_download_history () =
     Fifo.put download_h_history ((List.fold_left (+) 0 (Fifo.to_list download_history)) / ((Fifo.length download_history))) 
   else 
     Fifo.put download_h_history ((List.fold_left (+) 0 
-		  (snd (List2.cut ((Fifo.length download_history) - !history_size_for_h_graph - 1) (Fifo.to_list download_history)))) 
+                  (snd (List2.cut ((Fifo.length download_history) - !history_size_for_h_graph - 1) (Fifo.to_list download_history)))) 
       / (!history_size_for_h_graph + 1) );
   let len = ref (Fifo.length download_h_history) in
   while !len > history_h_size+1 do
@@ -605,12 +605,12 @@ let update_h_download_history () =
   done
 
 let update_h_upload_history () =
-	(* Fifo.put upload_h_history ((Fifo.length upload_history) / 720); *)
+        (* Fifo.put upload_h_history ((Fifo.length upload_history) / 720); *)
   if (!history_h_step = history_size * history_step) || ((Fifo.length upload_history) <= (!history_size_for_h_graph+1)) then 
     Fifo.put upload_h_history ((List.fold_left (+) 0 (Fifo.to_list upload_history)) / ((Fifo.length upload_history))) 
   else 
     Fifo.put upload_h_history ((List.fold_left (+) 0 
-			(snd (List2.cut ((Fifo.length upload_history) - !history_size_for_h_graph - 1) (Fifo.to_list upload_history)))) 
+                        (snd (List2.cut ((Fifo.length upload_history) - !history_size_for_h_graph - 1) (Fifo.to_list upload_history)))) 
       / (!history_size_for_h_graph+1) );
   let len = ref (Fifo.length upload_h_history) in
   while !len > history_h_size+1 do

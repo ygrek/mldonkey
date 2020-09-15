@@ -32,18 +32,18 @@ let bz2_extract filename =
       let ic = Bzip2.open_in filename
       in
       let oc = open_out_bin file_out in
-	let rec decompress () =
-	  let n = Bzip2.input ic buffer 0 (String.length buffer) in
+        let rec decompress () =
+          let n = Bzip2.input ic buffer 0 (String.length buffer) in
             if n = 0 then ()
-	    else
-	      begin
-		output oc buffer 0 n;
-		decompress()
-	      end
-	    in decompress();
+            else
+              begin
+                output oc buffer 0 n;
+                decompress()
+              end
+            in decompress();
             Bzip2.close_in ic;
-	    close_out oc;
-	    file_out
+            close_out oc;
+            file_out
     with e -> (try Sys.remove !file with _ -> ()); raise e
   end
 #else

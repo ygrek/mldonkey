@@ -32,11 +32,11 @@ module Mi = Gui_misc
 let _ = 
   (try Options.load O.mldonkey_gui_ini with
       Sys_error _ ->
-	(try Options.save O.mldonkey_gui_ini with _ -> ())
+        (try Options.save O.mldonkey_gui_ini with _ -> ())
      | e ->
         lprintf "Exception %s in load options %s\n" 
-	 (Printexc2.to_string e)
-	 (Options.options_file_name O.mldonkey_gui_ini);
+         (Printexc2.to_string e)
+         (Options.options_file_name O.mldonkey_gui_ini);
         
   );
   let args = 
@@ -385,7 +385,7 @@ let value_reader gui t =
     
     | Client_state (num, state) ->
 (*
-	lprintf "Client_state" ; lprint_newline ();
+        lprintf "Client_state" ; lprint_newline ();
 *)
         (
           try
@@ -435,15 +435,15 @@ let value_reader gui t =
 (*              lprintf "Unknown file %d" file_num;
               lprint_newline (); *)
               ()
-	)
+        )
 
     | Client_info c -> 
 (*        lprintf "Client_info"; lprint_newline (); *)
         (
-	 try
-	   ignore (canon_client gui c) ;
-	 with _ -> ()
-	)
+         try
+           ignore (canon_client gui c) ;
+         with _ -> ()
+        )
 (* A VOIR : Ca sert à quoi le bouzin ci-dessous ?
 ben, ca sert a mettre a jour la liste des locations affichees pour un
 fichier selectionne. Si ca marche toujours dans ton interface, pas de
@@ -468,12 +468,12 @@ fichier selectionne. Si ca marche toujours dans ton interface, pas de
     | Room_message (_, PrivateMessage(num, mes) )
     | Room_message (0, PublicMessage(num, mes) )
     | MessageFromClient (num, mes) ->
-	(
-	 try
-	   let c = Hashtbl.find G.locations num in
-	   let d = gui#tab_friends#get_dialog c in
-	   d#handle_message mes
-	 with
+        (
+         try
+           let c = Hashtbl.find G.locations num in
+           let d = gui#tab_friends#get_dialog c in
+           d#handle_message mes
+         with
             Not_found ->
               try
                 match t with
@@ -593,7 +593,7 @@ let main () =
   ignore (gui#itemReconnect#connect#activate 
       (fun () ->Com.reconnect gui value_reader BasicSocket.Closed_by_user));
   ignore (gui#itemDisconnect#connect#activate 
-	    (fun () -> Com.disconnect gui BasicSocket.Closed_by_user));
+            (fun () -> Com.disconnect gui BasicSocket.Closed_by_user));
   ignore (gui#itemServers#connect#activate (fun () -> gui#notebook#goto_page 0));
   ignore (gui#itemDownloads#connect#activate (fun () -> gui#notebook#goto_page 1));
   ignore (gui#itemFriends#connect#activate (fun () -> gui#notebook#goto_page 2));

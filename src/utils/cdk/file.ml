@@ -74,8 +74,8 @@ let iter f name =
   Unix2.tryopen_read_bin name (fun ic ->
     try
       while true do
-	let line = input_line ic in
-	f line
+        let line = input_line ic in
+        f line
       done
     with End_of_file -> ())
 

@@ -108,7 +108,7 @@ a TCP connection to the downloader's data port (given in the 501 message).
 Upon connection, the downloader's client will sent one byte, the ASCII
 character `1'.  The uploader should then send the string "SEND" in a single
 packet, and then the information:
-	<mynick> "<filename>" <size>
+        <mynick> "<filename>" <size>
 where <mynick> is the uploader's napster user name, <filename> is the file
 being sent, and <size> is the size of the file in bytes.
 

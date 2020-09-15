@@ -112,10 +112,10 @@ let rec expr_printer = function
   | _ -> "[expr]"
 
 let _string_of_field { flen = flen;
-		       endian = endian; signed = signed; t = t;
-		       _loc = _loc;
-		       offset = offset; check = check; bind = bind;
-		       save_offset_to = save_offset_to; field = _ } =
+                       endian = endian; signed = signed; t = t;
+                       _loc = _loc;
+                       offset = offset; check = check; bind = bind;
+                       save_offset_to = save_offset_to; field = _ } =
   let flen = expr_printer flen in
   let endian =
     match endian with
@@ -143,9 +143,9 @@ let _string_of_field { flen = flen;
     match save_offset_to with
     | None -> ""
     | Some patt ->
-	match patt with
-	| <:patt< $lid:id$ >> -> sprintf ", save_offset_to(%s)" id
-	| _ -> sprintf ", save_offset_to([patt])" in
+        match patt with
+        | <:patt< $lid:id$ >> -> sprintf ", save_offset_to(%s)" id
+        | _ -> sprintf ", save_offset_to([patt])" in
 
   let loc_fname = Loc.file_name _loc in
   let loc_line = Loc.start_line _loc in

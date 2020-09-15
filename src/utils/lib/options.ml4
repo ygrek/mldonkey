@@ -280,8 +280,8 @@ let really_load filename sections =
       Hashtbl.clear once_values;
       let list =
         try 
-	  parse_gwmlrc stream 
-	with e ->
+          parse_gwmlrc stream 
+        with e ->
           let (line,col) = count_lines ic (Stream.count s) in
           lprintf "Syntax error while parsing file %s at position %d:%d: %s\n"
             filename line col (Printexc2.to_string e);
@@ -844,10 +844,10 @@ let save opfile =
             Printf.fprintf oc "\n\n";
             Printf.fprintf oc "    (************************************)\n";
             if !title_opfile then begin
-	      Printf.fprintf oc "    (*   Never edit options files when  *)\n";
-	      Printf.fprintf oc "    (*       the daemon is running      *)\n";
-	      Printf.fprintf oc "    (************************************)\n";
-	      title_opfile := false;
+              Printf.fprintf oc "    (*   Never edit options files when  *)\n";
+              Printf.fprintf oc "    (*       the daemon is running      *)\n";
+              Printf.fprintf oc "    (************************************)\n";
+              title_opfile := false;
             end;
             Printf.fprintf oc "    (* SECTION : %s *)\n" (string_of_string_list s.section_name);
             Printf.fprintf oc "    (* %s *)\n" s.section_help;
@@ -883,34 +883,34 @@ let save opfile =
         ) opfile.file_sections;
       end;
       if not opfile.file_pruned then
-	begin
+        begin
           let rem = ref [] in
           Printf.fprintf oc "\n(*\n The following options are not used (errors, obsolete, ...) \n*)\n";
           List.iter
             (fun (name, value) ->
-	      try
-		List.iter
+              try
+                List.iter
                   (fun s ->
                     List.iter
-		      (fun o ->
-			match o.option_name with
+                      (fun o ->
+                        match o.option_name with
                             n :: _ -> if n = name then raise Exit
-			  | _ -> ())
-		      s.section_options)
-		  opfile.file_sections;
-		rem := (name, value) :: !rem;
-		Printf.fprintf oc "%s = " (safe_string name);
-		save_value "  " oc value;
-		Printf.fprintf oc "\n"
-	      with
-		| Exit -> ()
-		| e ->
+                          | _ -> ())
+                      s.section_options)
+                  opfile.file_sections;
+                rem := (name, value) :: !rem;
+                Printf.fprintf oc "%s = " (safe_string name);
+                save_value "  " oc value;
+                Printf.fprintf oc "\n"
+              with
+                | Exit -> ()
+                | e ->
                     lprintf "Exception %s in Options.save\n"
-		      (Printexc2.to_string e);
+                      (Printexc2.to_string e);
             )
             opfile.file_rc;
           opfile.file_rc <- !rem
-	end;
+        end;
       flush oc;
       Unix2.fsync (Unix.descr_of_out_channel oc);
       Hashtbl.clear once_values_rev);

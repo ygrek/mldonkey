@@ -260,10 +260,10 @@ class upstats_box () =
         ~icon: M.o_xpm_verify_chunks
         ~callback: (fun _ -> 
           let module C = Configwin in
-	  let prio = ref 0 in
+          let prio = ref 0 in
           let dir = ref "" in
           let params = [
-	      C.string ~f: (fun p -> prio := int_of_string(p)) "Prio:" "0";
+              C.string ~f: (fun p -> prio := int_of_string(p)) "Prio:" "0";
               C.filename ~f: (fun d -> dir := d) "Directory:" ""] in
           match C.simple_edit "Add New Directory" ~with_apply: false
             params with

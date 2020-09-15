@@ -1,7 +1,7 @@
 
 type bzlib_error = BZ_CONFIG_ERROR | BZ_SEQUENCE_ERROR | BZ_PARAM_ERROR
-		   | BZ_MEM_ERROR | BZ_DATA_ERROR | BZ_DATA_ERROR_MAGIC
-		   | BZ_UNKNOWN_ERROR
+                   | BZ_MEM_ERROR | BZ_DATA_ERROR | BZ_DATA_ERROR_MAGIC
+                   | BZ_UNKNOWN_ERROR
 
 let string_of_error = function
   | BZ_CONFIG_ERROR -> "Configuration Error"

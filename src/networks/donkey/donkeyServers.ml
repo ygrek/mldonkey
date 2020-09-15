@@ -209,15 +209,15 @@ let disconnect_server s reason =
   let choose_new_master_server s =
     match !DonkeyGlobals.master_server with
     | Some ss when s == ss ->
-	DonkeyGlobals.master_server := None;
+        DonkeyGlobals.master_server := None;
         (try
-	  DonkeyGlobals.master_server :=
-	    Some (List.find (fun s -> s.server_master) !servers_list);
-	  if !verbose_location then begin
+          DonkeyGlobals.master_server :=
+            Some (List.find (fun s -> s.server_master) !servers_list);
+          if !verbose_location then begin
             match !DonkeyGlobals.master_server with
             | Some ns -> 
-	            lprintf_nl "changed main master server from %s (%s) to %s (%s)"
-	              ss.server_name (string_of_server ss) ns.server_name (string_of_server ns)
+                    lprintf_nl "changed main master server from %s (%s) to %s (%s)"
+                      ss.server_name (string_of_server ss) ns.server_name (string_of_server ns)
             | _ -> ()
           end
         with Not_found -> ())
@@ -228,8 +228,8 @@ let disconnect_server s reason =
     List.iter (fun file ->
       shared_iter (fun sh ->
         let impl = as_shared_impl sh in
-	  impl.impl_shared_servers <-
-	    List2.removeq (as_server s.server_server) impl.impl_shared_servers)
+          impl.impl_shared_servers <-
+            List2.removeq (as_server s.server_server) impl.impl_shared_servers)
     ) s.server_sent_shared;
     s.server_sent_shared <- []
   in
@@ -363,7 +363,7 @@ let client_to_server s t sock =
               s.server_name (string_of_server s) in
           CommonEvent.add_event (Console_message_event (Printf.sprintf "\n%s\n" server_header));
           if !CommonOptions.verbose_msg_servers then
-	    lprintf_nl "%s" server_header;
+            lprintf_nl "%s" server_header;
           last_message_sender := server_num s
         end;
       s.server_banner <- s.server_banner ^ Printf.sprintf "%s\n" msg;
@@ -590,7 +590,7 @@ let rec connect_one_server restart =
                 lprintf_nl "Please import servers from a server.met file.";
                 lprintf_nl "Let MLDonkey use a file configured in web_infos";
                 lprintf_nl "or enter this link into MLDonkey:";
-	        lprintf_nl "ed2k://|serverlist|http://www.gruk.org/server.met.gz|/"
+                lprintf_nl "ed2k://|serverlist|http://www.gruk.org/server.met.gz|/"
               end;
 
               raise Not_found;
@@ -796,13 +796,13 @@ let update_master_servers _ =
         match s.server_sock with
         | Connection _ ->
             if !verbose_location then begin
-	      if !tag2 then begin
+              if !tag2 then begin
                 lprintf_n "master servers (old):";
-		tag1 := false;
-		tag2 := false
-	      end;
-	      lprintf " %s" (string_of_server s)
-	    end;
+                tag1 := false;
+                tag2 := false
+              end;
+              lprintf " %s" (string_of_server s)
+            end;
             masters := s :: !masters
         | _ -> s.server_master <- false
   ) server_list;
@@ -819,7 +819,7 @@ let update_master_servers _ =
         masters := s :: !masters;
         masters := List.rev (List.sort compare_servers !masters);
 
-	DonkeyGlobals.master_server := Some s;
+        DonkeyGlobals.master_server := Some s;
     )
   in
 
@@ -852,28 +852,28 @@ let update_master_servers _ =
           in
           if !verbose_location then
               lprintf_nl "master servers: Checking %s, users: %Ld, ct:%d"
-		(string_of_server s)
-		(match s.server_nusers with None -> 0L | Some v -> v)
-		connection_time;
+                (string_of_server s)
+                (match s.server_nusers with None -> 0L | Some v -> v)
+                connection_time;
           if not s.server_master then
               begin
                 if (!nmasters < max_allowed_connected_servers) then begin
-		  if !verbose_location then
-		    lprintf_nl "master servers: raising %s" (string_of_server s);
+                  if !verbose_location then
+                    lprintf_nl "master servers: raising %s" (string_of_server s);
                     make_master s
-		  end
+                  end
                 else if s.server_sent_all_queries then
                   match !masters with
                       [] -> disconnect_old_server s
                     | ss :: tail ->
-			let ss_nusers =
-			  match ss.server_nusers with
-			    None -> 0L
-			  | Some v -> v in
-			let s_nusers =
-			  match s.server_nusers with
-			    None -> 0L
-			  | Some v -> v in
+                        let ss_nusers =
+                          match ss.server_nusers with
+                            None -> 0L
+                          | Some v -> v in
+                        let s_nusers =
+                          match s.server_nusers with
+                            None -> 0L
+                          | Some v -> v in
                         (* check if the non-master has more users
                            or is a preferred one *)
                         if (s.server_preferred && not ss.server_preferred)

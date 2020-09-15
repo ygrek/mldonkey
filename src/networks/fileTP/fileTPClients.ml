@@ -179,7 +179,7 @@ let get_from_client sock (c: client) =
 
                           if !verbose_swarming then begin
                               lprintf "Blocks Found: "; 
-			    List.iter (fun b ->
+                            List.iter (fun b ->
                               CommonSwarming.print_block b.up_block) blocks;
                             end;
                           d.download_blocks <- blocks;
@@ -188,7 +188,7 @@ let get_from_client sock (c: client) =
 
                           if !verbose_swarming then  begin
                             lprintf "Current Blocks: "; List.iter (fun b -> 
-			      CommonSwarming.print_block b.up_block) blocks;
+                              CommonSwarming.print_block b.up_block) blocks;
                             end;
                           try
                             let range_size = (min_range_size file) in

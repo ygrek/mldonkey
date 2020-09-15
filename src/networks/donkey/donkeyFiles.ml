@@ -53,19 +53,19 @@ module NewUpload = struct
     let check_end_upload c sock = ()
 (*
       if c.client_bucket = 0 then
-	direct_client_send sock (
-	  let module M = DonkeyProtoClient in
-	  let module Q = M.CloseSlot in
-	    M.CloseSlotReq Q.t)
+        direct_client_send sock (
+          let module M = DonkeyProtoClient in
+          let module Q = M.CloseSlot in
+            M.CloseSlotReq Q.t)
 *)
     
     let send_small_block c sock file begin_pos len_int = 
 (*      lprintf "send_small_block %d\n" len_int; *)
 (*      let len_int = Int32.to_int len in *)
       try
-	if !verbose_upload then
-	  lprintf_nl "Sending %s to %s, begin %Ld len %d"
-	    (file_best_name file) (full_client_identifier c)
+        if !verbose_upload then
+          lprintf_nl "Sending %s to %s, begin %Ld len %d"
+            (file_best_name file) (full_client_identifier c)
             (begin_pos) (len_int);
         
         if file_is_largefile file && c.client_emule_proto.emule_largefiles <> 1 then raise Donkey_large_file;
@@ -91,7 +91,7 @@ module NewUpload = struct
         Unix32.read (file_fd file) begin_pos upload_buffer slen len_int;
         let uploaded = Int64.of_int len_int in
         count_upload c uploaded;
-	CommonUploads.consume_bandwidth len_int;
+        CommonUploads.consume_bandwidth len_int;
         (match file.file_shared with None -> ()
           | Some impl ->
               shared_must_update_downloaded (as_shared impl);
@@ -102,11 +102,11 @@ module NewUpload = struct
         check_end_upload c sock
       with
       | End_of_file -> lprintf_nl "Can not send file %s to %s, file removed?"
-			 (file_best_name file) (full_client_identifier c)
+                         (file_best_name file) (full_client_identifier c)
       | Donkey_large_file -> lprintf_nl "File %s is too large for %s."
-			 (file_best_name file) (full_client_identifier c)
+                         (file_best_name file) (full_client_identifier c)
       | e -> if !verbose then lprintf_nl
-	       "Exception %s in send_small_block" (Printexc2.to_string e)
+               "Exception %s in send_small_block" (Printexc2.to_string e)
     
     let rec send_client_block c sock per_client =
 (*      lprintf "send_client_block\n"; *)
@@ -126,14 +126,14 @@ module NewUpload = struct
                 send_small_block c sock up.up_file up.up_pos max_len;
                 if !verbose_upload then
                     lprintf_nl "End of chunk (%d) %Ld %s" max_len up.up_end_chunk (file_best_name up.up_file);
-		up.up_flying_chunks <- up.up_flying_chunks @ [current_chunk];
+                up.up_flying_chunks <- up.up_flying_chunks @ [current_chunk];
                 up.up_chunks <- chunks;
                 let per_client = per_client - max_len in
                 match chunks with
-		| [] -> 
+                | [] -> 
                     if !verbose_upload then
                         lprintf_nl "NO MORE CHUNKS";
-		    up.up_waiting <- false;
+                    up.up_waiting <- false;
                     if up.up_finish && !!upload_complete_chunks then
                       DonkeyOneFile.remove_client_slot c;
                 | (begin_pos, end_pos) :: _ ->
@@ -163,7 +163,7 @@ module NewUpload = struct
             | Some ({ up_chunks = _ :: _; _ }) ->
                 if !CommonGlobals.has_upload = 0 then
                   CommonUploads.ready_for_upload (as_client c)
-	    | _ -> ()
+            | _ -> ()
           )
       )
     let _ =

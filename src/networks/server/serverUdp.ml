@@ -44,9 +44,9 @@ let server_udp_send s t =
     begin
       incr nb_udp_reply_count;
       DonkeyProtoCom.udp_send (udp_sock ())
-	s.DonkeyTypes.server_ip
-	(s.DonkeyTypes.server_port+4)
-	t
+        s.DonkeyTypes.server_ip
+        (s.DonkeyTypes.server_port+4)
+        t
     end
 
 let udp_send sock ip port t =
@@ -111,11 +111,11 @@ let udp_handler sock event =
       read_packets sock (fun p -> 
 
           try
-	    let to_ip, to_port = match p.UdpSocket.addr with
-	    | Unix.ADDR_INET(ip, port) ->
-		let ip = Ip.of_inet_addr ip in ip, port
-	    | _ -> raise Not_found
-	    in
+            let to_ip, to_port = match p.UdpSocket.addr with
+            | Unix.ADDR_INET(ip, port) ->
+                let ip = Ip.of_inet_addr ip in ip, port
+            | _ -> raise Not_found
+            in
 
             let pbuf = p.UdpSocket.content in
             let len = String.length pbuf in
@@ -125,21 +125,21 @@ let udp_handler sock event =
                 LittleEndian.dump pbuf;
                 lprint_newline ();*)
               end else 
-		begin	
-		  incr nb_udp_req_count;
+                begin	
+                  incr nb_udp_req_count;
                   let t = M.parse 227 (String.sub pbuf 1 (len-1)) in
-		    (*M.print t;
-		      lprint_newline ();*)
+                    (*M.print t;
+                      lprint_newline ();*)
                     
-		    
-		    if (!!save_log) then
-		      begin 
-			match p.UdpSocket.addr with
-			  | ADDR_INET (ip,port) ->
-			      ServerLog.new_log_req (Ip.of_inet_addr ip) Md4.null t;
-			      ServerLog.add_to_liste ()
-			  |_-> ()
-		      end;
+                    
+                    if (!!save_log) then
+                      begin 
+                        match p.UdpSocket.addr with
+                          | ADDR_INET (ip,port) ->
+                              ServerLog.new_log_req (Ip.of_inet_addr ip) Md4.null t;
+                              ServerLog.add_to_liste ()
+                          |_-> ()
+                      end;
                     match t with
 
 (*****************************************)
@@ -148,190 +148,190 @@ let udp_handler sock event =
                   
                   M.QueryServersReplyUdpReq t -> 
 (*lprintf "-_-_-_-_-_-_-_-_-_-_-_-__-_-_-_-_-_-_-";*)
-		    let to_addr = p.UdpSocket.addr in
+                    let to_addr = p.UdpSocket.addr in
                       begin
-			try
-			  let bob = match to_addr with
-			    | Unix.ADDR_INET(ip, port) ->
-				let ip = Ip.of_inet_addr ip in
-				  if Ip.valid ip then
-				    let s = DonkeyGlobals.find_server ip (port-4) in
-				      s
-				  else raise Not_found
-			    | _ -> raise Not_found
-			  in  
+                        try
+                          let bob = match to_addr with
+                            | Unix.ADDR_INET(ip, port) ->
+                                let ip = Ip.of_inet_addr ip in
+                                  if Ip.valid ip then
+                                    let s = DonkeyGlobals.find_server ip (port-4) in
+                                      s
+                                  else raise Not_found
+                            | _ -> raise Not_found
+                          in  
                             bob.DonkeyTypes.server_last_message <- last_time ();
-			    let module Q = M.QueryServersReply in
-			      List.iter (fun s ->
-					   ignore (DonkeyGlobals.new_server s.Q.ip s.Q.port 0)
-					) t.Q.servers
-			with _ -> 
+                            let module Q = M.QueryServersReply in
+                              List.iter (fun s ->
+                                           ignore (DonkeyGlobals.new_server s.Q.ip s.Q.port 0)
+                                        ) t.Q.servers
+                        with _ -> 
                           (*lprintf "Server Reply for nothing\n";*)
-			  let module Q = M.QueryServersReply in
-			    List.iter (fun s ->
-					 ignore (DonkeyGlobals.new_server s.Q.ip s.Q.port 0)
-				      ) t.Q.servers
-		      end
+                          let module Q = M.QueryServersReply in
+                            List.iter (fun s ->
+                                         ignore (DonkeyGlobals.new_server s.Q.ip s.Q.port 0)
+                                      ) t.Q.servers
+                      end
 (*
-		  if (!time_out) then
-		    begin 
-		      (*lprintf "-_-_-_-_-YES TIME";*)
+                  if (!time_out) then
+                    begin 
+                      (*lprintf "-_-_-_-_-YES TIME";*)
                       other_servers :=  add_new_servers 
-			!other_servers []
-		    end
-		  else
-		    begin
-		      (*lprintf "-_-_-_-_-NO TIME";*)
+                        !other_servers []
+                    end
+                  else
+                    begin
+                      (*lprintf "-_-_-_-_-NO TIME";*)
                         let bob = DonkeyGlobals.new_server t.Q.server_ip
-			  t.Q.server_port 0
+                          t.Q.server_port 0
                         in
-		      if not (List.mem bob !new_alive_servers) then 
-			new_alive_servers:= bob :: !new_alive_servers;
-			(*new_alive_servers:= add_new_servers t.Q.servers
-		       !new_alive_servers [];*)
-		      other_servers :=  add_new_servers t.Q.servers
-		       !other_servers []
-		    end;
+                      if not (List.mem bob !new_alive_servers) then 
+                        new_alive_servers:= bob :: !new_alive_servers;
+                        (*new_alive_servers:= add_new_servers t.Q.servers
+                       !new_alive_servers [];*)
+                      other_servers :=  add_new_servers t.Q.servers
+                       !other_servers []
+                    end;
 *)
  
-		  | M.ServerDescReplyUdpReq t ->
-		      let to_addr = p.UdpSocket.addr in
-		      let bob = match to_addr with
-			| Unix.ADDR_INET(ip, port) ->
+                  | M.ServerDescReplyUdpReq t ->
+                      let to_addr = p.UdpSocket.addr in
+                      let bob = match to_addr with
+                        | Unix.ADDR_INET(ip, port) ->
                             let ip = Ip.of_inet_addr ip in
                               if Ip.valid ip then
-				let s = DonkeyGlobals.find_server ip (port-4) in
-				  s
+                                let s = DonkeyGlobals.find_server ip (port-4) in
+                                  s
                               else raise Not_found
-			| _ -> raise Not_found
+                        | _ -> raise Not_found
                       in 
-			let module R = M.ServerDescReplyUdp in
-			  bob.DonkeyTypes.server_last_message <- last_time ();
-			  bob.DonkeyTypes.server_name <- t.R.name;
-			  bob.DonkeyTypes.server_description <- t.R.desc
+                        let module R = M.ServerDescReplyUdp in
+                          bob.DonkeyTypes.server_last_message <- last_time ();
+                          bob.DonkeyTypes.server_name <- t.R.name;
+                          bob.DonkeyTypes.server_description <- t.R.desc
 
-		  | M.PingServerReplyUdpReq (t,nb_clients,nb_files) ->
-		      let to_addr = p.UdpSocket.addr in
+                  | M.PingServerReplyUdpReq (t,nb_clients,nb_files) ->
+                      let to_addr = p.UdpSocket.addr in
                       begin
-			try
-			  let bob = match to_addr with
-			    | Unix.ADDR_INET(ip, port) ->
-				let ip = Ip.of_inet_addr ip in
-				if Ip.valid ip then
-				  let s = DonkeyGlobals.find_server ip (port-4) in
-				    s
-				else raise Not_found
-			    | _ -> raise Not_found
-			  in    
-			    bob.DonkeyTypes.server_last_message <- last_time ();
-			    bob.DonkeyTypes.server_nusers <- (Int32.to_int nb_clients);
-			    bob.DonkeyTypes.server_nfiles <- (Int32.to_int nb_files); 
-			with _ -> ()    
-		      end
-			
+                        try
+                          let bob = match to_addr with
+                            | Unix.ADDR_INET(ip, port) ->
+                                let ip = Ip.of_inet_addr ip in
+                                if Ip.valid ip then
+                                  let s = DonkeyGlobals.find_server ip (port-4) in
+                                    s
+                                else raise Not_found
+                            | _ -> raise Not_found
+                          in    
+                            bob.DonkeyTypes.server_last_message <- last_time ();
+                            bob.DonkeyTypes.server_nusers <- (Int32.to_int nb_clients);
+                            bob.DonkeyTypes.server_nfiles <- (Int32.to_int nb_files); 
+                        with _ -> ()    
+                      end
+                        
 (*****************************************)
 (* Messages initiated from other servers *)
 (*****************************************)                  
-			
-		  | M.QueryServersUdpReq t -> 
-		      (*lprintf "SEND SERVER LISTE\n";*)
-		      (*print !other_servers;*) 
+                        
+                  | M.QueryServersUdpReq t -> 
+                      (*lprintf "SEND SERVER LISTE\n";*)
+                      (*print !other_servers;*) 
                       let module Q = M.QueryServers in 
                       let bob =   DonkeyGlobals.new_server t.Q.ip  t.Q.port 0 in
-			bob.DonkeyTypes.server_last_message <- last_time ();
-			
-			server_udp_send bob
-			  (let module M = DonkeyProtoServer in
-			     M.QueryServersReplyUdpReq (
+                        bob.DonkeyTypes.server_last_message <- last_time ();
+                        
+                        server_udp_send bob
+                          (let module M = DonkeyProtoServer in
+                             M.QueryServersReplyUdpReq (
                                let module Q = M.QueryServersReply in
                         {
                           Q.server_ip = !!server_ip;
                           Q.server_port = !!server_port;
                           Q.servers = 
-				 List.map (fun s ->
-					     { Q.ip = s.DonkeyTypes.server_ip; 
-					       Q.port = s.DonkeyTypes.server_port; }
-					  ) !serverList;
+                                 List.map (fun s ->
+                                             { Q.ip = s.DonkeyTypes.server_ip; 
+                                               Q.port = s.DonkeyTypes.server_port; }
+                                          ) !serverList;
                         }))     
 
-		  | M.ServerDescUdpReq t ->
-		      udp_send sock to_ip to_port  ( 
-		      let module R = M.ServerDescReplyUdp in
-		      (M.ServerDescReplyUdpReq {
-		       R.name = !!server_name;
-		       R.desc = !!server_desc;
-		     })) 
-			
-			
-		  | M.ServerListUdpReq t ->
-		      let to_addr = p.UdpSocket.addr in
-			(*begin
-			  try
-			    let bob = match to_addr with
-			      | Unix.ADDR_INET(ip, port) ->
-				  let ip = Ip.of_inet_addr ip in
-				    if Ip.valid ip then
-				      let s = DonkeyGlobals.find_server ip (port-4)  in
-					s
-				    else raise Not_found
-			      | _ -> raise Not_found
-			    in
-			      bob.DonkeyTypes.server_last_message <- last_time ();
-			      server_udp_send bob
-				(let module M = DonkeyProtoServer in
-				   M.QueryServersReplyUdpReq (
-				     let module Q = M.QueryServersReply in
-				       {
-					 Q.server_ip = Ip.null;
-					 Q.server_port = 0;
-					 Q.servers = 
-				       List.map (fun s ->
-						   { Q.ip = s.DonkeyTypes.server_ip; 
-						     Q.port = s.DonkeyTypes.server_port; }
-						) !serverList;
-				       }))   
-			  with _ ->*)
-			    udp_send sock to_ip to_port  ( 
-			      let module M = DonkeyProtoServer in
-				M.QueryServersReplyUdpReq (
-				  let module Q = M.QueryServersReply in
-				    {
-				      Q.server_ip = Ip.null;
-				      Q.server_port = 0;
-				      Q.servers = 
-				    List.map (fun s ->
-						{ Q.ip = s.DonkeyTypes.server_ip; 
-						  Q.port = s.DonkeyTypes.server_port; }
-					     ) !serverList;
-				    }))   
-	
-			
+                  | M.ServerDescUdpReq t ->
+                      udp_send sock to_ip to_port  ( 
+                      let module R = M.ServerDescReplyUdp in
+                      (M.ServerDescReplyUdpReq {
+                       R.name = !!server_name;
+                       R.desc = !!server_desc;
+                     })) 
+                        
+                        
+                  | M.ServerListUdpReq t ->
+                      let to_addr = p.UdpSocket.addr in
+                        (*begin
+                          try
+                            let bob = match to_addr with
+                              | Unix.ADDR_INET(ip, port) ->
+                                  let ip = Ip.of_inet_addr ip in
+                                    if Ip.valid ip then
+                                      let s = DonkeyGlobals.find_server ip (port-4)  in
+                                        s
+                                    else raise Not_found
+                              | _ -> raise Not_found
+                            in
+                              bob.DonkeyTypes.server_last_message <- last_time ();
+                              server_udp_send bob
+                                (let module M = DonkeyProtoServer in
+                                   M.QueryServersReplyUdpReq (
+                                     let module Q = M.QueryServersReply in
+                                       {
+                                         Q.server_ip = Ip.null;
+                                         Q.server_port = 0;
+                                         Q.servers = 
+                                       List.map (fun s ->
+                                                   { Q.ip = s.DonkeyTypes.server_ip; 
+                                                     Q.port = s.DonkeyTypes.server_port; }
+                                                ) !serverList;
+                                       }))   
+                          with _ ->*)
+                            udp_send sock to_ip to_port  ( 
+                              let module M = DonkeyProtoServer in
+                                M.QueryServersReplyUdpReq (
+                                  let module Q = M.QueryServersReply in
+                                    {
+                                      Q.server_ip = Ip.null;
+                                      Q.server_port = 0;
+                                      Q.servers = 
+                                    List.map (fun s ->
+                                                { Q.ip = s.DonkeyTypes.server_ip; 
+                                                  Q.port = s.DonkeyTypes.server_port; }
+                                             ) !serverList;
+                                    }))   
+        
+                        
 (*****************************************)
 (*    Messages initiated from clients    *)
 (*****************************************)
-			
-		  | M.PingServerUdpReq t ->            
+                        
+                  | M.PingServerUdpReq t ->            
                       begin
-			let to_addr = p.UdpSocket.addr in
-			  (*(try
-			    match to_addr with
-			     | Unix.ADDR_INET(ip, port) ->
-			    let ip = Ip.of_inet_addr ip in
-			    if Ip.valid ip then
-			    let s = DonkeyGlobals.find_server ip (port-4) in
-			    lprintf "Server send ping too\n"
-			    else raise Not_found
-			    | _ -> raise Not_found
-			    with _ -> ());*)
-			  udp_send sock to_ip to_port (M.PingServerReplyUdpReq
-						   (t,
-						    Int32.of_int !nconnected_clients, 
-						    Int32.of_int !nshared_md4))  
+                        let to_addr = p.UdpSocket.addr in
+                          (*(try
+                            match to_addr with
+                             | Unix.ADDR_INET(ip, port) ->
+                            let ip = Ip.of_inet_addr ip in
+                            if Ip.valid ip then
+                            let s = DonkeyGlobals.find_server ip (port-4) in
+                            lprintf "Server send ping too\n"
+                            else raise Not_found
+                            | _ -> raise Not_found
+                            with _ -> ());*)
+                          udp_send sock to_ip to_port (M.PingServerReplyUdpReq
+                                                   (t,
+                                                    Int32.of_int !nconnected_clients, 
+                                                    Int32.of_int !nshared_md4))  
                       end  
-		      
-		      
-		      
-		  | M.QueryUdpReq t ->
+                      
+                      
+                      
+                  | M.QueryUdpReq t ->
                       incr nb_udp_query_count;       
                       (*lprintf "QUERYUDPREQ";*)
                       let module R = M.Query in
@@ -339,82 +339,82 @@ let udp_handler sock event =
                       let docs = ServerIndexer.find q in
                    (* send back QueryReplyReq *)
                       let list = ServerIndexer.get docs 1 in
-			if (List.length list) <> 0 then
-			  begin
-			    if (!!save_log) then
-			      ServerLog.put_results list;
-			    let to_addr = p.UdpSocket.addr in 
-			      alway_udp_send sock to_ip to_port (M.QueryReplyUdpReq (List.hd list));
-			  end;
-		    ()   
+                        if (List.length list) <> 0 then
+                          begin
+                            if (!!save_log) then
+                              ServerLog.put_results list;
+                            let to_addr = p.UdpSocket.addr in 
+                              alway_udp_send sock to_ip to_port (M.QueryReplyUdpReq (List.hd list));
+                          end;
+                    ()   
 
-		  | M.QueryLocationUdpReq t ->
-		      if !!process_udp_loc then
-			begin 
-			  try   
-			    incr nb_udp_loc_count;
-			    (*lprintf "QUERYLOCATIONUDPREQ";*)
-			    let module R = M.QueryLocationReply in
-			    let peer_list = ServerLocate.get t in
-			      if (!!save_log) then
-				ServerLog.add_note  ("Number of Location:\n"^(string_of_int (List.length peer_list.R.locs))^"\n");
-			      if ((List.length peer_list.R.locs) <> 0) then
-				let to_addr = p.UdpSocket.addr in
-				  begin
-				    alway_udp_send sock to_ip to_port (M.QueryLocationReplyUdpReq peer_list);
-				    incr nb_udp_loc_reply_count;
-				  end
-			  with Not_found -> ()
-			end  
-		      
-		  | M.QueryCallUdpReq t ->
-		      begin
-			let to_addr = p.UdpSocket.addr in 
-			let module CU = M.QueryCallUdp in
-			  try
-			    let cc = Hashtbl.find clients_by_id t.CU.id in
-			      match cc with
-				  LocalClient cc ->
-				    let module QI = M.QueryIDReply in
-				      (match cc.client_kind, sock, cc.client_sock with
-					   KnownLocation (ip, port), sock, _ ->
-					     udp_send sock to_ip to_port (M.QueryIDReplyReq {
-								      QI.ip = t.CU.ip;
-								      QI.port = t.CU.port;
-								    })	 
-					 | Firewalled_client, _, Some sock ->
-					     direct_server_send sock (M.QueryIDReplyReq {
-									QI.ip = t.CU.ip;
-									QI.port = t.CU.port;
-								      })
-					 | _ ->
-					     lprintf "QueryIDReq(udp) on local client can't return reply";
-					     raise Not_found)
-				| RemoteClient cc ->
-				    ()
-			      with Not_found ->
-				alway_udp_send sock to_ip to_port (M.QueryIDFailedReq t.CU.id)
-		      end
-		      
+                  | M.QueryLocationUdpReq t ->
+                      if !!process_udp_loc then
+                        begin 
+                          try   
+                            incr nb_udp_loc_count;
+                            (*lprintf "QUERYLOCATIONUDPREQ";*)
+                            let module R = M.QueryLocationReply in
+                            let peer_list = ServerLocate.get t in
+                              if (!!save_log) then
+                                ServerLog.add_note  ("Number of Location:\n"^(string_of_int (List.length peer_list.R.locs))^"\n");
+                              if ((List.length peer_list.R.locs) <> 0) then
+                                let to_addr = p.UdpSocket.addr in
+                                  begin
+                                    alway_udp_send sock to_ip to_port (M.QueryLocationReplyUdpReq peer_list);
+                                    incr nb_udp_loc_reply_count;
+                                  end
+                          with Not_found -> ()
+                        end  
+                      
+                  | M.QueryCallUdpReq t ->
+                      begin
+                        let to_addr = p.UdpSocket.addr in 
+                        let module CU = M.QueryCallUdp in
+                          try
+                            let cc = Hashtbl.find clients_by_id t.CU.id in
+                              match cc with
+                                  LocalClient cc ->
+                                    let module QI = M.QueryIDReply in
+                                      (match cc.client_kind, sock, cc.client_sock with
+                                           KnownLocation (ip, port), sock, _ ->
+                                             udp_send sock to_ip to_port (M.QueryIDReplyReq {
+                                                                      QI.ip = t.CU.ip;
+                                                                      QI.port = t.CU.port;
+                                                                    })	 
+                                         | Firewalled_client, _, Some sock ->
+                                             direct_server_send sock (M.QueryIDReplyReq {
+                                                                        QI.ip = t.CU.ip;
+                                                                        QI.port = t.CU.port;
+                                                                      })
+                                         | _ ->
+                                             lprintf "QueryIDReq(udp) on local client can't return reply";
+                                             raise Not_found)
+                                | RemoteClient cc ->
+                                    ()
+                              with Not_found ->
+                                alway_udp_send sock to_ip to_port (M.QueryIDFailedReq t.CU.id)
+                      end
+                      
 
                       
-		  | _ ->
-		      begin
-			match p.UdpSocket.addr with
-			  | ADDR_INET (ip,port) -> 
+                  | _ ->
+                      begin
+                        match p.UdpSocket.addr with
+                          | ADDR_INET (ip,port) -> 
                               lprintf "UNKNOWN UDP from %s:%d\n" (string_of_inet_addr ip) port;
-			  | _ -> ()
-		      end;
-		      DonkeyProtoServer.print t;
-		      lprint_newline ();
-		end
+                          | _ -> ()
+                      end;
+                      DonkeyProtoServer.print t;
+                      lprint_newline ();
+                end
           with e ->
             (*lprintf "******* EXCEPTION %s in List.iter on UDP packets"
             (Printexc2.to_string e); lprint_newline ();
             lprintf "This could prevent discarding UDP messages ...";
             lprint_newline ();*)
-	    ()
-		) 
+            ()
+                ) 
     | _ -> ()
 
 let other_servers = ref []
@@ -465,11 +465,11 @@ let get_info_servers () =
   let module M = DonkeyProtoServer in 
     Random.self_init();
     List.iter (fun s ->
-		 server_udp_send s (M.PingServerUdpReq (Int32.of_int (Random.int 3000)));
+                 server_udp_send s (M.PingServerUdpReq (Int32.of_int (Random.int 3000)));
                  server_udp_send s (M.ServerDescUdpReq {
-				      M.ServerDescUdp.ip = (Ip.of_string "21.42.0.1");
-				    })
-	      ) !serverList
+                                      M.ServerDescUdp.ip = (Ip.of_string "21.42.0.1");
+                                    })
+              ) !serverList
   
       
   (*
@@ -548,5 +548,5 @@ let save_servers_liste () =
   known_server =:= List.map (fun s ->
       (s.DonkeyTypes.server_ip,s.DonkeyTypes.server_port))
   !other_servers
-			  
+                          
     *)

@@ -117,8 +117,8 @@ let matches t ips =
     match ips with
       [] -> false
     | b :: tail ->
-	let (b4,b3,b2,b1) = to_ints b in
-	( (a4 = b4 || b4 = 255) &&
+        let (b4,b3,b2,b1) = to_ints b in
+        ( (a4 = b4 || b4 = 255) &&
           (a3 = b3 || b3 = 255) &&
           (a2 = b2 || b2 = 255) &&
           (a1 = b1 || b1 = 255))
@@ -128,9 +128,9 @@ let matches t ips =
 let compare a b =
   let hicompare = compare a.hi b.hi in
   if hicompare <> 0 then 
-  	hicompare
+        hicompare
   else
-  	compare a.lo b.lo
+        compare a.lo b.lo
 
 let succ t =
   if t.lo < 0xffff then 
@@ -208,14 +208,14 @@ let get_entry_cached name =
     if cache_entry.time_limit < current_time then
       (* found, but no longer fresh *)
       try
-	let new_entry = 
-	  make_entry_from_name ~time_limit:(current_time +. 3600.) name in
-	(* update cache *)
+        let new_entry = 
+          make_entry_from_name ~time_limit:(current_time +. 3600.) name in
+        (* update cache *)
         Hashtbl.replace ip_cache name new_entry;
-	new_entry
+        new_entry
       with Not_found -> 
-	(* new lookup failed, return old information *)
-	cache_entry
+        (* new lookup failed, return old information *)
+        cache_entry
     else 
       (* fresh from cache *)
       cache_entry
@@ -325,7 +325,7 @@ let _ =
       | None ->
           let (name, f, ferr) = Fifo.take ip_fifo in
           (try
-	    let ip = resolve_name_immediate name in
+            let ip = resolve_name_immediate name in
             exn_log "ip_fifo immediate" f ip
           with Not_found ->
 (*                  lprintf "resolving name...\n"; *)
@@ -343,19 +343,19 @@ let _ =
             else begin
 (*                      lprintf "from_name ...\n"; *)
               exn_log "ip_fifo no threads" f (from_name name)
-		
+                
             end
           )
       | Some job ->
           if job_done job then begin
             current_job := None;
             if not job.error then begin
-	      let ips =
-		get_non_local_ip (
-		  List.map of_inet_addr (Array.to_list job.entries)) in
-	      let entry = make_entry_from_ips (Array.of_list ips) in
+              let ips =
+                get_non_local_ip (
+                  List.map of_inet_addr (Array.to_list job.entries)) in
+              let entry = make_entry_from_ips (Array.of_list ips) in
               Hashtbl.add ip_cache job.name entry;
-	      let ip = get_entry_ip entry in
+              let ip = get_entry_ip entry in
 (*        lprintf "Ip found for %s: %s\n" job.name (to_string ip);  *)
               job.handler ip
             end else begin

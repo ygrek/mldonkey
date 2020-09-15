@@ -26,13 +26,13 @@
 
 (* upnp port map zzz++*)
 type ml_port_map = {
-	mutable enabled : int;
-	mutable intPort : int;
-	mutable extPort : int;
-	mutable isTcp   : int;
-	mutable natpmpStatus : int;
-	mutable upnpStatus : int;
-	mutable notes   : string;
+        mutable enabled : int;
+        mutable intPort : int;
+        mutable extPort : int;
+        mutable isTcp   : int;
+        mutable natpmpStatus : int;
+        mutable upnpStatus : int;
+        mutable notes   : string;
 }
 
 let string_of_map_status status =
@@ -42,12 +42,12 @@ let string_of_map_status status =
   | 2 -> "UNMAPPING"
   | 3 -> "MAPPING"
   | 4 -> "MAPPED"
-	| _ -> "N/A"
+        | _ -> "N/A"
 
 let strings_port_map map =
-	Printf.sprintf "enable:%d ,intPort:%d ,extPort:%d ,isTcp:%d ,natpmpStatus:\"%s\" ,upnpStatus:\"%s\" ,notes:\"%s\""
-	map.enabled map.intPort map.extPort map.isTcp (string_of_map_status map.natpmpStatus) (string_of_map_status map.upnpStatus) map.notes
-	
+        Printf.sprintf "enable:%d ,intPort:%d ,extPort:%d ,isTcp:%d ,natpmpStatus:\"%s\" ,upnpStatus:\"%s\" ,notes:\"%s\""
+        map.enabled map.intPort map.extPort map.isTcp (string_of_map_status map.natpmpStatus) (string_of_map_status map.upnpStatus) map.notes
+        
 
 external init_maps : unit -> unit = "ml_upnpInitMaps" "noalloc"
 (*external set_maps  : unit -> unit = "ml_upnpSetMaps" *)

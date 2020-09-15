@@ -78,22 +78,22 @@ let edit_file id3 filename =
   let tag = 
     try 
       let read =
-	match id3 with
-	  V1 -> Mp3tag.Id3v1.read 
-	| V2 -> fun f -> Mp3tag.v1_of_v2 (Mp3tag.Id3v2.read f)
-	| Both -> Mp3tag.read_both_as_v1
+        match id3 with
+          V1 -> Mp3tag.Id3v1.read 
+        | V2 -> fun f -> Mp3tag.v1_of_v2 (Mp3tag.Id3v2.read f)
+        | Both -> Mp3tag.read_both_as_v1
       in
       read filename
     with 
       Not_found ->
-	{ title = "" ;
-	  artist = "" ; 
-	  album = "" ;
-	  year = "" ;
-	  comment = "" ; 
-	  tracknum = 0; 
-	  genre = 0 ;
-	} 
+        { title = "" ;
+          artist = "" ; 
+          album = "" ;
+          year = "" ;
+          comment = "" ; 
+          tracknum = 0; 
+          genre = 0 ;
+        } 
     | x -> raise x
   in
   let params = params_from_tag tag in
@@ -101,7 +101,7 @@ let edit_file id3 filename =
     Configwin.Return_ok -> 
       (
        match id3 with
-	 V1 -> Mp3tag.Id3v1.write tag filename
+         V1 -> Mp3tag.Id3v1.write tag filename
        | V2 -> Mp3tag.Id3v2.write (Mp3tag.v2_of_v1 tag) filename
        | Both -> Mp3tag.write_both_v1 tag filename
       )

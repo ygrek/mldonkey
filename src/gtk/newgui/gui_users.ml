@@ -101,8 +101,8 @@ class box columns () =
     method compare f1 f2 =
       let abs = if current_sort >= 0 then current_sort else - current_sort in
       let col = 
-	try List.nth !!columns (abs - 1) 
-	with _ -> Col_user_name
+        try List.nth !!columns (abs - 1) 
+        with _ -> Col_user_name
       in
       let res = self#compare_by_col col f1 f2 in
       res * current_sort
@@ -116,16 +116,16 @@ class box columns () =
 
     method content f =
       let strings = List.map 
-	  (fun col -> P.String (self#content_by_col f col))
-	  !!columns 
+          (fun col -> P.String (self#content_by_col f col))
+          !!columns 
       in
       let col_opt = Some `BLACK      in
       (strings, col_opt)
     
     method add_to_friends () =
       List.iter 
-	(fun u -> Gui_com.send (GuiProto.AddUserFriend u.user_num))
-	self#selection
+        (fun u -> Gui_com.send (GuiProto.AddUserFriend u.user_num))
+        self#selection
     
     method browse_files () =
       List.iter 
@@ -134,7 +134,7 @@ class box columns () =
       
     method menu =
       match self#selection with
-	[] -> []
+        [] -> []
       |	_ -> [ 
             `I (M.rT_me_add_to_friends, self#add_to_friends);
             `I (M.rT_me_browse_files, self#browse_files)
@@ -153,11 +153,11 @@ class box columns () =
       box#vbox#pack ~expand: true pl#box ;
       (*
       Gui_misc.insert_buttons wtool1 wtool2
-	   ~text: (gettext M.add_to_friends)
-	   ~tooltip: (gettext M.add_to_friends)
-	   ~icon: (M.o_xpm_add_to_friends)
-	   ~callback: self#add_to_friends ()
-	   *)
+           ~text: (gettext M.add_to_friends)
+           ~tooltip: (gettext M.add_to_friends)
+           ~icon: (M.o_xpm_add_to_friends)
+           ~callback: self#add_to_friends ()
+           *)
   end
 
 class box_users () =

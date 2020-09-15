@@ -30,6 +30,6 @@ let _ = List.iter
     (fun f ->
       try Mp3tagui.edit_file Mp3tagui.Both f
       with 
-	Sys_error s -> prerr_endline s 
+        Sys_error s -> prerr_endline s 
     )
     !Mp3_args.files

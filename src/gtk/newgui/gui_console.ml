@@ -110,9 +110,9 @@ class box () =
         with _ -> ());
       we_command#set_use_arrows `ALWAYS;
       Okey.add we_command#entry
-	~mods: []
-	GdkKeysyms._Return
-	self#on_entry_return;
+        ~mods: []
+        GdkKeysyms._Return
+        self#on_entry_return;
 
       ignore (wb_clear_console#connect#clicked
           (fun () -> 

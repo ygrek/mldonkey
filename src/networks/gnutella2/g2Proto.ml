@@ -798,11 +798,11 @@ let rec g2_parse name has_children bigendian s =
      QH2_H ->
      if List.exists (fun c ->
         match c.g2_payload with
-	QH2_H_SZ _ -> true | _ -> false) children then
+        QH2_H_SZ _ -> true | _ -> false) children then
  children
 else List.map (fun  c ->
         match c.g2_payload with
-	QH2_H_DN s when String.length s >= 4 ->  
+        QH2_H_DN s when String.length s >= 4 ->  
             let sz = if bigendian then BigEndian.get_uint64_32 s 0 
               else LittleEndian.get_uint64_32 s 0 in
             let dn = String.sub s 4 (String.length s - 4) in

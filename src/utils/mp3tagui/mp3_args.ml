@@ -32,7 +32,7 @@ let parse () =
   try
     let _ = Arg.parse !options
         (fun s -> files := !files @ [s])
-	(Mp3_messages.usage^Mp3_messages.options_are)
+        (Mp3_messages.usage^Mp3_messages.options_are)
     in
     ()
   with

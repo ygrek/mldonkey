@@ -213,15 +213,15 @@ let write t ping s ip port =
     let s, addr = match t.socks_local with
       None -> s, Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
     | Some (ip, port) -> 
-	Buffer.reset buf;
-	buf_int8 buf 0;
-	buf_int8 buf 0;
-	buf_int8 buf 0;
-	buf_int8 buf 1;
-	buf_ip buf ip;
-	buf_int16 buf port;
-	Buffer.add_string buf s;
-	Buffer.contents buf,  Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
+        Buffer.reset buf;
+        buf_int8 buf 0;
+        buf_int8 buf 0;
+        buf_int8 buf 0;
+        buf_int8 buf 1;
+        buf_ip buf ip;
+        buf_int16 buf port;
+        Buffer.add_string buf s;
+        Buffer.contents buf,  Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
     in
     match t.write_controler with
       None ->
@@ -368,10 +368,10 @@ let udp_handler t sock event =
   | CAN_READ ->
       let (len, addr) = Unix.recvfrom (fd sock) read_buf 0 66000 [] in
       let s, addr = match t.socks_proxy with
-	None -> String.sub read_buf 0 len, addr
+        None -> String.sub read_buf 0 len, addr
       | Some _ ->
-	  String.sub read_buf 10 (len-10), 
-	  Unix.ADDR_INET(Ip.to_inet_addr (get_ip read_buf 4), get_int16 read_buf 8)
+          String.sub read_buf 10 (len-10), 
+          Unix.ADDR_INET(Ip.to_inet_addr (get_ip read_buf 4), get_int16 read_buf 8)
       in
       udp_downloaded_bytes := !udp_downloaded_bytes ++ (Int64.of_int len);
       t.rlist <- {
@@ -504,7 +504,7 @@ let set_socks_proxy t ss =
       assert (local_sendto fd s 0 (String.length s) [] proxy_addr > 0);
       
       match Unix.select [fd] [] [] 30. with
-	[],_,_ -> failwith "[SOCKS] timeout"  
+        [],_,_ -> failwith "[SOCKS] timeout"  
       | _ -> ()
     in
     send_and_wait ();

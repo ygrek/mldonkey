@@ -176,10 +176,10 @@ class box s_num columns () =
 (*
     method remove_extend_search_button =
       match wb_extend_search with
-	None -> ()
+        None -> ()
       |	Some wb -> 
-	  wtool#remove wb#coerce;
-	  wb_extend_search <- None
+          wtool#remove wb#coerce;
+          wb_extend_search <- None
 *)
     
     initializer

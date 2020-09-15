@@ -82,7 +82,7 @@ let size_of_int64 size =
       then Printf.sprintf "%.2f Mo" (f /. mo)
       else if f > ko
         then Printf.sprintf "%.2f ko" (f /. ko)
-	else Int64.to_string size
+        else Int64.to_string size
 
 let int64_of_size size =
   let len = String.length size in
@@ -766,8 +766,8 @@ let completed_chunks_to_string chunks =
   | Some chunks ->
       let len = VB.length chunks in
       let p = VB.fold_lefti (fun acc _ s -> match s with
-	| VB.State_missing | VB.State_partial -> acc
-	| VB.State_complete | VB.State_verified -> acc + 1
+        | VB.State_missing | VB.State_partial -> acc
+        | VB.State_complete | VB.State_verified -> acc + 1
       ) 0 chunks in
       Printf.sprintf "%d (%d%%)" p (p * 100 / len)
 
@@ -792,12 +792,12 @@ let relative_availability_of avail chunks =
   | None -> "0."
   | Some c ->
       let rec loop i p n =
-	if i < 0 then
-	  if n = 0 then "0." (* Watch out !! Don't modify, we have to keep a float format *)
-	  else Printf.sprintf "%5.1f" ((float p) /. (float n) *. 100.)
-	else 
-	  loop (i - 1) 
-	    (try if CommonGlobals.partial_chunk (VerificationBitmap.get c i) then p + 1 else p with _ -> p)
+        if i < 0 then
+          if n = 0 then "0." (* Watch out !! Don't modify, we have to keep a float format *)
+          else Printf.sprintf "%5.1f" ((float p) /. (float n) *. 100.)
+        else 
+          loop (i - 1) 
+            (try if CommonGlobals.partial_chunk (VerificationBitmap.get c i) then p + 1 else p with _ -> p)
             (if avail.[i] <> (char_of_int 0) then n + 1 else n) in
       loop ((String.length avail) - 1) 0 0
 
@@ -835,22 +835,22 @@ let get_availability_bar_image avail chunks av_max is_file =
   (match chunks with
   | None -> 
       for i = 0 to String.length avail - 1 do
-	avail.[i] <- char_of_int (av_max - 1)
+        avail.[i] <- char_of_int (av_max - 1)
       done
   | Some chunks ->
       for i = 0 to String.length avail - 1 do
-	avail.[i] <-
-	  char_of_int (match VB.get chunks i with
-	  | VB.State_complete | VB.State_verified ->
-	      av_max
-	  | VB.State_missing ->
+        avail.[i] <-
+          char_of_int (match VB.get chunks i with
+          | VB.State_complete | VB.State_verified ->
+              av_max
+          | VB.State_missing ->
               let avail_int =
-		if is_file then int_of_char avail.[i]
-		else if int_of_char avail.[i] > 48 then 1 else 0
+                if is_file then int_of_char avail.[i]
+                else if int_of_char avail.[i] > 48 then 1 else 0
               in
               min (av_max - 2) avail_int
-	  | VB.State_partial ->
-	      av_max - 1)
+          | VB.State_partial ->
+              av_max - 1)
       done);
   avail
 
@@ -880,13 +880,13 @@ let format_to_string format =
   match format with
     AVI f ->
       U.simple_utf8_of (Printf.sprintf "AVI: %s %dx%d %g fps %d bpf"
-	f.avi_codec f.avi_width f.avi_height 
-	(float_of_int(f.avi_fps) *. 0.001) f.avi_rate)
+        f.avi_codec f.avi_width f.avi_height 
+        (float_of_int(f.avi_fps) *. 0.001) f.avi_rate)
   | MP3 (tag, _) ->
       let module MP = Mp3tag.Id3v1 in
       U.simple_utf8_of (Printf.sprintf "MP3: %s - %s (%d): %s"
-	tag.MP.artist tag.MP.album 
-	tag.MP.tracknum tag.MP.title)
+        tag.MP.artist tag.MP.album 
+        tag.MP.tracknum tag.MP.title)
   | OGG l ->
       let s = ref "" in
       List.iter (fun st ->

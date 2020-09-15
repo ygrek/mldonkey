@@ -34,7 +34,7 @@ let lprintf_nl fmt =
 
 let lprintf_n fmt =
   lprintf2 log_prefix fmt
-	    
+            
 (*************************************************************************)
 (*                                                                       *)
 (*                         TYPES                                         *)
@@ -356,7 +356,7 @@ let shorten_all_file_filenames length =
       begin
         let new_list, _ = List2.cut !!max_filenames impl.impl_file_filenames in
         impl.impl_file_filenames <- new_list;
-	file_must_update file
+        file_must_update file
       end
   ) files_by_num
 
@@ -422,7 +422,7 @@ let default_file_print_sources file o =
           ("", "sr br", cinfo.GuiTypes.client_name);
           ("", "sr br", addr);
           (GuiTypes.client_software cinfo.GuiTypes.client_software cinfo.GuiTypes.client_os,
-	   "sr br", GuiTypes.client_software_short cinfo.GuiTypes.client_software cinfo.GuiTypes.client_os);
+           "sr br", GuiTypes.client_software_short cinfo.GuiTypes.client_software cinfo.GuiTypes.client_os);
           ("", "sr ar", (size_of_int64 cinfo.GuiTypes.client_total_uploaded));
           ("", "sr ar br", (size_of_int64 cinfo.GuiTypes.client_total_downloaded)); ];
 
@@ -602,21 +602,21 @@ let file_downloaders file o cnt =
       let srcs = file_active_sources file in
       let counter = ref cnt in
       List.iter (fun c ->
-	match (client_state c) with
+        match (client_state c) with
             Connected_downloading _ ->
               (begin
                 if use_html_mods o then begin
                   if (client_dprint_html c o file (if !counter mod 2 == 0 then "dl-1" else "dl-2";))
-		    then incr counter;
-		  end
-		  else begin
-			client_dprint c o file;
-		  end;
-	       end)
+                    then incr counter;
+                  end
+                  else begin
+                        client_dprint c o file;
+                  end;
+               end)
           | _ -> ()
       ) srcs;
 
-	!counter mod 2 = 0
+        !counter mod 2 = 0
 
 (*************************************************************************)
 (*                                                                       *)
@@ -638,8 +638,8 @@ let colored_chunks chunks =
       let rl_resized = (resize new_output_bit) - (resize !current_output_bit) in
       (* Show only "visible" chunks *)
       if rl_resized > 0 then
-	Printf.bprintf ostr
-	  "\\<td class=\\\"chunk%d\\\" style=\\\"width:%dpx\\\"\\>\\</td\\>" color rl_resized;
+        Printf.bprintf ostr
+          "\\<td class=\\\"chunk%d\\\" style=\\\"width:%dpx\\\"\\>\\</td\\>" color rl_resized;
       current_output_bit := new_output_bit
     end in
 
@@ -650,45 +650,45 @@ let colored_chunks chunks =
     | VerificationBitmap.State_verified -> 3 in
     match !!html_vd_chunk_graph_style with
      | 0 ->
-	 let previous = ref VerificationBitmap.State_missing in
-	 let runlength = ref 0 in
+         let previous = ref VerificationBitmap.State_missing in
+         let runlength = ref 0 in
 
-	 VerificationBitmap.iteri (fun _ b ->
-	   if b = !previous then
-	     incr runlength
-	   else begin
-	     if !runlength > 0 then
-	       display_bar (color_of_state !previous) !runlength;
-	     previous := b;
-	     runlength := 1
-	   end
-	 ) chunks;
-	 display_bar (color_of_state !previous) !runlength
+         VerificationBitmap.iteri (fun _ b ->
+           if b = !previous then
+             incr runlength
+           else begin
+             if !runlength > 0 then
+               display_bar (color_of_state !previous) !runlength;
+             previous := b;
+             runlength := 1
+           end
+         ) chunks;
+         display_bar (color_of_state !previous) !runlength
      | _ ->
-	 let missing = ref 0 in
-	 let partial = ref 0 in
-	 let complete = ref 0 in
-	 let verified = ref 0 in
+         let missing = ref 0 in
+         let partial = ref 0 in
+         let complete = ref 0 in
+         let verified = ref 0 in
 
-	 VerificationBitmap.iteri (fun _ b -> 
-	   match b with
+         VerificationBitmap.iteri (fun _ b -> 
+           match b with
              | VerificationBitmap.State_missing -> incr missing
              | VerificationBitmap.State_partial -> incr partial
              | VerificationBitmap.State_complete -> incr complete
              | VerificationBitmap.State_verified -> incr verified
-	 ) chunks;
-	 match !!html_vd_chunk_graph_style with
-	   | 1 ->
-	       display_bar 0 !missing;
-	       display_bar 1 !partial;
-	       display_bar 2 !complete;
-	       display_bar 3 !verified
-	   | 2 ->
-	       display_bar 3 !verified;
-	       display_bar 2 !complete;
-	       display_bar 1 !partial;
-	       display_bar 0 !missing
-	   | _ -> ()
+         ) chunks;
+         match !!html_vd_chunk_graph_style with
+           | 1 ->
+               display_bar 0 !missing;
+               display_bar 1 !partial;
+               display_bar 2 !complete;
+               display_bar 3 !verified
+           | 2 ->
+               display_bar 3 !verified;
+               display_bar 2 !complete;
+               display_bar 1 !partial;
+               display_bar 0 !missing
+           | _ -> ()
   );
   Buffer.add_string ostr "\\</tr\\>\\</table\\>";
   Buffer.contents ostr
@@ -701,20 +701,20 @@ let file_print file o =
   let srcs = file_all_sources file in
 
   let chunks_counts chunks = 
-	  let tc = VerificationBitmap.length chunks in
-	  let c0 = ref 0 in
-	  let c1 = ref 0 in
-	  let c2 = ref 0 in
-	  let c3 = ref 0 in
+          let tc = VerificationBitmap.length chunks in
+          let c0 = ref 0 in
+          let c1 = ref 0 in
+          let c2 = ref 0 in
+          let c3 = ref 0 in
 
-	  VerificationBitmap.iteri (fun _ c ->
+          VerificationBitmap.iteri (fun _ c ->
             match c with
             | VerificationBitmap.State_missing -> incr c0
             | VerificationBitmap.State_partial -> incr c1
             | VerificationBitmap.State_complete -> incr c2
             | VerificationBitmap.State_verified -> incr c3
-	  ) chunks;
-  	Printf.sprintf "%d = %d + %d + %d + %d" tc !c0 !c1 !c2 !c3
+          ) chunks;
+        Printf.sprintf "%d = %d + %d + %d + %d" tc !c0 !c1 !c2 !c3
   in
 
   if use_html_mods o then begin
@@ -744,7 +744,7 @@ let file_print file o =
       if user2_is_admin o.conn_user.ui_user then
         let optionlist = ref "" in
         user2_users_iter (fun user ->
-	  if user <> (file_owner file) then
+          if user <> (file_owner file) then
             optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" user.user_name user.user_name;
         );
 
@@ -781,7 +781,7 @@ parent.fstatus.location.href='submit?q=chown+'+v+'+%d';
             ref "\\<option value=\\\"None\\\"\\>None\\</option\\>\n"
         in
         user2_user_groups_iter (file_owner file) (fun group ->
-	  if Some group <> (file_group file) then
+          if Some group <> (file_group file) then
             optionlist := !optionlist ^ Printf.sprintf "\\<option value=\\\"%s\\\"\\>%s\\</option\\>\n" group.group_name group.group_name;
         );
 
@@ -830,7 +830,7 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
         let tt = "Total = Missing + Partial + Complete + Verified" in
         let summary = chunks_counts chunks in
 
-	  html_mods_td buf [
+          html_mods_td buf [
             (tt, "sr br", "Chunks");
             (tt, "sr", 
             summary ^ if !!html_vd_chunk_graph then
@@ -849,8 +849,8 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
 
       (match file_magic file with
         Some magic ->
-	    Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
-	    html_mods_td buf [
+            Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
+            html_mods_td buf [
             ("File type computed by libmagic", "sr br", "File magic");
             ("", "sr", magic) ]
        | _ -> ());
@@ -866,18 +866,18 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
         n.network_name
         (file_num file)
         (shorten (file_best_name file) 80)
-	(match file_magic file with
-	   Some magic -> Printf.sprintf "%s\n" magic
-	 | None -> "")
+        (match file_magic file with
+           Some magic -> Printf.sprintf "%s\n" magic
+         | None -> "")
         (string_of_uids info.G.file_uids)
         (Int64.to_string info.G.file_size)
         (Int64.to_string info.G.file_downloaded)
         (file_priority file)
         (file_owner file).user_name
-	(match file_group file with
-	   Some group -> Printf.sprintf "%s" group.group_name
-	 | None -> "private");
-	(match info.G.file_chunks with
+        (match file_group file with
+           Some group -> Printf.sprintf "%s" group.group_name
+         | None -> "private");
+        (match info.G.file_chunks with
       | None -> () 
       | Some chunks -> Printf.bprintf buf "Chunks: %s\n" (chunks_counts chunks));
       (match impl.impl_file_probable_name with
@@ -1267,8 +1267,8 @@ let impl_file_info impl =
 
 let lprintf_file_nl ?exn file fmt =
   lprintf_nl2 ?exn ("[" ^ (file_network file).network_shortname ^
-	       "] [file_num " ^ (string_of_int (file_num file)) ^ "]" ^
-	       "[temp " ^ (file_disk_name file) ^ "]") fmt
+               "] [file_num " ^ (string_of_int (file_num file)) ^ "]" ^
+               "[temp " ^ (file_disk_name file) ^ "]") fmt
 
 let concat_file dir filename =
   let fs = Unix32.filesystem_type dir in

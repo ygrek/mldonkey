@@ -558,7 +558,7 @@ let check_result r tags =
               lprintf "[%s] = [%s] " (string_of_field tag.tag_name)
                 (string_of_tag_value tag.tag_value)
           ) tags;
-	  lprint_newline ();
+          lprint_newline ();
         end;
       false
     end

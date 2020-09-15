@@ -219,11 +219,11 @@ let udp_client_handler t p =
     match p.UdpSocket.udp_addr with
       | Unix.ADDR_INET(ip, port) ->
           let ip = Ip.of_inet_addr ip in
-	  let s =
+          let s =
             if !!update_server_list_server then
               check_add_server ip (port-4) 
-	    else 
-	      find_server ip (port-4) in
+            else 
+              find_server ip (port-4) in
             (* set last_conn, but add a 2 minutes offset to prevent
                staying connected to this server *)
             connection_set_last_conn s.server_connection_control (
@@ -315,10 +315,10 @@ let udp_client_handler t p =
               { tag_name = Field_KNOWN "version"; tag_value = Uint64 i } ->
                 let i = Int64.to_int i in
                 s.server_version <- Printf.sprintf "%d.%d" (i lsr 16) (i land 0xFFFF);
-	    | { tag_name = Field_KNOWN "auxportslist" ; tag_value = String aux } ->
-		s.server_auxportslist <- aux
-	    |  { tag_name = Field_KNOWN "dynip" ; tag_value = String dynip } ->
-		s.server_dynip <- dynip
+            | { tag_name = Field_KNOWN "auxportslist" ; tag_value = String aux } ->
+                s.server_auxportslist <- aux
+            |  { tag_name = Field_KNOWN "dynip" ; tag_value = String dynip } ->
+                s.server_dynip <- dynip
             | _ -> ()
       ) t.M.tags;
 
@@ -337,12 +337,12 @@ let udp_client_handler t p =
 
   | Udp.EmulePortTestReq ->
       (match !porttest_sock with
-	None -> ()
+        None -> ()
       | Some sock ->
-	  let s = Buffer.create 10 in
-	  DonkeyProtoUdp.write s Udp.EmulePortTestReq;
-	  TcpBufferedSocket.write_string sock (Buffer.contents s);
-	  porttest_sock := None)
+          let s = Buffer.create 10 in
+          DonkeyProtoUdp.write s Udp.EmulePortTestReq;
+          TcpBufferedSocket.write_string sock (Buffer.contents s);
+          porttest_sock := None)
 
   | _ ->
       if !verbose_unexpected_messages then

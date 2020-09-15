@@ -925,7 +925,7 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
              (try
                 let vc = view#get_column !p in
                 vc#set_sort_indicator false
-	      with _ -> (if !!verbose_view then lprintf_g_view "in add_column failed to append column %d\n" !p));
+              with _ -> (if !!verbose_view then lprintf_g_view "in add_column failed to append column %d\n" !p));
              incr p
            ) !!columns;
            (* draw the indicator on the GTree.view_column we have clicked on *)
@@ -944,7 +944,7 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
                             col#set_sort_indicator false;
                             m#sort c None;
                             previous_col_clicked <- []
-		          end
+                          end
                      | [c', `ASCENDING] when c' = c ->
                          begin
                             col#set_sort_order `ASCENDING;
@@ -956,7 +956,7 @@ class treeview (obj : [> Gtk.box] Gtk.obj) =
                             col#set_sort_order `DESCENDING;
                             m#sort c (Some `ASCENDING);
                             previous_col_clicked <- [c, `ASCENDING]
-		         end
+                         end
       ));
       (match gmodel with
            None -> (if !!verbose_view then lprintf_g_view "in add_column no model set\n")
@@ -1927,12 +1927,12 @@ class chat_view_priv obj =
       List.iter (fun region ->
         let label = self#region_to_label region in
         let menuitem = GMenu.menu_item
-	  ~label ~packing:menu#append ()
+          ~label ~packing:menu#append ()
         in
         let codesets = U.codeset_list_from_region region in
         let m = GMenu.menu () in
         let m_item = GMenu.radio_menu_item ?group:!group
-	    ~label:!M.iM_me_auto_detect ~packing:m#append ()
+            ~label:!M.iM_me_auto_detect ~packing:m#append ()
         in
         group := Some (m_item#group);
         ignore (m_item#connect#toggled ~callback:
@@ -1965,7 +1965,7 @@ class chat_view_priv obj =
         List.iter (fun codeset ->
           let label = self#codeset_to_label codeset in
           let menu_item = GMenu.radio_menu_item ?group:!group
-	    ~label ~packing:m#append ()
+            ~label ~packing:m#append ()
           in
           group := Some (menu_item#group);
           ignore (menu_item#connect#toggled ~callback:
@@ -2061,7 +2061,7 @@ class chat_view_priv obj =
            match smileys_combo#active_iter with
                Some row -> 
                  begin
-	           let s = smileys_combo#model#get ~row ~column:str_col in
+                   let s = smileys_combo#model#get ~row ~column:str_col in
                    let t = entry#text in
                    entry#set_text (Printf.sprintf "%s %s " t s);
                    entry#set_position (String.length entry#text)

@@ -157,19 +157,19 @@ module SetID = struct
     let print t =
       lprintf "SET_ID: %s id: %s %s\n"
         (if t.zlib then "Zlib" else "")
-	(Ip.to_string t.ip)
+        (Ip.to_string t.ip)
         (match t.port with
         None -> Printf.sprintf ""
         | Some port ->
            Printf.sprintf "Real Port: %d" port);
       lprintf "SET_ID: newtags %b unicode %b related_search %b tag_integer %b largefiles %b udp_obfuscation %b tcp_obfuscation %b"
-	t.newtags t.unicode t.related_search t.tag_integer t.largefiles t.udp_obfuscation t.tcp_obfuscation
+        t.newtags t.unicode t.related_search t.tag_integer t.largefiles t.udp_obfuscation t.tcp_obfuscation
 
     let bprint oc t =
       Printf.bprintf oc "SET_ID: %s\n"  (if t.zlib then "Zlib" else "");
       Printf.bprintf oc "SET_ID id: %s\n" (Ip.to_string t.ip);
       Printf.bprintf oc "SET_ID: newtags %b unicode %b related_search %b tag_integer %b largefiles %b udp_obfuscation %b tcp_obfuscation %b\n"
-	t.newtags t.unicode t.related_search t.tag_integer t.largefiles t.udp_obfuscation t.tcp_obfuscation
+        t.newtags t.unicode t.related_search t.tag_integer t.largefiles t.udp_obfuscation t.tcp_obfuscation
 
     let write buf t =
       if t.zlib then buf_int buf 1;
@@ -688,8 +688,8 @@ translation, i.e. Field_Artist = "Artist" instead of "artist" *)
           buf_string buf name
 
       |	QNone ->
-	  lprintf_nl "print_query: QNone in query";
-	  ()
+          lprintf_nl "print_query: QNone in query";
+          ()
 
   end
 
@@ -776,7 +776,7 @@ module QueryUsersReply = struct (* request 67 *)
           Printf.bprintf oc "%d\n" t.port;
           Printf.bprintf oc "TAGS:\n";
           bprint_tags oc  t.tags;
-	  Printf.bprintf oc "\n"
+          Printf.bprintf oc "\n"
           ) t
 
     let write buf t =
@@ -811,7 +811,7 @@ module QueryLocation  = struct
       buf_md4 buf t.md4;
       if t.size > old_max_emule_file_size then
         begin
-	  buf_int64_32 buf 0L; buf_int64 buf t.size 
+          buf_int64_32 buf 0L; buf_int64 buf t.size 
         end
       else
         buf_int64_32 buf t.size 
@@ -968,15 +968,15 @@ module QueryServersReply = struct
 
     let parse len s =
       try
-	let ip = get_ip s 1 in
-	let port = get_port s 5 in
-	let nservers = get_uint8 s 7 in
-	let servers = parse_servers nservers s 8 in
-	  { server_ip = ip; server_port = port; servers = servers }
+        let ip = get_ip s 1 in
+        let port = get_port s 5 in
+        let nservers = get_uint8 s 7 in
+        let servers = parse_servers nservers s 8 in
+          { server_ip = ip; server_port = port; servers = servers }
       with _ ->
-	let nservers = get_uint8 s 1 in
-	let servers = parse_servers nservers s 2 in
-	  { server_ip = Ip.null; server_port = 0; servers = servers }
+        let nservers = get_uint8 s 1 in
+        let servers = parse_servers nservers s 2 in
+          { server_ip = Ip.null; server_port = 0; servers = servers }
 
     let print t =
       lprintf_nl "SERVERS QUERY REPLY %s : %d" (
@@ -995,19 +995,19 @@ module QueryServersReply = struct
 
     let write buf t =
       if (t.server_port = 0) then
-	begin
-	  buf_int8 buf (List.length t.servers);
-	  List.iter (fun s ->
-		       buf_ip buf s.ip; buf_int16 buf s.port) t.servers
-	end
+        begin
+          buf_int8 buf (List.length t.servers);
+          List.iter (fun s ->
+                       buf_ip buf s.ip; buf_int16 buf s.port) t.servers
+        end
       else
-	begin
-	  buf_ip buf t.server_ip;
-	  buf_port buf t.server_port;
-	  buf_int8 buf (List.length t.servers);
-	  List.iter (fun s ->
-		       buf_ip buf s.ip; buf_int16 buf s.port) t.servers
-	end
+        begin
+          buf_ip buf t.server_ip;
+          buf_port buf t.server_port;
+          buf_int8 buf (List.length t.servers);
+          List.iter (fun s ->
+                       buf_ip buf s.ip; buf_int16 buf s.port) t.servers
+        end
 
   end
 

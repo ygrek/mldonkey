@@ -91,10 +91,10 @@ let mldonkey_wget_url w f =
     begin try
     H.whead2 r1 (fun headers ->
       List.iter (fun (name, content) ->
-	if String.lowercase name = "last-modified" then
+        if String.lowercase name = "last-modified" then
           try
-	    date := Some content
-	  with _ -> ()
+            date := Some content
+          with _ -> ()
     ) headers;
     match !date with
       None -> (try
@@ -102,29 +102,29 @@ let mldonkey_wget_url w f =
           w.state <- Some FileLoaded
         with e -> w.state <- None; raise e)
     | Some date ->
-	let file = Filename.concat "web_infos" (Filename.basename r.H.req_url.Url.short_file) in
-	r.H.req_save_to_file_time <- (begin try
-	    Date.time_of_string date
-	  with e ->
-	    Unix.time ()
-	  end);
-	if not (Sys.file_exists file) then
+        let file = Filename.concat "web_infos" (Filename.basename r.H.req_url.Url.short_file) in
+        r.H.req_save_to_file_time <- (begin try
+            Date.time_of_string date
+          with e ->
+            Unix.time ()
+          end);
+        if not (Sys.file_exists file) then
           begin
             try
               H.wget r f;
               w.state <- Some FileLoaded
             with e -> w.state <- None; raise e
           end
-	else
-	  begin
+        else
+          begin
             let file_loaded state =
               match state with
               | Some FileLoaded -> true
               | _ -> false
             in
-	    let file_date = Unix.LargeFile.stat file in
-	      if r.H.req_save_to_file_time <= file_date.Unix.LargeFile.st_mtime then
-	        begin
+            let file_date = Unix.LargeFile.stat file in
+              if r.H.req_save_to_file_time <= file_date.Unix.LargeFile.st_mtime then
+                begin
                   lprintf_nl (_b "%s version of %s (%s), HTML header (%s)")
                     (if file_loaded w.state then "already loaded local" else "re-loading possible broken")
                     file (Date.to_full_string file_date.Unix.LargeFile.st_mtime) date;
@@ -133,16 +133,16 @@ let mldonkey_wget_url w f =
                       H.wget r f;
                       w.state <- Some FileLoaded
                     with e -> w.state <- None; raise e
-	        end
-	      else
-	        begin
-	          lprintf_nl (_b "downloading newer %s, HTML header (%s)") file date;
+                end
+              else
+                begin
+                  lprintf_nl (_b "downloading newer %s, HTML header (%s)") file date;
                   try
                     H.wget r f;
                     w.state <- Some FileLoaded
                   with e -> w.state <- None; raise e
-	        end
-	  end
+                end
+          end
       )
       (fun c ->
           match c with
@@ -229,9 +229,9 @@ let load_web_infos core_start force =
       begin
         try
           load_url false w
-	with e ->
+        with e ->
             lprintf_nl (_b "%s while loading %s")
-	      (Printexc2.to_string e) w.url
+              (Printexc2.to_string e) w.url
       end
   ) CommonOptions.web_infos_table
 
@@ -247,41 +247,41 @@ let _ =
     (fun url filename ->
       lprintf_nl (_b "parsing feed %s (rss)") url;
       let c =
-	(try
-	  let rss_c = Rss.channel_of_file filename in
-	  (try Sys.remove filename with _ -> ());
-	  rss_c
-	with Xml.Error _ ->
-	  lprintf_nl (_b "found buggy feed, preprocessing with %s and trying again") !!rss_preprocessor;
-	  (try
-	    let pipe_out, pipe_in = Unix.pipe () in
-	    let pid = Unix.create_process !!rss_preprocessor [| !!rss_preprocessor; filename |] 
-		Unix.stdin pipe_in pipe_in in
-	    Unix.close pipe_in;
-	    let output = Buffer.create 1024 in
-	    let buffersize = 1024 in
-	    let buffer = String.create buffersize in
-	    (try
-	      while true do
-		let nread = Unix.read pipe_out buffer 0 buffersize in
-		if nread = 0 then raise End_of_file;
-		Buffer.add_substring output buffer 0 nread
-	      done
-	     with 
-	     | End_of_file -> ()
-	     | Unix.Unix_error (code, f, arg) ->
-		 lprintf_nl "%s failed: %s" !!rss_preprocessor (Unix.error_message code));
-	    (try Unix.close pipe_out with _ -> ());
-	    (try Sys.remove filename with _ -> ());
-	    let _pid, _ = Unix.waitpid [] pid in
-	    let result = Buffer.contents output in
-	    if result = "" then begin
-	      lprintf_nl (_b "%s produced empty content for feed %s, program missing?") !!rss_preprocessor url;
-	      raise Not_found
-	    end;
-	    Rss.channel_of_string result
-	  with Unix.Unix_error (code, f, arg) ->
-	    lprintf_nl (_b "%s failed: %s") !!rss_preprocessor (Unix.error_message code); raise Not_found))
+        (try
+          let rss_c = Rss.channel_of_file filename in
+          (try Sys.remove filename with _ -> ());
+          rss_c
+        with Xml.Error _ ->
+          lprintf_nl (_b "found buggy feed, preprocessing with %s and trying again") !!rss_preprocessor;
+          (try
+            let pipe_out, pipe_in = Unix.pipe () in
+            let pid = Unix.create_process !!rss_preprocessor [| !!rss_preprocessor; filename |] 
+                Unix.stdin pipe_in pipe_in in
+            Unix.close pipe_in;
+            let output = Buffer.create 1024 in
+            let buffersize = 1024 in
+            let buffer = String.create buffersize in
+            (try
+              while true do
+                let nread = Unix.read pipe_out buffer 0 buffersize in
+                if nread = 0 then raise End_of_file;
+                Buffer.add_substring output buffer 0 nread
+              done
+             with 
+             | End_of_file -> ()
+             | Unix.Unix_error (code, f, arg) ->
+                 lprintf_nl "%s failed: %s" !!rss_preprocessor (Unix.error_message code));
+            (try Unix.close pipe_out with _ -> ());
+            (try Sys.remove filename with _ -> ());
+            let _pid, _ = Unix.waitpid [] pid in
+            let result = Buffer.contents output in
+            if result = "" then begin
+              lprintf_nl (_b "%s produced empty content for feed %s, program missing?") !!rss_preprocessor url;
+              raise Not_found
+            end;
+            Rss.channel_of_string result
+          with Unix.Unix_error (code, f, arg) ->
+            lprintf_nl (_b "%s failed: %s") !!rss_preprocessor (Unix.error_message code); raise Not_found))
       in
       let feed =
         try Hashtbl.find rss_feeds url with

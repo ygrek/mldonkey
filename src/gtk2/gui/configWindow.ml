@@ -499,19 +499,19 @@ let add_font_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label option
     (event_wrap_widget ~w:hbox ~p ?h_label ());
   let f_sel () =
     let dialog = GWindow.font_selection_dialog
-	~title:(U.simple_utf8_of p.pref_label)
-	~modal:false
-	~show:true ()
+        ~title:(U.simple_utf8_of p.pref_label)
+        ~modal:false
+        ~show:true ()
     in
     dialog#selection#set_font_name !fontv;
     let wb_ok = dialog#ok_button in
     let wb_cancel = dialog#cancel_button in
     let _ = wb_ok#connect#clicked
-	(fun () -> 
-	  let font = dialog#selection#font_name in
+        (fun () -> 
+          let font = dialog#selection#font_name in
           set_font font;
-	  dialog#destroy ()
-	)
+          dialog#destroy ()
+        )
     in
     ignore (wb_cancel#connect#clicked dialog#destroy)
   in

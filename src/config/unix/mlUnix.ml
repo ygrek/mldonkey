@@ -57,32 +57,32 @@ let fork_and_exec cmd ?vars args =
     match vars with
       | None -> None
       | Some vars ->
-	  (* convert environment to an alist *)
-	  let env = List.map (fun kev -> 
-	    try
-	      let len = String.length kev in
-	      let equal_sign = String.index kev '=' in
-		(String.sub kev 0 equal_sign, 
-		 String.sub kev (equal_sign + 1) (len - 1 - equal_sign))
-	    with Not_found -> (* May that happen ? *)
-	      (kev, "")
-	  ) (Array.to_list (Unix.environment ())) in
-	  (* update parent's environment with vars alist *)
-	  let env = List.fold_left (fun acc ((k, v) as assoc) ->
-	    assoc :: List.remove_assoc k acc
-	  ) env vars in
-	  Some (Array.of_list (List.map (fun (k, v) -> k ^ "=" ^ v) env)) in
+          (* convert environment to an alist *)
+          let env = List.map (fun kev -> 
+            try
+              let len = String.length kev in
+              let equal_sign = String.index kev '=' in
+                (String.sub kev 0 equal_sign, 
+                 String.sub kev (equal_sign + 1) (len - 1 - equal_sign))
+            with Not_found -> (* May that happen ? *)
+              (kev, "")
+          ) (Array.to_list (Unix.environment ())) in
+          (* update parent's environment with vars alist *)
+          let env = List.fold_left (fun acc ((k, v) as assoc) ->
+            assoc :: List.remove_assoc k acc
+          ) env vars in
+          Some (Array.of_list (List.map (fun (k, v) -> k ^ "=" ^ v) env)) in
   match Unix.fork() with
     0 -> begin
         try
           match Unix.fork() with
             0 -> begin
                 try
-		  match env with
-		    | None ->
-			Unix.execv cmd args;
-		    | Some env ->
-			Unix.execve cmd args env;
+                  match env with
+                    | None ->
+                        Unix.execv cmd args;
+                    | Some env ->
+                        Unix.execve cmd args env;
                 with e -> 
                     lprintf "Exception %s while starting file_completed_cmd\n" (Printexc2.to_string e); 
                     exit 127

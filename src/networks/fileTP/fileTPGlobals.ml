@@ -195,8 +195,8 @@ let new_client proto hostname port referer =
           client_referer = referer;
           client_port = port;
           client_country_code = None;
-	  client_total_downloaded = zero;
-	  client_session_downloaded = zero;
+          client_total_downloaded = zero;
+          client_session_downloaded = zero;
           client_reconnect = false;
           client_in_queues = [];
           client_connected_for = None;
@@ -207,7 +207,7 @@ let new_client proto hostname port referer =
           dummy_client_impl with
           impl_client_val = c;
           impl_client_ops = client_ops;
-	  impl_client_upload = None;
+          impl_client_upload = None;
         } in
       new_client impl;
       check_client_country_code c;

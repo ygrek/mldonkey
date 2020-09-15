@@ -62,7 +62,7 @@ let add_source file ip tcp_port serverIP serverPort =
     try
       let cc = ref None in
       let uid = 
-    	if low_id ip then
+        if low_id ip then
           begin
             try
               (* without server, we can't request a callback *)
@@ -192,11 +192,11 @@ let _ =
         if !verbose then
             lprintf_nl "New uploader %s%s%s"
               (full_client_identifier c)
-	      (let slot_text = string_of_slot_kind (client_slot (as_client c)) true in
-		 if slot_text = "" then "" else Printf.sprintf "(%s)" slot_text)
-	      (match client_upload (as_client c) with
-		 None -> ""
-	       | Some f -> Printf.sprintf " for file %s" (CommonFile.file_best_name f))
+              (let slot_text = string_of_slot_kind (client_slot (as_client c)) true in
+                 if slot_text = "" then "" else Printf.sprintf "(%s)" slot_text)
+              (match client_upload (as_client c) with
+                 None -> ""
+               | Some f -> Printf.sprintf " for file %s" (CommonFile.file_best_name f))
     )  
   in
   client_ops.op_client_enter_upload_queue <- client_enter_upload_queue
@@ -262,7 +262,7 @@ let disconnect_client c reason =
           
 (* clean_client_zones: clean all structures related to downloads when
    a client disconnects *)
-	  (try
+          (try
             match c.client_download with
             | None -> ()
             | Some (file, up) ->
@@ -738,9 +738,9 @@ let update_emule_proto_from_tags c tags =
 
       | Field_KNOWN "os_info" ->
           let s = to_lowercase (string_of_tag_value tag.tag_value) in 
-	  (match c.client_osinfo with
-	    Some _ -> ()
-	  | _ ->  if s <> "" then c.client_osinfo <- Some s)
+          (match c.client_osinfo with
+            Some _ -> ()
+          | _ ->  if s <> "" then c.client_osinfo <- Some s)
       | Field_KNOWN _ -> if !verbose_unknown_messages then
             lprintf_nl "update_emule_proto_from_tags, known tag: [%s] (%s)" (string_of_tag tag) (full_client_identifier c)
       | _ -> if not (DonkeySources.source_brand c.client_source) && !verbose_unknown_messages then
@@ -763,11 +763,11 @@ let request_osinfo c =
   if c.client_emule_proto.emule_osinfosupport = 1 && not c.client_osinfo_sent then
     begin
       let emule_osinfo = {
-	emule_info with
-	DonkeyProtoClient.EmuleClientInfo.protversion = 255;
-	DonkeyProtoClient.EmuleClientInfo.tags = [
-	  string_tag (Field_KNOWN "os_info") (String2.upp_initial Autoconf.system);
-	]} in
+        emule_info with
+        DonkeyProtoClient.EmuleClientInfo.protversion = 255;
+        DonkeyProtoClient.EmuleClientInfo.tags = [
+          string_tag (Field_KNOWN "os_info") (String2.upp_initial Autoconf.system);
+        ]} in
       client_send c (DonkeyProtoClient.EmuleClientInfoReq emule_osinfo);
       c.client_osinfo_sent <- true
     end
@@ -885,9 +885,9 @@ let is_useful_client file chunks =
       let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
       VB.existsi (fun i s ->
         Bitv.get chunks i && 
-	  (match s with
-	  | VB.State_missing | VB.State_partial -> true
-	  | VB.State_complete | VB.State_verified -> false)
+          (match s with
+          | VB.State_missing | VB.State_partial -> true
+          | VB.State_complete | VB.State_verified -> false)
       ) bitmap
     
 let received_client_bitmap c file chunks =
@@ -1410,9 +1410,9 @@ other one for unlimited sockets.  *)
       if !verbose_upload then
           lprintf_nl "added to pending slots: %s %s"
             (full_client_identifier c) 
-	    (match client_upload (as_client c) with
-	       None -> ""
-	     | Some f -> CommonFile.file_best_name f);
+            (match client_upload (as_client c) with
+               None -> ""
+             | Some f -> CommonFile.file_best_name f);
 (*      end *)
   
   | M.OutOfPartsReq _ ->
@@ -1452,7 +1452,7 @@ other one for unlimited sockets.  *)
           c.client_rating <- c.client_rating + 1;
           
           client_has_file c file;
-	  add_file_filenames (as_file file) t.Q.name;
+          add_file_filenames (as_file file) t.Q.name;
 
           update_best_name file;
           if file_size file <= block_size then begin
@@ -2074,20 +2074,20 @@ end else *)
 
         let up, waiting = match c.client_upload with
           | Some ({ up_file = f; _ } as up) when f == file ->
-	      (* zones are received in the order they're sent, so we
-		 know that the oldest of the zones "in fly" must have
-		 been received when this QueryBlockReq was sent *)
-	      (match up.up_flying_chunks with
-	       | [] -> () 
-	       | _ :: q -> up.up_flying_chunks <- q);
-	      up, up.up_waiting
+              (* zones are received in the order they're sent, so we
+                 know that the oldest of the zones "in fly" must have
+                 been received when this QueryBlockReq was sent *)
+              (match up.up_flying_chunks with
+               | [] -> () 
+               | _ :: q -> up.up_flying_chunks <- q);
+              up, up.up_waiting
           | Some old_up ->
               {
                 up_file = file;
                 up_pos = Int64.zero;
                 up_end_chunk = Int64.zero;
                 up_chunks = [];
-		up_flying_chunks = [];
+                up_flying_chunks = [];
                 up_current = Int64.zero;
                 up_finish = true;
                 up_waiting = old_up.up_waiting;
@@ -2098,7 +2098,7 @@ end else *)
                 up_pos = Int64.zero;
                 up_end_chunk = Int64.zero;
                 up_chunks = [];
-		up_flying_chunks = [];
+                up_flying_chunks = [];
                 up_current = ((t.Q.start_pos1 ++ t.Q.end_pos1) // (2L ** block_size));
                 up_finish = false;
                 up_waiting = false;
@@ -2226,7 +2226,7 @@ let read_first_message overnet server cc m sock =
   let real_ip = peer_ip sock in
   if (not server && !verbose_msg_clients) || (server && !verbose_msg_servers) then begin
       lprintf_nl "Message from incoming %s %s:%d%s"
-	(if server then "server" else "client")
+        (if server then "server" else "client")
         (Ip.to_string real_ip)
         (peer_port sock)
         (match cc with | None -> "" | Some cc -> Printf.sprintf "(%d)" cc);
@@ -2743,5 +2743,5 @@ a FIFO from where they are removed after 30 minutes. What about using
       | exn -> 
         if !verbose then
           lprintf_nl ~exn "remove_location for file_md4 %s"
-	    file_uid
+            file_uid
   )

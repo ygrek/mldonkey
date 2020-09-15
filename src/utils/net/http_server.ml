@@ -830,16 +830,16 @@ let handler config t event =
     (* check here if ip is OK *)
       let from_ip = Ip.of_inet_addr from_ip in
       let ip_is_allowed from_ip =
-	Ip_set.match_ip config.addrs from_ip
+        Ip_set.match_ip config.addrs from_ip
       in
       let ip_is_blocked from_ip =
-	if config.use_ip_block_list then
-	  match !Ip.banned (from_ip, None) with
+        if config.use_ip_block_list then
+          match !Ip.banned (from_ip, None) with
             None -> false
            | Some reason -> lprintf_nl "%s:%d blocked: %s"
                (Ip.to_string from_ip) from_port reason; true
         else
-	  false
+          false
       in 
       if ip_is_allowed from_ip && not (ip_is_blocked from_ip) then
         let token = create_token unlimited_connection_manager in
@@ -854,15 +854,15 @@ let handler config t event =
       else begin
         lprintf_nl "connection from %s rejected (%s)"
           (Ip.to_string from_ip)
-	  (if ip_is_blocked from_ip then "IP is blocked" else "see allowed_ips setting");
+          (if ip_is_blocked from_ip then "IP is blocked" else "see allowed_ips setting");
         let token = create_token unlimited_connection_manager in
         let sock = TcpBufferedSocket.create_simple token "http connection" s in
-	let s1,s2,_ = error_page
+        let s1,s2,_ = error_page
       (if not (ip_is_allowed from_ip) then Not_allowed from_ip else Blocked from_ip)
-	    (TcpBufferedSocket.my_ip sock)
-	    config.port
-	in
-	TcpBufferedSocket.write_string sock (Printf.sprintf "%s\n%s" s1 s2);
+            (TcpBufferedSocket.my_ip sock)
+            config.port
+        in
+        TcpBufferedSocket.write_string sock (Printf.sprintf "%s\n%s" s1 s2);
         shutdown sock Closed_connect_failed;
         Unix.close s
       end

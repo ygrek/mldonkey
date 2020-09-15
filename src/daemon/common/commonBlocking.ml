@@ -93,11 +93,11 @@ let set_ip_blocking_countries cl =
       end
     else
       try
-	let index = Hashtbl.find Geoip.country_index cc in
+        let index = Hashtbl.find Geoip.country_index cc in
           temp_list := cc :: !temp_list;
-	  country_blocking_list.(index) <- (not !country_blocking_block)
+          country_blocking_list.(index) <- (not !country_blocking_block)
       with Not_found ->
-	lprintf_nl "Country code %s not found" cc
+        lprintf_nl "Country code %s not found" cc
   ) cl;
   country_blocking_string_list_copy := !temp_list;
   update_bans ()
@@ -111,10 +111,10 @@ let _ =
     "IP blocking lists (ipfilter and guardian v2 formats)"
     (fun url filename ->
       web_ip_blocking_list :=
-	if filename = "" then
-	  Ip_set.bl_empty
-	else
-	  Ip_set.load filename;
+        if filename = "" then
+          Ip_set.bl_empty
+        else
+          Ip_set.load filename;
       update_bans ()
   );
   CommonWeb.add_web_kind "geoip.dat" "IP to country mapping database"
@@ -125,7 +125,7 @@ let _ =
 
   Heap.add_memstat "CommonBlocking" (fun level buf ->
       Printf.bprintf buf "  local ranges: %d\n" 
-	(Ip_set.bl_length !ip_blocking_list);
+        (Ip_set.bl_length !ip_blocking_list);
       Printf.bprintf buf "  web ranges: %d\n" 
-	(Ip_set.bl_length !web_ip_blocking_list)
+        (Ip_set.bl_length !web_ip_blocking_list)
    )

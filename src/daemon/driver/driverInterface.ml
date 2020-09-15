@@ -626,19 +626,19 @@ let gui_reader (gui: gui_record) t _ =
                 | None -> None, None, None
                 | Some (gui_type, (ip, port)) -> Some gui_type, Some ip, Some port
               in
-	      if user2_is_admin gui.gui_conn.conn_user.ui_user then
-		CommonInteractive.set_fully_qualified_options name value
+              if user2_is_admin gui.gui_conn.conn_user.ui_user then
+                CommonInteractive.set_fully_qualified_options name value
                   ~user:(Some o.conn_user.ui_user.user_name)
                   ~ip:ip ~port:port ~gui_type:gui_type ()
-	      else
-	        begin
+              else
+                begin
                   let buf = o.conn_buf in
                   Buffer.reset buf; 
                   Buffer.add_string buf "\nYou are not allowed to change options\n";
                   gui_send gui (P.Console (
                       DriverControlers.dollar_escape o false
                         (Buffer.contents buf)))
-		end
+                end
           
           | P.CloseSearch (num, forget) ->
               let s = List.assoc num gui.gui_searches in
@@ -658,7 +658,7 @@ let gui_reader (gui: gui_record) t _ =
               end
           
           | P.EnableNetwork (num, bool) ->
-	      if user2_is_admin gui.gui_conn.conn_user.ui_user then
+              if user2_is_admin gui.gui_conn.conn_user.ui_user then
               let n = network_find_by_num num in
               if network_is_enabled n <> bool then
                 (try
@@ -685,10 +685,10 @@ let gui_reader (gui: gui_record) t _ =
                     network_extend_search r s e)
           
           | P.KillServer -> 
-	      if user2_is_admin gui.gui_conn.conn_user.ui_user then
-		CommonInteractive.clean_exit 0
-	      else
-	        begin
+              if user2_is_admin gui.gui_conn.conn_user.ui_user then
+                CommonInteractive.clean_exit 0
+              else
+                begin
                   let o = gui.gui_conn in
                   let buf = o.conn_buf in
                   Buffer.reset buf; 
@@ -696,7 +696,7 @@ let gui_reader (gui: gui_record) t _ =
                   gui_send gui (P.Console (
                       DriverControlers.dollar_escape o false
                         (Buffer.contents buf)))
-		end
+                end
           
           | P.Search_query s ->
               
@@ -803,7 +803,7 @@ let gui_reader (gui: gui_record) t _ =
                 | None -> None, None, None
                 | Some (gui_type, (ip, port)) -> Some gui_type, Some ip, Some port
               in
-	      if user2_is_admin gui.gui_conn.conn_user.ui_user then
+              if user2_is_admin gui.gui_conn.conn_user.ui_user then
               List.iter (fun (name, value) ->
                   CommonInteractive.set_fully_qualified_options name value
                     ~user:(Some o.conn_user.ui_user.user_name)
@@ -1079,21 +1079,21 @@ let gui_reader (gui: gui_record) t _ =
               gui_send gui (P.Stats (num, l))
 
           | P.GiftAttach (profile, version, client) ->
-	      let user, pass =
-		try
-		  let index = String.index profile ':' in
-		    String.sub profile 0 (index), 
-		    String.sub profile (index+1) (String.length profile - index - 1)
-		with Not_found -> profile, "" in
-		(match gui.gui_sock with
-		  | Some sock when not (valid_password user pass) ->
-		      set_lifetime sock 5.;
-		      if not !verbose_no_login then lprintf_nl "BAD PASSWORD";
-		      TcpBufferedSocket.close sock (Closed_for_error "Bad Password")
-		  | _ ->
-		      gui.gui_auth <- true;
-		      gui.gui_conn.conn_user <- find_ui_user user;
-		      gui_send gui (P.GiftServerAttach ("mldonkey", "1.1")))
+              let user, pass =
+                try
+                  let index = String.index profile ':' in
+                    String.sub profile 0 (index), 
+                    String.sub profile (index+1) (String.length profile - index - 1)
+                with Not_found -> profile, "" in
+                (match gui.gui_sock with
+                  | Some sock when not (valid_password user pass) ->
+                      set_lifetime sock 5.;
+                      if not !verbose_no_login then lprintf_nl "BAD PASSWORD";
+                      TcpBufferedSocket.close sock (Closed_for_error "Bad Password")
+                  | _ ->
+                      gui.gui_auth <- true;
+                      gui.gui_conn.conn_user <- find_ui_user user;
+                      gui_send gui (P.GiftServerAttach ("mldonkey", "1.1")))
           | P.GiftStats ->
               let list = ref [] in
               networks_iter (fun n ->
@@ -1108,10 +1108,10 @@ let gui_reader (gui: gui_record) t _ =
               let s = server_find num in
               server_rename s name
           | P.ServerSetPreferred (num, preferred) ->
-	      if user2_is_admin gui.gui_conn.conn_user.ui_user then
+              if user2_is_admin gui.gui_conn.conn_user.ui_user then
                 server_set_preferred (server_find num) preferred
-	      else
-	        begin
+              else
+                begin
                   let o = gui.gui_conn in
                   let buf = o.conn_buf in
                   Buffer.reset buf; 
@@ -1119,7 +1119,7 @@ let gui_reader (gui: gui_record) t _ =
                   gui_send gui (P.Console (
                       DriverControlers.dollar_escape o false
                         (Buffer.contents buf)))
-		end
+                end
 
   with 
     Failure s ->
@@ -1130,7 +1130,7 @@ let gui_reader (gui: gui_record) t _ =
       gui_send gui (Console (Printf.sprintf "\nError: Torrent %s is already in download queue\n" s))
   | e ->
       gui_send gui (Console (Printf.sprintf "from_gui: exception %s for message %s\n"
-	(Printexc2.to_string e) (GuiProto.string_of_from_gui t)))
+        (Printexc2.to_string e) (GuiProto.string_of_from_gui t)))
 
 let gui_events () = 
   {

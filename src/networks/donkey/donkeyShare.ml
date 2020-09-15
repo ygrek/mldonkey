@@ -100,10 +100,10 @@ let new_file_to_share sh codedname old_impl =
      *)
     match file.file_swarmer with
     | Some s -> 
-	let len = Array.length md4s in
-	let ver_str = String.make len (VB.state_to_char VB.State_verified) in
-	CommonSwarming.set_chunks_verified_bitmap s
-	  (VB.of_string ver_str);
+        let len = Array.length md4s in
+        let ver_str = String.make len (VB.state_to_char VB.State_verified) in
+        CommonSwarming.set_chunks_verified_bitmap s
+          (VB.of_string ver_str);
      (*
      CommonSwarming.set_present s [(Int64.zero, file_size file)];
      (* If we don't verify now, it will never happen! *)
@@ -113,12 +113,12 @@ let new_file_to_share sh codedname old_impl =
           lprintf_nl "verified map of %s = %s"
             (codedname) (VB.to_string (CommonSwarming.chunks_verified_bitmap s))
     | None -> 
-	if !verbose_share then 
-	  lprintf_nl "no swarmer for %s" codedname;
-	(try
+        if !verbose_share then 
+          lprintf_nl "no swarmer for %s" codedname;
+        (try
           file.file_format <- CommonMultimedia.get_info
             (file_disk_name file)
-	with _ -> ());
+        with _ -> ());
     (*
     (try
         DonkeyOvernet.publish_file file
@@ -149,9 +149,9 @@ let send_new_shared () =
   let all_shared =
     all_shared ()
     |> List.map (fun e -> 
-	(match e.file_shared with
-	  Some s -> List.length s.impl_shared_servers
-	 | _ -> 0) , e)
+        (match e.file_shared with
+          Some s -> List.length s.impl_shared_servers
+         | _ -> 0) , e)
     |> List.sort (fun (a,_) (b,_) -> compare a b)
     |> List.map snd
   in
@@ -162,49 +162,49 @@ let send_new_shared () =
 (* publish files only on master servers and do not publish more files than hard limit allows *)
     if s.server_master &&
       (match s.server_hard_limit with
-	  Some v when (Int64.to_int v) < List.length s.server_sent_shared -> false
-	| _ -> true) then
+          Some v when (Int64.to_int v) < List.length s.server_sent_shared -> false
+        | _ -> true) then
 
 (* iter through all shared files and check if the file is already published on the current server
    build a list of files_to_send with yet unpublished files *)
       begin
-	let files_to_send = ref [] in
+        let files_to_send = ref [] in
         let can_publish f = not (file_is_largefile f && not s.server_has_largefiles) in
         List.iter (fun f ->
           match f.file_shared with
-	    Some impl ->
-	      if not (List.mem (CommonServer.as_server s.server_server) impl.impl_shared_servers)
-		&& List.length !files_to_send < !!max_published_files && can_publish f then
-	      files_to_send := f :: !files_to_send
-	      else
-		if not (can_publish f) then
-		  lprintf_nl "Can not publish largefile %s because server %s does not support largefiles"
-		    (file_best_name f) (string_of_server s)
-	    | _ -> () (* this case never happens *)
-	) all_shared;
+            Some impl ->
+              if not (List.mem (CommonServer.as_server s.server_server) impl.impl_shared_servers)
+                && List.length !files_to_send < !!max_published_files && can_publish f then
+              files_to_send := f :: !files_to_send
+              else
+                if not (can_publish f) then
+                  lprintf_nl "Can not publish largefile %s because server %s does not support largefiles"
+                    (file_best_name f) (string_of_server s)
+            | _ -> () (* this case never happens *)
+        ) all_shared;
 
-	if !files_to_send <> [] then
-	  begin
-	    if !verbose_share || !verbose then
-	      lprintf_nl "publishing %d new files to %s (holds %d files)"
-		(List.length !files_to_send) (string_of_server s)
-		(List.length s.server_sent_shared);
+        if !files_to_send <> [] then
+          begin
+            if !verbose_share || !verbose then
+              lprintf_nl "publishing %d new files to %s (holds %d files)"
+                (List.length !files_to_send) (string_of_server s)
+                (List.length s.server_sent_shared);
 
 (* publish files on server *)
-	    do_if_connected s.server_sock (fun sock ->
-	      server_send_share s.server_has_zlib sock !files_to_send);
+            do_if_connected s.server_sock (fun sock ->
+              server_send_share s.server_has_zlib sock !files_to_send);
 
 (* append new published files to server structure *)
-	    s.server_sent_shared <- !files_to_send @ s.server_sent_shared;
+            s.server_sent_shared <- !files_to_send @ s.server_sent_shared;
 
 (* iter through published files and append current server *)
-	    List.iter (fun file ->
-	      match file.file_shared with
-		Some impl -> impl.impl_shared_servers <-
-		  impl.impl_shared_servers @ [(CommonServer.as_server s.server_server)]
-	      | _ -> ()) !files_to_send
+            List.iter (fun file ->
+              match file.file_shared with
+                Some impl -> impl.impl_shared_servers <-
+                  impl.impl_shared_servers @ [(CommonServer.as_server s.server_server)]
+              | _ -> ()) !files_to_send
 
-	end
+        end
       end
   ) (logged_in_servers ());
 
@@ -270,17 +270,17 @@ let rec check_shared_files () =
                   end
                 else
                   job_creater ();
-		(* only try back-to-back hashing if hashing is
+                (* only try back-to-back hashing if hashing is
                    handled by a separate thread *)
-		if BasicSocket.has_threads () then
-		  check_shared_files ()
+                if BasicSocket.has_threads () then
+                  check_shared_files ()
             )
           with
-	    Wrong_file_size (real,computed) -> 
+            Wrong_file_size (real,computed) -> 
             shared_files := files;
             lprintf_nl "Computed filesize %Ld does not match physical filesize %Ld, %s not shared"
               computed real sh.shared_name
-	  | e ->
+          | e ->
             shared_files := files;
             lprintf_nl "Exception %s prevents sharing of %s"
               (Printexc2.to_string e) sh.shared_name

@@ -56,8 +56,8 @@ module Make(Ord: OrderedType) =
     type elt = Ord.t
     type btree = Empty | Node of btree * elt * btree * int
     type t = {
-	tree : btree;
-	card : int Lazy.t
+        tree : btree;
+        card : int Lazy.t
       }
 
     (* Sets are represented by balanced binary trees (the heights of the
@@ -73,7 +73,7 @@ module Make(Ord: OrderedType) =
 
     let t_of_tree t =
       { tree = t;
-	card = lazy (cardinal_tree t); }
+        card = lazy (cardinal_tree t); }
 
     let cardinal t =
       Lazy.force t.card
@@ -137,9 +137,9 @@ module Make(Ord: OrderedType) =
       {
        tree = tree;
        card = if Lazy.lazy_is_val t.card then
-	 Lazy.lazy_from_val ((Lazy.force_val t.card) + 1)
+         Lazy.lazy_from_val ((Lazy.force_val t.card) + 1)
        else
-	 lazy (cardinal_tree tree)
+         lazy (cardinal_tree tree)
      }
 
     (* Same as create and bal, but no assumptions are made on the
@@ -160,7 +160,7 @@ module Make(Ord: OrderedType) =
         Empty -> raise Not_found
       | Node(Empty, v, r, _) -> v
       | Node(l, v, r, _) -> min_elt_tree l
-	    
+            
     let min_elt t =
       min_elt_tree t.tree
 
@@ -233,33 +233,33 @@ module Make(Ord: OrderedType) =
       | Node(l, v, r, _) ->
           let c = Ord.compare x v in
           c = 0 || mem_tree x (if c < 0 then l else r)
-	    
+            
     let mem x t = mem_tree x t.tree
 
     let singleton x = 
       { tree = Node(Empty, x, Empty, 1);
-	card = Lazy.lazy_from_val 1; }
+        card = Lazy.lazy_from_val 1; }
 
     let rec remove_tree x = function
         Empty -> (Empty, false)
       | Node(l, v, r, _) ->
           let c = Ord.compare x v in
           if c = 0 then (merge l r, true) else
-	  if c < 0 then
-	    let tree, found = remove_tree x l in
-	    (bal tree v r, found) 
-	  else 
-	    let tree, found = remove_tree x r in
-	    (bal l v tree, found)
+          if c < 0 then
+            let tree, found = remove_tree x l in
+            (bal tree v r, found) 
+          else 
+            let tree, found = remove_tree x r in
+            (bal l v tree, found)
 
     let remove x t =
       let tree, found = remove_tree x t.tree in
       if found then
-	{ tree = tree;
-	  card = if Lazy.lazy_is_val t.card then
-	    Lazy.lazy_from_val ((Lazy.force_val t.card) - 1)
-	  else
-	    lazy (cardinal_tree tree) }
+        { tree = tree;
+          card = if Lazy.lazy_is_val t.card then
+            Lazy.lazy_from_val ((Lazy.force_val t.card) - 1)
+          else
+            lazy (cardinal_tree tree) }
       else t
 
     let rec union_tree s1 s2 =

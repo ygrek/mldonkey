@@ -115,13 +115,13 @@ type t = {
     mutable t_nverified_chunks : int;
 
     mutable t_verifier : verification; (* information available to
-					  check data correctness *)
+                                          check data correctness *)
     mutable t_verified : (int -> int -> unit); (* function to call
-						  when a chunk is verified;
-						  receives the number
-						  of verified chunks,
-						  and the index of the
-						  chunk just verified *)
+                                                  when a chunk is verified;
+                                                  receives the number
+                                                  of verified chunks,
+                                                  and the index of the
+                                                  chunk just verified *)
 
 (* mapping from network chunks to swarmer blocks *)
     mutable t_blocks_of_chunk : int list array;
@@ -136,7 +136,7 @@ and swarmer = {
     s_disk_allocation_block_size : int64;
 
     mutable s_networks : t list; (** list of frontends, primary at head 
-				     t.t_s = s <=> t in s.s_networks *)
+                                     t.t_s = s <=> t in s.s_networks *)
     mutable s_strategy : swarming_strategy;
 
     mutable s_verified_bitmap : VerificationBitmap.t;
@@ -150,7 +150,7 @@ and swarmer = {
 
     mutable s_blocks : block_v array;
     mutable s_block_pos : int64 array; (** offset of the beginning of
-					   each block *)
+                                           each block *)
   }
 
 and block_v =
@@ -165,14 +165,14 @@ and block = {
     mutable block_begin : Int64.t;
     mutable block_end : Int64.t;
     mutable block_ranges : range; (** [range] of the double-linked
-				      list of ranges associated to the
-				      [block] 
-				      what about using a standard list
-				      instead ? 
-				      or a balanced tree ? *)
+                                      list of ranges associated to the
+                                      [block] 
+                                      what about using a standard list
+                                      instead ? 
+                                      or a balanced tree ? *)
     mutable block_remaining : int64; (* amount of bytes missing. *)
     mutable block_unselected_remaining : int64; (* same, less ranges
-						   selected for uploaders. *)
+                                                   selected for uploaders. *)
   }
 
 and range = {
@@ -182,7 +182,7 @@ and range = {
     mutable range_prev : range option;
     mutable range_next : range option;
     mutable range_nuploading : int; (* number of uploaders currently
-				       referencing that range *)
+                                       referencing that range *)
   }
 
 and uploader = {
@@ -194,23 +194,23 @@ and uploader = {
     mutable up_intervals : intervals;
     mutable up_complete_blocks : int array; (** block numbers *)
     mutable up_ncomplete : int; (** number of blocks not yet handled,
-				    at the beginning of
-				    up_complete_blocks *)
+                                    at the beginning of
+                                    up_complete_blocks *)
 
     mutable up_partial_blocks : (int * int64 * int64) array; (** block
-								 number,
-								 begin_pos,
-								 end_pos
-								 *)
+                                                                 number,
+                                                                 begin_pos,
+                                                                 end_pos
+                                                                 *)
     mutable up_npartial : int; (** number of blocks not yet handled,
-				   at the beginning of
-				   up_partial_blocks *)
+                                   at the beginning of
+                                   up_partial_blocks *)
 
     mutable up_blocks : uploader_block list;
 
     mutable up_ranges : (int64 * int64 * range) list; (* ranges referenced by
-							 that uploader, see
-							 range_nuploading *)
+                                                         that uploader, see
+                                                         range_nuploading *)
   }
 and uploader_block = {
   up_block : block;
@@ -422,8 +422,8 @@ let cut_ranges_after b r cut_pos =
     if r.range_begin >= cut_pos then begin
       (match r.range_prev with
       | None -> 
-	  let b1 = r.range_block in
-	  b1.block_ranges <- void_range b1 cut_pos
+          let b1 = r.range_block in
+          b1.block_ranges <- void_range b1 cut_pos
       | Some rp ->
           rp.range_next <- None;
           r.range_prev <- None);
@@ -438,8 +438,8 @@ let cut_ranges_after b r cut_pos =
       (* across cut position, must split a range *)
       (* "right" half *)
       let split_r = { r with
-	range_begin = cut_pos;
-	range_prev = None;
+        range_begin = cut_pos;
+        range_prev = None;
       } in
       (match split_r.range_next with
       | None -> ()
@@ -450,7 +450,7 @@ let cut_ranges_after b r cut_pos =
       r.range_next <- None;
 
       if r.range_nuploading <> 0 then
-	lprintf_nl "WARNING: Splitting a range currently being uploaded, don't know what to do with range_nuploading :/";
+        lprintf_nl "WARNING: Splitting a range currently being uploaded, don't know what to do with range_nuploading :/";
 
       split_r in
   let cut_ranges = iter r in
@@ -554,11 +554,11 @@ let iter_intervals s f intervals =
         if i < nchunks && block_begin < interval_end then
           let block_end = compute_block_end s i in
           let current_end =  min block_end interval_end in
-	  
+          
           if debug_all then
             lprintf_nl "Apply: %d %Ld-%Ld %Ld-%Ld"
               i block_begin block_end interval_begin current_end;
-	  
+          
           f i block_begin block_end interval_begin current_end;
           iter_blocks (i+1) block_end block_end
       in
@@ -679,7 +679,7 @@ let create_swarmer file_name file_size =
   try
     HS.find swarmers_by_name
       { dummy_swarmer with
-	s_filename = file_name
+        s_filename = file_name
       }
   with Not_found ->
     incr swarmer_counter;
@@ -689,7 +689,7 @@ let create_swarmer file_name file_size =
        blocks of this size *)
     let disk_allocation_block_size = 
       min (megabytes 10) 
-	(round_up64 (max 1L (file_size // 200L)) (megabytes 1)) in
+        (round_up64 (max 1L (file_size // 200L)) (megabytes 1)) in
     let ndiskblocks =
       1 + Int64.to_int (Int64.pred file_size // disk_allocation_block_size) in
     let s = {
@@ -747,7 +747,7 @@ let split_blocks s chunk_size =
         let new_blocks = (
             s.s_blocks.(index_s),
             block_begin,
-	    VB.get s.s_verified_bitmap index_s
+            VB.get s.s_verified_bitmap index_s
           ) :: new_blocks in
         iter (index_s+1) chunk_begin new_blocks
 
@@ -761,10 +761,10 @@ let split_blocks s chunk_size =
 
     else begin
       (* chunk_end < block_end
-	 We need to split this block in two parts *)
+         We need to split this block in two parts *)
         s.s_block_pos.(index_s) <- chunk_end;
         match s.s_blocks.(index_s) with
-	| EmptyBlock | CompleteBlock | VerifiedBlock ->
+        | EmptyBlock | CompleteBlock | VerifiedBlock ->
 
 (* s.s_blocks.(index_s) will appear twice in the result list *)
             let new_blocks =  (
@@ -775,7 +775,7 @@ let split_blocks s chunk_size =
             iter index_s chunk_end new_blocks
 
         | PartialBlock b1 ->
-	    (* split b1 in two; b2 is the part after [chunk_end] offset *)
+            (* split b1 in two; b2 is the part after [chunk_end] offset *)
             let b2 = {
                 block_s = s;
 
@@ -784,19 +784,19 @@ let split_blocks s chunk_size =
                 block_ranges = b1.block_ranges; (* fixed below *)
                 block_num = 0; (* fixed below *)
                 block_remaining = zero; (* fixed below *)
-		block_unselected_remaining = zero; (* fixed below *)
+                block_unselected_remaining = zero; (* fixed below *)
               } in
-	    b2.block_ranges <- cut_ranges_after b2 b1.block_ranges chunk_end;
+            b2.block_ranges <- cut_ranges_after b2 b1.block_ranges chunk_end;
             b1.block_end <- chunk_end;
 
             let new_blocks =
               (if block_is_full b1 then
 (* lprintf "Partial block b1 should become CompleteBlock\n"; *)
-		(
-		  CompleteBlock,
-		  block_begin,
-		  VB.State_complete
-		) else if block_is_empty b1 then
+                (
+                  CompleteBlock,
+                  block_begin,
+                  VB.State_complete
+                ) else if block_is_empty b1 then
 (* lprintf "Partial block b1 should become EmptyBlock\n"; *)
                   (
                     EmptyBlock,
@@ -809,17 +809,17 @@ let split_blocks s chunk_size =
                   ))
               :: new_blocks in
 
-	    if block_is_full b2 then begin
-	      (* lprintf "Partial block b2 should become CompleteBlock\n"; *)
-	      s.s_blocks.(index_s) <- CompleteBlock;
-	      VB.set s.s_verified_bitmap index_s VB.State_complete
-	    end
+            if block_is_full b2 then begin
+              (* lprintf "Partial block b2 should become CompleteBlock\n"; *)
+              s.s_blocks.(index_s) <- CompleteBlock;
+              VB.set s.s_verified_bitmap index_s VB.State_complete
+            end
             else if block_is_empty b2 then begin
-	      (* lprintf "Partial block b2 should become EmptyBlock\n"; *)
+              (* lprintf "Partial block b2 should become EmptyBlock\n"; *)
               s.s_blocks.(index_s) <- EmptyBlock;
               VB.set s.s_verified_bitmap index_s VB.State_missing;
             end 
-	    else
+            else
               s.s_blocks.(index_s) <- PartialBlock b2;
             iter index_s chunk_end new_blocks
       end
@@ -849,21 +849,21 @@ let split_blocks s chunk_size =
     | (b, pos, c) :: tail ->
         begin
           match b with
-	  | PartialBlock b -> 
-	      begin
-		b.block_num <- i;
-		let block_size = compute_block_end s i --
-		  compute_block_begin s i in
-		let remaining, unselected_remaining =
-		  block_ranges_fold (fun (racc, uracc) r ->
-		    let range_size = compute_range_size r in
-		    (racc -- range_size,
-		    if r.range_nuploading = 0 then 
-		      uracc -- range_size else uracc)
-		  ) (block_size, block_size) b in
-		b.block_remaining <- remaining;
-		b.block_unselected_remaining <- unselected_remaining;
-	      end
+          | PartialBlock b -> 
+              begin
+                b.block_num <- i;
+                let block_size = compute_block_end s i --
+                  compute_block_begin s i in
+                let remaining, unselected_remaining =
+                  block_ranges_fold (fun (racc, uracc) r ->
+                    let range_size = compute_range_size r in
+                    (racc -- range_size,
+                    if r.range_nuploading = 0 then 
+                      uracc -- range_size else uracc)
+                  ) (block_size, block_size) b in
+                b.block_remaining <- remaining;
+                b.block_unselected_remaining <- unselected_remaining;
+              end
           | EmptyBlock | CompleteBlock | VerifiedBlock -> ()
         end;
         s.s_blocks.(i) <- b;
@@ -905,12 +905,12 @@ let associate is_primary t s =
   end else begin
     match s.s_networks with
     | tprim :: _ ->
-	assert(tprim.t_primary);
-	if file_disk_name t.t_file <> file_disk_name tprim.t_file then
-	  (* TODO: transfer data into swarmer instead of discarding it *)
-	  Unix32.remove (file_fd t.t_file);
-	t.t_primary <- false;
-	s.s_networks <- s.s_networks @ [t];
+        assert(tprim.t_primary);
+        if file_disk_name t.t_file <> file_disk_name tprim.t_file then
+          (* TODO: transfer data into swarmer instead of discarding it *)
+          Unix32.remove (file_fd t.t_file);
+        t.t_primary <- false;
+        s.s_networks <- s.s_networks @ [t];
     | [] -> assert false
   end;
 
@@ -1017,7 +1017,7 @@ let is_fully_preallocated t interval_begin interval_end =
   try
     iter_disk_space (fun s fd disk_block ->
       if not(Bitv.get s.s_disk_allocated disk_block) then
-	raise Not_preallocated_block_found
+        raise Not_preallocated_block_found
     ) t interval_begin interval_end;
     true
   with Not_preallocated_block_found -> false
@@ -1051,7 +1051,7 @@ let check_finished t =
       false
   | FileDownloading ->
       if VB.existsi (fun i c -> c <> VB.State_verified)
-	t.t_converted_verified_bitmap then false
+        t.t_converted_verified_bitmap then false
       else begin
         if file_size file <> file_downloaded t.t_file then
           lprintf_nl "Downloaded size differs after complete verification";
@@ -1076,13 +1076,13 @@ let print_s str s =
       let block_end = compute_block_end s i in
       lprintf "%Ld - %Ld [%Ld] %c " block_begin block_end
         (block_end -- block_begin) 
-	(VB.state_to_char 
-	  (VB.get s.s_verified_bitmap i));
+        (VB.state_to_char 
+          (VB.get s.s_verified_bitmap i));
       List.iter (fun t ->
           let j = t.t_chunk_of_block.(i) in
           lprintf "(b %d %c [" j 
-	    (VB.state_to_char 
-	      (VB.get t.t_converted_verified_bitmap j));
+            (VB.state_to_char 
+              (VB.get t.t_converted_verified_bitmap j));
           List.iter (fun ii -> lprintf "%d " ii) t.t_blocks_of_chunk.(j);
           lprintf "]";
       ) s.s_networks;
@@ -1141,7 +1141,7 @@ let add_file_downloaded maybe_t s size =
       (match maybe_t with
        | None -> ()
        | Some tt ->
-	   if t.t_num <> tt.t_num then
+           if t.t_num <> tt.t_num then
              add_file_downloaded tt.t_file size);
       if file_downloaded t.t_file < zero then
         lprintf_nl "ERROR: file_downloaded < zero!";
@@ -1196,16 +1196,16 @@ let set_swarmer_state_missing s i =
       (VB.set s.s_verified_bitmap i VB.State_missing;
        List.iter (fun t ->
           let j = t.t_chunk_of_block.(i) in
-	  match VB.get t.t_converted_verified_bitmap j with
-	  | VB.State_missing -> ()
-	  | VB.State_partial ->
-	      if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_missing)
-		t.t_blocks_of_chunk.(j) then
-		  VB.set t.t_converted_verified_bitmap j VB.State_missing
-	  | VB.State_complete -> 
-	      lprintf_nl "set_swarmer_state_missing: invalidating a block within a completed chunk?"
-	  | VB.State_verified -> 
-	      lprintf_nl "set_swarmer_state_missing: invalidating a block within a verified chunk?"
+          match VB.get t.t_converted_verified_bitmap j with
+          | VB.State_missing -> ()
+          | VB.State_partial ->
+              if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_missing)
+                t.t_blocks_of_chunk.(j) then
+                  VB.set t.t_converted_verified_bitmap j VB.State_missing
+          | VB.State_complete -> 
+              lprintf_nl "set_swarmer_state_missing: invalidating a block within a completed chunk?"
+          | VB.State_verified -> 
+              lprintf_nl "set_swarmer_state_missing: invalidating a block within a verified chunk?"
       ) s.s_networks)
   | VB.State_missing -> ()
   | VB.State_partial ->
@@ -1220,20 +1220,20 @@ let set_swarmer_state_partial s i =
       List.iter (fun t ->
         let j = t.t_chunk_of_block.(i) in
         match VB.get t.t_converted_verified_bitmap j with
-	| VB.State_missing -> 
-	    VB.set t.t_converted_verified_bitmap j VB.State_partial
-	| VB.State_partial -> ()
-	| VB.State_complete -> 
-	    lprintf_nl "set_swarmer_state_partial: partial block within a completed chunk?"
-	| VB.State_verified -> 
-	    lprintf_nl "set_swarmer_state_partial: partial block within a verified chunk?"
+        | VB.State_missing -> 
+            VB.set t.t_converted_verified_bitmap j VB.State_partial
+        | VB.State_partial -> ()
+        | VB.State_complete -> 
+            lprintf_nl "set_swarmer_state_partial: partial block within a completed chunk?"
+        | VB.State_verified -> 
+            lprintf_nl "set_swarmer_state_partial: partial block within a verified chunk?"
       ) s.s_networks
   | VB.State_partial -> ()
   | VB.State_complete -> 
       lprintf_nl "set_swarmer_state_partial: trying to demote a completed block?"
   | VB.State_verified -> 
       lprintf_nl "set_swarmer_state_partial: trying to demote a verified block?"
-	
+        
 
 (* we finished this block, trying to escalate to primary frontend
    verification bitmap *)
@@ -1243,19 +1243,19 @@ let set_swarmer_state_complete s i =
       (VB.set s.s_verified_bitmap i VB.State_complete;
       match s.s_networks with
       | t :: _ ->
-	  assert (t.t_primary);
+          assert (t.t_primary);
           let j = t.t_chunk_of_block.(i) in
-	  (match VB.get t.t_converted_verified_bitmap j with
-	  | VB.State_missing | VB.State_partial -> 
-	      if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_complete)
-		t.t_blocks_of_chunk.(j) then begin
-		  t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1;
-		  VB.set t.t_converted_verified_bitmap j VB.State_complete
-		end
-	  | VB.State_complete -> ()
-	  | VB.State_verified -> 
-	      (* lprintf_nl "set_swarmer_state_complete: trying to demote a verified block? (1)" *)
-	      ())
+          (match VB.get t.t_converted_verified_bitmap j with
+          | VB.State_missing | VB.State_partial -> 
+              if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_complete)
+                t.t_blocks_of_chunk.(j) then begin
+                  t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1;
+                  VB.set t.t_converted_verified_bitmap j VB.State_complete
+                end
+          | VB.State_complete -> ()
+          | VB.State_verified -> 
+              (* lprintf_nl "set_swarmer_state_complete: trying to demote a verified block? (1)" *)
+              ())
       | [] -> assert false)
   | VB.State_complete -> ()
   | VB.State_verified -> 
@@ -1263,15 +1263,15 @@ let set_swarmer_state_complete s i =
       VB.set s.s_verified_bitmap i VB.State_complete;
       match s.s_networks with
       | t :: _ ->
-	  assert (t.t_primary);
+          assert (t.t_primary);
           let j = t.t_chunk_of_block.(i) in
-	  (match VB.get t.t_converted_verified_bitmap j with
-	   | VB.State_verified ->
-	       VB.set t.t_converted_verified_bitmap j VB.State_complete;
-	       t.t_nverified_chunks <- t.t_nverified_chunks - 1;
-	   | VB.State_complete -> ()
-	   | VB.State_missing | VB.State_partial ->
-	       lprintf_nl "BUG: set_swarmer_state_complete: demoting a verified block from an incomplete chunk")
+          (match VB.get t.t_converted_verified_bitmap j with
+           | VB.State_verified ->
+               VB.set t.t_converted_verified_bitmap j VB.State_complete;
+               t.t_nverified_chunks <- t.t_nverified_chunks - 1;
+           | VB.State_complete -> ()
+           | VB.State_missing | VB.State_partial ->
+               lprintf_nl "BUG: set_swarmer_state_complete: demoting a verified block from an incomplete chunk")
       | [] -> assert false
 
 
@@ -1285,49 +1285,49 @@ let set_swarmer_state_verified s i =
       match s.s_networks with
       | [] -> assert false
       | tprim :: secondaries ->
-	  assert (tprim.t_primary);
-	  (* that test is somewhat redundant, since only primary
-	     frontends with verification can have merged secondary
-	     frontends; See merge *)
-	  match tprim.t_verifier with
-	  | NoVerification | VerificationNotAvailable -> ()
-	  | Verification _ | ForceVerification ->
-	      let jprim = tprim.t_chunk_of_block.(i) in
-	      assert (VB.get tprim.t_converted_verified_bitmap jprim = VB.State_verified);
-	      List.iter (fun t ->
-		assert (not t.t_primary);
-		let j = t.t_chunk_of_block.(i) in
-		if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_verified)
+          assert (tprim.t_primary);
+          (* that test is somewhat redundant, since only primary
+             frontends with verification can have merged secondary
+             frontends; See merge *)
+          match tprim.t_verifier with
+          | NoVerification | VerificationNotAvailable -> ()
+          | Verification _ | ForceVerification ->
+              let jprim = tprim.t_chunk_of_block.(i) in
+              assert (VB.get tprim.t_converted_verified_bitmap jprim = VB.State_verified);
+              List.iter (fun t ->
+                assert (not t.t_primary);
+                let j = t.t_chunk_of_block.(i) in
+                if List.for_all (fun i -> VB.get s.s_verified_bitmap i = VB.State_verified)
                   t.t_blocks_of_chunk.(j) then
-		    match t.t_verifier with
-		    | NoVerification | VerificationNotAvailable ->
-			(* we have no way to check data integrity
-			   for this network, assume other(s) know
-			   better *)
-			(match VB.get t.t_converted_verified_bitmap j with
-			 | VB.State_missing | VB.State_partial ->
-			     VB.set t.t_converted_verified_bitmap j VB.State_verified;
-			     t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1;
-			     t.t_nverified_chunks <- t.t_nverified_chunks + 1
-			 | VB.State_complete ->
-			     VB.set t.t_converted_verified_bitmap j VB.State_verified;
-			     t.t_nverified_chunks <- t.t_nverified_chunks + 1
-			 | VB.State_verified -> ())
-		    | ForceVerification
-		    | Verification _ ->
-			(* all chunks are verified, so set
-			   converted_verified_bitmap to State_complete,
-			   probably to trigger data verification later.
-			   
-			   Is that code necessary at all ? *)
-			(match VB.get t.t_converted_verified_bitmap j with
-			 | VB.State_missing | VB.State_partial ->
-			     VB.set t.t_converted_verified_bitmap j VB.State_complete;
-			     t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1
-			 | VB.State_complete -> ()
-			 | VB.State_verified -> 
-			     lprintf_nl "set_swarmer_state_verified: trying to demote a verified block in another frontend?")
-	      ) secondaries)
+                    match t.t_verifier with
+                    | NoVerification | VerificationNotAvailable ->
+                        (* we have no way to check data integrity
+                           for this network, assume other(s) know
+                           better *)
+                        (match VB.get t.t_converted_verified_bitmap j with
+                         | VB.State_missing | VB.State_partial ->
+                             VB.set t.t_converted_verified_bitmap j VB.State_verified;
+                             t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1;
+                             t.t_nverified_chunks <- t.t_nverified_chunks + 1
+                         | VB.State_complete ->
+                             VB.set t.t_converted_verified_bitmap j VB.State_verified;
+                             t.t_nverified_chunks <- t.t_nverified_chunks + 1
+                         | VB.State_verified -> ())
+                    | ForceVerification
+                    | Verification _ ->
+                        (* all chunks are verified, so set
+                           converted_verified_bitmap to State_complete,
+                           probably to trigger data verification later.
+                           
+                           Is that code necessary at all ? *)
+                        (match VB.get t.t_converted_verified_bitmap j with
+                         | VB.State_missing | VB.State_partial ->
+                             VB.set t.t_converted_verified_bitmap j VB.State_complete;
+                             t.t_ncomplete_chunks <- t.t_ncomplete_chunks + 1
+                         | VB.State_complete -> ()
+                         | VB.State_verified -> 
+                             lprintf_nl "set_swarmer_state_verified: trying to demote a verified block in another frontend?")
+              ) secondaries)
   | VB.State_verified -> ()
 
 (** set block as completed, closing all remaining ranges, and
@@ -1372,7 +1372,7 @@ let set_verified_block s j =
 
 (* We've seen how swarmer verification propagates to the frontend(s)
    verifications, now let's see the reverse *)
-	
+        
 let set_frontend_state_missing t j =
   assert(VB.get t.t_converted_verified_bitmap j = VB.State_complete);
   let s = t.t_s in
@@ -1386,17 +1386,17 @@ let set_frontend_state_missing t j =
       VB.set t.t_converted_verified_bitmap j VB.State_missing;
       List.iter (fun i ->
         match s.s_blocks.(i) with
-	| EmptyBlock -> set_swarmer_state_missing s i
+        | EmptyBlock -> set_swarmer_state_missing s i
         | PartialBlock _ ->  set_swarmer_state_partial s i
         | CompleteBlock ->
             let block_begin = compute_block_begin s i in
             let block_end = compute_block_end s i in
-	    (* negative *)
+            (* negative *)
             add_file_downloaded None s (block_begin -- block_end);
-	      
+              
             s.s_blocks.(i) <- EmptyBlock;
             set_swarmer_state_missing s i
-	      
+              
         | VerifiedBlock -> assert false
       ) t.t_blocks_of_chunk.(j)
     end
@@ -1419,11 +1419,11 @@ let set_frontend_state_complete t j =
   match VB.get t.t_converted_verified_bitmap j with
   | VB.State_missing | VB.State_partial ->
       if (not !CommonGlobals.is_startup_phase) && (!verbose_swarming || !verbose) then
-	lprintf_nl "Completed block %d/%d of %s"
+        lprintf_nl "Completed block %d/%d of %s"
           (j + 1) t.t_nchunks (file_best_name t.t_file);
       let s = t.t_s in
       List.iter (fun i -> set_completed_block None s i)
-	t.t_blocks_of_chunk.(j)
+        t.t_blocks_of_chunk.(j)
   | VB.State_complete | VB.State_verified -> ()
 
 (* aka set_verified_chunk (internal) *)
@@ -1438,7 +1438,7 @@ let set_frontend_state_verified t j =
       (* The primary is supposed to propagate verified chunks to the file *)
       List.iter (fun i -> set_verified_block s i) t.t_blocks_of_chunk.(j);
       if !verbose_swarming then
-	print_s "VERIFIED" s
+        print_s "VERIFIED" s
     end;
     t.t_verified t.t_nverified_chunks j in
     if j = 0 && !Autoconf.magic_works then check_magic t.t_file;
@@ -1456,11 +1456,11 @@ let set_chunks_verified_bitmap t bitmap =
   VB.iteri (fun j c ->
     match c with
     | VB.State_missing | VB.State_partial -> 
-	()
+        ()
     | VB.State_complete ->
-	set_frontend_state_complete t j
+        set_frontend_state_complete t j
     | VB.State_verified ->
-	set_frontend_state_verified t j;
+        set_frontend_state_verified t j;
         if VB.get t.t_converted_verified_bitmap j <> VB.State_verified then
           lprintf_nl "FIELD AS BEEN CLEARED"
   ) bitmap
@@ -1499,28 +1499,28 @@ let verify_chunk t j =
           let chunk_end = min chunk_end s.s_size in
           if verify t uids.(j) chunk_begin chunk_end then
             set_frontend_state_verified t j
-	  else
-	    set_frontend_state_missing t j
+          else
+            set_frontend_state_missing t j
         with VerifierNotReady -> ())
 
     | Verification chunks ->
-	(* network only provides a hash for the whole file ? *)
+        (* network only provides a hash for the whole file ? *)
         assert (Array.length chunks = 1);
 (*        let nchunks = String.length t.t_converted_verified_bitmap in *)
 
-	if VB.for_all (function
-	  | VB.State_missing | VB.State_partial -> false
-	  | VB.State_complete | VB.State_verified -> true) t.t_converted_verified_bitmap then
+        if VB.for_all (function
+          | VB.State_missing | VB.State_partial -> false
+          | VB.State_complete | VB.State_verified -> true) t.t_converted_verified_bitmap then
           try
             let s = t.t_s in
             if verify t chunks.(0) zero s.s_size then
-	      VB.iteri (fun j _ ->
-		set_frontend_state_verified t j
-	      ) t.t_converted_verified_bitmap
-	    else
-	      VB.iteri (fun j c ->
-		if c = VB.State_complete then set_frontend_state_missing t j
-	      ) t.t_converted_verified_bitmap
+              VB.iteri (fun j _ ->
+                set_frontend_state_verified t j
+              ) t.t_converted_verified_bitmap
+            else
+              VB.iteri (fun j c ->
+                if c = VB.State_complete then set_frontend_state_missing t j
+              ) t.t_converted_verified_bitmap
           with VerifierNotReady -> ()
 
 
@@ -1536,12 +1536,12 @@ let verify_all_chunks t =
   VB.iteri (fun i state -> 
     match state with
     | VB.State_verified ->
-	must_verify_block s i
+        must_verify_block s i
     | VB.State_missing ->
-	let block_begin = compute_block_begin s i in
-	let block_end = compute_block_end s i in
-	add_file_downloaded None s (block_end -- block_begin);
-	must_verify_block s i
+        let block_begin = compute_block_begin s i in
+        let block_end = compute_block_end s i in
+        add_file_downloaded None s (block_end -- block_begin);
+        must_verify_block s i
     | VB.State_partial | VB.State_complete -> ()
   ) s.s_verified_bitmap
 
@@ -1627,24 +1627,24 @@ let range_received maybe_t r interval_begin interval_end =
       (match r.range_prev with
        | Some rr -> rr.range_next <- r.range_next
        | None ->
-	   (* that was the first range of the block *)
+           (* that was the first range of the block *)
            match r.range_next with
            | Some rr -> (* fix block's first range *)
-	       b.block_ranges <- rr
+               b.block_ranges <- rr
            | None -> (* that was the last remaining range of the block *)
-	       match s.s_blocks.(b.block_num) with
-	       | PartialBlock _ | EmptyBlock ->
-		   (match s.s_networks with
-		   | t :: _ -> 
-		       assert(t.t_primary);
-		       (match t.t_verifier with
-		       | NoVerification ->
-			   set_verified_block s b.block_num
-		       | _ ->
-			   set_completed_block (Some t) s b.block_num;
-			   must_verify_block s b.block_num)
-		   | [] -> assert false)
-	       | _ -> () );
+               match s.s_blocks.(b.block_num) with
+               | PartialBlock _ | EmptyBlock ->
+                   (match s.s_networks with
+                   | t :: _ -> 
+                       assert(t.t_primary);
+                       (match t.t_verifier with
+                       | NoVerification ->
+                           set_verified_block s b.block_num
+                       | _ ->
+                           set_completed_block (Some t) s b.block_num;
+                           must_verify_block s b.block_num)
+                   | [] -> assert false)
+               | _ -> () );
       r.range_next <- None;
       r.range_prev <- None;
     end (* else begin
@@ -1710,7 +1710,7 @@ let set_present s intervals =
     | EmptyBlock ->
 (*          lprintf "  EmptyBlock"; *)
         if block_begin >= interval_begin && block_end <= interval_end
-	then begin
+        then begin
 (*              lprintf " --> CompleteBlock\n"; *)
           s.s_blocks.(i) <- CompleteBlock;
           must_verify_block s i;
@@ -1730,7 +1730,7 @@ let set_present s intervals =
   match s.s_networks with
   | tprim :: _ ->
       List.iter (fun (interval_begin, interval_end) ->
-	mark_disk_space_preallocated tprim interval_begin interval_end;
+        mark_disk_space_preallocated tprim interval_begin interval_end;
       ) intervals
   | [] -> assert false
 
@@ -1742,17 +1742,17 @@ let set_absent s list_absent =
   let rec complementary acc set_begin set_end intervals =
     match intervals with
     | [] ->
-	let acc =
+        let acc =
           if set_begin = set_end then acc else
             (set_begin, set_end) :: acc
-	in
-	List.rev acc
+        in
+        List.rev acc
     | (interval_begin, interval_end) :: other_intervals ->
-	let acc =
+        let acc =
           if set_begin = interval_begin then acc
           else (set_begin, interval_begin) :: acc
-	in
-	complementary acc interval_end set_end other_intervals in
+        in
+        complementary acc interval_end set_end other_intervals in
   let list_present = complementary [] Int64.zero s.s_size list_absent in
   set_present s list_present
 
@@ -1814,7 +1814,7 @@ let set_uploader_intervals up intervals =
          incr_availability s i;
 
          match s.s_blocks.(i) with
-	 | CompleteBlock | VerifiedBlock -> ()
+         | CompleteBlock | VerifiedBlock -> ()
          | EmptyBlock | PartialBlock _ ->
              if block_begin = interval_begin && block_end = interval_end then
                complete_blocks := i :: !complete_blocks
@@ -1904,9 +1904,9 @@ let clear_uploader_ranges up =
     if r.range_nuploading = 0 then
       let b = r.range_block in
       b.block_unselected_remaining <-
-	b.block_unselected_remaining ++ (compute_range_size r);
+        b.block_unselected_remaining ++ (compute_range_size r);
       if b.block_unselected_remaining > b.block_remaining then
-	lprintf_nl "clear_uploader_ranges: block_unselected_remaining larger than block_remaining!";
+        lprintf_nl "clear_uploader_ranges: block_unselected_remaining larger than block_remaining!";
   ) up.up_ranges;
   up.up_ranges <- []
 
@@ -1929,9 +1929,9 @@ let clear_uploader_intervals up =
   if up.up_declared then
     let decr_availability s i =
       if s.s_availability.(i) > 0 then
-	s.s_availability.(i) <- s.s_availability.(i) - 1 
+        s.s_availability.(i) <- s.s_availability.(i) - 1 
       else 
-	lprintf_nl "clear_uploader_intervals: some s_availability was about to become negative\n" in
+        lprintf_nl "clear_uploader_intervals: some s_availability was about to become negative\n" in
 (*          lprintf "clean_uploader_chunks:\n"; *)
     let t = up.up_t in
     let s = t.t_s in
@@ -1975,9 +1975,9 @@ let print_uploaders s =
     | PartialBlock b ->
         lprintf "{ %d : %d=" b.block_num
           s.s_nuploading.(b.block_num);
-	iter_block_ranges (fun r -> 
+        iter_block_ranges (fun r -> 
           lprintf "(%d)" r.range_nuploading
-	) b;
+        ) b;
         lprintf " }";
   ) s.s_blocks;
   lprint_newline ()
@@ -2005,14 +2005,14 @@ let permute_and_return up n =
   | EmptyBlock ->
       let b = new_block s b in
       { 
-	up_block = b;
-	up_block_begin = b.block_begin;
-	up_block_end = b.block_end }
+        up_block = b;
+        up_block_begin = b.block_begin;
+        up_block_end = b.block_end }
   | PartialBlock b ->
       {
-	up_block = b;
-	up_block_begin = b.block_begin;
-	up_block_end = b.block_end }
+        up_block = b;
+        up_block_begin = b.block_begin;
+        up_block_end = b.block_end }
   | VerifiedBlock ->
       lprintf_nl "ERROR: verified block in permute_and_return %d\n" b;
       assert false
@@ -2047,18 +2047,18 @@ let linear_select_blocks up =
     | CompleteBlock | VerifiedBlock ->
         iter_partial up
     | PartialBlock b ->
-	chunk,
+        chunk,
         [{ 
-	  up_block = b; 
-	  up_block_begin = block_begin; 
-	  up_block_end = block_end }]
+          up_block = b; 
+          up_block_begin = block_begin; 
+          up_block_end = block_end }]
     | EmptyBlock ->
         let b = new_block s b in
-	chunk, 
+        chunk, 
         [{
-	  up_block = b;
-	  up_block_begin = block_begin;
-	  up_block_end = block_end }] in
+          up_block = b;
+          up_block_begin = block_begin;
+          up_block_end = block_end }] in
   let rec iter_complete up =
     let n = up.up_ncomplete in
     if n = 0 then iter_partial up
@@ -2073,18 +2073,18 @@ let linear_select_blocks up =
       | CompleteBlock | VerifiedBlock ->
           iter_complete up
       | PartialBlock b ->
-	  chunk,
+          chunk,
           [{
-	    up_block = b;
-	    up_block_begin = b.block_begin;
-	    up_block_end = b.block_end }]
+            up_block = b;
+            up_block_begin = b.block_begin;
+            up_block_end = b.block_end }]
       | EmptyBlock ->
           let b = new_block s b in
-	  chunk,
+          chunk,
           [{
-	    up_block = b;
-	    up_block_begin = b.block_begin;
-	    up_block_end = b.block_end }]
+            up_block = b;
+            up_block_begin = b.block_begin;
+            up_block_end = b.block_end }]
   in
   iter_complete up
 
@@ -2103,16 +2103,16 @@ let should_download_block s n =
     | VB.State_complete ->
         (match s.s_networks with
          | t :: _ ->
-	     assert(t.t_primary);
+             assert(t.t_primary);
              (try
                let n = t.t_chunk_of_block.(n) in
                if VB.get t.t_converted_verified_bitmap n = VB.State_complete then
                  verify_chunk t n
              with VerifierNotReady -> ());
-	 | [] -> assert false);
+         | [] -> assert false);
         (match VB.get s.s_verified_bitmap n with
          | VB.State_missing | VB.State_partial ->  true
-	 | VB.State_complete | VB.State_verified -> false)
+         | VB.State_complete | VB.State_verified -> false)
     | VB.State_verified -> false
   in
 (*  if result then
@@ -2159,154 +2159,154 @@ let select_blocks up =
 (* to evaluate the relative rarity of a block, we must compare it to
    the availability of *all* blocks, not only those available from
    that uploader *)
-	let sum_availability = Array.fold_left (+) 0 s.s_availability in
-	let mean_availability = sum_availability / Array.length s.s_blocks in
+        let sum_availability = Array.fold_left (+) 0 s.s_availability in
+        let mean_availability = sum_availability / Array.length s.s_blocks in
 
-	let my_t = if t.t_verifier <> NoVerification then t else 
-	  match s.s_networks with
-	    | tprim :: _ ->
-		assert(tprim.t_primary);
-		tprim
-	    | [] -> assert false in
-	let verification_available = my_t.t_verifier <> NoVerification in
+        let my_t = if t.t_verifier <> NoVerification then t else 
+          match s.s_networks with
+            | tprim :: _ ->
+                assert(tprim.t_primary);
+                tprim
+            | [] -> assert false in
+        let verification_available = my_t.t_verifier <> NoVerification in
 
-	let several_frontends = List.length s.s_networks > 1 in
-	(* compute the number of missing or partial blocks in the same
-	   chunks (for all networks) as a given block *)
-	(* memoize some results *)
-	let memoization_calls = ref 0 in
-	let memoization_hits = ref 0 in
-	let debug_memoization = false in
-	let memoize h f p =
-	  incr memoization_calls;
-	  try
-	    let result = Hashtbl.find h p in
-	    incr memoization_hits;
-	    if debug_memoization then
-	      (* defeats the purpose of memoization, only enable for
-		 debugging *)
-	      let recomputed_result = f p in
-	      if result <> recomputed_result then begin
-		lprintf_nl "memoization failure";
-		recomputed_result
-	      end else result
-	    else result
-	  with Not_found ->
-	    let result = f p in
-	    Hashtbl.add h p result;
-	    result in
-	let memoize_remaining_blocks_in_chunk = Hashtbl.create 17 in
-	let memoize_remaining_blocks_in_chunks = Hashtbl.create 17 in
+        let several_frontends = List.length s.s_networks > 1 in
+        (* compute the number of missing or partial blocks in the same
+           chunks (for all networks) as a given block *)
+        (* memoize some results *)
+        let memoization_calls = ref 0 in
+        let memoization_hits = ref 0 in
+        let debug_memoization = false in
+        let memoize h f p =
+          incr memoization_calls;
+          try
+            let result = Hashtbl.find h p in
+            incr memoization_hits;
+            if debug_memoization then
+              (* defeats the purpose of memoization, only enable for
+                 debugging *)
+              let recomputed_result = f p in
+              if result <> recomputed_result then begin
+                lprintf_nl "memoization failure";
+                recomputed_result
+              end else result
+            else result
+          with Not_found ->
+            let result = f p in
+            Hashtbl.add h p result;
+            result in
+        let memoize_remaining_blocks_in_chunk = Hashtbl.create 17 in
+        let memoize_remaining_blocks_in_chunks = Hashtbl.create 17 in
 
- 	let remaining_blocks_in_chunks i = 
-	  assert (i >= 0 && i < VB.length s.s_verified_bitmap);
-	  memoize memoize_remaining_blocks_in_chunks
-	    (fun i ->
- 	      List.fold_left (fun acc t ->
-		acc + 
-		  (memoize memoize_remaining_blocks_in_chunk
-		    (fun (tnum, i) ->
- 		      let chunk = t.t_chunk_of_block.(i) in
- 		      List.fold_left (fun acc b ->
- 			if b <> i &&
- 			  (match VB.get s.s_verified_bitmap b with
-			  | VB.State_missing | VB.State_partial -> true
-			  | VB.State_complete | VB.State_verified -> false) then acc + 1
- 			else acc) 0 t.t_blocks_of_chunk.(chunk)) (t.t_num, i))
- 	      ) 0 s.s_networks) i in
+        let remaining_blocks_in_chunks i = 
+          assert (i >= 0 && i < VB.length s.s_verified_bitmap);
+          memoize memoize_remaining_blocks_in_chunks
+            (fun i ->
+              List.fold_left (fun acc t ->
+                acc + 
+                  (memoize memoize_remaining_blocks_in_chunk
+                    (fun (tnum, i) ->
+                      let chunk = t.t_chunk_of_block.(i) in
+                      List.fold_left (fun acc b ->
+                        if b <> i &&
+                          (match VB.get s.s_verified_bitmap b with
+                          | VB.State_missing | VB.State_partial -> true
+                          | VB.State_complete | VB.State_verified -> false) then acc + 1
+                        else acc) 0 t.t_blocks_of_chunk.(chunk)) (t.t_num, i))
+              ) 0 s.s_networks) i in
 
 (*
-	let preview_beginning = 9000000L in
-	let preview_end = (s.s_size ** 98L) // 100L in
+        let preview_beginning = 9000000L in
+        let preview_end = (s.s_size ** 98L) // 100L in
 *)
 
-	(* sources_per_chunk was initially for edonkey only *)
-	let data_per_source = 9728000L // (Int64.of_int !!sources_per_chunk) in
-	
-	let need_to_complete_some_blocks_quickly = 
-	  verification_available && t.t_nverified_chunks < 2
+        (* sources_per_chunk was initially for edonkey only *)
+        let data_per_source = 9728000L // (Int64.of_int !!sources_per_chunk) in
+        
+        let need_to_complete_some_blocks_quickly = 
+          verification_available && t.t_nverified_chunks < 2
         in
 
-	let create_choice n b =
-	  let block_begin = compute_block_begin s b in
-	  let block_end = compute_block_end s b in
-	  let size = block_end -- block_begin in
-	  let remaining, unselected_remaining = match s.s_blocks.(b) with
-	    | EmptyBlock -> size, size
-	    | PartialBlock b -> b.block_remaining, b.block_unselected_remaining
-	    | CompleteBlock | VerifiedBlock -> 0L, 0L in
-	  {
-	    choice_num = n;
-	    choice_block = b;
+        let create_choice n b =
+          let block_begin = compute_block_begin s b in
+          let block_end = compute_block_end s b in
+          let size = block_end -- block_begin in
+          let remaining, unselected_remaining = match s.s_blocks.(b) with
+            | EmptyBlock -> size, size
+            | PartialBlock b -> b.block_remaining, b.block_unselected_remaining
+            | CompleteBlock | VerifiedBlock -> 0L, 0L in
+          {
+            choice_num = n;
+            choice_block = b;
             choice_user_priority = Char.code s.s_priorities_bitmap.[b];
-	    choice_remaining = remaining;
+            choice_remaining = remaining;
             choice_preallocated = is_fully_preallocated t block_begin block_end;
-	    choice_unselected_remaining = unselected_remaining;
-	  } in
+            choice_unselected_remaining = unselected_remaining;
+          } in
 
-	(* accessors *)
-	let choice_num choice =
-	  choice.choice_num in
+        (* accessors *)
+        let choice_num choice =
+          choice.choice_num in
 
-	let _choice_block choice =
-	  choice.choice_block in
+        let _choice_block choice =
+          choice.choice_block in
 
-	let choice_user_priority choice =
-	  choice.choice_user_priority in
+        let choice_user_priority choice =
+          choice.choice_user_priority in
 
-	let choice_remaining choice =
-	  choice.choice_remaining in
+        let choice_remaining choice =
+          choice.choice_remaining in
 
-	let choice_unselected_remaining choice =
-	  choice.choice_unselected_remaining in
+        let choice_unselected_remaining choice =
+          choice.choice_unselected_remaining in
 
-	let choice_nuploaders choice =
-	  s.s_nuploading.(choice.choice_block) in
+        let choice_nuploaders choice =
+          s.s_nuploading.(choice.choice_block) in
 
-	let choice_remaining_per_uploader choice =
-	  choice.choice_unselected_remaining //
-	    (Int64.of_int (choice_nuploaders choice + 1)) (* planned *) in
+        let choice_remaining_per_uploader choice =
+          choice.choice_unselected_remaining //
+            (Int64.of_int (choice_nuploaders choice + 1)) (* planned *) in
 
-	(* has enough uploaders *)
-	let choice_saturated choice =
-	  choice.choice_unselected_remaining <= 
-	    Int64.of_int (choice_nuploaders choice) ** data_per_source in
+        (* has enough uploaders *)
+        let choice_saturated choice =
+          choice.choice_unselected_remaining <= 
+            Int64.of_int (choice_nuploaders choice) ** data_per_source in
 
-	let choice_availability choice =
-	  s.s_availability.(choice.choice_block) in
+        let choice_availability choice =
+          s.s_availability.(choice.choice_block) in
 
-	(* remaining blocks in the same chunk, for all frontends *)
-	let choice_other_remaining choice =
-	  remaining_blocks_in_chunks (choice.choice_block) in
+        (* remaining blocks in the same chunk, for all frontends *)
+        let choice_other_remaining choice =
+          remaining_blocks_in_chunks (choice.choice_block) in
 
-	let choice_preallocated choice =
-	  choice.choice_preallocated in
-	
-	let print_choice c =
-	  lprintf_nl "choice %d:%d priority:%d nup:%d rem:%Ld rmu:%Ld rpu:%Ld sat:%B sib:%d av:%d pre:%b" 
-	    (choice_num c) up.up_complete_blocks.(choice_num c)
-	    (choice_user_priority c)
-	    (choice_nuploaders c)
-	    (choice_remaining c)
-	    (choice_unselected_remaining c)
-	    (choice_remaining_per_uploader c)
-	    (choice_saturated c)
-	    (choice_other_remaining c) 
-	    (choice_availability c) 
-	    (choice_preallocated c) in
+        let choice_preallocated choice =
+          choice.choice_preallocated in
+        
+        let print_choice c =
+          lprintf_nl "choice %d:%d priority:%d nup:%d rem:%Ld rmu:%Ld rpu:%Ld sat:%B sib:%d av:%d pre:%b" 
+            (choice_num c) up.up_complete_blocks.(choice_num c)
+            (choice_user_priority c)
+            (choice_nuploaders c)
+            (choice_remaining c)
+            (choice_unselected_remaining c)
+            (choice_remaining_per_uploader c)
+            (choice_saturated c)
+            (choice_other_remaining c) 
+            (choice_availability c) 
+            (choice_preallocated c) in
 
-	(* > 0 == c1 is best, < 0 = c2 is best, 0 == they're equivalent *)
-	let compare_choices c1 c2 =
-	  (* "RULES" *)
-	  (* Avoid stepping on each other's feet *)
-	  let cmp =
-	    match choice_unselected_remaining c1,
-	    choice_unselected_remaining c2 with
-	    | 0L, 0L -> 0
-	    | _, 0L -> 1
-	    | 0L, _ -> -1
-	    | _, _ -> 0 in
-	  if cmp <> 0 then cmp else
+        (* > 0 == c1 is best, < 0 = c2 is best, 0 == they're equivalent *)
+        let compare_choices c1 c2 =
+          (* "RULES" *)
+          (* Avoid stepping on each other's feet *)
+          let cmp =
+            match choice_unselected_remaining c1,
+            choice_unselected_remaining c2 with
+            | 0L, 0L -> 0
+            | _, 0L -> 1
+            | 0L, _ -> -1
+            | _, _ -> 0 in
+          if cmp <> 0 then cmp else
 
           (* avoid overly unbalanced situations *)
           let cmp =
@@ -2318,168 +2318,168 @@ let select_blocks up =
           if cmp <> 0 then cmp else
 
           (* "WISHES" *)
-	  (* Do what Master asked for *)
-	    let cmp = compare (choice_user_priority c1)
-	      (choice_user_priority c2) in
-	  if cmp <> 0 then cmp else
+          (* Do what Master asked for *)
+            let cmp = compare (choice_user_priority c1)
+              (choice_user_priority c2) in
+          if cmp <> 0 then cmp else
 
           (* "OPTIMIZATIONS" *)
-	    (* Pick really rare gems: if average availability of all
-	       blocks is higher than 5 connected sources, pick in
-	       priority blocks present in at most 3 connected sources;
-	       is that too restrictive ? *)
+            (* Pick really rare gems: if average availability of all
+               blocks is higher than 5 connected sources, pick in
+               priority blocks present in at most 3 connected sources;
+               is that too restrictive ? *)
             let cmp =
               if not need_to_complete_some_blocks_quickly &&
-		mean_availability > 5 &&
-		(choice_availability c1 <= 3 || 
-		 choice_availability c2 <= 3) then
-		  compare (choice_availability c2)
-		    (choice_availability c1)
+                mean_availability > 5 &&
+                (choice_availability c1 <= 3 || 
+                 choice_availability c2 <= 3) then
+                  compare (choice_availability c2)
+                    (choice_availability c1)
               else 0 in
             if cmp <> 0 then cmp else
   
-	  (* try to quickly complete (and validate) chunks; 
-	     if there's only one frontend, each chunk has only one
-	     block, and looking at siblings make no sense *)
-	  let cmp = 
-	    if verification_available && several_frontends then 
-	      compare (choice_other_remaining c2)
-		(choice_other_remaining c1)
-	    else 0 in
-	  if cmp <> 0 then cmp else
+          (* try to quickly complete (and validate) chunks; 
+             if there's only one frontend, each chunk has only one
+             block, and looking at siblings make no sense *)
+          let cmp = 
+            if verification_available && several_frontends then 
+              compare (choice_other_remaining c2)
+                (choice_other_remaining c1)
+            else 0 in
+          if cmp <> 0 then cmp else
 
-	  (* try to quickly complete blocks *)
-	  let cmp = 
-	    compare (choice_unselected_remaining c2)
-	      (choice_unselected_remaining c1) in
-	  if cmp <> 0 then cmp else
+          (* try to quickly complete blocks *)
+          let cmp = 
+            compare (choice_unselected_remaining c2)
+              (choice_unselected_remaining c1) in
+          if cmp <> 0 then cmp else
 
-	  (* pick blocks that won't require allocating more disk space *)
-	  let cmp =
-	    match choice_preallocated c1, choice_preallocated c2 with
-	    | true, false -> 1
-	    | false, true -> -1
-	    | _ -> 0 in
-	  if cmp <> 0 then cmp else
+          (* pick blocks that won't require allocating more disk space *)
+          let cmp =
+            match choice_preallocated c1, choice_preallocated c2 with
+            | true, false -> 1
+            | false, true -> -1
+            | _ -> 0 in
+          if cmp <> 0 then cmp else
 
-	  (* "DEFAULT" *)
-	    (* Can't tell *)
-	    0 in
+          (* "DEFAULT" *)
+            (* Can't tell *)
+            0 in
 
-	(* compare a new chunk against a list of best choices numbers (and a
-	   specimen of best choice) *)
-	let keep_best_chunks chunk_blocks_indexes best_choices specimen =
-	  match chunk_blocks_indexes with 
-	  | [] -> best_choices, specimen
-	  | h :: q ->
-	      let this_chunk_specimen = List.fold_left (fun acc n ->
-		let choice = create_choice n up.up_complete_blocks.(n) in
-		let cmp = compare_choices choice acc in
-		if cmp <= 0 then acc
-		else choice) (create_choice h up.up_complete_blocks.(h)) q in
-	      let cmp = compare_choices this_chunk_specimen specimen in
-	      if cmp < 0 then best_choices, specimen
-	      else if cmp > 0 then [chunk_blocks_indexes], this_chunk_specimen
-	      else chunk_blocks_indexes :: best_choices, specimen in
-	
-	let current_chunk_num, current_chunk_blocks_indexes, 
-	  best_choices, specimen =
-	  Array2.subarray_fold_lefti (fun 
-	    ((current_chunk_num, current_chunk_blocks_indexes, 
-	    best_choices, specimen) as acc) n b ->
+        (* compare a new chunk against a list of best choices numbers (and a
+           specimen of best choice) *)
+        let keep_best_chunks chunk_blocks_indexes best_choices specimen =
+          match chunk_blocks_indexes with 
+          | [] -> best_choices, specimen
+          | h :: q ->
+              let this_chunk_specimen = List.fold_left (fun acc n ->
+                let choice = create_choice n up.up_complete_blocks.(n) in
+                let cmp = compare_choices choice acc in
+                if cmp <= 0 then acc
+                else choice) (create_choice h up.up_complete_blocks.(h)) q in
+              let cmp = compare_choices this_chunk_specimen specimen in
+              if cmp < 0 then best_choices, specimen
+              else if cmp > 0 then [chunk_blocks_indexes], this_chunk_specimen
+              else chunk_blocks_indexes :: best_choices, specimen in
+        
+        let current_chunk_num, current_chunk_blocks_indexes, 
+          best_choices, specimen =
+          Array2.subarray_fold_lefti (fun 
+            ((current_chunk_num, current_chunk_blocks_indexes, 
+            best_choices, specimen) as acc) n b ->
             if s.s_priorities_bitmap.[b] = priority_zero ||
               not (should_download_block s b) then acc
-	    else
-	      let chunk_num = t.t_chunk_of_block.(b) in
-	      if chunk_num = current_chunk_num then
-		(current_chunk_num, n :: current_chunk_blocks_indexes,
-		best_choices, specimen)
-	      else 
-		(* different chunk *)
-		match current_chunk_blocks_indexes with
-		| [] -> 
-		    (* no previous chunk *)
-		    (chunk_num, [n], best_choices, specimen)
-		| h :: q ->
-		    let new_best_choices, new_specimen =
-		      keep_best_chunks current_chunk_blocks_indexes best_choices specimen in
-		    (chunk_num, [n], new_best_choices, new_specimen)
-	  ) (-1, [], [], dummy_choice) up.up_complete_blocks 0
-	    (up.up_ncomplete -1) in
+            else
+              let chunk_num = t.t_chunk_of_block.(b) in
+              if chunk_num = current_chunk_num then
+                (current_chunk_num, n :: current_chunk_blocks_indexes,
+                best_choices, specimen)
+              else 
+                (* different chunk *)
+                match current_chunk_blocks_indexes with
+                | [] -> 
+                    (* no previous chunk *)
+                    (chunk_num, [n], best_choices, specimen)
+                | h :: q ->
+                    let new_best_choices, new_specimen =
+                      keep_best_chunks current_chunk_blocks_indexes best_choices specimen in
+                    (chunk_num, [n], new_best_choices, new_specimen)
+          ) (-1, [], [], dummy_choice) up.up_complete_blocks 0
+            (up.up_ncomplete -1) in
 
-	(* last chunk *)
-	let best_choices, specimen = 
-	  keep_best_chunks current_chunk_blocks_indexes best_choices specimen in
-	(* what about up_partial_blocks ? 
-	   currently they're taken care of by linear_select_block
-	   fallback below *)
+        (* last chunk *)
+        let best_choices, specimen = 
+          keep_best_chunks current_chunk_blocks_indexes best_choices specimen in
+        (* what about up_partial_blocks ? 
+           currently they're taken care of by linear_select_block
+           fallback below *)
 
-	if debug_all then print_choice specimen;
+        if debug_all then print_choice specimen;
 
-	try
-	  let blocks = 
-	    match best_choices with
-	      | [] -> raise Not_found
-	      | [choice] -> choice
-	      | _::_ -> 
-		  let nchoices = List.length best_choices in
-		  List.nth best_choices (Random.int nchoices) in
+        try
+          let blocks = 
+            match best_choices with
+              | [] -> raise Not_found
+              | [choice] -> choice
+              | _::_ -> 
+                  let nchoices = List.length best_choices in
+                  List.nth best_choices (Random.int nchoices) in
 
-	  let chunk =
-	    match blocks with
-	    | [] -> assert false
-	    | b :: _ -> t.t_chunk_of_block.(up.up_complete_blocks.(b)) in
+          let chunk =
+            match blocks with
+            | [] -> assert false
+            | b :: _ -> t.t_chunk_of_block.(up.up_complete_blocks.(b)) in
 
           if debug_all || !verbose_swarming then begin
-	    lprintf_nl "\nBlocksFound in %d: %d" chunk (List.length blocks);
-	    List.iter (fun n ->
+            lprintf_nl "\nBlocksFound in %d: %d" chunk (List.length blocks);
+            List.iter (fun n ->
               lprintf_n " %d" up.up_complete_blocks.(n)
-	    ) blocks;
-	    lprint_newline ()
-	  end;
+            ) blocks;
+            lprint_newline ()
+          end;
 
 (*
           (* DEBUG *)
-	  let probably_buggy =
-	    List.for_all (fun n ->
-	      let block_num = up.up_complete_blocks.(n) in
-	      match s.s_blocks.(block_num) with
-	      | EmptyBlock -> false
-	      | PartialBlock b ->
-		  block_ranges_for_all (fun r ->
-		    r.range_nuploading > 0) b
-	      | CompleteBlock | VerifiedBlock ->
-		  true) blocks in
-	  if probably_buggy then begin
+          let probably_buggy =
+            List.for_all (fun n ->
+              let block_num = up.up_complete_blocks.(n) in
+              match s.s_blocks.(block_num) with
+              | EmptyBlock -> false
+              | PartialBlock b ->
+                  block_ranges_for_all (fun r ->
+                    r.range_nuploading > 0) b
+              | CompleteBlock | VerifiedBlock ->
+                  true) blocks in
+          if probably_buggy then begin
             lprintf_nl "Probably buggy choice (%d):" chunk;
-	    Array2.subarray_fold_lefti (fun () n b ->
+            Array2.subarray_fold_lefti (fun () n b ->
               if s.s_priorities_bitmap.[b] <> priority_zero &&
                  should_download_block s b then
-		let this_choice = create_choice n b in
-		if List.mem n blocks then lprintf "** "
-		else if List.exists (List.mem n) best_choices then
-		  lprintf "-- "
-		else lprintf "   ";
-		print_choice this_choice;
-		match s.s_blocks.(b) with
-		| EmptyBlock | CompleteBlock | VerifiedBlock -> ()
-		| PartialBlock b ->
-		    let total_uploading =
-		      block_ranges_fold	(fun acc r ->
-			lprintf "%d " r.range_nuploading;
-			  acc + r.range_nuploading) 0 b in
-		    lprintf "total=%d" total_uploading;
-		    lprint_newline ()
-	    ) () up.up_complete_blocks 0 (up.up_ncomplete - 1);
-	  end;
-	  (* /DEBUG *)
+                let this_choice = create_choice n b in
+                if List.mem n blocks then lprintf "** "
+                else if List.exists (List.mem n) best_choices then
+                  lprintf "-- "
+                else lprintf "   ";
+                print_choice this_choice;
+                match s.s_blocks.(b) with
+                | EmptyBlock | CompleteBlock | VerifiedBlock -> ()
+                | PartialBlock b ->
+                    let total_uploading =
+                      block_ranges_fold	(fun acc r ->
+                        lprintf "%d " r.range_nuploading;
+                          acc + r.range_nuploading) 0 b in
+                    lprintf "total=%d" total_uploading;
+                    lprint_newline ()
+            ) () up.up_complete_blocks 0 (up.up_ncomplete - 1);
+          end;
+          (* /DEBUG *)
 *)
 
-	  chunk, List.map (fun n -> permute_and_return up n) blocks
-	with Not_found ->
-	  if !verbose_swarming then
-	    lprintf_nl "select_block: fallback to linear strategy";
-	  linear_select_blocks up
+          chunk, List.map (fun n -> permute_and_return up n) blocks
+        with Not_found ->
+          if !verbose_swarming then
+            lprintf_nl "select_block: fallback to linear strategy";
+          linear_select_blocks up
   with Not_found ->
 
     (* print_s "NO BLOCK FOUND" s; *)
@@ -2508,28 +2508,28 @@ let find_blocks up =
     | FileShared
     | FileNew 
     | FileDownloaded -> 
-	raise Not_found
+        raise Not_found
     | FileDownloading
     | FileQueued ->
-	List.iter (fun b ->
+        List.iter (fun b ->
           let num = b.up_block.block_num in
-	  if debug_all then
-	    lprintf_nl "Client %d unselected %d" (client_num up.up_client) num;
-	  if s.s_nuploading.(num) > 0 then
+          if debug_all then
+            lprintf_nl "Client %d unselected %d" (client_num up.up_client) num;
+          if s.s_nuploading.(num) > 0 then
             s.s_nuploading.(num) <- s.s_nuploading.(num) - 1
-	  else
-	    lprintf_nl "find_blocks: s_nuploading was about to become  negative"
-	) up.up_blocks;
+          else
+            lprintf_nl "find_blocks: s_nuploading was about to become  negative"
+        ) up.up_blocks;
         up.up_blocks <- [];
 
         let chunk, blocks = select_blocks up in
-	List.iter (fun b ->
+        List.iter (fun b ->
           let num = b.up_block.block_num in
-	  if debug_all then
-	    lprintf_nl "Client %d selected %d" (client_num up.up_client) num;
+          if debug_all then
+            lprintf_nl "Client %d selected %d" (client_num up.up_client) num;
           s.s_nuploading.(num) <- s.s_nuploading.(num) + 1;
-	) blocks;
-	up.up_blocks <- blocks;
+        ) blocks;
+        up.up_blocks <- blocks;
         chunk, blocks
   with e ->
     if debug_all then lprintf_nl "Exception %s in find_blocks" (Printexc2.to_string e);
@@ -2552,9 +2552,9 @@ let remove_completed_uploader_ranges up =
     if r.range_nuploading = 0 then
       let b = r.range_block in
       b.block_unselected_remaining <-
-	b.block_unselected_remaining ++ (compute_range_size r);
+        b.block_unselected_remaining ++ (compute_range_size r);
       if b.block_unselected_remaining > b.block_remaining then
-	lprintf_nl "remove_completed_uploader_ranges: block_unselected_remaining is larger than block_remaining";
+        lprintf_nl "remove_completed_uploader_ranges: block_unselected_remaining is larger than block_remaining";
     ) completed_ranges
 
 (** uploader accessors *)
@@ -2618,27 +2618,27 @@ let find_range up range_size =
     match r.range_next with
     | None -> false
     | Some rr ->
-	if rr != r2 ||
-	  r.range_end < r2.range_begin ||
-	  r2.range_nuploading > 0 then false
-	else begin
-	  r.range_end <- r2.range_end;
-	  r.range_next <- r2.range_next;
-	  (match r.range_next with
-	  | None -> ()
-	  | Some r3 ->
-	      r3.range_prev <- Some r);
-	  true
-	end in
+        if rr != r2 ||
+          r.range_end < r2.range_begin ||
+          r2.range_nuploading > 0 then false
+        else begin
+          r.range_end <- r2.range_end;
+          r.range_next <- r2.range_next;
+          (match r.range_next with
+          | None -> ()
+          | Some r3 ->
+              r3.range_prev <- Some r);
+          true
+        end in
 
   remove_completed_uploader_ranges up;
 
   let b, more_blocks =
     match up.up_blocks with
     | [] -> 
-	if debug_all then
-	  lprintf_nl "find_range: uploader had no block selected";
-	raise Not_found
+        if debug_all then
+          lprintf_nl "find_range: uploader had no block selected";
+        raise Not_found
     | b :: more_blocks -> b, more_blocks
   in
   let t = up.up_t in
@@ -2650,136 +2650,136 @@ let find_range up range_size =
   | FileNew
   | FileDownloaded -> 
       lprintf_nl "find_range: file %s in bad state %s" 
-	t.t_s.s_filename (string_of_state (file_state t.t_file));
+        t.t_s.s_filename (string_of_state (file_state t.t_file));
       raise Not_found
   | FileDownloading
   | FileQueued ->
       if debug_all then
-	lprintf_nl "find_range: is there a range of size %Ld in %s for %d ?" 
-	  range_size 
-	  (String.concat " " (List.map (fun b ->
-	    Printf.sprintf "[%Ld-%Ld]" b.up_block_begin b.up_block_end
-	  ) up.up_blocks))
-	  (client_num up.up_client);
+        lprintf_nl "find_range: is there a range of size %Ld in %s for %d ?" 
+          range_size 
+          (String.concat " " (List.map (fun b ->
+            Printf.sprintf "[%Ld-%Ld]" b.up_block_begin b.up_block_end
+          ) up.up_blocks))
+          (client_num up.up_client);
       (* pick the first correct cluster with fewest uploaders 
-	 We're not trying to get a range that's at least as big as
-	 [range_size] bytes - that would prevent partially downloaded
-	 ranges from being completed first *)
+         We're not trying to get a range that's at least as big as
+         [range_size] bytes - that would prevent partially downloaded
+         ranges from being completed first *)
       let rec iter acc r b more_blocks =
-	let correct_range r =
-	  not (in_uploader_ranges r up.up_ranges) &&
-	    r.range_begin < r.range_end &&
-	    r.range_begin >= b.up_block_begin &&
-	    r.range_begin < b.up_block_end in
-	let best_cluster =
-	  if not (correct_range r) then acc
-	  else 
-	    (* find if there are ranges to merge ahead *)
-	    let rec iter_cluster r cluster =
-	      let cluster = { cluster with
-		cluster_ranges = r :: cluster.cluster_ranges;
-		cluster_size = cluster.cluster_size ++ 
-		  (compute_range_size r)
-	      } in
-	      if not allow_merge_ranges ||
-		cluster.cluster_size >= range_size then cluster 
-	      else
-		match r.range_next with
-		| None -> cluster
-		| Some rr ->
-		    if rr.range_begin = r.range_end &&
-		      correct_range rr && rr.range_nuploading = 0 then 
-		      iter_cluster rr cluster
-		    else cluster in
+        let correct_range r =
+          not (in_uploader_ranges r up.up_ranges) &&
+            r.range_begin < r.range_end &&
+            r.range_begin >= b.up_block_begin &&
+            r.range_begin < b.up_block_end in
+        let best_cluster =
+          if not (correct_range r) then acc
+          else 
+            (* find if there are ranges to merge ahead *)
+            let rec iter_cluster r cluster =
+              let cluster = { cluster with
+                cluster_ranges = r :: cluster.cluster_ranges;
+                cluster_size = cluster.cluster_size ++ 
+                  (compute_range_size r)
+              } in
+              if not allow_merge_ranges ||
+                cluster.cluster_size >= range_size then cluster 
+              else
+                match r.range_next with
+                | None -> cluster
+                | Some rr ->
+                    if rr.range_begin = r.range_end &&
+                      correct_range rr && rr.range_nuploading = 0 then 
+                      iter_cluster rr cluster
+                    else cluster in
 
-	    let cluster = 
-	      iter_cluster r { dummy_ranges_cluster with
-		cluster_nuploading = r.range_nuploading } in
-	    if debug_all then
-	      lprint_newline ();
-	    if is_dummy_cluster acc then cluster
-	    else
-	      (* find a range with as few uploaders as possible *)
-	      let cmp = compare acc.cluster_nuploading
-		cluster.cluster_nuploading in
-	      if cmp < 0 then acc
-	      else cluster in
+            let cluster = 
+              iter_cluster r { dummy_ranges_cluster with
+                cluster_nuploading = r.range_nuploading } in
+            if debug_all then
+              lprint_newline ();
+            if is_dummy_cluster acc then cluster
+            else
+              (* find a range with as few uploaders as possible *)
+              let cmp = compare acc.cluster_nuploading
+                cluster.cluster_nuploading in
+              if cmp < 0 then acc
+              else cluster in
 
-	(* fast exit, and why I didn't use an iterator :/ 
-	   Could have used an exception, but I don't like that ;) *)
-	if not (is_dummy_cluster best_cluster) &&
-	  best_cluster.cluster_nuploading = 0 then b, best_cluster
-	else
-	  match r.range_next with
-	  | Some rr -> iter best_cluster rr b more_blocks
-	  | None -> 
-	      match more_blocks with
-	      | [] -> b, best_cluster
-	      | b :: more_blocks -> 
-		  if debug_all || !verbose then
-		    lprintf_nl "find_range: Client %d, next block" 
-		      (client_num up.up_client);
-		  iter best_cluster b.up_block.block_ranges b more_blocks in
+        (* fast exit, and why I didn't use an iterator :/ 
+           Could have used an exception, but I don't like that ;) *)
+        if not (is_dummy_cluster best_cluster) &&
+          best_cluster.cluster_nuploading = 0 then b, best_cluster
+        else
+          match r.range_next with
+          | Some rr -> iter best_cluster rr b more_blocks
+          | None -> 
+              match more_blocks with
+              | [] -> b, best_cluster
+              | b :: more_blocks -> 
+                  if debug_all || !verbose then
+                    lprintf_nl "find_range: Client %d, next block" 
+                      (client_num up.up_client);
+                  iter best_cluster b.up_block.block_ranges b more_blocks in
 
       let best_block, best_cluster = 
-	iter dummy_ranges_cluster b.up_block.block_ranges b more_blocks in
+        iter dummy_ranges_cluster b.up_block.block_ranges b more_blocks in
       if not (is_dummy_cluster best_cluster) &&
-	best_cluster.cluster_nuploading > 0 &&
-	(file_downloaded t.t_file < file_size t.t_file ** 98L // 100L) then begin
-	(* it seems they're only sucky choices left on that block, is
-	   there really nothing else better elsewhere ? *)
-	let s = b.up_block.block_s in
-	for i = 0 to up.up_ncomplete - 1 do
-	  let block = up.up_complete_blocks.(i) in
-	  if not (List.exists (fun b -> b.up_block.block_num = block
-			      ) up.up_blocks) then
+        best_cluster.cluster_nuploading > 0 &&
+        (file_downloaded t.t_file < file_size t.t_file ** 98L // 100L) then begin
+        (* it seems they're only sucky choices left on that block, is
+           there really nothing else better elsewhere ? *)
+        let s = b.up_block.block_s in
+        for i = 0 to up.up_ncomplete - 1 do
+          let block = up.up_complete_blocks.(i) in
+          if not (List.exists (fun b -> b.up_block.block_num = block
+                              ) up.up_blocks) then
             if s.s_priorities_bitmap.[block] <> priority_zero && 
               should_download_block s block then
-	      let partial_found = match s.s_blocks.(block) with
-		| EmptyBlock -> true
-		| CompleteBlock | VerifiedBlock -> false
-		| PartialBlock b -> b.block_unselected_remaining > 0L in
-	      if partial_found then begin
+              let partial_found = match s.s_blocks.(block) with
+                | EmptyBlock -> true
+                | CompleteBlock | VerifiedBlock -> false
+                | PartialBlock b -> b.block_unselected_remaining > 0L in
+              if partial_found then begin
 (*
-		if debug_all || !verbose then
-		  lprintf_nl "find_range: Client %d better switch cluster now!" 
-		    (client_num up.up_client);
+                if debug_all || !verbose then
+                  lprintf_nl "find_range: Client %d better switch cluster now!" 
+                    (client_num up.up_client);
 *)
-		raise Not_found
-	      end
-	done
+                raise Not_found
+              end
+        done
       end;
       match List.rev best_cluster.cluster_ranges with
       | [] -> 
-	  if debug_all then
-	    lprintf_nl "find_range: no correct range found!";
-	  raise Not_found
+          if debug_all then
+            lprintf_nl "find_range: no correct range found!";
+          raise Not_found
       | r :: q ->
-	  if not (List.for_all (merge_ranges r) q) then
-	    lprintf_nl "find_range: ranges did not merge as well as planned";
-	  split_range r (min (r.range_begin ++ range_size)
-	   best_block.up_block_end);
-	  if debug_all then begin
-	    lprintf "=> ";
-	    iter_block_ranges (fun rr ->
-	      let selected = if rr == r then "*" else "" in
-	      lprintf " %s[%Ld-%Ld]:%d%s" selected 
-		rr.range_begin rr.range_end rr.range_nuploading
-		selected
-	    ) best_block.up_block;
-	    lprint_newline ();
-	  end;
-	  let key = r.range_begin, r.range_end, r in
-	  up.up_ranges <- up.up_ranges @ [key];
-	  if r.range_nuploading = 0 then begin
-	    let b = r.range_block in
-	    b.block_unselected_remaining <-
-	      b.block_unselected_remaining -- (compute_range_size r);
-	    if b.block_unselected_remaining < 0L then
-	      lprintf_nl "find_range: block_unselected_remaining is negative!";
-	  end;
-	  r.range_nuploading <- r.range_nuploading + 1;
-	  key
+          if not (List.for_all (merge_ranges r) q) then
+            lprintf_nl "find_range: ranges did not merge as well as planned";
+          split_range r (min (r.range_begin ++ range_size)
+           best_block.up_block_end);
+          if debug_all then begin
+            lprintf "=> ";
+            iter_block_ranges (fun rr ->
+              let selected = if rr == r then "*" else "" in
+              lprintf " %s[%Ld-%Ld]:%d%s" selected 
+                rr.range_begin rr.range_end rr.range_nuploading
+                selected
+            ) best_block.up_block;
+            lprint_newline ();
+          end;
+          let key = r.range_begin, r.range_end, r in
+          up.up_ranges <- up.up_ranges @ [key];
+          if r.range_nuploading = 0 then begin
+            let b = r.range_block in
+            b.block_unselected_remaining <-
+              b.block_unselected_remaining -- (compute_range_size r);
+            if b.block_unselected_remaining < 0L then
+              lprintf_nl "find_range: block_unselected_remaining is negative!";
+          end;
+          r.range_nuploading <- r.range_nuploading + 1;
+          key
 
 (** range accessor(s) *)
 
@@ -2800,9 +2800,9 @@ let received up file_begin str string_begin string_len =
   let debug_bad_write unexpected_intervals =
     if !verbose_swarming then begin
       lprintf "Dismiss unwanted data from %d for %s:" 
-	(client_num up.up_client) (file_best_name t.t_file);
+        (client_num up.up_client) (file_best_name t.t_file);
       List.iter (fun (i_begin, i_end) -> 
-	lprintf " %Ld-%Ld" i_begin i_end) unexpected_intervals;
+        lprintf " %Ld-%Ld" i_begin i_end) unexpected_intervals;
       lprint_newline ();
       lprintf_nl "  received: file_pos:%Ld string:%d %d"
         file_begin string_begin string_len;
@@ -2848,24 +2848,24 @@ let received up file_begin str string_begin string_len =
     (* DEBUG *)
     let intervals_out = 
       let remove_interval intervals interval_begin interval_end =
-	let rec remove acc intervals =
-	  match intervals with 
-	  | [] -> List.rev acc
-	  | ((fi_begin, fi_end) as first_interval) :: others ->
-	      if fi_begin >= interval_end then
-		List.rev_append acc intervals 
-	      else if fi_end <= interval_begin then
-		remove (first_interval :: acc) others
-	      else 
-		remove (
-		  let acc = if fi_begin < interval_begin then
-		    (fi_begin, interval_begin) :: acc else acc in
-		  let acc = if fi_end > interval_end then
-		    (interval_end, fi_end) :: acc else acc in
-		  acc) others in
-	remove [] intervals in
+        let rec remove acc intervals =
+          match intervals with 
+          | [] -> List.rev acc
+          | ((fi_begin, fi_end) as first_interval) :: others ->
+              if fi_begin >= interval_end then
+                List.rev_append acc intervals 
+              else if fi_end <= interval_begin then
+                remove (first_interval :: acc) others
+              else 
+                remove (
+                  let acc = if fi_begin < interval_begin then
+                    (fi_begin, interval_begin) :: acc else acc in
+                  let acc = if fi_end > interval_end then
+                    (interval_end, fi_end) :: acc else acc in
+                  acc) others in
+        remove [] intervals in
       List.fold_left (fun acc (_, _, r) ->
-	remove_interval acc r.range_begin r.range_end
+        remove_interval acc r.range_begin r.range_end
       ) [(file_begin, file_end)] up.up_ranges in
     if intervals_out <> [] then
       debug_bad_write intervals_out;
@@ -2880,45 +2880,45 @@ let received up file_begin str string_begin string_len =
     | FileNew
     | FileQueued
     | FileDownloaded -> 
-	if !verbose then
-	  lprintf_nl "received: wrong file state %s for %s" (string_of_state (file_state t.t_file)) s.s_filename;
-	()
+        if !verbose then
+          lprintf_nl "received: wrong file state %s for %s" (string_of_state (file_state t.t_file)) s.s_filename;
+        ()
     | FileDownloading ->
-	try
-	  List.iter (fun (_,_,r) ->
+        try
+          List.iter (fun (_,_,r) ->
     (* was: r.range_begin < file_end && r.range_end > file_begin *)
             if r.range_begin >= file_begin &&
               r.range_begin < file_end then 
-		let file_end = min file_end r.range_end in
-		let written_len = file_end -- r.range_begin in
+                let file_end = min file_end r.range_end in
+                let written_len = file_end -- r.range_begin in
                 let string_pos = string_begin +
                   Int64.to_int (r.range_begin -- file_begin) in
                 let string_length = Int64.to_int written_len in
                   if string_length > 0 then
-		    match s.s_networks with
+                    match s.s_networks with
                     | [] -> assert false
-		    | tprim :: _ ->
-			assert (tprim.t_primary);
-			(try
-			  preallocate_disk_space tprim 
-			    r.range_begin file_end
-			with
-			  End_of_file -> ()
-			| e ->
-			  lprintf_nl "Exception %s while preallocating disk space [%Ld-%Ld] for %s"
-			    (Printexc2.to_string e) 
-			    r.range_begin file_end
-			    (file_best_name t.t_file));
+                    | tprim :: _ ->
+                        assert (tprim.t_primary);
+                        (try
+                          preallocate_disk_space tprim 
+                            r.range_begin file_end
+                        with
+                          End_of_file -> ()
+                        | e ->
+                          lprintf_nl "Exception %s while preallocating disk space [%Ld-%Ld] for %s"
+                            (Printexc2.to_string e) 
+                            r.range_begin file_end
+                            (file_best_name t.t_file));
                         file_write tprim.t_file
                           r.range_begin
                           str string_pos string_length;
-			range_received (Some t) r r.range_begin file_end;
-	  ) up.up_ranges;
-	  remove_completed_uploader_ranges up
-	with e ->
-	  lprintf_nl "Exception %s while receiving data"
-	    (Printexc2.to_string e);
-	  remove_completed_uploader_ranges up;
+                        range_received (Some t) r r.range_begin file_end;
+          ) up.up_ranges;
+          remove_completed_uploader_ranges up
+        with e ->
+          lprintf_nl "Exception %s while receiving data"
+            (Printexc2.to_string e);
+          remove_completed_uploader_ranges up;
           raise e
 
 (** compute the list of present intervals of a swarmer *)
@@ -2932,24 +2932,24 @@ let present_intervals s =
       match intervals with
       | [] -> [interval]
       | (last_interval_begin, last_interval_end) :: other_intervals  ->
-	  if last_interval_end < interval_begin then
-	    interval :: intervals
-	  else 
-	    (* coalescing intervals *)
-	    (last_interval_begin, interval_end) :: other_intervals in
+          if last_interval_end < interval_begin then
+            interval :: intervals
+          else 
+            (* coalescing intervals *)
+            (last_interval_begin, interval_end) :: other_intervals in
 
   List.rev (
     Array2.fold_lefti (fun acc i b -> 
       match s.s_blocks.(i) with
       | EmptyBlock -> acc
       | CompleteBlock | VerifiedBlock ->
-	  append_interval (compute_block_begin s i, compute_block_end s i) acc
+          append_interval (compute_block_begin s i, compute_block_end s i) acc
       | PartialBlock b ->
-	  let acc, last_interval_end =
-	    block_ranges_fold (fun (acc,  lie) r ->
-	      (append_interval (lie, r.range_begin) acc, r.range_end)
-	    ) (acc, compute_block_begin s i) b in
-	  append_interval (last_interval_end, compute_block_end s i) acc
+          let acc, last_interval_end =
+            block_ranges_fold (fun (acc,  lie) r ->
+              (append_interval (lie, r.range_begin) acc, r.range_end)
+            ) (acc, compute_block_begin s i) b in
+          append_interval (last_interval_end, compute_block_end s i) acc
     ) [] s.s_blocks)
 
 (*************************************************************************)
@@ -2977,7 +2977,7 @@ let propagate_chunk t1 pos1 size destinations =
         (file_best_name t1.t_file) pos1
         (file_best_name t2.t_file) pos2 size;
       Unix32.copy_chunk (file_fd t1.t_file)  (file_fd t2.t_file)
-	pos1 pos2 (Int64.to_int size);
+        pos1 pos2 (Int64.to_int size);
       set_frontend_state_complete t2 j2
     end
   ) destinations
@@ -2992,30 +2992,30 @@ let duplicate_chunks () =
       let nchunks = VB.length t.t_converted_verified_bitmap in
       match t.t_verifier with
       | Verification uids when Array.length uids = nchunks ->
-	  let rec iter j len pos =
+          let rec iter j len pos =
             if j < len then
               let c = {
-		chunk_uid = uids.(j);
-		chunk_size = min (s.s_size -- pos) t.t_chunk_size;
+                chunk_uid = uids.(j);
+                chunk_size = min (s.s_size -- pos) t.t_chunk_size;
               } in
-	      let occurrences = 
-		try
-		  Hashtbl.find chunks c
-		with Not_found ->
+              let occurrences = 
+                try
+                  Hashtbl.find chunks c
+                with Not_found ->
                   let occurrences = dummy_chunk_occurrences () in
                   Hashtbl.add chunks c occurrences;
                   occurrences in
-	      (match VB.get t.t_converted_verified_bitmap j with
-	      | VB.State_missing | VB.State_partial ->
-		occurrences.occurrence_missing <- 
-		  (t, j, pos) :: occurrences.occurrence_missing
-	      | VB.State_complete -> ()
-	      | VB.State_verified ->
-		occurrences.occurrence_present <- 
-		  (t, j, pos) :: occurrences.occurrence_present);
+              (match VB.get t.t_converted_verified_bitmap j with
+              | VB.State_missing | VB.State_partial ->
+                occurrences.occurrence_missing <- 
+                  (t, j, pos) :: occurrences.occurrence_missing
+              | VB.State_complete -> ()
+              | VB.State_verified ->
+                occurrences.occurrence_present <- 
+                  (t, j, pos) :: occurrences.occurrence_present);
               iter (j+1) len (pos ++ t.t_chunk_size)
-	  in
-	  iter 0 (VB.length t.t_converted_verified_bitmap) zero
+          in
+          iter 0 (VB.length t.t_converted_verified_bitmap) zero
       | _ -> ()
     ) s.s_networks
   ) swarmers_by_name;
@@ -3054,7 +3054,7 @@ let chunks_availability t =
       let v = List2.min
         (List.map (fun i -> s.s_availability.(i)) t.t_blocks_of_chunk.(i)) in
       if v < 0 then 0 else
-	if v > 200 then 200 else v))
+        if v > 200 then 200 else v))
 
 let is_interesting up =
   up.up_ncomplete > 0 || up.up_npartial > 0
@@ -3105,8 +3105,8 @@ let value_to_frontend t assocs =
     
     let total = 
       List.fold_left (fun acc (x,y) ->
-	lprintf_nl "     (%Ld,%Ld);" x y;
-	acc ++ (y -- x)
+        lprintf_nl "     (%Ld,%Ld);" x y;
+        acc ++ (y -- x)
       ) zero p in
     
     lprintf_nl "ERROR: total %Ld" total;
@@ -3123,7 +3123,7 @@ let value_to_frontend t assocs =
   (try
     let file_name = get_value "file_swarmer" value_to_string in
     let s = HS.find swarmers_by_name 
-	{ dummy_swarmer with s_filename = file_name } in
+        { dummy_swarmer with s_filename = file_name } in
     associate primary t s
     (* TODO: make as many checks as possible to ensure the file and the swarmers
        are correctly associed. *)
@@ -3146,7 +3146,7 @@ let value_to_frontend t assocs =
     with Not_found ->
       set_chunks_verified_bitmap t
         (VB.of_string (get_value  "file_all_chunks" value_to_string))
-	
+        
   with e ->
     lprintf_nl "Exception %s while loading bitmap"
       (Printexc2.to_string e);
@@ -3179,7 +3179,7 @@ let value_to_frontend t assocs =
     (try
       let d = get_value "file_downloaded" value_to_int64 in
       if d <> downloaded t && !verbose then
-	debug_wrong_downloaded t present d
+        debug_wrong_downloaded t present d
     with Not_found -> ());
   end;
 
@@ -3208,7 +3208,7 @@ let frontend_to_value t other_vals =
     [("file_present_chunks", List
       (List.map (fun (i1,i2) ->
         SmallList [int64_to_value i1; int64_to_value i2])
-	(present_intervals t)))] 
+        (present_intervals t)))] 
    else []) @
   [("file_downloaded", int64_to_value (downloaded t));
    ("file_chunks_age", List (Array.to_list
@@ -3278,7 +3278,7 @@ let merge f1 f2 =
     | [] -> assert false
     | t1 :: _ ->
         match t1.t_verifier with
-	| NoVerification | VerificationNotAvailable ->
+        | NoVerification | VerificationNotAvailable ->
             failwith "Cannot use first file as a primary for swarming (no verification scheme)"
         | Verification _ | ForceVerification -> t1
   in
@@ -3348,20 +3348,20 @@ module SwarmerOption = struct
           let file_size = get_value "file_size" value_to_int64 in
           let file_name = get_value "file_name" value_to_string in
           let s = create_swarmer file_name file_size in
-	  (let order =
+          (let order =
             try
               get_value "file_download_random" value_to_bool
             with _ -> true
            in
            s.s_strategy <- if order then AdvancedStrategy else LinearStrategy);
-	  (try
-	    let bitmap = Bitv.of_string (get_value "file_disk_allocation_bitmap"
-	      value_to_string) in
-	    if Bitv.length bitmap = Bitv.length s.s_disk_allocated then
-	      s.s_disk_allocated <- bitmap
-	  with _ -> ());
-	  (* s_disk_allocated missing or inconsistent ? 
-	     set_present will fix it *)
+          (try
+            let bitmap = Bitv.of_string (get_value "file_disk_allocation_bitmap"
+              value_to_string) in
+            if Bitv.length bitmap = Bitv.length s.s_disk_allocated then
+              s.s_disk_allocated <- bitmap
+          with _ -> ());
+          (* s_disk_allocated missing or inconsistent ? 
+             set_present will fix it *)
           let block_sizes = get_value "file_chunk_sizes"
               (value_to_list value_to_int64) in
           List.iter (fun bsize ->
@@ -3385,8 +3385,8 @@ module SwarmerOption = struct
       Module [
         ("file_size", int64_to_value s.s_size);
         ("file_name", string_to_value s.s_filename);
-	("file_disk_allocation_bitmap", string_to_value
-	  (Bitv.to_string s.s_disk_allocated));
+        ("file_disk_allocation_bitmap", string_to_value
+          (Bitv.to_string s.s_disk_allocated));
         ("file_chunk_sizes", list_to_value int64_to_value
             (List.map (fun t -> t.t_chunk_size) s.s_networks));
         ("file_priorities_intervals", List
@@ -3414,35 +3414,35 @@ let check_swarmer s =
     | tprim :: tail ->
         assert(tprim.t_primary);
 
-	VB.iteri (fun i c ->
-	    if c = VB.State_verified then begin
-	      if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified) 
-		tprim.t_blocks_of_chunk.(i) then
+        VB.iteri (fun i c ->
+            if c = VB.State_verified then begin
+              if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified) 
+                tprim.t_blocks_of_chunk.(i) then
                   failwith "Bad propagation of State_verified from primary to swarmer";
             end
             else if List.exists (fun j -> VB.get s.s_verified_bitmap j = VB.State_verified)
-	      tprim.t_blocks_of_chunk.(i) then
+              tprim.t_blocks_of_chunk.(i) then
                 failwith "Swarmer has State_verified not coming from primary";
-	) tprim.t_converted_verified_bitmap;
+        ) tprim.t_converted_verified_bitmap;
 
         let fd = file_fd tprim.t_file in
 
         List.iter (fun t ->
           assert (not t.t_primary);
           assert (file_fd t.t_file == fd);
-	  
-	  VB.iteri (fun i c ->
-	    if c = VB.State_verified then begin
-	      if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified)
-		t.t_blocks_of_chunk.(i) then
+          
+          VB.iteri (fun i c ->
+            if c = VB.State_verified then begin
+              if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified)
+                t.t_blocks_of_chunk.(i) then
                   failwith "State_verified in secondary without State_verified in primary"
-	    end 
-	    else if c = VB.State_complete then begin
-	      if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified)
-		t.t_blocks_of_chunk.(i) then
+            end 
+            else if c = VB.State_complete then begin
+              if List.exists (fun j -> VB.get s.s_verified_bitmap j <> VB.State_verified)
+                t.t_blocks_of_chunk.(i) then
                   failwith "State_complete in secondary without State_verified in primary"
-	    end 
-	  ) t.t_converted_verified_bitmap
+            end 
+          ) t.t_converted_verified_bitmap
         ) tail
   with e ->
     print_s "ERROR" s;
@@ -3476,9 +3476,9 @@ let _ =
        can be verified while downloads are being restored from ini files *)
     let primary_files, secondary_files = 
       List.partition (fun file -> 
-	match file_files file with
-	| primary_file :: _ when primary_file == file -> true
-	| _ -> false) !!CommonComplexOptions.files in
+        match file_files file with
+        | primary_file :: _ when primary_file == file -> true
+        | _ -> false) !!CommonComplexOptions.files in
     CommonComplexOptions.files =:= primary_files @ secondary_files
   );
   set_after_load_hook files_ini (fun _ ->

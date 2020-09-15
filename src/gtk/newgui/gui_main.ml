@@ -53,11 +53,11 @@ let chmod_config () =
 let () = 
   (try Options.load O.mldonkey_gui_ini with
       Sys_error _ ->
-	(try Options.save O.mldonkey_gui_ini with _ -> ())
+        (try Options.save O.mldonkey_gui_ini with _ -> ())
      | e ->
         lprintf "Exception %s in load options %s\n" 
-	 (Printexc2.to_string e)
-	 (Options.options_file_name O.mldonkey_gui_ini);
+         (Printexc2.to_string e)
+         (Options.options_file_name O.mldonkey_gui_ini);
   );
   let args = 
     ("-dump_msg", Arg.Unit (fun _ ->

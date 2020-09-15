@@ -184,25 +184,25 @@ $vars{'HTTPPASS'} = \"%s\";
 my $ua = LWP::UserAgent->new;
 
 while (my $uri = shift @ARGV) {
-	$_ = URI::Escape::uri_unescape($uri);
-	if (/^ed2k:\\/\\/\\|file\\|[^|]+\\|(\\d+)\\|([\\dabcdef]+)\\|$/) {
-		my $size = $1;
-		my $md4 = $2;
-		my $req = HTTP::Request->new(
-			GET => \"$vars{'HTTPURL'}/submit?q=dllink+$uri\"
-		);
-		if (($vars{'HTTPUSER'}) && ($vars{'HTTPPASS'})) {
-			$req->authorization_basic($vars{'HTTPUSER'},
-				$vars{'HTTPPASS'});
-		}
-		my $response = $ua->request($req);
-		if (!($response->is_success)) {
-			print $response->error_as_HTML;
-			exit 1;
-		}
-	} else {
-		print \"Not an ed2k URI: $_\n\";
-	}
+        $_ = URI::Escape::uri_unescape($uri);
+        if (/^ed2k:\\/\\/\\|file\\|[^|]+\\|(\\d+)\\|([\\dabcdef]+)\\|$/) {
+                my $size = $1;
+                my $md4 = $2;
+                my $req = HTTP::Request->new(
+                        GET => \"$vars{'HTTPURL'}/submit?q=dllink+$uri\"
+                );
+                if (($vars{'HTTPUSER'}) && ($vars{'HTTPPASS'})) {
+                        $req->authorization_basic($vars{'HTTPUSER'},
+                                $vars{'HTTPPASS'});
+                }
+                my $response = $ua->request($req);
+                if (!($response->is_success)) {
+                        print $response->error_as_HTML;
+                        exit 1;
+                }
+        } else {
+                print \"Not an ed2k URI: $_\n\";
+        }
 }
 "
       Autoconf.perl_path
@@ -303,12 +303,12 @@ let load_config () =
           exit 0),
       _s " : display information on the implementations";
       "-stdout", Arg.Unit (fun _ ->
-	  lprintf_original_output := (Some stdout);
+          lprintf_original_output := (Some stdout);
           log_to_file stdout
       ),
        _s ": keep output to stdout after startup";
        "-stderr", Arg.Unit (fun _ ->
-	  lprintf_original_output := (Some stderr);
+          lprintf_original_output := (Some stderr);
           log_to_file stderr
        ),
        _s ": keep output to stderr after startup";
@@ -354,7 +354,7 @@ let load_config () =
       Unix2.safe_mkdir s.shdir_dirname;
       if s.shdir_strategy = "incoming_directories" ||
          s.shdir_strategy = "incoming_files" then
-	Unix2.can_write_to_directory s.shdir_dirname
+        Unix2.can_write_to_directory s.shdir_dirname
   ) !!CommonComplexOptions.shared_directories;
   Unix2.safe_mkdir "searches";
   Unix2.can_write_to_directory "searches";
@@ -375,8 +375,8 @@ let _ =
 
   ( let resolve_name hostname =
       try
-	ignore (Ip.from_name hostname);
-	true
+        ignore (Ip.from_name hostname);
+        true
       with _ -> false
     in
     let hostnames =
@@ -407,14 +407,14 @@ or getting a binary compiled with glibc %s.\n\n")
          try Unix.putenv "MAGIC" "./magic/magic" with _ -> ());
       if Magic.M.magic_works () then
         begin
-	  Autoconf.magic_works := true;
+          Autoconf.magic_works := true;
           lprintf_nl (_b "Libmagic file-type recognition database present")
-	end
+        end
       else
         begin
-	  Autoconf.magic_works := false;
+          Autoconf.magic_works := false;
           lprintf_nl (_b "Libmagic file-type recognition database not present")
-	end
+        end
       end
   );
   if not !Charset.Locale.conversion_enabled then
@@ -495,10 +495,10 @@ or getting a binary compiled with glibc %s.\n\n")
   let found = ref false in
     networks_iter_all (fun r ->
         if not (network_is_enabled r) then
-	  begin
-	    found := true;
+          begin
+            found := true;
             lprintf (_b "%s ") r.network_name
-	  end);
+          end);
   if not !found then lprintf (_b "none");
   lprint_newline ();
   if (upnp_port_forwarding ()) then
@@ -533,7 +533,7 @@ or getting a binary compiled with glibc %s.\n\n")
   update_h_upload_history ();
   history_size_for_h_graph := history_size * !!html_mods_vd_gfx_h_intervall / 60;
   history_h_step := 60 * !!html_mods_vd_gfx_h_intervall;
-	
+        
   add_infinite_timer (float_of_int history_step) (fun timer -> 
     history_timeflag := (Unix.time()); 
     update_download_history (); 
@@ -543,7 +543,7 @@ or getting a binary compiled with glibc %s.\n\n")
     history_h_timeflag := (Unix.time()); 
     update_h_download_history (); 
     update_h_upload_history ());
-		
+                
   if Autoconf.system = "mingw" then
     add_infinite_timer 1. (fun timer ->
         MlUnix.set_console_title (DriverInteractive.console_topic ()));
@@ -559,17 +559,17 @@ or getting a binary compiled with glibc %s.\n\n")
   Options.prune_file users_ini;
   add_timer 1. (fun _ -> try CommonWeb.load_web_infos true false with _ -> ());
   if !!telnet_port <> 0 then lprintf_nl  (_b "To command: telnet %s %d")
-	(if !!telnet_bind_addr = Ip.any then "127.0.0.1"
-		else Ip.to_string !!telnet_bind_addr)  !!telnet_port;
+        (if !!telnet_bind_addr = Ip.any then "127.0.0.1"
+                else Ip.to_string !!telnet_bind_addr)  !!telnet_port;
   if !!http_port <> 0 then begin
     lprintf_nl  (_b "Or with browser: http://%s:%d")
-	(if !!http_bind_addr = Ip.any then "127.0.0.1"
-		else Ip.to_string !!http_bind_addr)  !!http_port;
+        (if !!http_bind_addr = Ip.any then "127.0.0.1"
+                else Ip.to_string !!http_bind_addr)  !!http_port;
     lprintf_nl  (_b "For a GUI check out http://sancho-gui.sourceforge.net")
   end;
   if !!gui_port <> 0 then lprintf_nl  (_b "Connect to IP %s, port %d")
-	(if !!gui_bind_addr = Ip.any then "127.0.0.1"
-		else Ip.to_string !!gui_bind_addr)  !!gui_port;
+        (if !!gui_bind_addr = Ip.any then "127.0.0.1"
+                else Ip.to_string !!gui_bind_addr)  !!gui_port;
   lprintf_nl  (_b "If you connect from a remote machine adjust allowed_ips");
   if Autoconf.system = "cygwin" && not (keep_console_output ()) then lprintf (_b "%s") win_message;
 
@@ -645,8 +645,8 @@ or getting a binary compiled with glibc %s.\n\n")
     MlUnix.set_signal  Sys.sighup
       (Sys.Signal_handle (fun _ -> lprintf_nl (_b "Received SIGHUP, closing all files and client/server sockets, start IP discovery");
          networks_iter (fun r -> CommonNetwork.network_reset r); (* stop_all_bt *)
-	 CommonServer.disconnect_all_servers ();
-	 CommonClient.disconnect_all_clients ();
+         CommonServer.disconnect_all_servers ();
+         CommonClient.disconnect_all_clients ();
          Unix32.close_all (); (* close all files *)
          discover_ip false;
          ));
@@ -671,9 +671,9 @@ or getting a binary compiled with glibc %s.\n\n")
   if not Autoconf.windows then
   MlUnix.set_signal  Sys.sigusr2
     (Sys.Signal_handle (fun _ -> lprintf_n (_b "Received SIGUSR2, starting garbage collection...");
-	Gc.compact ();
-	lprintf " finished";
-	lprint_newline ()));
+        Gc.compact ();
+        lprintf " finished";
+        lprint_newline ()));
 
   if !verbose then lprintf_nl (_b "Activated system signal handling")
 
@@ -689,14 +689,14 @@ for config files at the end. *)
         let pos = ref zero in
         for i = 1 to !!config_files_security_space do
           for j = 1 to 32 do (* 32 = 1 MB / 32kB *)
-	    ignore(Unix2.c_seek64 oc !pos Unix.SEEK_SET);
+            ignore(Unix2.c_seek64 oc !pos Unix.SEEK_SET);
             Unix2.really_write oc s 0 len;
             pos := !pos ++ (Int64.of_int len)
           done
         done;
-	ignore(Unix2.c_seek64 oc zero Unix.SEEK_SET);
-	(try Unix.lockf oc Unix.F_LOCK (!!config_files_security_space * 1024 * 1024) with _ -> ());
-	security_space_oc := Some oc
+        ignore(Unix2.c_seek64 oc zero Unix.SEEK_SET);
+        (try Unix.lockf oc Unix.F_LOCK (!!config_files_security_space * 1024 * 1024) with _ -> ());
+        security_space_oc := Some oc
     with e ->
         lprintf_nl (_b "Cannot create Security space file: %s") (Printexc2.to_string e);
         lprintf_nl (_b " not enough space on device or bad permissions");
@@ -708,7 +708,7 @@ for config files at the end. *)
   (
     let pid_file, s =
         Filename.concat !pid pid_filename,
-	Printf.sprintf "%s\n" (string_of_int(Unix.getpid()))
+        Printf.sprintf "%s\n" (string_of_int(Unix.getpid()))
     in
     Unix2.tryopen_write pid_file (fun oc -> output_string oc s);
     CommonGlobals.do_at_exit (fun _ -> try Sys.remove pid_file with _ -> ());
@@ -741,7 +741,7 @@ for config files at the end. *)
       (* In case we have no more space on filesystem for
          config files, remove the security space file *)
       (match !security_space_oc with
-	None -> ()
+        None -> ()
       | Some oc -> Unix.close oc);
       (try Sys.remove security_space_filename with _ -> ());
       CommonComplexOptions.allow_saving_ini_files := true;
@@ -758,6 +758,6 @@ for config files at the end. *)
       begin
         lprintf_nl (_b "Option log_file is empty, disable logging completely...");
         lprintf_nl (_b "Disabling output to console, to enable: stdout true");
-	log_to_file stdout;
+        log_to_file stdout;
         close_log ()
       end

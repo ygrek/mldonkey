@@ -73,10 +73,10 @@ let limite_udp_received_sec = define_option server_ini ["limite_udp_received_sec
     float_option 200.
 
 let process_udp_loc = define_option server_ini ["process_udp_loc"]
-			"The server try to answer all udp location requet of md4" bool_option true
-			
+                        "The server try to answer all udp location requet of md4" bool_option true
+                        
 let process_udp_req = define_option server_ini ["process_udp_req"]
-			"The server try to answer all udp query and location requet of md4" bool_option true
+                        "The server try to answer all udp query and location requet of md4" bool_option true
 
 
 (*Options for cooperation server protocol*) 

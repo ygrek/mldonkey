@@ -265,15 +265,15 @@ let pix_buf icon_name pixel_size ?(desat=false) () =
     let (default, o) = List.assoc icon_name table in
     match o with
       "" -> 
-	let pb = pixb default pixel_size in
+        let pb = pixb default pixel_size in
         saturate pb desat
     | f ->
-	try
-	  let pb = GdkPixbuf.from_file f in
+        try
+          let pb = GdkPixbuf.from_file f in
           saturate pb desat
-	with
-	  _ ->
-	    let pb = pixb default pixel_size in
+        with
+          _ ->
+            let pb = pixb default pixel_size in
             saturate pb desat
   with
     Not_found ->
@@ -472,49 +472,49 @@ let get_availability_of availability chunks is_file =
       (if !!verbose then lprintf' "Creating new availability bar\n");
       let dest = GdkPixbuf.create ~width:nchunks ~height ~has_alpha:true () in
       (try
-	match chunks with
-	| None -> ()
-	| Some chunks ->
+        match chunks with
+        | None -> ()
+        | Some chunks ->
         for i = 0 to (nchunks - 1) do
           if is_file
           then 
-	    (match VB.get chunks i with
-	    | VB.State_complete | VB.State_verified ->
-		GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_green
-	    | VB.State_missing | VB.State_partial -> 
+            (match VB.get chunks i with
+            | VB.State_complete | VB.State_verified ->
+                GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_green
+            | VB.State_missing | VB.State_partial -> 
                 let h = int_of_char (avail.[i]) in
-		match h, VB.get chunks i with
-		| 0, VB.State_missing ->
-		    GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_red
-		| 0, _ ->
-		    GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_orange
-		| _, VB.State_missing ->
+                match h, VB.get chunks i with
+                | 0, VB.State_missing ->
+                    GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_red
+                | 0, _ ->
+                    GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_orange
+                | _, VB.State_missing ->
                     let color_blue = !color_blue_relative.(!!O.gtk_misc_availability_max - h) in
                     GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_blue
-		| _, _ ->
-		    GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_yellow
+                | _, _ ->
+                    GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_yellow
             )
           else 
-	    match int_of_char avail.[i] >= 49, VB.get chunks i with
-	    | true, VB.State_complete
-	    | true, VB.State_verified ->
-		GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_black
-	    | true, VB.State_missing ->
-		GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_green
-	    | true, VB.State_partial ->
-		GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_yellow
-	    | false, _ ->
-		GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_red
+            match int_of_char avail.[i] >= 49, VB.get chunks i with
+            | true, VB.State_complete
+            | true, VB.State_verified ->
+                GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_black
+            | true, VB.State_missing ->
+                GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_green
+            | true, VB.State_partial ->
+                GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_yellow
+            | false, _ ->
+                GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_red
         done;
 
       with _ ->
           if !!verbose then 
-	    lprintf' "Exception in creating avail_bar avail: %s chunks: %s file: %b\n" 
-	      avail 
-	      (match chunks with
-	      |	None -> ""
-	      | Some chunks -> VB.to_string chunks) 
-	      is_file;
+            lprintf' "Exception in creating avail_bar avail: %s chunks: %s file: %b\n" 
+              avail 
+              (match chunks with
+              |	None -> ""
+              | Some chunks -> VB.to_string chunks) 
+              is_file;
           for i = 0 to nchunks - 1 do
             GdkPixbuf.copy_area ~dest ~dest_x:i ~dest_y:0 ~width:1 ~height ~src_x:0 ~src_y:0 color_grey
           done);

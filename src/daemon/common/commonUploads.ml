@@ -833,7 +833,7 @@ and find_pending_slot () =
   try
     let iter () =
       let c = Intmap.nth !pending_slots_map 
-	(Random.int (Intmap.length !pending_slots_map)) in
+        (Random.int (Intmap.length !pending_slots_map)) in
       give_a_slot c
     in
     iter ()
@@ -874,12 +874,12 @@ let add_pending_slot c =
   in
   match slot_type with
     Some slot ->
-	remove_pending_slot c;
-	if client_is_connected c then
-	  begin
-	    set_client_has_a_slot c slot;
-	    client_enter_upload_queue c
-	  end
+        remove_pending_slot c;
+        if client_is_connected c then
+          begin
+            set_client_has_a_slot c slot;
+            client_enter_upload_queue c
+          end
   | None -> add_pending_slot c
 
 let static_refill_upload_slots () =

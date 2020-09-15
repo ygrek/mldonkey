@@ -94,12 +94,12 @@ let round_up x =
 let round_h_down x = 
   let values = [90720; 80640; 70560; 60480; 50400; 40320; 30240; 20160; 18720; 17280; 15840; 14400; 12960; 11520; 10080; 8640; 7200; 5760; 4320; 2880; 1440; 720; 480; 360; 300; 240; 180; 120; 60; 30; 15; 10; 5; 4; 3; 2; 1; 0] in
   max 1 (List.find ((>=) x) values)
-	
+        
 let round_h_up x =
   let v = min x 90720 in
   let values = [1; 2; 3; 4; 5; 10; 15; 30; 60; 120; 180; 240; 300; 360; 480; 720; 1440; 2880; 4320; 5760; 7200; 8640; 10080; 11520; 12960; 14400; 15840; 17280; 18720; 20160; 30240; 40320; 50400; 60480; 70560; 80640; 90720] in
   List.find ((<=) v) values
-	
+        
 (* calculate x-values *)
 let x_time_per_grid() = 60 * round_up (history_time / (60 * ((win_x () - left_margin - right_margin) / 60)))
 let x_divisions () = history_time / (x_time_per_grid ())
@@ -110,17 +110,17 @@ let x_h_time_per_grid g = max !history_h_step (
     begin
       if !!html_mods_vd_gfx_h_grid_time >= 1 then
         min (round_h_down (!!html_mods_vd_gfx_h_grid_time * 60)) 
-	          (min ((round_h_up ((((Fifo.length g) + x_divisions () - 2) / (x_divisions())) * !history_h_step/60 )) * 60)
-	               ((round_h_down ( history_h_time() / (60 * x_divisions()) )) * 60))
+                  (min ((round_h_up ((((Fifo.length g) + x_divisions () - 2) / (x_divisions())) * !history_h_step/60 )) * 60)
+                       ((round_h_down ( history_h_time() / (60 * x_divisions()) )) * 60))
       else
-	      min ((round_h_up ((((Fifo.length g) + x_divisions () - 2) / (x_divisions ())) * !history_h_step / 60)) * 60)
+              min ((round_h_up ((((Fifo.length g) + x_divisions () - 2) / (x_divisions ())) * !history_h_step / 60)) * 60)
             ((round_h_down (history_h_time() / (60 * x_divisions ()) )) * 60)
     end
   else
     if !!html_mods_vd_gfx_h_grid_time >= 1 then
       round_h_down (!!html_mods_vd_gfx_h_grid_time * 60)
   else
-	  round_h_down (history_h_time() / (60 * x_divisions ())))
+          round_h_down (history_h_time() / (60 * x_divisions ())))
 
 let vmax link = (detected_link_capacity link)
 
@@ -174,7 +174,7 @@ let draw_x_grid mypic gcolor gcolor2 my_xdivisons =
   if my_sdivisions > 1 then
     for n = 0 to my_xdivisons - 1 do
       for m = 1 to my_sdivisions - 1 do
-	mypic#dashed_line ~x1:(fxs n m) ~y1:(ybt) ~x2:(fxs n m) ~y2:my_y gcolor2;
+        mypic#dashed_line ~x1:(fxs n m) ~y1:(ybt) ~x2:(fxs n m) ~y2:my_y gcolor2;
       done;
     done
 
@@ -278,7 +278,7 @@ let draw_h_legend mypic g legend_text gcolor my_time basetime show_days =
   else
     begin
       for n = 0 to (x_divisions() - 1) do
-	mypic#string ~font:Gd.Font.small ~x:((fx n) - (String.length (time_string n) * 3) ) ~y:(my_y + 5) ~s:(time_string n) gcolor;
+        mypic#string ~font:Gd.Font.small ~x:((fx n) - (String.length (time_string n) * 3) ) ~y:(my_y + 5) ~s:(time_string n) gcolor;
       done;
       mypic#string ~font:Gd.Font.small ~x:(4) ~y:(my_y + 5) ~s:(legend_text) gcolor
     end
@@ -294,23 +294,23 @@ let draw_load mypic g vdt my_color shadow_color my_samples =
   and y_c2 n = (my_y - (int_of_float(float_of_int(datas g (n+1)) *. vdt))) in
   (if !!html_mods_vd_gfx_fill then begin
       if my_s2 = 0 then	
-	for n = 0 to my_s - 1 do
-	  mypic#line ~x1:(fx n) ~y1:(min (my_y-1)(y_c1 n)) ~x2:(fx(n+1)) ~y2:(min (my_y-2)(y_c2 n)) shadow_color
-	done
+        for n = 0 to my_s - 1 do
+          mypic#line ~x1:(fx n) ~y1:(min (my_y-1)(y_c1 n)) ~x2:(fx(n+1)) ~y2:(min (my_y-2)(y_c2 n)) shadow_color
+        done
       else
-	for n = 0 to my_s - 1 do
-	  mypic#line ~x1: (fx n)               ~y1:(min (my_y - 1) (y_c1 n)) ~x2:((fx(n + 1)) + my_s2) ~y2:(min (my_y - 1) (y_c1 n)) shadow_color;
-	  mypic#line ~x1:((fx(n + 1)) + my_s2) ~y1:(min (my_y - 1) (y_c1 n)) ~x2: (fx(n + 1))          ~y2:(min (my_y - 1) (y_c2 n)) shadow_color
-	done;
+        for n = 0 to my_s - 1 do
+          mypic#line ~x1: (fx n)               ~y1:(min (my_y - 1) (y_c1 n)) ~x2:((fx(n + 1)) + my_s2) ~y2:(min (my_y - 1) (y_c1 n)) shadow_color;
+          mypic#line ~x1:((fx(n + 1)) + my_s2) ~y1:(min (my_y - 1) (y_c1 n)) ~x2: (fx(n + 1))          ~y2:(min (my_y - 1) (y_c2 n)) shadow_color
+        done;
       if (fx my_s) > (xbl + 1) then
-	mypic#line ~x1:(fx my_s) ~y1:(min (my_y - 1) (y_c1 my_s)) ~x2:(fx my_s) ~y2:(my_y) shadow_color;
+        mypic#line ~x1:(fx my_s) ~y1:(min (my_y - 1) (y_c1 my_s)) ~x2:(fx my_s) ~y2:(my_y) shadow_color;
   mypic#fill ~x:(my_x - 1) ~y:(my_y - 1) my_color;
   end
   else begin
     if my_s2 = 0 then
       for n = 0 to my_s - 1 do
-	mypic#line ~x1:((fx n)+1) ~y1:((y_c1 n)+1) ~x2:((fx (n+1))+1) ~y2:((y_c2 n)+1) shadow_color;
-	mypic#line ~x1:( fx n) ~y1:(y_c1 n) ~x2:( fx (n+1)) ~y2:(y_c2 n) my_color
+        mypic#line ~x1:((fx n)+1) ~y1:((y_c1 n)+1) ~x2:((fx (n+1))+1) ~y2:((y_c2 n)+1) shadow_color;
+        mypic#line ~x1:( fx n) ~y1:(y_c1 n) ~x2:( fx (n+1)) ~y2:(y_c2 n) my_color
       done
     else
       for n = 0 to my_s - 1 do
@@ -578,7 +578,7 @@ let do_draw_h_pic ttl vl hl gdown gup =
   let g_y = win_y() in
   let mypic = Gd.create ~x:(win_x()) ~y:g_y in
   let x_legend_days = (int_of_float !history_h_timeflag) mod 86400 < (x_h_time gdown) in
-	
+        
   (* set colors *)
   let white = mypic#colors#white in
   let black = mypic#colors#black in
@@ -734,12 +734,12 @@ let png_version_num () =
       let s = Int32.to_string(Gd.png_version ()) in
         let len = String.length s in
         let major_version = String.sub s 0 1 in
-	let minor_version = String.sub s 1 2 in
-	let release_version = String.sub s 3 (len-3) in
-	  Printf.sprintf "%ld.%ld.%ld"
-	    (Int32.of_string(major_version))
-	    (Int32.of_string(minor_version))
-	    (Int32.of_string(release_version))
+        let minor_version = String.sub s 1 2 in
+        let release_version = String.sub s 3 (len-3) in
+          Printf.sprintf "%ld.%ld.%ld"
+            (Int32.of_string(major_version))
+            (Int32.of_string(minor_version))
+            (Int32.of_string(release_version))
     with e -> ""
   end
 

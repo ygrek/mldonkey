@@ -26,11 +26,11 @@ type dtd_item_type =
         | TAttribute
 
 type token =
-	| Tag of string * (string * string) list * bool
-	| PCData of string
-	| Endtag of string
-	| DocType of (string * dtd_decl)
-	| Eof
+        | Tag of string * (string * string) list * bool
+        | PCData of string
+        | Endtag of string
+        | DocType of (string * dtd_decl)
+        | Eof
 
 let last_pos = ref 0
 and current_line = ref 0
@@ -41,43 +41,43 @@ let tmp = Buffer.create 200
 let idents = Hashtbl.create 0
 
 let _ = begin
-	Hashtbl.add idents "gt;" ">";
-	Hashtbl.add idents "lt;" "<";
-	Hashtbl.add idents "amp;" "&";
-	Hashtbl.add idents "apos;" "'";
-	Hashtbl.add idents "quot;" "\"";
+        Hashtbl.add idents "gt;" ">";
+        Hashtbl.add idents "lt;" "<";
+        Hashtbl.add idents "amp;" "&";
+        Hashtbl.add idents "apos;" "'";
+        Hashtbl.add idents "quot;" "\"";
 end
 
 let init lexbuf =
-	current_line := 1;
-	current_line_start := lexeme_start lexbuf;
-	last_pos := !current_line_start
+        current_line := 1;
+        current_line_start := lexeme_start lexbuf;
+        last_pos := !current_line_start
 
 let close lexbuf =
-	Buffer.reset tmp
+        Buffer.reset tmp
 
 let pos lexbuf =
-	!current_line ,	!current_line_start ,
-	!last_pos ,
-	lexeme_start lexbuf
+        !current_line ,	!current_line_start ,
+        !last_pos ,
+        lexeme_start lexbuf
 
 let restore (cl,cls,lp,_) =
-	current_line := cl;
-	current_line_start := cls;
-	last_pos := lp
+        current_line := cl;
+        current_line_start := cls;
+        last_pos := lp
 
 let newline lexbuf =
-	incr current_line;
-	last_pos := lexeme_end lexbuf;
-	current_line_start := !last_pos
+        incr current_line;
+        last_pos := lexeme_end lexbuf;
+        current_line_start := !last_pos
 
 let error lexbuf e =
-	last_pos := lexeme_start lexbuf;
-	raise (Error e)
+        last_pos := lexeme_start lexbuf;
+        raise (Error e)
 
 let dtd_error lexbuf e =
-	last_pos := lexeme_start lexbuf;
-	raise (DTDError e)
+        last_pos := lexeme_start lexbuf;
+        raise (DTDError e)
 }
 
 let newline = ['\n']
@@ -108,12 +108,12 @@ rule token = parse
       let data = dtd_data lexbuf in
       DocType (root, data)
     }
-	| "<![" cdata_start '['
-		{
-			last_pos := lexeme_start lexbuf;
-			Buffer.reset tmp;
-			PCData (cdata lexbuf)
-		}		
+        | "<![" cdata_start '['
+                {
+                        last_pos := lexeme_start lexbuf;
+                        Buffer.reset tmp;
+                        PCData (cdata lexbuf)
+                }		
   | "<!--"
       {
       last_pos := lexeme_start lexbuf;
@@ -205,26 +205,26 @@ and header = parse
       { header lexbuf }		
 
 and cdata = parse
-	| [^ ']' '\n']+
-		{
-			Buffer.add_string tmp (lexeme lexbuf);
-			cdata lexbuf
-		}
-	| newline 
-		{
-			newline lexbuf;
-			Buffer.add_string tmp (lexeme lexbuf);
-			cdata lexbuf
-		}
-	| "]]>"
-		{ Buffer.contents tmp }
-	| ']'
-		{
-			Buffer.add_string tmp (lexeme lexbuf);
-			cdata lexbuf
-		}
-	| eof
-		{ error lexbuf ECloseExpected }
+        | [^ ']' '\n']+
+                {
+                        Buffer.add_string tmp (lexeme lexbuf);
+                        cdata lexbuf
+                }
+        | newline 
+                {
+                        newline lexbuf;
+                        Buffer.add_string tmp (lexeme lexbuf);
+                        cdata lexbuf
+                }
+        | "]]>"
+                { Buffer.contents tmp }
+        | ']'
+                {
+                        Buffer.add_string tmp (lexeme lexbuf);
+                        cdata lexbuf
+                }
+        | eof
+                { error lexbuf ECloseExpected }
 
 and pcdata = parse
   | pcchar+
@@ -431,10 +431,10 @@ and dtd_item = parse
 
 and dtd_attributes = parse
   | '>'
-		{
-			ignore_spaces lexbuf;
-			[]
-		}
+                {
+                        ignore_spaces lexbuf;
+                        []
+                }
   | ""
       {
       let attrname = (try ident_name lexbuf with Error EIdentExpected -> raise (DTDError EInvalidDTDAttribute)) in
@@ -538,16 +538,16 @@ and dtd_attr_type = parse
       ignore_spaces lexbuf;
       DTDNMToken
     }
-	| "ID"
-		{
-			ignore_spaces lexbuf;
-		 	DTDID
-		}
-	| "IDREF"
-		{
-			ignore_spaces lexbuf;
-			DTDIDRef
-		}
+        | "ID"
+                {
+                        ignore_spaces lexbuf;
+                        DTDID
+                }
+        | "IDREF"
+                {
+                        ignore_spaces lexbuf;
+                        DTDIDRef
+                }
   | '('
       {
       ignore_spaces lexbuf;

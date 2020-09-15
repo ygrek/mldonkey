@@ -61,7 +61,7 @@ let tmp = ref { ip = Ip.null;
                 req = [];
                 results = [];
                 note = "";
-	      }     
+              }     
 
 
 
@@ -144,11 +144,11 @@ let initialized () =
               save !log.liste;
               Printf.fprintf !log.oc "<SERVER STAT>\n%d\n%d\n%f\n <ENDOFFILE>" !nconnected_clients !nshared_md4 (Unix.time());
               close_out !log.oc;
-	      !log.liste <- [];
+              !log.liste <- [];
               !log.oc <- open_out ("log."^(string_of_int !nlog));
               Printf.fprintf !log.oc "<LOGNUM>\n%d\n<SERVER STAT>\n%d\n%d\n%f\n" !nlog !nconnected_clients !nshared_md4 (Unix.time());
               incr nlog
-				  )
+                                  )
 
 
 

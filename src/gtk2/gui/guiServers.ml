@@ -828,7 +828,7 @@ let renderer_pack_combobox (combobox : GEdit.combo_box)
       match combobox#active_iter with
           Some row -> 
             begin
-	      let num = combobox#model#get ~row ~column:col_num in
+              let num = combobox#model#get ~row ~column:col_num in
               f num
             end
         | _ -> ()

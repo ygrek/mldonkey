@@ -319,8 +319,8 @@ let xpm_mini_refresh =  define_option mldonkey_gui_section (xpm_mini_label M.o_x
 (** {2 Toolbars style} *)
 
 let tb_styles = [ "both", `BOTH ; 
-		  "text", `TEXT ;
-		  "icon", `ICONS ]
+                  "text", `TEXT ;
+                  "icon", `ICONS ]
 
 let tb_styles_rev = List.map
     (fun (a,b) -> (b,a)) tb_styles
@@ -631,24 +631,24 @@ let gdk_pix i =
     let (default, o) = List.assoc i table in
     match !!o with
       "" -> 
-	GDraw.pixmap_from_xpm_d ~data: default
-	  ~colormap: (Gdk.Color.get_system_colormap ())
-	  () 
+        GDraw.pixmap_from_xpm_d ~data: default
+          ~colormap: (Gdk.Color.get_system_colormap ())
+          () 
     | f ->
-	try
-	  GDraw.pixmap_from_xpm ~file: f
-	    ~colormap: (Gdk.Color.get_system_colormap ())
-	    () 
-	with
-	  _ ->
-	    GDraw.pixmap_from_xpm_d ~data: default
-	      ~colormap: (Gdk.Color.get_system_colormap ())
-	      () 
+        try
+          GDraw.pixmap_from_xpm ~file: f
+            ~colormap: (Gdk.Color.get_system_colormap ())
+            () 
+        with
+          _ ->
+            GDraw.pixmap_from_xpm_d ~data: default
+              ~colormap: (Gdk.Color.get_system_colormap ())
+              () 
   with
     Not_found ->
       GDraw.pixmap_from_xpm_d ~data: Trash_xpm.t
-	~colormap: (Gdk.Color.get_system_colormap ())
-	() 
+        ~colormap: (Gdk.Color.get_system_colormap ())
+        () 
       
 let pixmap i = GMisc.pixmap (gdk_pix i) ()
       

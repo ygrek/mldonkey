@@ -63,7 +63,7 @@ let create_gui_params () =
   let server_options = Section
       ((M.o_gui_server),
        [
-	 gui_port ; gui_hostname ; gui_login ; gui_password ;
+         gui_port ; gui_hostname ; gui_login ; gui_password ;
        ] 
       )
   in
@@ -147,14 +147,14 @@ let create_gui_params () =
   let colors_options = Section
       ((M.o_colors),
        [
-	 color_default ; color_downloaded ;
-	 color_downloading ; color_available ;
-	 color_not_available ;
-	 color_connected ; color_not_connected ;
-	 color_connecting ; color_files_listed ;
-	 color_files_result ; color_tab_selected ;
-	 color_tab_not_selected ; color_list_bg ;
-	 color_network_enabled ; color_network_disabled ;
+         color_default ; color_downloaded ;
+         color_downloading ; color_available ;
+         color_not_available ;
+         color_connected ; color_not_connected ;
+         color_connecting ; color_files_listed ;
+         color_files_result ; color_tab_selected ;
+         color_tab_not_selected ; color_list_bg ;
+         color_network_enabled ; color_network_disabled ;
        ] 
       )
   in
@@ -202,9 +202,9 @@ let create_gui_params () =
     let menu = GMenu.menu () in
     let choice = ref None in
     let entries = List.map
-	(fun ele -> 
-	  `I (f_string ele, fun () -> choice := Some ele))
-	l
+        (fun ele -> 
+          `I (f_string ele, fun () -> choice := Some ele))
+        l
     in
     GToolbox.build_menu menu ~entries;
     ignore (menu#connect#deactivate GMain.Main.quit);
@@ -220,8 +220,8 @@ let create_gui_params () =
       ~help: (M.h_servers_columns)
       ~f: (fun l -> GO.servers_columns =:= l)
       ~add: (sel 
-	       (List.map (fun (c,_,_) -> c ) Gui_columns.server_column_strings)
-	       Gui_columns.Server.string_of_column)
+               (List.map (fun (c,_,_) -> c ) Gui_columns.server_column_strings)
+               Gui_columns.Server.string_of_column)
       ""
       (fun c -> [Gui_columns.Server.string_of_column c])
       !!GO.servers_columns
@@ -230,8 +230,8 @@ let create_gui_params () =
       ~help: (M.h_downloads_columns)
       ~f: (fun l -> GO.downloads_columns =:= l)
       ~add: (sel 
-	       (List.map (fun (c,_,_) -> c ) Gui_columns.file_column_strings)
-	       Gui_columns.File.string_of_column)
+               (List.map (fun (c,_,_) -> c ) Gui_columns.file_column_strings)
+               Gui_columns.File.string_of_column)
       ""
       (fun c -> [Gui_columns.File.string_of_column c])
       !!GO.downloads_columns
@@ -241,8 +241,8 @@ let create_gui_params () =
       ~help: (M.h_downloaded_columns)
       ~f: (fun l -> GO.downloaded_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.file_column_strings)
-	       Gui_columns.File.string_of_column)
+               (List.map fst Gui_columns.file_column_strings)
+               Gui_columns.File.string_of_column)
       ""
       (fun c -> [Gui_columns.File.string_of_column c])
       !!GO.downloaded_columns
@@ -252,8 +252,8 @@ let create_gui_params () =
       ~help: (M.h_friends_columns)
       ~f: (fun l -> GO.friends_columns =:= l)
       ~add: (sel 
-	       (List.map (fun (c,_,_) -> c ) Gui_columns.client_column_strings)
-	       Gui_columns.Client.string_of_column)
+               (List.map (fun (c,_,_) -> c ) Gui_columns.client_column_strings)
+               Gui_columns.Client.string_of_column)
       ""
       (fun c -> [Gui_columns.Client.string_of_column c])
       !!GO.friends_columns
@@ -262,8 +262,8 @@ let create_gui_params () =
       ~help: (M.h_file_locations_columns)
       ~f: (fun l -> GO.file_locations_columns =:= l)
       ~add: (sel 
-	       (List.map (fun (c,_,_) -> c ) Gui_columns.client_column_strings)
-	       Gui_columns.Client.string_of_column)
+               (List.map (fun (c,_,_) -> c ) Gui_columns.client_column_strings)
+               Gui_columns.Client.string_of_column)
       ""
       (fun c -> [Gui_columns.Client.string_of_column c])
       !!GO.file_locations_columns
@@ -272,8 +272,8 @@ let create_gui_params () =
       ~help: (M.h_results_columns)
       ~f: (fun l -> GO.results_columns =:= l)
       ~add: (sel 
-	       (List.map (fun (c,_,_) -> c ) Gui_columns.result_column_strings)
-	       Gui_columns.Result.string_of_column)
+               (List.map (fun (c,_,_) -> c ) Gui_columns.result_column_strings)
+               Gui_columns.Result.string_of_column)
       ""
       (fun c -> [Gui_columns.Result.string_of_column c])
       !!GO.results_columns
@@ -282,8 +282,8 @@ let create_gui_params () =
       ~help: (M.h_shared_files_up_columns)
       ~f: (fun l -> GO.shared_files_up_columns =:= l)
       ~add: (sel 
-	       (List.map (fun (c,_,_) -> c ) Gui_columns.shared_file_up_column_strings)
-	       Gui_columns.Shared_files_up.string_of_column)
+               (List.map (fun (c,_,_) -> c ) Gui_columns.shared_file_up_column_strings)
+               Gui_columns.Shared_files_up.string_of_column)
       ""
       (fun c -> [Gui_columns.Shared_files_up.string_of_column c])
       !!GO.shared_files_up_columns
@@ -291,8 +291,8 @@ let create_gui_params () =
   let columns_options = Section_list
       ((M.o_columns),
        [
-	 Section ((M.o_servers_columns) ,[servers_cols]) ; 
-	 Section ((M.o_downloads_columns) ,[dls_cols]); 
+         Section ((M.o_servers_columns) ,[servers_cols]) ; 
+         Section ((M.o_downloads_columns) ,[dls_cols]); 
          Section ((M.o_results_columns) ,[results_cols]);
          Section ((M.o_friends_columns) ,[friends_cols]) ;
          Section ((M.o_file_locations_columns) ,[file_locs_cols]) ;
@@ -304,13 +304,13 @@ let create_gui_params () =
   let columns_options = Section_list
       ((M.o_columns),
        [
-	 Section ((M.o_servers_columns) ,[servers_cols]) ;
-	 Section ((M.o_downloads_columns) ,[dls_cols]);
-	 Section ((M.o_downloaded_columns) ,[dled_cols]); 
-	 Section ((M.o_results_columns) ,[results_cols]);
-	 Section ((M.o_friends_columns) ,[friends_cols]) ; 
-	 Section ((M.o_file_locations_columns) ,[file_locs_cols]) ;
-	 Section ((M.o_shared_files_up_colums) ,[shared_cols]) ;
+         Section ((M.o_servers_columns) ,[servers_cols]) ;
+         Section ((M.o_downloads_columns) ,[dls_cols]);
+         Section ((M.o_downloaded_columns) ,[dled_cols]); 
+         Section ((M.o_results_columns) ,[results_cols]);
+         Section ((M.o_friends_columns) ,[friends_cols]) ; 
+         Section ((M.o_file_locations_columns) ,[file_locs_cols]) ;
+         Section ((M.o_shared_files_up_colums) ,[shared_cols]) ;
        ] 
       )
   in
@@ -372,15 +372,15 @@ let create_gui_params () =
   let misc_options = Section
       ((M.o_misc),
        [
-	 files_auto_expand_depth ;
-	 use_size_suffixes ;
-	 use_availability_height ;
-	 use_relative_availability ;
+         files_auto_expand_depth ;
+         use_size_suffixes ;
+         use_availability_height ;
+         use_relative_availability ;
          use_icons;
          use_graphical_availability;
          max_file_name_len;
-	 max_client_name_len;
-	 max_result_name_len;
+         max_client_name_len;
+         max_result_name_len;
        ]
       )
   in
@@ -449,18 +449,18 @@ let create_gui_params () =
   let graph_options = Section
       ((M.o_graph),
        [
-	 max_download_rate ;
-	 max_upload_rate ;
-	 download_time_range ;
-	 upload_time_range ;
-	 color_bg_download ;
-	 color_bg_upload ;
-	 color_grid_download ;
-	 color_grid_upload ;
-	 color_fg_download ;
-	 color_fg_upload ;
-	 color_fg_download_av ;
-	 color_fg_upload_av ;
+         max_download_rate ;
+         max_upload_rate ;
+         download_time_range ;
+         upload_time_range ;
+         color_bg_download ;
+         color_bg_upload ;
+         color_grid_download ;
+         color_grid_upload ;
+         color_fg_download ;
+         color_fg_upload ;
+         color_fg_download_av ;
+         color_fg_upload_av ;
        ]
       )
   in

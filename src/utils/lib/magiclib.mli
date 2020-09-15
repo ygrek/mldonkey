@@ -38,12 +38,12 @@ type flag =
   | Mime	(** Return a mime string, instead of a textual description. *)
   | Continue	(** Return all matches, not just the first. *)
   | Check	(** Check the magic database for consistency and print
-		    warnings to stderr. *)
+                    warnings to stderr. *)
   | Preserve_atime (** On systems that support utime(2) or utimes(2),
-		       attempt to preserve the access time of files
-		       analyzed. *)
+                       attempt to preserve the access time of files
+                       analyzed. *)
   | Raw		(** Don't translate unprintable characters to a \ooo octal
-		    representation. *)
+                    representation. *)
 
 val create : ?flags:flag list -> string list -> t
   (** [create ?flags filenames] creates a magic cookie, loading the

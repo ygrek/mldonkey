@@ -33,62 +33,62 @@
 %%
 
 dtd_element:
-	| dtd_full_seq END
-		{ $1 }
+        | dtd_full_seq END
+                { $1 }
 ;
 dtd_full_seq:
-	| dtd_seq CLOSE dtd_op
-		{ $3 $1 }
-	| dtd_seq CLOSE
-		{ $1 }
+        | dtd_seq CLOSE dtd_op
+                { $3 $1 }
+        | dtd_seq CLOSE
+                { $1 }
 ;
 dtd_seq:
-	| dtd_item NEXT dtd_children
-		{ DTDChildren ($1 :: $3) }
-	| dtd_item OR dtd_choice
-		{ DTDChoice ($1 :: $3) }
-	| dtd_item
-		{ $1 }
+        | dtd_item NEXT dtd_children
+                { DTDChildren ($1 :: $3) }
+        | dtd_item OR dtd_choice
+                { DTDChoice ($1 :: $3) }
+        | dtd_item
+                { $1 }
 ;
 dtd_children:
-	| dtd_item NEXT dtd_children
-		{ $1 :: $3 }
-	| dtd_item
-		{ [$1] }
+        | dtd_item NEXT dtd_children
+                { $1 :: $3 }
+        | dtd_item
+                { [$1] }
 ;
 dtd_choice:
-	| dtd_item OR dtd_choice
-		{ $1 :: $3 }
-	| dtd_item
-		{ [$1] }
+        | dtd_item OR dtd_choice
+                { $1 :: $3 }
+        | dtd_item
+                { [$1] }
 ;
 dtd_item:
-	| OPEN dtd_full_seq
-		{ $2 }
-	| dtd_member
-		{ $1 }
+        | OPEN dtd_full_seq
+                { $2 }
+        | dtd_member
+                { $1 }
 ;
 dtd_member:
-	| IDENT dtd_op
-		{ $2 (DTDTag $1) }
-	| PCDATA dtd_op
-		{ $2 DTDPCData }
-	| IDENT
-		{ DTDTag $1 }
-	| PCDATA
-		{ DTDPCData }
+        | IDENT dtd_op
+                { $2 (DTDTag $1) }
+        | PCDATA dtd_op
+                { $2 DTDPCData }
+        | IDENT
+                { DTDTag $1 }
+        | PCDATA
+                { DTDPCData }
 ;
 dtd_op:
-	| dtd_op_item dtd_op
-		{ (fun x -> $2 ($1 x)) }
-	| dtd_op_item 
-		{ $1 }
+        | dtd_op_item dtd_op
+                { (fun x -> $2 ($1 x)) }
+        | dtd_op_item 
+                { $1 }
 ;
 dtd_op_item:
-	| STAR
-		{ (fun x -> DTDZeroOrMore x) }
-	| QUESTION
-		{ (fun x -> DTDOptional x) }
-	| PLUS
-		{ (fun x -> DTDOneOrMore x) }
+        | STAR
+                { (fun x -> DTDZeroOrMore x) }
+        | QUESTION
+                { (fun x -> DTDOptional x) }
+        | PLUS
+                { (fun x -> DTDOneOrMore x) }
 ;

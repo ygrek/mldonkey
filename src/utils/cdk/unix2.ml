@@ -65,10 +65,10 @@ let list_directory filename =
   tryopen_dir filename (fun dir ->
     try
       while true do
-	let file = readdir dir in 
-	if file <> "." && file <> ".." &&
-	  not (file = ".DS_Store" || String2.check_prefix file "._" ||
-	       file = "Thumbs.db" || file = "desktop.ini") then
+        let file = readdir dir in 
+        if file <> "." && file <> ".." &&
+          not (file = ".DS_Store" || String2.check_prefix file "._" ||
+               file = "Thumbs.db" || file = "desktop.ini") then
             list := file :: !list 
       done
     with End_of_file -> ());
@@ -78,8 +78,8 @@ let iter_directory f dirname =
   tryopen_dir dirname (fun dir ->
     try
       while true do
-	let file = readdir dir in 
-	if file <> "." && file <> ".." then
+        let file = readdir dir in 
+        if file <> "." && file <> ".." then
           f (Filename.concat dirname file)
       done
     with End_of_file -> ())
@@ -104,24 +104,24 @@ let rec safe_mkdir ?(mode = 0o775) dir =
   else 
     if is_link dir then
       try
-	tryopen_dir dir ignore
+        tryopen_dir dir ignore
       with
-	| Unix.Unix_error (EACCES, _, _) -> 
-	    lprintf_nl "access denied for directory %s" dir; 
-	    exit 73
-	| Unix.Unix_error (ENOENT, _, _) -> 
-	    lprintf_nl "directory %s not found, orphaned link?" dir; 
-	    exit 73
-	| e -> 
-	    lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir;
-	    exit 73
+        | Unix.Unix_error (EACCES, _, _) -> 
+            lprintf_nl "access denied for directory %s" dir; 
+            exit 73
+        | Unix.Unix_error (ENOENT, _, _) -> 
+            lprintf_nl "directory %s not found, orphaned link?" dir; 
+            exit 73
+        | e -> 
+            lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir;
+            exit 73
     else 
       let predir = Filename.dirname dir in
       if predir <> dir then safe_mkdir predir;
       try
         Unix.mkdir dir mode
       with
-	Unix.Unix_error (EEXIST, _, _) -> ()
+        Unix.Unix_error (EEXIST, _, _) -> ()
       | e -> lprintf_nl "error %s for directory %s" (Printexc2.to_string e) dir; exit 73
 
 (* same as in downloadClient.ml *)
@@ -158,11 +158,11 @@ let copy oldname newname =
       let buffer_len = 8192 in
       let buffer = String.create buffer_len in
       let rec copy_file () =
-	let n = input ic buffer 0 buffer_len in
-	if n = 0 then () else begin 
-	  output oc buffer 0 n; 
-	  copy_file () 
-	end in
+        let n = input ic buffer 0 buffer_len in
+        if n = 0 then () else begin 
+          output oc buffer 0 n; 
+          copy_file () 
+        end in
       copy_file ()))
   
 let rename oldname newname =

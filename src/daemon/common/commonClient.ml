@@ -71,7 +71,7 @@ decide whether to connect immediatly or not. *)
     mutable op_client_bprint : ('a -> Buffer.t -> unit);
 
     mutable op_client_dprint : ('a -> CommonTypes.ui_conn ->
-	CommonTypes.file -> unit);
+        CommonTypes.file -> unit);
 
     mutable op_client_dprint_html : ('a -> CommonTypes.ui_conn ->
     CommonTypes.file -> string -> bool);
@@ -433,12 +433,12 @@ let client_print_html c o =
   let n = impl.impl_client_ops.op_client_network in
   let info = client_info c in
   let buf = o.conn_buf in
-	html_mods_td buf [
-	("", "sr", n.network_name);
-	("", "sr", (match info.G.client_kind with
+        html_mods_td buf [
+        ("", "sr", n.network_name);
+        ("", "sr", (match info.G.client_kind with
           Indirect_location (_ , _, _, _) -> Printf.sprintf "I"
         | Known_location (ip, port) -> Printf.sprintf "D") );
-	(String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ]
+        (String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ]
 
 let client_print c o =
   let impl = as_client_impl c in
@@ -447,12 +447,12 @@ let client_print c o =
   let buf = o.conn_buf in
   let ips,cc,cn = string_of_kind_geo info.G.client_kind info.G.client_country_code in
   if use_html_mods o then begin
-	html_mods_td buf ([
-	("", "sr", Printf.sprintf "%d" (client_num c));
-	("", "sr", n.network_name);
-	("", "sr", ips);
-	] @ (if Geoip.active () then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
-	(String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ]);
+        html_mods_td buf ([
+        ("", "sr", Printf.sprintf "%d" (client_num c));
+        ("", "sr", n.network_name);
+        ("", "sr", ips);
+        ] @ (if Geoip.active () then [(cn, "sr", CommonPictures.flag_html cc)] else []) @ [
+        (String.escaped info.G.client_name, "sr", client_short_name info.G.client_name); ]);
     end
   else begin
       Printf.bprintf buf "[%s%6d] Name  : %-27s Rating  : %-10d  IP   : %-20s"
@@ -478,14 +478,14 @@ let clear_upload_slots () =
       let ctime = ((BasicSocket.last_time ()) - i.GuiTypes.client_connect_time) / 60 in
       if i.GuiTypes.client_session_uploaded = Int64.zero && ctime > 1 then
         begin
-	  client_disconnect c;
+          client_disconnect c;
           if !verbose then lprintf_nl "disconnected client %d: [%s %s] %s after %d minute%s of silence."
-	    (client_num c)
-	    (GuiTypes.client_software i.GuiTypes.client_software i.GuiTypes.client_os)
-	    i.GuiTypes.client_release
-	    i.GuiTypes.client_name
-	    ctime (Printf2.print_plural_s ctime)
-	end
+            (client_num c)
+            (GuiTypes.client_software i.GuiTypes.client_software i.GuiTypes.client_os)
+            i.GuiTypes.client_release
+            i.GuiTypes.client_name
+            ctime (Printf2.print_plural_s ctime)
+        end
     with _ -> ()
   ) !uploaders
   else

@@ -322,12 +322,12 @@ class box columns friend_tab =
                      Some pixmap -> P.Pixmap (pixmap)
                    | _ -> P.String (self#content_by_col f col))
              | _ -> P.String (self#content_by_col f col))
-	  !!columns 
+          !!columns 
       in
       let col_opt = 
-	match snd (string_color_of_client friend_tab f) with
-	  None -> Some `BLACK
-	| Some c -> Some (`NAME c)
+        match snd (string_color_of_client friend_tab f) with
+          None -> Some `BLACK
+        | Some c -> Some (`NAME c)
       in
       (strings, col_opt)
 
@@ -438,7 +438,7 @@ class box_friends box_files friend_tab =
         client_session_downloaded = 0L;
         client_session_uploaded = 0L;
         client_upload = c.gclient_upload;
-	client_sui_verified = None;
+        client_sui_verified = None;
         client_file_queue = [];
 (*        client_sock_addr = c.gclient_sock_addr;*)
       }
@@ -649,7 +649,7 @@ class box_list friend_tab =
         client_session_downloaded = 0L;
         client_session_uploaded = 0L;
         client_upload = c.gclient_upload;
-	client_sui_verified = None;
+        client_sui_verified = None;
         client_file_queue = [];
 (*        client_sock_addr = string_of_kind c.gclient_kind; *)
       }
@@ -862,48 +862,48 @@ class pane_friends () =
     method remove_dialog c_num =
       (
        try
-	 let d = List.find (fun d -> d#num = c_num) dialogs in
-	 dialogs <- List.filter (fun d -> not (d#num = c_num)) dialogs;
-	 let n = wnote_chat#page_num d#coerce in
-	 wnote_chat#remove_page n
+         let d = List.find (fun d -> d#num = c_num) dialogs in
+         dialogs <- List.filter (fun d -> not (d#num = c_num)) dialogs;
+         let n = wnote_chat#page_num d#coerce in
+         wnote_chat#remove_page n
        with
-	 Not_found ->
-	   ()
+         Not_found ->
+           ()
       );
 
     (** Find the window and dialog with the given client. If
        it was not found, create it and add it to the list of dialogs.*)
     method get_dialog client =
       try
-	let d = List.find 
-	    (fun d -> d#num = client.gclient_num)
-	    dialogs 
-	in
-	d#wt_input#misc#grab_focus ();
-	d
+        let d = List.find 
+            (fun d -> d#num = client.gclient_num)
+            dialogs 
+        in
+        d#wt_input#misc#grab_focus ();
+        d
       with
-	Not_found ->
-	  let dialog = new dialog client in
-	  let hbox = GPack.hbox ~homogeneous:false ~spacing:5 () in
-	  let wl =
-	    GMisc.label ~text: client.gclient_name
-	      ~packing:(hbox#pack ~expand:true ~fill:true) ()
-	  in
-	  let hbox1 =
-	    GPack.hbox ~homogeneous:false
-	      ~packing:(hbox#pack ~expand:false ~fill:false) () in
-	  let button = GButton.button ~packing:(hbox1#pack ~expand:false ~fill:false) () in
-	  let close_pix =
-	    GMisc.pixmap (O.gdk_pix M.o_xpm_mini_close_search)
-		~packing:(button#add) ()
-	  in
-	  ignore (button#connect#clicked ~callback:(fun _ -> dialog#box#destroy ()));
-	  wnote_chat#append_page ~tab_label: hbox#coerce dialog#coerce;
-	  ignore (dialog#box#connect#destroy
-		    (fun () -> dialogs <- List.filter (fun d -> not (d#num = client.gclient_num)) dialogs));
-	  dialogs <- dialog :: dialogs;
-	  dialog#wt_input#misc#grab_focus ();
-	  dialog      
+        Not_found ->
+          let dialog = new dialog client in
+          let hbox = GPack.hbox ~homogeneous:false ~spacing:5 () in
+          let wl =
+            GMisc.label ~text: client.gclient_name
+              ~packing:(hbox#pack ~expand:true ~fill:true) ()
+          in
+          let hbox1 =
+            GPack.hbox ~homogeneous:false
+              ~packing:(hbox#pack ~expand:false ~fill:false) () in
+          let button = GButton.button ~packing:(hbox1#pack ~expand:false ~fill:false) () in
+          let close_pix =
+            GMisc.pixmap (O.gdk_pix M.o_xpm_mini_close_search)
+                ~packing:(button#add) ()
+          in
+          ignore (button#connect#clicked ~callback:(fun _ -> dialog#box#destroy ()));
+          wnote_chat#append_page ~tab_label: hbox#coerce dialog#coerce;
+          ignore (dialog#box#connect#destroy
+                    (fun () -> dialogs <- List.filter (fun d -> not (d#num = client.gclient_num)) dialogs));
+          dialogs <- dialog :: dialogs;
+          dialog#wt_input#misc#grab_focus ();
+          dialog      
 
     inherit Gui_friends_base.paned ()
 

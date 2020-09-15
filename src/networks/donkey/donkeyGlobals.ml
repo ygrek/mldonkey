@@ -391,8 +391,8 @@ let new_file file_diskname file_state md4 file_size filename writable user group
       (try
         Unix32.remove t
        with e ->
-	 lprintf_nl "Unix32.remove %s exception %s"
-	   (file_diskname) (Printexc2.to_string e));
+         lprintf_nl "Unix32.remove %s exception %s"
+           (file_diskname) (Printexc2.to_string e));
       Unix32.destroy t;
       failwith (Printf.sprintf "file size %s is too big, exception: %s"
         (size_of_int64 file_size) (Printexc2.to_string e))
@@ -1027,29 +1027,29 @@ let _ =
   option_hook client_private_key (fun _ ->
     if Autoconf.donkey_sui_works () then
       begin
-	if not (try String.sub !!client_private_key 0 4 = "MIIB" with e -> false) then
-	  if !key_check_started then
-	    begin
-	      let s1 =
-		Printf.sprintf "can not create valid client_private_key, bad value found: %s"
-		  !!client_private_key in
-	      let s2 = "CryptoPP code seems not to work properly, do not use insane CFLAGS, exiting..." in
-	      Printf.eprintf "%s[EDK] %s\n%!" (log_time ()) s1;
-	      Printf.eprintf "%s[EDK] %s\n%!" (log_time ()) s2;
-	      lprintf_nl "%s" s1;
-	      lprintf_nl "%s" s2;
-	      exit 70
-	    end
-	  else
-	    begin
-	      key_check_started := true;
-	      lprintf_nl "found bad client_private_key: %s, creating new key..." !!client_private_key;
-	      client_private_key =:= (DonkeySui.SUI.create_key ());
-	    end
-	else
-	  begin
-	    client_public_key := DonkeySui.SUI.load_key (!!client_private_key);
-	  end
+        if not (try String.sub !!client_private_key 0 4 = "MIIB" with e -> false) then
+          if !key_check_started then
+            begin
+              let s1 =
+                Printf.sprintf "can not create valid client_private_key, bad value found: %s"
+                  !!client_private_key in
+              let s2 = "CryptoPP code seems not to work properly, do not use insane CFLAGS, exiting..." in
+              Printf.eprintf "%s[EDK] %s\n%!" (log_time ()) s1;
+              Printf.eprintf "%s[EDK] %s\n%!" (log_time ()) s2;
+              lprintf_nl "%s" s1;
+              lprintf_nl "%s" s2;
+              exit 70
+            end
+          else
+            begin
+              key_check_started := true;
+              lprintf_nl "found bad client_private_key: %s, creating new key..." !!client_private_key;
+              client_private_key =:= (DonkeySui.SUI.create_key ());
+            end
+        else
+          begin
+            client_public_key := DonkeySui.SUI.load_key (!!client_private_key);
+          end
       end
   )
 

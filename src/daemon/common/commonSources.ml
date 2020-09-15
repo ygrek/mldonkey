@@ -214,7 +214,7 @@ module Make(M:
        mutable manager_all_sources : int;
        mutable manager_file : (unit -> file);
      }
-	 
+         
      and functions = {
        mutable function_connect: (M.source_uid -> int option -> unit);
        mutable function_query: (M.source_uid -> string -> unit);
@@ -285,7 +285,7 @@ module Make(M:
          "function_string_to_manager";
 
        function_max_connections_per_second = (fun _ ->
-						!!max_connections_per_second);
+                                                !!max_connections_per_second);
        function_max_sources_per_file = (fun _ -> 10);
 
        function_add_location = not_implemented "function_add_location";
@@ -309,7 +309,7 @@ module Make(M:
 
      let next_direct_sources = Fifo.create ()
      let next_indirect_sources = ref []
-	
+        
 
      let active_queue q =
        q >= connected_sources_queue && q <= busy_sources_queue
@@ -334,17 +334,17 @@ module Make(M:
 
      let rec find_throttled_queue queue =
        if queue_period.(queue) > 0 || queue = old_sources3_queue then
-	 queue
+         queue
        else
-	 find_throttled_queue (queue + 1)
+         find_throttled_queue (queue + 1)
 
      let get_throttle_delay m q throttled =
        if throttled then
-	 (max 0    
+         (max 0    
             (queue_period.(q) 
              - (file_priority (m.manager_file ())) 
              + Queue.length m.manager_sources.(connected_sources_queue))
-	 )
+         )
        else 0
   
 (*
@@ -361,14 +361,14 @@ module Make(M:
        let ready_count = ref 0 in
        let throttle_delay = get_throttle_delay m q throttled in
        let ready_threshold = 
-	 last_time () - !!min_reask_delay - throttle_delay in
+         last_time () - !!min_reask_delay - throttle_delay in
        (try
-	  Queue.iter
-	    (fun (time, s) ->
+          Queue.iter
+            (fun (time, s) ->
                if time >= ready_threshold then raise BreakOutOfLoop;
                incr ready_count
-	    ) m.manager_sources.(q)
-	with BreakOutOfLoop -> ());
+            ) m.manager_sources.(q)
+        with BreakOutOfLoop -> ());
        !ready_count
 
 (*
@@ -376,23 +376,23 @@ module Make(M:
  *)
      let count_ready_sources queue throttled =
        List.fold_left (fun ready_count m ->
-	    let f = m.manager_file () in
-	    if file_state f = FileDownloading then
+            let f = m.manager_file () in
+            if file_state f = FileDownloading then
               ready_count + count_file_ready_sources m queue throttled
-	    else ready_count
-	 ) 0 !file_sources_managers
+            else ready_count
+         ) 0 !file_sources_managers
 
 
      let find_max_overloaded q managers =
        let _, remaining_managers =
-	 List.fold_left (fun ((current_max, remaining_managers) as acc) m ->
-	    let ready_sources = count_file_ready_sources m q true in
-	    if ready_sources > current_max then
-	      (ready_sources, [m])
-	    else if ready_sources = current_max then
-	      (current_max, m :: remaining_managers)
-	    else acc
-	 ) (-1, []) managers in
+         List.fold_left (fun ((current_max, remaining_managers) as acc) m ->
+            let ready_sources = count_file_ready_sources m q true in
+            if ready_sources > current_max then
+              (ready_sources, [m])
+            else if ready_sources = current_max then
+              (current_max, m :: remaining_managers)
+            else acc
+         ) (-1, []) managers in
        remaining_managers
 
 
@@ -411,7 +411,7 @@ module Make(M:
          Printf.bprintf buf "   last_attemps: %d" s.source_last_attempt;
        List.iter (fun r ->
          Printf.bprintf buf "     File %s\n" 
-	   (file_best_name (r.request_file.manager_file ()));
+           (file_best_name (r.request_file.manager_file ()));
          Printf.bprintf buf "       Score: %d\n" r.request_score;
          if r.request_time <> 0 then
            Printf.bprintf buf "       Time: %d\n" r.request_time;
@@ -429,12 +429,12 @@ module Make(M:
        let ready_count = ref 0 in
        for i = good_sources_queue to old_sources1_queue do
          let lookin = file.manager_sources.(i) in
-	 try
+         try
            Queue.iter (fun (time, s) ->
-	      if time >= ready_threshold then raise BreakOutOfLoop;
-	      incr ready_count
+              if time >= ready_threshold then raise BreakOutOfLoop;
+              incr ready_count
            ) lookin
-	 with BreakOutOfLoop -> ()
+         with BreakOutOfLoop -> ()
        done;
        (* let work_count = !ready_count +
           (Queue.length ( file.manager_sources.( new_sources_queue ) )) +
@@ -473,13 +473,13 @@ module Make(M:
          Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" !mycntr in
 
        let html_tr_same () = 
-	 Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" !mycntr in
+         Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" !mycntr in
 
        (* Header *)
        if output_type = HTML then
          let header = Printf.sprintf "File sources per manager queue (%d)" 
-	   (List.length !file_sources_managers) in
-	 
+           (List.length !file_sources_managers) in
+         
          Printf.bprintf buf "\\<div class=results\\>";
          html_mods_table_header buf "sourcesTable" "sources" [];
          Printf.bprintf buf "\\<tr\\>";
@@ -488,36 +488,36 @@ module Make(M:
            ("", "srh", "@ " ^ log_time ());
            ("", "srh", header); ];
          Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n";
-	 
+         
          html_mods_table_header buf "sourcesTable" "sources" [
            ( Str, "srh br", "New sources", 
-	     Printf.sprintf "New(%d)" new_sources_queue );
+             Printf.sprintf "New(%d)" new_sources_queue );
            ( Str, "srh br", "Good sources", 
-	     Printf.sprintf "Good(%d)" good_sources_queue );
+             Printf.sprintf "Good(%d)" good_sources_queue );
            ( Str, "srh br", "Ready saved sources", 
-	     Printf.sprintf "Ready(%d)" ready_saved_sources_queue);
+             Printf.sprintf "Ready(%d)" ready_saved_sources_queue);
            ( Str, "srh br", "Waiting saved sources", 
-	     Printf.sprintf "Wait(%d)" waiting_saved_sources_queue);
+             Printf.sprintf "Wait(%d)" waiting_saved_sources_queue);
            ( Str, "srh br", "Old sources 1", 
-	     Printf.sprintf "Old1(%d)" old_sources1_queue );
+             Printf.sprintf "Old1(%d)" old_sources1_queue );
            ( Str, "srh br", "Old sources 2", 
-	     Printf.sprintf "Old2(%d)" old_sources2_queue );
+             Printf.sprintf "Old2(%d)" old_sources2_queue );
            ( Str, "srh br", "Old sources 3", 
-	     Printf.sprintf "Old3(%d)" old_sources3_queue );
+             Printf.sprintf "Old3(%d)" old_sources3_queue );
            ( Str, "srh br", "Do not try sources", 
-	     Printf.sprintf "nTry(%d)" do_not_try_queue );
+             Printf.sprintf "nTry(%d)" do_not_try_queue );
            ( Str, "srh br", "Connected sources", 
-	     Printf.sprintf "Conn(%d)" connected_sources_queue );
+             Printf.sprintf "Conn(%d)" connected_sources_queue );
            ( Str, "srh br", "Connecting sources", 
-	     Printf.sprintf "Cing(%d)" connecting_sources_queue );
+             Printf.sprintf "Cing(%d)" connecting_sources_queue );
            ( Str, "srh br", "Busy sources", 
-	     Printf.sprintf "Busy(%d)" busy_sources_queue );
+             Printf.sprintf "Busy(%d)" busy_sources_queue );
            ( Str, "srh br", "Total sources", "All" );
            ( Str, "srh br", "Filename", "Name" ); ];
        else begin
          Printf.bprintf buf "Statistics on sources: time %d\n" (last_time ());
          Printf.bprintf buf "File sources per manager queue(%d):\n" 
-	   (List.length !file_sources_managers);
+           (List.length !file_sources_managers);
          Printf.bprintf buf "new  good redy wait old1 old2 old3 ntry conn cing busy all\n";
          (* "9999 9999 9999 9999 9999 9999 9999 9999 9999 9999 9999 9999"
             11*5 chars
@@ -534,21 +534,21 @@ module Make(M:
        let naact = ref 0 in
        let naneed = ref 0 in
        let downloading_managers = 
-	 List.filter (fun m -> 
-	   file_state (m.manager_file ()) = FileDownloading
-	 ) !file_sources_managers in
+         List.filter (fun m -> 
+           file_state (m.manager_file ()) = FileDownloading
+         ) !file_sources_managers in
        let my_file_sources_managers =
          List.sort (fun f1 f2 ->
-	   let best_name1 = file_best_name (f1.manager_file ()) in
-	   let best_name2 = file_best_name (f2.manager_file ()) in
+           let best_name1 = file_best_name (f1.manager_file ()) in
+           let best_name2 = file_best_name (f2.manager_file ()) in
            String.compare best_name1 best_name2
          ) downloading_managers in
        (* Files *)
        let ready_threshold = last_time () - !!min_reask_delay in
        List.iter (fun m ->
          let name = file_best_name (m.manager_file ()) in
-	 let need_sources = need_new_sources m in
-	 if need_sources then incr naneed;
+         let need_sources = need_new_sources m in
+         if need_sources then incr naneed;
 
          if m.manager_all_sources <> 0 then begin
            let slist = ref [] in
@@ -557,9 +557,9 @@ module Make(M:
            let sindirectlist = ref [] in
            let sinvalidlist = ref [] in
            (* Queues *)
-	   Array.iteri (fun i q ->
+           Array.iteri (fun i q ->
              let nready = ref 0 in
-	     let ntready = count_file_ready_sources m i true in
+             let ntready = count_file_ready_sources m i true in
              let nindirect = ref 0 in
              let ninvalid = ref 0 in
              let nsources = ref 0 in
@@ -573,13 +573,13 @@ module Make(M:
                  Printf.bprintf buf "ERROR: Source is not ready in new_sources_queue !\n";
                  print_source buf s
                end
-	     ) q;
+             ) q;
 
-	     slist := Queue.length q :: !slist;
+             slist := Queue.length q :: !slist;
              sreadylist := !nready :: !sreadylist;
-	     streadylist := ntready :: !streadylist;
-	     sindirectlist := !nindirect :: !sindirectlist;
-	     sinvalidlist := !ninvalid :: !sinvalidlist;
+             streadylist := ntready :: !streadylist;
+             sindirectlist := !nindirect :: !sindirectlist;
+             sinvalidlist := !ninvalid :: !sinvalidlist;
 
              nready_per_queue.(i) <- nready_per_queue.(i) + !nready;
              nindirect_per_queue.(i) <- nindirect_per_queue.(i) + !nindirect;
@@ -587,84 +587,84 @@ module Make(M:
              nsources_per_queue.(i) <- nsources_per_queue.(i) + !nsources;
            ) m.manager_sources; (* end Queues *)
 
-	   let slist = List.rev !slist in
-	   let sreadylist = List.rev !sreadylist in
-	   let streadylist = List.rev !streadylist in
-	   let sindirectlist = List.rev !sindirectlist in
-	   let sinvalidlist = List.rev !sinvalidlist in
+           let slist = List.rev !slist in
+           let sreadylist = List.rev !sreadylist in
+           let streadylist = List.rev !streadylist in
+           let sindirectlist = List.rev !sindirectlist in
+           let sinvalidlist = List.rev !sinvalidlist in
 
            if output_type = HTML then begin
              html_tr ();
              html_mods_td buf (
                (List.map (fun qlength -> 
-		  ("", "sr ar br", pos_to_string qlength)) slist) @
-		 [ ("", "sr ar br", string_of_int m.manager_all_sources);
+                  ("", "sr ar br", pos_to_string qlength)) slist) @
+                 [ ("", "sr ar br", string_of_int m.manager_all_sources);
                    ("Filename", "sr", shorten name !!max_name_len); ] );
 
              Printf.bprintf buf "\\</tr\\>\n";
 
              html_tr_same ();
              html_mods_td buf (
-	       (List.map (fun sready -> 
-		 ("", "sr ar br", pos_to_string sready)) sreadylist) @
-		 [ ("", "sr ar br", Printf.sprintf "%d" (list_sum sreadylist));
+               (List.map (fun sready -> 
+                 ("", "sr ar br", pos_to_string sready)) sreadylist) @
+                 [ ("", "sr ar br", Printf.sprintf "%d" (list_sum sreadylist));
                    ("", "sr", Printf.sprintf "ready with %d active%s" 
-		      m.manager_active_sources
+                      m.manager_active_sources
                       (if need_sources then " and needs sources"
                        else "")) ] );
-	     Printf.bprintf buf "\\</tr\\>\n";
+             Printf.bprintf buf "\\</tr\\>\n";
 
              html_tr_same ();
              html_mods_td buf (
-	       (List.map (fun sready ->
-		  ("", "sr ar br", pos_to_string sready)) streadylist) @
-		 [ ("", "sr ar br", string_of_int (list_sum streadylist)); 
-		   ("", "sr", "throttled ready"); ] );
+               (List.map (fun sready ->
+                  ("", "sr ar br", pos_to_string sready)) streadylist) @
+                 [ ("", "sr ar br", string_of_int (list_sum streadylist)); 
+                   ("", "sr", "throttled ready"); ] );
              Printf.bprintf buf "\\</tr\\>\n";
 
-	     let anindirect = list_sum sindirectlist in
+             let anindirect = list_sum sindirectlist in
              if anindirect <> 0 then begin
-	       html_tr_same ();
-	       html_mods_td buf (
-		 (List.map (fun sready ->
-		    ("", "sr ar br", pos_to_string sready)) sindirectlist) @
+               html_tr_same ();
+               html_mods_td buf (
+                 (List.map (fun sready ->
+                    ("", "sr ar br", pos_to_string sready)) sindirectlist) @
                    [ ("", "sr ar br", string_of_int anindirect); 
                      ("", "sr", "indirect"); ] );
-	       Printf.bprintf buf "\\</tr\\>\n";
+               Printf.bprintf buf "\\</tr\\>\n";
              end;
 
-	     let aninvalid = list_sum sinvalidlist in
+             let aninvalid = list_sum sinvalidlist in
              if aninvalid <> 0 then begin
                html_tr_same ();
                html_mods_td buf (
-		 (List.map (fun sready ->
-		    ("", "sr ar br", pos_to_string sready)) sinvalidlist) @
+                 (List.map (fun sready ->
+                    ("", "sr ar br", pos_to_string sready)) sinvalidlist) @
                    [ ("", "sr ar br", string_of_int aninvalid);
                      ("", "sr", "invalid"); ] );
                Printf.bprintf buf "\\</tr\\>\n";
              end;
            end
            else begin
-	     List.iter (Printf.bprintf buf "%4d ") slist;
+             List.iter (Printf.bprintf buf "%4d ") slist;
              Printf.bprintf buf "%4d %s\n" m.manager_all_sources name;
-	     List.iter (Printf.bprintf buf "%4d ") sreadylist;
+             List.iter (Printf.bprintf buf "%4d ") sreadylist;
              Printf.bprintf buf "%4d     ready  %d active%s\n" 
-	       (list_sum sreadylist) m.manager_active_sources
+               (list_sum sreadylist) m.manager_active_sources
                (if need_sources then "  needs sources"
                 else "");
-	     List.iter (Printf.bprintf buf "%4d ") streadylist;
+             List.iter (Printf.bprintf buf "%4d ") streadylist;
              Printf.bprintf buf "%4d     throttled ready\n" 
-	       (list_sum streadylist);
-	     let anindirect = list_sum sindirectlist in
+               (list_sum streadylist);
+             let anindirect = list_sum sindirectlist in
              if anindirect <> 0 then begin
-	       List.iter (Printf.bprintf buf "%4d ") sindirectlist;
+               List.iter (Printf.bprintf buf "%4d ") sindirectlist;
                Printf.bprintf buf "%4d     indirect\n" anindirect;
-	     end;
-	     let aninvalid = list_sum sinvalidlist in
+             end;
+             let aninvalid = list_sum sinvalidlist in
              if aninvalid <> 0 then begin
-	       List.iter (Printf.bprintf buf "%4d ") sinvalidlist;
+               List.iter (Printf.bprintf buf "%4d ") sinvalidlist;
                Printf.bprintf buf "%4d     invalid\n" aninvalid;
-	     end
+             end
            end;
 
            nall := !nall + m.manager_all_sources;
@@ -676,11 +676,11 @@ module Make(M:
 
              html_mods_td buf [
                ("", "sr ar br", "-"); ("", "sr ar br", ""); 
-	       ("", "sr ar br", ""); ("", "sr ar br", ""); 
-	       ("", "sr ar br", ""); ("", "sr ar br", "");
                ("", "sr ar br", ""); ("", "sr ar br", ""); 
-	       ("", "sr ar br", ""); ("", "sr ar br", ""); 
-	       ("", "sr ar br", ""); ("", "sr ar br", "");
+               ("", "sr ar br", ""); ("", "sr ar br", "");
+               ("", "sr ar br", ""); ("", "sr ar br", ""); 
+               ("", "sr ar br", ""); ("", "sr ar br", ""); 
+               ("", "sr ar br", ""); ("", "sr ar br", "");
                ("", "sr br", shorten name !!max_name_len); ];
              Printf.bprintf buf "\\</tr\\>\n";
            end
@@ -719,12 +719,12 @@ module Make(M:
        let speriodlist = ref [] in
        (* Queues *)
        for i = 0 to nqueues - 1 do
-	 slist := nsources_per_queue.(i) :: !slist;
-	 sreadylist := nready_per_queue.(i) :: !sreadylist;
-	 streadylist := count_ready_sources i true :: !streadylist;
-	 sindirectlist := nindirect_per_queue.(i) :: !sindirectlist;
-	 sinvalidlist := ninvalid_per_queue.(i) :: !sinvalidlist;
-	 speriodlist := queue_period.(i) :: !speriodlist;
+         slist := nsources_per_queue.(i) :: !slist;
+         sreadylist := nready_per_queue.(i) :: !sreadylist;
+         streadylist := count_ready_sources i true :: !streadylist;
+         sindirectlist := nindirect_per_queue.(i) :: !sindirectlist;
+         sinvalidlist := ninvalid_per_queue.(i) :: !sinvalidlist;
+         speriodlist := queue_period.(i) :: !speriodlist;
        done; (* end Queues *)
 
        let nsources = ref 0 in
@@ -748,48 +748,48 @@ module Make(M:
          html_tr ();
          html_mods_td buf (
            (List.map (fun q ->
-	     ("", "sr ar", pos_to_string q)) slist) @
+             ("", "sr ar", pos_to_string q)) slist) @
              [ ("", "sr ar", Printf.sprintf "%d" !nall); 
                ("", "sr", 
-		Printf.sprintf "all source managers (%d by UID) (%d ROQ)" 
-		  !nsources !nroq);] );
+                Printf.sprintf "all source managers (%d by UID) (%d ROQ)" 
+                  !nsources !nroq);] );
          Printf.bprintf buf "\\</tr\\>\n";
 
          html_tr ();
          html_mods_td buf (
-	   (List.map (fun sready ->
-	     ("", "sr ar", pos_to_string sready)) sreadylist) @
+           (List.map (fun sready ->
+             ("", "sr ar", pos_to_string sready)) sreadylist) @
              [ ("", "sr ar", Printf.sprintf "%d" (list_sum sreadylist)); 
                ("", "sr", 
-		Printf.sprintf "ready with %d active and %i need sources" 
-		  !naact !naneed); ] );
+                Printf.sprintf "ready with %d active and %i need sources" 
+                  !naact !naneed); ] );
          Printf.bprintf buf "\\</tr\\>\n";
 
          html_tr ();
          html_mods_td buf (
-	   (List.map (fun sready ->
-	     ("", "sr ar", pos_to_string sready)) streadylist) @
+           (List.map (fun sready ->
+             ("", "sr ar", pos_to_string sready)) streadylist) @
            [ ("", "sr ar", Printf.sprintf "%d" (list_sum streadylist)); 
              ("", "sr", "throttled ready"); ] );
          Printf.bprintf buf "\\</tr\\>\n";
 
-	 let anindirect = list_sum sindirectlist in
+         let anindirect = list_sum sindirectlist in
          if anindirect <> 0 then begin
            html_tr ();
            html_mods_td buf (
              (List.map (fun sready ->
-	       ("", "sr ar", pos_to_string sready)) sindirectlist) @
+               ("", "sr ar", pos_to_string sready)) sindirectlist) @
              [ ("", "sr ar", Printf.sprintf "%d" anindirect); 
                ("", "sr", "indirect"); ] );
            Printf.bprintf buf "\\</tr\\>\n";
          end;
 
-	 let aninvalid = list_sum sinvalidlist in
+         let aninvalid = list_sum sinvalidlist in
          if aninvalid <> 0 then begin
            html_tr ();
            html_mods_td buf (
              (List.map (fun sready ->
-	       ("", "sr ar", pos_to_string sready)) sinvalidlist) @
+               ("", "sr ar", pos_to_string sready)) sinvalidlist) @
                [ ("", "sr ar", Printf.sprintf "%d" aninvalid); 
                  ("", "sr", "invalid"); ] );
            Printf.bprintf buf "\\</tr\\>\n";
@@ -798,7 +798,7 @@ module Make(M:
          html_tr ();
          html_mods_td buf (
            (List.map (fun sready ->
-	     ("", "sr ar", pos_to_string sready)) speriodlist) @
+             ("", "sr ar", pos_to_string sready)) speriodlist) @
             [ ("", "sr", "");
               ("", "sr", "period"); ] );
          Printf.bprintf buf "\\</tr\\>\n";
@@ -806,25 +806,25 @@ module Make(M:
          Printf.bprintf buf "\\</table\\>\\</div\\>\n";
        end
        else begin
-	 List.iter (Printf.bprintf buf "%4d ") slist;
+         List.iter (Printf.bprintf buf "%4d ") slist;
          Printf.bprintf buf "%4d all source managers (%d by UID) (%d ROQ)\n" 
-	   !nall !nsources !nroq;
-	 List.iter (Printf.bprintf buf "%4d ") sreadylist;
+           !nall !nsources !nroq;
+         List.iter (Printf.bprintf buf "%4d ") sreadylist;
          Printf.bprintf buf "%4d     ready  %d active  %i need sources\n" 
-	   (list_sum sreadylist) !naact !naneed;
-	 List.iter (Printf.bprintf buf "%4d ") streadylist;
+           (list_sum sreadylist) !naact !naneed;
+         List.iter (Printf.bprintf buf "%4d ") streadylist;
          Printf.bprintf buf "%4d     throttled ready\n" (list_sum streadylist);
-	 let anindirect = list_sum sindirectlist in
+         let anindirect = list_sum sindirectlist in
          if anindirect <> 0 then begin
-	   List.iter (Printf.bprintf buf "%4d ") sindirectlist;
+           List.iter (Printf.bprintf buf "%4d ") sindirectlist;
            Printf.bprintf buf "%4d     indirect\n" anindirect;
-	 end;
-	 let aninvalid = list_sum sinvalidlist in
+         end;
+         let aninvalid = list_sum sinvalidlist in
          if aninvalid <> 0 then begin
-	   List.iter (Printf.bprintf buf "%4d ") sinvalidlist;
+           List.iter (Printf.bprintf buf "%4d ") sinvalidlist;
            Printf.bprintf buf "%4d     invalid\n" aninvalid;
-	 end;
-	 List.iter (Printf.bprintf buf "%4d ") speriodlist;
+         end;
+         List.iter (Printf.bprintf buf "%4d ") speriodlist;
          Printf.bprintf buf "     period\n";
        end;
 
@@ -840,20 +840,20 @@ module Make(M:
          Printf.bprintf buf "\\<tr class=\\\"dl-1\\\"\\>";
          html_mods_td buf [
            ("", "sr", (Printf.sprintf "%d entries" 
-			 (Fifo.length connecting_sources)) ^
+                         (Fifo.length connecting_sources)) ^
               (if !nconnected > 0 then 
-		 Printf.sprintf " (connected: %d)" !nconnected else ""));
+                 Printf.sprintf " (connected: %d)" !nconnected else ""));
            ("", "sr", Printf.sprintf "%d entries" 
-	      (Fifo.length next_direct_sources));
+              (Fifo.length next_direct_sources));
            ("", "sr", Printf.sprintf "%d entries" 
-	      (List.length !next_indirect_sources)); ];
+              (List.length !next_indirect_sources)); ];
          Printf.bprintf buf "\\</tr\\>\\</table\\>\\</div\\>\n\\</div\\>"
        end
        else begin
          Printf.bprintf buf "Connecting Sources: %d entries"
            (Fifo.length connecting_sources);
          if !nconnected > 0 then 
-	   Printf.bprintf buf " (connected: %d)" !nconnected;
+           Printf.bprintf buf " (connected: %d)" !nconnected;
          Printf.bprintf buf "\n";
          Printf.bprintf buf "Next Direct Sources: %d entries\n"
            (Fifo.length next_direct_sources);
@@ -1068,7 +1068,7 @@ module Make(M:
                 m.manager_uid s.source_country_code with _ -> ());
            reschedule_source_for_file false s r
          end 
-	   (* else lprintf "outside queue\n" *)
+           (* else lprintf "outside queue\n" *)
        ) s.source_files
 
 (*************************************************************************)
@@ -1201,7 +1201,7 @@ module Make(M:
      let remove_file_sources_manager m =
        iter_all_sources (fun s ->
          s.source_files <- 
-	   List.filter (fun r -> r.request_file != m) s.source_files;
+           List.filter (fun r -> r.request_file != m) s.source_files;
        ) m;
        m.manager_sources <- create_queues ();
        file_sources_managers := List2.removeq m !file_sources_managers
@@ -1237,7 +1237,7 @@ module Make(M:
                      source_num = n;
                      source_files = [];
                      source_country_code = cc;
-		 }  in
+                 }  in
          HS.add sources_by_uid s;
          H.add sources_by_num s;
          s
@@ -1273,7 +1273,7 @@ module Make(M:
        | [] -> raise Not_found
        | r :: tail ->
            if r.request_file == file then r 
-	   else iter_has_request tail file
+           else iter_has_request tail file
 
      let find_request s file =
        iter_has_request s.source_files file
@@ -1310,8 +1310,8 @@ module Make(M:
            let r = find_request s file in
            remove_from_queue s r;
            set_score_part r (if r.request_score = initial_new_source_score then
-			       new_source_score
-			     else r.request_score - 1);
+                               new_source_score
+                             else r.request_score - 1);
            r.request_time <- check_time time;
            r
          with Not_found ->
@@ -1339,7 +1339,7 @@ module Make(M:
 (* If a request has been done in the last half-hour, and the source is
   announced as new, just forget it.  : why half-hour? - trying min_reask_delay *)
                score = initial_new_source_score &&
-		 r.request_time + !!min_reask_delay > last_time ()
+                 r.request_time + !!min_reask_delay > last_time ()
              )) ||
 (* If a file has been paused, and resumed, it is flagged outside_queue / not_found_score in 
   clean_sources, but really should be re-added to the queues as soon as possible (while retaining 
@@ -1374,8 +1374,8 @@ module Make(M:
 
      let set_request_result s file result =
        set_request_score s file 
-	 (match result with
-	  | File_not_found -> not_found_score
+         (match result with
+          | File_not_found -> not_found_score
           | File_found -> found_score
           | File_chunk -> chunk_score
           | File_upload -> upload_score
@@ -1531,7 +1531,7 @@ module Make(M:
                     (Printexc2.to_string e))
 
          | _ -> assert false
-	     
+             
        in
 (*        lprintf "(5) value_to_source \n"; *)
        List.iter iter files;
@@ -1655,7 +1655,7 @@ module Make(M:
                incr nfiles
            | _ -> () ) !file_sources_managers;
 
-	 if !files <> [] then begin
+         if !files <> [] then begin
 
            (* 'normalize' to 0 priorities*)
            sum_priority := !sum_priority + (!nfiles * (-(!min_priority)));
@@ -1678,7 +1678,7 @@ module Make(M:
 
            (* calc how much sources a file can get according to its priority*)
            let sources_per_prio =  
-	     (float_of_int nsources) /. (float_of_int !sum_priority) in
+             (float_of_int nsources) /. (float_of_int !sum_priority) in
 
 
            (*
@@ -1690,82 +1690,82 @@ module Make(M:
            *)
            let rec iter_files assigned looped =
 
-	     (* throw in new sources at high pace and do not care
+             (* throw in new sources at high pace and do not care
                 about them in get_sources, this avoids "locking" a
                 file's queue sources with thousands of new sources
                 from SE *)
-	     let try_some_new_sources () =
-	       let extr = ref 0 in
-	       List.iter (fun m ->
-		 let f = m.manager_file () in
-		 let q = m.manager_sources.(new_sources_queue) in
-		 if file_state f = FileDownloading && Queue.length q > 0 then
-		   let (request_time, s) = Queue.head q in
-		   source_connecting s;
-		   if M.direct_source s.source_uid then begin
-		     incr extr;
-		     Fifo.put next_direct_sources s
-		   end
-		   else
-		     next_indirect_sources := s :: !next_indirect_sources
+             let try_some_new_sources () =
+               let extr = ref 0 in
+               List.iter (fun m ->
+                 let f = m.manager_file () in
+                 let q = m.manager_sources.(new_sources_queue) in
+                 if file_state f = FileDownloading && Queue.length q > 0 then
+                   let (request_time, s) = Queue.head q in
+                   source_connecting s;
+                   if M.direct_source s.source_uid then begin
+                     incr extr;
+                     Fifo.put next_direct_sources s
+                   end
+                   else
+                     next_indirect_sources := s :: !next_indirect_sources
                ) !file_sources_managers;
-	       !extr in
+               !extr in
 
-	     let cleanup_some_old_sources () =
+             let cleanup_some_old_sources () =
                (* Cleanup some sources *)
                List.iter (fun m ->
-		 let f = m.manager_file () in
-		 if file_state f = FileDownloading then
-		   let remove_old q t =
+                 let f = m.manager_file () in
+                 if file_state f = FileDownloading then
+                   let remove_old q t =
                      if Queue.length q > 0 then
-		       let (request_time, s) = Queue.head q in
-		       if request_time + t  < last_time () then
-			 remove_from_queue s (find_request s m) in
-		       
-		   remove_old m.manager_sources.(do_not_try_queue) 14400;
-		   remove_old m.manager_sources.(old_sources3_queue) 2400;
-		   remove_old m.manager_sources.(old_sources2_queue) 1200
-	       ) !file_sources_managers in
+                       let (request_time, s) = Queue.head q in
+                       if request_time + t  < last_time () then
+                         remove_from_queue s (find_request s m) in
+                       
+                   remove_old m.manager_sources.(do_not_try_queue) 14400;
+                   remove_old m.manager_sources.(old_sources3_queue) 2400;
+                   remove_old m.manager_sources.(old_sources2_queue) 1200
+               ) !file_sources_managers in
 
-	     let rec aux flist_todo assigned =
-	       if assigned >= nsources then cleanup_some_old_sources ()
-	       else
-		 match flist_todo with
-		 | (prio, file) :: t ->
+             let rec aux flist_todo assigned =
+               if assigned >= nsources then cleanup_some_old_sources ()
+               else
+                 match flist_todo with
+                 | (prio, file) :: t ->
                      let tt = 
-		       min (truncate (sources_per_prio *. (float_of_int prio)))
-			 max_consecutive in
+                       min (truncate (sources_per_prio *. (float_of_int prio)))
+                         max_consecutive in
                      let to_take = max tt 1 in
                      (* allow at least one source per file :
-			we will overflow a bit the expected next_direct_sources length
-			but it's for the good cause : not 'starving' some files
+                        we will overflow a bit the expected next_direct_sources length
+                        but it's for the good cause : not 'starving' some files
                      *)
                      let took = get_sources to_take file good_sources_queue 0 in
                      aux t (assigned + took)
-			
-		 | [] ->
-		     cleanup_some_old_sources ();
+                        
+                 | [] ->
+                     cleanup_some_old_sources ();
 
                      (* more power to the "runaway" (most overloaded) file, pick extra sources *)
                      let em =
-		       let q = find_throttled_queue good_sources_queue in
-		       if queue_period.(q) > 0 then
-			 let max_overloaded = 
-			   List.hd (find_max_overloaded q !file_sources_managers) in
-			 let overhead = 
-			   count_file_ready_sources max_overloaded q  true in
-			 if overhead > 0 then
-			   get_sources max_consecutive max_overloaded good_sources_queue 0
-			 else 0
-		       else 0 in
-		      
+                       let q = find_throttled_queue good_sources_queue in
+                       if queue_period.(q) > 0 then
+                         let max_overloaded = 
+                           List.hd (find_max_overloaded q !file_sources_managers) in
+                         let overhead = 
+                           count_file_ready_sources max_overloaded q  true in
+                         if overhead > 0 then
+                           get_sources max_consecutive max_overloaded good_sources_queue 0
+                         else 0
+                       else 0 in
+                      
                      if looped > 0 then
-		       (* allow at most looped re-iter of list to not
-			  loop endlessly *)
-		       iter_files (assigned + em) (looped - 1) 
-	     in 
-	     let extr = try_some_new_sources () in
-	     aux !files (assigned + extr)
+                       (* allow at most looped re-iter of list to not
+                          loop endlessly *)
+                       iter_files (assigned + em) (looped - 1) 
+             in 
+             let extr = try_some_new_sources () in
+             aux !files (assigned + extr)
 
            in
            iter_files 0 3;
@@ -1793,7 +1793,7 @@ module Make(M:
              end
            ) [ good_sources_queue; old_sources1_queue; old_sources2_queue; old_sources3_queue ];
 
-	 end;
+         end;
 
          if !verbose_sources > 0 then begin
            lprintf_nl "[cSrc] CommonSources.refill_sources AFTER:";
@@ -1815,12 +1815,12 @@ module Make(M:
        let _, s = Queue.take q in
        m.manager_all_sources <- m.manager_all_sources - 1;
        if active_queue queue then
-	 m.manager_active_sources <- m.manager_active_sources - 1;
+         m.manager_active_sources <- m.manager_active_sources - 1;
        List.iter (fun r ->
-	 if r.request_file == m then begin
+         if r.request_file == m then begin
            r.request_queue <- outside_queue;
            set_score_part r not_found_score
-	 end
+         end
        ) s.source_files
 
 (*************************************************************************)
@@ -1840,7 +1840,7 @@ module Make(M:
                let rec iter nsources q queue =
                  if nsources > 0 then
                    if Queue.length q > 0 && 
-		     queue <> good_sources_queue then begin
+                     queue <> good_sources_queue then begin
                        put_all_outside_queue m q queue;
                        iter (nsources-1) q queue
                      end
@@ -1848,9 +1848,9 @@ module Make(M:
                      let do_iter q = iter nsources m.manager_sources.(q) q in
   
                      if queue = old_sources1_queue then do_iter do_not_try_queue
-		     else if queue = do_not_try_queue then do_iter new_sources_queue 
-		     else if queue = new_sources_queue then do_iter waiting_saved_sources_queue 
-		     else if queue > good_sources_queue then do_iter (queue-1)
+                     else if queue = do_not_try_queue then do_iter new_sources_queue 
+                     else if queue = new_sources_queue then do_iter waiting_saved_sources_queue 
+                     else if queue > good_sources_queue then do_iter (queue-1)
 
                in
                iter (nsources - max_sources_per_file) (m.manager_sources.(old_sources3_queue)) old_sources3_queue
@@ -1889,7 +1889,7 @@ module Make(M:
              ignore (Fifo.take connecting_sources);
              iter ()
            end 
-	   else if time + 120 < last_time () then begin
+           else if time + 120 < last_time () then begin
              ignore (Fifo.take connecting_sources);
              if s.source_last_attempt <> 0 then source_disconnected s;
              iter ()
@@ -1952,8 +1952,8 @@ connected if needed *)
                let s = Fifo.take next_direct_sources in
                connect_source s;
                let nsources = 
-		 match s.source_sock with
-		 | NoConnection ->
+                 match s.source_sock with
+                 | NoConnection ->
                      if !verbose_sources > 1 then
                        lprintf_nl "[cSrc] not connected"; nsources
                  | _ -> nsources - 1 in
@@ -2021,9 +2021,9 @@ connected if needed *)
              let q = m.manager_sources.(i) in
              let nready = ref 0 in
              let nsources = ref 0 in
-	     let ready_threshold = last_time () - !!min_reask_delay in
+             let ready_threshold = last_time () - !!min_reask_delay in
              Queue.iter (fun (time, s) ->
-	       incr nsources;
+               incr nsources;
                if time < ready_threshold then incr nready
                else if i = new_sources_queue then begin
                  Printf.bprintf buf "ERROR: Source is not ready in new_sources_queue !\n";
@@ -2033,7 +2033,7 @@ connected if needed *)
              nsources_per_queue.(i) <- nsources_per_queue.(i) + !nsources;
              nready_per_queue.(i) <- nready_per_queue.(i) + !nready;
            done
-	 ) !file_sources_managers;
+         ) !file_sources_managers;
 
          Printf.bprintf buf  "\nFor all managers (%d):\n" (List.length !file_sources_managers);
          for i = 0 to nqueues - 1 do
@@ -2044,19 +2044,19 @@ connected if needed *)
          let nsources = ref 0 in
          HS.iter (fun _ -> incr nsources) sources_by_uid;
          Printf.bprintf buf "Sources by UID table: %d entries\n" !nsources;
-	 let a1, a2, a3, a4, a5, a6 = HS.stats sources_by_uid in
+         let a1, a2, a3, a4, a5, a6 = HS.stats sources_by_uid in
          Printf.bprintf buf "Sources by UID table stats: %d %d %d %d %d %d\n" 
-	   a1 a2 a3 a4 a5 a6;
+           a1 a2 a3 a4 a5 a6;
             
          nsources := 0;
          H.iter (fun _ -> incr nsources) sources_by_num;
          Printf.bprintf buf "Sources by NUM table: %d entries\n" !nsources;
-	 let a1, a2, a3, a4, a5, a6 = H.stats sources_by_num in
+         let a1, a2, a3, a4, a5, a6 = H.stats sources_by_num in
          Printf.bprintf buf "Sources by NUM table stats: %d %d %d %d %d %d\n" 
-	   a1 a2 a3 a4 a5 a6;
+           a1 a2 a3 a4 a5 a6;
 
          Printf.bprintf buf "Used indirect connections: %d\n"
-	   !indirect_connections;
+           !indirect_connections;
 
          let nconnected = ref 0 in
          Fifo.iter (fun (_, s) ->
@@ -2065,7 +2065,7 @@ connected if needed *)
          Printf.bprintf buf "Connecting Sources: %d entries"
            (Fifo.length connecting_sources);
          if !nconnected > 0 then 
-	   Printf.bprintf buf " (connected: %d)" !nconnected;
+           Printf.bprintf buf " (connected: %d)" !nconnected;
          Printf.bprintf buf "\n";
 
          Printf.bprintf buf "Next Direct Sources: %d entries\n"

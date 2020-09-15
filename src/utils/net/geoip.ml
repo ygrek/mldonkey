@@ -229,42 +229,42 @@ let unpack filename =
   match real_ext with
   | ".zip" ->
       (try
-	 let file =
-	   Unix2.tryopen_read_zip filename (fun ic ->
-	     try
-	       Zip.find_entry ic "GeoIP.dat"
-	     with e ->
-	       lprintf_nl "Exception %s while extracting geoip.dat"
-		 (Printexc2.to_string e);
-	       raise e) in
-	 try
-	   ignore(Misc.archive_extract filename "zip");
-	   let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
-	   (try Sys.remove geo_file with _ -> ());
-	   Unix2.rename file.Zip.filename geo_file;
-	   geo_file
-	 with e ->
-	   lprintf_nl "Exception %s while extracting geoip.dat"
-	     (Printexc2.to_string e);
-	   raise e
+         let file =
+           Unix2.tryopen_read_zip filename (fun ic ->
+             try
+               Zip.find_entry ic "GeoIP.dat"
+             with e ->
+               lprintf_nl "Exception %s while extracting geoip.dat"
+                 (Printexc2.to_string e);
+               raise e) in
+         try
+           ignore(Misc.archive_extract filename "zip");
+           let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
+           (try Sys.remove geo_file with _ -> ());
+           Unix2.rename file.Zip.filename geo_file;
+           geo_file
+         with e ->
+           lprintf_nl "Exception %s while extracting geoip.dat"
+             (Printexc2.to_string e);
+           raise e
        with e ->
-	 lprintf_nl "Exception %s while opening %s"
-	   (Printexc2.to_string e) filename;
-	 raise Not_found)
+         lprintf_nl "Exception %s while opening %s"
+           (Printexc2.to_string e) filename;
+         raise Not_found)
 
   | ".dat.gz" | ".dat.bz2" | ".gz" | ".bz2" ->
       let filetype =
-	if ext = ".bz2" || ext = ".dat.bz2" then "bz2" else "gz" in
+        if ext = ".bz2" || ext = ".dat.bz2" then "bz2" else "gz" in
       (try
-	 let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
-	 let s = Misc.archive_extract filename filetype in
-	 (try Sys.remove geo_file with _ -> ());
-	 Unix2.rename s geo_file;
-	 geo_file
+         let geo_file = Filename.concat "web_infos" "GeoIP.dat" in
+         let s = Misc.archive_extract filename filetype in
+         (try Sys.remove geo_file with _ -> ());
+         Unix2.rename s geo_file;
+         geo_file
        with e ->
          lprintf_nl "Exception %s while extracting"
-	   (Printexc2.to_string e);
-	 raise Not_found)
+           (Printexc2.to_string e);
+         raise Not_found)
 (* if file is not a supported archive type try loading that file anyway *)
     | _ -> filename
 
@@ -279,64 +279,64 @@ let open_geoip_db filename =
 
     let new_database ?offset dbtype =
       let read_segment_size () =
-	match offset with
-	| None -> failwith "Can't read variable segment size without a signature"
-	| Some offset ->
-	    let result = ref 0 in
-	    for j = 0 to segment_record_length - 1 do
-	      let k = map.{offset + j} lsl (j * 8) in
-	      result := !result + k
-	    done;
-	    !result in
+        match offset with
+        | None -> failwith "Can't read variable segment size without a signature"
+        | Some offset ->
+            let result = ref 0 in
+            for j = 0 to segment_record_length - 1 do
+              let k = map.{offset + j} lsl (j * 8) in
+              result := !result + k
+            done;
+            !result in
 
       match dbtype with
       | DatabaseInfo_UNKNOWN -> assert false
       | DatabaseInfo_DOMAIN_EDITION ->
-	  None; (* Missing in previous implementation! *)
+          None; (* Missing in previous implementation! *)
       | _ ->
-	  Some {
-	    file = f;
-	    dbtype = dbtype;
-	    segments = 
-	      (match dbtype with
-	       | DatabaseInfo_COUNTRY_EDITION 
-	       | DatabaseInfo_PROXY_EDITION
-	       | DatabaseInfo_NETSPEED_EDITION -> 
-		   country_begin
-	       | DatabaseInfo_REGION_EDITION_REV0 -> 
-		   state_begin_rev0
-	       | DatabaseInfo_REGION_EDITION_REV1 -> 
-		   state_begin_rev1
-	       | _ -> 
-		   read_segment_size ());
-	    record_length =
-	      (match dbtype with
-	       | DatabaseInfo_ORG_EDITION 
-	       | DatabaseInfo_ISP_EDITION 
-	       | DatabaseInfo_ASNUM_EDITION -> 
-		   org_record_length
-	       | _ -> 
-		   standard_record_length);
-	    map = map;
-	  } in
+          Some {
+            file = f;
+            dbtype = dbtype;
+            segments = 
+              (match dbtype with
+               | DatabaseInfo_COUNTRY_EDITION 
+               | DatabaseInfo_PROXY_EDITION
+               | DatabaseInfo_NETSPEED_EDITION -> 
+                   country_begin
+               | DatabaseInfo_REGION_EDITION_REV0 -> 
+                   state_begin_rev0
+               | DatabaseInfo_REGION_EDITION_REV1 -> 
+                   state_begin_rev1
+               | _ -> 
+                   read_segment_size ());
+            record_length =
+              (match dbtype with
+               | DatabaseInfo_ORG_EDITION 
+               | DatabaseInfo_ISP_EDITION 
+               | DatabaseInfo_ASNUM_EDITION -> 
+                   org_record_length
+               | _ -> 
+                   standard_record_length);
+            map = map;
+          } in
 
     let rec setup_types i =
       if i >= structure_info_max_size then
-	new_database DatabaseInfo_COUNTRY_EDITION
+        new_database DatabaseInfo_COUNTRY_EDITION
       else
-	let offset = size - 3 - i in
+        let offset = size - 3 - i in
         if map.{offset} <> 255 ||
-	  map.{offset + 1} <> 255 ||
-	  map.{offset + 2} <> 255 then setup_types (i + 1)
-	else
+          map.{offset + 1} <> 255 ||
+          map.{offset + 2} <> 255 then setup_types (i + 1)
+        else
           let type_byte = map.{offset + 3} in
-	  let type_byte = if type_byte >= 106 then
-	    type_byte - 105 else type_byte in
-	  if type_byte < 1 || type_byte >= Array.length database_type_of_int 
-	  then setup_types (i + 1)
-	  else 
-	    let dbtype = database_type_of_int.(type_byte) in
-	    new_database ~offset:(offset + 4) dbtype
+          let type_byte = if type_byte >= 106 then
+            type_byte - 105 else type_byte in
+          if type_byte < 1 || type_byte >= Array.length database_type_of_int 
+          then setup_types (i + 1)
+          else 
+            let dbtype = database_type_of_int.(type_byte) in
+            new_database ~offset:(offset + 4) dbtype
     in
     setup_types 0
   with e -> 
@@ -350,28 +350,28 @@ let seek_country db ip =
   let rec dive depth offset = 
     if depth < 0 then 0 else
       let update i =
-	match db.record_length with
-	| 3 -> (* specialized code for common case *)
- 	  let offset = 6 * offset + 3 * i in
-	  db.map.{offset} +
-	  (db.map.{offset + 1} lsl 8) +
-	  (db.map.{offset + 2} lsl 16)
-	| _ ->
-	  let offset = (2 * offset + i) * db.record_length in
+        match db.record_length with
+        | 3 -> (* specialized code for common case *)
+          let offset = 6 * offset + 3 * i in
+          db.map.{offset} +
+          (db.map.{offset + 1} lsl 8) +
+          (db.map.{offset + 2} lsl 16)
+        | _ ->
+          let offset = (2 * offset + i) * db.record_length in
           let tmp = ref 0 in
           for j = 0 to db.record_length - 1 do
             let y = db.map.{offset + j} in
             tmp := !tmp + (y lsl (j * 8));
           done;
-	  !tmp in
+          !tmp in
           
       let swim i = 
-	if i >= db.segments then i - country_begin
-	else dive (depth - 1) i in
+        if i >= db.segments then i - country_begin
+        else dive (depth - 1) i in
 
       let bit = if (and64 ip_long (left64 1L depth)) = 0L then 0 else 1 in
       swim (update bit) in
-	
+        
   dive 31 0
 
 let current_db = ref (None: geoip_database option)
@@ -400,8 +400,8 @@ let get_country_code ip =
     match !current_db with
     | None -> 0
     | Some db ->
-	try seek_country db ip
-	with _ -> 0
+        try seek_country db ip
+        with _ -> 0
 
 let get_country_code_option ip =
   if !verbose then lprintf_nl "get_country_code_option %s" (Ip.to_string ip);
@@ -422,11 +422,11 @@ let get_country ip =
     match !current_db with
     | None -> unknown_country
     | Some db ->
-	try 
-	  let ret = seek_country db ip in
-	  if ret = 0 then unknown_country 
-	  else country_code_array.(ret), country_name_array.(ret);
-	with _ -> unknown_country
+        try 
+          let ret = seek_country db ip in
+          if ret = 0 then unknown_country 
+          else country_code_array.(ret), country_name_array.(ret);
+        with _ -> unknown_country
 
 let get_country_code_name cc =
   match cc with
@@ -441,6 +441,6 @@ let _ =
     | Some db ->
         Printf.bprintf buf "  countries: %d\n" (Array.length country_code_array);
         Printf.bprintf buf "  database_type: %s\n" (database_name db.dbtype);
-	Printf.bprintf buf "  map size: %d\n" (Array1.dim db.map);
+        Printf.bprintf buf "  map size: %d\n" (Array1.dim db.map);
     | None -> Printf.bprintf buf "  module not active\n"
   )

@@ -50,8 +50,8 @@ let gui_ini = create_options_file
 
 let tb_styles = [ "both", `BOTH ;
                   "both horizontal", `BOTH_HORIZ ; 
-		  "text", `TEXT ;
-		  "icon", `ICONS ]
+                  "text", `TEXT ;
+                  "icon", `ICONS ]
 
 let tb_styles_rev = List.map (fun (a,b) -> (b,a)) tb_styles
 

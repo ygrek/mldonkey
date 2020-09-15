@@ -178,18 +178,18 @@ let rec color_tree w bg font =
         Some (wt: GTree.tree) ->
           let style = wt#misc#style#copy in
           style#set_bg [ (`NORMAL, bg)];
-	  style#set_base [ (`NORMAL, bg)];
-	  style#set_font font;
+          style#set_base [ (`NORMAL, bg)];
+          style#set_font font;
           wt#misc#set_style style;
-	  color_tree wt bg font
+          color_tree wt bg font
        | _ ->
           List.iter (fun e ->
-	    let style = e#misc#style#copy in
+            let style = e#misc#style#copy in
             style#set_base [ (`NORMAL, bg)];
-	    style#set_bg [ (`NORMAL, bg)];
-	    style#set_font font;
+            style#set_bg [ (`NORMAL, bg)];
+            style#set_font font;
             e#misc#set_style style
-	  ) b#children
+          ) b#children
     ) w#children
 
 class type url_results =
@@ -418,8 +418,8 @@ class results qe =
       method set_list_bg bg font =
         let style = wtree#misc#style#copy in
         style#set_bg [ (`NORMAL, bg)];
-	style#set_base [ (`NORMAL, bg)];
-	style#set_font font;
+        style#set_base [ (`NORMAL, bg)];
+        style#set_font font;
         wtree#misc#set_style style;
         color_tree wtree bg font
 
@@ -471,7 +471,7 @@ lprint_newline (); *)
                       )
                 )
               ));
-	      self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!Gui_options.font_list)
+              self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!Gui_options.font_list)
       
       method clear =
         List.iter wtree#remove wtree#children;
@@ -489,13 +489,13 @@ lprint_newline (); *)
     initializer
       (*
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.download)
-	   ~tooltip: (gettext M.download_selected_dir)
-	   ~icon: (Gui_options.pixmap M.o_xpm_download_directory)#coerce
-	   ~callback: self#download
-	   ()
-	);
+        (wtool#insert_button 
+           ~text: (gettext M.download)
+           ~tooltip: (gettext M.download_selected_dir)
+           ~icon: (Gui_options.pixmap M.o_xpm_download_directory)#coerce
+           ~callback: self#download
+           ()
+        );
 *)
 
       freedb_record.freedb_result <- (fun url artist album ->
@@ -680,9 +680,9 @@ class results qe =
       method set_list_bg bg font =
         let style = wtree#misc#style#copy in
         style#set_bg [ (`NORMAL, bg)];
-	style#set_base [ (`NORMAL, bg)];
+        style#set_base [ (`NORMAL, bg)];
         wtree#misc#set_style style;
-	style#set_font font;
+        style#set_font font;
         color_tree wtree bg font
 
       method private insert url movie =
@@ -694,7 +694,7 @@ lprint_newline (); *)
           
           let url = Printf.sprintf "http://us.imdb.com%s" url in
           cached_or_on_expand item imdb_parse_movie referer url;
-	  self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!Gui_options.font_list)
+          self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!Gui_options.font_list)
       
       method clear =
         List.iter wtree#remove wtree#children;
@@ -713,13 +713,13 @@ lprint_newline (); *)
       
       (*
       ignore
-	(wtool#insert_button 
-	   ~text: (gettext M.download)
-	   ~tooltip: (gettext M.download_selected_dir)
-	   ~icon: (Gui_options.pixmap M.o_xpm_download)#coerce
-	   ~callback: self#download
-	   ()
-	); *)
+        (wtool#insert_button 
+           ~text: (gettext M.download)
+           ~tooltip: (gettext M.download_selected_dir)
+           ~icon: (Gui_options.pixmap M.o_xpm_download)#coerce
+           ~callback: self#download
+           ()
+        ); *)
       imdb_record.imdb_result <- (fun url movie ->
           self#insert url movie 
       );
@@ -904,8 +904,8 @@ class results qe =
       method set_list_bg bg font =
         let style = wtree#misc#style#copy in
         style#set_bg [ (`NORMAL, bg)];
-	style#set_base [ (`NORMAL, bg)];
-	style#set_font font;
+        style#set_base [ (`NORMAL, bg)];
+        style#set_font font;
         wtree#misc#set_style style;
         color_tree wtree bg font
 
@@ -920,7 +920,7 @@ lprint_newline (); *)
           lprintf "URL expected: %s" url; lprint_newline ();
           
           cached_or_on_expand item sharereactor_parse_release referer url;
-	  self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!Gui_options.font_list)
+          self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!Gui_options.font_list)
       
       method clear =
         List.iter wtree#remove wtree#children;
@@ -1100,8 +1100,8 @@ class results qe =
       method set_list_bg bg font =
         let style = wtree#misc#style#copy in
         style#set_bg [ (`NORMAL, bg)];
-	style#set_base [ (`NORMAL, bg)];
-	style#set_font font;
+        style#set_base [ (`NORMAL, bg)];
+        style#set_font font;
         wtree#misc#set_style style;
         color_tree wtree bg font
 
@@ -1117,7 +1117,7 @@ lprint_newline (); *)
           lprintf "URL expected: %s" url; lprint_newline ();
           
           cached_or_on_expand item jigle_parse_download  referer url;
-	  self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!Gui_options.font_list)
+          self#set_list_bg (`NAME !!Gui_options.color_list_bg) (Gdk.Font.load_fontset !!Gui_options.font_list)
       
       method clear =
         List.iter wtree#remove wtree#children;

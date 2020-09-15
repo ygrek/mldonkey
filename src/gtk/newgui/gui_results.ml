@@ -444,7 +444,7 @@ class box s_num columns () =
       |	Col_result_bitrate -> 
           if r.gresult_bitrate = 0 
             then "" 
-	    else string_of_int r.gresult_bitrate
+            else string_of_int r.gresult_bitrate
       |	Col_result_availability -> 
           if r.gresult_availability = 0 
             then "" 
@@ -517,10 +517,10 @@ class box s_num columns () =
 (*
     method remove_extend_search_button =
       match wb_extend_search with
-	None -> ()
+        None -> ()
       |	Some wb -> 
-	  wtool#remove wb#coerce;
-	  wb_extend_search <- None
+          wtool#remove wb#coerce;
+          wb_extend_search <- None
 *)
     
     method update_icons b =

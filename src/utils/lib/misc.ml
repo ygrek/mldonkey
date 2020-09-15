@@ -40,7 +40,7 @@ let dec2bin num len =
     else
       match (v asr fig) land 1 with
           0 -> "0" ^ (d2b v (fig - 1))
-	| x -> "1" ^ (d2b v (fig - 1))
+        | x -> "1" ^ (d2b v (fig - 1))
   in
     d2b num (len-1)
 
@@ -76,13 +76,13 @@ let rec zip_add_entry oc file =
       Zip.add_entry "" oc ~mtime:s.U.st_mtime
         (if Filename.check_suffix file "/" then file else file ^ "/");
       Unix2.tryopen_dir file (fun d ->
-	try
+        try
           while true do
             let e = Unix.readdir d in
             if e <> "." && e <> ".." then 
-	      zip_add_entry oc (Filename.concat file e)
+              zip_add_entry oc (Filename.concat file e)
           done
-	with End_of_file -> ())
+        with End_of_file -> ())
   | _ -> ()  
 
 let zip_create zipfile files =
@@ -97,15 +97,15 @@ let gz_extract filename =
     file := file_out;
     Unix2.tryopen_read_gzip filename (fun ic ->
       Unix2.tryopen_write_bin file_out (fun oc ->
-	let rec decompress () =
-	  let n = Gzip.input ic buffer 0 (String.length buffer) in
+        let rec decompress () =
+          let n = Gzip.input ic buffer 0 (String.length buffer) in
           if n = 0 then ()
-	  else
-	    begin
-	      output oc buffer 0 n;
-	      decompress()
-	    end
-	in decompress()));
+          else
+            begin
+              output oc buffer 0 n;
+              decompress()
+            end
+        in decompress()));
     file_out
   with e -> 
     (try if !file <> "" then Sys.remove !file with _ -> ()); 

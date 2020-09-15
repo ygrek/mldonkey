@@ -19,11 +19,11 @@ let default_prop_value kind =
     let (_,_,values_kind,_) = Zog_types.get_prop_info kind in
     match values_kind with
       Bool -> 
-	(
-	 match kind with
-	   Expand | Homogeneous | Right_justify -> "false"
-	 | _ -> "true"
-	)
+        (
+         match kind with
+           Expand | Homogeneous | Right_justify -> "false"
+         | _ -> "true"
+        )
     | PosInt -> ""
     | Float -> ""
     | Code -> ""
@@ -183,12 +183,12 @@ let rec print_gui_element fmt t g_ele =
     p fmt (t^"<"^name^" name="^g_ele.name) ;
     List.iter
       (fun prop ->
-	try
-	  if prop.prop_value <> default_prop_value prop.prop_kind then
-	  let (_,pname,_,_) = Zog_types.get_prop_info prop.prop_kind in
-	  p fmt (" "^pname^"=\""^(encode prop.prop_value)^"\"")
-	with
-	  Failure s -> prerr_endline s
+        try
+          if prop.prop_value <> default_prop_value prop.prop_kind then
+          let (_,pname,_,_) = Zog_types.get_prop_info prop.prop_kind in
+          p fmt (" "^pname^"=\""^(encode prop.prop_value)^"\"")
+        with
+          Failure s -> prerr_endline s
       )
       g_ele.props;
     if not g_ele.expanded then p fmt " expanded=\"false\"" ;

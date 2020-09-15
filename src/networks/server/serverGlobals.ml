@@ -34,15 +34,15 @@ let connection_manager = network.network_connection_manager
 let (files_by_md4  :  (Md4.t, ServerTypes.location list) Hashtbl.t )
   
   = (if !!relais_cooperation_protocol then
-		     Hashtbl.create !!max_group_clients
-		     else
-		      Hashtbl.create !!max_clients;)
+                     Hashtbl.create !!max_group_clients
+                     else
+                      Hashtbl.create !!max_clients;)
 
 let (clients_by_id :   (Ip.t, ServerTypes.global_client) Hashtbl.t)
   = (if !!relais_cooperation_protocol then
-			Hashtbl.create !!max_group_files
-			else
-			Hashtbl.create !!max_files;)
+                        Hashtbl.create !!max_group_files
+                        else
+                        Hashtbl.create !!max_files;)
 
 
 let get_client id = Hashtbl.find clients_by_id id
@@ -106,9 +106,9 @@ let nb_udp_reply_count = ref 0
 
 let (servers_by_id :  (int, ServerTypes.server) Hashtbl.t)
   = (if !!relais_cooperation_protocol then
-		      Hashtbl.create 5 
-		      else
-		      Hashtbl.create 0;)
+                      Hashtbl.create 5 
+                      else
+                      Hashtbl.create 0;)
 
 let to_connect = ref ([] : int list)
 

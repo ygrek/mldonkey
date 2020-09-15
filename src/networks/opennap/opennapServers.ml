@@ -497,7 +497,7 @@ let ask_for_files () =
 let _ =
   server_ops.op_server_connect <- connect_server;
   server_ops.op_server_disconnect <- (fun s ->
-					  disconnect_server s Closed_by_user);
+                                          disconnect_server s Closed_by_user);
 (*
 (*  server_ops.op_server_query_users <- (fun s -> *)
       match s.server_sock with

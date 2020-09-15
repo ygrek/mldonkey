@@ -50,21 +50,21 @@ let print_modifier l =
   List.iter
     (fun m -> 
       lprint_string
-	(((function 
-	    `SHIFT -> "SHIFT"
-	  | `LOCK -> "LOCK"
-	  | `CONTROL -> "CONTROL"
-	  | `MOD1 -> "MOD1"
-	  | `MOD2 -> "MOD2"
-	  | `MOD3 -> "MOD3"
-	  | `MOD4 -> "MOD4"
-	  | `MOD5 -> "MOD5"
-	  | `BUTTON1 -> "B1"
-	  | `BUTTON2 -> "B2"
-	  | `BUTTON3 -> "B3"
-	  | `BUTTON4 -> "B4"
-	  | `BUTTON5 -> "B5")
-	    m)^" ")
+        (((function 
+            `SHIFT -> "SHIFT"
+          | `LOCK -> "LOCK"
+          | `CONTROL -> "CONTROL"
+          | `MOD1 -> "MOD1"
+          | `MOD2 -> "MOD2"
+          | `MOD3 -> "MOD3"
+          | `MOD4 -> "MOD4"
+          | `MOD5 -> "MOD5"
+          | `BUTTON1 -> "B1"
+          | `BUTTON2 -> "B2"
+          | `BUTTON3 -> "B3"
+          | `BUTTON4 -> "B4"
+          | `BUTTON5 -> "B5")
+            m)^" ")
     )
     l;
   lprint_newline ()
@@ -84,9 +84,9 @@ module H =
     let find_handlers mods key l =
       List.map snd
         (List.filter
-	   (fun ((m,ma,k),_) -> equal (mods,key) (m,ma,k)) 
-	   l
-	)
+           (fun ((m,ma,k),_) -> equal (mods,key) (m,ma,k)) 
+           l
+        )
 
   end
 
@@ -101,10 +101,10 @@ let key_press w ev =
     let b = ref true in
     List.iter
       (fun h ->
-	if h.cond () then
-	  (h.cback () ; b := false)
-	else
-	  ()
+        if h.cond () then
+          (h.cback () ; b := false)
+        else
+          ()
       )
       l;
     !b

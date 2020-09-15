@@ -31,10 +31,10 @@ type t
 
 (** Several kind of resources can contain Xml documents. *)
 type source = 
-	| SFile of string
-	| SChannel of in_channel
-	| SString of string
-	| SLexbuf of Lexing.lexbuf
+        | SFile of string
+        | SChannel of in_channel
+        | SString of string
+        | SLexbuf of Lexing.lexbuf
 
 (** This function returns a new parser with default options. *)
 val make : unit -> t

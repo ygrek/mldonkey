@@ -49,10 +49,10 @@ module ServerConnect = struct
         md4 : Md4.t;
         ip: Ip.t;
         port: int;
-	max_clients : int;
-	max_files : int;
+        max_clients : int;
+        max_files : int;
         tags : tag list;
-	
+        
  }
 
   let names_of_tag =
@@ -74,8 +74,8 @@ module ServerConnect = struct
         md4 = md4;
         ip = ip;
         port = port;
-	max_clients = max_clients;
-	max_files = max_files;
+        max_clients = max_clients;
+        max_files = max_files;
         tags = tags;
       }
 
@@ -120,10 +120,10 @@ module ACKConnect = struct
     let ntags = get_int s 25 in 
     let tags, pos = get_tags s 29 ntags names_of_tag in
       {
-	group_id = group_id;
+        group_id = group_id;
         server_master_id = server_master_id;
-	server_id = server_id;
-	tags = tags;
+        server_id = server_id;
+        tags = tags;
       }
      
   let print t =
@@ -167,11 +167,11 @@ module ConnectRocky = struct
     let ntags = get_int s 29 in 
     let tags, pos = get_tags s 33 ntags names_of_tag in
       {
-	group_id = group_id;
-	server_id = server_id;
-	server_ip = server_ip; 
-	server_port = server_port;
-	server_tags = tags;
+        group_id = group_id;
+        server_id = server_id;
+        server_ip = server_ip; 
+        server_port = server_port;
+        server_tags = tags;
       }
      
   let print t =
@@ -210,10 +210,10 @@ module ConnectByGroup = struct
     let server_ip = get_ip s 21 in
     let server_port = get_port s 25 in 
       {
-	group_id = group_id;
-	server_id = server_id;
-	server_ip = server_ip; 
-	server_port = server_port;
+        group_id = group_id;
+        server_id = server_id;
+        server_ip = server_ip; 
+        server_port = server_port;
       }
      
   let print t =
@@ -251,10 +251,10 @@ module Recovery = struct
     let server_ip = get_ip s 21 in
     let server_port = get_port s 25 in 
       {
-	group_id = group_id;
-	server_id = server_id;
-	server_ip = server_ip; 
-	server_port = server_port;
+        group_id = group_id;
+        server_id = server_id;
+        server_ip = server_ip; 
+        server_port = server_port;
       }
      
   let print t =
@@ -291,10 +291,10 @@ module ServerNotification = struct
     let ip = get_ip s 21 in
     let port = get_port s 25 in 
       {
-	group_id = group_id;
-	server_id = id;
-	server_ip = ip;
-	server_port = port;
+        group_id = group_id;
+        server_id = id;
+        server_ip = ip;
+        server_port = port;
       }
 
 
@@ -324,8 +324,8 @@ module ServerSupp = struct
     let group_id = get_md4 s 1 in
     let id = get_int s 17 in
       {
-	group_id = group_id;
-	server_id = id;
+        group_id = group_id;
+        server_id = id;
       }
       
   let print t =  
@@ -358,11 +358,11 @@ module LocalisationInit = struct
       let ip = get_ip s pos in
       let port = get_port s (pos+4) in
       let source = {
-	source_ip = ip;
-	source_port = port;
+        source_ip = ip;
+        source_port = port;
       } in
       let sources = list_sources s (pos+8) (nb_sources-1) in
-	source :: sources
+        source :: sources
 
 
 
@@ -372,11 +372,11 @@ module LocalisationInit = struct
       let nb_sources = get_int s (pos+16) in
       let sources = list_sources s (pos+20) nb_sources in
       let md4_loc = {
-	md4 = md4;
-	sources = sources;
+        md4 = md4;
+        sources = sources;
       } in
       let md4_locs = list_md4 s (pos+20+nb_sources*8) (nb_md4-1) in
-	md4_loc :: md4_locs
+        md4_loc :: md4_locs
 
       
 
@@ -384,30 +384,30 @@ module LocalisationInit = struct
     let nb_md4 = get_int s 1 in
     let locs = list_md4 s 5 nb_md4 in
       locs
-	
-	
+        
+        
   
   let print t =  
     lprintf "Server Shared:\n";
     List.iter ( fun y ->
-		  lprintf "File MD4: %s\n" (Md4.to_string y.md4);
-		  List.iter ( fun x ->
-				lprintf "Source ip: %s\n" (Ip.to_string x.source_ip);
-				lprintf "Source port: %d\n" x.source_port
-			    ) y.sources
-	      ) t
+                  lprintf "File MD4: %s\n" (Md4.to_string y.md4);
+                  List.iter ( fun x ->
+                                lprintf "Source ip: %s\n" (Ip.to_string x.source_ip);
+                                lprintf "Source port: %d\n" x.source_port
+                            ) y.sources
+              ) t
 
 
     let write buf t =
       buf_int buf (List.length t);
       List.iter ( fun y ->
-		    buf_md4 buf y.md4;
-		    buf_int buf (List.length y.sources);
-		    List.iter ( fun x ->
-				  buf_ip buf x.source_ip;
-				  buf_port buf x.source_port
-			      ) y.sources
-		) t
+                    buf_md4 buf y.md4;
+                    buf_int buf (List.length y.sources);
+                    List.iter ( fun x ->
+                                  buf_ip buf x.source_ip;
+                                  buf_port buf x.source_port
+                              ) y.sources
+                ) t
 
     end
 
@@ -432,12 +432,12 @@ module LocalisationNotif= struct
       let ip = get_ip s (pos+1) in
       let port = get_port s (pos+5) in
       let source = {
-	add = add;
-	source_ip = ip;
-	source_port = port;
+        add = add;
+        source_ip = ip;
+        source_port = port;
       } in
       let sources = list_sources s (pos+8) (nb_sources-1) in
-	source :: sources
+        source :: sources
 
 
 
@@ -447,11 +447,11 @@ module LocalisationNotif= struct
       let nb_sources = get_int s (pos+16) in
       let sources = list_sources s (pos+20) nb_sources in
       let md4_loc = {
-	md4 = md4;
-	sources = sources;
+        md4 = md4;
+        sources = sources;
       } in
       let md4_locs = list_md4 s (pos+20+nb_sources*9) (nb_md4-1) in
-	md4_loc :: md4_locs
+        md4_loc :: md4_locs
 
       
 
@@ -459,30 +459,30 @@ module LocalisationNotif= struct
     let nb_md4 = get_int s 1 in
     let locs = list_md4 s 5 nb_md4 in
       locs
-	
-	
+        
+        
   
   let print t =  
     lprintf "Server Shared:\n";
     List.iter ( fun y ->
-		  lprintf "File MD4: %s\n" (Md4.to_string y.md4);
-		  List.iter ( fun x ->
-				lprintf "Source ip: %s\n" (Ip.to_string x.source_ip);
-				lprintf "Source port: %d\n" x.source_port
-			    ) y.sources
-	      ) t
+                  lprintf "File MD4: %s\n" (Md4.to_string y.md4);
+                  List.iter ( fun x ->
+                                lprintf "Source ip: %s\n" (Ip.to_string x.source_ip);
+                                lprintf "Source port: %d\n" x.source_port
+                            ) y.sources
+              ) t
 
 
     let write buf t =
       buf_int buf (List.length t);
       List.iter ( fun y ->
-		    buf_md4 buf y.md4;
-		    buf_int buf (List.length y.sources);
-		    List.iter ( fun x ->
-				  buf_ip buf x.source_ip;
-				  buf_port buf x.source_port
-			      ) y.sources
-		) t
+                    buf_md4 buf y.md4;
+                    buf_int buf (List.length y.sources);
+                    List.iter ( fun x ->
+                                  buf_ip buf x.source_ip;
+                                  buf_port buf x.source_port
+                              ) y.sources
+                ) t
 
     end
 
@@ -506,34 +506,34 @@ module LocateNotif= struct
   let rec list_sources s pos nb_sources =
     if nb_sources = 0 then [],pos else
       let add,pos = get_bool s pos in
-	(*lprintf "add %s at pos %d \n" (string_of_bool add) pos;*)
+        (*lprintf "add %s at pos %d \n" (string_of_bool add) pos;*)
       let id = get_ip s pos in
       let ip = get_ip s (pos+4) in
-	(*lprintf "at  %s" (Ip.to_string ip);*)
+        (*lprintf "at  %s" (Ip.to_string ip);*)
       let port = get_port s (pos+8) in
-	(*lprintf "port  %d\n" port;*)
+        (*lprintf "port  %d\n" port;*)
       let source = {
-	add = add;
-	source_id = id;
-	source_ip = ip;
-	source_port = port;
+        add = add;
+        source_id = id;
+        source_ip = ip;
+        source_port = port;
       } in
       let sources,pos = list_sources s (pos+10) (nb_sources-1) in
-	(*lprintf "at pos %d \n" pos;*)
-	(source :: sources),pos
+        (*lprintf "at pos %d \n" pos;*)
+        (source :: sources),pos
 
 
 
 
   let rec list_md4 htbl s pos nb_md4 =
       if nb_md4 = 0 then htbl else
-	let md4 = get_md4 s pos in
-	  (*lprintf "get %s\n" (Md4.to_string md4);*)
-	let nb_sources = get_int s (pos+16) in
-	  (*lprintf "nbsources %d\n"  nb_sources;*)
-	let sources,pos = list_sources s (pos+20) nb_sources in
-	  Hashtbl.add htbl md4 sources;
-	  (list_md4 htbl s pos (nb_md4-1))
+        let md4 = get_md4 s pos in
+          (*lprintf "get %s\n" (Md4.to_string md4);*)
+        let nb_sources = get_int s (pos+16) in
+          (*lprintf "nbsources %d\n"  nb_sources;*)
+        let sources,pos = list_sources s (pos+20) nb_sources in
+          Hashtbl.add htbl md4 sources;
+          (list_md4 htbl s pos (nb_md4-1))
 
       
 
@@ -545,16 +545,16 @@ module LocateNotif= struct
       let notifs = Hashtbl.create nb_md4 in 
       let notifs = list_md4 notifs s 13 nb_md4 in
       (*let count = ref 0 in
-	Hashtbl.iter (fun md4 sources ->
-			count := !count + (List.length sources)
-		     ) notifs;
-	lprintf "During Parsing %d notifs\n" !count;*)
-	{
+        Hashtbl.iter (fun md4 sources ->
+                        count := !count + (List.length sources)
+                     ) notifs;
+        lprintf "During Parsing %d notifs\n" !count;*)
+        {
           message_id = message_id;
-	  nb_notifs = nb_md4;
+          nb_notifs = nb_md4;
           ack = ack;
-	  notifs = notifs;
-	}
+          notifs = notifs;
+        }
     with _ ->
       lprintf "Parsing PB\n";
       raise Not_found
@@ -564,16 +564,16 @@ module LocateNotif= struct
     lprintf "SERVER SHARED NOTIFICATION %d : %d NOTIFS\n" t.message_id t.nb_notifs;
      lprintf "Ack for : %d\n" t.ack;
     Hashtbl.iter ( fun id notifs ->
-		     lprintf "File MD4: %s\n" (Md4.to_string id);
-		     List.iter ( fun x ->
-				   if x.add then
-				     lprintf "ADD\n"
-				   else
-				     lprintf "SUPP\n";
-				   lprintf "Source ip: %s\n" (Ip.to_string x.source_ip);
-				   lprintf "Source port: %d\n" x.source_port
-			       ) notifs
-		 ) t.notifs
+                     lprintf "File MD4: %s\n" (Md4.to_string id);
+                     List.iter ( fun x ->
+                                   if x.add then
+                                     lprintf "ADD\n"
+                                   else
+                                     lprintf "SUPP\n";
+                                   lprintf "Source ip: %s\n" (Ip.to_string x.source_ip);
+                                   lprintf "Source port: %d\n" x.source_port
+                               ) notifs
+                 ) t.notifs
       
       
   let write buf t =
@@ -581,15 +581,15 @@ module LocateNotif= struct
     buf_int buf t.nb_notifs;
     buf_int buf t.ack;
     Hashtbl.iter ( fun id notif ->
-		    buf_md4 buf id;
-		    buf_int buf (List.length notif);
-		    List.iter ( fun x ->
-				  buf_bool buf x.add;
-				  buf_ip buf x.source_id;
-				  buf_ip buf x.source_ip;
-				  buf_port buf x.source_port
-			      ) notif
-		) t.notifs
+                    buf_md4 buf id;
+                    buf_int buf (List.length notif);
+                    List.iter ( fun x ->
+                                  buf_bool buf x.add;
+                                  buf_ip buf x.source_id;
+                                  buf_ip buf x.source_ip;
+                                  buf_port buf x.source_port
+                              ) notif
+                ) t.notifs
 
 end
 

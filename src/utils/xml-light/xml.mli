@@ -34,15 +34,15 @@ open Xml_types
 (** {6 Xml Data Structure} *)
 
 (** An Xml node is either
-	[Element (tag-name, attributes, children)] or [PCData text] *)
+        [Element (tag-name, attributes, children)] or [PCData text] *)
 
 (** {6 Xml Parsing} *)
 
 (** For easily parsing an Xml data source into an xml data structure,
-	you can use theses functions. But if you want advanced parsing usage,
-	please look at the {!XmlParser} module.
-	All the parsing functions can raise some exceptions, see the
-	{{:#exc}Exceptions} section for more information. *)
+        you can use theses functions. But if you want advanced parsing usage,
+        please look at the {!XmlParser} module.
+        All the parsing functions can raise some exceptions, see the
+        {{:#exc}Exceptions} section for more information. *)
 
 (** Parse the named file into an Xml data structure. *)
 val parse_file : string -> xml
@@ -58,18 +58,18 @@ val parse_string : string -> xml
 (** {6:exc Xml Exceptions} *)
 
 (** Several exceptions can be raised when parsing an Xml document : {ul
-	{li {!Xml.Error} is raised when an xml parsing error occurs. the
-		{!Xml.error_msg} tells you which error occured during parsing
-		and the {!Xml.error_pos} can be used to retreive the document
-		location where the error occured at.}
-	{li {!Xml.File_not_found} is raised when and error occured while
-		opening a file with the {!Xml.parse_file} function or when a
-		DTD file declared by the Xml document is not found {i (see the
-		{!XmlParser} module for more information on how to handle the
-		DTD file loading)}.}
-	}
-	If the Xml document is containing a DTD, then some other exceptions
-	can be raised, see the module {!Dtd} for more information.
+        {li {!Xml.Error} is raised when an xml parsing error occurs. the
+                {!Xml.error_msg} tells you which error occured during parsing
+                and the {!Xml.error_pos} can be used to retreive the document
+                location where the error occured at.}
+        {li {!Xml.File_not_found} is raised when and error occured while
+                opening a file with the {!Xml.parse_file} function or when a
+                DTD file declared by the Xml document is not found {i (see the
+                {!XmlParser} module for more information on how to handle the
+                DTD file loading)}.}
+        }
+        If the Xml document is containing a DTD, then some other exceptions
+        can be raised, see the module {!Dtd} for more information.
  *)
 
 exception Error of error

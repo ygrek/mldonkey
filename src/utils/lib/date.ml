@@ -146,8 +146,8 @@ let time_to_string time print_format =
     else Printf.sprintf " %d:%02d " minutes seconds
 
   | "verbose" ->
-	Printf.sprintf "%s%s%dm %ds"
-	  (if days > 0 then (string_of_int days) ^ "d " else "")
-	  (if hours > 0 then (string_of_int hours) ^ "h " else "")
-	  minutes seconds
+        Printf.sprintf "%s%s%dm %ds"
+          (if days > 0 then (string_of_int days) ^ "d " else "")
+          (if hours > 0 then (string_of_int hours) ^ "h " else "")
+          minutes seconds
   | _ -> ""

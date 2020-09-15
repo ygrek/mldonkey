@@ -158,35 +158,35 @@ let toolbar_style_values = [ "`ICONS", `ICONS; "`TEXT", `TEXT; "`BOTH", `BOTH ]
 let toolbar_space_values = [ "`EMPTY", `EMPTY; "`LINE", `LINE ]
 let button_relief_values = [ "`NORMAL", `NORMAL; "`HALF", `HALF; "`NONE", `NONE ]
 let button_box_style_values = [ "`DEFAULT_STYLE", `DEFAULT_STYLE; 
-				"`SPREAD", `SPREAD; "`EDGE", `EDGE;
-				"`START", `START; (*"`END", `END*) ]
+                                "`SPREAD", `SPREAD; "`EDGE", `EDGE;
+                                "`START", `START; (*"`END", `END*) ]
 let shadow_type_values = [ "`NONE", `NONE; (*"`IN", `IN;*) "`OUT", `OUT;
-			   "`ETCHED_IN", `ETCHED_IN; "`ETCHED_OUT", `ETCHED_OUT ]
+                           "`ETCHED_IN", `ETCHED_IN; "`ETCHED_OUT", `ETCHED_OUT ]
 let policy_type_values = [ "`AUTOMATIC", `AUTOMATIC ; "`ALWAYS", `ALWAYS ]
 let position_values = [ "`LEFT", `LEFT; "`RIGHT", `RIGHT; "`TOP", `TOP; "`BOTTOM", `BOTTOM ]
 let update_type_values =  [ "`CONTINUOUS", `CONTINUOUS; "`DISCONTINUOUS", `DISCONTINUOUS;
-			    "`DELAYED", `DELAYED ]
+                            "`DELAYED", `DELAYED ]
 let corner_type_values = [ "`TOP_LEFT", `TOP_LEFT ; "`BOTTOM_LEFT" , `BOTTOM_LEFT ;
-			   "`TOP_RIGHT", `TOP_RIGHT ; "`BOTTOM_RIGHT", `BOTTOM_RIGHT ]
+                           "`TOP_RIGHT", `TOP_RIGHT ; "`BOTTOM_RIGHT", `BOTTOM_RIGHT ]
 
 let selection_mode_values = [ "`SINGLE", `SINGLE ; "`BROWSE", `BROWSE ;
-			      "`MULTIPLE", `MULTIPLE ; "`EXTENDED", `EXTENDED ]
+                              "`MULTIPLE", `MULTIPLE ; "`EXTENDED", `EXTENDED ]
 
 let justification_values = [ "`LEFT", `LEFT ; "`RIGHT", `RIGHT ;
-			     "`CENTER", `CENTER ; "`FILL", `FILL ]
+                             "`CENTER", `CENTER ; "`FILL", `FILL ]
 
 let view_mode_values = [ "`LINE", `LINE ; "`ITEM", `ITEM ]
 let use_arrows_values = [ "`DEFAULT", `DEFAULT ; "`NEVER",`NEVER ; "`ALWAYS" ,`ALWAYS]
 let sb_update_type_values = [ "`IF_VALID", `IF_VALID ; "`ALWAYS", `ALWAYS ]
 let modifier_values = [ "`SHIFT", `SHIFT ; "`LOCK", `LOCK ;
-			"`CONTROL", `CONTROL ;"`MOD1", `MOD1 ;
-			"`MOD2", `MOD2 ; "`MOD3", `MOD3 ; "`MOD4", `MOD4 ;
-			"`MOD5", `MOD5 ; "`BUTTON1", `BUTTON1 ; "`BUTTON2" ,`BUTTON2 ;
-			"`BUTTON3", `BUTTON3 ; "`BUTTON4", `BUTTON4 ; "`BUTTON5", `BUTTON5 ]
+                        "`CONTROL", `CONTROL ;"`MOD1", `MOD1 ;
+                        "`MOD2", `MOD2 ; "`MOD3", `MOD3 ; "`MOD4", `MOD4 ;
+                        "`MOD5", `MOD5 ; "`BUTTON1", `BUTTON1 ; "`BUTTON2" ,`BUTTON2 ;
+                        "`BUTTON3", `BUTTON3 ; "`BUTTON4", `BUTTON4 ; "`BUTTON5", `BUTTON5 ]
 let accel_flag_values = [ "`VISIBLE", `VISIBLE ; "`SIGNAL_VISIBLE", `SIGNAL_VISIBLE ;
-			  "`LOCKED", `LOCKED ]
+                          "`LOCKED", `LOCKED ]
 let arrow_type_values = ["`UP", `UP; "`DOWN", `DOWN ; 
-			  "`LEFT", `LEFT ; "`RIGHT", `RIGHT ]
+                          "`LEFT", `LEFT ; "`RIGHT", `RIGHT ]
 let calendar_options_values = 
   [
     "[`SHOW_HEADING;`SHOW_DAY_NAMES;`NO_MONTH_CHANGE;`SHOW_WEEK_NUMBERS;`WEEK_START_MONDAY]",
@@ -470,8 +470,8 @@ let class_names_and_strings_complete =
 let menu_classes_names_and_strings = List.filter
     (fun (c,_,_,_) -> 
       List.mem c  
-	[ Menu_item ; Tearoff_menu_item ; Menu_separator ;
-	  Check_menu_item ; Radio_menu_item ; Menu])
+        [ Menu_item ; Tearoff_menu_item ; Menu_separator ;
+          Check_menu_item ; Radio_menu_item ; Menu])
     class_names_and_strings
 
 (** Get information on a class kind. *)
@@ -560,7 +560,7 @@ let pack_method_of_ele parent ele =
   | Vbox, _
   | Vbutton_box, _
   | Hbutton_box, _ -> Pack
-	  
+          
   | Menu_item, _ -> Set_submenu
   | Tearoff_menu_item, _
   | Check_menu_item, _

@@ -631,7 +631,7 @@ let get_file proto s pos =
     file_state = state;
     file_chunks = 
       if chunks <> "" then 
-	Some (VerificationBitmap.of_string chunks)
+        Some (VerificationBitmap.of_string chunks)
       else None;
     file_chunk_size = None;
     file_availability = availability;

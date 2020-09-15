@@ -38,7 +38,7 @@ module ClientOption = struct
           let client_hostname = get_value "client_hostname" value_to_string in
           let client_port = get_value "client_port" value_to_int in
           let client_referer = try
-	      get_value "client_referer" value_to_string with _ -> "" in
+              get_value "client_referer" value_to_string with _ -> "" in
           let client_proto = try
               get_value "client_proto" value_to_string with _ -> "http" in
           let proto = find_proto client_proto in

@@ -30,100 +30,100 @@ exception No_attribute of string
 let default_parser = XmlParser.make()
 
 let pos source =
-	let line, lstart, min, max = Xml_lexer.pos source in
-	{
-		eline = line;
-		eline_start = lstart;
-		emin = min;
-		emax = max;
-	}
+        let line, lstart, min, max = Xml_lexer.pos source in
+        {
+                eline = line;
+                eline_start = lstart;
+                emin = min;
+                emax = max;
+        }
 
 let parse (p:XmlParser.t) (source:XmlParser.source) =
-	(* local cast Xml.xml -> xml *)
-	(Obj.magic XmlParser.parse p source : xml)
+        (* local cast Xml.xml -> xml *)
+        (Obj.magic XmlParser.parse p source : xml)
 
 let parse_in ch = parse default_parser (XmlParser.SChannel ch)
 let parse_string str = parse default_parser (XmlParser.SString str)
 
 let parse_file f =
-	let p = XmlParser.make() in
-	let path = Filename.dirname f in
-	XmlParser.resolve p (fun file -> 
-		let name = (match path with "." -> file | _ -> path ^ "/" ^ file) in
-		Xml_dtd.check (Xml_dtd.parse_file name)
-	);
-	parse p (XmlParser.SFile f)
+        let p = XmlParser.make() in
+        let path = Filename.dirname f in
+        XmlParser.resolve p (fun file -> 
+                let name = (match path with "." -> file | _ -> path ^ "/" ^ file) in
+                Xml_dtd.check (Xml_dtd.parse_file name)
+        );
+        parse p (XmlParser.SFile f)
 
 let error_msg = function
-	| UnterminatedComment -> "Unterminated comment"
-	| UnterminatedString -> "Unterminated string"
-	| UnterminatedEntity -> "Unterminated entity"
-	| IdentExpected -> "Ident expected"
-	| CloseExpected -> "Element close expected"
-	| NodeExpected -> "Xml node expected"
-	| AttributeNameExpected -> "Attribute name expected"
-	| AttributeValueExpected -> "Attribute value expected"
-	| EndOfTagExpected tag -> sprintf "End of tag expected : '%s'" tag
-	| EOFExpected -> "End of file expected"
+        | UnterminatedComment -> "Unterminated comment"
+        | UnterminatedString -> "Unterminated string"
+        | UnterminatedEntity -> "Unterminated entity"
+        | IdentExpected -> "Ident expected"
+        | CloseExpected -> "Element close expected"
+        | NodeExpected -> "Xml node expected"
+        | AttributeNameExpected -> "Attribute name expected"
+        | AttributeValueExpected -> "Attribute value expected"
+        | EndOfTagExpected tag -> sprintf "End of tag expected : '%s'" tag
+        | EOFExpected -> "End of file expected"
 
 let error (msg,pos) =
-	if pos.emin = pos.emax then
-		sprintf "%s line %d character %d" (error_msg msg) pos.eline (pos.emin - pos.eline_start)
-	else
-		sprintf "%s line %d characters %d-%d" (error_msg msg) pos.eline (pos.emin - pos.eline_start) (pos.emax - pos.eline_start)
-	
+        if pos.emin = pos.emax then
+                sprintf "%s line %d character %d" (error_msg msg) pos.eline (pos.emin - pos.eline_start)
+        else
+                sprintf "%s line %d characters %d-%d" (error_msg msg) pos.eline (pos.emin - pos.eline_start) (pos.emax - pos.eline_start)
+        
 let line e = e.eline
 
 let range e = 
-	e.emin - e.eline_start , e.emax - e.eline_start
+        e.emin - e.eline_start , e.emax - e.eline_start
 
 let abs_range e =
-	e.emin , e.emax
+        e.emin , e.emax
 
 let tag = function
-	| Element (tag,_,_) -> tag
-	| x -> raise (Not_element x)
+        | Element (tag,_,_) -> tag
+        | x -> raise (Not_element x)
 
 let pcdata = function 
-	| PCData text -> text
-	| x -> raise (Not_pcdata x)
+        | PCData text -> text
+        | x -> raise (Not_pcdata x)
 
 let attribs = function 
-	| Element (_,attr,_) -> attr
-	| x -> raise (Not_element x)
+        | Element (_,attr,_) -> attr
+        | x -> raise (Not_element x)
 
 let attrib x att =
-	match x with
-	| Element (_,attr,_) ->
-		(try
-			let att = String.lowercase att in
-			snd (List.find (fun (n,_) -> String.lowercase n = att) attr)
-		with
-			Not_found ->
-				raise (No_attribute att))
-	| x ->
-		raise (Not_element x)
+        match x with
+        | Element (_,attr,_) ->
+                (try
+                        let att = String.lowercase att in
+                        snd (List.find (fun (n,_) -> String.lowercase n = att) attr)
+                with
+                        Not_found ->
+                                raise (No_attribute att))
+        | x ->
+                raise (Not_element x)
 
 let children = function
-	| Element (_,_,clist) -> clist
-	| x -> raise (Not_element x)
+        | Element (_,_,clist) -> clist
+        | x -> raise (Not_element x)
 
 (*let enum = function
-	| Element (_,_,clist) -> List.to_enum clist
-	| x -> raise (Not_element x)
+        | Element (_,_,clist) -> List.to_enum clist
+        | x -> raise (Not_element x)
 *)
 
 let iter f = function
-	| Element (_,_,clist) -> List.iter f clist
-	| x -> raise (Not_element x)
+        | Element (_,_,clist) -> List.iter f clist
+        | x -> raise (Not_element x)
 
 let map f = function
-	| Element (_,_,clist) -> List.map f clist
-	| x -> raise (Not_element x)
+        | Element (_,_,clist) -> List.map f clist
+        | x -> raise (Not_element x)
 
 let fold f v = function
-	| Element (_,_,clist) -> List.fold_left f v clist
-	| x -> raise (Not_element x)
+        | Element (_,_,clist) -> List.fold_left f v clist
+        | x -> raise (Not_element x)
 
 let buffer_escape b text =
   let l = String.length text in
@@ -149,42 +149,42 @@ let tmp = Buffer.create 200
 let buffer_pcdata = buffer_escape tmp
 
 let buffer_attr (n,v) =
-	Buffer.add_char tmp ' ';
-	Buffer.add_string tmp n;
-	Buffer.add_string tmp "=\"";
-	buffer_pcdata v;
-	Buffer.add_char tmp '"'
+        Buffer.add_char tmp ' ';
+        Buffer.add_string tmp n;
+        Buffer.add_string tmp "=\"";
+        buffer_pcdata v;
+        Buffer.add_char tmp '"'
 
 let to_string x = 
-	let pcdata = ref false in
-	let rec loop = function
-		| Element (tag,alist,[]) ->
-			Buffer.add_char tmp '<';
-			Buffer.add_string tmp tag;
-			List.iter buffer_attr alist;
-			Buffer.add_string tmp "/>";
-			pcdata := false;
-		| Element (tag,alist,l) ->
-			Buffer.add_char tmp '<';
-			Buffer.add_string tmp tag;
-			List.iter buffer_attr alist;
-			Buffer.add_char tmp '>';
-			pcdata := false;
-			List.iter loop l;
-			Buffer.add_string tmp "</";
-			Buffer.add_string tmp tag;
-			Buffer.add_char tmp '>';
-			pcdata := false;
-		| PCData text ->
-			if !pcdata then Buffer.add_char tmp ' ';
-			buffer_pcdata text;
-			pcdata := true;
-	in
-	Buffer.reset tmp;
-	loop x;
-	let s = Buffer.contents tmp in
-	Buffer.reset tmp;
-	s
+        let pcdata = ref false in
+        let rec loop = function
+                | Element (tag,alist,[]) ->
+                        Buffer.add_char tmp '<';
+                        Buffer.add_string tmp tag;
+                        List.iter buffer_attr alist;
+                        Buffer.add_string tmp "/>";
+                        pcdata := false;
+                | Element (tag,alist,l) ->
+                        Buffer.add_char tmp '<';
+                        Buffer.add_string tmp tag;
+                        List.iter buffer_attr alist;
+                        Buffer.add_char tmp '>';
+                        pcdata := false;
+                        List.iter loop l;
+                        Buffer.add_string tmp "</";
+                        Buffer.add_string tmp tag;
+                        Buffer.add_char tmp '>';
+                        pcdata := false;
+                | PCData text ->
+                        if !pcdata then Buffer.add_char tmp ' ';
+                        buffer_pcdata text;
+                        pcdata := true;
+        in
+        Buffer.reset tmp;
+        loop x;
+        let s = Buffer.contents tmp in
+        Buffer.reset tmp;
+        s
 
   let to_string_fmt x =
   let rec loop ?(newl=false) tab = function

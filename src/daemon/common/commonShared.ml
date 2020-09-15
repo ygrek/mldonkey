@@ -196,7 +196,7 @@ let shared_dir = function
       let impl = as_shared_impl sh in
       Filename.dirname impl.impl_shared_codedname
     with _ -> ""
-		    
+                    
 let shared_prio impl =
   try
     List.assoc (shared_dir impl) !dirnames_prio
@@ -274,24 +274,24 @@ let shared_scan_directory shared_dir local_dir =
             let local_name = Filename.concat local_dir file in
             try
               if Unix2.is_directory full_name then begin
-	        if strategy.sharing_recursive then
-	          if Autoconf.system <> "mingw" then
-	          begin
-		    let inode = ((Unix.stat full_name).Unix.st_ino) in
-		      if inode = incoming_files_inode then
+                if strategy.sharing_recursive then
+                  if Autoconf.system <> "mingw" then
+                  begin
+                    let inode = ((Unix.stat full_name).Unix.st_ino) in
+                      if inode = incoming_files_inode then
             if !verbose_share then lprintf_nl "avoid sharing incoming_files %s" full_dir else ()
-		      else
-		        if inode = incoming_directories_inode then
+                      else
+                        if inode = incoming_directories_inode then
         if !verbose_share then lprintf_nl "avoid sharing incoming_directories %s" full_dir else ()
-			else
-			  if inode = temp_directory_inode then
+                        else
+                          if inode = temp_directory_inode then
           if !verbose_share then lprintf_nl "avoid sharing temp %s" full_dir else ()
-			  else
-			    shared_add_directory shared_dir local_name
+                          else
+                            shared_add_directory shared_dir local_name
                   end
                   else
                     shared_add_directory shared_dir local_name
-		end
+                end
               else
               try
                 let size = Unix32.getsize full_name in

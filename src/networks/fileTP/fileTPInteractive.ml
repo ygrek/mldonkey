@@ -84,11 +84,11 @@ let _ =
         P.file_active_sources = (List.length file.file_clients);
         P.file_chunks = (match file.file_swarmer with
         | None -> None 
-	| Some swarmer ->
+        | Some swarmer ->
             Some (CommonSwarming.chunks_verified_bitmap swarmer));
         P.file_chunk_size = (match file.file_swarmer with
         | None -> None 
-	| Some t ->
+        | Some t ->
             Some (List.map (fun t -> t.CommonSwarming.t_chunk_size) t.CommonSwarming.t_s.CommonSwarming.s_networks));
         P.file_availability =
         [network.network_num,(match file.file_swarmer with
@@ -146,11 +146,11 @@ let _ =
         let buf = o.conn_buf in
         let cc = as_client c in
         let cinfo = client_info cc in
-	let client_ip, client_port =
-	  match cinfo.GuiTypes.client_kind with
-	    Indirect_location (_, _, ip, port)
-	  | Known_location (ip, port) -> ip, port
-	in
+        let client_ip, client_port =
+          match cinfo.GuiTypes.client_kind with
+            Indirect_location (_, _, ip, port)
+          | Known_location (ip, port) -> ip, port
+        in
         let ccode,cname =
           Geoip.get_country_code_name cinfo.GuiTypes.client_country_code
         in
@@ -326,8 +326,8 @@ let commands = [
             else
               Printf.bprintf buf "Not enough parameters";
             _s ""
-	| e ->
-	    let error = Printexc2.to_string e in
+        | e ->
+            let error = Printexc2.to_string e in
             let buf = o.conn_buf in
             if o.conn_output = HTML then
               html_mods_table_one_row buf "serversTable" "servers" [

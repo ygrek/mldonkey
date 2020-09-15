@@ -35,7 +35,7 @@ type 'a ptree =
 class virtual ['a] plist : 
     Gtk.Tags.selection_mode ->
       string list ->
-	bool ->
+        bool ->
     ('a -> int) ->
   object
     val mutable selection : 'a list
@@ -76,7 +76,7 @@ class virtual ['a] plist :
 class virtual ['a] filtered_plist : 
     Gtk.Tags.selection_mode ->
       string list ->
-	bool ->
+        bool ->
     ('a -> int) ->
   object
     val mutable selection : 'a list

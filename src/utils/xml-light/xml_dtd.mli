@@ -21,34 +21,34 @@ open Xml_types
 
 (** Xml Light DTD
 
-	This module provide several functions to create, check, and use DTD
-	to prove Xml documents : {ul
-	{li using the DTD types, you can directly create your own DTD structure}
-	{li the {!Dtd.check} function can then be used to check that all DTD
-		states have been declared, that no attributes are declared twice,
-		and so on.}
-	{li the {!Dtd.prove} function can be used to check an {!Xml} data
-		structure with a checked DTD. The function will return the
-		expanded Xml document or raise an exception if the DTD proving
-		fails.}
-	}
+        This module provide several functions to create, check, and use DTD
+        to prove Xml documents : {ul
+        {li using the DTD types, you can directly create your own DTD structure}
+        {li the {!Dtd.check} function can then be used to check that all DTD
+                states have been declared, that no attributes are declared twice,
+                and so on.}
+        {li the {!Dtd.prove} function can be used to check an {!Xml} data
+                structure with a checked DTD. The function will return the
+                expanded Xml document or raise an exception if the DTD proving
+                fails.}
+        }
 
-	{i Note about ENTITIES:}
-	
-	While parsing Xml, PCDATA is always parsed and
-	the Xml entities &amp; &gt; &lt; &apos; &quot; are replaced by their
-	corresponding ASCII characters. For Xml attributes, theses can be
-	put between either double or simple quotes, and the backslash character
-	can be used to escape inner quotes. There is no support for CDATA Xml
-	nodes or PCDATA attributes declarations in DTD, and no support for
-	user-defined entities using the ENTITY DTD element.
+        {i Note about ENTITIES:}
+        
+        While parsing Xml, PCDATA is always parsed and
+        the Xml entities &amp; &gt; &lt; &apos; &quot; are replaced by their
+        corresponding ASCII characters. For Xml attributes, theses can be
+        put between either double or simple quotes, and the backslash character
+        can be used to escape inner quotes. There is no support for CDATA Xml
+        nodes or PCDATA attributes declarations in DTD, and no support for
+        user-defined entities using the ENTITY DTD element.
 *)
 
 (** {6 The DTD Functions} *)
 
 (** Parse the named file into a Dtd data structure. Raise
-	{!Xml_types.File_not_found} if an error occured while opening the file. 
-	Raise {!Dtd.Parse_error} if parsing failed. *)
+        {!Xml_types.File_not_found} if an error occured while opening the file. 
+        Raise {!Dtd.Parse_error} if parsing failed. *)
 val parse_file : string -> dtd
 
 (** Read the content of the in_channel and parse it into a Dtd data
@@ -81,44 +81,44 @@ val to_string : dtd_item -> string
 (** {6 The DTD Exceptions} *)
 
 (** There is three types of DTD excecptions : {ul
-	{li {!Dtd.Parse_error} is raised when an error occured while
-	parsing a DTD document into a DTD data structure.}
-	{li {!Dtd.Check_error} is raised when an error occured while
-	checking a DTD data structure for completeness, or when the
-	prove entry point is not found when calling {!Dtd.prove}.}
-	{li {!Dtd.Prove_error} is raised when an error occured while
-	proving an Xml document.}
-	}
+        {li {!Dtd.Parse_error} is raised when an error occured while
+        parsing a DTD document into a DTD data structure.}
+        {li {!Dtd.Check_error} is raised when an error occured while
+        checking a DTD data structure for completeness, or when the
+        prove entry point is not found when calling {!Dtd.prove}.}
+        {li {!Dtd.Prove_error} is raised when an error occured while
+        proving an Xml document.}
+        }
 
-	Several string conversion functions are provided to enable you
-	to report errors to the user.
+        Several string conversion functions are provided to enable you
+        to report errors to the user.
 *)
 
 type parse_error_msg =
-	| InvalidDTDDecl
-	| InvalidDTDElement
-	| InvalidDTDAttribute
-	| InvalidDTDTag
-	| DTDItemExpected
+        | InvalidDTDDecl
+        | InvalidDTDElement
+        | InvalidDTDAttribute
+        | InvalidDTDTag
+        | DTDItemExpected
 
 type check_error =
-	| ElementDefinedTwice of string
-	| AttributeDefinedTwice of string * string
-	| ElementEmptyContructor of string
-	| ElementReferenced of string * string
-	| ElementNotDeclared of string
-	| WrongImplicitValueForID of string * string
+        | ElementDefinedTwice of string
+        | AttributeDefinedTwice of string * string
+        | ElementEmptyContructor of string
+        | ElementReferenced of string * string
+        | ElementNotDeclared of string
+        | WrongImplicitValueForID of string * string
 
 type prove_error =
-	| UnexpectedPCData
-	| UnexpectedTag of string
-	| UnexpectedAttribute of string
-	| InvalidAttributeValue of string
-	| RequiredAttribute of string
-	| ChildExpected of string
-	| EmptyExpected
-	| DuplicateID of string
-	| MissingID of string
+        | UnexpectedPCData
+        | UnexpectedTag of string
+        | UnexpectedAttribute of string
+        | InvalidAttributeValue of string
+        | RequiredAttribute of string
+        | ChildExpected of string
+        | EmptyExpected
+        | DuplicateID of string
+        | MissingID of string
 
 type parse_error = parse_error_msg * Xml_types.error_pos
 

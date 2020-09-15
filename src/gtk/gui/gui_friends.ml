@@ -201,13 +201,13 @@ class box columns friend_tab =
               
     method content f =
       let strings = List.map 
-	  (fun col -> P.String (self#content_by_col f col))
-	  !!columns 
+          (fun col -> P.String (self#content_by_col f col))
+          !!columns 
       in
       let col_opt = 
-	match snd (string_color_of_client friend_tab f) with
-	  None -> Some `BLACK
-	| Some c -> Some (`NAME c)
+        match snd (string_color_of_client friend_tab f) with
+          None -> Some `BLACK
+        | Some c -> Some (`NAME c)
       in
       (strings, col_opt)
 
@@ -484,25 +484,25 @@ class box_list (client_info_box : GPack.box) friend_tab =
                       avail_label#misc#show ();
                       
                       let wx, wy = d#size in
-		      (match file.file_chunks with
-		      | None -> ()
-		      | Some chunks ->
-			  let nchunks = VB.length chunks in
-			  let dx = if wx < nchunks then 1 else min !!O.chunk_width (wx / nchunks) in
-			  let dx2 = if dx <= 2 then dx else dx - 1 in
-			  for j = 0 to nchunks - 1 do
-			    d#set_foreground
+                      (match file.file_chunks with
+                      | None -> ()
+                      | Some chunks ->
+                          let nchunks = VB.length chunks in
+                          let dx = if wx < nchunks then 1 else min !!O.chunk_width (wx / nchunks) in
+                          let dx2 = if dx <= 2 then dx else dx - 1 in
+                          for j = 0 to nchunks - 1 do
+                            d#set_foreground
                               (match avail.[j] >= '1', VB.get chunks j with
-			      | true, (VB.State_complete | VB.State_verified) ->
-				  colorDGreen
-			      | true, (VB.State_missing | VB.State_partial) ->
-				  colorGreen
-			      | false, (VB.State_complete | VB.State_verified) ->
-				  colorDRed
-			      | false, (VB.State_missing | VB.State_partial) ->
-				  colorRed);
+                              | true, (VB.State_complete | VB.State_verified) ->
+                                  colorDGreen
+                              | true, (VB.State_missing | VB.State_partial) ->
+                                  colorGreen
+                              | false, (VB.State_complete | VB.State_verified) ->
+                                  colorDRed
+                              | false, (VB.State_missing | VB.State_partial) ->
+                                  colorRed);
                             d#rectangle ~filled: true ~x:(j*dx) ~y: 0 ~width: dx2 ~height:wy ();
-			  done);
+                          done);
                       
                       false));
                 
@@ -552,35 +552,35 @@ class pane_friends () =
     method remove_dialog c_num =
       (
        try
-	 let d = List.find (fun d -> d#num = c_num) dialogs in
-	 dialogs <- List.filter (fun d -> not (d#num = c_num)) dialogs;
-	 let n = wnote_chat#page_num d#coerce in
-	 wnote_chat#remove_page n
+         let d = List.find (fun d -> d#num = c_num) dialogs in
+         dialogs <- List.filter (fun d -> not (d#num = c_num)) dialogs;
+         let n = wnote_chat#page_num d#coerce in
+         wnote_chat#remove_page n
        with
-	 Not_found ->
-	   ()
+         Not_found ->
+           ()
       );
 
     (** Find the window and dialog with the given client. If
        it was not found, create it and add it to the list of dialogs.*)
     method get_dialog client =
       try
-	let d = List.find 
-	    (fun d -> d#num = client.client_num)
-	    dialogs 
-	in
-	d#wt_input#misc#grab_focus ();
-	d
+        let d = List.find 
+            (fun d -> d#num = client.client_num)
+            dialogs 
+        in
+        d#wt_input#misc#grab_focus ();
+        d
       with
-	Not_found ->
-	  let dialog = new dialog client in
-	  let wl = GMisc.label ~text: client.client_name () in
-	  wnote_chat#append_page ~tab_label: wl#coerce dialog#coerce;
-	  ignore (dialog#box#connect#destroy
-		    (fun () -> dialogs <- List.filter (fun d -> not (d#num = client.client_num)) dialogs));
-	  dialogs <- dialog :: dialogs;
-	  dialog#wt_input#misc#grab_focus ();
-	  dialog      
+        Not_found ->
+          let dialog = new dialog client in
+          let wl = GMisc.label ~text: client.client_name () in
+          wnote_chat#append_page ~tab_label: wl#coerce dialog#coerce;
+          ignore (dialog#box#connect#destroy
+                    (fun () -> dialogs <- List.filter (fun d -> not (d#num = client.client_num)) dialogs));
+          dialogs <- dialog :: dialogs;
+          dialog#wt_input#misc#grab_focus ();
+          dialog      
 
     inherit Gui_friends_base.paned ()
 

@@ -351,7 +351,7 @@ let disconnect_all_servers () =
   try
     server_iter (fun s ->
      (match (as_server_impl s).impl_server_state with
-	NotConnected _ -> ()
+        NotConnected _ -> ()
       | _ -> server_disconnect s; server_must_update s))
   with
     Not_found -> ()
@@ -429,9 +429,9 @@ let server_print s o =
     if !!html_mods_use_js_tooltips then
        Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s %s<br>%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
         info.G.server_name ip_port_string 
-	(match info.G.server_features with
-	| None -> ""
-	| Some f -> "server features: " ^ f)
+        (match info.G.server_features with
+        | None -> ""
+        | Some f -> "server features: " ^ f)
        !!html_mods_js_tooltips_wait
        !!html_mods_js_tooltips_timeout
        !!html_mods_js_tooltips_wait
@@ -532,7 +532,7 @@ let server_print s o =
       Printf.bprintf buf
 "\\<TD class=\\\"sr br\\\" title=\\\"Show published files\\\"
 onClick=\\\"location.href='submit?q=server_shares+%d'\\\"\\>%d\\</TD\\>"
-	snum info.G.server_published_files;
+        snum info.G.server_published_files;
 
     html_mods_td buf ([
       ("", "sr ar", if info.G.server_soft_limit = Int64.zero then "" else Printf.sprintf "%Ld" info.G.server_soft_limit);
@@ -558,7 +558,7 @@ onClick=\\\"location.href='submit?q=server_shares+%d'\\\"\\>%d\\</TD\\>"
             then "(" ^ (string_of_int info.G.server_realport) ^ ")" 
             else ""))
           (info.G.server_name)
-	  (if Geoip.active () then Printf.sprintf "%33s/%-2s%9s" cn cc "" else "")
+          (if Geoip.active () then Printf.sprintf "%33s/%-2s%9s" cn cc "" else "")
           (info.G.server_nusers)
           (info.G.server_nfiles)
           (if server_blocked s 

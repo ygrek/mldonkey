@@ -141,7 +141,7 @@ let file_committed_name incoming_dir file =
     if Sys.file_exists (Filename.concat incoming_dir new_name) then
       let rec iter num =
         let new_name =
-	  Filename2.filesystem_compliant
+          Filename2.filesystem_compliant
             (Printf.sprintf "%s_%d" new_name num) fs namemax in
           if Sys.file_exists (Filename.concat incoming_dir new_name) then
             iter (num+1)
@@ -187,23 +187,23 @@ let script_for_file file incoming new_name =
       filename (* $3 *)
     |]
      ~vars:([("TEMPNAME",  temp_name);
-	    ("FILEID",    file_id);
-	    ("FILESIZE",  size);
-	    ("FILENAME",  filename);
-	    ("FILEHASH",  string_of_uids info.G.file_uids);
-	    ("DURATION",  duration);
-	    ("DLFILES",   string_of_int (List.length !!files)); 
-	    ("INCOMING",  incoming);
-	    ("NETWORK",   network.network_name);
-	    ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4));
-	    ("FILE_OWNER",(file_owner file).user_name);
-	    ("FILE_GROUP",user2_print_group (file_group file));
-	    ("USER_MAIL", ( if (file_owner file).user_mail <> "" then
+            ("FILEID",    file_id);
+            ("FILESIZE",  size);
+            ("FILENAME",  filename);
+            ("FILEHASH",  string_of_uids info.G.file_uids);
+            ("DURATION",  duration);
+            ("DLFILES",   string_of_int (List.length !!files)); 
+            ("INCOMING",  incoming);
+            ("NETWORK",   network.network_name);
+            ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4));
+            ("FILE_OWNER",(file_owner file).user_name);
+            ("FILE_GROUP",user2_print_group (file_group file));
+            ("USER_MAIL", ( if (file_owner file).user_mail <> "" then
                               (file_owner file).user_mail
                             else
                               match String2.tokens !!mail with [] -> "" | x::_ -> x));
-	    ("FILE_GROUP_CNT", string_of_int (fst (file_group_info)));
-	    ]
+            ("FILE_GROUP_CNT", string_of_int (fst (file_group_info)));
+            ]
             @ snd (file_group_info))
 
   with e -> 
@@ -227,10 +227,10 @@ let file_commit file =
     let subfiles = file_files file in
     match subfiles with
       primary :: secondary_files ->
-	if primary == file then
+        if primary == file then
        (try
-	  let file_name = file_disk_name file in
-	  let incoming =
+          let file_name = file_disk_name file in
+          let incoming =
             incoming_dir
             (Unix2.is_directory file_name)
             ~needed_space:(file_size file)
@@ -238,17 +238,17 @@ let file_commit file =
             ()
           in
 
-	  let new_name = file_committed_name incoming.shdir_dirname file in
-	    if Unix2.is_directory file_name then begin
-	      Unix2.safe_mkdir new_name;
-	      Unix2.chmod new_name !Unix32.create_dir_mode;
-	    end;
+          let new_name = file_committed_name incoming.shdir_dirname file in
+            if Unix2.is_directory file_name then begin
+              Unix2.safe_mkdir new_name;
+              Unix2.chmod new_name !Unix32.create_dir_mode;
+            end;
 
 (*          the next line really moves the file *)
             set_file_disk_name file new_name;
 
             if !!file_completed_cmd <> "" then
-	      script_for_file file incoming.shdir_dirname new_name;
+              script_for_file file incoming.shdir_dirname new_name;
 
             let best_name = file_best_name file in
             Unix32.destroy (file_fd file);
@@ -286,11 +286,11 @@ let file_commit file =
                 with e ->
                     lprintf_nl "Exception %s in file_commit secondaries" (Printexc2.to_string e);
             ) secondary_files
-	with
-	  Incoming_full ->
-	    send_dirfull_warning "" true
-	      (Printf.sprintf "all incoming dirs are full, can not commit %s" (file_best_name file))
-	| e -> lprintf_nl "Exception in file_commit: %s" (Printexc2.to_string e))
+        with
+          Incoming_full ->
+            send_dirfull_warning "" true
+              (Printf.sprintf "all incoming dirs are full, can not commit %s" (file_best_name file))
+        | e -> lprintf_nl "Exception in file_commit: %s" (Printexc2.to_string e))
     | _ -> assert false
 
 let file_cancel file user =
@@ -310,14 +310,14 @@ let file_cancel file user =
               lprintf_nl "Exception %s in file_cancel" (Printexc2.to_string e);
       ) subfiles;
       try
-	let fd = file_fd file in
-	(try
+        let fd = file_fd file in
+        (try
            Unix32.remove fd
          with e ->
            lprintf_nl "Sys.remove %s exception %s"
              (file_disk_name file)
              (Printexc2.to_string e));
-	Unix32.destroy fd
+        Unix32.destroy fd
       with Not_found -> ()
   with e ->
       lprintf_nl "Exception in file_cancel: %s" (Printexc2.to_string e)
@@ -512,8 +512,8 @@ let clean_exit n =
       add_timer 1. (fun _ ->
         let can_exit = networks_for_all network_clean_exit in
         if can_exit || retry_counter > !!shutdown_timeout then
-	  exit_properly n
-	else retry_later (retry_counter + 1)) in
+          exit_properly n
+        else retry_later (retry_counter + 1)) in
     retry_later 0;
 
   if (upnp_port_forwarding ()) then
@@ -571,21 +571,21 @@ let start_download file =
         string_of_int (CommonFile.file_num file);
       |]
      ~vars:([("TEMPNAME",  temp_name);
-	    ("FILEID",    file_id);
-	    ("FILESIZE",  size);
-	    ("FILENAME",  filename);
-	    ("FILEHASH",  string_of_uids info.G.file_uids);
-	    ("DLFILES",   string_of_int (List.length !!files)); 
-	    ("NETWORK",   network.network_name);
-	    ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4));
-	    ("FILE_OWNER",(file_owner file).user_name);
-	    ("FILE_GROUP",user2_print_group (file_group file));
-	    ("USER_MAIL", ( if (file_owner file).user_mail <> "" then
+            ("FILEID",    file_id);
+            ("FILESIZE",  size);
+            ("FILENAME",  filename);
+            ("FILEHASH",  string_of_uids info.G.file_uids);
+            ("DLFILES",   string_of_int (List.length !!files)); 
+            ("NETWORK",   network.network_name);
+            ("ED2K_HASH", (file_print_ed2k_link filename (file_size file) info.G.file_md4));
+            ("FILE_OWNER",(file_owner file).user_name);
+            ("FILE_GROUP",user2_print_group (file_group file));
+            ("USER_MAIL", ( if (file_owner file).user_mail <> "" then
                               (file_owner file).user_mail
                             else
                               match String2.tokens !!mail with [] -> "" | x::_ -> x));
-	    ("FILE_GROUP_CNT", string_of_int (fst (file_group_info)));
-	    ]
+            ("FILE_GROUP_CNT", string_of_int (fst (file_group_info)));
+            ]
             @ snd (file_group_info))
     end
 
@@ -1037,7 +1037,7 @@ let force_download_quotas () =
   let queue_files files =
     List.iter (fun file ->
       if file_state file = FileDownloading then
-	file_queue file
+        file_queue file
     ) files in
 
   let queue_user_file_list (_user, user_file_list) =
@@ -1051,49 +1051,49 @@ let force_download_quotas () =
     let files_by_user = List.fold_left (fun acc f ->
       let owner = CommonFile.file_owner f in
       try
-	let owner_file_list = List.assoc owner acc in
-	(owner, { owner_file_list with 
-	  file_list = f :: owner_file_list.file_list }) :: 
-	  List.remove_assoc owner acc
+        let owner_file_list = List.assoc owner acc in
+        (owner, { owner_file_list with 
+          file_list = f :: owner_file_list.file_list }) :: 
+          List.remove_assoc owner acc
       with Not_found ->
-	(owner, { 
-	  downloads_allowed = 
-	    (match owner.user_max_concurrent_downloads with
-	    | 0 -> None
-	    | i -> Some i);
-	  file_list = [f] }) :: acc
+        (owner, { 
+          downloads_allowed = 
+            (match owner.user_max_concurrent_downloads with
+            | 0 -> None
+            | i -> Some i);
+          file_list = [f] }) :: acc
     ) [] !!CommonComplexOptions.files in
 
     (* sort each user's list separately *)
     let files_by_user = List.map (fun (owner, owner_file_list) ->
       owner, { owner_file_list with
-	file_list = List.sort (fun f1 f2 ->
-	  let v = compare (file_priority f2) (file_priority f1) in
-	  if v <> 0 then v else
-	    (* [egs] do not start downloading a small file 
-	       against an already active download *)
-	    let d1 = file_downloaded f1 in
-	    let d2 = file_downloaded f2 in
-	    let active1 = d1 > 0L in
-	    let active2 = d2 > 0L in
-	    if not active1 && active2 then 1
-	    else if active1 && not active2 then -1
+        file_list = List.sort (fun f1 f2 ->
+          let v = compare (file_priority f2) (file_priority f1) in
+          if v <> 0 then v else
+            (* [egs] do not start downloading a small file 
+               against an already active download *)
+            let d1 = file_downloaded f1 in
+            let d2 = file_downloaded f2 in
+            let active1 = d1 > 0L in
+            let active2 = d2 > 0L in
+            if not active1 && active2 then 1
+            else if active1 && not active2 then -1
             else 
               (* Try to download in priority files with fewer bytes missing
-		 Rationale: once completed, it may allow to recover some disk space *)
+                 Rationale: once completed, it may allow to recover some disk space *)
               let remaining1 = file_size f1 -- d1 in
               let remaining2 = file_size f2 -- d2 in
-	      compare remaining1 remaining2
-	) owner_file_list.file_list }
+              compare remaining1 remaining2
+        ) owner_file_list.file_list }
     ) files_by_user in
 
     (* sort the assoc list itself with user with highest quota first *)
     let files_by_user = 
       List.sort (fun (_owner1, { downloads_allowed = allowed1; file_list = _ }) 
-		     (_owner2, { downloads_allowed = allowed2; file_list = _ }) ->
+                     (_owner2, { downloads_allowed = allowed2; file_list = _ }) ->
         match allowed1, allowed2 with
-	| None, None -> 0
-	| None, _ -> -1
+        | None, None -> 0
+        | None, _ -> -1
         | _, None -> 1
         | Some allowed1, Some allowed2 -> compare allowed2 allowed1
       ) files_by_user in
@@ -1101,44 +1101,44 @@ let force_download_quotas () =
     (* serve users round-robin, starting with the one with highest quota *)
     let rec iter downloads_left to_serve served =
       if downloads_left = 0 then begin
-	List.iter queue_user_file_list to_serve;
-	List.iter queue_user_file_list served
+        List.iter queue_user_file_list to_serve;
+        List.iter queue_user_file_list served
       end else
-	match to_serve with
-	| [] ->
-	    if served = [] then () (* nothing left to rotate *)
-	    else (* new round *)
-	      iter downloads_left served []
-	| (_owner, { file_list = []; downloads_allowed = _ }) :: others ->
-	    (* user satisfied, remove from lists *)
-	    iter downloads_left others served
-	| ((_owner, { downloads_allowed = Some 0; file_list = _ }) as first) :: others ->
-	    (* reached quota, remove from future rounds *)
-	    queue_user_file_list first;
-	    iter downloads_left others served
-	| (owner, { file_list = first_file :: other_files; 
-	            downloads_allowed = allowed }) :: others ->
-	    let is_downloading =
-	      match file_state first_file with
-	      | FileDownloading -> true
-	      | FileQueued ->
-		  file_resume first_file (admin_user ());
-		  true
-	      | _ -> false in
-	    if is_downloading then
-	      iter (downloads_left - 1) others 
-		((owner, { 
-		  file_list = other_files;
-		  downloads_allowed = match allowed with
-		    | None -> None
-		    | Some i -> Some (i - 1)
-		}) :: served)
-	    else 
-	      iter downloads_left others
-		((owner, {
-		  file_list = other_files;
-		  downloads_allowed = allowed
-		}) :: served) in
+        match to_serve with
+        | [] ->
+            if served = [] then () (* nothing left to rotate *)
+            else (* new round *)
+              iter downloads_left served []
+        | (_owner, { file_list = []; downloads_allowed = _ }) :: others ->
+            (* user satisfied, remove from lists *)
+            iter downloads_left others served
+        | ((_owner, { downloads_allowed = Some 0; file_list = _ }) as first) :: others ->
+            (* reached quota, remove from future rounds *)
+            queue_user_file_list first;
+            iter downloads_left others served
+        | (owner, { file_list = first_file :: other_files; 
+                    downloads_allowed = allowed }) :: others ->
+            let is_downloading =
+              match file_state first_file with
+              | FileDownloading -> true
+              | FileQueued ->
+                  file_resume first_file (admin_user ());
+                  true
+              | _ -> false in
+            if is_downloading then
+              iter (downloads_left - 1) others 
+                ((owner, { 
+                  file_list = other_files;
+                  downloads_allowed = match allowed with
+                    | None -> None
+                    | Some i -> Some (i - 1)
+                }) :: served)
+            else 
+              iter downloads_left others
+                ((owner, {
+                  file_list = other_files;
+                  downloads_allowed = allowed
+                }) :: served) in
     iter !!max_concurrent_downloads files_by_user []
 
 let _ =

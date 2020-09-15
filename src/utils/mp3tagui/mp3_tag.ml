@@ -28,13 +28,13 @@ module Id3v1 =
   struct
 
     type tag = { 
-	mutable title: string; 
-	mutable artist: string; 
-	mutable album: string;
-	mutable year:string; 
-	mutable comment: string; 
-	mutable tracknum: int; 
-	mutable genre: int 
+        mutable title: string; 
+        mutable artist: string; 
+        mutable album: string;
+        mutable year:string; 
+        mutable comment: string; 
+        mutable tracknum: int; 
+        mutable genre: int 
       }
 
     (** Check if the given file has a id3 v1.1 tag.
@@ -44,12 +44,12 @@ module Id3v1 =
       let ic = open_in_bin filename in
       let len = in_channel_length ic in
       let res =
-	if len < 128 then false else begin
+        if len < 128 then false else begin
           seek_in ic (len - 128);
           let buffer = String.create 3 in
           really_input ic buffer 0 3;
           buffer = "TAG"
-	end in
+        end in
       close_in ic;
       res
 
@@ -79,11 +79,11 @@ let read_channel ic =
     let read_tag filename =
       let ic = open_in_bin filename in
       try
-	let res = read_channel ic in
-	close_in ic; res
+        let res = read_channel ic in
+        close_in ic; res
       with x ->
-	close_in ic; raise x
-	  
+        close_in ic; raise x
+          
     (** Write the given tag info into the given file. 
        @raise Sys_error if an error occurs with the file.
     *)
@@ -91,11 +91,11 @@ let read_channel ic =
         ?(year = "") ?(comment = "") ?(tracknum = 1) ?(genre = 0)
         filename =
       let oc =
-	open_out_gen [Open_wronly; Open_append; Open_binary] 0o666 filename in
+        open_out_gen [Open_wronly; Open_append; Open_binary] 0o666 filename in
       let put s len =
-	let l = String.length s in
-	for i = 0 to min l len - 1 do output_char oc s.[i] done;
-	for i = l to len - 1 do output_byte oc 0 done in
+        let l = String.length s in
+        for i = 0 to min l len - 1 do output_char oc s.[i] done;
+        for i = l to len - 1 do output_byte oc 0 done in
       output_string oc "TAG";
       put title 30;
       put artist 30;
@@ -111,18 +111,18 @@ let read_channel ic =
     *)
     let write_tag filename tag =
       write ~title: tag.title ~artist: tag.artist ~album: tag.album
-	~year: tag.year ~comment: tag.comment ~tracknum: tag.tracknum
-	~genre: tag.genre filename
+        ~year: tag.year ~comment: tag.comment ~tracknum: tag.tracknum
+        ~genre: tag.genre filename
 
     let merge t1 t2 =
       { title = if t2.title <> "" then t2.title else t1.title;
-	artist = if t2.artist <> "" then t2.artist else t1.artist;
-	album = if t2.album <> "" then t2.album else t1.album;
-	year = if t2.year <> "" && t2.year <> "0" then t2.year else t1.year;
-	comment = if t2.comment <> "" then t2.comment else t1.comment;
-	tracknum = if t2.tracknum <> 0 then t2.tracknum else t1.tracknum;
-	genre = if t2.genre <> 0xFF then t2.genre else t1.genre }
-	
+        artist = if t2.artist <> "" then t2.artist else t1.artist;
+        album = if t2.album <> "" then t2.album else t1.album;
+        year = if t2.year <> "" && t2.year <> "0" then t2.year else t1.year;
+        comment = if t2.comment <> "" then t2.comment else t1.comment;
+        tracknum = if t2.tracknum <> 0 then t2.tracknum else t1.tracknum;
+        genre = if t2.genre <> 0xFF then t2.genre else t1.genre }
+        
     let no_tag = {title = ""; artist = ""; album = ""; year = "";
                    comment = ""; tracknum = 0; genre = 0xFF }
   end

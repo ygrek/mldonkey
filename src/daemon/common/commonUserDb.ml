@@ -62,12 +62,12 @@ module GroupOption = struct
             with _ -> admin_group_name
           in
           let gadmin =
-	    try
+            try
               get_value "group_admin" value_to_bool
             with _ -> true
           in
-	  { group_name = gname;
-	    group_admin = gadmin;
+          { group_name = gname;
+            group_admin = gadmin;
           }
 
       | _ -> failwith "Options: not a valid group"
@@ -155,7 +155,7 @@ module UserOption = struct
       match v with
         Options.Module assocs ->
           let get_value name conv = conv (List.assoc name assocs) in
-	  let value_to_md4 v = Md4.of_string (value_to_string v) in
+          let value_to_md4 v = Md4.of_string (value_to_string v) in
           let uname =
             try
               get_value "user_name" value_to_string
@@ -167,23 +167,23 @@ module UserOption = struct
             with _ -> blank_password
           in          
           let umail =
-	    try
+            try
               get_value "user_mail" value_to_string
             with _ -> ""
           in
           let ucdir =
-	    try
+            try
               get_value "user_commit_dir" value_to_string
             with _ -> ""
           in
           let umaxdl =
-	    try
+            try
               get_value "user_max_concurrent_downloads" value_to_int
             with _ -> 0
           in
           let ugroups =
-	    try
-	      let ugl = get_value "user_groups" (value_to_list value_to_string) in
+            try
+              let ugl = get_value "user_groups" (value_to_list value_to_string) in
               let ugl2 = ref ([]: groupdb list) in
               List.iter (fun ug ->
                 try
@@ -199,32 +199,32 @@ module UserOption = struct
             with Not_found -> [admin_group ()]
           in
           let udgroup =
-	    try
+            try
               match get_value "user_default_group" value_to_stringoption with
-		None -> None
-	      | Some udg ->
-		  begin try
-		    let g = user2_group_find udg in
-		    if List.mem g ugroups then
-		      Some g
-		    else begin
-		      lprintf_nl "User %s is not member of group %s, setting user_default_group to None" uname udg;
-		      None
-		    end
-		  with Not_found ->
-		    lprintf_nl "user_default_group %s of user %s does not exist, setting to None" udg uname;
-		    None
-		  end
+                None -> None
+              | Some udg ->
+                  begin try
+                    let g = user2_group_find udg in
+                    if List.mem g ugroups then
+                      Some g
+                    else begin
+                      lprintf_nl "User %s is not member of group %s, setting user_default_group to None" uname udg;
+                      None
+                    end
+                  with Not_found ->
+                    lprintf_nl "user_default_group %s of user %s does not exist, setting to None" udg uname;
+                    None
+                  end
             with Not_found -> Some (admin_group ())
           in
-	  { user_name = uname;
-	    user_pass = upass;
-	    user_groups = ugroups;
-	    user_default_group = udgroup;
-	    user_mail = umail; 
-	    user_commit_dir = ucdir; 
-	    user_max_concurrent_downloads = umaxdl; 
-	  }
+          { user_name = uname;
+            user_pass = upass;
+            user_groups = ugroups;
+            user_default_group = udgroup;
+            user_mail = umail; 
+            user_commit_dir = ucdir; 
+            user_max_concurrent_downloads = umaxdl; 
+          }
 
       | _ -> failwith "Options: not a valid user"
 
@@ -232,7 +232,7 @@ module UserOption = struct
       Options.Module [
         "user_name", string_to_value user.user_name;
         "user_pass", string_to_value (Md4.to_string user.user_pass);
-	"user_groups", list_to_value (fun v -> string_to_value v.group_name) user.user_groups;
+        "user_groups", list_to_value (fun v -> string_to_value v.group_name) user.user_groups;
         "user_default_group", stringoption_to_value (match user.user_default_group with Some g -> Some g.group_name | None -> None);
         "user_mail", string_to_value user.user_mail;
         "user_commit_dir", string_to_value user.user_commit_dir;
@@ -277,8 +277,8 @@ let update_user name new_user =
       | Some new_user -> new_user :: other_users
 
 let user2_user_add name pass ?(groups = [admin_group_name])
-			     ?(default_group = Some admin_group_name)
-			     ?(mail = "") ?(commit_dir = "") ?(max_dl = 0) () =
+                             ?(default_group = Some admin_group_name)
+                             ?(mail = "") ?(commit_dir = "") ?(max_dl = 0) () =
   (* shouldn't we warn admin about already existing user ? *)
   let groups = List.map user2_group_find (List.filter user2_group_exists groups) in
   let default_group =
@@ -416,7 +416,7 @@ let _ =
   set_after_load_hook users_ini (fun _ ->
     List.iter (fun (user,pass) ->
       if not (user2_user_exists user) then begin
-	user2_user_add user pass ();
+        user2_user_add user pass ();
         lprintf_nl "converted user %s to new format" user
       end) !!users;
 (* clean !!users to avoid saving users more than once *)
@@ -426,20 +426,20 @@ let _ =
    - group "mldonkey" must exist and must have admin status *)
     if not (user2_user_exists admin_user_name) then
       begin
-	user2_user_add admin_user_name blank_password ();
-	lprintf_nl "SECURITY INFO: user 'admin' has to be present, creating with empty password..."
+        user2_user_add admin_user_name blank_password ();
+        lprintf_nl "SECURITY INFO: user 'admin' has to be present, creating with empty password..."
       end;
     begin
       try
-	let g = admin_group () in
-	if not g.group_admin then
-	  begin
-	    user2_group_admin g true;
-	    lprintf_nl "SECURITY INFO: group 'mldonkey' must have admin status, updating..."
-	  end
+        let g = admin_group () in
+        if not g.group_admin then
+          begin
+            user2_group_admin g true;
+            lprintf_nl "SECURITY INFO: group 'mldonkey' must have admin status, updating..."
+          end
       with Not_found ->
-	user2_group_add admin_group_name true;
-	lprintf_nl "SECURITY INFO: group 'mldonkey' has to be present, creating with admin rights..."
+        user2_group_add admin_group_name true;
+        lprintf_nl "SECURITY INFO: group 'mldonkey' has to be present, creating with admin rights..."
     end
   );
 
@@ -447,7 +447,7 @@ let _ =
 (* reading new user db and copying the values into old user db !!users *)
   set_before_save_hook users_ini (fun _ ->
     user2_users_iter (fun user ->
-	users =:= (user.user_name, (user2_user_password user.user_name)) :: !!users
+        users =:= (user.user_name, (user2_user_password user.user_name)) :: !!users
     )
   );
 (* clean !!users to avoid saving users more than once *)

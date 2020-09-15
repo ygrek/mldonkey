@@ -108,7 +108,7 @@ let hdd_check () =
     begin
       all_temp_queued := false;
       try
-	ignore (Hashtbl.find last_sent_dir_warning !!temp_directory);
+        ignore (Hashtbl.find last_sent_dir_warning !!temp_directory);
         (try Hashtbl.remove last_sent_dir_warning !!temp_directory with Not_found -> ());
         send_dirfull_warning !!temp_directory false "MLDonkey unqueues all downloads"
       with Not_found -> ()
@@ -129,7 +129,7 @@ let hdd_check () =
     begin
       allow_saving_ini_files := true;
       try
-	ignore (Hashtbl.find last_sent_dir_warning core_dir);
+        ignore (Hashtbl.find last_sent_dir_warning core_dir);
         (try Hashtbl.remove last_sent_dir_warning core_dir with Not_found -> ());
         send_dirfull_warning core_dir false "MLDonkey base directory partition has enough free space again, saving ini files again"
       with Not_found -> ()
@@ -148,7 +148,7 @@ let hdd_check () =
       if !hdd_full_log_closed then log_file =:= !!log_file;
       hdd_full_log_closed := false;
       try
-	ignore (Hashtbl.find last_sent_dir_warning log_dir);
+        ignore (Hashtbl.find last_sent_dir_warning log_dir);
         (try Hashtbl.remove last_sent_dir_warning log_dir with Not_found -> ());
         send_dirfull_warning log_dir false "MLDonkey logdirectory partition has enough free space again, re-enabling logging"
       with Not_found -> ()
@@ -166,16 +166,16 @@ let calc_file_eta f =
   match f.file_state with
     FilePaused | FileQueued -> int_of_float (hundays +. 2.)
   | _ -> (
-	if rate < 12. then int_of_float (hundays +. 1.) else
+        if rate < 12. then int_of_float (hundays +. 1.) else
   begin
   let rate =
     if rate < 0.0001
     then
       let time = BasicSocket.last_time () in
       let age = time - f.file_age in
-	if age > 0
-	then downloaded /. (float_of_int age)
-	else 0.
+        if age > 0
+        then downloaded /. (float_of_int age)
+        else 0.
     else rate
   in
   let eta =
@@ -194,7 +194,7 @@ let file_availability f =
       (match f.file_chunks with
       | None -> 0.
       | Some chunks ->
-	  let rec loop i p n =
+          let rec loop i p n =
             if i < 0
             then
               if n < 0.0001
@@ -203,12 +203,12 @@ let file_availability f =
             else
               if partial_chunk (VB.get chunks i)
               then
-		if avail.[i] <> (char_of_int 0)
-		then loop (i - 1) (p +. 1.0) (n +. 1.0)
-		else loop (i - 1) p (n +. 1.0)
+                if avail.[i] <> (char_of_int 0)
+                then loop (i - 1) (p +. 1.0) (n +. 1.0)
+                else loop (i - 1) p (n +. 1.0)
               else loop (i - 1) p n
-	  in
-	  loop ((String.length avail) - 1) 0.0 0.0)
+          in
+          loop ((String.length avail) - 1) 0.0 0.0)
   | _ -> 0.0
 
 let string_availability s =
@@ -228,8 +228,8 @@ let string_availability s =
 
 let get_file_availability f =
 if !!html_mods_use_relative_availability
-	then file_availability f
-	else string_availability f.file_availability
+        then file_availability f
+        else string_availability f.file_availability
 
 let number_of_comments f =
   List.length f.file_comments
@@ -270,12 +270,12 @@ let number_of_active_sources gf =
     end
 
 let net_name gf =
-	let n = network_find_by_num gf.file_network in
-	n.network_name
+        let n = network_find_by_num gf.file_network in
+        n.network_name
 
 let short_net_name gf =
     let nn = net_name gf in
-	match nn with
+        match nn with
    | "OpenNapster" -> "N"
    | "Direct Connect" -> "C"
    | "FileTP" -> "T"
@@ -530,9 +530,9 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
 \\<td class=\\\"remain\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
 \\</tr\\>\\</table\\>"
             (short_name file)
-	    (!!html_vd_barheight)
+            (!!html_vd_barheight)
             (truncate (downloaded /. size *. 100.))
-	    (!!html_vd_barheight)
+            (!!html_vd_barheight)
             (truncate ( (1. -. downloaded /. size) *. 100.))
           );              	
 
@@ -561,7 +561,7 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
               "-"
             else
               Printf.sprintf "%5.1f" (file.file_download_rate /. 1024.));
-	  (Printf.sprintf "%3d" file.file_priority);
+          (Printf.sprintf "%3d" file.file_priority);
         |]
     ) files);
   Printf.bprintf buf "\\</form\\>"
@@ -570,25 +570,25 @@ function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
 let print_file_html_mods buf guifiles =
 
     if (List.length guifiles) > 0 then begin
-	let tsize = ref Int64.zero in
-	let tdl = ref Int64.zero in
-	let trate = ref 0.0 in
-	let qsize = ref Int64.zero in
-	let qdl = ref Int64.zero in
-	let qnum = ref 0 in
+        let tsize = ref Int64.zero in
+        let tdl = ref Int64.zero in
+        let trate = ref 0.0 in
+        let qsize = ref Int64.zero in
+        let qdl = ref Int64.zero in
+        let qnum = ref 0 in
 
-	List.iter (fun file ->
-	 tsize := !tsize ++ file.file_size;
+        List.iter (fun file ->
+         tsize := !tsize ++ file.file_size;
      tdl := !tdl ++ file.file_downloaded;
-	 trate := !trate +. file.file_download_rate;
+         trate := !trate +. file.file_download_rate;
 
-	 if file.file_state = FileQueued then begin
-		qsize := !qsize ++ file.file_size;
-		qdl := !qdl ++ file.file_downloaded;
-		incr qnum;
-	 end;
+         if file.file_state = FileQueued then begin
+                qsize := !qsize ++ file.file_size;
+                qdl := !qdl ++ file.file_downloaded;
+                incr qnum;
+         end;
 
-	) guifiles;
+        ) guifiles;
 
   Printf.bprintf buf "\\</pre\\>
 \\<script language=JavaScript\\>\\<!--
@@ -597,31 +597,31 @@ function resumeAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j
 function cancelAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.name==\\\"cancel\\\") {j.checked=x;}}}
 function clearAll(x){for(i=0;i\\<document.selectForm.elements.length;i++){var j=document.selectForm.elements[i];if (j.type==\\\"checkbox\\\") {j.checked=x;}}}
 function submitPriority(num,cp,sel) {
-	// 2 line workaround for mozilla mouseout bug:
-	var row = sel.parentNode.parentNode.parentNode;
-	row.className=mOvrClass;
-	var divID = document.getElementById(\\\"divSelectPriority\\\" + num);
-	var selectID = document.getElementById(\\\"selectPriority\\\" + num);
-	var params='';
-	if (selectID.value.length \\> 0) {params = '+'+selectID.value+'+'+num;}
-	var np = selectID.value;
-	if (np.charAt(0) == \\\"=\\\") {var p = parseInt(np.substring(1,99));}
-	else {var p = parseInt(cp) + parseInt(selectID.value);}
-	var str='\\<select id=\\\"selectPriority' + num + '\\\" style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(' + num + ',' + p + ',this)\\\"\\>';
-	if (p != 20 \\&\\& p != 10 \\&\\& p != 0 \\&\\& p != -10 \\&\\& p != -20) { str += '\\<OPTION value=\\\"=' + p + '\\\" SELECTED\\>' + p; }
-	str += '\\<option value=\\\"=20\\\"'; if (p==20) {str += \\\" SELECTED\\\"}; str += '\\>Very High';
-	str += '\\<option value=\\\"=10\\\"'; if (p==10) {str += \\\" SELECTED\\\"}; str += '\\>High';
-	str += '\\<option value=\\\"=0\\\"'; if (p==0) {str += \\\" SELECTED\\\"}; str += '\\>Normal';
-	str += '\\<option value=\\\"=-10\\\"'; if (p==-10) {str += \\\" SELECTED\\\"}; str += '\\>Low';
-	str += '\\<option value=\\\"=-20\\\"'; if (p==-20) {str += \\\" SELECTED\\\"}; str += '\\>Very Low';
-	str += '\\<option value=\\\"10\\\"\\>+10';
-	str += '\\<option value=\\\"5\\\"\\>+5';
-	str += '\\<option value=\\\"1\\\"\\>+1';
-	str += '\\<option value=\\\"-1\\\"\\>-1';
-	str += '\\<option value=\\\"-10\\\"\\>-10';
-	str += \\\"\\</select\\>\\\";
-	divID.innerHTML = str;
-	parent.fstatus.location.href='submit?q=priority' + params;
+        // 2 line workaround for mozilla mouseout bug:
+        var row = sel.parentNode.parentNode.parentNode;
+        row.className=mOvrClass;
+        var divID = document.getElementById(\\\"divSelectPriority\\\" + num);
+        var selectID = document.getElementById(\\\"selectPriority\\\" + num);
+        var params='';
+        if (selectID.value.length \\> 0) {params = '+'+selectID.value+'+'+num;}
+        var np = selectID.value;
+        if (np.charAt(0) == \\\"=\\\") {var p = parseInt(np.substring(1,99));}
+        else {var p = parseInt(cp) + parseInt(selectID.value);}
+        var str='\\<select id=\\\"selectPriority' + num + '\\\" style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(' + num + ',' + p + ',this)\\\"\\>';
+        if (p != 20 \\&\\& p != 10 \\&\\& p != 0 \\&\\& p != -10 \\&\\& p != -20) { str += '\\<OPTION value=\\\"=' + p + '\\\" SELECTED\\>' + p; }
+        str += '\\<option value=\\\"=20\\\"'; if (p==20) {str += \\\" SELECTED\\\"}; str += '\\>Very High';
+        str += '\\<option value=\\\"=10\\\"'; if (p==10) {str += \\\" SELECTED\\\"}; str += '\\>High';
+        str += '\\<option value=\\\"=0\\\"'; if (p==0) {str += \\\" SELECTED\\\"}; str += '\\>Normal';
+        str += '\\<option value=\\\"=-10\\\"'; if (p==-10) {str += \\\" SELECTED\\\"}; str += '\\>Low';
+        str += '\\<option value=\\\"=-20\\\"'; if (p==-20) {str += \\\" SELECTED\\\"}; str += '\\>Very Low';
+        str += '\\<option value=\\\"10\\\"\\>+10';
+        str += '\\<option value=\\\"5\\\"\\>+5';
+        str += '\\<option value=\\\"1\\\"\\>+1';
+        str += '\\<option value=\\\"-1\\\"\\>-1';
+        str += '\\<option value=\\\"-10\\\"\\>-10';
+        str += \\\"\\</select\\>\\\";
+        divID.innerHTML = str;
+        parent.fstatus.location.href='submit?q=priority' + params;
 }
 //--\\>\\</script\\>
 
@@ -631,7 +631,7 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
 "\\<div id=\\\"object1\\\" style=\\\"position:absolute; background-color:#FFFFDD;color:black;border-color:black;border-width:20px;font-size:8pt; visibility:visible; left:25px; top:
 -100px; z-index:+1\\\" onmouseover=\\\"overdiv=1;\\\"  onmouseout=\\\"overdiv=0; setTimeout(\\\'hideLayer()\\\',1000)\\\"\\>\\&nbsp;\\</div\\>";
 
-	Printf.bprintf buf "\\<form id=\\\"selectForm\\\" name=\\\"selectForm\\\" action=\\\"files\\\"\\>
+        Printf.bprintf buf "\\<form id=\\\"selectForm\\\" name=\\\"selectForm\\\" action=\\\"files\\\"\\>
 \\<table class=main cellspacing=0 cellpadding=0\\>
 
 \\<tr\\>\\<td\\>
@@ -655,9 +655,9 @@ if !!html_mods_use_js_tooltips then Printf.bprintf buf
 \\<td title=\\\"Cancel\\\" class=\\\"dlheader brs\\\"\\>C\\</td\\>
 \\<td title=\\\"Click to switch release status\\\" class=\\\"dlheader brs\\\"\\>R\\</td\\>"
 (if !qnum > 0 then begin
-	Printf.sprintf "title=\\\"Active(%d): %s/%s | Queued(%d): %s/%s\\\""
-	(List.length guifiles - !qnum) (size_of_int64 (!tdl -- !qdl)) (size_of_int64 (!tsize -- !qsize))
-	!qnum (size_of_int64 !qdl) (size_of_int64 !qsize);
+        Printf.sprintf "title=\\\"Active(%d): %s/%s | Queued(%d): %s/%s\\\""
+        (List.length guifiles - !qnum) (size_of_int64 (!tdl -- !qdl)) (size_of_int64 (!tsize -- !qsize))
+        !qnum (size_of_int64 !qdl) (size_of_int64 !qsize);
 end
 else "")
 (List.length guifiles) (size_of_int64 !tdl) (size_of_int64 !tsize) (!trate /. 1024.)
@@ -717,36 +717,36 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
                         Printf.sprintf "
                                 onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%sFile#: %d<br>Network: %s<br>User%s %s%s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
                         (Http_server.html_real_escaped (Charset.Locale.to_utf8 file.file_name))
-			(match file_magic (file_find file.file_num) with
-			   None -> ""
-			 | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
-			file.file_num
+                        (match file_magic (file_find file.file_num) with
+                           None -> ""
+                         | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
+                        file.file_num
                         (net_name file)
                         (if file.file_group = "none" then "" else ":Group")
                         file.file_user
                         (if file.file_group = "none" then "" else Printf.sprintf ":%s" file.file_group)
 
       (if file.file_comments = [] then "" else
-			    begin
+                            begin
            let num_comments = number_of_comments file in
            let buf1 = Buffer.create (!!max_comment_length * num_comments) in
            Printf.bprintf buf1 "<br><br>Comments(%d):<br>" (num_comments);
-	   let comments =
-	     if List.length file.file_comments > 5 then
-	       fst (List2.cut 5 file.file_comments) @ [Ip.null, "", 0, (_s "MLDonkey note: click file for more comments")]
-	     else
-	       file.file_comments
-	   in
+           let comments =
+             if List.length file.file_comments > 5 then
+               fst (List2.cut 5 file.file_comments) @ [Ip.null, "", 0, (_s "MLDonkey note: click file for more comments")]
+             else
+               file.file_comments
+           in
            List.iter (fun (_,_,_,s) -> Printf.bprintf buf1 "%s<br>" (Http_server.html_real_escaped (Charset.Locale.to_utf8 s))) comments;
-			      Buffer.contents buf1
-			    end)
+                              Buffer.contents buf1
+                            end)
 
-			!!html_mods_js_tooltips_wait
-			!!html_mods_js_tooltips_timeout
-			!!html_mods_js_tooltips_wait
+                        !!html_mods_js_tooltips_wait
+                        !!html_mods_js_tooltips_timeout
+                        !!html_mods_js_tooltips_wait
        else Printf.sprintf " onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>");
 
-	(if downloading file then
+        (if downloading file then
               Printf.sprintf "\\<td class=\\\"dl al np\\\"\\>\\<input class=checkbox name=pause type=checkbox value=%d\\>\\</td\\>
                 \\<td class=\\\"dl al np\\\"\\>R\\</td\\>
                 \\<td class=\\\"dl al brs\\\"\\>\\<input class=checkbox name=cancel type=checkbox value=%d\\>\\</td\\>"
@@ -759,33 +759,33 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
                 file.file_num
                 file.file_num);
 
-	  Printf.sprintf "\\<td onClick=\\\"location.href='files?%s=%d';return true;\\\" class=\\\"dl al brs\\\"\\>\\%s\\</td\\>"
-	    (if file.file_release then "norelease" else "release")
-	    file.file_num (if file.file_release then "R" else "-");
+          Printf.sprintf "\\<td onClick=\\\"location.href='files?%s=%d';return true;\\\" class=\\\"dl al brs\\\"\\>\\%s\\</td\\>"
+            (if file.file_release then "norelease" else "release")
+            file.file_num (if file.file_release then "R" else "-");
 
           (if !!html_mods_vd_network then
-			Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
-			title=\\\"%s\\\" class=\\\"dl al\\\"\\>%s\\</td\\>"
-			file.file_num (net_name file) (short_net_name file) else "");
+                        Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
+                        title=\\\"%s\\\" class=\\\"dl al\\\"\\>%s\\</td\\>"
+                        file.file_num (net_name file) (short_net_name file) else "");
 
           ( let size = Int64.to_float file.file_size in
             let downloaded = Int64.to_float file.file_downloaded in
             let size = if size < 1. then 1. else size in
-	    (if !!html_mods_use_js_tooltips then
+            (if !!html_mods_use_js_tooltips then
             Printf.sprintf "\\<TD onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
-			class=\\\"dl al\\\"\\>%s\\<br\\>
-	    		\\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
-			\\<td class=\\\"loaded\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
-			\\<td class=\\\"remain\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
-			\\</tr\\>\\</table\\>\\</td\\>"
+                        class=\\\"dl al\\\"\\>%s\\<br\\>
+                        \\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
+                        \\<td class=\\\"loaded\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
+                        \\<td class=\\\"remain\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
+                        \\</tr\\>\\</table\\>\\</td\\>"
             file.file_num
             (short_name file)
-	    (!!html_vd_barheight)
+            (!!html_vd_barheight)
             (truncate (downloaded /. size *. 100.))
-	    (!!html_vd_barheight)
+            (!!html_vd_barheight)
             (truncate ( (1. -. downloaded /. size) *. 100.))
-	 else
-	     Printf.sprintf "\\<TD onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
+         else
+             Printf.sprintf "\\<TD onClick=\\\"location.href='submit?q=vd+%d';return true;\\\"
                         title=\\\"[File#: %d] [Net: %s] [Comments: %d]%s\\\" class=\\\"dl al\\\"\\>%s\\<br\\>
                         \\<table cellpadding=0 cellspacing=0 width=100%%\\>\\<tr\\>
                         \\<td class=\\\"loaded\\\" style=\\\"height:%dpx\\\" width=\\\"%d%%\\\"\\> \\</td\\>
@@ -817,27 +817,27 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
 
           (if !!html_mods_vd_active_sources then
             ctd file.file_num (Printf.sprintf "%d" (number_of_active_sources file))
-		  else "");
+                  else "");
 
           (ctd file.file_num (Printf.sprintf "%.0f" (get_file_availability file)));
 
 
           (if !!html_mods_vd_age then
-			ctd file.file_num (let age = (BasicSocket.last_time ()) - file.file_age in Date.time_to_string age "long")
-		   else "");
+                        ctd file.file_num (let age = (BasicSocket.last_time ()) - file.file_age in Date.time_to_string age "long")
+                   else "");
 
           (if !!html_mods_vd_last then
-			ctd file.file_num (if file.file_last_seen > 0
+                        ctd file.file_num (if file.file_last_seen > 0
              then let last = (BasicSocket.last_time ()) - file.file_last_seen in
                 Date.time_to_string last "long"
              else "-"
-          	)
-			else ""
+                )
+                        else ""
           );
 
           (ctd file.file_num
                 (match file.file_state with
-				   FilePaused -> "Paused"
+                                   FilePaused -> "Paused"
                  | FileQueued -> "Queued"
                  | _ -> if file.file_download_rate < 10.24 then "-"
                        else Printf.sprintf "%5.1f" (file.file_download_rate /. 1024.)
@@ -845,27 +845,27 @@ let ctd fn td = Printf.sprintf "\\<td onClick=\\\"location.href='submit?q=vd+%d'
           );
 
           (ctd file.file_num (if (file.file_download_rate < 10.24 || stalled file) then "-"
-				else Date.time_to_string (calc_file_eta file) "long"));
+                                else Date.time_to_string (calc_file_eta file) "long"));
 
           (if !!html_mods_vd_prio then
-	      (Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<div id=\\\"divSelectPriority%d\\\"\\>\\<select id=\\\"selectPriority%d\\\"
-			style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(%d,%d,this)\\\"\\>\n"
-			file.file_num file.file_num file.file_num file.file_priority)
-			^ (match file.file_priority with 0 | -10 | 10 | -20 | 20 -> "" | _ ->
-			  Printf.sprintf "\\<option value=\\\"=%d\\\" SELECTED\\>%d\n" file.file_priority file.file_priority)
-			^ "\\<option value=\\\"=20\\\""  ^ (if file.file_priority = 20 then " SELECTED" else "") ^ "\\>Very high\n"
-			^ "\\<option value=\\\"=10\\\""  ^ (if file.file_priority = 10 then " SELECTED" else "") ^ "\\>High\n"
-			^ "\\<option value=\\\"=0\\\""  ^ (if file.file_priority = 0 then " SELECTED" else "") ^ "\\>Normal\n"
-			^ "\\<option value=\\\"=-10\\\""  ^ (if file.file_priority = -10 then " SELECTED" else "") ^ "\\>Low\n"
-			^ "\\<option value=\\\"=-20\\\""  ^ (if file.file_priority = -20 then " SELECTED" else "") ^ "\\>Very Low\n"
-			^ "\\<option value=\\\"10\\\"\\>+10\n"
-			^ "\\<option value=\\\"5\\\"\\>+5\n"
-			^ "\\<option value=\\\"1\\\"\\>+1\n"
-			^ "\\<option value=\\\"-1\\\"\\>-1\n"
-			^ "\\<option value=\\\"-5\\\"\\>-5\n"
-			^ "\\<option value=\\\"-10\\\"\\>-10\n"
-			^ "\\</select\\>\\</div\\>"
-	       else "");
+              (Printf.sprintf "\\<td class=\\\"dl ar\\\"\\>\\<div id=\\\"divSelectPriority%d\\\"\\>\\<select id=\\\"selectPriority%d\\\"
+                        style=\\\"font-size: 8px; font-family: verdana\\\" onchange=\\\"javascript:submitPriority(%d,%d,this)\\\"\\>\n"
+                        file.file_num file.file_num file.file_num file.file_priority)
+                        ^ (match file.file_priority with 0 | -10 | 10 | -20 | 20 -> "" | _ ->
+                          Printf.sprintf "\\<option value=\\\"=%d\\\" SELECTED\\>%d\n" file.file_priority file.file_priority)
+                        ^ "\\<option value=\\\"=20\\\""  ^ (if file.file_priority = 20 then " SELECTED" else "") ^ "\\>Very high\n"
+                        ^ "\\<option value=\\\"=10\\\""  ^ (if file.file_priority = 10 then " SELECTED" else "") ^ "\\>High\n"
+                        ^ "\\<option value=\\\"=0\\\""  ^ (if file.file_priority = 0 then " SELECTED" else "") ^ "\\>Normal\n"
+                        ^ "\\<option value=\\\"=-10\\\""  ^ (if file.file_priority = -10 then " SELECTED" else "") ^ "\\>Low\n"
+                        ^ "\\<option value=\\\"=-20\\\""  ^ (if file.file_priority = -20 then " SELECTED" else "") ^ "\\>Very Low\n"
+                        ^ "\\<option value=\\\"10\\\"\\>+10\n"
+                        ^ "\\<option value=\\\"5\\\"\\>+5\n"
+                        ^ "\\<option value=\\\"1\\\"\\>+1\n"
+                        ^ "\\<option value=\\\"-1\\\"\\>-1\n"
+                        ^ "\\<option value=\\\"-5\\\"\\>-5\n"
+                        ^ "\\<option value=\\\"-10\\\"\\>-10\n"
+                        ^ "\\</select\\>\\</div\\>"
+               else "");
 
         |]
     ) guifiles);
@@ -933,10 +933,10 @@ let print_human_readable file size =
       (match file.file_chunks with
       | None -> 0
       | Some chunks -> 
-	  VB.fold_lefti (fun acc _ s -> match s with
-	    | VB.State_missing | VB.State_partial -> acc
-	    | VB.State_complete | VB.State_verified -> acc + 1
-	  ) 0 chunks))
+          VB.fold_lefti (fun acc _ s -> match s with
+            | VB.State_missing | VB.State_partial -> acc
+            | VB.State_complete | VB.State_verified -> acc + 1
+          ) 0 chunks))
   else (Printf.sprintf "%8s%s" (Int64.to_string size) ("b") ) )
 
 let simple_print_file_list finished buf files format =
@@ -967,10 +967,10 @@ let simple_print_file_list finished buf files format =
           |] else
           [|
             "$nNum";
-	    "Rele";
-	    "Comm";
-	    "User";
-	    "Group";
+            "Rele";
+            "Comm";
+            "User";
+            "Group";
             "File";
             "    %";
             "    Done";
@@ -1015,8 +1015,8 @@ let simple_print_file_list finished buf files format =
                     file.file_num
                       (if downloading file then "PAUSE" else "RESUME")
                   else ""));
-	      (Printf.sprintf "%s" (if file.file_release then "R" else "-"));
-	      (Printf.sprintf "%4d" (number_of_comments file));
+              (Printf.sprintf "%s" (if file.file_release then "R" else "-"));
+              (Printf.sprintf "%4d" (number_of_comments file));
               file.file_user;
               file.file_group;
               (short_name file);
@@ -1127,26 +1127,26 @@ let display_active_file_list buf o list =
                 if stalled f2 then -1 else
                   compare f2.file_download_rate f1.file_download_rate)
         | ByName -> (fun f1 f2 -> String.compare 
-		       (String.lowercase f1.file_name) 
-		       (String.lowercase f2.file_name))
+                       (String.lowercase f1.file_name) 
+                       (String.lowercase f2.file_name))
         | ByDone -> (fun f1 f2 -> 
-		       compare f2.file_downloaded f1.file_downloaded)
-	| ByPriority -> (fun f1 f2 -> 
-			   compare f2.file_priority f1.file_priority)
-	| BySources -> (fun f1 f2 -> compare 
-			  (number_of_sources f2) (number_of_sources f1))
-	| ByASources -> (fun f1 f2 -> 
-			   compare (number_of_active_sources f2) 
-			           (number_of_active_sources f1))
+                       compare f2.file_downloaded f1.file_downloaded)
+        | ByPriority -> (fun f1 f2 -> 
+                           compare f2.file_priority f1.file_priority)
+        | BySources -> (fun f1 f2 -> compare 
+                          (number_of_sources f2) (number_of_sources f1))
+        | ByASources -> (fun f1 f2 -> 
+                           compare (number_of_active_sources f2) 
+                                   (number_of_active_sources f1))
         | ByPercent -> (fun f1 f2 -> compare (percent f2) (percent f1))
         | ByETA -> (fun f1 f2 -> compare (calc_file_eta f1) (calc_file_eta f2))
         | ByAge -> (fun f1 f2 -> compare f2.file_age f1.file_age)
         | ByLast -> (fun f1 f2 -> compare f2.file_last_seen f1.file_last_seen)
         | ByNet -> (fun f1 f2 -> compare (net_name f1) (net_name f2))
         | ByAvail -> (fun f1 f2 -> compare 
-			(get_file_availability f2) (get_file_availability f1))
+                        (get_file_availability f2) (get_file_availability f1))
         | ByComments -> (fun f1 f2 -> compare 
-			   (number_of_comments f2) (number_of_comments f1))
+                           (number_of_comments f2) (number_of_comments f1))
         | ByUser -> (fun f1 f2 -> compare f1.file_user f2.file_user)
         | ByGroup -> (fun f1 f2 -> compare f1.file_group f2.file_group)
         | NotSorted -> raise Not_found
@@ -1229,23 +1229,23 @@ let old_print_search buf o results =
               
                 if use_html_mods o 
                   then Printf.bprintf buf "\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-		   (let rec iter uids =
-		      match uids with
-			[] -> network_name
-		      | uid :: tail ->
-			  match Uid.to_uid uid with
-			    Ed2k md4 ->
-			      Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
-				(file_print_ed2k_link (List.hd r.result_names) r.result_size md4)
-				network_name
-			    | _  -> iter tail
-		    in
-		    iter r.result_uids)
+                   (let rec iter uids =
+                      match uids with
+                        [] -> network_name
+                      | uid :: tail ->
+                          match Uid.to_uid uid with
+                            Ed2k md4 ->
+                              Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
+                                (file_print_ed2k_link (List.hd r.result_names) r.result_size md4)
+                                network_name
+                            | _  -> iter tail
+                    in
+                    iter r.result_uids)
                   else Printf.bprintf  buf "[%5d] %s " !counter network_name;
 
               if o.conn_output = HTML then begin
                   if !!html_mods then
-		    if !!html_mods_use_js_tooltips then
+                    if !!html_mods_use_js_tooltips then
                     begin
                       Printf.bprintf buf "\\<td onMouseOver=\\\"setTimeout('popLayer(\\\\\'";
                       begin
@@ -1268,12 +1268,12 @@ let old_print_search buf o results =
                                 escaped_string_of_field t ^ ": " ^ get_tag_value t);
                       ) r.result_tags;
                     Printf.bprintf buf "\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\"  onMouseOut=\\\"hideLayer();setTimeout('hideLayer()',%d);return true;\\\" class=\\\"sr\\\"\\>\\<a href=results\\?d=%d target=\\\"$S\\\"\\>"
-			!!html_mods_js_tooltips_wait
-			!!html_mods_js_tooltips_timeout
-			!!html_mods_js_tooltips_wait
-			 r.result_num
-		    end
-		    else begin
+                        !!html_mods_js_tooltips_wait
+                        !!html_mods_js_tooltips_timeout
+                        !!html_mods_js_tooltips_wait
+                         r.result_num
+                    end
+                    else begin
                       Printf.bprintf buf "\\<td title=\\\"";
                       let nl = ref false in
                       List.iter (fun t ->
@@ -1318,20 +1318,20 @@ let old_print_search buf o results =
                   else Printf.bprintf buf "\\</a href\\>";
                 end;
               let hash = ref (string_of_uids r.result_uids) in
-	      let real_hash =
-		if String.contains !hash ':' then
-		  String.sub !hash ((String.rindex !hash ':')+1)
-		  ((String.length !hash) - (String.rindex !hash ':') - 1)
+              let real_hash =
+                if String.contains !hash ':' then
+                  String.sub !hash ((String.rindex !hash ':')+1)
+                  ((String.length !hash) - (String.rindex !hash ':') - 1)
                 else
-		  !hash
-	      in
-	      let clength = ref "" in
-	      let ccodec = ref "" in
-	      let cmediacodec = ref "" in
-	      let cbitrate = ref "" in
+                  !hash
+              in
+              let clength = ref "" in
+              let ccodec = ref "" in
+              let cmediacodec = ref "" in
+              let cbitrate = ref "" in
               let cavail = ref (string_of_int avail) in
               let csource = ref "" in
-	      let cformat = ref "" in
+              let cformat = ref "" in
               List.iter (fun t ->
                   (match t.tag_name with
                     | Field_KNOWN "urn"
@@ -1347,29 +1347,29 @@ let old_print_search buf o results =
 
               if use_html_mods o then
                 Printf.bprintf buf "\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>BI\\</a\\>\\</td\\>
-			\\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://www.filedonkey.com/url/%s\\\"\\>FD\\</a\\>\\</td\\>
-			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-			\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>"
+                        \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+                        \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+                        \\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>BI\\</a\\>\\</td\\>
+                        \\<td class=\\\"sr\\\"\\>\\<a href=\\\"http://www.filedonkey.com/url/%s\\\"\\>FD\\</a\\>\\</td\\>
+                        \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+                        \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+                        \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>"
                   (size_of_int64 r.result_size)
-		  !cavail
+                  !cavail
                   !csource
-		  real_hash
-		  real_hash
-		  !clength
-		  (if !ccodec = "" then
-		     begin
-		       if !cmediacodec = "" then
-		         !cformat 
-		       else
-		         !cmediacodec
-		     end
-		   else
-		     !ccodec)
-		  !cbitrate
+                  real_hash
+                  real_hash
+                  !clength
+                  (if !ccodec = "" then
+                     begin
+                       if !cmediacodec = "" then
+                         !cformat 
+                       else
+                         !cmediacodec
+                     end
+                   else
+                     !ccodec)
+                  !cbitrate
               else	Printf.bprintf  buf "          %10s %10s "
                   (Int64.to_string r.result_size)
                 (string_of_uids r.result_uids);
@@ -1589,15 +1589,15 @@ let print_results stime buf o results =
 
                 (if r.result_done then
                    begin
-	                if use_html_mods o then
-        	            "\\<td class=\\\"sr ar\\\"\\>D\\</td\\>"
-                	  else "dled"
+                        if use_html_mods o then
+                            "\\<td class=\\\"sr ar\\\"\\>D\\</td\\>"
+                          else "dled"
                    end
                  else
                    begin
-	                if use_html_mods o then
-        	            "\\<td class=\\\"sr ar\\\"\\> \\</td\\>"
-                	  else " "
+                        if use_html_mods o then
+                            "\\<td class=\\\"sr ar\\\"\\> \\</td\\>"
+                          else " "
                    end
                 );
 
@@ -1669,13 +1669,13 @@ let print_results stime buf o results =
     begin
 
       html_mods_table_header buf "resultsTable" "results" [
-		( Num, "srh", "Number", "#" ) ;
-		( Num, "srh ar", "Size", "Size" ) ;
-		( Str, "srh ar", "Availability", "A" )  ;
-		( Str, "srh ar", "Status, D = already downloaded", "S" )  ;
-		( Str, "srh", "Filename", "Name" ) ;
-		( Str, "srh", "Tag", "Tag" ) ;
-		( Str, "srh", "MD4", "MD4" ) ];
+                ( Num, "srh", "Number", "#" ) ;
+                ( Num, "srh ar", "Size", "Size" ) ;
+                ( Str, "srh ar", "Availability", "A" )  ;
+                ( Str, "srh ar", "Status, D = already downloaded", "S" )  ;
+                ( Str, "srh", "Filename", "Name" ) ;
+                ( Str, "srh", "Tag", "Tag" ) ;
+                ( Str, "srh", "MD4", "MD4" ) ];
 
       print_table_html_mods buf
        (List.rev !files)
@@ -1756,9 +1756,9 @@ let print_network_modules buf o =
             try
               let net_has e = if List.mem e n.network_flags then "yes" else "" in
               let net_has_porttest () =
-		match network_porttest_result n with
-		  PorttestNotAvailable -> ""
-		| _ -> "yes" in
+                match network_porttest_result n with
+                  PorttestNotAvailable -> ""
+                | _ -> "yes" in
               Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
               html_mods_td buf [
                 ("", "sr br", n.network_name);
@@ -1866,8 +1866,8 @@ let buildinfo html buf =
   if Autoconf.scm_version <> "" then 
     tack list 
       (
-	"SCM version:\t", 
-	Autoconf.scm_version
+        "SCM version:\t", 
+        Autoconf.scm_version
       );
   tack list
     (
@@ -1880,7 +1880,7 @@ let buildinfo html buf =
       Sys.ocaml_version ^ 
       " - C compiler version: " ^ Autoconf.cc_version ^
       (if Autoconf.cxx_version <> "" then 
-	" - C++ compiler version: " ^ Autoconf.cxx_version else "")
+        " - C++ compiler version: " ^ Autoconf.cxx_version else "")
     );
   tack list 
     (
@@ -1890,23 +1890,23 @@ let buildinfo html buf =
       else
         let real_glibc_version = MlUnix.glibc_version_num () in
         if real_glibc_version = "" || 
-	  real_glibc_version = Autoconf.glibc_version 
+          real_glibc_version = Autoconf.glibc_version 
         then " with glibc " ^ Autoconf.glibc_version
         else 
           Printf.sprintf " (Warning: glibc version mismatch, %s present on your system, MlDonkey was compiled with %s)"
-	    real_glibc_version Autoconf.glibc_version)
+            real_glibc_version Autoconf.glibc_version)
     );
   if Autoconf.configure_arguments <> "" then 
     tack list
       (
-	"Configure args:\t", 
-	Autoconf.configure_arguments 
+        "Configure args:\t", 
+        Autoconf.configure_arguments 
       );
   if !patches_string <> "" then 
     tack list
       (
-	"Patches:\t", 
-	!patches_string 
+        "Patches:\t", 
+        !patches_string 
       );
   tack list 
     (
@@ -1918,18 +1918,18 @@ let buildinfo html buf =
         let s, _ = String2.cut_at (Misc2.bzlib_version_num ()) ',' in
         Printf.sprintf " bzip2%s" (if s <> "" then "-" ^ s else "")
       else " no-bzip2") ^
-	(match Autoconf.has_gd, Autoconf.has_gd_png, Autoconf.has_gd_jpg with
-	| false, _, _ -> " no-gd"
-	| _, true, true -> 
-	    let s = DriverGraphics.G.png_version_num () in
+        (match Autoconf.has_gd, Autoconf.has_gd_png, Autoconf.has_gd_jpg with
+        | false, _, _ -> " no-gd"
+        | _, true, true -> 
+            let s = DriverGraphics.G.png_version_num () in
             Printf.sprintf " gd(jpg/png%s)" (if s <> "" then "-" ^ s else "")
-	| _, true, false ->
-	    let s = DriverGraphics.G.png_version_num () in
+        | _, true, false ->
+            let s = DriverGraphics.G.png_version_num () in
             Printf.sprintf " gd(png%s)" (if s <> "" then "-" ^ s else "")
-	| _, false, true ->
-	    " gd(jpg)"
-	| _, false, false ->
-	    " gd(neither jpg nor png ?)") ^
+        | _, false, true ->
+            " gd(jpg)"
+        | _, false, false ->
+            " gd(neither jpg nor png ?)") ^
       (match Autoconf.has_iconv, !Charset.Locale.conversion_enabled with
        | true, true -> " iconv(active)"
        | true, false -> " iconv(inactive)"
@@ -1952,10 +1952,10 @@ let buildinfo html buf =
     html_mods_cntr_init ();
     List.iter (fun (desc, text) ->
       if html then 
-	Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+        Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
           (html_mods_cntr ()) desc text
       else
-	Printf.bprintf buf "%s %s\n" desc text;
+        Printf.bprintf buf "%s %s\n" desc text;
     ) list;
     if html then 
       Printf.bprintf buf "\\</table\\>\\</div\\>"
@@ -1971,10 +1971,10 @@ let runinfo html buf o =
     (
       "MLDonkey user:\t\t", 
       Printf.sprintf "%s (%s) - uptime: %s%s"
-	o.conn_user.ui_user.user_name
-	(if has_empty_password o.conn_user.ui_user then "Warning: empty Password"
-	else "PW Protected")
-	(Date.time_to_string (last_time () - start_time) "verbose")
+        o.conn_user.ui_user.user_name
+        (if has_empty_password o.conn_user.ui_user then "Warning: empty Password"
+        else "PW Protected")
+        (Date.time_to_string (last_time () - start_time) "verbose")
         (
         let user_group =
           (try Some (Unix.getpwuid (Unix.getuid())).Unix.pw_name with _ -> None),
@@ -1989,16 +1989,16 @@ let runinfo html buf o =
     (
       "Enabled nets:\t", 
       List.fold_left (fun acc (c, s) -> 
-	if c then Printf.sprintf "%s %s" acc s else acc) ""
-	[(Autoconf.donkey = "yes" && !!enable_donkey, "Donkey");
-	 (Autoconf.donkey = "yes" && !!enable_overnet, "Overnet");
-	 (Autoconf.donkey = "yes" && !!enable_kademlia, "Kademlia");
-	 (Autoconf.bittorrent = "yes" && !!enable_bittorrent, "BitTorrent");
-	 (Autoconf.direct_connect = "yes" && !!enable_directconnect, "DirectConnect");
-	 (Autoconf.fasttrack = "yes" && !!enable_fasttrack, "Fasttrack");
-	 (Autoconf.gnutella = "yes" && !!enable_gnutella, "Gnutella");
-	 (Autoconf.gnutella2 = "yes" && !!enable_gnutella2, "G2");
-	 (Autoconf.filetp = "yes" && !!enable_fileTP, "FileTP")]
+        if c then Printf.sprintf "%s %s" acc s else acc) ""
+        [(Autoconf.donkey = "yes" && !!enable_donkey, "Donkey");
+         (Autoconf.donkey = "yes" && !!enable_overnet, "Overnet");
+         (Autoconf.donkey = "yes" && !!enable_kademlia, "Kademlia");
+         (Autoconf.bittorrent = "yes" && !!enable_bittorrent, "BitTorrent");
+         (Autoconf.direct_connect = "yes" && !!enable_directconnect, "DirectConnect");
+         (Autoconf.fasttrack = "yes" && !!enable_fasttrack, "Fasttrack");
+         (Autoconf.gnutella = "yes" && !!enable_gnutella, "Gnutella");
+         (Autoconf.gnutella2 = "yes" && !!enable_gnutella2, "G2");
+         (Autoconf.filetp = "yes" && !!enable_fileTP, "FileTP")]
     );
   tack list
     (
@@ -2021,23 +2021,23 @@ let runinfo html buf o =
   if not !dns_works then 
     tack list
       (
-	"DNS:\t\t",
-	Printf.sprintf "DNS resolution not available, web_infos %s not work"
+        "DNS:\t\t",
+        Printf.sprintf "DNS resolution not available, web_infos %s not work"
           (if Autoconf.bittorrent = "yes" then "and BT does" else "do")
       );
   if Autoconf.magic then
     tack list
       (
-	"Libmagic:\t",
-	Printf.sprintf "file-type recognition database%s present"
-	  (if !Autoconf.magic_works then "" else " not")
+        "Libmagic:\t",
+        Printf.sprintf "file-type recognition database%s present"
+          (if !Autoconf.magic_works then "" else " not")
       );
   tack list
     (
       "System info:\t",
       let uname = Unix32.uname () in
       if uname <> "" then 
-	uname ^
+        uname ^
         (if not (Unix32.os_supported ()) then 
           " - \nWARNING:\t not supported operating system" else "")
       else "unknown"
@@ -2046,29 +2046,29 @@ let runinfo html buf o =
     ( 
       "",
       Printf.sprintf "\t\t language: %s - locale: %s - UTC offset: %s"
-	Charset.Locale.default_language
-	Charset.Locale.locale_string
-	(Rss_date.mk_timezone (Unix.time ()))
+        Charset.Locale.default_language
+        Charset.Locale.locale_string
+        (Rss_date.mk_timezone (Unix.time ()))
     );
   tack list
     (
       "", 
       Printf.sprintf "\t\t max_string_length: %d - word_size: %d - max_array_length: %d - max_int: %d"
-	Sys.max_string_length
-	Sys.word_size
-	Sys.max_array_length
-	Pervasives.max_int
+        Sys.max_string_length
+        Sys.word_size
+        Sys.max_array_length
+        Pervasives.max_int
     );
   tack list
     (
       "", 
       Printf.sprintf "\t\t max file descriptors: %d - max useable file size: %s" 
-	(Unix2.c_getdtablesize ())
-	(match Unix2.c_sizeofoff_t () with
+        (Unix2.c_getdtablesize ())
+        (match Unix2.c_sizeofoff_t () with
          | 4 -> "2GB"
          |  _ -> 
-	      Printf.sprintf "2^%d-1 bits (do the maths ;-p)"
-		((Unix2.c_sizeofoff_t () * 8)-1))
+              Printf.sprintf "2^%d-1 bits (do the maths ;-p)"
+                ((Unix2.c_sizeofoff_t () * 8)-1))
     );
   let list = List.rev !list in
 
@@ -2081,10 +2081,10 @@ let runinfo html buf o =
     html_mods_cntr_init ();
     List.iter (fun (desc, text) ->
       if html then 
-	Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+        Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
           (html_mods_cntr ()) desc text
       else
-	Printf.bprintf buf "%s %s\n" desc text;
+        Printf.bprintf buf "%s %s\n" desc text;
     ) list;
     if html then 
       Printf.bprintf buf "\\</table\\>\\</div\\>"
@@ -2125,10 +2125,10 @@ let portinfo html buf =
   List.iter (fun p ->
     if html then
       Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%d\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>"
-	(html_mods_cntr ()) p.netname p.port p.portname
+        (html_mods_cntr ()) p.netname p.port p.portname
     else
       Printf.bprintf buf "%-*s|%6d|%s\n"
-	(max !network_name_list_width (!network_name_list_width - String.length p.netname)) p.netname p.port p.portname
+        (max !network_name_list_width (!network_name_list_width - String.length p.netname)) p.netname p.port p.portname
     ) (List.sort (fun p1 p2 -> String.compare p1.netname p2.netname) !list);
   if html then
     Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
@@ -2172,33 +2172,33 @@ let diskinfo html buf =
         fill_dir_line fill_strategy_line;
     end;
   List.iter (fun (dir, strategy) ->
-	let diskused =
-    	  match Unix32.diskused dir with
-	  | None -> Printf.sprintf "---"
-	  | Some du -> size_of_int64 du
-	in
-	let diskfree =
-    	  match Unix32.diskfree dir with
-	  | None -> Printf.sprintf "---"
-	  | Some df -> size_of_int64 df
-	in
-	let percentfree =
-    	  match Unix32.percentfree dir with
-	  | None -> Printf.sprintf "---"
-	  | Some p -> Printf.sprintf "%d%%" p
-	in
-	let filesystem = Unix32.filesystem dir in
-	if html then
-	    Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
-	      \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
-	      \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
-	    (html_mods_cntr ()) dir strategy diskused diskfree percentfree filesystem
-	else
-	  Printf.bprintf buf "%-*s|%-*s|%8s|%8s|%5s|%-s\n"
-	    (max !len_dir (!len_dir - String.length dir)) dir
-	    (max !len_strategy (!len_strategy - String.length strategy)) strategy
-	    diskused diskfree percentfree filesystem
-    	) !list;
+        let diskused =
+          match Unix32.diskused dir with
+          | None -> Printf.sprintf "---"
+          | Some du -> size_of_int64 du
+        in
+        let diskfree =
+          match Unix32.diskfree dir with
+          | None -> Printf.sprintf "---"
+          | Some df -> size_of_int64 df
+        in
+        let percentfree =
+          match Unix32.percentfree dir with
+          | None -> Printf.sprintf "---"
+          | Some p -> Printf.sprintf "%d%%" p
+        in
+        let filesystem = Unix32.filesystem dir in
+        if html then
+            Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>
+              \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
+              \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>\\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
+            (html_mods_cntr ()) dir strategy diskused diskfree percentfree filesystem
+        else
+          Printf.bprintf buf "%-*s|%-*s|%8s|%8s|%5s|%-s\n"
+            (max !len_dir (!len_dir - String.length dir)) dir
+            (max !len_strategy (!len_strategy - String.length strategy)) strategy
+            diskused diskfree percentfree filesystem
+        ) !list;
   if html then
     Printf.bprintf buf "\\</table\\>\\</td\\>\\<tr\\>\\</table\\>\\</div\\>"
 
@@ -2351,22 +2351,22 @@ let filenames_variability o list =
     let current_word = Buffer.create len in
     let rec outside_word i wl =
       if i < len then
-	if not (is_alphanum s.[i]) then outside_word (i + 1) wl
-	else begin (* start of a new word *)
-	  Buffer.add_char current_word (Char.lowercase s.[i]);
-	  inside_word (i + 1) wl
-	end
+        if not (is_alphanum s.[i]) then outside_word (i + 1) wl
+        else begin (* start of a new word *)
+          Buffer.add_char current_word (Char.lowercase s.[i]);
+          inside_word (i + 1) wl
+        end
       else wl
     and inside_word i wl =
       if i < len then 
-	if not (is_alphanum s.[i]) then begin (* end of the word *)
-	  let wl = Buffer.contents current_word :: wl in
-	  Buffer.reset current_word;
-	  outside_word i wl
-	end else begin
-	  Buffer.add_char current_word (Char.lowercase s.[i]);
-	  inside_word (i + 1) wl
-	end
+        if not (is_alphanum s.[i]) then begin (* end of the word *)
+          let wl = Buffer.contents current_word :: wl in
+          Buffer.reset current_word;
+          outside_word i wl
+        end else begin
+          Buffer.add_char current_word (Char.lowercase s.[i]);
+          inside_word (i + 1) wl
+        end
       else Buffer.contents current_word :: wl
     in
     outside_word 0 [] in
@@ -2383,27 +2383,27 @@ let filenames_variability o list =
   let score_list =
     List.map (fun fileinfo ->
       (* canonize filenames by keeping only lowercase words, and
-	 sorting them so that initial order doesn't matter;
-	 Remove duplicate canonized filenames *)
+         sorting them so that initial order doesn't matter;
+         Remove duplicate canonized filenames *)
       let fns = Array.of_list (List.fold_left (fun acc fn ->
-	let new_fn =
-	  Array.of_list (List.sort String.compare (canonized_words fn)) in
-	if List.mem new_fn acc then acc else new_fn :: acc
+        let new_fn =
+          Array.of_list (List.sort String.compare (canonized_words fn)) in
+        if List.mem new_fn acc then acc else new_fn :: acc
       ) [] fileinfo.file_names) in
 
       let nfilenames = Array.length fns in
       if nfilenames > bypass_threshold then
-	fileinfo, bypass_threshold
+        fileinfo, bypass_threshold
       else
-	let unionfind_sets = UnionFind.create_sets nfilenames in
-	for i = 0 to nfilenames - 2 do
-	  let d1 = dist fns.(i) in
-	  for j = i + 1 to nfilenames - 1 do
-	    if d1 fns.(j) < gap_threshold then
-	      UnionFind.merge_sets unionfind_sets i j
-	  done
-	done;
-	fileinfo, UnionFind.number_of_sets unionfind_sets
+        let unionfind_sets = UnionFind.create_sets nfilenames in
+        for i = 0 to nfilenames - 2 do
+          let d1 = dist fns.(i) in
+          for j = i + 1 to nfilenames - 1 do
+            if d1 fns.(j) < gap_threshold then
+              UnionFind.merge_sets unionfind_sets i j
+          done
+        done;
+        fileinfo, UnionFind.number_of_sets unionfind_sets
     ) list in
 
   (* files with most clusters at the end of results table *)
@@ -2423,9 +2423,9 @@ let filenames_variability o list =
     (List.map (fun (fileinfo, nc) ->
       let n = network_find_by_num fileinfo.file_network in
       [| 
-	Printf.sprintf "[%-s %5d]" n.network_name (fileinfo.file_num);
-	shorten fileinfo.file_name 80;
-	string_of_int nc |]
+        Printf.sprintf "[%-s %5d]" n.network_name (fileinfo.file_num);
+        shorten fileinfo.file_name 80;
+        string_of_int nc |]
     ) sorted_score_list)
 
 let print_upstats o list server =
@@ -2438,13 +2438,13 @@ let print_upstats o list server =
 
       Printf.bprintf buf "\\<div class=\\\"upstats\\\"\\>";
       match server with
-	None ->
-	  html_mods_table_one_row buf "upstatsTable" "upstats" [
-	    ("", "srh", Printf.sprintf "Session: %s uploaded | Shared(%d): %s\n"
-	    (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes)); ]
+        None ->
+          html_mods_table_one_row buf "upstatsTable" "upstats" [
+            ("", "srh", Printf.sprintf "Session: %s uploaded | Shared(%d): %s\n"
+            (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes)); ]
       | Some s -> let info = server_info s in
-	  html_mods_table_one_row buf "upstatsTable" "upstats" [
-	    ("", "srh", Printf.sprintf "%d files shared on %s (%s:%s)"
+          html_mods_table_one_row buf "upstatsTable" "upstats" [
+            ("", "srh", Printf.sprintf "%d files shared on %s (%s:%s)"
               info.G.server_published_files info.G.server_name
               (Ip.string_of_addr info.G.server_addr)
               (string_of_int info.G.server_port)); ]
@@ -2453,7 +2453,7 @@ let print_upstats o list server =
     begin
       Printf.bprintf buf "Upload statistics:\n";
       Printf.bprintf buf "Session: %s uploaded | Shared(%d): %s\n"
-	(size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes)
+        (size_of_int64 !upload_counter) !nshared_files (size_of_int64 !nshared_bytes)
     end;
 
   if use_html_mods o then
@@ -2483,67 +2483,67 @@ let print_upstats o list server =
   List.iter (fun impl ->
     if use_html_mods o then
       begin
-	let published = List.length impl.impl_shared_servers in
-	let ed2k = file_print_ed2k_link
-	  (Filename.basename impl.impl_shared_codedname)
-	  impl.impl_shared_size impl.impl_shared_id in
+        let published = List.length impl.impl_shared_servers in
+        let ed2k = file_print_ed2k_link
+          (Filename.basename impl.impl_shared_codedname)
+          impl.impl_shared_size impl.impl_shared_id in
 
-	Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"" (html_mods_cntr ());
-	(if !!html_mods_use_js_tooltips then
-	   Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
-	    (Http_server.html_real_escaped (Filename.basename (Charset.Locale.to_utf8 impl.impl_shared_codedname)))
-	    (match impl.impl_shared_file with
-	       None -> "no file info"
-	     | Some file -> match file_magic file with | None -> "no magic"
-	     | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
-	    (if impl.impl_shared_servers = [] then "" else
-	       Printf.sprintf "<br>Published on %d %s<br>%s"
-		published (if published = 1 then "server" else "servers")
-		(let listbuf = Buffer.create 100 in
-		   List.iter (fun s -> let info = server_info s in
-		     Printf.bprintf listbuf "%s (%s:%s%s)<br>"
-			info.server_name
-			(Ip.string_of_addr info.server_addr)
-			(string_of_int info.server_port)
-			(if info.server_realport <> 0
-			   then "(" ^ (string_of_int info.server_realport) ^ ")" else "")
-			) impl.impl_shared_servers;
-		 Buffer.contents listbuf))
-		!!html_mods_js_tooltips_wait
-		!!html_mods_js_tooltips_timeout
-		!!html_mods_js_tooltips_wait
-	 else Printf.bprintf buf " onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>");
+        Printf.bprintf buf "\\<tr class=\\\"dl-%d\\\"" (html_mods_cntr ());
+        (if !!html_mods_use_js_tooltips then
+           Printf.bprintf buf " onMouseOver=\\\"mOvr(this);setTimeout('popLayer(\\\\\'%s<br>%s%s\\\\\')',%d);setTimeout('hideLayer()',%d);return true;\\\" onMouseOut=\\\"mOut(this);hideLayer();setTimeout('hideLayer()',%d)\\\"\\>"
+            (Http_server.html_real_escaped (Filename.basename (Charset.Locale.to_utf8 impl.impl_shared_codedname)))
+            (match impl.impl_shared_file with
+               None -> "no file info"
+             | Some file -> match file_magic file with | None -> "no magic"
+             | Some magic -> "File type: " ^ (Http_server.html_real_escaped magic) ^ "<br>")
+            (if impl.impl_shared_servers = [] then "" else
+               Printf.sprintf "<br>Published on %d %s<br>%s"
+                published (if published = 1 then "server" else "servers")
+                (let listbuf = Buffer.create 100 in
+                   List.iter (fun s -> let info = server_info s in
+                     Printf.bprintf listbuf "%s (%s:%s%s)<br>"
+                        info.server_name
+                        (Ip.string_of_addr info.server_addr)
+                        (string_of_int info.server_port)
+                        (if info.server_realport <> 0
+                           then "(" ^ (string_of_int info.server_realport) ^ ")" else "")
+                        ) impl.impl_shared_servers;
+                 Buffer.contents listbuf))
+                !!html_mods_js_tooltips_wait
+                !!html_mods_js_tooltips_timeout
+                !!html_mods_js_tooltips_wait
+         else Printf.bprintf buf " onMouseOver=\\\"mOvr(this);return true;\\\" onMouseOut=\\\"mOut(this);\\\"\\>");
 
-	let uploaded = Int64.to_float impl.impl_shared_uploaded in
-	let size = Int64.to_float impl.impl_shared_size in
-	html_mods_td buf [
-	  ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
-	  ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
-	  ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
-	  ("", "sr", Printf.sprintf "\\<a href=\\\"preview_upload?q=%d\\\"\\>P\\</a\\>" impl.impl_shared_num);
-	  ("", "sr", (if impl.impl_shared_id = Md4.null then
-		        (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)
-		      else
-			Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
-			  ed2k (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)));
-	  ("", "sr", (if impl.impl_shared_id = Md4.null then "" else
-			Printf.sprintf "\\<a href=\\\"http://tothbenedek.hu/ed2kstats/ed2k?hash=%s\\\"\\>%s\\</a\\>
+        let uploaded = Int64.to_float impl.impl_shared_uploaded in
+        let size = Int64.to_float impl.impl_shared_size in
+        html_mods_td buf [
+          ("", "sr ar", Printf.sprintf "%d" impl.impl_shared_requests);
+          ("", "sr ar", size_of_int64 impl.impl_shared_uploaded);
+          ("", "sr ar", Printf.sprintf "%5.1f" ( if size < 1.0 then 0.0 else (uploaded *. 100.) /. size));
+          ("", "sr", Printf.sprintf "\\<a href=\\\"preview_upload?q=%d\\\"\\>P\\</a\\>" impl.impl_shared_num);
+          ("", "sr", (if impl.impl_shared_id = Md4.null then
+                        (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)
+                      else
+                        Printf.sprintf "\\<a href=\\\"%s\\\"\\>%s\\</a\\>"
+                          ed2k (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)));
+          ("", "sr", (if impl.impl_shared_id = Md4.null then "" else
+                        Printf.sprintf "\\<a href=\\\"http://tothbenedek.hu/ed2kstats/ed2k?hash=%s\\\"\\>%s\\</a\\>
 \\<a href=\\\"http://ed2k.titanesel.ws/ed2k.php?hash=%s\\\"\\>%s\\</a\\>
 \\<a href=\\\"http://bitzi.com/lookup/ed2k:%s\\\"\\>%s\\</a\\>"
                       (Md4.to_string impl.impl_shared_id) "T1"
                       (Md4.to_string impl.impl_shared_id) "T2"
                       (Md4.to_string impl.impl_shared_id) "B"));
-	  ("", "sr ar", Printf.sprintf "%d" published);
-	  ("", "sr", shared_state (as_shared impl) o);
+          ("", "sr ar", Printf.sprintf "%d" published);
+          ("", "sr", shared_state (as_shared impl) o);
         ];
-	Printf.bprintf buf "\\</tr\\>\n";
+        Printf.bprintf buf "\\</tr\\>\n";
       end
     else
       Printf.bprintf buf "%9d | %8s | %7s%% | %-50s\n"
-	(impl.impl_shared_requests)
-	(size_of_int64 impl.impl_shared_uploaded)
-	(Printf.sprintf "%3.1f" ((Int64.to_float impl.impl_shared_uploaded *. 100.) /. Int64.to_float impl.impl_shared_size))
-	(shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)
+        (impl.impl_shared_requests)
+        (size_of_int64 impl.impl_shared_uploaded)
+        (Printf.sprintf "%3.1f" ((Int64.to_float impl.impl_shared_uploaded *. 100.) /. Int64.to_float impl.impl_shared_size))
+        (shorten (Filename.basename impl.impl_shared_codedname) !!max_name_len)
   ) list;
 
   if use_html_mods o then Printf.bprintf buf "\\</table\\>\\</div\\>\\</div\\>"

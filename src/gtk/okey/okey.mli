@@ -61,46 +61,46 @@ val set_default_mask : modifier list -> unit
 val add :
     < connect : < destroy : callback: (unit -> unit) -> GtkSignal.id; .. >;
       event : GObj.event_ops; get_id : int; .. > -> 
-	?cond: (unit -> bool) -> 
-	  ?mods: modifier list -> 
-	    ?mask: modifier list -> 
-	      Gdk.keysym -> 
-		(unit -> unit) -> 
-		  unit
+        ?cond: (unit -> bool) -> 
+          ?mods: modifier list -> 
+            ?mask: modifier list -> 
+              Gdk.keysym -> 
+                (unit -> unit) -> 
+                  unit
 
 (** It calls {!Okey.add} for each given key.*)
 val add_list : 
     < connect : < destroy : callback: (unit -> unit) -> GtkSignal.id; .. >;
       event : GObj.event_ops; get_id : int; .. > -> 
-	?cond: (unit -> bool) -> 
-	  ?mods: modifier list -> 
-	    ?mask: modifier list -> 
-	      Gdk.keysym list -> 
-		(unit -> unit) -> 
-		  unit
-	      
+        ?cond: (unit -> bool) -> 
+          ?mods: modifier list -> 
+            ?mask: modifier list -> 
+              Gdk.keysym list -> 
+                (unit -> unit) -> 
+                  unit
+              
 (** Like {!Okey.add} but the previous handlers for the
    given modifiers and key are not kept.*)
 val set :
     < connect : < destroy : callback: (unit -> unit) -> GtkSignal.id; .. >;
       event : GObj.event_ops; get_id : int; .. > -> 
-	?cond: (unit -> bool) -> 
-	  ?mods: modifier list -> 
-	    ?mask: modifier list -> 
-	      Gdk.keysym -> 
-		(unit -> unit) -> 
-		  unit
+        ?cond: (unit -> bool) -> 
+          ?mods: modifier list -> 
+            ?mask: modifier list -> 
+              Gdk.keysym -> 
+                (unit -> unit) -> 
+                  unit
 
 (** It calls {!Okey.set} for each given key.*)
 val set_list : 
     < connect : < destroy : callback: (unit -> unit) -> GtkSignal.id; .. >;
       event : GObj.event_ops; get_id : int; .. > ->
-	?cond: (unit -> bool) -> 
-	  ?mods: modifier list -> 
-	    ?mask: modifier list -> 
-	      Gdk.keysym list -> 
-		(unit -> unit) -> 
-		  unit
+        ?cond: (unit -> bool) -> 
+          ?mods: modifier list -> 
+            ?mask: modifier list -> 
+              Gdk.keysym list -> 
+                (unit -> unit) -> 
+                  unit
 
 (** Remove the handlers associated to the given widget.
    This is automatically done when a widget is destroyed but
@@ -108,5 +108,5 @@ val set_list :
 val remove_widget : 
     < connect : < destroy : callback: (unit -> unit) -> GtkSignal.id; .. >;
       event : GObj.event_ops; get_id : int; .. > ->
-	unit ->
-	  unit
+        unit ->
+          unit

@@ -115,30 +115,30 @@ let client_reliability c =
 (*  match c.client_sock with
       None -> ip_reliability c.client_ip
     | Some s ->
-	try
-	  let ip = peer_ip s in
-	  if ip <> c.client_ip then begin
-	    lprintf "[WARNING] client_ip doesn't match peer_ip for client %d" (client_num c);
-	    lprint_newline ()
-	  end;
-	  ip_reliability ip
-	with _ ->
-	  lprintf "[WARNING] client disconnected, using saved client_ip";
-	  lprint_newline ();
-	  ip_reliability c.client_ip *)
+        try
+          let ip = peer_ip s in
+          if ip <> c.client_ip then begin
+            lprintf "[WARNING] client_ip doesn't match peer_ip for client %d" (client_num c);
+            lprint_newline ()
+          end;
+          ip_reliability ip
+        with _ ->
+          lprintf "[WARNING] client disconnected, using saved client_ip";
+          lprint_newline ();
+          ip_reliability c.client_ip *)
 
 
   (*
 let block_reliability b =
   let rec aux ips r n s l =
     match ips with
-	[] -> (r, n, s, l)
+        [] -> (r, n, s, l)
       | ip :: q ->
-	  match ip_reliability ip with
-	      Reliability_reliable -> aux q (r + 1) n s l
-	    | Reliability_neutral -> aux q r (n + 1) s l
-	    | Reliability_suspicious ipl ->
-		aux q r n (s + 1) (min l ipl) in
+          match ip_reliability ip with
+              Reliability_reliable -> aux q (r + 1) n s l
+            | Reliability_neutral -> aux q r (n + 1) s l
+            | Reliability_suspicious ipl ->
+                aux q r n (s + 1) (min l ipl) in
     aux b.block_contributors 0 0 0 max_int
     *)
 
@@ -180,40 +180,40 @@ let corrupted_block_detected b =
     0, List.filter (fun ip -> ip_reliability ip <> Reliability_reliable) b.block_contributors
   else r, b.block_contributors in
   let max_neighbors = (r + n + s) / 2 in
-	  List.iter (fun ip ->
+          List.iter (fun ip ->
             set_ip_reliability ip (Reliability_suspicious max_neighbors);
-	    print_reliability ip;
-	    if max_neighbors = 0 then
-	      let message = Printf.sprintf "IP %s SHOULD BE BANNED (CORRUPTED DATA)\n" (Ip.to_string ip) in
-	      CommonEvent.add_event (Console_message_event message)
-	  ) contributors
+            print_reliability ip;
+            if max_neighbors = 0 then
+              let message = Printf.sprintf "IP %s SHOULD BE BANNED (CORRUPTED DATA)\n" (Ip.to_string ip) in
+              CommonEvent.add_event (Console_message_event message)
+          ) contributors
 
 let allowed_by_reliability b c =
   let r, n, s, l = block_reliability b in
   let n = if b.block_legacy then n + 1 else n in
   match client_reliability c with
       Reliability_reliable ->
-	if s > 0 then 3
-	else if n > 0 then 2
-	else 1
+        if s > 0 then 3
+        else if n > 0 then 2
+        else 1
     | Reliability_neutral ->
-	if r > 0 then max_int
-	else if n + s + 1 > l then max_int
+        if r > 0 then max_int
+        else if n + s + 1 > l then max_int
         else if s > 0 then 4
-	else 1
+        else 1
     | Reliability_suspicious crl ->
-	if r > 0 || n > 0 then max_int
-	else if n + s + 1 > min l crl then max_int
-	else 1
+        if r > 0 || n > 0 then max_int
+        else if n + s + 1 > min l crl then max_int
+        else 1
           *)
 
 let _ =
   register_commands
     [
       "dump_reliability", "Network/Donkey", Arg_none (fun o ->
-	let buf = o.conn_buf in
-	bprint_reliability_table buf;
-	""
+        let buf = o.conn_buf in
+        bprint_reliability_table buf;
+        ""
       ), ":\t\t\tdisplay the reliability of sources";
     ]
 

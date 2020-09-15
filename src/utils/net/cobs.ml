@@ -35,16 +35,16 @@ let calcDecodedLength psrc srclen =
 let decodeData pdest psrc srclen =
   let rec iter srcpos dstpos =
      if srcpos<srclen then
-	let code = int_of_char psrc.[srcpos] in
+        let code = int_of_char psrc.[srcpos] in
         let srcpos = srcpos + 1 in
         for i = 0 to code - 2 do
-	   pdest.[dstpos+i] <- psrc.[srcpos+i]
+           pdest.[dstpos+i] <- psrc.[srcpos+i]
         done;
         let srcpos = srcpos + code - 1 in
         let dstpos = dstpos + code - 1 in
-	iter srcpos (if code<255 && srcpos<srclen  then begin
-	   pdest.[dstpos] <- '\000';
-	   dstpos+1
+        iter srcpos (if code<255 && srcpos<srclen  then begin
+           pdest.[dstpos] <- '\000';
+           dstpos+1
         end else dstpos)
   in
   iter 0 0

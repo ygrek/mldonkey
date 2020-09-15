@@ -148,7 +148,7 @@ let () =
 
   lprintf_nl "MLDonkey is working in %s" file_basedir;
   if not (Sys.file_exists file_basedir) ||
-	 not (Sys.file_exists (Filename.concat file_basedir "downloads.ini")) then begin
+         not (Sys.file_exists (Filename.concat file_basedir "downloads.ini")) then begin
     lprint_newline ();
     lprintf_nl "creating new MLDonkey base directory in %s\n" file_basedir;
     created_new_base_directory := Some file_basedir
@@ -219,24 +219,24 @@ let () =
     if Sys.file_exists pid_filename then begin
       lprintf_nl "PID file %s exists." (Filename.concat file_basedir pid_filename);
       let pid =
-	try
-	  Unix2.tryopen_read pid_filename (fun pid_ci ->
-	  int_of_string (input_line pid_ci))
+        try
+          Unix2.tryopen_read pid_filename (fun pid_ci ->
+          int_of_string (input_line pid_ci))
         with _ ->
           lprintf_nl "But it couldn't be read to check if the process still exists.";
           lprintf_nl "To avoid doing any harm, MLDonkey will now stop.";
-	  if Autoconf.windows then windows_sleep 10;
+          if Autoconf.windows then windows_sleep 10;
           exit 2
       in
       try
-	lprintf_nl "Checking whether PID %d is still used..." pid;
+        lprintf_nl "Checking whether PID %d is still used..." pid;
         Unix.kill pid 0;
-	lprintf "%s" (exit_message pid_filename);
-	exit 2
+        lprintf "%s" (exit_message pid_filename);
+        exit 2
       with (* stalled pid file, disregard it *)
       | Unix.Unix_error (Unix.ESRCH, _, _) ->
-	  lprintf_nl "Removing stalled file %s..." pid_filename;
-	  (try Sys.remove pid_filename with _ -> ())
+          lprintf_nl "Removing stalled file %s..." pid_filename;
+          (try Sys.remove pid_filename with _ -> ())
       | e -> 
           lprintf "%s" (exit_message pid_filename);
           if Autoconf.system = "mingw" then lprintf_nl
@@ -248,36 +248,36 @@ let () =
     if Sys.file_exists security_space_filename then begin
       try
         let security_space_oc =
-	  Unix.openfile security_space_filename [Unix.O_WRONLY; Unix.O_CREAT] 0o600 in
+          Unix.openfile security_space_filename [Unix.O_WRONLY; Unix.O_CREAT] 0o600 in
         Unix.lockf security_space_oc Unix.F_TLOCK 0;
         Unix.close security_space_oc;
         lprintf_nl "Removing stalled file %s..."
-	  (Filename.concat file_basedir security_space_filename);
-	begin
-	  try
-	    (try Unix.close security_space_oc with _ -> ());
+          (Filename.concat file_basedir security_space_filename);
+        begin
+          try
+            (try Unix.close security_space_oc with _ -> ());
             Sys.remove security_space_filename
           with e ->
-	    lprintf_nl "can not remove %s: %s"
-	      (Filename.concat file_basedir security_space_filename)
-	      (Printexc2.to_string e);
-	    if Autoconf.windows then windows_sleep 10;
-	    exit 2
-	end
+            lprintf_nl "can not remove %s: %s"
+              (Filename.concat file_basedir security_space_filename)
+              (Printexc2.to_string e);
+            if Autoconf.windows then windows_sleep 10;
+            exit 2
+        end
       with
-	Unix.Unix_error ((Unix.EAGAIN | Unix.EACCES), _, _) ->
+        Unix.Unix_error ((Unix.EAGAIN | Unix.EACCES), _, _) ->
           lprintf_nl "%s exists and is locked by another process."
-	    (Filename.concat file_basedir security_space_filename);
+            (Filename.concat file_basedir security_space_filename);
           lprintf "%s" (exit_message security_space_filename);
           if Autoconf.windows then windows_sleep 10;
           exit 2
       | e ->
-	  lprintf_nl "error while checking file %s: %s"
-	    (Filename.concat file_basedir security_space_filename)
-	    (Printexc2.to_string e);
+          lprintf_nl "error while checking file %s: %s"
+            (Filename.concat file_basedir security_space_filename)
+            (Printexc2.to_string e);
           lprintf "%s" (exit_message security_space_filename);
-    	  if Autoconf.windows then windows_sleep 10;
-	  exit 2
+          if Autoconf.windows then windows_sleep 10;
+          exit 2
     end
   end
 
@@ -454,23 +454,23 @@ let _ =
   option_hook allowed_ips (fun _ ->
     let new_list = ref [] in
     List.iter (fun i ->
-	let new_range =
-	  match i with
-	  | Ip.RangeSingleIp ip ->
-	    (let a, b, c, d = Ip.to_ints ip in
-	      match a = 255, b = 255, c = 255, d = 255 with
-	      |  true,  true,  true,  true -> Ip.RangeCIDR (Ip.null, 0)
-	      | false,  true,  true,  true -> Ip.RangeCIDR ((Ip.of_string (Printf.sprintf "%d.0.0.0" a)), 8)
-	      | false, false,  true,  true -> Ip.RangeCIDR ((Ip.of_string (Printf.sprintf "%d.%d.0.0" a b)), 16)
-	      | false, false, false,  true -> Ip.RangeCIDR ((Ip.of_string (Printf.sprintf "%d.%d.%d.0" a b c)), 24)
-	      | false, false, false, false -> i
-	      | _ -> i)
-	  | Ip.RangeRange (ip1, ip2) -> i
-	  | Ip.RangeCIDR (ip, shift) -> i
-	in
-	if i <> new_range then
-	  lprintf_nl "allowed_ips: converted %s to %s" (Ip.string_of_range i) (Ip.string_of_range new_range);
-	new_list := new_range :: !new_list
+        let new_range =
+          match i with
+          | Ip.RangeSingleIp ip ->
+            (let a, b, c, d = Ip.to_ints ip in
+              match a = 255, b = 255, c = 255, d = 255 with
+              |  true,  true,  true,  true -> Ip.RangeCIDR (Ip.null, 0)
+              | false,  true,  true,  true -> Ip.RangeCIDR ((Ip.of_string (Printf.sprintf "%d.0.0.0" a)), 8)
+              | false, false,  true,  true -> Ip.RangeCIDR ((Ip.of_string (Printf.sprintf "%d.%d.0.0" a b)), 16)
+              | false, false, false,  true -> Ip.RangeCIDR ((Ip.of_string (Printf.sprintf "%d.%d.%d.0" a b c)), 24)
+              | false, false, false, false -> i
+              | _ -> i)
+          | Ip.RangeRange (ip1, ip2) -> i
+          | Ip.RangeCIDR (ip, shift) -> i
+        in
+        if i <> new_range then
+          lprintf_nl "allowed_ips: converted %s to %s" (Ip.string_of_range i) (Ip.string_of_range new_range);
+        new_list := new_range :: !new_list
     ) !!allowed_ips;
     new_list := if !new_list = [] then [ Ip.localhost_range ] else List.rev !new_list;
     if !new_list <> !!allowed_ips then allowed_ips =:= !new_list;
@@ -843,13 +843,13 @@ let html_mods_vd_gfx_y_size = define_expert_option current_section ["html_mods_v
 let html_mods_vd_gfx_h_intervall = define_expert_option current_section ["html_mods_vd_gfx_h_intervall"]
   ~restart: true
   "compute values for hourly graph every 1,2,3,4,5,10,15,20,30,60 min
-	Changes to this option require a core restart."
+        Changes to this option require a core restart."
      int_option 60
 
 let html_mods_vd_gfx_h_dynamic = define_expert_option current_section ["html_mods_vd_gfx_h_dymamic"]
   "Dynamic grid width, start with 1 h/grid, maximum html_mods_vd_gfx_h_grid_time h/grid"
     bool_option true
-		
+                
 let html_mods_vd_gfx_h_grid_time = define_expert_option current_section ["html_mods_vd_gfx_h_grid_time"]
   "Max hours on time scale per grid (0 = no limit)"
     int_option 0
@@ -1877,14 +1877,14 @@ let _ =
     option_hook html_mods_vd_gfx_png (fun _ ->
       if not Autoconf.has_gd_png && !!html_mods_vd_gfx_png then html_mods_vd_gfx_png =:= false;
       if not Autoconf.has_gd_jpg && not !!html_mods_vd_gfx_png then html_mods_vd_gfx_png =:= true
-	);
-	option_hook html_mods_vd_gfx_h_intervall (fun _ -> 
-	let values = [1; 2; 3; 4; 5; 10; 15; 20; 30; 60] in 
-	let v = List.find ((<=) (min !!html_mods_vd_gfx_h_intervall 60)) values in 
-	if v <> !!html_mods_vd_gfx_h_intervall then html_mods_vd_gfx_h_intervall =:= v 
+        );
+        option_hook html_mods_vd_gfx_h_intervall (fun _ -> 
+        let values = [1; 2; 3; 4; 5; 10; 15; 20; 30; 60] in 
+        let v = List.find ((<=) (min !!html_mods_vd_gfx_h_intervall 60)) values in 
+        if v <> !!html_mods_vd_gfx_h_intervall then html_mods_vd_gfx_h_intervall =:= v 
     )
-	end
-	
+        end
+        
 let verbose_msg_clients = ref false
 let verbose_msg_raw = ref false
 let verbose_msg_clienttags = ref false
@@ -1992,22 +1992,22 @@ let _ =
   option_hook log_to_syslog (fun _ ->
     match !Printf2.syslog_oc with
       None ->
-	if !!log_to_syslog then
-	  begin
-	    Printf2.syslog_oc := (
+        if !!log_to_syslog then
+          begin
+            Printf2.syslog_oc := (
               try
                 Some (Syslog.openlog (Filename.basename Sys.argv.(0)))
               with e -> log_to_syslog =:= false;
-	        lprintf_nl "error while opening syslog %s" (Printexc2.to_string e); None);
-	    lprintf_nl "activated syslog"
-	  end
+                lprintf_nl "error while opening syslog %s" (Printexc2.to_string e); None);
+            lprintf_nl "activated syslog"
+          end
     | Some oc ->
-	if not !!log_to_syslog then
-	  begin
-	    lprintf_nl "deactivated syslog";
-	    Syslog.closelog oc;
-	    Printf2.syslog_oc := None
-	  end
+        if not !!log_to_syslog then
+          begin
+            lprintf_nl "deactivated syslog";
+            Syslog.closelog oc;
+            Printf2.syslog_oc := None
+          end
   );
   option_hook loop_delay (fun _ ->
      BasicSocket.loop_delay := (float_of_int !!loop_delay) /. 1000.;

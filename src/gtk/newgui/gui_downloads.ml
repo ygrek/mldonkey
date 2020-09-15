@@ -152,7 +152,7 @@ let save_as file b () =
     None -> ()
   | Some name -> 
           match file.data.gfile_state with
- 	      FDownloaded  -> Gui_com.send (GuiProto.SaveFile (List.hd (file.data.gfile_num), name))
+              FDownloaded  -> Gui_com.send (GuiProto.SaveFile (List.hd (file.data.gfile_num), name))
             | _  ->  Gui_com.send (GuiProto.RenameFile (List.hd (file.data.gfile_num), name))
       
   
@@ -229,15 +229,15 @@ let some_is_available f =
       
       if !!Gui_options.use_relative_availability
       then
-	match f.data.gfile_chunks with
-	| None -> false
-	| Some chunks ->
-	    String2.existsi (fun i a ->
-	      CommonGlobals.partial_chunk (VB.get chunks i) &&
-		a <> (char_of_int 0)
-	    ) avail
+        match f.data.gfile_chunks with
+        | None -> false
+        | Some chunks ->
+            String2.existsi (fun i a ->
+              CommonGlobals.partial_chunk (VB.get chunks i) &&
+                a <> (char_of_int 0)
+            ) avail
       else
-	String2.exists ((<>) (char_of_int 0)) avail
+        String2.exists ((<>) (char_of_int 0)) avail
   | _ -> false
       
 let color_opt_of_file f =
@@ -261,15 +261,15 @@ let file_availability f =
       (match f.data.gfile_chunks with
       | None -> "---"
       | Some chunks ->
-	  let rec loop i p n =
+          let rec loop i p n =
             if i < 0 then
               if n = 0 then "---"
               else Printf.sprintf "%5.1f" ((float p) /. (float n) *. 100.0)
             else 
-	      loop (i - 1)
-		(if CommonGlobals.partial_chunk (VB.get chunks i) then p + 1 
-		else p)
-		(if avail.[i] <> (char_of_int 0) then n + 1 else n) in
+              loop (i - 1)
+                (if CommonGlobals.partial_chunk (VB.get chunks i) then p + 1 
+                else p)
+                (if avail.[i] <> (char_of_int 0) then n + 1 else n) in
       loop ((String.length avail) - 1) 0 0)
   | _ -> "---"
       
@@ -292,13 +292,13 @@ let string_of_format format =
   match format with
     AVI f ->
       Printf.sprintf "AVI: %s %dx%d %g fps %d bpf"
-	f.avi_codec f.avi_width f.avi_height 
-	(float_of_int(f.avi_fps) *. 0.001) f.avi_rate
+        f.avi_codec f.avi_width f.avi_height 
+        (float_of_int(f.avi_fps) *. 0.001) f.avi_rate
   | MP3 (tag, _) ->
       let module M = Mp3tag.Id3v1 in
       Printf.sprintf "MP3: %s - %s (%d): %s"
-	tag.M.artist tag.M.album 
-	tag.M.tracknum tag.M.title
+        tag.M.artist tag.M.album 
+        tag.M.tracknum tag.M.title
   | _ -> (M.dT_tx_unknown)
 
 let max_last_seen = 100 * 24 * 3600
@@ -647,46 +647,46 @@ let get_avail_pixmap avail chunks is_file =
   | Some chunks ->
       let nchunks = VB.length chunks in
       try 
-	match avail with
-	| (_,avail) :: _ ->
+        match avail with
+        | (_,avail) :: _ ->
         
             for i = 0 to (width - 1) do
               let ind = i * (nchunks - 1) / (width - 1) in
               pixmap#put_pixmap
-		~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
-		(if is_file then
-		  match int_of_char(avail.[ind]), VB.get chunks ind with
-		  | _, (VB.State_complete | VB.State_verified) -> 
-		      color_green#pixmap
+                ~x:i ~y:0 ~xsrc:0 ~ysrc:0 ~width:1 ~height:height
+                (if is_file then
+                  match int_of_char(avail.[ind]), VB.get chunks ind with
+                  | _, (VB.State_complete | VB.State_verified) -> 
+                      color_green#pixmap
 
-		  | 0, VB.State_missing -> color_red#pixmap
+                  | 0, VB.State_missing -> color_red#pixmap
 
-		  | 0, VB.State_partial -> color_orange#pixmap
+                  | 0, VB.State_partial -> color_orange#pixmap
 
-		  | h, (VB.State_missing | VB.State_partial) (* h > 0 *) ->
+                  | h, (VB.State_missing | VB.State_partial) (* h > 0 *) ->
                       let h = 
-			if h >= !!O.availability_max then 0
-			else (!!O.availability_max - h) in
+                        if h >= !!O.availability_max then 0
+                        else (!!O.availability_max - h) in
                       let color_blue = !color_blue_relative.(h) in
                       color_blue#pixmap
-		else
-		  match int_of_char(avail.[ind]), VB.get chunks ind with
-		  | 0, VB.State_verified -> color_orange#pixmap
+                else
+                  match int_of_char(avail.[ind]), VB.get chunks ind with
+                  | 0, VB.State_verified -> color_orange#pixmap
 
-		  | 0, (VB.State_missing | VB.State_partial |
-			VB.State_complete) -> 
-		      color_red#pixmap
+                  | 0, (VB.State_missing | VB.State_partial |
+                        VB.State_complete) -> 
+                      color_red#pixmap
 
-		  | _, (VB.State_complete | VB.State_verified) ->
-		      (* h > 0 *) 
-		      color_black#pixmap
+                  | _, (VB.State_complete | VB.State_verified) ->
+                      (* h > 0 *) 
+                      color_black#pixmap
 
-		  | _, (VB.State_missing | VB.State_partial) ->
-		      (* h > 0 *)
-		      color_green#pixmap)
+                  | _, (VB.State_missing | VB.State_partial) ->
+                      (* h > 0 *)
+                      color_green#pixmap)
             done;
             pixmap
-	| _ -> raise Not_found  
+        | _ -> raise Not_found  
   with _ ->
       begin
         for i = 0 to (width - 1) do
@@ -1094,8 +1094,8 @@ class box_downloads wl_status () =
       try
         let (row, fi) = self#find_file [num] in
         decr ndownloads;
-	if fi.data.gfile_state = FDownloaded then
-	  decr ndownloaded;
+        if fi.data.gfile_state = FDownloaded then
+          decr ndownloaded;
         self#update_wl_status ;
         self#remove_file fi row;
       with
@@ -1113,7 +1113,7 @@ class box_downloads wl_status () =
       with
         Not_found ->
           incr ndownloads;
-	  incr ndownloaded;
+          incr ndownloaded;
           self#update_wl_status ;
           let fi = {data = self#file_to_gui_file f; children = []} in
           self#add_item fi
@@ -1123,7 +1123,7 @@ class box_downloads wl_status () =
       try
         let (row, fi) = self#find_file [f.file_num] in
         decr ndownloaded;
-	decr ndownloads;
+        decr ndownloads;
         self#update_wl_status ;
         self#remove_file fi row
       with
@@ -1517,9 +1517,9 @@ class pane_downloads () =
       |	FileShared ->
          dls#h_removed f
       |	FilePaused | FileQueued | FileAborted _ -> 
-	  dls#h_paused f
+          dls#h_paused f
       | FileDownloading ->
-	  dls#h_downloading f
+          dls#h_downloading f
 
     method h_file_availability = dls#h_file_availability
     method h_file_age = dls#h_file_age

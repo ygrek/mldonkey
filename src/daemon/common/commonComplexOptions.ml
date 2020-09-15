@@ -69,16 +69,16 @@ module FileOption = struct
       match v with
         Options.Module assocs ->
           let get_value name conv = conv (List.assoc name assocs) in
-	  let get_value_nil name conv =
-	    try conv (List.assoc name assocs) with Not_found -> [] in
+          let get_value_nil name conv =
+            try conv (List.assoc name assocs) with Not_found -> [] in
           let filename = get_value "file_filename" value_to_string in
           let network = try get_value "file_network" value_to_string
             with _ -> "Donkey" in
           let network = 
             try network_find_by_name network with e ->
                 lprintf_nl
-		  "Error %s for network %s while parsing file %s"
-		    (Printexc2.to_string e) network filename;
+                  "Error %s for network %s while parsing file %s"
+                    (Printexc2.to_string e) network filename;
                 lprintf_nl "This core is lacking support for network %s, exiting" network;
                 exit_properly 70
           in
@@ -92,50 +92,50 @@ module FileOption = struct
             with _ -> Int64.zero
           in
           
-	  let file_user =
-	    try
-	      let u = get_value "file_owner" value_to_string in
-		begin
-		  try
-		    user2_user_find u
-		  with Not_found ->
-		    lprintf_nl "file_owner %s of %s does not exist, changing to %s"
-		      u filename (admin_user ()).user_name;
-		    admin_user ()
-		end
-	    with Not_found ->
-		lprintf_nl "file_owner of %s is empty, changing to %s"
-		  filename (admin_user ()).user_name;
-		admin_user ()
-	  in
+          let file_user =
+            try
+              let u = get_value "file_owner" value_to_string in
+                begin
+                  try
+                    user2_user_find u
+                  with Not_found ->
+                    lprintf_nl "file_owner %s of %s does not exist, changing to %s"
+                      u filename (admin_user ()).user_name;
+                    admin_user ()
+                end
+            with Not_found ->
+                lprintf_nl "file_owner of %s is empty, changing to %s"
+                  filename (admin_user ()).user_name;
+                admin_user ()
+          in
 
-	  let file_group =
-	    let dgroup = user2_print_user_default_group file_user in
-	    try
-	      match (get_value "file_group" value_to_stringoption) with
-		None -> None
-	      | Some g ->
-		  begin
-		    try
-		      let g = user2_group_find g in
-		      if List.mem g file_user.user_groups then
-		        Some g
-		      else
-			begin
-			  lprintf_nl "file_owner %s is not member of file_group %s, changing file_group of %s to user_default_group %s"
-			    file_user.user_name g.group_name filename dgroup;
-			  file_user.user_default_group
-			end
-		    with Not_found ->
-		      lprintf_nl "file_group %s of %s not found, changing to user_default_group %s of user %s"
-			g filename dgroup file_user.user_name;
-		      file_user.user_default_group
-		  end
-	    with Not_found ->
-		lprintf_nl "file_group of %s is empty, changing to user_default_group %s of user %s"
-		  filename dgroup file_user.user_name;
-		file_user.user_default_group
-	  in
+          let file_group =
+            let dgroup = user2_print_user_default_group file_user in
+            try
+              match (get_value "file_group" value_to_stringoption) with
+                None -> None
+              | Some g ->
+                  begin
+                    try
+                      let g = user2_group_find g in
+                      if List.mem g file_user.user_groups then
+                        Some g
+                      else
+                        begin
+                          lprintf_nl "file_owner %s is not member of file_group %s, changing file_group of %s to user_default_group %s"
+                            file_user.user_name g.group_name filename dgroup;
+                          file_user.user_default_group
+                        end
+                    with Not_found ->
+                      lprintf_nl "file_group %s of %s not found, changing to user_default_group %s of user %s"
+                        g filename dgroup file_user.user_name;
+                      file_user.user_default_group
+                  end
+            with Not_found ->
+                lprintf_nl "file_group of %s is empty, changing to user_default_group %s of user %s"
+                  filename dgroup file_user.user_name;
+                file_user.user_default_group
+          in
 
           let file = network_file_of_option network file_size 
               file_state file_user file_group assocs in
@@ -158,8 +158,8 @@ module FileOption = struct
             with _ -> ());
 
           (try
-	    List.iter (fun s -> add_file_filenames file s)
-	      (get_value_nil "file_filenames" (value_to_list value_to_string))
+            List.iter (fun s -> add_file_filenames file s)
+              (get_value_nil "file_filenames" (value_to_list value_to_string))
             with _ -> ());
 
           let priority = try get_value "file_priority" value_to_int 
@@ -184,8 +184,8 @@ module FileOption = struct
         ("file_priority", int_to_value (file_priority file)) ::
         ("file_state", state_to_value (file_state file)) ::
         ("file_filename", string_to_value (file_best_name file)) ::
-	("file_filenames", List
-	(List.map string_to_value impl.impl_file_filenames)) ::
+        ("file_filenames", List
+        (List.map string_to_value impl.impl_file_filenames)) ::
         ("file_age", IntValue (Int64.of_int impl.impl_file_age)) ::
         ("file_release", bool_to_value impl.impl_file_release) ::
         ("file_owner", string_to_value (file_owner file).user_name) ::
@@ -1013,9 +1013,9 @@ let incoming_dir usedir ?user ?needed_space ?network () =
     let module U = Unix.LargeFile in
     try
       List.find (fun d ->
-	let dirname = compute_dir_name d.shdir_dirname in
+        let dirname = compute_dir_name d.shdir_dirname in
 (* check if temp_directory and incoming are on different partitions *)
-	try
+        try
           if (U.stat dirname).U.st_dev <> (U.stat !!temp_directory).U.st_dev then
             begin
               match needed_space with
@@ -1023,10 +1023,10 @@ let incoming_dir usedir ?user ?needed_space ?network () =
               | Some needed_space ->
                   match Unix32.diskfree dirname with
                     Some v -> v >= needed_space
-	          | _ -> true
+                  | _ -> true
             end
           else true
-	with _ -> true
+        with _ -> true
         ) directories
     with Not_found -> raise Incoming_full;
   in
@@ -1117,9 +1117,9 @@ let backup_zip archive files =
         List.iter (fun file -> try
           let module U = Unix.LargeFile in
           let s = U.stat file in
-	  Zip.copy_file_to_entry file oc ~level:9 ~mtime:s.U.st_mtime file
-	with e ->
-	  failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) file)
+          Zip.copy_file_to_entry file oc ~level:9 ~mtime:s.U.st_mtime file
+        with e ->
+          failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) file)
       ) files))
   with e ->
     failwith (Printf.sprintf "Zip: error %s in %s" (Printexc2.to_string e) archive)
@@ -1131,39 +1131,39 @@ let backup_tar archive files =
   Unix2.tryopen_umask 0o066 (fun _old_umask ->
     Unix2.tryopen_write_tar ~compress:`Gzip archive (fun otar ->
       List.iter (fun arg -> try
-	let header, s =
-	  Unix2.tryopen_read_bin arg (fun ic ->
-	    let stat = Unix.stat arg in
-	    let size = stat.Unix.st_size in
-	    if size > Sys.max_string_length then
-	      failwith (Printf.sprintf
+        let header, s =
+          Unix2.tryopen_read_bin arg (fun ic ->
+            let stat = Unix.stat arg in
+            let size = stat.Unix.st_size in
+            if size > Sys.max_string_length then
+              failwith (Printf.sprintf
                   "Tar: file %s too big, system limit %d byte, use .zip to avoid this limit"
                     arg Sys.max_string_length);
-	    let header = 
-	      { Tar.t_name = arg;
-	      t_mode = stat.Unix.st_perm;
-	      t_uid = stat.Unix.st_uid;
-	      t_gid = stat.Unix.st_gid;
-	      t_size = stat.Unix.st_size;
-	      t_mtime = Int32.of_float stat.Unix.st_mtime;
-	      t_chksum = 0;
-	      t_typeflag = REGULAR;
-	      t_linkname = "";
-	      t_format = POSIX_FORMAT;
-	      t_uname = "";
-	      t_gname = "";
-	      t_devmajor = 0;
-	      t_devminor = 0;
-	      t_prefix = "";
-	      t_gnu = None;} in
-	    let s = String.create size in
-	    Pervasives.really_input ic s 0 size;
-	    header, s) in
-	Tar.output otar header s
+            let header = 
+              { Tar.t_name = arg;
+              t_mode = stat.Unix.st_perm;
+              t_uid = stat.Unix.st_uid;
+              t_gid = stat.Unix.st_gid;
+              t_size = stat.Unix.st_size;
+              t_mtime = Int32.of_float stat.Unix.st_mtime;
+              t_chksum = 0;
+              t_typeflag = REGULAR;
+              t_linkname = "";
+              t_format = POSIX_FORMAT;
+              t_uname = "";
+              t_gname = "";
+              t_devmajor = 0;
+              t_devminor = 0;
+              t_prefix = "";
+              t_gnu = None;} in
+            let s = String.create size in
+            Pervasives.really_input ic s 0 size;
+            header, s) in
+        Tar.output otar header s
       with
       | e ->
-	  failed_files := arg :: !failed_files;
-	  lprintf_nl "Tar: skipping %s, error %s" arg (Printexc2.to_string e)
+          failed_files := arg :: !failed_files;
+          lprintf_nl "Tar: skipping %s, error %s" arg (Printexc2.to_string e)
       ) files
     )
   );
@@ -1176,9 +1176,9 @@ let backup_options () =
   let backup_prefix = "backup-" in
   let old_backups = List.rev (List.sort (fun o -> compare o)
     (List.filter (fun o -> (
-	String.lowercase (Filename2.extension o) = ".tar.gz"
-	|| String.lowercase (Filename2.extension o) = ".zip")
-	  && String.sub o 0 (String.length backup_prefix) = backup_prefix)
+        String.lowercase (Filename2.extension o) = ".tar.gz"
+        || String.lowercase (Filename2.extension o) = ".zip")
+          && String.sub o 0 (String.length backup_prefix) = backup_prefix)
     (Unix2.list_directory "old_config")))
   in
   List.iter (fun s ->
@@ -1200,9 +1200,9 @@ let backup_options () =
       in
       let files =
         List.sort (fun o -> compare o) (List.filter (fun o ->
-	  String.lowercase (Filename2.last_extension o) = ".ini"
-	  && o <> "file_sources.ini")
-	    (Unix2.list_directory file_basedir))
+          String.lowercase (Filename2.last_extension o) = ".ini"
+          && o <> "file_sources.ini")
+            (Unix2.list_directory file_basedir))
       in
       begin
         match (Filename2.last_extension archive) with

@@ -375,7 +375,7 @@ let add_file_names (table : GPack.table) f top =
     (fun _ ->
       if entry#text <> "" then
         match f.g_file_state with
- 	    FileDownloaded  -> GuiCom.send (GuiProto.SaveFile (f.g_file_num, entry#text))
+            FileDownloaded  -> GuiCom.send (GuiProto.SaveFile (f.g_file_num, entry#text))
           | _  ->  GuiCom.send (GuiProto.RenameFile (f.g_file_num, entry#text))
   ));
   ignore (view#selection#connect#after#changed ~callback:

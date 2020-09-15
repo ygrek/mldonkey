@@ -84,8 +84,8 @@ let encode_with_options b64 equal s pos len linelen crlf =
         q := !q + 4;
         if !q + 4 > linelen then begin
 (* The next 4 characters won't fit on the current line. So insert
-	   * a line ending.
-	   *)
+           * a line ending.
+           *)
             if crlf then begin
                 t.[ !j ] <- '\013';
                 t.[ !j+1 ] <- '\010';

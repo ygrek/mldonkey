@@ -127,18 +127,18 @@ let rec form_of_entry f_submit qe =
       let (w,_,f) = form_of_entry f_submit qe in
       wf#add w;
       (wf#coerce, true, QF_MODULE f)
-	
+        
   
   | Q_FORMAT (label, v) ->
       let hbox = GPack.hbox () in
       let wl = GMisc.label ~text: (label^":")
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
       in
       let wcombo = GEdit.combo
-	  ~popdown_strings: [""; "avi"; "mp3"]
-	  ~value_in_list: false
-	  ~ok_if_empty: true  
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
+          ~popdown_strings: [""; "avi"; "mp3"]
+          ~value_in_list: false
+          ~ok_if_empty: true  
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
       in
       wcombo#entry#set_text v;
       (hbox#coerce, false, QF_FORMAT wcombo#entry)
@@ -146,14 +146,14 @@ let rec form_of_entry f_submit qe =
   | Q_MEDIA (label, v) ->
       let hbox = GPack.hbox () in
       let wl = GMisc.label ~text: (label^":")
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
       in
       let wcombo = GEdit.combo
-	  ~popdown_strings: [""; "Audio"; "Video"; "Program"; 
-			      "Image"; "Documentation"; "Collection"]
-	  ~value_in_list: false
-	  ~ok_if_empty: true  
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
+          ~popdown_strings: [""; "Audio"; "Video"; "Program"; 
+                              "Image"; "Documentation"; "Collection"]
+          ~value_in_list: false
+          ~ok_if_empty: true  
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
       in
       wcombo#entry#set_text v;
       (hbox#coerce, false, QF_MEDIA wcombo#entry)
@@ -161,13 +161,13 @@ let rec form_of_entry f_submit qe =
   | Q_COMBO (label, default, args) ->
       let hbox = GPack.hbox () in
       let wl = GMisc.label ~text: (label^":")
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
       in
       let wcombo = GEdit.combo
-	  ~popdown_strings: args
-	  ~value_in_list: true
-	  ~ok_if_empty: true  
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
+          ~popdown_strings: args
+          ~value_in_list: true
+          ~ok_if_empty: true  
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
       in
       wcombo#entry#set_text default;
       (hbox#coerce, false, QF_COMBO wcombo#entry)
@@ -175,30 +175,30 @@ let rec form_of_entry f_submit qe =
   | Q_MP3_BITRATE (label, v) ->
       let hbox = GPack.hbox () in
       let wl = GMisc.label ~text: (label^":")
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
       in
       let wcombo = GEdit.combo
-	  ~popdown_strings: [""; "64"; "96"; "128"; "160"; "192"]
-	  ~value_in_list: false
+          ~popdown_strings: [""; "64"; "96"; "128"; "160"; "192"]
+          ~value_in_list: false
           ~ok_if_empty: true  
         ~width: 60
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) () 
       in
       wcombo#entry#set_text v;
       (hbox#coerce, false, QF_MP3_BITRATE wcombo#entry)
-	
+        
   | Q_MINSIZE (label, v) ->
       let hbox = GPack.hbox () in
       let wl = GMisc.label ~text: (label^":")
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
       in
       let we = GEdit.entry ~width: 100 ~packing: (hbox#pack ~padding: 2 ~expand: false) () in
       let wcombo = GEdit.combo
-	  ~popdown_strings: ["" ; "Mo"; "ko"]
-	  ~value_in_list: false
-	  ~ok_if_empty: true
-	  ~width: 60
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false ~fill: false) () 
+          ~popdown_strings: ["" ; "Mo"; "ko"]
+          ~value_in_list: false
+          ~ok_if_empty: true
+          ~width: 60
+          ~packing: (hbox#pack ~padding: 2 ~expand: false ~fill: false) () 
       in
       we#set_text v;
       (hbox#coerce, false, QF_MINSIZE (we, wcombo#entry))
@@ -206,15 +206,15 @@ let rec form_of_entry f_submit qe =
   | Q_MAXSIZE (label, v) ->
       let hbox = GPack.hbox () in
       let wl = GMisc.label ~text: (label^":")
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
       in
       let we = GEdit.entry ~width: 100 ~packing: (hbox#pack ~padding: 2 ~expand: false) () in
       let wcombo = GEdit.combo
-	  ~popdown_strings: ["" ; "Mo"; "ko"]
-	  ~value_in_list: false
-	  ~ok_if_empty: true
-	  ~width: 60
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false ~fill: false) () 
+          ~popdown_strings: ["" ; "Mo"; "ko"]
+          ~value_in_list: false
+          ~ok_if_empty: true
+          ~width: 60
+          ~packing: (hbox#pack ~padding: 2 ~expand: false ~fill: false) () 
       in
       we#set_text v;
       (hbox#coerce, false, QF_MAXSIZE (we, wcombo#entry))
@@ -225,20 +225,20 @@ let rec form_of_entry f_submit qe =
   | Q_MP3_ALBUM (label, v) ->
       let hbox = GPack.hbox () in
       let wl = GMisc.label ~text: (label^":")
-	  ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
+          ~packing: (hbox#pack ~padding: 2 ~expand: false) ()
       in
       let we = GEdit.entry ~packing: (hbox#pack ~padding: 2 ~expand: false) () in
       Okey.add we ~mods: [] GdkKeysyms._Return f_submit;
       we#set_text v;
       (hbox#coerce, false, (form_leaf qe we))
-	
+        
   | Q_HIDDEN le ->
       let vbox = GPack.vbox () in
       vbox#misc#hide ();
       let l = List.map (form_of_entry f_submit) le in
       List.iter
-	(fun (w, expand, form) -> vbox#pack ~padding: 2 ~expand w)
-	l;
+        (fun (w, expand, form) -> vbox#pack ~padding: 2 ~expand w)
+        l;
       (vbox#coerce, false, 
        QF_HIDDEN (vbox, List.map (fun (_,_,f) -> f) l))
 
@@ -252,7 +252,7 @@ let rec hide_or_show show qf =
       hide_or_show show qf2
   | QF_MODULE qf ->
       hide_or_show show qf
-	
+        
   | QF_KEYWORDS _
   | QF_MINSIZE _
   | QF_MAXSIZE _

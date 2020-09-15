@@ -55,9 +55,9 @@ let _ =
         | Some (job, fd) ->
             if job_done job then begin
                 if !verbose_md4 then lprintf_nl "Finished %s job %s %Ld %Ld"
-		  (match job.job_method with
-		    MD5 -> "MD5" | TIGER -> "TIGER" | SHA1 -> "SHA1" | MD4 -> "MD4")
-		  job.job_name job.job_begin job.job_len;
+                  (match job.job_method with
+                    MD5 -> "MD5" | TIGER -> "TIGER" | SHA1 -> "SHA1" | MD4 -> "MD4")
+                  job.job_name job.job_begin job.job_len;
                 current_job := None;
                 Unix.close fd;
                 (try job.job_handler job with e ->

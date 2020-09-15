@@ -193,7 +193,7 @@ the FasttrackSupernode module, and get rid of it. *)
               let file = Hashtbl.find files_by_uid meta.M.meta_hash in
               let c = new_client fuser.user_kind in
               add_download file c ()(* (FileByUrl url) *);
-	      add_file_filenames (as_file file) result_name
+              add_file_filenames (as_file file) result_name
 
             with _ -> ()
         ) results

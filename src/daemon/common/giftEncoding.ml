@@ -142,7 +142,7 @@ let translate gui t =
      SOURCE* { 
         user (username)
         url (url)
-	statusgrl (status
+        statusgrl (status
         status (protocol status)
         start (chunk start) 
         transmit (chunk transmit)

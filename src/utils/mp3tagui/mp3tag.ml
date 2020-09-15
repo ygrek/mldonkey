@@ -30,7 +30,7 @@ module Id3v1 = struct
       mutable tracknum: int; 
       mutable genre: int 
     }
-	
+        
   let has_tag = Mp3_tag.Id3v1.has_tag
   let read = Mp3_tag.Id3v1.read_tag
   let write t f = Mp3_tag.Id3v1.write_tag f t

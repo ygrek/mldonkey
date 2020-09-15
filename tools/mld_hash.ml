@@ -192,10 +192,10 @@ let aich_hash side nchunks f_hashchunk =
       else
         let p, q = n // 2L, Int64.rem n 2L in
         aux Left (if q = 0L || side = Right then p else p ++ 1L) next_leaf
-	  (fun left_hash next_leaf ->
-	     aux Right (if q = 0L || side = Left then p else p ++ 1L) next_leaf
-	       (fun right_hash next_leaf ->
-		  cont (combine_sha1 left_hash right_hash) next_leaf)) in
+          (fun left_hash next_leaf ->
+             aux Right (if q = 0L || side = Left then p else p ++ 1L) next_leaf
+               (fun right_hash next_leaf ->
+                  cont (combine_sha1 left_hash right_hash) next_leaf)) in
     aux side n 0L (fun root_hash number_of_leaves -> root_hash)
   in
   build_tree nchunks
@@ -504,7 +504,7 @@ let _ =
       | "bp" -> bitprint_filename filename
       | _ -> 
           ed2k_hash_filename filename;
-	  aich_hash_filename filename;
+          aich_hash_filename filename;
           sig2dat_hash_filename filename;
           bitprint_filename filename
   ) (_s " <filenames> : compute hashes of filenames");

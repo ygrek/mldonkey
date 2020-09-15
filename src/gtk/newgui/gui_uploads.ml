@@ -303,7 +303,7 @@ class upstats_box () =
         ~icon: M.o_xpm_add_shared_directory
         ~callback: (fun _ -> 
           let module C = Configwin in
-	  let prio = ref 0 in
+          let prio = ref 0 in
           let dir = ref "" in
           let params = [
               C.string ~f: (fun p -> prio := int_of_string(p)) (M.uT_lb_priority) "0";

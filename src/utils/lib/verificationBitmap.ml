@@ -1,7 +1,7 @@
 type t = string
 type part_state = 
     State_missing | State_partial | State_complete | State_verified
-	
+        
 let state_to_char = function
   | State_missing -> '0'
   | State_partial -> '1'

@@ -662,7 +662,7 @@ let can_read_handler t sock max_len =
 (*        lprintf "Unix.read %d/%d/%d\n"  (String.length b.buf) (b.pos + b.len) can_read;  *)
         Unix.read (fd sock) buffer buffer_pos can_read;
 
-	
+        
       with
         Unix.Unix_error((Unix.EWOULDBLOCK | Unix.EAGAIN), _,_) as e -> raise e
       | e ->
@@ -1390,7 +1390,7 @@ let connect token name host port handler =
         t
     | Unix.Unix_error (Unix.ENETUNREACH,_,_) as e ->
         (* log nothing here, but later in donkeyClient.ml *)
-	close t Closed_connect_failed;
+        close t Closed_connect_failed;
         raise e
     | e ->
         close t Closed_connect_failed;

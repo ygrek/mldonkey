@@ -625,12 +625,12 @@ let write buf t =
           QueryIDReplyUdp.write buf t
 
       | EmulePortTestReq ->
-	  buf_int8 buf 2;
-	  buf_int8 buf 0;
-	  buf_int8 buf 0;
-	  buf_int8 buf 0;
-	  buf_int8 buf 0xfe;
-	  buf_int8 buf 0x31
+          buf_int8 buf 2;
+          buf_int8 buf 0;
+          buf_int8 buf 0;
+          buf_int8 buf 0;
+          buf_int8 buf 0xfe;
+          buf_int8 buf 0x31
 
       | EmuleQueueFullUdpReq
       | EmuleFileNotFoundUdpReq

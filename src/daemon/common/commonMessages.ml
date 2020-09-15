@@ -456,24 +456,24 @@ function _rObj (s,ar) {
 }
 // http://slayeroffice.com/code/functions/so_getText.html
 function so_getText(obj) {
-	if(obj.textContent) return obj.textContent;
-	if (obj.nodeType == 3) return obj.data;
-	var txt = new Array(), i=0;
-	while(obj.childNodes[i]) {
-		txt[txt.length] = so_getText(obj.childNodes[i]);
-		i++;
-	}
+        if(obj.textContent) return obj.textContent;
+        if (obj.nodeType == 3) return obj.data;
+        var txt = new Array(), i=0;
+        while(obj.childNodes[i]) {
+                txt[txt.length] = so_getText(obj.childNodes[i]);
+                i++;
+        }
   return txt.join(\"\");
 }
 function _tabCreateArray(obj,st,total){
-	var tb=obj.parentNode.parentNode;
-	var rw=obj.parentNode.parentNode.rows;
-	var _nRows=rw.length-total;
-	var _tabS=new Array(_nRows-1);
-	var _nCells = rw.item(0).cells.length;
-	for(var i=1;i<_nRows;i++){
-	var _raw = so_getText(rw.item(i).cells.item(obj.cellIndex)); //.innerHTML;
-	if (st==1) {
+        var tb=obj.parentNode.parentNode;
+        var rw=obj.parentNode.parentNode.rows;
+        var _nRows=rw.length-total;
+        var _tabS=new Array(_nRows-1);
+        var _nCells = rw.item(0).cells.length;
+        for(var i=1;i<_nRows;i++){
+        var _raw = so_getText(rw.item(i).cells.item(obj.cellIndex)); //.innerHTML;
+        if (st==1) {
             var _regexp = /[TGMk]$/;
             _raw = _raw.replace(/\\(/gi, \"\");
             if (_raw.indexOf(\":\") != -1) { _raw = _raw.substring(2,99); }
@@ -485,45 +485,45 @@ function _tabCreateArray(obj,st,total){
                case \"T\": _raw = parseFloat(_raw) * 1024 * 1024 * 1024 * 1024; break;
                }
             }
-	}
-	_tabS[i-1]= new _rObj(_raw,rw.item(i).cloneNode(true));
-	}
-	if (st==1) { _tabS.sort(_cmpFloat); }
-	else { _tabS.sort(_cmpTxt); }
-	if (!_tabMode) {_tabS.reverse()}
-	for(var i=0;i<_nRows-1;i++){
-			var tr = _tabS[i].ar.cloneNode(true);
-			var oChild=tb.rows.item(i+1);
-			if (i % 2 == 0) { tr.className = 'dl-1'; }
-		               else { tr.className = 'dl-2'; }
-			tb.replaceChild(tr,oChild);
-	}
+        }
+        _tabS[i-1]= new _rObj(_raw,rw.item(i).cloneNode(true));
+        }
+        if (st==1) { _tabS.sort(_cmpFloat); }
+        else { _tabS.sort(_cmpTxt); }
+        if (!_tabMode) {_tabS.reverse()}
+        for(var i=0;i<_nRows-1;i++){
+                        var tr = _tabS[i].ar.cloneNode(true);
+                        var oChild=tb.rows.item(i+1);
+                        if (i % 2 == 0) { tr.className = 'dl-1'; }
+                               else { tr.className = 'dl-2'; }
+                        tb.replaceChild(tr,oChild);
+        }
 
 }
 function _cmpTxt(a,b) {
-	if (_tabMode) {
-		if (a.s==\"\") { if (b.s !=\"\") { return 1;} }
-		if (b.s==\"\") { if (a.s !=\"\") { return -1;} }
-	}
-	if (a.s.toUpperCase() < b.s.toUpperCase()) {return -1;}
-	if (a.s.toUpperCase() > b.s.toUpperCase()) {return 1;}
-	return 0;
+        if (_tabMode) {
+                if (a.s==\"\") { if (b.s !=\"\") { return 1;} }
+                if (b.s==\"\") { if (a.s !=\"\") { return -1;} }
+        }
+        if (a.s.toUpperCase() < b.s.toUpperCase()) {return -1;}
+        if (a.s.toUpperCase() > b.s.toUpperCase()) {return 1;}
+        return 0;
 }
 function _cmpFloat(a,b) {
-	if (!_tabMode) {
-		if (a.s==\"\") { if (b.s !=\"\") { return -1;} }
-		if (b.s==\"\") { if (a.s !=\"\") { return 1;} }
-	}
-	if (isNaN(parseFloat(a.s))) {return 1;}
-	if (isNaN(parseFloat(b.s))) {return -1;}
-	return (parseFloat(b.s) - parseFloat(a.s));
+        if (!_tabMode) {
+                if (a.s==\"\") { if (b.s !=\"\") { return -1;} }
+                if (b.s==\"\") { if (a.s !=\"\") { return 1;} }
+        }
+        if (isNaN(parseFloat(a.s))) {return 1;}
+        if (isNaN(parseFloat(b.s))) {return -1;}
+        return (parseFloat(b.s) - parseFloat(a.s));
 }
 function _tabSort(obj,st,total){
-	if (_tabLast==obj) {_tabMode=!(_tabMode);}
-	else {_tabMode=true;}
-	_tabCreateArray(obj,st,total);
-	_tabLast=obj;
-	return _tabMode;
+        if (_tabLast==obj) {_tabMode=!(_tabMode);}
+        else {_tabMode=true;}
+        _tabCreateArray(obj,st,total);
+        _tabLast=obj;
+        return _tabMode;
 }
 function _cmdLine(){
 top.fstatus.document.open();
@@ -551,34 +551,34 @@ function popLayer(a){
 if (navigator.family == \"gecko\") {pad=\"0\"; bord=\"1 bordercolor=black\";}
 else {pad=\"1\"; bord=\"0\";}
 desc = \"<table cellspacing=0 cellpadding=\"+pad+\" border=\"+bord+\"  bgcolor=000000><tr><td>\\n\"
-	+\"<table cellspacing=0 cellpadding=10 border=0 width=100%><tr><td bgcolor=#C1CADE><center><font size=-1>\\n\"
-	+a
-	+\"\\n</td></tr></table>\\n\"
-	+\"</td></tr></table>\";
+        +\"<table cellspacing=0 cellpadding=10 border=0 width=100%><tr><td bgcolor=#C1CADE><center><font size=-1>\\n\"
+        +a
+        +\"\\n</td></tr></table>\\n\"
+        +\"</td></tr></table>\";
 if(navigator.family ==\"nn4\") {
-	document.object1.document.write(desc);
-	document.object1.document.close();
-	document.object1.left=x+15;
-	document.object1.top=y-5;
-	}
+        document.object1.document.write(desc);
+        document.object1.document.close();
+        document.object1.left=x+15;
+        document.object1.top=y-5;
+        }
 else if(navigator.family ==\"ie4\"){
-	object1.innerHTML=desc;
-	object1.style.pixelLeft=x+15;
-	object1.style.pixelTop=y-5;
-	}
+        object1.innerHTML=desc;
+        object1.style.pixelLeft=x+15;
+        object1.style.pixelTop=y-5;
+        }
 else if(navigator.family ==\"gecko\"){
-	document.getElementById(\"object1\").innerHTML=desc;
-	document.getElementById(\"object1\").style.left=x+15;
-	document.getElementById(\"object1\").style.top=y-5;
-	}
+        document.getElementById(\"object1\").innerHTML=desc;
+        document.getElementById(\"object1\").style.left=x+15;
+        document.getElementById(\"object1\").style.top=y-5;
+        }
 }
 
 function hideLayer(){
 if (overdiv == \"0\") {
-	if(navigator.family ==\"nn4\") {eval(document.object1.top=\"-500\");}
-	else if(navigator.family ==\"ie4\"){object1.innerHTML=\"\";}
-	else if(navigator.family ==\"gecko\") {document.getElementById(\"object1\").style.top=\"-500\";}
-	}
+        if(navigator.family ==\"nn4\") {eval(document.object1.top=\"-500\");}
+        else if(navigator.family ==\"ie4\"){object1.innerHTML=\"\";}
+        else if(navigator.family ==\"gecko\") {document.getElementById(\"object1\").style.top=\"-500\";}
+        }
 }
 
 var isNav = (navigator.appName.indexOf(\"Netscape\") !=-1);
@@ -603,14 +603,14 @@ function dllink() {
 }
 
 function servers() {
-	var l = prompt( \"enter link to server.met for import\", \"\" );
-	if( l != null ) {
-		var f = document.forms[\"cmdFormular\"];
-		var t = f.elements[\"q\"].value;
-		f.elements[\"q\"].value = \"servers \" + l;
-		f.submit();
-		f.elements[\"q\"].value = t;
-	}
+        var l = prompt( \"enter link to server.met for import\", \"\" );
+        if( l != null ) {
+                var f = document.forms[\"cmdFormular\"];
+                var t = f.elements[\"q\"].value;
+                f.elements[\"q\"].value = \"servers \" + l;
+                f.submit();
+                f.elements[\"q\"].value = t;
+        }
 }
 
 function track_changed(obj)
@@ -2022,7 +2022,7 @@ let load_message_file () =
    Users can set _load_message_section true if they want to modify and use their own.
    (reload_messages command)
 *)
-	if (not !!CommonOptions.html_mods) || (!!CommonOptions.html_mods && !!CommonOptions.html_mods_load_message_file) then begin
+        if (not !!CommonOptions.html_mods) || (!!CommonOptions.html_mods && !!CommonOptions.html_mods_load_message_file) then begin
     try
       Options.load message_file
     with

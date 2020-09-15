@@ -60,7 +60,7 @@ module FDCache = struct
     type t = {
         mutable fd : Unix.file_descr option;
         mutable filename : string;
-	mutable writable : bool;
+        mutable writable : bool;
         mutable destroyed : bool; (* could we get rid of this ? *)
     }
 
@@ -72,37 +72,37 @@ module FDCache = struct
         match t.fd with
           | Some fd ->
               if !verbose then lprintf_nl "Close %s" t.filename;
-	      (try Unix.close fd with e -> 
-		 lprintf_nl "Exception in FDCache.close %s: %s" 
-		   t.filename
-		   (Printexc2.to_string e);
-		 raise e);
-	      t.fd <- None;
-	      decr cache_size
+              (try Unix.close fd with e -> 
+                 lprintf_nl "Exception in FDCache.close %s: %s" 
+                   t.filename
+                   (Printexc2.to_string e);
+                 raise e);
+              t.fd <- None;
+              decr cache_size
           | None -> ()
 
     let is_closed t =
       if t.destroyed then
-	true
+        true
       else match t.fd with
-	| Some fd -> false
-	| None -> true
+        | Some fd -> false
+        | None -> true
 
     let rec close_one () =
       if not (Fifo.empty cache) then
         let t = Fifo.take cache in
         match t.fd with
           | None ->
-	      close_one ()
+              close_one ()
           | Some fd ->
-	      try
-		close t
-	      with _ -> close_one ()
+              try
+                close t
+              with _ -> close_one ()
 
     let check_destroyed t =
       if t.destroyed then
         failwith (Printf.sprintf 
-	  "Unix32.check_destroyed %s: Cannot use destroyed FD" t.filename)
+          "Unix32.check_destroyed %s: Cannot use destroyed FD" t.filename)
         
     let destroy t =
       if not t.destroyed then begin
@@ -116,40 +116,40 @@ module FDCache = struct
         match t.fd with
           | Some fd -> fd
           | None ->
-	      if !cache_size >= !max_cache_size then close_one ();
-	      let fd = Unix2.tryopen_umask 0 (fun _old_umask ->
-		(* disable umask restrictions temporarily; 
-		   rights on downloaded files should be dictated 
-		   by create_file_mode instead *)
-		try
-		  if t.writable then
+              if !cache_size >= !max_cache_size then close_one ();
+              let fd = Unix2.tryopen_umask 0 (fun _old_umask ->
+                (* disable umask restrictions temporarily; 
+                   rights on downloaded files should be dictated 
+                   by create_file_mode instead *)
+                try
+                  if t.writable then
                     Unix.openfile t.filename 
-		      (if creat then rw_creat_flag else rw_flag) 
-		      !create_file_mode
-		  else
-		    Unix.openfile t.filename ro_flag 0o400
-		with e ->
-		  if !verbose then lprintf_nl "Exception in FDCache._local_force_fd %s (%s): %s" 
-		    t.filename 
-		    (if t.writable then "rw" else "ro") 
+                      (if creat then rw_creat_flag else rw_flag) 
+                      !create_file_mode
+                  else
+                    Unix.openfile t.filename ro_flag 0o400
+                with e ->
+                  if !verbose then lprintf_nl "Exception in FDCache._local_force_fd %s (%s): %s" 
+                    t.filename 
+                    (if t.writable then "rw" else "ro") 
                     (Printexc2.to_string e);
-		  raise e)
-	      in
-		incr cache_size;
+                  raise e)
+              in
+                incr cache_size;
 (*              lprintf "local_force: opening %d\n" (Obj.magic fd_rw);  *)
-		Fifo.put cache t;
-		t.fd <- Some fd;
-		fd
+                Fifo.put cache t;
+                t.fd <- Some fd;
+                fd
       in
 (*      lprintf "local_force_fd %d\n" (Obj.magic fd); *)
-	fd
+        fd
 
     let create f writable =
       if !verbose then lprintf_nl "Open %s (%s)" f (if writable then "rw" else "ro");
       let t =
-	{
+        {
          filename = f;
-	 writable = writable;
+         writable = writable;
          fd = None;
          destroyed = false;
         }
@@ -158,7 +158,7 @@ module FDCache = struct
       let _fd = _local_force_fd true t in
       t
       with
-	Unix.Unix_error (Unix.EISDIR, _, _) -> t
+        Unix.Unix_error (Unix.EISDIR, _, _) -> t
       | Unix.Unix_error (Unix.EACCES, _, _) when Autoconf.windows -> t
       | e -> raise e
       
@@ -199,7 +199,7 @@ module FDCache = struct
       check_destroyed t;
       Unix2.c_getfdsize64 (local_force_fd t)
       with
-	Unix.Unix_error (Unix.EISDIR, _, _) -> 0L
+        Unix.Unix_error (Unix.EISDIR, _, _) -> 0L
       | Unix.Unix_error (Unix.EACCES, _, _) when Autoconf.windows -> 0L
       | e ->
       if !verbose then lprintf_nl "Exception in FDCache.getsize64 %s: %s"
@@ -338,16 +338,16 @@ module FDCache = struct
           end
       in
       try
-	iter len64 pos1 pos2
+        iter len64 pos1 pos2
       with e ->
-	if !verbose then lprintf_nl "Exception in FDCache.copy_chunk %s %Ld to %s %Ld (%Ld): %s"
-	  t1.filename 
-	  pos1
-	  t2.filename
-	  pos2
-	  len64
+        if !verbose then lprintf_nl "Exception in FDCache.copy_chunk %s %Ld to %s %Ld (%Ld): %s"
+          t1.filename 
+          pos1
+          t2.filename
+          pos2
+          len64
           (Printexc2.to_string e);
-	raise e
+        raise e
 
   end
 
@@ -547,46 +547,46 @@ module MultiFile = struct
         let fd = FDCache.local_force_fd file.fd in
         f fd (chunk_begin -- file_begin)
       else
-	let temp_file = Filename2.temp_file "chunk" ".tmp" in
-	let file_out = FDCache.create temp_file true in
+        let temp_file = Filename2.temp_file "chunk" ".tmp" in
+        let file_out = FDCache.create temp_file true in
 
-	try
+        try
 (* first file *)
-	  let in_pos = chunk_begin -- file_begin in
-	  let in_len = max_current_pos -- chunk_begin in
-	  FDCache.copy_chunk file.fd file_out
+          let in_pos = chunk_begin -- file_begin in
+          let in_len = max_current_pos -- chunk_begin in
+          FDCache.copy_chunk file.fd file_out
             in_pos  zero in_len;
-	  let zeros =
+          let zeros =
             min (chunk_len -- in_len) (file.len -- file.current_len) in
-	  fill_zeros file_out in_len zeros;
-	  let in_len = in_len ++ zeros in
+          fill_zeros file_out in_len zeros;
+          let in_len = in_len ++ zeros in
 
 (* other files *)
-	  do_on_remaining tail in_len  (chunk_len -- in_len)
-	    (fun file file_pos len ->
+          do_on_remaining tail in_len  (chunk_len -- in_len)
+            (fun file file_pos len ->
                let max_current_pos = min len file.current_len in
-	       FDCache.copy_chunk file.fd file_out
-		 zero file_pos max_current_pos;
-	       let file_pos = file_pos ++ max_current_pos in
+               FDCache.copy_chunk file.fd file_out
+                 zero file_pos max_current_pos;
+               let file_pos = file_pos ++ max_current_pos in
                let zeros = len -- max_current_pos in
-	       fill_zeros file_out file_pos zeros;
-	       file_pos ++ zeros
-	    );
-	  FDCache.close file_out;
-	  let fd = FDCache.local_force_fd file_out in
+               fill_zeros file_out file_pos zeros;
+               file_pos ++ zeros
+            );
+          FDCache.close file_out;
+          let fd = FDCache.local_force_fd file_out in
           let v = f fd zero in
           FDCache.close file_out;
           Sys.remove temp_file;
           v
-	with e ->
-	  if !verbose then lprintf_nl "Exception in MultiFile.apply_on_chunk %s %Ld %Ld: %s"
-	    t.dirname
-	    chunk_begin
-	    chunk_len
+        with e ->
+          if !verbose then lprintf_nl "Exception in MultiFile.apply_on_chunk %s %Ld %Ld: %s"
+            t.dirname
+            chunk_begin
+            chunk_len
             (Printexc2.to_string e);
-	  (try FDCache.close file_out with _ -> ());
-	  (try Sys.remove temp_file with _ -> ());
-	  raise e
+          (try FDCache.close file_out with _ -> ());
+          (try Sys.remove temp_file with _ -> ());
+          raise e
 
     let close t =
       List.iter (fun file -> FDCache.close file.fd) t.files
@@ -597,7 +597,7 @@ module MultiFile = struct
     let rename t f =
       close t;
       List.iter (fun file -> FDCache.multi_rename file.fd f file.filename) 
-	t.files
+        t.files
 
     let ftruncate64 t size sparse =
       t.size <- size
@@ -606,27 +606,27 @@ module MultiFile = struct
 
     let mtime64 t =
       try
-	let st = Unix.LargeFile.stat t.dirname in
-	st.Unix.LargeFile.st_mtime
+        let st = Unix.LargeFile.stat t.dirname in
+        st.Unix.LargeFile.st_mtime
       with e ->
-	if !verbose then lprintf_nl "Exception in MultiFile.mtime64 %s: %s" 
-	  t.dirname
+        if !verbose then lprintf_nl "Exception in MultiFile.mtime64 %s: %s" 
+          t.dirname
           (Printexc2.to_string e);
-	raise e
+        raise e
 
     let exists t =
       Sys.file_exists t.dirname
 
     let remove t =
       try
-	close t;
-	if Sys.file_exists t.dirname then
+        close t;
+        if Sys.file_exists t.dirname then
           Unix2.remove_all_directory t.dirname
       with e ->
-	if !verbose then lprintf_nl "Exception in MultiFile.remove %s: %s" 
-	  t.dirname
+        if !verbose then lprintf_nl "Exception in MultiFile.remove %s: %s" 
+          t.dirname
           (Printexc2.to_string e);
-	raise e
+        raise e
 
     let file_write file in_file_pos s in_string_pos len =
       (* prevent write to zero-byte files so BT downloads finish *)
@@ -636,7 +636,7 @@ module MultiFile = struct
           let in_file_len = in_file_pos ++ len64 in
           FDCache.write file.fd in_file_pos s in_string_pos len;
           file.current_len <- max file.current_len in_file_len
-	end
+        end
 
     let file_read file in_file_pos s in_string_pos len =
       let len64 = Int64.of_int len in
@@ -670,12 +670,12 @@ module MultiFile = struct
 
 (* other files *)
       do_on_remaining tail (string_pos + in_len)
-	(chunk_len -- first_read)
-	(fun file string_pos len64 ->
+        (chunk_len -- first_read)
+        (fun file string_pos len64 ->
            let len = Int64.to_int len64 in
            f file zero string string_pos len;
            string_pos + len
-	)
+        )
 
     let read t chunk_begin string string_pos len =
       io file_read t chunk_begin string string_pos len
@@ -708,7 +708,7 @@ module SparseFile = struct
         mutable dirname : string;
         mutable size : int64;
         mutable chunks : chunk array;
-	mutable writable : bool;
+        mutable writable : bool;
       }
     
     let zero_chunk () =
@@ -743,36 +743,36 @@ module SparseFile = struct
           let med = start + milen in
           let chunk = t.chunks.(med) in
           if chunk.pos <= pos && pos -- chunk.pos < chunk.len then med 
-	  else
+          else
             if chunk.pos > pos then
               if med = start then start 
-	      else
-		iter t start milen
+              else
+                iter t start milen
             else
               let next = med+1 in
-	      iter t next (start+len-next)
+              iter t next (start+len-next)
       in
-	iter t 0 nchunks
+        iter t 0 nchunks
     
     let find_write_pos t pos =
       let nchunks = Array.length t.chunks in
       let rec iter t start len =
         if len <= 0 then start 
-	else
+        else
           let milen = len/2 in
           let med = start + milen in
           let chunk = t.chunks.(med) in
           if chunk.pos <= pos && pos -- chunk.pos <= chunk.len then med 
-	  else
+          else
             if chunk.pos > pos then
               if med = start then start 
-	      else
-		iter t start milen
+              else
+                iter t start milen
             else
               let next = med+1 in
-	      iter t next (start+len-next)
+              iter t next (start+len-next)
       in
-	iter t 0 nchunks
+        iter t 0 nchunks
 
 (*  (*** debugging code ***)
 
@@ -854,26 +854,26 @@ module SparseFile = struct
       
       else
       
-	let temp_file = Filename2.temp_file "chunk" ".tmp" in
-	let file_out = FDCache.create temp_file t.writable in
+        let temp_file = Filename2.temp_file "chunk" ".tmp" in
+        let file_out = FDCache.create temp_file t.writable in
       
-	let rec iter pos index chunk_begin chunk_len =
+        let rec iter pos index chunk_begin chunk_len =
           if chunk_len > zero then
             let chunk =
               if index >= nchunks then 
-		let z = zero_chunk () in
-		z.pos <- chunk_begin;
-		z
+                let z = zero_chunk () in
+                z.pos <- chunk_begin;
+                z
               else
-		let chunk = t.chunks.(index) in
-		let next_pos = chunk.pos in
-		if next_pos > chunk_begin then 
-		  let z = zero_chunk () in
-		  z.pos <- chunk_begin;
-		  z.len <- min zero_chunk_len (next_pos -- chunk_begin);
-		  z
-		else
-		  chunk
+                let chunk = t.chunks.(index) in
+                let next_pos = chunk.pos in
+                if next_pos > chunk_begin then 
+                  let z = zero_chunk () in
+                  z.pos <- chunk_begin;
+                  z.len <- min zero_chunk_len (next_pos -- chunk_begin);
+                  z
+                else
+                  chunk
             in
           
             let in_chunk_pos = chunk_begin -- chunk.pos in
@@ -884,24 +884,24 @@ module SparseFile = struct
             iter (pos ++ max_len) (index+1) (chunk_begin ++ max_len)
               (chunk_len -- max_len)
       
-	in
-	  try
-	    iter zero (find_read_pos t chunk_begin) chunk_begin chunk_len;
+        in
+          try
+            iter zero (find_read_pos t chunk_begin) chunk_begin chunk_len;
       
-	    FDCache.close file_out;
-	    let fd = FDCache.local_force_fd file_out in
+            FDCache.close file_out;
+            let fd = FDCache.local_force_fd file_out in
             let v = f fd zero in
             Sys.remove temp_file;
             v
-	  with e -> 
-	    if !verbose then lprintf_nl "Exception in SparseFile.apply_on_chunk %s %Ld %Ld: %s"
-	      t.dirname
-	      chunk_begin
-	      chunk_len
+          with e -> 
+            if !verbose then lprintf_nl "Exception in SparseFile.apply_on_chunk %s %Ld %Ld: %s"
+              t.dirname
+              chunk_begin
+              chunk_len
               (Printexc2.to_string e);
-	    (try FDCache.close file_out with _ -> ());
-	    (try Sys.remove temp_file with _ -> ());
-	    raise e
+            (try FDCache.close file_out with _ -> ());
+            (try Sys.remove temp_file with _ -> ());
+            raise e
     
     let close t =
       Array.iter (fun file -> FDCache.close file.fd) t.chunks
@@ -928,13 +928,13 @@ module SparseFile = struct
             else
               let chunk = t.chunks.(index) in
               let next_pos = chunk.pos in
-	      if next_pos > chunk_begin then 
-		let z = zero_chunk () in
-		z.pos <- chunk_begin;
-		z.len <- min zero_chunk_len (next_pos -- chunk_begin);
-		z
+              if next_pos > chunk_begin then 
+                let z = zero_chunk () in
+                z.pos <- chunk_begin;
+                z.len <- min zero_chunk_len (next_pos -- chunk_begin);
+                z
               else
-		chunk
+                chunk
           in
 
           let in_chunk_pos = chunk_begin -- chunk.pos in
@@ -949,9 +949,9 @@ module SparseFile = struct
             (chunk_len -- max_len)
 
       in
-	iter zero 0 chunk_begin chunk_len;
-	FDCache.close file_out;
-	()
+        iter zero 0 chunk_begin chunk_len;
+        FDCache.close file_out;
+        ()
 (* (* why is that commented off ? Does SparseFile.rename actually work ? *)
         Sys.rename t.dirname f;
         List.iter (fun file ->
@@ -966,27 +966,27 @@ module SparseFile = struct
 
     let mtime64 t =
       try
-	let st = Unix.LargeFile.stat t.dirname in
-	st.Unix.LargeFile.st_mtime
+        let st = Unix.LargeFile.stat t.dirname in
+        st.Unix.LargeFile.st_mtime
       with e ->
-	if !verbose then lprintf_nl "Exception in SparseFile.mtime64 %s: %s"
-	  t.dirname
+        if !verbose then lprintf_nl "Exception in SparseFile.mtime64 %s: %s"
+          t.dirname
           (Printexc2.to_string e);
-	raise e
+        raise e
 
     let exists t =
       Sys.file_exists t.dirname
 
     let remove t =
       try
-	close t;
+        close t;
 (*      lprintf "Removing %s\n" t.dirname; *)
-	Unix2.remove_all_directory t.dirname
+        Unix2.remove_all_directory t.dirname
       with e ->
-	if !verbose then lprintf_nl "Exception in SparseFile.remove %s: %s" 
-	  t.dirname
+        if !verbose then lprintf_nl "Exception in SparseFile.remove %s: %s" 
+          t.dirname
           (Printexc2.to_string e);
-	raise e
+        raise e
 
     let read t chunk_begin string string_pos chunk_len =
       let chunk_len64 = Int64.of_int chunk_len in
@@ -1003,13 +1003,13 @@ module SparseFile = struct
             else
               let chunk = t.chunks.(index) in
               let next_pos = chunk.pos in
-	      if next_pos > chunk_begin then 
-		let z = zero_chunk () in
-		z.pos <- chunk_begin;
-		z.len <- min zero_chunk_len (next_pos -- chunk_begin);
-		z
+              if next_pos > chunk_begin then 
+                let z = zero_chunk () in
+                z.pos <- chunk_begin;
+                z.len <- min zero_chunk_len (next_pos -- chunk_begin);
+                z
               else
-		chunk
+                chunk
           in
 
           let in_chunk_pos = chunk_begin -- chunk.pos in
@@ -1021,7 +1021,7 @@ module SparseFile = struct
             (chunk_len64 -- max_len64)
 
       in
-	iter string_pos (find_read_pos t chunk_begin) chunk_begin chunk_len64
+        iter string_pos (find_read_pos t chunk_begin) chunk_begin chunk_len64
 
     let write t chunk_begin string string_pos len =
       let index = find_write_pos t chunk_begin in
@@ -1044,7 +1044,7 @@ module SparseFile = struct
         t.chunks <- new_array
 
       end else
-	if t.chunks.(index).pos > chunk_begin then begin
+        if t.chunks.(index).pos > chunk_begin then begin
 (*          lprintf "Inserting chunk\n"; *)
           let chunk_name = Int64.to_string chunk_begin in
           let chunk_name = Filename.concat t.dirname chunk_name in
@@ -1073,10 +1073,10 @@ module SparseFile = struct
               let len64 = Int64.of_int len in
               let max_len64 = min max_possible_len64 len64 in
               let max_len = Int64.to_int max_len64 in
-	      if max_len64 = max_possible_len64 then
-		index+1, max_len, max_len64
+              if max_len64 = max_possible_len64 then
+                index+1, max_len, max_len64
               else
-		index, max_len, max_len64
+                index, max_len, max_len64
           in
 
           let chunk = t.chunks.(index) in
@@ -1087,7 +1087,7 @@ module SparseFile = struct
           iter next_index (chunk_begin ++ max_len64)
             (string_pos + max_len) (len - max_len)
       in
-	iter index chunk_begin string_pos len;
+        iter index chunk_begin string_pos len;
 
       t.size <- max t.size (chunk_begin ++ len64);
 
@@ -1245,52 +1245,52 @@ let flush_fd t =
   | None -> ()
   | Some t ->
       if t.buffers = [] then () else
-	let list =
-	  List.sort (fun (_, _, _, o1, l1) (_, _, _, o2, l2) ->
-	    let c = compare o1 o2 in
+        let list =
+          List.sort (fun (_, _, _, o1, l1) (_, _, _, o2, l2) ->
+            let c = compare o1 o2 in
             if c = 0 then compare l2 l1 else c)
-	    t.buffers
-	in
-	if !verbose then lprintf_nl "flush_fd";
-	t.buffers <- list;
-	let rec iter_out () =
-	  match t.buffers with
-	  | [] -> ()
-	  | (s, pos_s, len_s, offset, len) :: tail ->
+            t.buffers
+        in
+        if !verbose then lprintf_nl "flush_fd";
+        t.buffers <- list;
+        let rec iter_out () =
+          match t.buffers with
+          | [] -> ()
+          | (s, pos_s, len_s, offset, len) :: tail ->
               Buffer.reset buffer;
               Buffer.add_substring buffer s pos_s len_s;
               t.buffers <- tail;
               iter_in offset len
 
-	and iter_in offset len =
-	  match t.buffers with
-	  | [] -> flush_buffer t offset
-	  | (s, pos_s, len_s, offset2, len2) :: tail ->
+        and iter_in offset len =
+          match t.buffers with
+          | [] -> flush_buffer t offset
+          | (s, pos_s, len_s, offset2, len2) :: tail ->
               let in_offset = offset ++ len -- offset2 in
               if in_offset = Int64.zero then begin
-		Buffer.add_substring buffer s pos_s len_s;
-		t.buffers <- tail;
-		iter_in offset (len ++ len2);
+                Buffer.add_substring buffer s pos_s len_s;
+                t.buffers <- tail;
+                iter_in offset (len ++ len2);
               end else
-		if in_offset < Int64.zero then begin
-		  flush_buffer t offset;
-		  iter_out ()
-		end else
-		  let keep_len = len2 -- in_offset in
-		  if !verbose then lprintf_nl "overlap %Ld" keep_len;
-		  t.buffers <- tail;
-		  if keep_len <= 0L then begin
-		    buffered_bytes := !buffered_bytes -- len2;
-		    iter_in offset len
-		  end else begin
-		    let new_pos = len2 -- keep_len in
-		    Buffer.add_substring buffer s
-		      (pos_s + Int64.to_int new_pos) (Int64.to_int keep_len);
-		    buffered_bytes := !buffered_bytes -- new_pos;
-		    iter_in offset (len ++ keep_len)
-		  end
-	in
-	iter_out ()
+                if in_offset < Int64.zero then begin
+                  flush_buffer t offset;
+                  iter_out ()
+                end else
+                  let keep_len = len2 -- in_offset in
+                  if !verbose then lprintf_nl "overlap %Ld" keep_len;
+                  t.buffers <- tail;
+                  if keep_len <= 0L then begin
+                    buffered_bytes := !buffered_bytes -- len2;
+                    iter_in offset len
+                  end else begin
+                    let new_pos = len2 -- keep_len in
+                    Buffer.add_substring buffer s
+                      (pos_s + Int64.to_int new_pos) (Int64.to_int keep_len);
+                    buffered_bytes := !buffered_bytes -- new_pos;
+                    iter_in offset (len ++ keep_len)
+                  end
+        in
+        iter_out ()
 
 let read t file_pos string string_pos len =
   flush_fd t;
@@ -1319,7 +1319,7 @@ let flush _ =
     in
       modified_files := iter !modified_files;
       if !buffered_bytes <> 0L then
-	lprintf_nl "[ERROR] remaining bytes after flush"
+        lprintf_nl "[ERROR] remaining bytes after flush"
   with e ->
       if !verbose then lprintf_nl "[ERROR] Exception %s in Unix32.flush"
         (Printexc2.to_string e)
@@ -1534,7 +1534,7 @@ The following functions have to be rewritten:
           part.part_shared;
         { part with part_file = file; part_shared = [] }
       end else 
-	part
+        part
     ) parts
     
   let remove t =
@@ -1758,7 +1758,7 @@ let disktotal dir =
     let s = statfs dir in
     match _bsize s with
     | Some bsize ->
-	Some (bsize ** s.f_blocks)
+        Some (bsize ** s.f_blocks)
     | None -> None
   with e -> None
 
@@ -1768,7 +1768,7 @@ let diskfree dir =
     let s = statfs dir in
     match _bsize s with
     | Some bsize ->
-	Some (bsize ** s.f_bavail)
+        Some (bsize ** s.f_bavail)
     | None -> None
   with e -> None
 
@@ -1778,7 +1778,7 @@ let diskused dir =
     let s = statfs dir in
     match _bsize s with
     | Some bsize ->
-	Some (bsize ** (s.f_blocks -- s.f_bavail))
+        Some (bsize ** (s.f_blocks -- s.f_bavail))
     | None -> None
   with e -> None
 
@@ -1787,8 +1787,8 @@ let percentused dir =
   match diskfree dir, disktotal dir with
   | Some dfree, Some dtotal ->
       begin
-	try
-	  Some (Int64.to_int (100L -- (dfree ** 100L // dtotal)))
+        try
+          Some (Int64.to_int (100L -- (dfree ** 100L // dtotal)))
         with Division_by_zero -> None
       end
   | _ -> None
@@ -1798,9 +1798,9 @@ let percentfree dir =
   match diskfree dir, disktotal dir with
   | Some dfree, Some dtotal ->
       begin
-	try
+        try
           Some (Int64.to_int (dfree ** 100L // dtotal))
-	with Division_by_zero -> None
+        with Division_by_zero -> None
       end
   | _ -> None
 
@@ -1864,9 +1864,9 @@ let filesystem' dir =
     | 0x700FFL -> "ntfs", `Win (* Cygwin *)
     | 0xC3L -> "ext2/3", `Win (* Cygwin *)
     | _ -> if s.f_basetype <> "-1" then
-	     s.f_basetype, `Unknown
-	   else
-	     Printf.sprintf "unknown (%LX)" s.f_type, `Unknown
+             s.f_basetype, `Unknown
+           else
+             Printf.sprintf "unknown (%LX)" s.f_type, `Unknown
   with e -> "not supported", `Unknown
 
 let filesystem dir = fst (filesystem' dir)

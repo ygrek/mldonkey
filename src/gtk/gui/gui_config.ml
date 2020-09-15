@@ -62,7 +62,7 @@ let create_gui_params () =
   let server_options = Section
       ((gettext M.o_gui_server),
        [
-	 gui_port ; gui_hostname ; gui_login ; gui_password ;
+         gui_port ; gui_hostname ; gui_login ; gui_password ;
        ] 
       )
   in
@@ -116,11 +116,11 @@ let create_gui_params () =
   let colors_options = Section
       ((gettext M.o_colors),
        [
-	 color_default ; color_downloaded ;
-	 color_downloading ; color_available ;
-	 color_not_available ;
-	 color_connected ; color_not_connected ;
-	 color_connecting ; color_files_listed ;
+         color_default ; color_downloaded ;
+         color_downloading ; color_available ;
+         color_not_available ;
+         color_connected ; color_not_connected ;
+         color_connecting ; color_files_listed ;
        ] 
       )
   in
@@ -166,9 +166,9 @@ let create_gui_params () =
     let menu = GMenu.menu () in
     let choice = ref None in
     let entries = List.map
-	(fun ele -> 
-	  `I (f_string ele, fun () -> choice := Some ele))
-	l
+        (fun ele -> 
+          `I (f_string ele, fun () -> choice := Some ele))
+        l
     in
     GToolbox.build_menu menu ~entries;
     ignore (menu#connect#deactivate GMain.Main.quit);
@@ -184,8 +184,8 @@ let create_gui_params () =
       ~help: (gettext M.h_servers_columns)
       ~f: (fun l -> GO.servers_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.server_column_strings)
-	       Gui_columns.Server.string_of_column)
+               (List.map fst Gui_columns.server_column_strings)
+               Gui_columns.Server.string_of_column)
       ""
       (fun c -> [Gui_columns.Server.string_of_column c])
       !!GO.servers_columns
@@ -194,8 +194,8 @@ let create_gui_params () =
       ~help: (gettext M.h_downloads_columns)
       ~f: (fun l -> GO.downloads_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.file_column_strings)
-	       Gui_columns.File.string_of_column)
+               (List.map fst Gui_columns.file_column_strings)
+               Gui_columns.File.string_of_column)
       ""
       (fun c -> [Gui_columns.File.string_of_column c])
       !!GO.downloads_columns
@@ -204,8 +204,8 @@ let create_gui_params () =
       ~help: (gettext M.h_downloaded_columns)
       ~f: (fun l -> GO.downloaded_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.file_column_strings)
-	       Gui_columns.File.string_of_column)
+               (List.map fst Gui_columns.file_column_strings)
+               Gui_columns.File.string_of_column)
       ""
       (fun c -> [Gui_columns.File.string_of_column c])
       !!GO.downloaded_columns
@@ -214,8 +214,8 @@ let create_gui_params () =
       ~help: (gettext M.h_friends_columns)
       ~f: (fun l -> GO.friends_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.client_column_strings)
-	       Gui_columns.Client.string_of_column)
+               (List.map fst Gui_columns.client_column_strings)
+               Gui_columns.Client.string_of_column)
       ""
       (fun c -> [Gui_columns.Client.string_of_column c])
       !!GO.friends_columns
@@ -224,8 +224,8 @@ let create_gui_params () =
       ~help: (gettext M.h_file_locations_columns)
       ~f: (fun l -> GO.file_locations_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.client_column_strings)
-	       Gui_columns.Client.string_of_column)
+               (List.map fst Gui_columns.client_column_strings)
+               Gui_columns.Client.string_of_column)
       ""
       (fun c -> [Gui_columns.Client.string_of_column c])
       !!GO.file_locations_columns
@@ -234,8 +234,8 @@ let create_gui_params () =
       ~help: (gettext M.h_results_columns)
       ~f: (fun l -> GO.results_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.result_column_strings)
-	       Gui_columns.Result.string_of_column)
+               (List.map fst Gui_columns.result_column_strings)
+               Gui_columns.Result.string_of_column)
       ""
       (fun c -> [Gui_columns.Result.string_of_column c])
       !!GO.results_columns
@@ -244,8 +244,8 @@ let create_gui_params () =
       ~help: (M.h_shared_files_up_columns)
       ~f: (fun l -> GO.shared_files_up_columns =:= l)
       ~add: (sel 
-	       (List.map fst Gui_columns.shared_file_up_column_strings)
-	       Gui_columns.Shared_files_up.string_of_column)
+               (List.map fst Gui_columns.shared_file_up_column_strings)
+               Gui_columns.Shared_files_up.string_of_column)
       ""
       (fun c -> [Gui_columns.Shared_files_up.string_of_column c])
       !!GO.shared_files_up_columns
@@ -253,13 +253,13 @@ let create_gui_params () =
   let columns_options = Section_list
       ((gettext M.o_columns),
        [
-	 Section ((gettext M.o_servers_columns) ,[servers_cols]) ; 
-	 Section ((gettext M.o_downloads_columns) ,[dls_cols]); 
-	 Section ((gettext M.o_downloaded_columns) ,[dled_cols]); 
-	 Section ((gettext M.o_results_columns) ,[results_cols]);
-	 Section ((gettext M.o_friends_columns) ,[friends_cols]) ; 
-	 Section ((gettext M.o_file_locations_columns) ,[file_locs_cols]) ;
-	 Section ((gettext M.o_shared_files_up_colums) ,[shared_cols]) ;
+         Section ((gettext M.o_servers_columns) ,[servers_cols]) ; 
+         Section ((gettext M.o_downloads_columns) ,[dls_cols]); 
+         Section ((gettext M.o_downloaded_columns) ,[dled_cols]); 
+         Section ((gettext M.o_results_columns) ,[results_cols]);
+         Section ((gettext M.o_friends_columns) ,[friends_cols]) ; 
+         Section ((gettext M.o_file_locations_columns) ,[file_locs_cols]) ;
+         Section ((gettext M.o_shared_files_up_colums) ,[shared_cols]) ;
        ] 
       )
   in
@@ -297,11 +297,11 @@ let create_gui_params () =
   let misc_options = Section
       ((gettext M.o_misc),
        [
-	 files_auto_expand_depth ;
-	 use_size_suffixes ;
-	 use_availability_height ;
-	 use_relative_availability ;
-	 chunk_width ;
+         files_auto_expand_depth ;
+         use_size_suffixes ;
+         use_availability_height ;
+         use_relative_availability ;
+         chunk_width ;
        ]
       )
   in

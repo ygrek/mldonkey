@@ -163,7 +163,7 @@ let custom_query buf query =
   can_search :=
     networks_iter_all_until_true (fun net ->
       try 
-	network_is_enabled net && List.mem NetworkHasSearch net.network_flags
+        network_is_enabled net && List.mem NetworkHasSearch net.network_flags
       with _ -> false
     );
   if !can_search then begin
@@ -528,10 +528,10 @@ let custom_query buf query =
     networks_iter_all (fun net ->
         let name = net.network_name in
         try 
-	  if network_is_enabled net && 
-	    List.mem NetworkHasSearch net.network_flags then
+          if network_is_enabled net && 
+            List.mem NetworkHasSearch net.network_flags then
               Printf.bprintf buf 
-		"<option value=\"%s\"> %s </option>" name name
+                "<option value=\"%s\"> %s </option>" name name
         with _ -> ()
     );
     Printf.bprintf buf "
@@ -750,10 +750,10 @@ Min bitrate
   networks_iter_all (fun net ->
       let name = net.network_name in
       try 
-	if network_is_enabled net && 
-	  List.mem NetworkHasSearch net.network_flags then
+        if network_is_enabled net && 
+          List.mem NetworkHasSearch net.network_flags then
             Printf.bprintf buf 
-	      "<option value=\"%s\"> %s </option>" name name
+              "<option value=\"%s\"> %s </option>" name name
       with _ -> ()
   );
   Printf.bprintf buf "
@@ -811,24 +811,24 @@ let rec mftp_query_of_query_entry qe =
   | Q_COMBO _ -> assert false
   | Q_AND (h :: q) ->
       List.fold_left
-	(fun acc -> fun q -> QAnd (acc, mftp_query_of_query_entry q))
-	(mftp_query_of_query_entry h)
-	q
+        (fun acc -> fun q -> QAnd (acc, mftp_query_of_query_entry q))
+        (mftp_query_of_query_entry h)
+        q
 
   | Q_OR [_] -> lprintf_nl "Q_OR [_]"; QNone
   | Q_OR ([]) -> QNone
   | Q_OR (h :: q) ->
       List.fold_left
-	(fun acc -> fun q -> QOr (acc, mftp_query_of_query_entry q))
-	(mftp_query_of_query_entry h)
-	q
+        (fun acc -> fun q -> QOr (acc, mftp_query_of_query_entry q))
+        (mftp_query_of_query_entry h)
+        q
   | Q_ANDNOT (q1,q2) ->
       QAndNot 
-	(mftp_query_of_query_entry q1,
-	 mftp_query_of_query_entry q2)
+        (mftp_query_of_query_entry q1,
+         mftp_query_of_query_entry q2)
   | Q_MODULE (_, q) ->
       mftp_query_of_query_entry q
-	
+        
   | Q_KEYWORDS (_,s) ->
       (
        try want_and_not andnot (fun w -> QHasWord w) QNone s
@@ -848,43 +848,43 @@ let rec mftp_query_of_query_entry qe =
   | Q_FORMAT (_,s) ->
       (
        try
-	 want_comb_not andnot or_comb (fun w -> QHasField(Field_Format, w)) QNone s
+         want_comb_not andnot or_comb (fun w -> QHasField(Field_Format, w)) QNone s
        with Not_found ->
-	 QNone
+         QNone
       )
   | Q_MEDIA (_,s) ->
       (
        try QHasField(Field_Type, List.assoc s search_media_list)
        with Not_found -> 
-	 match String2.split_simplify s ' ' with
-	   [] -> QNone
-	 | _ -> QHasField (Field_Type, s)
+         match String2.split_simplify s ' ' with
+           [] -> QNone
+         | _ -> QHasField (Field_Type, s)
       )
-	
+        
   | Q_MP3_ARTIST (_,s) ->
       (
        try 
-	 want_comb_not andnot and_comb 
+         want_comb_not andnot and_comb 
            (fun w -> QHasField(Field_Artist, w)) QNone s
        with Not_found ->
-	 QNone
+         QNone
       )
 
   | Q_MP3_TITLE (_,s) ->
       (
        try 
-	 want_comb_not andnot and_comb 
+         want_comb_not andnot and_comb 
            (fun w -> QHasField(Field_Title, w)) QNone s
        with Not_found ->
-	 QNone
+         QNone
       ) 
   | Q_MP3_ALBUM (_,s) ->
       (
        try 
-	 want_comb_not andnot and_comb 
+         want_comb_not andnot and_comb 
            (fun w -> QHasField(Field_Album, w)) QNone s
        with Not_found ->
-	 QNone
+         QNone
       )
 
   | Q_MP3_BITRATE (_,s) ->

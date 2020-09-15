@@ -136,11 +136,11 @@ class window () =
 
       (* Keyboard shortcuts *)
       let add w ?(cond=(fun () -> true)) l ((mods, k), action) = 
-	try
-	  let f = List.assoc action l in
-	  Okey.add ~cond w ~mods k f
-	with
-	  Not_found ->
+        try
+          let f = List.assoc action l in
+          Okey.add ~cond w ~mods k f
+        with
+          Not_found ->
             lprintf "%s %s\n" (M.mW_tx_action_unknown) action
       in
 
@@ -148,18 +148,18 @@ class window () =
       
       let global_actions = [
         M.a_page_networks, (fun () -> notebook#goto_page 0);
-	M.a_page_servers, (fun () -> notebook#goto_page 1);
-	M.a_page_downloads, (fun () -> notebook#goto_page 2);
-	M.a_page_friends, (fun () -> notebook#goto_page 3);
-	M.a_page_searches, (fun () -> notebook#goto_page 4);
-	M.a_page_rooms, (fun () -> notebook#goto_page 5);
-	M.a_page_uploads, (fun () -> notebook#goto_page 6);
-	M.a_page_console, (fun () -> notebook#goto_page 7);
-	M.a_page_graph, (fun () -> notebook#goto_page 8);
-	M.a_next_page, notebook#next_page;
-	M.a_previous_page, notebook#previous_page;
-	M.a_reconnect, buttonGui#clicked;
-	M.a_exit, buttonQuit#clicked;
+        M.a_page_servers, (fun () -> notebook#goto_page 1);
+        M.a_page_downloads, (fun () -> notebook#goto_page 2);
+        M.a_page_friends, (fun () -> notebook#goto_page 3);
+        M.a_page_searches, (fun () -> notebook#goto_page 4);
+        M.a_page_rooms, (fun () -> notebook#goto_page 5);
+        M.a_page_uploads, (fun () -> notebook#goto_page 6);
+        M.a_page_console, (fun () -> notebook#goto_page 7);
+        M.a_page_graph, (fun () -> notebook#goto_page 8);
+        M.a_next_page, notebook#next_page;
+        M.a_previous_page, notebook#previous_page;
+        M.a_reconnect, buttonGui#clicked;
+        M.a_exit, buttonQuit#clicked;
       ] 
       in
       List.iter (add window global_actions) !!O.keymap_global;
@@ -167,45 +167,45 @@ class window () =
       (* Servers shortcuts *)
       let bs = tab_servers#box_servers in
       let servers_actions = global_actions @
-	[
-	  M.a_connect, bs#connect ;
-	  M.a_connect_more, bs#connect_more_servers ;
-	  M.a_select_all, bs#wlist#select_all ;
-	] 
+        [
+          M.a_connect, bs#connect ;
+          M.a_connect_more, bs#connect_more_servers ;
+          M.a_select_all, bs#wlist#select_all ;
+        ] 
       in
       List.iter
         (add window ~cond: (fun () -> 
             current_page = servers_page) servers_actions)
-	!!O.keymap_servers;
+        !!O.keymap_servers;
 
       (* Downloads shortcuts *)
       let bdls = tab_downloads#box_downloads in
       let downloads_actions = global_actions @
-	[
-	  M.a_cancel_download, bdls#cancel ;
-	  M.a_select_all, bdls#wlist#select_all;
-	  M.a_save_all_files, bdls#save_all ;
-	]
+        [
+          M.a_cancel_download, bdls#cancel ;
+          M.a_select_all, bdls#wlist#select_all;
+          M.a_save_all_files, bdls#save_all ;
+        ]
       in
       List.iter
         (add window ~cond: (fun () -> 
             current_page = downloads_page) downloads_actions)
-	!!O.keymap_downloads;
+        !!O.keymap_downloads;
 
       (* Friends shortcuts *)
       let bf = tab_friends#box_friends in
       let bfiles = tab_friends#box_files in
       let friends_actions = global_actions @ 
-	[
-	  M.a_download_selection, bfiles#box_results#download ;
-	  M.a_remove_friend, bf#remove ;
-	  M.a_select_all, bf#wlist#select_all ;
-	]
+        [
+          M.a_download_selection, bfiles#box_results#download ;
+          M.a_remove_friend, bf#remove ;
+          M.a_select_all, bf#wlist#select_all ;
+        ]
       in
       List.iter
         (add window ~cond: (fun () -> 
             current_page = friends_page) friends_actions)
-	!!O.keymap_friends;
+        !!O.keymap_friends;
 
       hbox_status#pack ~expand: true tab_servers#wl_status#coerce;
       hbox_status#pack ~expand: true tab_downloads#wl_status#coerce;

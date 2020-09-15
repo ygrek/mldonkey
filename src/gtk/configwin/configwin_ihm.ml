@@ -91,7 +91,7 @@ let select_date title (day,mon,year) =
       ~packing:(bbox#pack ~expand:true ~padding:4) ()
   in
   ignore (bok#connect#clicked ~callback:
-	    (fun () -> v_opt := Some (cal#date); window#destroy ()));
+            (fun () -> v_opt := Some (cal#date); window#destroy ()));
   ignore(bcancel#connect#clicked ~callback: window#destroy);
 
   bok#grab_default ();
@@ -121,28 +121,28 @@ class ['a] list_selection_box (listref : 'a list ref)
   let hbox = GPack.hbox ~packing: wf#add () in
   (* the scroll window and the clist *)
   let wscroll = GBin.scrolled_window
-      	~vpolicy: `AUTOMATIC
-	~hpolicy: `AUTOMATIC
+        ~vpolicy: `AUTOMATIC
+        ~hpolicy: `AUTOMATIC
       ~packing: (hbox#pack ~expand: true) () 
   in
   let wlist = match titles_opt with
     None -> 
       GList.clist ~selection_mode: `EXTENDED 
-	~titles_show: false
-	~packing: wscroll#add ()
+        ~titles_show: false
+        ~packing: wscroll#add ()
   | Some l -> 
       GList.clist ~selection_mode: `EXTENDED 
-	~titles: l
-	~titles_show: true
-	~packing: wscroll#add ()
+        ~titles: l
+        ~titles_show: true
+        ~packing: wscroll#add ()
   in
   let _ = 
     match help_opt with
       None -> ()
     | Some help ->
-	let tooltips = GData.tooltips () in
-	ignore (wf#connect#destroy ~callback: tooltips#destroy);
-	tooltips#set_tip wev#coerce ~text: help ~privat: help 
+        let tooltips = GData.tooltips () in
+        ignore (wf#connect#destroy ~callback: tooltips#destroy);
+        tooltips#set_tip wev#coerce ~text: help ~privat: help 
   in  (* the vbox for the buttons *)
   let vbox_buttons = GPack.vbox () in
   let _ = 
@@ -189,18 +189,18 @@ class ['a] list_selection_box (listref : 'a list ref)
       wlist#freeze ();
       wlist#clear ();
       List.iter 
-	(fun ele -> 
-	  ignore (wlist#append (f_strings ele));
-	  match f_color ele with
-	    None -> ()
-	  | Some c ->
-	      try wlist#set_row ~foreground: (`NAME c) (wlist#rows - 1)
-	      with _ -> ()
-	) 
-	!listref;
+        (fun ele -> 
+          ignore (wlist#append (f_strings ele));
+          match f_color ele with
+            None -> ()
+          | Some c ->
+              try wlist#set_row ~foreground: (`NAME c) (wlist#rows - 1)
+              with _ -> ()
+        ) 
+        !listref;
       
       (match titles_opt with
-	None -> wlist#columns_autosize ()
+        None -> wlist#columns_autosize ()
       |	Some _ -> GToolbox.autosize_clist wlist);
       wlist#thaw ();
       (* the list of selectd elements is now empty *)
@@ -209,18 +209,18 @@ class ['a] list_selection_box (listref : 'a list ref)
     (** Move up the selected rows. *)
     method up_selected =
       let rec iter n selrows l =
-	match selrows with
-	  [] -> (l, [])
-	| m :: qrows ->
-	    match l with
-	      [] -> ([],[])
-	    | [_] -> (l,[])
-	    | e1 :: e2 :: q when m = n + 1 ->
-		let newl, newrows = iter (n+1) qrows (e1 :: q) in
-		(e2 :: newl, n :: newrows)
-	    | e1 :: q ->
-		let newl, newrows = iter (n+1) selrows q in
-		(e1 ::  newl, newrows)
+        match selrows with
+          [] -> (l, [])
+        | m :: qrows ->
+            match l with
+              [] -> ([],[])
+            | [_] -> (l,[])
+            | e1 :: e2 :: q when m = n + 1 ->
+                let newl, newrows = iter (n+1) qrows (e1 :: q) in
+                (e2 :: newl, n :: newrows)
+            | e1 :: q ->
+                let newl, newrows = iter (n+1) selrows q in
+                (e1 ::  newl, newrows)
       in
       let sorted_select = List.sort compare list_select in
       let new_list, new_rows = iter 0 sorted_select !listref in
@@ -231,24 +231,24 @@ class ['a] list_selection_box (listref : 'a list ref)
     method edit_selected f_edit =
       let sorted_select = List.sort compare list_select in
       match sorted_select with
-	[] -> ()
+        [] -> ()
       |	n :: _ ->
-	  try
+          try
             let ele = List.nth !listref n in
-	    let ele2 = f_edit ele in
-	    let rec iter m = function
-		[] -> []
-	      |	e :: q ->
-		  if n = m then
-		    ele2 :: q
-		  else
-		    e :: (iter (m+1) q)
-	    in
-	    self#update (iter 0 !listref);
-	    wlist#select n 0
-	  with
-	    Not_found ->
-	      ()
+            let ele2 = f_edit ele in
+            let rec iter m = function
+                [] -> []
+              |	e :: q ->
+                  if n = m then
+                    ele2 :: q
+                  else
+                    e :: (iter (m+1) q)
+            in
+            self#update (iter 0 !listref);
+            wlist#select n 0
+          with
+            Not_found ->
+              ()
 
     initializer
       (** create the functions called when the buttons are clicked *)
@@ -270,14 +270,14 @@ class ['a] list_selection_box (listref : 'a list ref)
       in
       let f_remove () =
         (* remove the selected items from the listref and the clist *)
-	let rec iter n = function
-	    [] -> []
-	  | h :: q ->
-	      if List.mem n list_select then
-		iter (n+1) q
-	      else
-		h :: (iter (n+1) q)
-	in
+        let rec iter n = function
+            [] -> []
+          | h :: q ->
+              if List.mem n list_select then
+                iter (n+1) q
+              else
+                h :: (iter (n+1) q)
+        in
         let new_list = iter 0 !listref in
         self#update new_list
       in
@@ -287,7 +287,7 @@ class ['a] list_selection_box (listref : 'a list ref)
       ignore (wb_up#connect#clicked (fun () -> self#up_selected));
       (
        match f_edit_opt with
-	 None -> ()
+         None -> ()
        | Some f -> ignore (wb_edit#connect#clicked (fun () -> self#edit_selected f))
       );
       (* connect the selection and deselection of items in the clist *)
@@ -330,9 +330,9 @@ class string_param_box param =
     match param.string_help with
       None -> ()
     | Some help ->
-	let tooltips = GData.tooltips () in
-	ignore (hbox#connect#destroy ~callback: tooltips#destroy);
-	tooltips#set_tip wev#coerce ~text: help ~privat: help 
+        let tooltips = GData.tooltips () in
+        ignore (hbox#connect#destroy ~callback: tooltips#destroy);
+        tooltips#set_tip wev#coerce ~text: help ~privat: help 
   in
   let _ = we#set_text param.string_value in
 
@@ -343,10 +343,10 @@ class string_param_box param =
     method apply =
       let new_value = we#text in
       if new_value <> param.string_value then
-	let _ = param.string_f_apply new_value in
-	param.string_value <- new_value
+        let _ = param.string_f_apply new_value in
+        param.string_value <- new_value
       else
-	()
+        ()
   end ;;
 
 (** This class is used to build a box for a combo parameter.*)
@@ -365,9 +365,9 @@ class combo_param_box param =
     match param.combo_help with
       None -> ()
     | Some help ->
-	let tooltips = GData.tooltips () in
-	ignore (hbox#connect#destroy ~callback: tooltips#destroy);
-	tooltips#set_tip wev#coerce ~text: help ~privat: help 
+        let tooltips = GData.tooltips () in
+        ignore (hbox#connect#destroy ~callback: tooltips#destroy);
+        tooltips#set_tip wev#coerce ~text: help ~privat: help 
   in
   let _ = wc#entry#set_editable param.combo_editable in
   let _ = wc#entry#set_text param.combo_value in
@@ -379,10 +379,10 @@ class combo_param_box param =
     method apply =
       let new_value = wc#entry#text in
       if new_value <> param.combo_value then
-	let _ = param.combo_f_apply new_value in
-	param.combo_value <- new_value
+        let _ = param.combo_f_apply new_value in
+        param.combo_value <- new_value
       else
-	()
+        ()
   end ;;
 
 (** Class used to pack a custom box. *)
@@ -391,9 +391,9 @@ class custom_param_box param =
     match param.custom_framed with
       None -> param.custom_box#coerce
     | Some l ->
-	let wf = GBin.frame ~label: l () in
-	wf#add param.custom_box#coerce;
-	wf#coerce
+        let wf = GBin.frame ~label: l () in
+        wf#add param.custom_box#coerce;
+        wf#coerce
   in
   object (self)
     method box = top
@@ -424,9 +424,9 @@ class color_param_box param =
     match param.color_help with
       None -> ()
     | Some help ->
-	let tooltips = GData.tooltips () in
-	ignore (hbox#connect#destroy ~callback: tooltips#destroy);
-	tooltips#set_tip wb#coerce ~text: help ~privat: help 
+        let tooltips = GData.tooltips () in
+        ignore (hbox#connect#destroy ~callback: tooltips#destroy);
+        tooltips#set_tip wb#coerce ~text: help ~privat: help 
   in
   let set_color s =
     let style = w_test#misc#style#copy in
@@ -440,30 +440,30 @@ class color_param_box param =
   let _ = we#set_text !v in
   let f_sel () =
     let dialog = GWindow.color_selection_dialog
-	~title: param.color_label
-	~modal: true
-	~show: true
-	()
+        ~title: param.color_label
+        ~modal: true
+        ~show: true
+        ()
     in
     let wb_ok = dialog#ok_button in
     let wb_cancel = dialog#cancel_button in
     let _ = dialog#connect#destroy GMain.Main.quit in
     let _ = wb_ok#connect#clicked
-	(fun () -> 
-	  let color = dialog#colorsel#get_color in
-	  let r = int_of_float (ceil (color.Gtk.red *. 255.)) in
-	  let g = int_of_float (ceil (color.Gtk.green *. 255.)) in
-	  let b = int_of_float (ceil (color.Gtk.blue *. 255.)) in
-	  let s = Printf.sprintf "#%2X%2X%2X" r g b in
-	  let _ = 
-	    for i = 1 to (String.length s) - 1 do
-	      if s.[i] = ' ' then s.[i] <- '0'
-	    done
-	  in
-	  we#set_text s ;
-	  set_color s;
-	  dialog#destroy ()
-	)
+        (fun () -> 
+          let color = dialog#colorsel#get_color in
+          let r = int_of_float (ceil (color.Gtk.red *. 255.)) in
+          let g = int_of_float (ceil (color.Gtk.green *. 255.)) in
+          let b = int_of_float (ceil (color.Gtk.blue *. 255.)) in
+          let s = Printf.sprintf "#%2X%2X%2X" r g b in
+          let _ = 
+            for i = 1 to (String.length s) - 1 do
+              if s.[i] = ' ' then s.[i] <- '0'
+            done
+          in
+          we#set_text s ;
+          set_color s;
+          dialog#destroy ()
+        )
     in
     let _ = wb_cancel#connect#clicked dialog#destroy in
     GMain.Main.main ()
@@ -479,10 +479,10 @@ class color_param_box param =
     method apply =
       let new_value = we#text in
       if new_value <> param.color_value then
-	let _ = param.color_f_apply new_value in
-	param.color_value <- new_value
+        let _ = param.color_f_apply new_value in
+        param.color_value <- new_value
       else
-	()
+        ()
   end ;;
 
 (** This class is used to build a box for a font parameter.*)
@@ -501,43 +501,43 @@ class font_param_box param =
     match param.font_help with
       None -> ()
     | Some help ->
-	let tooltips = GData.tooltips () in
-	ignore (hbox#connect#destroy ~callback: tooltips#destroy);
-	tooltips#set_tip wb#coerce ~text: help ~privat: help 
+        let tooltips = GData.tooltips () in
+        ignore (hbox#connect#destroy ~callback: tooltips#destroy);
+        tooltips#set_tip wb#coerce ~text: help ~privat: help 
   in
   let set_entry_font font_opt =
     match font_opt with
       None -> ()
     | Some s ->
-	let style = we#misc#style#copy in
-	(
-	 try 
-	   let font = Gdk.Font.load_fontset s in
-	   style#set_font font
-	 with _ -> ()
-	);
-	we#misc#set_style style
+        let style = we#misc#style#copy in
+        (
+         try 
+           let font = Gdk.Font.load_fontset s in
+           style#set_font font
+         with _ -> ()
+        );
+        we#misc#set_style style
   in
   let _ = set_entry_font (Some !v) in
   let _ = we#set_text !v in
   let f_sel () =
     let dialog = GWindow.font_selection_dialog
-	~title: param.font_label
-	~modal: true
-	~show: true
-	()
+        ~title: param.font_label
+        ~modal: true
+        ~show: true
+        ()
     in
     dialog#selection#set_font_name !v;
     let wb_ok = dialog#ok_button in
     let wb_cancel = dialog#cancel_button in
     let _ = dialog#connect#destroy GMain.Main.quit in
     let _ = wb_ok#connect#clicked
-	(fun () -> 
-	  let font_opt = dialog#selection#font_name in
-	  we#set_text (match font_opt with None -> "" | Some s -> s) ;
-	  set_entry_font font_opt;
-	  dialog#destroy ()
-	)
+        (fun () -> 
+          let font_opt = dialog#selection#font_name in
+          we#set_text (match font_opt with None -> "" | Some s -> s) ;
+          set_entry_font font_opt;
+          dialog#destroy ()
+        )
     in
     let _ = wb_cancel#connect#clicked dialog#destroy in
     GMain.Main.main ()
@@ -551,10 +551,10 @@ class font_param_box param =
     method apply =
       let new_value = we#text in
       if new_value <> param.font_value then
-	let _ = param.font_f_apply new_value in
-	param.font_value <- new_value
+        let _ = param.font_f_apply new_value in
+        param.font_value <- new_value
       else
-	()
+        ()
   end ;;
 
 (** This class is used to build a box for a text parameter.*)
@@ -571,9 +571,9 @@ class text_param_box param =
     match param.string_help with
       None -> ()
     | Some help ->
-	let tooltips = GData.tooltips () in
-	ignore (hbox#connect#destroy ~callback: tooltips#destroy);
-	tooltips#set_tip wev#coerce ~text: help ~privat: help 
+        let tooltips = GData.tooltips () in
+        ignore (hbox#connect#destroy ~callback: tooltips#destroy);
+        tooltips#set_tip wev#coerce ~text: help ~privat: help 
   in
   let _ = wt#insert param.string_value in
 
@@ -584,10 +584,10 @@ class text_param_box param =
     method apply =
       let new_value = wt#get_chars 0 wt#length in
       if new_value <> param.string_value then
-	let _ = param.string_f_apply new_value in
-	param.string_value <- new_value
+        let _ = param.string_f_apply new_value in
+        param.string_value <- new_value
       else
-	()
+        ()
   end ;;
 
 (** This class is used to build a box for a boolean parameter.*)
@@ -600,9 +600,9 @@ class bool_param_box param =
     match param.bool_help with
       None -> ()
     | Some help ->
-	let tooltips = GData.tooltips () in
-	ignore (wchk#connect#destroy ~callback: tooltips#destroy);
-	tooltips#set_tip wchk#coerce ~text: help ~privat: help 
+        let tooltips = GData.tooltips () in
+        ignore (wchk#connect#destroy ~callback: tooltips#destroy);
+        tooltips#set_tip wchk#coerce ~text: help ~privat: help 
   in
   let _ = wchk#set_active param.bool_value in
   let _ = wchk#misc#set_sensitive param.bool_editable in
@@ -614,10 +614,10 @@ class bool_param_box param =
     method apply =
       let new_value = wchk#active in
       if new_value <> param.bool_value then
-	let _ = param.bool_f_apply new_value in
-	param.bool_value <- new_value
+        let _ = param.bool_f_apply new_value in
+        param.bool_value <- new_value
       else
-	()
+        ()
   end ;;
 
 (** This class is used to build a box for a file name parameter.*)
@@ -635,9 +635,9 @@ class filename_param_box param =
     match param.string_help with
       None -> ()
     | Some help ->
-	let tooltips = GData.tooltips () in
-	ignore (hbox#connect#destroy ~callback: tooltips#destroy);
-	tooltips#set_tip wb#coerce ~text: help ~privat: help 
+        let tooltips = GData.tooltips () in
+        ignore (hbox#connect#destroy ~callback: tooltips#destroy);
+        tooltips#set_tip wb#coerce ~text: help ~privat: help 
   in
   let _ = we#set_text param.string_value in
 
@@ -663,10 +663,10 @@ class filename_param_box param =
     method apply =
       let new_value = we#text in
       if new_value <> param.string_value then
-	let _ = param.string_f_apply new_value in
-	param.string_value <- new_value
+        let _ = param.string_f_apply new_value in
+        param.string_value <- new_value
       else
-	()
+        ()
   end ;;
 
 (** This class is used to build a box for a date parameter.*)
@@ -685,9 +685,9 @@ class date_param_box param =
     match param.date_help with
       None -> ()
     | Some help ->
-	let tooltips = GData.tooltips () in
-	ignore (hbox#connect#destroy ~callback: tooltips#destroy);
-	tooltips#set_tip wb#coerce ~text: help ~privat: help 
+        let tooltips = GData.tooltips () in
+        ignore (hbox#connect#destroy ~callback: tooltips#destroy);
+        tooltips#set_tip wb#coerce ~text: help ~privat: help 
   in
   let _ = we#set_text (param.date_f_string param.date_value) in
 
@@ -695,8 +695,8 @@ class date_param_box param =
     match select_date param.date_label !v with
       None -> ()
     | Some (y,m,d) -> 
-	v := (d,m,y) ;
-	we#set_text (param.date_f_string (d,m,y))
+        v := (d,m,y) ;
+        we#set_text (param.date_f_string (d,m,y))
   in
   let _ = 
     if param.date_editable then
@@ -712,10 +712,10 @@ class date_param_box param =
     (** This method applies the new value of the parameter. *)
     method apply =
       if !v <> param.date_value then
-	let _ = param.date_f_apply !v in
-	param.date_value <- !v
+        let _ = param.date_f_apply !v in
+        param.date_value <- !v
       else
-	()
+        ()
   end ;;
 
 (** This class is used to build a box for a parameter whose values are a list.*)
@@ -738,10 +738,10 @@ class ['a] list_param_box (param : 'a list_param) =
     (** This method applies the new value of the parameter. *)
     method apply =
       if !listref <> param.list_value then
-	let _ = param.list_f_apply !listref in
-	param.list_value <- !listref
+        let _ = param.list_f_apply !listref in
+        param.list_value <- !listref
       else
-	()
+        ()
   end ;;
 
 (** This class is used to build a box from a configuration structure 
@@ -759,70 +759,70 @@ class configuration_box conf_struct (notebook : GPack.notebook) =
   let (label, child_boxes) = 
     match conf_struct with
       Section (label, param_list) ->
-	let f parameter =
-	      match parameter with
-		String_param p ->
-		  let box = new string_param_box p in
-		  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-		  box
-	      |	Combo_param p ->
-		  let box = new combo_param_box p in
-		  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-		  box
-	      |	Text_param p ->
-		  let box = new text_param_box p in
-		  let _ = main_box#pack ~expand: p.string_expand ~padding: 2 box#box in
-		  box
-	      | Bool_param p ->
-		  let box = new bool_param_box p in
-		  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-		  box
-	      |	Filename_param p ->
-		  let box = new filename_param_box p in
-		  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-		  box
-	      |	List_param f ->
-		  let box = f () in
-		  let _ = main_box#pack ~expand: true ~padding: 2 box#box in
-		  box
-	      |	Custom_param p ->
-		  let box = new custom_param_box p in
-		  let _ = main_box#pack ~expand: p.custom_expand ~padding: 2 box#box in
-		  box
-	      |	Color_param p ->
-		  let box = new color_param_box p in
-		  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-		  box
-	      |	Font_param p ->
-		  let box = new font_param_box p in
-		  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-		  box
-	      |	Date_param p ->
-		  let box = new date_param_box p in
-		  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-		  box
-	in
-	let list_children_boxes = List.map f param_list in
-	
-	(label, list_children_boxes)
+        let f parameter =
+              match parameter with
+                String_param p ->
+                  let box = new string_param_box p in
+                  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+                  box
+              |	Combo_param p ->
+                  let box = new combo_param_box p in
+                  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+                  box
+              |	Text_param p ->
+                  let box = new text_param_box p in
+                  let _ = main_box#pack ~expand: p.string_expand ~padding: 2 box#box in
+                  box
+              | Bool_param p ->
+                  let box = new bool_param_box p in
+                  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+                  box
+              |	Filename_param p ->
+                  let box = new filename_param_box p in
+                  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+                  box
+              |	List_param f ->
+                  let box = f () in
+                  let _ = main_box#pack ~expand: true ~padding: 2 box#box in
+                  box
+              |	Custom_param p ->
+                  let box = new custom_param_box p in
+                  let _ = main_box#pack ~expand: p.custom_expand ~padding: 2 box#box in
+                  box
+              |	Color_param p ->
+                  let box = new color_param_box p in
+                  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+                  box
+              |	Font_param p ->
+                  let box = new font_param_box p in
+                  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+                  box
+              |	Date_param p ->
+                  let box = new date_param_box p in
+                  let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+                  box
+        in
+        let list_children_boxes = List.map f param_list in
+        
+        (label, list_children_boxes)
 
     | Section_list (label, struct_list) ->
-	let wnote = GPack.notebook 
+        let wnote = GPack.notebook 
             (*homogeneous_tabs: true*)
-	    ~scrollable: true
-	    ~show_tabs: true
-	    ~tab_border: 3
-	    ~packing: (main_box#pack ~expand: true)
-	    ()
-	in
-	(* we create all the children boxes *)
-	let f structure =
-	  let new_box = new configuration_box structure wnote in
-	  new_box
-	in
-	let list_child_boxes = List.map f struct_list in
-	(label, list_child_boxes)
-	
+            ~scrollable: true
+            ~show_tabs: true
+            ~tab_border: 3
+            ~packing: (main_box#pack ~expand: true)
+            ()
+        in
+        (* we create all the children boxes *)
+        let f structure =
+          let new_box = new configuration_box structure wnote in
+          new_box
+        in
+        let list_child_boxes = List.map f struct_list in
+        (label, list_child_boxes)
+        
   in
   let page_label = GMisc.label ~text: label () in
   let _ = notebook#append_page 
@@ -912,45 +912,45 @@ let box param_list buttons =
   let f parameter =
     match parameter with
       String_param p ->
-	let box = new string_param_box p in
-	let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-	box
+        let box = new string_param_box p in
+        let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+        box
     | Combo_param p ->
-	let box = new combo_param_box p in
-	let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-	box
+        let box = new combo_param_box p in
+        let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+        box
     | Text_param p ->
-	let box = new text_param_box p in
-	let _ = main_box#pack ~expand: p.string_expand ~padding: 2 box#box in
-	box
+        let box = new text_param_box p in
+        let _ = main_box#pack ~expand: p.string_expand ~padding: 2 box#box in
+        box
     | Bool_param p ->
-	let box = new bool_param_box p in
-	let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-	box
+        let box = new bool_param_box p in
+        let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+        box
     | Filename_param p ->
-	let box = new filename_param_box p in
-	let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-	box
+        let box = new filename_param_box p in
+        let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+        box
     | List_param f ->
-	let box = f () in
-	let _ = main_box#pack ~expand: true ~padding: 2 box#box in
-	box
+        let box = f () in
+        let _ = main_box#pack ~expand: true ~padding: 2 box#box in
+        box
     | Custom_param p ->
-	let box = new custom_param_box p in
-	let _ = main_box#pack ~expand: p.custom_expand ~padding: 2 box#box in
-	box
+        let box = new custom_param_box p in
+        let _ = main_box#pack ~expand: p.custom_expand ~padding: 2 box#box in
+        box
     | Color_param p ->
-	let box = new color_param_box p in
-	let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-	box
+        let box = new color_param_box p in
+        let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+        box
     | Font_param p ->
-	let box = new font_param_box p in
-	let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-	box
+        let box = new font_param_box p in
+        let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+        box
     | Date_param p ->
-	let box = new date_param_box p in
-	let _ = main_box#pack ~expand: false ~padding: 2 box#box in
-	box
+        let box = new date_param_box p in
+        let _ = main_box#pack ~expand: false ~padding: 2 box#box in
+        box
   in
   let list_param_box = List.map f param_list in
   let f_apply () = 
@@ -965,7 +965,7 @@ let box param_list buttons =
             ~packing:(hbox_buttons#pack ~expand:true ~padding:4) ()
         in
         ignore (b#connect#clicked ~callback:
-		  (fun () -> f_apply (); callb ()));
+                  (fun () -> f_apply (); callb ()));
         (* If it's the first button then give it the focus *)
         if grab then b#grab_default ();
 
@@ -996,8 +996,8 @@ let simple_edit ?(with_apply=true)
     else
       []
     ) @ [
-	(Configwin_messages.mOk, fun () -> return := Return_ok ; window#destroy ()) ;
-	(Configwin_messages.mCancel, window#destroy) ;
+        (Configwin_messages.mOk, fun () -> return := Return_ok ; window#destroy ()) ;
+        (Configwin_messages.mCancel, window#destroy) ;
       ]	
   in
   let box = box param_list buttons in
@@ -1059,21 +1059,21 @@ let list ?(editable=true) ?help
   List_param
     (fun () ->
       Obj.magic
-	(new list_param_box
-	   {
-	     list_label = label ;
-	     list_help = help ;
-	     list_value = v ;
-	     list_editable = editable ;
-	     list_titles = titles;
-	     list_eq = eq ;
-	     list_strings = f_strings ;
-	     list_color = color ;
-	     list_f_edit = edit ;
-	     list_f_add = add ;
-	     list_f_apply = f ;
-	   } 
-	)
+        (new list_param_box
+           {
+             list_label = label ;
+             list_help = help ;
+             list_value = v ;
+             list_editable = editable ;
+             list_titles = titles;
+             list_eq = eq ;
+             list_strings = f_strings ;
+             list_color = color ;
+             list_f_edit = edit ;
+             list_f_add = add ;
+             list_f_apply = f ;
+           } 
+        )
     )
 
 (** Create a strings param. *)
