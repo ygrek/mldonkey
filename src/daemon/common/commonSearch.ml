@@ -171,7 +171,7 @@ let custom_query buf query =
     let q = List.assoc query (CommonComplexOptions.customized_queries()) in
     Printf.bprintf buf "
     <center>
-    <h2> %s </h2>
+    <h2 class=\"header2\"> %s </h2>
     </center>
 
 <form action=\"submit\">
@@ -263,13 +263,13 @@ let custom_query buf query =
       | Q_KEYWORDS (label, default) ->
           Printf.bprintf buf "
 <table border=0>
-          <td width=100 align=right>%s</td><td><input type=text name=keywords size=40 value=\"%s\"></td>
+          <td class=\"txt\" width=100 align=right>%s</td><td><input type=text name=keywords size=40 value=\"%s\"></td>
 </table>" label default
       
       | Q_MINSIZE (label, default) ->
           Printf.bprintf  buf "
 <table border=0>
-<td width=100 align=right> %s </td> 
+<td class=\"txt\" width=100 align=right> %s </td> 
 
 <td> 
 <input type=text name=minsize size=40 value=\"%s\">
@@ -293,7 +293,7 @@ let custom_query buf query =
       | Q_MAXSIZE (label, default) ->
           Printf.bprintf  buf "
 <table border=0>
-<td width=100 align=right> %s </td> 
+<td class=\"txt\" width=100 align=right> %s </td> 
 
 <td> 
 <input type=text name=maxsize size=40 value=\"%s\">
@@ -319,7 +319,7 @@ let custom_query buf query =
 <table border=0>
 
 <tr>
-<td width=100 align=right>
+<td class=\"txt\" width=100 align=right>
 %s
 </td>
 
@@ -345,7 +345,7 @@ let custom_query buf query =
 <table border=0>
 
 <tr>
-<td width=100 align=right> %s </td> 
+<td class=\"txt\" width=100 align=right> %s </td> 
 <td> 
 <input type=text name=album size=40 value=\"%s\">
 </td>
@@ -359,7 +359,7 @@ let custom_query buf query =
 <table border=0>
 
 <tr>
-<td width=100 align=right> %s </td> 
+<td class=\"txt\" width=100 align=right> %s </td> 
 <td> 
 <input type=text name=title size=40 value=\"%s\">
 </td>
@@ -373,7 +373,7 @@ let custom_query buf query =
 <table border=0>
 
 <tr>
-<td width=100 align=right> %s </td> 
+<td class=\"txt\" width=100 align=right> %s </td> 
 <td> 
 <input type=text name=artist size=40 value=\"%s\">
 </td>
@@ -388,7 +388,7 @@ let custom_query buf query =
 <table border=0>
           
 <tr>
-<td width=100 align=right> %s </td> 
+<td class=\"txt\" width=100 align=right> %s </td> 
 
 <td> 
 <input type=text name=media size=40 value=\"%s\">
@@ -416,7 +416,7 @@ let custom_query buf query =
           Printf.bprintf  buf "
 <table border=0>
 <tr>
-<td width=100 align=right> %s </td> 
+<td class=\"txt\" width=100 align=right> %s </td> 
 
 <td> 
 <input type=text name=format size=40 value=\"%s\">
@@ -438,7 +438,7 @@ let custom_query buf query =
           " label default
       
       | Q_MODULE (label, q) -> 
-          Printf.bprintf buf "<table border=0> <tr><td> <h3> %s </h3> </td></tr>" label;
+          Printf.bprintf buf "<table border=0> <tr><td> <h3 class=\"header3\"> %s </h3> </td></tr>" label;
           Printf.bprintf buf "<tr><td>";
           iter q in_op;
           Printf.bprintf buf "</td></tr>";
@@ -516,12 +516,12 @@ let custom_query buf query =
     Printf.bprintf buf "</td></tr>";
     Printf.bprintf buf "</table>";
     
-    Printf.bprintf buf "<table border=0> <tr><td> <h3> Misc </h3> </td></tr>";
+    Printf.bprintf buf "<table border=0> <tr><td> <h3 class=\"header3\"> Misc </h3> </td></tr>";
     Printf.bprintf buf "<tr><td>";
     
     Printf.bprintf buf "
 <table border=0>
-          <td width=100 align=right>Network</td><td>
+          <td class=\"txt\" width=100 align=right>Network</td><td>
     <select name=network>
     <option value=\"\"> --- </option>            
 ";    
@@ -680,7 +680,7 @@ let complex_search buf =
 </tr>
 
 <tr>
-<td> Artist </td> 
+<td class=\"txt\"> Artist </td> 
 <td> 
 <input type=text name=artist size=40 value=\"\">
 </td>

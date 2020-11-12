@@ -1124,7 +1124,7 @@ let http_handler o t r =
 
         | "oneframe.html" ->
             html_open_page buf t r true;
-            Buffer.add_string buf (Printf.sprintf "<br><div align=\"center\"><h3>%s %s</h3></div>"
+            Buffer.add_string buf (Printf.sprintf "<br><div align=\"center\"><h3 class=\"header3\">%s %s</h3></div>"
               (Printf.sprintf (_b "Welcome to MLDonkey")) Autoconf.current_version);
             if !!motd_html <> "" then Buffer.add_string buf !!motd_html;
             if user2_is_admin o.conn_user.ui_user then
