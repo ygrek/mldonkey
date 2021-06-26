@@ -1156,7 +1156,11 @@ let simple_args prefix opfile =
        Arg.String
          (fun s ->
             lprintf_nl "Setting option %s" oi.M.option_name;
-            set_simple_option opfile oi.M.option_name s),
+            try
+              let name = List.nth (String.split_on_char '-' oi.M.option_name) 1 in
+                set_simple_option opfile name s
+            with
+              Failure s -> set_simple_option opfile oi.M.option_name s),
        Printf.sprintf "<string> : \t%s (current: %s)"
          oi.M.option_help oi.M.option_value)
     (simple_options prefix opfile true)
