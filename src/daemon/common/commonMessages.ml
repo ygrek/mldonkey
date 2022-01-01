@@ -53,6 +53,7 @@ body {
   margin-right: 5px;
   font-family: Verdana, sans-serif;
   font-size: 12px;
+  color: @color_general_text@;
   }
 table.commands {
   border: @color_general_border@ solid 1px;
