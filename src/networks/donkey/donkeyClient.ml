@@ -810,10 +810,6 @@ another better way, since this functionnality is still useful...
           query_id ip port id
         end
 
-
-external hash_param : int -> int -> 'a -> int = "caml_hash_univ_param" "noalloc"
-let hash x = hash_param 10 100 x
-
 let shared_of_file file =
   match file.file_shared with
     | None  -> None
