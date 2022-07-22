@@ -795,9 +795,7 @@ let http_add_text_header r ext =
   add_gzip_headers r
 
 let http_add_bin_info_header r clen =
-  add_reply_header r "Accept-Ranges" "bytes";
-  add_reply_header r "Content-Length" (Printf.sprintf "%d" clen)
-  (* FIXME Content-Length is duplicated *)
+  add_reply_header r "Accept-Ranges" "bytes"
 
 let http_add_bin_header r ext clen =
   http_file_type := ext_to_file_type ext;
