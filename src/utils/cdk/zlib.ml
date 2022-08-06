@@ -1,3 +1,18 @@
+(***********************************************************************)
+(*                                                                     *)
+(*                         The CamlZip library                         *)
+(*                                                                     *)
+(*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         *)
+(*                                                                     *)
+(*  Copyright 2001 Institut National de Recherche en Informatique et   *)
+(*  en Automatique.  All rights reserved.  This file is distributed    *)
+(*  under the terms of the GNU Lesser General Public License, with     *)
+(*  the special exception on linking described in file LICENSE.        *)
+(*                                                                     *)
+(***********************************************************************)
+
+(* $Id$ *)
+
 exception Error of string * string
 
 let _ =
@@ -13,26 +28,36 @@ type flush_command =
 
 external deflate_init: int -> bool -> stream = "camlzip_deflateInit"
 external deflate:
-  stream -> string -> int -> int -> string -> int -> int -> flush_command
+  stream -> bytes -> int -> int -> bytes -> int -> int -> flush_command
+         -> bool * int * int
+  = "camlzip_deflate_bytecode" "camlzip_deflate"
+external deflate_string:
+  stream -> string -> int -> int -> bytes -> int -> int -> flush_command
          -> bool * int * int
   = "camlzip_deflate_bytecode" "camlzip_deflate"
 external deflate_end: stream -> unit = "camlzip_deflateEnd"
 
 external inflate_init: bool -> stream = "camlzip_inflateInit"
 external inflate:
-  stream -> string -> int -> int -> string -> int -> int -> flush_command
+  stream -> bytes -> int -> int -> bytes -> int -> int -> flush_command
+         -> bool * int * int
+  = "camlzip_inflate_bytecode" "camlzip_inflate"
+external inflate_string:
+  stream -> string -> int -> int -> bytes -> int -> int -> flush_command
          -> bool * int * int
   = "camlzip_inflate_bytecode" "camlzip_inflate"
 external inflate_end: stream -> unit = "camlzip_inflateEnd"
 
-external update_crc: int32 -> string -> int -> int -> int32
+external update_crc: int32 -> bytes -> int -> int -> int32
+                   = "camlzip_update_crc32"
+external update_crc_string: int32 -> string -> int -> int -> int32
                    = "camlzip_update_crc32"
 
 let buffer_size = 1024
 
 let compress ?(level = 6) ?(header = true) refill flush =
-  let inbuf = String.create buffer_size
-  and outbuf = String.create buffer_size in
+  let inbuf = Bytes.create buffer_size
+  and outbuf = Bytes.create buffer_size in
   let zs = deflate_init level header in
   let rec compr inpos inavail =
     if inavail = 0 then begin
@@ -53,10 +78,30 @@ let compress ?(level = 6) ?(header = true) refill flush =
     compr 0 0;
     deflate_end zs
 
+let compress_direct  ?(level = 6) ?(header = true) flush =
+  let outbuf = Bytes.create buffer_size in
+  let zs = deflate_init level header in
+  let rec compr inbuf inpos inavail =
+    if inavail = 0 then ()
+    else begin
+      let (_, used_in, used_out) =
+        deflate zs inbuf inpos inavail outbuf 0 buffer_size Z_NO_FLUSH in
+      flush outbuf used_out;
+      compr inbuf (inpos + used_in) (inavail - used_in)
+    end
+  and compr_finish () =
+    let (finished, _, used_out) =
+      deflate zs (Bytes.unsafe_of_string "") 0 0
+                 outbuf 0 buffer_size Z_FINISH in
+    flush outbuf used_out;
+    if not finished then compr_finish()
+    else deflate_end zs
+  in
+  compr, compr_finish
 
 let uncompress ?(header = true) refill flush =
-  let inbuf = String.create buffer_size
-  and outbuf = String.create buffer_size in
+  let inbuf = Bytes.create buffer_size
+  and outbuf = Bytes.create buffer_size in
   let zs = inflate_init header in
   let rec uncompr inpos inavail =
     if inavail = 0 then begin
