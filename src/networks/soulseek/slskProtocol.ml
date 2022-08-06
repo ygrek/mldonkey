@@ -778,7 +778,7 @@ module C2C = struct
         type t = (string * (file list)) list
         
         let parse s = 
-          let s = Zlib.uncompress_string s in
+          let s = Zlib2.uncompress_string s in
           let dirs, pos = get_list get_dir s 0 in
           dirs
       
@@ -796,7 +796,7 @@ module C2C = struct
           }
         
         let parse s = 
-          let s = Zlib.uncompress_string s in
+          let s = Zlib2.uncompress_string s in
           let user, pos = get_string s 0 in
           let id = get_int s pos in
           let files, pos = get_list get_file s (pos+4) in
@@ -822,7 +822,7 @@ module C2C = struct
         
         
         let parse s = 
-          let s = Zlib.uncompress_string s in
+          let s = Zlib2.uncompress_string s in
           let folders, pos = get_list (fun s pos ->
                 let folder, pos = get_string s pos in
                 let dirs, pos = get_list get_dir s pos in

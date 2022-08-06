@@ -421,7 +421,7 @@ module P = struct
       let opcode = int_of_char pbuf.[1] in
       let msg = String.sub pbuf 2 (len-2) in
       let msg = if magic = kademlia_packed_header_code then
-          let s = Zlib.uncompress_string2 msg in
+          let s = Zlib2.uncompress_string2 msg in
 (*          lprintf "Uncompressed:\n";
           dump s; *)
           s
@@ -440,7 +440,7 @@ module P = struct
           if String.length s > 200 then
             let opcode = String.sub s 0 1 in
             let args = String.sub s 1 (String.length s - 1) in
-            kademlia_packed_header ^ opcode ^ (Zlib.compress_string args)
+            kademlia_packed_header ^ opcode ^ (Zlib2.compress_string args)
           else
             kademlia_header ^ s
         in

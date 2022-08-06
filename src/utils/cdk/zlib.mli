@@ -31,10 +31,3 @@ external inflate_end: stream -> unit = "camlzip_inflateEnd"
 
 external update_crc: int32 -> string -> int -> int -> int32
                    = "camlzip_update_crc32"
-
-val uncompress_string : string -> string
-val uncompress_string2 : string -> string
-val compress_string : ?level:int -> string -> string
-val gzip_string : ?level:int -> string -> string
-
-val zlib_version_num : unit -> string

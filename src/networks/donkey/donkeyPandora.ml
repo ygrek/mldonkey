@@ -184,7 +184,7 @@ let client_parse c opcode s =
                 in
                 let pos = iter comp.comp_blocs in
                 assert (pos = comp.comp_len);
-                  let s = Zlib.uncompress_string2 s in
+                  let s = Zlib2.uncompress_string2 s in
                   lprintf "Decompressed: %d/%d\n" (String.length s) comp.comp_len;
                   
                 c.client_comp <- None;
