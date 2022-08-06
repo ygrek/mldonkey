@@ -31,7 +31,7 @@ Boston, MA  02110-1301, USA.
 
 #define BZStream_val(v) ((bz_stream *) (v))
 
-static value * camlzip_bzerror_exn = NULL;
+static const value * camlzip_bzerror_exn = NULL;
 
 #ifdef USE_BZIP2
 static void camlzip_bzerror(char * fn, int err)
