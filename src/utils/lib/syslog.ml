@@ -194,7 +194,7 @@ let protected_write loginfo str =
   in
   let prev = Sys.signal Sys.sigpipe (Sys.Signal_handle fallback) in
   try
-    ignore (write loginfo.fd str 0 (String.length str));
+    ignore (write_substring loginfo.fd str 0 (String.length str));
     Sys.set_signal Sys.sigpipe prev
   with Unix_error (_, _, _) ->
     (* on error, attempt to reconnect *)
@@ -222,14 +222,13 @@ let syslog ?fac loginfo lev str =
       Buffer.add_string msg str;
       let realmsg = ref (Buffer.contents msg) in
         if String.length !realmsg > 1024 then begin
-          realmsg := String.sub !realmsg 0 1024;
-          String.blit "<truncated>" 0 !realmsg 1012 11
+          realmsg := String.sub !realmsg 0 1012 ^ "<truncated>"
         end;
         protected_write loginfo !realmsg;
         if List.mem `LOG_PERROR loginfo.flags then begin
           try
-            ignore (Unix.write Unix.stderr !realmsg 0 (String.length !realmsg));
-            ignore (Unix.write Unix.stderr "\n" 0 1)
+            ignore (Unix.write_substring Unix.stderr !realmsg 0 (String.length !realmsg));
+            ignore (Unix.write_substring Unix.stderr "\n" 0 1)
           with _ -> ()
         end
 

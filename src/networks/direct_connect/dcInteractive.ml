@@ -403,13 +403,28 @@ let html_show_shared dcsh =
 let html_show_file file =
   html_show_tth file.file_name file.file_file.impl_file_size file.file_unchecked_tiger_root
 
+(* TODO better *)
+let translate' s =
+  let s = String2.replace_char s char32 char42 in  (*   to * *)
+  let s = String2.replace_char s char39 char58 in  (* ' to : *)
+  let s = String2.replace_char s char38 char60 in  (* & to < *)
+  s
+
+let translate s =
+  String2.replace_char (translate' s) char43 char62  (* + to > *)
+
+let untranslate' s =
+  let s = String2.replace_char s char42 char32 in  (* * to   *)
+  let s = String2.replace_char s char58 char39 in  (* : to ' *)
+  let s = String2.replace_char s char60 char38 in  (* < to & *)
+  s
+
+let untranslate s =
+  String2.replace_char (untranslate' s) char62 char43 (* > to + *)
+
 (* print in html or txt list of files *)
 let file_print file num o =
   let buf = o.conn_buf in
-  let fname = ref (String.copy file.file_name) in
-  String2.replace_char !fname char32 char42;  (*   to * *)
-  String2.replace_char !fname char39 char58;  (* ' to : *)
-  String2.replace_char !fname char60 char38;  (* & to < *)
   if use_html_mods o then begin
     Printf.bprintf buf "
     \\<tr class=\\\"dl-%d\\\"\\>
@@ -424,7 +439,7 @@ let file_print file num o =
     (html_mods_cntr ()) num file.file_name file.file_file.impl_file_size 
     (html_show_file file) (List.length file.file_clients) file.file_autosearch_count
     (td_command "Find TTH" "Find new client for this file by TTH" ["dcfindsource"; file.file_unchecked_tiger_root])
-    (td_command "Find similar" "Find new client for this file by similar name" ["dcfindsource"; !fname])
+    (td_command "Find similar" "Find new client for this file by similar name" ["dcfindsource"; translate' file.file_name])
   end else
     Printf.bprintf buf "[%5d] %40s %-15Ld %5d\n"
       num file.file_name file.file_file.impl_file_size (List.length file.file_clients)
@@ -545,16 +560,6 @@ let filelist_file_print is_file spaces username dir fname fsize ftth line o =
      fsize    = filesize from mylist
      ftth     = tth from mylist *)
   let buf = o.conn_buf in
-  let sdir = ref (String.copy dir) in
-  let sname = ref (String.copy fname) in
-  String2.replace_char !sdir char32 char42;  (*   to * *)
-  String2.replace_char !sdir char39 char58;  (* ' to : *)
-  String2.replace_char !sdir char38 char60;  (* & to < *)
-  String2.replace_char !sdir char43 char62;  (* + to > *)
-  String2.replace_char !sname char32 char42;
-  String2.replace_char !sname char39 char58;
-  String2.replace_char !sname char38 char60; 
-  String2.replace_char !sname char43 char62; 
   if use_html_mods o then begin
     Printf.bprintf buf "
     \\<tr class=\\\"dl-%d\\\"\\>
@@ -566,7 +571,7 @@ let filelist_file_print is_file spaces username dir fname fsize ftth line o =
     line
     (if is_file then
        td_command (spaces^fname) "Start downloading" ~target:`Status
-         ["dcloadfile"; username; ftth; !sdir; !sname; fsize]
+         ["dcloadfile"; username; ftth; translate dir; translate fname; fsize]
      else
        Printf.sprintf "\\<td class=\\\"srb\\\" \\>\\<b\\>%s%s\\</b\\>\\</td\\>" spaces fname
     )
@@ -1002,21 +1007,11 @@ msgWindow.location.reload();
     (match args with
     | [uname ; tth ; dir ; fname ; fsize] -> (* convert filenames back to normal *)
         if !verbose_download then lprintf_nl "dcloadfile: (%s) (%s) (%s)" dir fname tth; 
-        let sdir = ref (String.copy dir) in
-        let sname = ref (String.copy fname) in
-        String2.replace_char !sdir char42 char32;  (* * to   *)
-        String2.replace_char !sdir char58 char39;  (* : to ' *)
-        String2.replace_char !sdir char60 char38;  (* < to & *)
-        String2.replace_char !sdir char62 char43;  (* > to + *)
-        String2.replace_char !sname char42 char32;
-        String2.replace_char !sname char58 char39;
-        String2.replace_char !sname char60 char38;  
-        String2.replace_char !sname char62 char43;  
-        Printf.bprintf buf "Trying to download file: %s from user: %s\n" !sname uname;
+        Printf.bprintf buf "Trying to download file: %s from user: %s\n" fname uname;
         (try 
           let u = search_user_by_name uname in
           let user = o.conn_user.ui_user in
-          let (_ : _ option) = start_new_download (Some u) tth !sdir !sname (Int64.of_string fsize) user user.user_default_group in
+          let (_ : _ option) = start_new_download (Some u) tth (untranslate dir) (untranslate fname) (Int64.of_string fsize) user user.user_default_group in
           ()
         with _ -> if !verbose_download then lprintf_nl "dcloadfile: No user found" )
     | _ ->
@@ -1078,12 +1073,9 @@ msgWindow.location.reload();
     (match args with
     | tth_or_filename -> 
         (*lprintf_nl "Got dcfindsource command: (%s)" tth_or_filename;*)
-        let tth_or_filename = ref (String.copy tth_or_filename) in
-        String2.replace_char !tth_or_filename char42 char32;
-        String2.replace_char !tth_or_filename char58 char39;
-        String2.replace_char !tth_or_filename char38 char60;
-        if (is_valid_tiger_hash !tth_or_filename) then begin
-          let query = QAnd (QHasField (Field_Type , "TTH") , (QHasWord !tth_or_filename)) in
+        let tth_or_filename = untranslate' tth_or_filename in
+        if (is_valid_tiger_hash tth_or_filename) then begin
+          let query = QAnd (QHasField (Field_Type , "TTH") , (QHasWord tth_or_filename)) in
           let search = CommonSearch.new_search o.conn_user 
             (let module G = GuiTypes in
               { G.search_num = 0;
@@ -1093,10 +1085,10 @@ msgWindow.location.reload();
                 G.search_network = network.network_num;
               } ) 
           in 
-          dc_with_connected_servers (fun s -> DcClients.server_send_search s search 9 !tth_or_filename);  
+          dc_with_connected_servers (fun s -> DcClients.server_send_search s search 9 tth_or_filename);  
           dc_last_manual_search := current_time ();
         end else begin
-          let fname = Filename.basename !tth_or_filename in
+          let fname = Filename.basename tth_or_filename in
           let words = clean_string fname in
           let words_list = String2.split_simplify words ' ' in
           let rec add_query list =
@@ -1115,7 +1107,7 @@ msgWindow.location.reload();
                 G.search_network = network.network_num;
               } )
           in
-          dc_with_connected_servers (fun s -> DcClients.server_send_search s search 1 !tth_or_filename);  
+          dc_with_connected_servers (fun s -> DcClients.server_send_search s search 1 tth_or_filename);  
           dc_last_manual_search := current_time ();
         end ); 
     empty_string
@@ -1203,8 +1195,8 @@ msgWindow.location.reload();
             let s = file_to_che3_to_string (Filename.concat filelist_directory filename) in
             if not (Charset.is_utf8 s) then lprintf_nl "not utf8 : %S" s;
             let s = Charset.Locale.to_utf8 s in (* really needed? *)
+            let s = String2.replace_char s char13 '\n' in
             (try
-              String2.replace_char s char13 '\n';
               let lines = String2.split_simplify s '\n' in
               let mlist = ref ([] : dc_mylistnode list) in   (* root node of the MyList *)
               let tablist = ref [(-1, mlist)] in             (* list of previous open directory node for every tab *)

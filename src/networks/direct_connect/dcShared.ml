@@ -313,7 +313,7 @@ let () =
     let codedname =
       match Filename2.slash with
       | '/' -> codedname
-      | c -> let s = String.copy codedname in String2.replace_char s c '/'; s
+      | c -> String2.replace_char codedname c '/'
     in
     (try
       let dcsh = Hashtbl.find dc_shared_files_by_fullname fullname in

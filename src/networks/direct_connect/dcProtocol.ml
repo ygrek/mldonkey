@@ -584,12 +584,9 @@ module Search = struct
           let words =                                        (* strip TTH: from TTH-search or return search words *)
             if filetype = 9 then                             (* TTH *)
               dc_replace_str_to_str words s_tth empty_string (* Strip TTH: *)             
-            else begin                                       (* normal search words *)
-              let s = ref (String.copy words) in
-              String2.replace_char !s '$' ' ';
-              String.lowercase !s 
-            end
-          in 
+            else
+              String.lowercase (String2.replace_char words '$' ' ')
+          in
           let words = dc_to_utf words in 
           let size =
             (match has_size, size_kind with
@@ -625,11 +622,7 @@ module Search = struct
       t.filetype
       (let words =
          if t.filetype = 9 then s_tth ^ t.words_or_tth    (* if TTH search is wanted, send root hash *)
-         else begin
-           let s = ref (String.copy t.words_or_tth) in    (* otherwise send search words *) 
-           String2.replace_char !s char32 '$';
-           !s
-         end
+         else String2.replace_char t.words_or_tth char32 '$'; (* otherwise send search words *)
        in
        utf_to_dc words);
     (*if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf)*)
