@@ -1,0 +1,79 @@
+# Manually triggered build of mlnet, mlgui and utils binaries and appimage with mlnet+gui
+
+name: Build AppImage
+
+on:
+  workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: sudo apt-get install -y --no-install-recommends camlp4 libnum-ocaml-dev libminiupnpc-dev libnatpmp-dev libbz2-dev librsvg2-dev libmagic-dev libgtk2.0-dev liblablgtk2-ocaml-dev liblablgtk2-gl-ocaml-dev liblablgtk2-gnome-ocaml-dev libgd-dev
+
+      - name: Configure options
+        run: ./configure --enable-batch --enable-upnp-natpmp --disable-directconnect --disable-fasttrack --disable-gnutella --disable-gnutella2 --enable-gui=newgui2
+
+      - name: Build binaries
+        run:  make
+
+      - name: Build utils
+        run:  make utils
+
+      - name: Upload mlnet binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: mlnet
+          path: mlnet
+
+      - name: Upload binaries + utils
+        uses: actions/upload-artifact@v3
+        with:
+          name: Binaries
+          path: |
+                mlnet
+                mlgui
+                bt_dht_node
+                copysources
+                get_range
+                make_torrent
+                mld_hash
+                subconv
+                svg_converter
+          if-no-files-found: warn
+
+      - name: Upload mlnet+gui binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: mlnet+gui
+          path: mlnet+gui
+          if-no-files-found: warn
+
+#  appimage:
+#    needs: build 
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/download-artifact@v3
+#        with:
+#          name: mlnet+gui
+
+      - name: Download AppImageBuilder
+        run:  wget https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.0.3/appimage-builder-1.0.3-x86_64.AppImage && chmod +x appimage-builder-1.0.3-x86_64.AppImage
+
+      - name: Link recipe since env SOURCE_DIR=. doesn't work
+        run:  ln -s  packages/appimage/AppImageBuilder.yml AppImageBuilder.yml
+
+      - name: Build AppImage
+        run:  ./appimage-builder-1.0.3-x86_64.AppImage --skip-tests
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v3
+        with:
+          name: mldonkey_AppImage
+          path: mldonkey-*.AppImage
+
