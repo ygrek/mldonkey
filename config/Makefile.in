@@ -143,7 +143,7 @@ ifeq ("$(BZIP2)", "yes")
   CDK_SRCS +=  $(CDK)/bzlib.ml $(CDK)/bzip2.ml
 endif
 
-CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zip.ml $(CDK)/gzip.ml $(CDK)/zlibstubs.c $(CDK)/tar.mlcpp
+CDK_SRCS +=  $(CDK)/zlib.ml $(CDK)/zlib2.ml $(CDK)/zip.ml $(CDK)/gzip.ml $(CDK)/zlibstubs.c $(CDK)/bzip2stubs.c $(CDK)/tar.mlcpp
 
 CDK_SRCS += $(LIB)/autoconf.ml
 
