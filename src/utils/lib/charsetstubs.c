@@ -1204,7 +1204,7 @@ ml_iconv (iconv_t cd,
           char    **outbuf,
           size_t  *outbytes_left)
 {
-    return iconv (cd, inbuf, inbytes_left, outbuf, outbytes_left);
+    return iconv (cd, (char **)inbuf, inbytes_left, outbuf, outbytes_left);
 }
 
 #ifndef EILSEQ
