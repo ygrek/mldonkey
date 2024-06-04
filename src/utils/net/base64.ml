@@ -57,7 +57,7 @@ let encode_with_options b64 equal s pos len linelen crlf =
   in
 (* l_t': length of the result with CRLF or LF characters *)
   
-  let t = String.make l_t' equal in
+  let t = Bytes.make l_t' equal in
   let j = ref 0 in
   let q = ref 0 in
   for k = 0 to len / 3 - 1 do
