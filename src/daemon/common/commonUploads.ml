@@ -300,7 +300,7 @@ let md4_of_list md4s =
         iter tail (i+16)
   in
   iter md4s 0;
-  Md4.string s
+  Md4.string (Bytes.to_string s)
 
 let rec tiger_of_array array pos block =
   if block = 1 then
@@ -316,7 +316,7 @@ let rec tiger_of_array array pos block =
   s.[0] <- '\001';
   String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
   String.blit (TigerTree.direct_to_string d2) 0 s (1+Tiger.length) Tiger.length;
-  let t = Tiger.string s in
+  let t = Tiger.string (Bytes.to_string s) in
   let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
   t
 
@@ -349,7 +349,7 @@ let tiger_node d1 d2 =
   s.[0] <- '\001';
   String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
   String.blit (TigerTree.direct_to_string d2) 0 s (1+Tiger.length) Tiger.length;
-  let t = Tiger.string s in
+  let t = Tiger.string (Bytes.to_string s) in
   let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
   t
 
@@ -416,7 +416,7 @@ let build_tiger_tree_file uid ttr =
   let s = make_tiger_tree ttr in
   Unix2.safe_mkdir "ttr";
   Unix2.can_write_to_directory "ttr";
-  File.from_string (Filename.concat "ttr" (Uid.to_file_string uid)) s
+  File.from_string (Filename.concat "ttr" (Uid.to_file_string uid)) (Bytes.to_string s)
 
 let rec start_job_for sh (wanted_id, handler) =
   let info = IndexedSharedFiles.get_result sh.shared_info in
@@ -506,7 +506,7 @@ computation ??? *)
             let len = Int64.to_int len64 in
             let s = String.create len in
             Unix32.read fd zero s 0 len;
-            Md5Ext.string s
+            Md5Ext.string (Bytes.to_string s)
           with e ->
               current_job := None;
               raise e
