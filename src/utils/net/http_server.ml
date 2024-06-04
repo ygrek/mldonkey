@@ -64,7 +64,7 @@ let decode64 s =
     | _ -> failwith "not a base64 string" in
   let len = String.length s in
   let len_res = len * 3 / 4 in
-  let res = String.create len_res in
+  let res = Bytes.create len_res in
   for i=0 to len/4 - 1 do
     let i1 = 4*i and i2 = 3*i in
     let v1 = (val64 s.[i1]) lsl 18 in
@@ -80,7 +80,7 @@ let decode64 s =
     if s.[len-1] = '=' then
       if s.[len-2] = '=' then 2 else 1
     else 0 in
-  String.sub res 0 (len_res - nb_cut)
+  String.sub (Bytes.to_string res) 0 (len_res - nb_cut)
 
 
 let debug = ref false
