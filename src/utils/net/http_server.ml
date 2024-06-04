@@ -793,17 +793,17 @@ let request_handler config sock nread =
   let rec iter i =
     let end_pos = b.pos + b.len in
     if i < end_pos then
-      if b.buf.[i] = '\n' && i <= end_pos - 2 then
-        let c = b.buf.[i+1] in
+      if Bytes.get b.buf i = '\n' && i <= end_pos - 2 then
+        let c = (Bytes.get b.buf (i+1)) in
         if c = '\n' then
           let len = i + 2 - b.pos in
-          let header = String.sub b.buf b.pos len in
+          let header = Bytes.sub b.buf b.pos len in
           buf_used b len;
           manage config sock header
         else
-        if c = '\r' && i <= end_pos - 3 && b.buf.[i+2] = '\n' then
+        if c = '\r' && i <= end_pos - 3 && Bytes.get b.buf (i+2) = '\n' then
           let len = i + 3 - b.pos in
-          let header = String.sub b.buf b.pos len in
+          let header = Bytes.sub b.buf b.pos len in
           buf_used b len;
           manage config sock header
         else
