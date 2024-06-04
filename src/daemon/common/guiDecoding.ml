@@ -42,10 +42,10 @@ let gui_cut_messages f sock nread =
   let b = buf sock in
   try
     while b.len >= 4 do
-      let msg_len = get_int b.buf b.pos in
+      let msg_len = get_int_bytes b.buf b.pos in
       if b.len >= 4 + msg_len then
         begin
-          let s = String.sub b.buf (b.pos+4) msg_len in
+          let s = Bytes.sub b.buf (b.pos+4) msg_len in
           buf_used b (msg_len + 4);
           let opcode = get_int16 s 0 in
           (f opcode s : unit)

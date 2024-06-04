@@ -93,6 +93,9 @@ let get_int s pos =
   let x =   c1 lor (c2 lsl 8) lor (c3 lsl 16) lor (c4 lsl 24) in
   x
 
+let get_int_bytes s pos =
+  get_int (Bytes.unsafe_to_string s) pos
+
 (******** Operations on 32 bits integers *******
   
 let buf_int32 oc i =
