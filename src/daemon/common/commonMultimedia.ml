@@ -223,14 +223,15 @@ let get_theora_cs n =
 (*                  page_seek                                                     *)
 (*                                                                                *)
 (**********************************************************************************)
-
+let ogg_bytes = Bytes.of_string "OggS"
+let is_ogg_header s = (s = ogg_bytes)
 let rec page_seek ic s pos =
   if (pos_in ic - pos) > 255
     then failwith "No more OGG Stream Header"
     else begin
       really_input ic s 0 4;
       seek_in ic (pos_in ic - 3);
-      if s = "OggS"
+      if is_ogg_header s
         then seek_in ic (pos_in ic + 3)
         else page_seek ic s pos
   end
@@ -280,7 +281,7 @@ let rec next_ogg_stream ic ogg_infos str stream_number =
   seek_in ic (pos+24);
   let content_type = String.create 1 in
   really_input ic content_type 0 1;
-  let content_type = int_of_char content_type.[0] in
+  let content_type = int_of_char (Bytes.get content_type 0) in
   seek_in ic (pos+25);
   let stream_type = String.create 8 in
   really_input ic stream_type 0 8;

@@ -975,7 +975,7 @@ let recover_bytes file =
     if pos = max then
       iter_file_out file_pos segments
     else
-    if s.[pos] = '\000' then
+    if Bytes.get s pos = '\000' then
       iter_string_out file_pos (pos+1) max segments
     else
     let begin_pos = file_pos -- (Int64.of_int (max - pos)) in
@@ -995,7 +995,7 @@ let recover_bytes file =
     if pos = max then
       iter_file_in file_pos begin_pos segments
     else
-    if s.[pos] = '\000' then
+    if Bytes.get s pos = '\000' then
       let end_pos = file_pos -- (Int64.of_int (max - pos)) in
 (*      lprintf "  0 byte at %Ld\n" end_pos; *)
       iter_string_out file_pos (pos+1) max 
@@ -1126,7 +1126,7 @@ let _ =
 (*                                                                       *)
 (*************************************************************************) 
 
-let file_write file offset s pos len =
+let file_write_bytes file offset s pos len =
 (*
       lprintf "DOWNLOADED: %d/%d/%d\n" pos len (String.length s);
       AnyEndian.dump_sub s pos len;
@@ -1136,6 +1136,8 @@ let file_write file offset s pos len =
     Unix32.buffered_write_copy (file_fd file) offset s pos len
   else
     Unix32.write  (file_fd file) offset s pos len
+
+let file_write_string file offset s pos len = file_write_bytes  file offset (Bytes.of_string s) pos len
 
 let file_verify file key begin_pos end_pos =
   Unix32.flush_fd (file_fd file);

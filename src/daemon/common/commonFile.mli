@@ -134,7 +134,8 @@ val file_comment : CommonTypes.file -> string
 val file_magic : CommonTypes.file -> string option
 val check_magic : CommonTypes.file -> unit  
 val recover_bytes : CommonTypes.file -> (int64 * int64) list
-val file_write : CommonTypes.file -> int64 -> string -> int -> int -> unit
+val file_write_bytes : CommonTypes.file -> int64 -> bytes -> int -> int -> unit
+val file_write_string : CommonTypes.file -> int64 -> string -> int -> int -> unit
 val file_verify : CommonTypes.file ->
   CommonTypes.uid_type -> int64 -> int64 -> bool
 val file_mtime : CommonTypes.file -> float
