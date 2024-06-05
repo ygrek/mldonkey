@@ -1250,7 +1250,7 @@ let gift_handler t event =
         TcpBufferedSocket.set_max_output_buffer sock !!interface_buffer;
         TcpBufferedSocket.set_reader sock (GiftDecoding.gui_cut_messages
             (fun s ->
-              let m = GiftDecoding.from_gui gui s in
+              let m = GiftDecoding.from_gui gui (Bytes.to_string s) in
               gui_reader gui m sock;
               ));
         TcpBufferedSocket.set_closer sock (gui_closed gui);

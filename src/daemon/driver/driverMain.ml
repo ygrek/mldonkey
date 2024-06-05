@@ -685,7 +685,7 @@ for config files at the end. *)
     try
       let oc = Unix.openfile security_space_filename [Unix.O_WRONLY; Unix.O_CREAT] 0o600 in
         let len = 32768 in
-        let s = String.make len ' ' in
+        let s = Bytes.make len ' ' in
         let pos = ref zero in
         for i = 1 to !!config_files_security_space do
           for j = 1 to 32 do (* 32 = 1 MB / 32kB *)
