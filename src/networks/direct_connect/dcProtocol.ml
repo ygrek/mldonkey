@@ -1129,14 +1129,15 @@ let dc_handler_server f sock nread =
   (try
     let rec iter nread =
       if nread > 0 then begin
-        let pos = String.index_from b.buf b.pos '|' in
+        let pos = Bytes.index_from b.buf b.pos '|' in
         if pos < (b.pos + b.len) then begin
           let len = pos - b.pos in
-          let s = String.sub b.buf b.pos len in
+          let s = Bytes.sub b.buf b.pos len in
           buf_used b (len+1);
           begin 
-            try f (dc_parse true s) sock
-            with exn -> lprintf_nl "server handler %S : %s" s (Printexc2.to_string exn)
+            let ss = Bytes.to_string s in
+            try f (dc_parse true ss) sock
+            with exn -> lprintf_nl "server handler %S : %s" ss (Printexc2.to_string exn)
           end;
           iter b.len
         end
@@ -1157,17 +1158,18 @@ let dc_handler_client c fm nm dm sock nread = (* fm = (read_first_message false)
         | Some c when c.client_receiving <> Int64.zero -> (* if we are downloading from client ...*)
             dm c sock nread 
         | _ ->                                            (* or message is a new connection ... *)
-            let pos = String.index_from b.buf b.pos '|' in
+            let pos = Bytes.index_from b.buf b.pos '|' in
             if pos < (b.pos + b.len) then begin
               let len = pos - b.pos in
-              let s = String.sub b.buf b.pos len in
-              let msg = dc_parse false s in
+              let s = Bytes.sub b.buf b.pos len in
+              let ss = Bytes.to_string s in
+              let msg = dc_parse false ss in
               buf_used b (len+1);
               begin try
                 (match !c with
                 | None -> c := fm msg sock (* do this only once per new non-existing client eg. we are in ACTIVE mode *)
                 | Some c -> nm c msg sock); (* after initial connection is established *)
-              with exn -> lprintf_nl "client handler %S : %s" s (Printexc2.to_string exn)
+              with exn -> lprintf_nl "client handler %S : %s" ss (Printexc2.to_string exn)
               end;
               iter b.len
             end )

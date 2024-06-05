@@ -1324,8 +1324,8 @@ let client_downloaded c sock nread = (* TODO check tth while loading, abort if e
             let check_buffer = String.create check_bytes in
             Unix32.read (file_fd file) (c.client_pos -- (Int64.of_int c.client_preread_bytes_left))
               check_buffer 0 check_bytes;
-            let str2 = String.sub b.buf b.pos check_bytes in
-            if (String.compare check_buffer str2) = 0 then begin      (* if downloaded is ok *) 
+            let str2 = Bytes.sub b.buf b.pos check_bytes in
+            if (Bytes.compare check_buffer str2) = 0 then begin      (* if downloaded is ok *) 
               c.client_preread_bytes_left <- c.client_preread_bytes_left - check_bytes;
               if c.client_preread_bytes_left = 0 then begin            (* if checked all preread bytes *)
                 let downloaded = b.len - check_bytes in
@@ -1456,7 +1456,7 @@ let udp_send ip port m =
     Buffer.reset buf;
     dc_write buf m; 
     Buffer.add_char buf '|';
-    let s = Buffer.contents buf in
+    let s = Buffer.to_bytes buf in
     (match !dc_udp_sock with
     | Some sock -> 
         (*if !verbose_udp || !verbose_msg_clients then lprintf_nl "UDP Send: (%s)" s;*)
@@ -1473,9 +1473,9 @@ let udp_handler sock event =
       UdpSocket.read_packets sock (fun p ->
         (try
           let pbuf = p.UdpSocket.udp_content in
-          let len = String.length pbuf in
+          let len = Bytes.length pbuf in
           if len > 0 then
-            udp_parse pbuf sock
+            udp_parse (Bytes.to_string pbuf) sock
         with e -> () ) 
       ) 
           | _ -> ()
