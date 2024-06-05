@@ -143,9 +143,9 @@ let canon_addr s =
   iter_end s (len - 1)
 
 let string_xor s1 s2 =
-  assert (String.length s1 = String.length s2);
-  let s = String.create (String.length s1) in
-  for i = 0 to String.length s - 1 do
+  assert (Bytes.length s1 = Bytes.length s2);
+  let s = Bytes.create (Bytes.length s1) in
+  for i = 0 to Bytes.length s - 1 do
     s.[i] <- Char.chr (Char.code s1.[i] lxor Char.code s2.[i]);
   done;
   s
@@ -157,7 +157,7 @@ let hmac_md5 =
   let md5 s = Md5.direct_to_string (Md5.string s) in
   fun secret challenge ->
     let secret = if String.length secret > 64 then md5 secret else secret in
-    let k = String.make 64 '\x00' in
+    let k = Bytes.make 64 '\x00' in
     String.blit secret 0 k 0 (String.length secret);
     md5 (string_xor k opad ^ md5 (string_xor k ipad ^ challenge))
 
