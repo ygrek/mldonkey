@@ -33,7 +33,7 @@ let bz2_extract filename =
       in
       let oc = open_out_bin file_out in
         let rec decompress () =
-          let n = Bzip2.input ic buffer 0 (String.length buffer) in
+          let n = Bzip2.input ic buffer 0 (Bytes.length buffer) in
             if n = 0 then ()
             else
               begin

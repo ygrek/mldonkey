@@ -2,7 +2,7 @@ type t
 type part_state = 
     State_missing | State_partial | State_complete | State_verified
 
-val init : int -> (int -> part_state) -> t	
+val init : int -> (int -> part_state) -> t
 val create : int -> part_state -> t
 val get : t -> int -> part_state
 val set : t -> int -> part_state -> unit

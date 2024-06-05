@@ -54,7 +54,7 @@ module Base16 = struct
         p.[2 * i] <- hexa_digit i0;
         p.[2 * i+1] <- hexa_digit i1;
       done;
-      p
+      (Bytes.to_string p)
     
     let hexa_digit_case upper x =
       if x >= 10 then Char.chr (Char.code (
@@ -71,7 +71,7 @@ module Base16 = struct
         p.[2 * i] <- hexa_digit_case upper i0;
         p.[2 * i+1] <- hexa_digit_case upper i1;
       done;
-      p
+      (Bytes.to_string p)
     
     let digit_hexa c =
       let i = int_of_char c in
@@ -88,7 +88,7 @@ module Base16 = struct
         let c1 = s.[2*i+1] in
         p.[i] <- char_of_int ((16 * digit_hexa c0) + digit_hexa c1);
       done;
-      p
+      (Bytes.to_string p)
     
   end
 
@@ -107,7 +107,7 @@ module Base32 = struct
     let of_string hash_length r =
       let len = String.length r in
       assert (len =  (hash_length * 8 + 4)/5);
-      let s = String.make hash_length '\000' in
+      let s = String.create hash_length in
       for i = 0 to len - 1 do
         let pos = i * 5 in
         let byte = pos / 8 in
@@ -115,15 +115,15 @@ module Base32 = struct
         let c = int5_of_char r.[i] in
         if bit < 3 then 
           let x = c lsl (3-bit) in
-          s.[byte] <- char_of_int (int_of_char s.[byte] lor x);
+          s.[byte] <- char_of_int (int_of_char (Bytes.to_string s).[byte] lor x);
         else
         let x = (c lsr (bit - 3)) land 0xff in
-        s.[byte] <- char_of_int (int_of_char s.[byte] lor x);
+        s.[byte] <- char_of_int (int_of_char (Bytes.to_string s).[byte] lor x);
         if byte+1 < hash_length then
           let y = (c lsl (11 - bit)) land 0xff in
-          s.[byte+1] <- char_of_int (int_of_char s.[byte+1] lor y);
+          s.[byte+1] <- char_of_int (int_of_char (Bytes.to_string s).[byte+1] lor y);
       done;
-      s    
+      (Bytes.to_string s)    
     
     let to_string hash_length s =
       assert (String.length s = hash_length);
@@ -145,7 +145,7 @@ module Base32 = struct
         let c = (x lsr (11 - bit)) land 0x1f in
         r.[i] <- char_of_int5 c
       done;
-      r
+      (Bytes.to_string r)
 
     let char_of_int5 upper n =
       char_of_int (if n < 26 then (if upper then 65 else 97)+n else
@@ -171,7 +171,7 @@ module Base32 = struct
         let c = (x lsr (11 - bit)) land 0x1f in
         r.[i] <- char_of_int5 upper c
       done;
-      r
+      (Bytes.to_string r)
       
   end
 
@@ -198,7 +198,7 @@ module Base6427 = struct
         done
       done;
       hash64.[!j-1] <- '=';
-      String.sub hash64 0 !j
+      Bytes.sub hash64 0 !j
     
     let base64tbl_inv = String.create 126
     let _ = 
@@ -207,10 +207,10 @@ module Base6427 = struct
       done
     
     let of_string _ hash64 =
-      let hashbin = String.make 20 '\000' in
+      let hashbin = Bytes.make 20 '\000' in
       let hash64 n = 
         let c = hash64.[n] in
-        int_of_char base64tbl_inv.[int_of_char c]
+        int_of_char (Bytes.get base64tbl_inv (int_of_char c))
       in
       let j = ref 0 in
       for i = 0 to 6 do
@@ -233,7 +233,7 @@ module Base6427 = struct
         hashbin.[!j+1] <- char_of_int ((!tmp lsr  8) land 0xff);
         j := !j + 2;
       done;
-      hashbin
+      (Bytes.to_string hashbin)
       
     let to_string_case _ = to_string
   end
@@ -314,7 +314,7 @@ module Make(M: sig
 
     let string s =
       let len = String.length s in
-      let digest = String.create hash_length in
+      let digest = Bytes.create hash_length in
       unsafe_string digest s len;
       digest
 
@@ -329,29 +329,29 @@ module Make(M: sig
             
         done
       done;
-      digest
+      (Bytes.to_string digest)
       
     external xor_c : t -> t -> t -> unit = "md4_xor" "noalloc"
     
     let xor m1 m2 =
-      let m3 = String.create hash_length in
+      let m3 = Bytes.create hash_length in
       xor_c m1 m2 m3;
       m3
     
     let file s =
-      let digest = String.create hash_length in
+      let digest = Bytes.create hash_length in
       let file_size = Unix32.getsize s in
       unsafe_file digest s file_size;
       digest
     
     let digest_subfile fd pos len =
-      let digest = String.create hash_length in
+      let digest = Bytes.create hash_length in
       Unix32.apply_on_chunk fd pos len 
         (fun fd pos ->
           digest_subfile digest fd pos len);
       digest
     
-    let create () =  String.create hash_length
+    let create () =  Bytes.create hash_length
     
     let direct_to_string s = s
     let direct_of_string s = s
@@ -361,7 +361,7 @@ module Make(M: sig
       for i = 0 to hash_length - 1 do
         s.[i] <- char_of_int (Random.int 256)
       done;
-      s
+      (Bytes.to_string s)
     
     let of_string = Base.of_string hash_length
     let to_string = Base.to_string hash_length

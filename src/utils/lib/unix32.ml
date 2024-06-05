@@ -318,7 +318,7 @@ module FDCache = struct
         file_pos
         len
         string_pos
-        (String.length string)
+        (Bytes.length string)
         (Printexc2.to_string e);
       raise e
 
@@ -327,7 +327,7 @@ module FDCache = struct
       check_destroyed t2;
       let buffer_len = 128 * 1024 in
       let buffer_len64 = Int64.of_int buffer_len in
-      let buffer = String.make buffer_len '\001' in
+      let buffer = Bytes.make buffer_len '\001' in
       let rec iter remaining pos1 pos2 =
         let len64 = min remaining buffer_len64 in
         let len = Int64.to_int len64 in
@@ -363,8 +363,8 @@ module type File =   sig
     val mtime64 : t -> float
     val exists : t -> bool
     val remove : t -> unit
-    val read : t -> int64 -> string -> int -> int -> unit
-    val write : t -> int64 -> string -> int -> int -> unit
+    val read : t -> int64 -> bytes -> int -> int -> unit
+    val write : t -> int64 -> bytes -> int -> int -> unit
     val destroy : t -> unit
     val is_closed : t -> bool
   end
@@ -1221,9 +1221,9 @@ let buffer = Buffer.create 65000
 
 let flush_buffer t offset =
   if !verbose then lprintf_nl "flush_buffer";
-  let s = Buffer.contents buffer in
+  let s = Buffer.to_bytes buffer in
   Buffer.reset buffer;
-  let len = String.length s in
+  let len = Bytes.length s in
   try
     if !verbose then lprintf_nl "seek64 %Ld" offset;
     if len > 0 then write t offset s 0 len;
@@ -1349,7 +1349,7 @@ let copy_chunk t1 t2 pos1 pos2 len =
   flush_fd t1;
   flush_fd t2;
   let buffer_size = 128 * 1024 in
-  let buffer = String.make buffer_size '\001' in
+  let buffer = Bytes.make buffer_size '\001' in
   let rec iter remaining pos1 pos2 =
     let len = mini remaining buffer_size in
     if len > 0 then begin

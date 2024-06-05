@@ -33,7 +33,7 @@ type 'a file = {
     mutable file_all_pos : int array;
     mutable file_cache : 'a Weak.t;
     mutable file_next_pos : int;
-    file_chunk : string;
+    file_chunk : bytes;
   }
 
 type index = int
@@ -207,7 +207,7 @@ let get t doc =
       let str = file_retrieve file pos in
       begin
         try
-          Marshal.from_string str 0
+          Marshal.from_bytes str 0
         with e ->
             lprintf_nl "Marshal.from_string error"; 
             raise e

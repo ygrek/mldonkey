@@ -50,7 +50,7 @@ let encode s =
         res.[!pos+2] <- hexa_digit (Char.code c mod 16);
         pos := !pos + 3
   done;
-  String.sub res 0 !pos
+  Bytes.sub res 0 !pos
 
 (** decodes a sting according RFC 1738
 or x-www-form-urlencoded ('+' with ' ')

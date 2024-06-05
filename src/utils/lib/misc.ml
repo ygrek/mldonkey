@@ -98,7 +98,7 @@ let gz_extract filename =
     Unix2.tryopen_read_gzip filename (fun ic ->
       Unix2.tryopen_write_bin file_out (fun oc ->
         let rec decompress () =
-          let n = Gzip.input ic buffer 0 (String.length buffer) in
+          let n = Gzip.input ic buffer 0 (Bytes.length buffer) in
           if n = 0 then ()
           else
             begin

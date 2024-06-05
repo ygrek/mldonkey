@@ -75,7 +75,7 @@ let escape_colon s =
       if s.[i] = ':' then (s'.[!j] <- '\\'; incr j);
       s'.[!j] <- s.[i]; incr j
     done;
-    s'
+    Bytes.to_string s'
 
 (* Concatenate the filenames with ":".  If ":" is present in a
    filename, escape it. *)
