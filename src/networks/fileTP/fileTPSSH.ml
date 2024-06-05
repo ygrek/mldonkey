@@ -182,14 +182,14 @@ let ssh_check_size file url start_download_file =
       close sock s);
   TcpBufferedSocket.set_reader sock (fun sock nread ->
       let b = TcpBufferedSocket.buf sock in
-      lprintf "SSH reader %d [%s]\n" nread (String.escaped (String.sub b.buf b.pos b.len));
+      lprintf "SSH reader %d [%s]\n" nread (String.escaped (String.sub (Bytes.to_string b.buf) b.pos b.len));
       let rec iter i =
         if i < b.len then
-          if b.buf.[b.pos + i] = '\n' then begin
-              let slen = if i > 0 && b.buf.[b.pos + i - 1] = '\r' then
+          if (Bytes.get b.buf (b.pos + i)) = '\n' then begin
+              let slen = if i > 0 && (Bytes.get b.buf (b.pos + i - 1)) = '\r' then
                   i - 1
                 else i in
-              let line = String.sub b.buf b.pos slen in
+              let line = String.sub (Bytes.to_string b.buf) b.pos slen in
               lprintf "SSH LINE [%s]\n" line;
               buf_used b (i+1);
               if String2.starts_with line "[SIZE " then begin
@@ -245,7 +245,7 @@ let ssh_connect token c f =
 
             if b.len >= elen then begin
                 segment := SegmentX (file_num, pos, len, elen,
-                  String.sub b.buf b.pos elen);
+                  String.sub (Bytes.to_string b.buf) b.pos elen);
                 buf_used b elen;
                 iter0 0
               end
@@ -255,11 +255,11 @@ let ssh_connect token c f =
 
       and iter0 i =
         if i < b.len then
-          if b.buf.[b.pos + i] = '\n' then begin
-              let slen = if i > 0 && b.buf.[b.pos + i - 1] = '\r' then
+          if (Bytes.get b.buf (b.pos + i)) = '\n' then begin
+              let slen = if i > 0 && (Bytes.get b.buf (b.pos + i - 1)) = '\r' then
                   i - 1
                 else i in
-              let line = String.sub b.buf b.pos slen in
+              let line = String.sub (Bytes.to_string b.buf) b.pos slen in
 (*              lprintf "SSH LINE [%s]\n" line; *)
               buf_used b (i+1);
 

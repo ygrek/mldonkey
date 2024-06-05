@@ -79,7 +79,7 @@ end_pos !counter_pos b.len to_read;
 
             let old_downloaded = CommonSwarming.downloaded swarmer in
 
-            CommonSwarming.received up !counter_pos b.buf b.pos to_read_int;
+            CommonSwarming.received up !counter_pos (Bytes.to_string b.buf) b.pos to_read_int;
             let new_downloaded = CommonSwarming.downloaded swarmer in
 
             c.client_total_downloaded <- c.client_total_downloaded ++ (new_downloaded -- old_downloaded);
@@ -183,15 +183,16 @@ let ftp_send_range_request c (x,y) sock d =
   TcpBufferedSocket.set_reader sock (fun sock nread ->
       let b = TcpBufferedSocket.buf sock in
       if !verbose then 
-        AnyEndian.dump_hex (String.sub b.buf b.pos b.len);
+        AnyEndian.dump_hex (Bytes.to_string (Bytes.sub b.buf b.pos b.len));
       let rec iter i =
         if i < b.len then
-          if b.buf.[b.pos + i] = '\n' then begin
-              let slen = if i > 0 && b.buf.[b.pos + i - 1] = '\r' 
+          if (Bytes.get b.buf (b.pos + i)) = '\n' then begin
+              let slen = if i > 0 && (Bytes.get b.buf (b.pos + i - 1)) = '\r' 
                 then i - 1
                 else i 
               in
-              let line = String.sub b.buf b.pos slen in
+              let line = Bytes.sub b.buf b.pos slen in
+              let line = Bytes.to_string line in
               if !verbose then lprintf_nl "SRR LINE [%s]" line;
               buf_used b (i+1);
               if slen > 3 then begin
@@ -382,16 +383,16 @@ let ftp_check_size file url start_download_file =
       TcpBufferedSocket.set_reader sock (fun sock nread ->
           let b = TcpBufferedSocket.buf sock in
           if !verbose then
-             AnyEndian.dump_hex (String.sub b.buf b.pos b.len);
+             AnyEndian.dump_hex (String.sub (Bytes.to_string b.buf) b.pos b.len);
           let rec iter i =
             if i < b.len then
-              if b.buf.[b.pos + i] = '\n' then begin
-                  let slen = if i > 0 && b.buf.[b.pos + i - 1] = '\r' 
+              if (Bytes.get b.buf (b.pos + i)) = '\n' then begin
+                  let slen = if i > 0 && (Bytes.get b.buf (b.pos + i - 1)) = '\r' 
                     then i - 1
                     else i 
                   in
 
-                  let line = String.sub b.buf b.pos slen in
+                  let line = String.sub (Bytes.to_string b.buf) b.pos slen in
                   if !verbose then lprintf_nl "CS LINE [%s]" line;
                   buf_used b (i+1);
                   if slen > 3 then begin
