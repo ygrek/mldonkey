@@ -469,7 +469,7 @@ let broadcast msg =
   let s = msg ^ "\n" in
   let len = String.length s in
   List.iter (fun sock ->
-      TcpBufferedSocket.write sock s 0 len
+      TcpBufferedSocket.write sock (Bytes.of_string s) 0 len
   ) !user_socks
 
   (*

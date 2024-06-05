@@ -128,7 +128,7 @@ let read_request ic =
   lprintf "read_request %d [%s]" len (String.escaped s); 
 lprint_newline ();
   *)
-  s
+  Bytes.to_string s
 
 let output_request oc s =
   output_char oc (char_of_int 227);

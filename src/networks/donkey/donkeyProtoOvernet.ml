@@ -388,13 +388,13 @@ module Proto = struct
           UdpSocket.read_packets sock (fun p ->
               try
                 let pbuf = p.UdpSocket.udp_content in
-                let len = String.length pbuf in
+                let len = Bytes.length pbuf in
                 if len < 2 ||
-                  int_of_char pbuf.[0] <> 227 then
+                  int_of_char (Bytes.get pbuf 0) <> 227 then
                   begin
                     if !verbose_unknown_messages then begin
                         lprintf_nl "Received unknown UDP packet";
-                        dump pbuf;
+                        dump (Bytes.to_string pbuf);
                       end
                   end
                 else
@@ -405,7 +405,7 @@ module Proto = struct
                           Ip.of_inet_addr inet, port
                       | _ -> assert false
                     in
-                    let t = parse ip port (int_of_char pbuf.[1]) (String.sub pbuf 2 (len-2)) in
+                    let t = parse ip port (int_of_char (Bytes.get pbuf 1)) (Bytes.to_string (Bytes.sub pbuf 2 (len-2))) in
                     let is_not_banned ip =
                       match !Ip.banned (ip, None) with
                          None -> true
@@ -420,7 +420,7 @@ module Proto = struct
                 if !verbose_unknown_messages then begin
                   lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e);
-                  dump p.UdpSocket.udp_content;
+                  dump (Bytes.to_string p.UdpSocket.udp_content);
                   lprint_newline ()
                 end
           );
@@ -447,7 +447,7 @@ module Proto = struct
             lprintf_nl "UDP to %s:%d op 0x%02X len %d type %s"
               (Ip.to_string ip) port (get_uint8 s 1) (String.length s) (message_to_string msg);
           end;
-        UdpSocket.write sock ping s ip port
+        UdpSocket.write sock ping (Bytes.of_string s) ip port
       with e ->
           lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
 

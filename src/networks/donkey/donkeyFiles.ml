@@ -87,7 +87,7 @@ module NewUpload = struct
         let slen = String.length s in
         let upload_buffer = String.create (slen + len_int) in
         String.blit s 0 upload_buffer 0 slen;
-        DonkeyProtoCom.new_string msg upload_buffer;
+        DonkeyProtoCom.new_string msg (Bytes.to_string upload_buffer);
         Unix32.read (file_fd file) begin_pos upload_buffer slen len_int;
         let uploaded = Int64.of_int len_int in
         count_upload c uploaded;
@@ -98,7 +98,7 @@ module NewUpload = struct
               impl.impl_shared_uploaded <- 
                 impl.impl_shared_uploaded ++ uploaded);
         
-        write_string sock upload_buffer;
+        write_string sock (Bytes.to_string upload_buffer);
         check_end_upload c sock
       with
       | End_of_file -> lprintf_nl "Can not send file %s to %s, file removed?"

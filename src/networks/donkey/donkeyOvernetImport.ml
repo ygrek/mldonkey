@@ -32,7 +32,7 @@ let dump_file filename =
       let n = input ic s 0 20 in
       lprintf "pos = %d\n" !pos; 
       if n = 0 then raise Exit;
-      dump (String.sub s 0 n);
+      dump (String.sub (Bytes.to_string s) 0 n);
       pos := !pos + n;
     done
   with End_of_file -> ())

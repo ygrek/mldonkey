@@ -1617,10 +1617,10 @@ is checked for the file.
           assert (pos = comp.comp_len);
             let s = Zlib2.uncompress_string2 s in
             if !verbose_download then
-        lprintf_nl "Decompressed: %d/%d" (String.length s) comp.comp_len;
+        lprintf_nl "Decompressed: %d/%d" (Bytes.length s) comp.comp_len;
             
             DonkeyOneFile.block_received c comp.comp_md4
-              comp.comp_pos s 0 (String.length s);
+              comp.comp_pos (Bytes.to_string s) 0 (Bytes.length s);
           
           c.client_comp <- None;
         end else

@@ -132,10 +132,10 @@ let keep_sources = define_expert_option donkey_section ["keep_sources"]
 open Md4
 
 let mldonkey_md4 md4 =
-  let md4 = Md4.direct_to_string md4 in
+  let md4 = (Bytes.of_string (Md4.direct_to_string md4)) in
   md4.[5] <- Char.chr 14;
   md4.[14] <- Char.chr 111;
-  Md4.direct_of_string md4
+  Md4.direct_of_string (Bytes.to_string md4)
 
 let client_md4 = define_option donkey_section ["client_md4"]
   "The MD4 of this client"

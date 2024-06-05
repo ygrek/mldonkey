@@ -88,6 +88,9 @@ let str_int s pos i =
   s.[pos+2] <- char_of_int ((i lsr 16) land 255);
   s.[pos+3] <- char_of_int ((i lsr 24) land 255)
 
+let str_int_bytes s pos i =
+  str_int (Bytes.unsafe_to_string s) pos i
+
 let get_int s pos =
   let c1 = get_uint8 s pos in
   let c2 = get_uint8 s (pos+1) in
