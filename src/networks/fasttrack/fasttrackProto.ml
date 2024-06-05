@@ -1360,15 +1360,16 @@ dec: [(0)(35)(31)(147)(72)(36)(60)(179)(137)(93)(0)(40)(0)(184)(102)(10)(138)(31
 (*************************************************************************)
 
     let packet_size ciphers s pos len =
+      let ss = Bytes.to_string s in
       if len > 0 then
-        match int_of_char s.[pos] with
+        match int_of_char (Bytes.get s pos) with
           0x50 -> Some 1
         | 0x52 -> Some 1
         | 0x4b ->
 (*          lprintf "We have got a real packet\n"; *)
             if len > 4 then
 (*                dump_sub s b.pos b.len; *)
-              let msg_type, size = parse_head ciphers s pos in
+              let msg_type, size = parse_head ciphers ss pos in
               Some (size + 5)
             else None
 
@@ -1377,7 +1378,7 @@ dec: [(0)(35)(31)(147)(72)(36)(60)(179)(137)(93)(0)(40)(0)(184)(102)(10)(138)(31
             if len > 4 then begin
 (*                dump_sub s b.pos b.len; *)
                 lprintf "Trying to continue...\n";
-                let msg_type, size = parse_head ciphers s pos in
+                let msg_type, size = parse_head ciphers ss pos in
                 Some (size + 5)
               end
             else None
@@ -1800,7 +1801,7 @@ module UdpMessages = struct
 
       try
         let s = write msg in
-        UdpSocket.write t ping s ip port
+        UdpSocket.write t ping (Bytes.of_string s) ip port
       with e ->
           lprintf "FT: Exception %s in udp_send\n" (Printexc2.to_string e)
 

@@ -97,9 +97,9 @@ let server_parse_after s gconn sock =
               None -> ()
             | Some size ->
                 if len >= size then
-                  let msg = String.sub b.buf b.pos size in
+                  let msg = Bytes.sub b.buf b.pos size in
                   buf_used b size;
-                  let addr, t = TcpMessages.parse ciphers msg in
+                  let addr, t = TcpMessages.parse ciphers (Bytes.to_string msg) in
                   FasttrackHandler.server_msg_handler sock s addr t;
                   iter ()
         in
@@ -129,15 +129,15 @@ let server_parse_netname s gconn sock =
   let start_pos = b.pos in
   let end_pos = start_pos + len in
   let buf = b.buf in
-  let net = String.sub buf start_pos len in
+  let net = Bytes.sub buf start_pos len in
   if !verbose_msg_raw then
-    lprintf "net:[%s]\n" (String.escaped net);
+    lprintf "net:[%s]\n" (String.escaped (Bytes.to_string net));
   let rec iter pos =
     if pos < end_pos then
-      if buf.[pos] = '\000' then begin
-          let netname = String.sub buf start_pos (pos-start_pos) in
+      if (Bytes.get buf pos) = '\000' then begin
+          let netname = Bytes.sub buf start_pos (pos-start_pos) in
           if !verbose_msg_raw then
-            lprintf "netname: [%s]\n" (String.escaped netname);
+            lprintf "netname: [%s]\n" (String.escaped (Bytes.to_string netname));
           buf_used b (pos-start_pos+1);
           match s.server_ciphers with
             None -> assert false
@@ -159,7 +159,7 @@ let server_parse_cipher s gconn sock =
     | Some ciphers ->
         if !verbose_msg_raw then
           lprintf "Cipher received from server\n";
-        get_cipher_from_packet b.buf b.pos ciphers.in_cipher;
+        get_cipher_from_packet (Bytes.to_string b.buf) b.pos ciphers.in_cipher;
         init_cipher ciphers.in_cipher;
 
         xor_ciphers ciphers.out_cipher ciphers.in_cipher;
@@ -251,13 +251,14 @@ let connect_server h =
                     s.[3] <- '\043';
                 | Some f -> f s);
 
-              cipher_packet_set out_cipher s 4;
+              let ss = Bytes.to_string s in
+              cipher_packet_set out_cipher ss 4;
 
               if !verbose_msg_raw then begin
-                  lprintf "SENDING %s\n" (String.escaped s);
-                  AnyEndian.dump s;
+                  lprintf "SENDING %s\n" (String.escaped ss);
+                  AnyEndian.dump ss;
                 end;
-              write_string sock s;
+              write_string sock ss;
             with _ ->
                 disconnect_from_server nservers s Closed_connect_failed
         )

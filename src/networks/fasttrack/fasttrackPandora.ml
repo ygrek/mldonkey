@@ -135,15 +135,15 @@ type cnx = {
 let connections = Hashtbl.create 13
 
 let rec parse_packets pos s ciphers =
-  let len = String.length s - pos in
+  let len = Bytes.length s - pos in
   if len > 0 then
     let size = TcpMessages.packet_size ciphers s pos len in
     match size with
       None -> ()
     | Some size ->
         if len >= size then
-          let msg = String.sub s pos size in
-          let addr, t = TcpMessages.parse ciphers msg in
+          let msg = Bytes.sub s pos size in
+          let addr, t = TcpMessages.parse ciphers (Bytes.to_string msg) in
           lprintf "MESSAGE: %s\n    %s\n"
             (TcpMessages.string_of_path addr)
           (TcpMessages.to_string t);
@@ -152,12 +152,12 @@ let rec parse_packets pos s ciphers =
           lprintf "Packet too short\n"
 
 let parse_netname start_pos s ciphers =
-  let len = String.length s in
+  let len = Bytes.length s in
   let rec iter pos =
     if pos < len then
-      if s.[pos] = '\000' then begin
-          let netname = String.sub s start_pos (pos-start_pos) in
-          lprintf "netname: [%s]\n" (String.escaped netname);
+      if (Bytes.get s pos) = '\000' then begin
+          let netname = Bytes.sub s start_pos (pos-start_pos) in
+          lprintf "netname: [%s]\n" (String.escaped (Bytes.to_string netname));
 
 (*          test_xinu s (pos+1) len 0x51L; *)
           parse_packets (pos+1) s ciphers
@@ -242,13 +242,13 @@ let parse (s_out : string) (s_in : string) =
           ;
 
           begin
-            let s = String.create 8 in
+            let s = String.make 8 '\000' in
             cipher_packet_set ciphers.out_cipher s 0;
             lprintf "OUT CIPHER: [%s]\n" (String.escaped s);
           end;
 
           begin
-            let s = String.create 8 in
+            let s = String.make 8 '\000' in
             cipher_packet_set ciphers.in_cipher s 0;
             lprintf "IN CIPHER: [%s]\n" (String.escaped s);
           end;
@@ -274,10 +274,10 @@ let parse (s_out : string) (s_in : string) =
 
           lprintf "---------------------------------------------->\n";
           lprintf "  HEADER[%s]\n" (String.escaped (String.sub s_out 0 4));
-          parse_netname 12 s_out { ciphers with
+          parse_netname 12 (Bytes.of_string s_out) { ciphers with
             in_xinu = ciphers.out_xinu; in_cipher = ciphers.out_cipher };
           lprintf "<----------------------------------------------\n";
-          parse_netname 8 s_in ciphers;
+          parse_netname 8 (Bytes.of_string s_in) ciphers;
           parsed := true;
 (*
  (*
@@ -616,7 +616,7 @@ let rec parse_packets c =
   let len = String.length s - pos in
   if len > 0 then
     try
-      let size = TcpMessages.packet_size c.c_ciphers s pos len in
+      let size = TcpMessages.packet_size c.c_ciphers (Bytes.of_string s) pos len in
       match size with
         None -> ()
       | Some size ->
@@ -704,13 +704,13 @@ let read_trace () =
 
   and iter_log pos len =
     if len > 13 then
-      let size = get_int s (pos + 10) in
-      let ip = LittleEndian.get_ip s pos in
-      let port = get_int16 s (pos+4) in
-      let time = get_int s (pos+6) in
+      let size = get_int_bytes s (pos + 10) in
+      let ip = LittleEndian.get_ip_bytes s pos in
+      let port = get_int16_bytes s (pos+4) in
+      let time = get_int_bytes s (pos+6) in
       let item_len = size + 14 in
       if item_len <= len then
-        let p = String.sub s (pos+14) size in
+        let p = Bytes.sub s (pos+14) size in
         received ip port time p;
         iter_log (pos + item_len) (len - item_len)
       else iter_read pos len
@@ -720,7 +720,7 @@ let read_trace () =
     if pos = 0 then iter len
     else
       begin
-        String.blit s pos s 0 len;
+        Bytes.blit s pos s 0 len;
         iter len
       end
   in
