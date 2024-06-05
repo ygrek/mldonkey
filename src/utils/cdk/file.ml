@@ -23,11 +23,11 @@ let to_string name =
   let buf_size = 1024 in
   let buf = String.create buf_size in
   let rec iter buf nb_read =
-    let buf_size = String.length buf in
+    let buf_size = Bytes.length buf in
     let to_read = min (buf_size - nb_read) 8192 in
     let tmp = input chan buf nb_read to_read in
     if tmp = 0 then
-      String.sub buf 0 nb_read
+      Bytes.sub buf 0 nb_read
     else
     let nb_read = nb_read + tmp in
     let buf =

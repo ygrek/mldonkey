@@ -146,6 +146,9 @@ let extract_int32 raw pos len =
     Int32.of_string ("0o" ^ trim_spaces raw pos len)
   with Failure x ->  raise (Error "Invalid number in header")
 
+let extract_int32_bytes raw pos len =
+  extract_int32 (Bytes.unsafe_to_string raw) pos len
+
 let typeflag = function
   | '0' | '\000' -> REGULAR
   | '1' -> LINK
@@ -178,14 +181,15 @@ let align_at_header t =
           t.last_header <- None
 
 let empty_block = String.make blocksize '\000'
+let empty_bytes = Bytes.create blocksize
 
 let compute_chksum buf = 
   let chksum = ref 256 in (* 256 is the sum of 8 ' ' characters for the chksum field *)
     for i = 0 to 147 do
-      chksum := !chksum + Char.code buf.[i]
+      chksum := !chksum + Char.code (Bytes.get buf i)
     done;
     for i = 156 to 511 do
-      chksum := !chksum + Char.code buf.[i]
+      chksum := !chksum + Char.code (Bytes.get buf i)
     done;
     !chksum
 
@@ -208,32 +212,33 @@ let read_oldgnu_header header =
 let read_gnu_header t =
   let buf = String.create blocksize in
     t.chan#really_input buf 0 blocksize;
-    { t_atime = extract_int32 buf 0 12;
-      t_ctime = extract_int32 buf 12 12;
-      t_offset = extract_int32 buf 24 12;
-      t_realsize = extract_int32 buf 36 12;
+    { t_atime = extract_int32_bytes buf 0 12;
+      t_ctime = extract_int32_bytes buf 12 12;
+      t_offset = extract_int32_bytes buf 24 12;
+      t_realsize = extract_int32_bytes buf 36 12;
     }
 
 let read_header t =
   align_at_header t;
   let buf = String.create blocksize in
     t.chan#really_input buf 0 blocksize;
-    if buf = empty_block then raise End_of_file;
-    let head1 = { t_name = c_string buf 0;
-                 t_mode = extract_num buf 100 8;
-                 t_uid = extract_num buf 108 8;
-                 t_gid = extract_num buf 116 8;
-                 t_size = extract_num buf 124 12;
-                 t_mtime = extract_int32 buf 136 12;
-                 t_chksum = extract_num buf 148 8;
-                 t_typeflag = typeflag buf.[156];
-                 t_linkname = c_string buf 157;
-                 t_format = read_magic buf buf.[156];
-                 t_uname = c_string buf 265;
-                 t_gname = c_string buf 297;
-                 t_devmajor = extract_num buf 329 8;
-                 t_devminor = extract_num buf 337 8;
-                 t_prefix = String.sub buf 345 155;
+    if buf = empty_bytes then raise End_of_file;
+    let sbuf = Bytes.to_string buf in
+    let head1 = { t_name = c_string sbuf 0;
+                 t_mode = extract_num sbuf 100 8;
+                 t_uid = extract_num sbuf 108 8;
+                 t_gid = extract_num sbuf 116 8;
+                 t_size = extract_num sbuf 124 12;
+                 t_mtime = extract_int32 sbuf 136 12;
+                 t_chksum = extract_num sbuf 148 8;
+                 t_typeflag = typeflag sbuf.[156];
+                 t_linkname = c_string sbuf 157;
+                 t_format = read_magic sbuf sbuf.[156];
+                 t_uname = c_string sbuf 265;
+                 t_gname = c_string sbuf 297;
+                 t_devmajor = extract_num sbuf 329 8;
+                 t_devminor = extract_num sbuf 337 8;
+                 t_prefix = String.sub sbuf 345 155;
                  t_gnu = None;
                } in
     let chksum = compute_chksum buf in
@@ -241,7 +246,7 @@ let read_header t =
         raise (Error (Printf.sprintf "Invalid checksum in tar header. Calculated %d, expected %d" chksum head1.t_chksum));
       let head =
         if head1.t_format = OLDGNU_FORMAT then
-          {head1 with t_gnu = Some (read_oldgnu_header buf) }
+          {head1 with t_gnu = Some (read_oldgnu_header sbuf) }
         else if head1.t_format = GNU_FORMAT then
           {head1 with t_gnu = Some (read_gnu_header t) }
         else

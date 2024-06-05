@@ -164,8 +164,8 @@ let check_suffix s suffix =
   
 let upp_initial s =
   if String.length s > 0 then
-    let s = String.copy s in
-    s.[0] <- Char.uppercase s.[0]; s
+    let first_char = Char.uppercase_ascii s.[0] in
+    String.make 1 first_char ^ String.sub s 1 (String.length s - 1)
   else
     s
     
@@ -198,11 +198,12 @@ let of_char c = String.make 1 c
   
 let resize s newlen =
   let len = String.length s in
-  if len > newlen then String.sub s 0 newlen 
+  if len > newlen then
+    String.sub s 0 newlen 
   else
-  let str = String.create newlen in
-  String.blit s 0 str 0 len;
-  str
+    let str = Bytes.create newlen in
+    Bytes.blit_string s 0 str 0 len;
+    Bytes.to_string str
   
 let init len f =
   let s = String.create len in
@@ -267,19 +268,20 @@ let starts_with s1 s2 =
   len2 <= len1 && strneql s1 s2 len2
 
 let replace_char s c1 c2 =
-  for i = 0 to String.length s - 1 do
-    if s.[i] == c1 then s.[i] <- c2
-  done
+  let rep c = if c == c1 then c2 else c in
+  String.map rep s;
+  ()
 
 let stem s =
-  let s = String.lowercase (String.copy s) in
-  for i = 0 to String.length s - 1 do
-    let c = s.[i] in
+  let s = String.lowercase_ascii s in
+  let result = Bytes.of_string s in
+  for i = 0 to Bytes.length result - 1 do
+    let c = Bytes.get result i in
     match c with
-      'a'..'z' | '0' .. '9' -> ()
-    | _ -> s.[i] <- ' ';
+    | 'a'..'z' | '0'..'9' -> ()
+    | _ -> Bytes.set result i ' '
   done;
-  split_simplify s ' '
+  split_simplify (Bytes.to_string result) ' '
   
 let map f s =
   let len = String.length s in
@@ -302,7 +304,7 @@ let init n f =
   for i = 0 to n - 1 do
     s.[i] <- f i 
   done;
-  s
+  Bytes.to_string s
 
 let exists p s =
   let l = String.length s in

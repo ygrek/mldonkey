@@ -1,4 +1,4 @@
-(* 
+(*
  * IO - Abstract input/output
  * Copyright (C) 2003 Nicolas Cannasse
  *
@@ -49,29 +49,35 @@ val read : input -> char
 (** Read a single char from an input or raise [No_more_input] if
   no input available. *)
 
-val nread : input -> int -> string
-(** [nread i n] reads a string of size up to [n] from an input.
+val nread : input -> int -> Bytes.t
+(** [nread i n] reads a byte sequence of size up to [n] from an input.
   The function will raise [No_more_input] if no input is available.
   It will raise [Invalid_argument] if [n] < 0. *)
 
-val really_nread : input -> int -> string
-(** [really_nread i n] reads a string of exactly [n] characters
+val really_nread : input -> int -> Bytes.t
+(** [really_nread i n] reads a byte sequence of exactly [n] characters
   from the input. Raises [No_more_input] if at least [n] characters are
   not available. Raises [Invalid_argument] if [n] < 0. *)
 
-val input : input -> string -> int -> int -> int
+val nread_string : input -> int -> string
+(** as [nread], but reads a string. *)
+
+val really_nread_string : input -> int -> string
+(** as [really_nread], but reads a string. *)
+
+val input : input -> Bytes.t -> int -> int -> int
 (** [input i s p l] reads up to [l] characters from the given input, storing
-  them in string [s], starting at character number [p]. It returns the actual
+  them in buffer [b], starting at character number [p]. It returns the actual
   number of characters read or raise [No_more_input] if no character can be
   read. It will raise [Invalid_argument] if [p] and [l] do not designate a
-  valid substring of [s]. *)
+  valid sequence of [b]. *)
 
-val really_input : input -> string -> int -> int -> int
-(** [really_input i s p l] reads exactly [l] characters from the given input,
-  storing them in the string [s], starting at position [p]. For consistency with
+val really_input : input -> Bytes.t -> int -> int -> int
+(** [really_input i b p l] reads exactly [l] characters from the given input,
+  storing them in the buffer [b], starting at position [p]. For consistency with
   {!IO.input} it returns [l]. Raises [No_more_input] if at [l] characters are
   not available. Raises [Invalid_argument] if [p] and [l] do not designate a
-  valid substring of [s]. *)
+  valid subsequence of [b]. *)
 
 val close_in : input -> unit
 (** Close the input. It can no longer be read from. *)
@@ -79,19 +85,22 @@ val close_in : input -> unit
 val write : 'a output -> char -> unit
 (** Write a single char to an output. *)
 
-val nwrite : 'a output -> string -> unit
+val nwrite : 'a output -> Bytes.t -> unit
+(** Write a byte sequence to an output. *)
+
+val nwrite_string : 'a output -> string -> unit
 (** Write a string to an output. *)
 
-val output : 'a output -> string -> int -> int -> int
-(** [output o s p l] writes up to [l] characters from string [s], starting at
+val output : 'a output -> Bytes.t -> int -> int -> int
+(** [output o b p l] writes up to [l] characters from byte sequence [b], starting at
   offset [p]. It returns the number of characters written. It will raise
-  [Invalid_argument] if [p] and [l] do not designate a valid substring of [s]. *)
+  [Invalid_argument] if [p] and [l] do not designate a valid subsequence of [b]. *)
 
-val really_output : 'a output -> string -> int -> int -> int
-(** [really_output o s p l] writes exactly [l] characters from string [s] onto
+val really_output : 'a output -> Bytes.t -> int -> int -> int
+(** [really_output o b p l] writes exactly [l] characters from byte sequence [b] onto
   the the output, starting with the character at offset [p]. For consistency with
   {!IO.output} it returns [l]. Raises [Invalid_argument] if [p] and [l] do not
-  designate a valid substring of [s]. *)
+  designate a valid subsequence of [b]. *)
 
 val flush : 'a output -> unit
 (** Flush an output. *)
@@ -105,33 +114,40 @@ val close_out : 'a output -> 'a
 val input_string : string -> input
 (** Create an input that will read from a string. *)
 
+val input_bytes : Bytes.t -> input
+(** Create an input that will read from a byte sequence. *)
+
 val output_string : unit -> string output
 (** Create an output that will write into a string in an efficient way.
+  When closed, the output returns all the data written into it. *)
+
+val output_bytes : unit -> Bytes.t output
+(** Create an output that will write into a byte sequence in an efficient way.
   When closed, the output returns all the data written into it. *)
 
 val input_channel : in_channel -> input
 (** Create an input that will read from a channel. *)
 
 val output_channel : out_channel -> unit output
-(** Create an output that will write into a channel. *) 
+(** Create an output that will write into a channel. *)
 
 (*
 val input_enum : char Enum.t -> input
 (** Create an input that will read from an [enum]. *)
 
 val output_enum : unit -> char Enum.t output
-(** Create an output that will write into an [enum]. The 
+(** Create an output that will write into an [enum]. The
   final enum is returned when the output is closed. *)
 *)
 
 val create_in :
   read:(unit -> char) ->
-  input:(string -> int -> int -> int) -> close:(unit -> unit) -> input
+  input:(Bytes.t -> int -> int -> int) -> close:(unit -> unit) -> input
 (** Fully create an input by giving all the needed functions. *)
 
 val create_out :
   write:(char -> unit) ->
-  output:(string -> int -> int -> int) ->   
+  output:(Bytes.t -> int -> int -> int) ->
   flush:(unit -> unit) -> close:(unit -> 'a) -> 'a output
 (** Fully create an output by giving all the needed functions. *)
 
@@ -148,15 +164,15 @@ val pipe : unit -> input * unit output
   the output can be read from the input. *)
 
 val pos_in : input -> input * (unit -> int)
-(** Create an input that provide a count function of the number of bytes
+(** Create an input that provide a count function of the number of Bytes.t
   read from it. *)
 
 val pos_out : 'a output -> 'a output * (unit -> int)
-(** Create an output that provide a count function of the number of bytes
+(** Create an output that provide a count function of the number of Bytes.t
   written through it. *)
 
 external cast_output : 'a output -> unit output = "%identity"
-(** You can safely transform any output to an unit output in a safe way 
+(** You can safely transform any output to an unit output in a safe way
   by using this function. *)
 
 (** {6 Binary files API}
@@ -198,6 +214,9 @@ val read_double : input -> float
 val read_string : input -> string
 (** Read a null-terminated string. *)
 
+val read_bytes : input -> Bytes.t
+(** Read a null-terminated byte sequence. *)
+
 val read_line : input -> string
 (** Read a LF or CRLF terminated string. *)
 
@@ -211,7 +230,7 @@ val write_i16 : 'a output -> int -> unit
 (** Write a signed 16-bit word. *)
 
 val write_i32 : 'a output -> int -> unit
-(** Write a signed 32-bit integer. *) 
+(** Write a signed 32-bit integer. *)
 
 val write_real_i32 : 'a output -> int32 -> unit
 (** Write an OCaml int32. *)
@@ -224,6 +243,9 @@ val write_double : 'a output -> float -> unit
 
 val write_string : 'a output -> string -> unit
 (** Write a string and append an null character. *)
+
+val write_bytes : 'a output -> Bytes.t -> unit
+(** Write a byte sequence and append an null character. *)
 
 val write_line : 'a output -> string -> unit
 (** Write a line and append a LF (it might be converted
@@ -239,7 +261,7 @@ sig
         val read_real_i32 : input -> int32
         val read_i64 : input -> int64
         val read_double : input -> float
-        
+
         val write_ui16 : 'a output -> int -> unit
         val write_i16 : 'a output -> int -> unit
         val write_i32 : 'a output -> int -> unit
@@ -293,13 +315,13 @@ val drop_bits : in_bits -> unit
 
 class in_channel : input ->
   object
-        method input : string -> int -> int -> int
+        method input : Bytes.t -> int -> int -> int
         method close_in : unit -> unit
   end
 
 class out_channel : 'a output ->
   object
-        method output : string -> int -> int -> int
+        method output : Bytes.t -> int -> int -> int
         method flush : unit -> unit
         method close_out : unit -> unit
   end
