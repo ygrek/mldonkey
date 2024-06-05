@@ -92,7 +92,7 @@ let declare_pong = exn_log "declare_pong" declare_pong
 
 type udp_packet = {
     udp_ping : bool;
-    udp_content: string;
+    udp_content: bytes;
     udp_addr: Unix.sockaddr;
 (*
     val sendto : Unix.file_descr -> string -> int -> int ->
@@ -110,13 +110,13 @@ let local_sendto sock p =
           declare_ping ip
       | _ -> ()
   end;
-  Unix.sendto sock p.udp_content 0 (String.length p.udp_content) [] p.udp_addr
+  Unix.sendto sock p.udp_content 0 (Bytes.length p.udp_content) [] p.udp_addr
    
 
 module PacketSet = Set.Make (struct
       type t = int * udp_packet
       let compare (t1,p1) (t2,p2) = 
-        compare (t1, String.length p1.udp_content,p1) (t2, String.length p2.udp_content,p2)
+        compare (t1, Bytes.length p1.udp_content,p1) (t2, Bytes.length p2.udp_content,p2)
     end)
 
 type socks_proxy = {
@@ -220,8 +220,8 @@ let write t ping s ip port =
         buf_int8 buf 1;
         buf_ip buf ip;
         buf_int16 buf port;
-        Buffer.add_string buf s;
-        Buffer.contents buf,  Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
+        Buffer.add_bytes buf s;
+        Buffer.to_bytes buf,  Unix.ADDR_INET(Ip.to_inet_addr ip, port) 
     in
     match t.write_controler with
       None ->
@@ -229,7 +229,7 @@ let write t ping s ip port =
           begin
             let sock = sock t in
             try
-              let len = String.length s in
+              let len = Bytes.length s in
 
               let _ =
                 try
@@ -255,7 +255,7 @@ lprintf_nl "UDP sent [%s]" (String.escaped
                     udp_content = s ;
                     udp_addr = addr;
                   }) t.wlist;
-                t.wlist_size <- t.wlist_size + String.length s;
+                t.wlist_size <- t.wlist_size + Bytes.length s;
                 must_write sock true;
             | e ->
                 lprintf_nl "Exception %s in sendto"
@@ -269,7 +269,7 @@ lprintf_nl "UDP sent [%s]" (String.escaped
                 udp_content = s ;
                 udp_addr = addr;
               })  t.wlist;
-            t.wlist_size <- t.wlist_size + String.length s;
+            t.wlist_size <- t.wlist_size + Bytes.length s;
             must_write t.sock true;
           end
     | Some bc ->
@@ -280,7 +280,7 @@ lprintf_nl "UDP sent [%s]" (String.escaped
               udp_content = s;
               udp_addr = addr;
             })  t.wlist;
-          t.wlist_size <- t.wlist_size + String.length s;
+          t.wlist_size <- t.wlist_size + Bytes.length s;
           must_write t.sock true;
         end
   else
@@ -295,8 +295,8 @@ let read_buf = String.create 66000
 let rec iter_write_no_bc t sock = 
   let (time,p) = PacketSet.min_elt t.wlist in
   t.wlist <- PacketSet.remove (time,p) t.wlist;
-  t.wlist_size <- t.wlist_size - String.length p.udp_content;
-  let len = String.length p.udp_content in
+  t.wlist_size <- t.wlist_size - Bytes.length p.udp_content;
+  let len = Bytes.length p.udp_content in
   begin try
       ignore (local_sendto (fd sock) p);
       udp_uploaded_bytes := !udp_uploaded_bytes ++ (Int64.of_int len);
@@ -326,14 +326,14 @@ let rec iter_write t sock bc =
     let _ = () in
     let (time,p) = PacketSet.min_elt t.wlist in
     t.wlist <- PacketSet.remove (time,p) t.wlist;
-    t.wlist_size <- t.wlist_size - String.length p.udp_content;
+    t.wlist_size <- t.wlist_size - Bytes.length p.udp_content;
     if time < bc.base_time then begin
         if !debug then begin
             lprintf_nl "UDP DROPPED in iter_write"; 
           end;
       iter_write t sock bc
       end else
-    let len = String.length p.udp_content in
+    let len = Bytes.length p.udp_content in
     begin try
         ignore (local_sendto (fd sock) p);
         udp_uploaded_bytes := !udp_uploaded_bytes ++ (Int64.of_int len);
@@ -368,10 +368,10 @@ let udp_handler t sock event =
   | CAN_READ ->
       let (len, addr) = Unix.recvfrom (fd sock) read_buf 0 66000 [] in
       let s, addr = match t.socks_proxy with
-        None -> String.sub read_buf 0 len, addr
+        None -> Bytes.sub read_buf 0 len, addr
       | Some _ ->
-          String.sub read_buf 10 (len-10), 
-          Unix.ADDR_INET(Ip.to_inet_addr (get_ip read_buf 4), get_int16 read_buf 8)
+          Bytes.sub read_buf 10 (len-10), 
+          Unix.ADDR_INET(Ip.to_inet_addr (get_ip_bytes read_buf 4), get_int16_bytes read_buf 8)
       in
       udp_downloaded_bytes := !udp_downloaded_bytes ++ (Int64.of_int len);
       t.rlist <- {
