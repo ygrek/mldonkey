@@ -48,7 +48,7 @@ module Id3v1 =
           seek_in ic (len - 128);
           let buffer = String.create 3 in
           really_input ic buffer 0 3;
-          buffer = "TAG"
+          buffer = (Bytes.of_string "TAG")
         end in
       close_in ic;
       res
@@ -60,7 +60,7 @@ let read_channel ic =
     let readstring len =
       let buf = String.create len in
       really_input ic buf 0 len;
-      Mp3_misc.chop_whitespace buf 0 in
+      Mp3_misc.chop_whitespace (Bytes.to_string buf) 0 in
     if readstring 3 <> "TAG" then raise Not_found;
     let title = readstring 30 in
     let artist = readstring 30 in
@@ -161,7 +161,7 @@ module Id3v2 = struct
     for i = 1 to n do ignore(input_byte ic) done
 
   let valid_header header =
-       String.sub header 0 3 = "ID3"
+       Bytes.sub header 0 3 = "ID3"
     && (Char.code header.[3] = 3 || Char.code header.[3] = 4)
     && Char.code header.[5] land 0b00111111 = 0
     && Char.code header.[6] land 0b10000000 = 0
@@ -188,7 +188,7 @@ module Id3v2 = struct
 
   let read_channel ic =
     try
-      let header = String.create 10 in
+      let header = Bytes.create 10 in
       really_input ic header 0 10;
       if not (valid_header header) then raise Not_found;
       let len = length_header header in
@@ -202,11 +202,11 @@ module Id3v2 = struct
       (* Collect frames *)
       let tags = ref [] in
       while pos_in ic < startpos + len do
-        let frameid = input_buffer ic 4 in
+        let frameid = (Bytes.to_string (input_buffer ic 4)) in
         let framelen = input_int4 ic in
         let flags1 = input_byte ic in
         let flags2 = input_byte ic in
-        let framedata = input_buffer ic framelen in
+        let framedata = (Bytes.to_string (input_buffer ic framelen)) in
         if flags1 land 0b00011111 = 0 && flags2 = 0 then begin
           try
             tags := (frameid, decode_framedata frameid framedata) :: !tags
@@ -280,7 +280,7 @@ module Id3v2 = struct
     let ic = open_in_bin filename in
     try
       begin try
-        let header = String.create 10 in
+        let header = Bytes.create 10 in
         really_input ic header 0 10;
         if not (valid_header header) then raise Not_found;
         seek_in ic (pos_in ic + length_header header)
@@ -289,7 +289,7 @@ module Id3v2 = struct
       end;
       let buffer = String.create 4096 in
       let rec copy_file () =
-        let n = input ic buffer 0 (String.length buffer) in
+        let n = input ic buffer 0 (Bytes.length buffer) in
         if n = 0 then () else begin output oc buffer 0 n; copy_file () end in
       copy_file ();
       close_in ic
