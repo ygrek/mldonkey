@@ -691,7 +691,7 @@ if test "$OCAMLVERSION" \< "$MINIMUM_OCAML"; then
 fi
 
 if test ! "$OCAMLVERSION" \< "4.03.0"; then
-  OCAMLC="$OCAMLC -unsafe-string"
+  OCAMLC="$OCAMLC"
 fi
 
 if test "$OCAMLOPT" = "no"; then
@@ -709,7 +709,7 @@ else
     exit 1; }
 
   if test ! "$OCAMLVERSION" \< "4.03.0"; then
-    OCAMLOPT="$OCAMLOPT -unsafe-string"
+    OCAMLOPT="$OCAMLOPT"
   fi
 
 fi
