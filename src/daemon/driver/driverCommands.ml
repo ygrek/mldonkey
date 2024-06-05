@@ -1394,7 +1394,7 @@ let _ =
                     while true do
                       let nread = Unix.read pipe_out buffer 0 buffersize in
                       if nread = 0 then raise End_of_file;
-                      Buffer.add_substring output buffer 0 nread
+                      Buffer.add_subbytes output buffer 0 nread
                     done
                   with 
                   | End_of_file -> ()
@@ -3897,7 +3897,7 @@ let _ =
            let downloaded = CommonSwarming.get_swarmer_block_verified swarmer in
            pr "\\<code\\>";
            pr "priorities: ";
-           String.iter (fun c ->
+           Bytes.iter (fun c ->
              let c = max 0 (min 9 (Char.code c)) in
              let c = Char.chr (c + Char.code '0') in 
              Buffer.add_char buf c) prio;
