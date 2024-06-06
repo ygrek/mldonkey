@@ -80,7 +80,7 @@ let get_xing_header ic header =
   seek_in ic (pos_in ic + offset);
   let buf = String.create 4 in
   really_input ic buf 0 4;
-  if buf <> (Bytes.of_string "Xing") then raise Not_found;
+  if not (Misc.bytes_equal_string buf "Xing") then raise Not_found;
   let flags = read_i4 ic in
   (* 3 = FRAMES_FLAG | BYTES_FLAG *)
   if flags land 3 <> 3 then raise Not_found;
