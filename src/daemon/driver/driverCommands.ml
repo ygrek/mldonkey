@@ -1677,12 +1677,12 @@ let _ =
                 if use_html_mods o then
                   custom_commands := !custom_commands @ [ ( "bu bbig",
                   name,
-                  Printf.sprintf "mSub('output','custom=%s')" (Bytes.to_string (Url.encode name)),
+                  Printf.sprintf "mSub('output','custom=%s')" (Url.encode_to_string name),
                   name ) ; ]
                 else
                   Printf.bprintf buf
                     "\\<a href=\\\"submit\\?custom=%s\\\" $O\\> %s \\</a\\>\n"
-                    (Bytes.to_string (Url.encode name)) name;
+                    (Url.encode_to_string name) name;
               end
             else
 
