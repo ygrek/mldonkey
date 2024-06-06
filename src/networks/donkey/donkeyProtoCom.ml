@@ -350,7 +350,7 @@ let server_send_share compressed sock msg =
   in
   let len = Bytes.length s - 5 in
   str_int s 1 len;
-  write_string sock (Bytes.to_string s)
+  write sock s 0 (Bytes.length s)
 
 let client_send_files sock msg =
   let max_len = !!client_buffer_size - 100 -
@@ -368,7 +368,7 @@ let client_send_files sock msg =
   let len = Bytes.length s - 5 in
   str_int s 1 len;
   str_int s 6 nfiles;
-  write_string sock (Bytes.to_string s)
+  write sock s 0 (Bytes.length s)
 
 let client_send_dir sock dir files =
   let max_len = !!client_buffer_size - 100 -
@@ -389,7 +389,7 @@ let client_send_dir sock dir files =
     str_int s 1 len;
     str_int s (pos-4) nfiles;
   end;
-  write_string sock (Bytes.to_string s)
+  write sock s 0 (Bytes.length s)
 
 let udp_server_send s t =
   udp_send (get_udp_sock ()) s.server_ip (s.server_port+4) t
