@@ -105,7 +105,7 @@ let parse_url url user group =
 let register_commands list =
   register_commands (List2.tail_map (fun (n,f,h) -> (n, "Direct Connect", f,h)) list)
 
-let command l = String.concat "+" (List.map Url.encode l)
+let command l = String.concat "+" (List.map Url.encode_to_string l)
 
 let td_command text title ?(blink=false) ?(target=`Output) cmd =
   Printf.sprintf

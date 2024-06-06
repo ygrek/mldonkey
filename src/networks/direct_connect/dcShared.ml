@@ -125,7 +125,7 @@ let string_to_che3_to_file str filename =
         else wlen
       in
       let npos = pos + len in
-      Unix32.write file_fd (Int64.of_int pos) s pos len;
+      Unix32.write file_fd (Int64.of_int pos) (Bytes.of_string s) pos len;
       if npos < slen then write npos
     in 
     write 0;
@@ -180,7 +180,7 @@ let buffer_to_bz2_to_file buf filename =
         else slen
       in
       let npos = pos + len in
-      let str = Buffer.sub buf pos len in      
+      let str = Bytes.of_string (Buffer.sub buf pos len) in
       Bzip2.output oc str 0 len;
       if npos < blen then compress npos 
     in compress 0;

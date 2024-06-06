@@ -31,7 +31,7 @@ external compress_end: stream -> unit = "camlzip_bzCompressEnd"
 
 external decompress_init: int -> bool -> stream = "camlzip_bzDecompressInit"
 external decompress:
-  stream -> string -> int -> int -> string -> int -> int -> bool * int * int
+  stream -> bytes -> int -> int -> bytes -> int -> int -> bool * int * int
   = "camlzip_bzDecompress_bytecode" "camlzip_bzDecompress"
 external decompress_end: stream -> unit = "camlzip_bzDecompressEnd"
 
