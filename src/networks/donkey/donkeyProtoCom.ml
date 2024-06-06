@@ -63,14 +63,15 @@ let server_msg_to_string msg =
   let s = Buffer.to_bytes buf in
   let len = Bytes.length s - 5 in
   str_int s 1 len;
-  (Bytes.to_string s)
+  s
 
 let server_send sock m =
 (*
   lprintf "Message to server"; lprint_newline ();
   DonkeyProtoServer.print m;
 *)
-  write_string sock (server_msg_to_string m)
+  let buff = server_msg_to_string m in
+  write sock buff 0 (Bytes.length buff)
 
 let direct_client_sock_send emule_version sock m =
   let buff = client_msg_to_string emule_version m in
@@ -88,7 +89,7 @@ let client_send c m =
 
 let servers_send socks m =
   let m = server_msg_to_string m in
-  List.iter (fun s -> write_string s m) socks
+  List.iter (fun s -> write s m 0 (Bytes.length m)) socks
 
 let client_handler2 c ff f =
   let msgs = ref 0 in
