@@ -64,7 +64,7 @@ val udp_basic_handler :
   UdpSocket.event -> unit
 
 val server_msg_to_string : DonkeyProtoServer.t -> string
-val client_msg_to_string : emule_proto -> DonkeyProtoClient.t -> string
+val client_msg_to_string : emule_proto -> DonkeyProtoClient.t -> bytes
 
 val direct_client_sock_send : emule_proto -> TcpBufferedSocket.t -> DonkeyProtoClient.t -> unit
 

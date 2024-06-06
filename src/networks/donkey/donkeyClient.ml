@@ -2375,7 +2375,8 @@ let read_first_message overnet server cc m sock =
       porttest_sock := Some sock;
       set_closer sock (fun _ _ -> porttest_sock := None);
       set_lifetime sock 30.;
-      write_string sock (client_msg_to_string (emule_proto ()) m);
+      let buff = client_msg_to_string (emule_proto ()) m in
+      write sock buff 0 (Bytes.length buff);
       None
 
   | _ -> 

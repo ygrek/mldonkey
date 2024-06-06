@@ -46,7 +46,7 @@ let client_msg_to_string emule_version msg =
   let len = Bytes.length s - 5 in
   s.[0] <- char_of_int magic;
   str_int s 1 len;
-  (Bytes.to_string s)
+  s
 
 let server_msg_to_string msg =
   Buffer.reset buf;
@@ -73,7 +73,8 @@ let server_send sock m =
   write_string sock (server_msg_to_string m)
 
 let direct_client_sock_send emule_version sock m =
-  write_string sock (client_msg_to_string emule_version m)
+  let buff = client_msg_to_string emule_version m in
+  write sock buff 0 (Bytes.length buff)
 
 let client_send c m =
   let emule_version = c.client_emule_proto in
