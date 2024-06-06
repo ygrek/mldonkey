@@ -474,7 +474,7 @@ let search_info_avi ic =
   try
 (* pos: 0 *)
     let s = input_string4 ic in
-    if s <> Bytes.of_string "RIFF" then failwith "Not an AVI file (RIFF absent)";
+    if not (Misc.bytes_equal_string s "RIFF") then failwith "Not an AVI file (RIFF absent)";
 
 (* pos: 4 *)
     let size = input_int32 ic in
@@ -484,11 +484,11 @@ let search_info_avi ic =
 
 (* pos: 8 *)
     let s = input_string4 ic in
-    if s <> Bytes.of_string "AVI " then failwith  "Not an AVI file (AVI absent)";
+    if not (Misc.bytes_equal_string s "AVI ") then failwith  "Not an AVI file (AVI absent)";
 
 (* pos: 12 *)
     let s = input_string4 ic in
-    if s <> Bytes.of_string "LIST" then failwith  "Not an AVI file (LIST absent)";
+    if not (Misc.bytes_equal_string s "LIST") then failwith  "Not an AVI file (LIST absent)";
 
 (* position 16 *)
     let rec iter_list pos end_pos =
@@ -512,8 +512,8 @@ let search_info_avi ic =
               "hdrl" ->
 (*              lprintf "HEADER\n";  *)
                 
-                let s = Bytes.to_string (input_string4 ic) in
-                if s <> "avih" then failwith "Bad AVI file (avih absent)";
+                let s = input_string4 ic in
+                if not (Misc.bytes_equal_string s "avih") then failwith "Bad AVI file (avih absent)";
 
 (* pos: pos + 12 *)
                 let main_header_len = 52 in             
@@ -544,7 +544,7 @@ let search_info_avi ic =
                 
                 ignore (input_string4 ic);
                 
-                let fccType = Bytes.to_string (input_string4 ic) in
+                let fccType = input_string4 ic in
                 let fccHandler = Bytes.to_string (input_string4 ic) in
                 let _dwFlags = input_int32 ic in (* Contains AVITF_* flags *)
                 let _wPriority = input_int16 ic in
@@ -562,7 +562,7 @@ let search_info_avi ic =
                 let rcFrame_dx = input_int16 ic in
                 let rcFrame_dy = input_int16 ic in
                 
-                if fccType = "vids" then                
+                if Misc.bytes_equal_string fccType "vids" then
                   raise (FormatFound (AVI {
                         avi_codec = fccHandler;
                         avi_width = rcFrame_dx;
