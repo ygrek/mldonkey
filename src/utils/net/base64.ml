@@ -142,6 +142,8 @@ let encode_with_options b64 equal s pos len linelen crlf =
 let encode s =
   encode_with_options rfc_pattern '=' s 0 (String.length s) 0 false;;
 
+let encode_to_string s =
+  Bytes.to_string (encode s)
 
 let encode_substring s pos len =
   encode_with_options rfc_pattern '=' s pos len 0 false;;
