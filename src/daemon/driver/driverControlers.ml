@@ -1565,7 +1565,7 @@ let http_handler o t r =
   in
   r.reply_content <- 
     if !http_file_type <> BIN && !!html_use_gzip then 
-      Zlib2.gzip_string (Bytes.of_string s) 
+      Bytes.to_string (Zlib2.gzip_string s)
     else s
 
 let http_options = {

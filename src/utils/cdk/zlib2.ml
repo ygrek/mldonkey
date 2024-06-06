@@ -35,8 +35,8 @@ let compress_string ?(level = 6) inbuf =
   res
 
 (* header info from camlzip/gpl *)
-let gzip_string ?(level = 6) inbuf =
-  if Bytes.length inbuf <= 0 then "" else
+let gzip_bytes ?(level = 6) inbuf =
+  if Bytes.length inbuf <= 0 then Bytes.empty else
   begin
   let zs = deflate_init level false in
   let out_crc = ref Int32.zero in
@@ -78,8 +78,11 @@ let gzip_string ?(level = 6) inbuf =
   Buffer.add_bytes buf res;
   write_int32 buf !out_crc;
   write_int32 buf (Int32.of_int (Bytes.length inbuf));
-  Buffer.contents buf
+  Buffer.to_bytes buf
   end
+
+let gzip_string ?(level = 6) instr =
+  gzip_bytes ~level:level (Bytes.of_string instr)
 
 let uncompress_string2 inbuf =
   let zs = inflate_init true in
