@@ -496,7 +496,7 @@ module Bloc  = struct
         usesixtyfour : bool;
         start_pos : int64;
         end_pos: int64;
-        bloc_str: string;
+        bloc_str: bytes;
         bloc_begin : int;
         bloc_len : int;
       }
@@ -507,7 +507,7 @@ module Bloc  = struct
         usesixtyfour = usesixtyfour;
         start_pos = if usesixtyfour then get_int64 s 17 else get_uint64_32 s 17;
         end_pos   = if usesixtyfour then get_int64 s 25 else get_uint64_32 s 21;
-        bloc_str = s;
+        bloc_str = (Bytes.of_string s);
         bloc_begin = if usesixtyfour then 33 else 25;
         bloc_len = if usesixtyfour then len - 33 else len - 25;
       }
@@ -522,7 +522,7 @@ module Bloc  = struct
       buf_md4 buf t.md4;
       if t.usesixtyfour then buf_int64 buf t.start_pos else buf_int64_32 buf t.start_pos;
       if t.usesixtyfour then buf_int64 buf t.end_pos else buf_int64_32 buf t.end_pos;
-      Buffer.add_substring buf t.bloc_str t.bloc_begin t.bloc_len
+      Buffer.add_subbytes buf t.bloc_str t.bloc_begin t.bloc_len
   end
 
 module QueryBloc  = struct

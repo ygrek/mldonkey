@@ -204,7 +204,16 @@ let resize s newlen =
     let str = Bytes.create newlen in
     Bytes.blit_string s 0 str 0 len;
     Bytes.to_string str
-  
+
+let resize_bytes s newlen =
+  let len = Bytes.length s in
+  if len > newlen then
+    Bytes.sub s 0 newlen 
+  else
+    let str = Bytes.create newlen in
+    Bytes.blit s 0 str 0 len;
+    str
+
 let init len f =
   let s = String.create len in
   for i = 0 to len - 1 do

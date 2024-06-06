@@ -2792,7 +2792,7 @@ let range_range r = (r.range_begin, r.range_end)
 let received up file_begin str string_begin string_len =
   assert (string_begin >= 0);
   assert (string_len >= 0);
-  assert (string_begin + string_len <= String.length str);
+  assert (string_begin + string_len <= Bytes.length str);
 
   let t = up.up_t in
   let s = t.t_s in

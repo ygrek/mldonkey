@@ -56,7 +56,7 @@ let shell_command hostname =
 (*************************************************************************)
 
 let segment_received c num s pos =
-  if String.length s > 0 then
+  if Bytes.length s > 0 then
     let d =
       match c.client_downloads with
         [] -> disconnect_client c Closed_by_user; raise Exit
@@ -85,7 +85,7 @@ let segment_received c num s pos =
               CommonSwarming.downloaded swarmer in
 
             CommonSwarming.received up
-              pos s 0 (String.length s);
+              pos s 0 (Bytes.length s);
 
             let new_downloaded =
               CommonSwarming.downloaded swarmer in
@@ -306,7 +306,7 @@ let ssh_connect token c f =
 
                 | SegmentX (file_num, pos, len, elen, ss) ->
                     lprintf "******* SEGMENT RECEIVED *******\n";
-                    segment_received c file_num ss pos;
+                    segment_received c file_num (Bytes.of_string ss) pos;
                     segment := Nothing;
                     iter0 0
                 | _ ->

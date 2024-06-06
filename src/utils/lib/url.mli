@@ -53,7 +53,8 @@ val cut_args : string -> (string * string) list
 val put_args : string -> (string * string) list -> string
 
   
-val encode : string -> string
+val encode : string -> bytes
+val encode_to_string: string -> string
 val decode : ?raw:bool -> string -> string
 
 val option : url Options.option_class

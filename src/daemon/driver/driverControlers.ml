@@ -1557,15 +1557,15 @@ let http_handler o t r =
 
   let s =
     match !http_file_type with
-      HTM -> html_close_page buf false; dollar_escape o true (Buffer.to_bytes buf)
-    | MLHTM -> html_close_page buf true; dollar_escape o true (Buffer.to_bytes buf)
+      HTM -> html_close_page buf false; dollar_escape o true (Buffer.contents buf)
+    | MLHTM -> html_close_page buf true; dollar_escape o true (Buffer.contents buf)
     | TXT
     | UNK
-    | BIN -> Buffer.to_bytes buf
+    | BIN -> Buffer.contents buf
   in
   r.reply_content <- 
     if !http_file_type <> BIN && !!html_use_gzip then 
-      Zlib2.gzip_string s 
+      Zlib2.gzip_string (Bytes.of_string s) 
     else s
 
 let http_options = {

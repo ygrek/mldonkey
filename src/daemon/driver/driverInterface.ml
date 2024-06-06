@@ -1211,7 +1211,7 @@ let gui_handler t event =
         TcpBufferedSocket.set_reader sock (GuiDecoding.gui_cut_messages
             (fun opcode s ->
               try
-                let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version opcode s in
+                let m = GuiDecoding.from_gui gui.gui_proto_from_gui_version opcode (Bytes.to_string s) in
                 gui_reader gui m sock;
               with GuiDecoding.FromGuiMessageNotImplemented -> ()
           ));

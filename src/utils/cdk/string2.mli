@@ -81,7 +81,10 @@ val of_char : char -> string
   
 val resize : string -> int ->  string
 (*d [resize s len] returns a string of length [len] starting with [s]. *)
-  
+
+val resize_bytes: bytes -> int -> bytes
+(*d [resize s len] returns a byffer of length [len] starting with [s]. *)
+
 val init : int -> (int -> char) -> string
 
 val tokens: string -> string list

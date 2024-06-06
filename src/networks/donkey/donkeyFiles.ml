@@ -78,7 +78,7 @@ module NewUpload = struct
               B.usesixtyfour = (begin_pos ++ (Int64.of_int len_int)) > old_max_emule_file_size;
               B.start_pos = begin_pos;
               B.end_pos = begin_pos ++ (Int64.of_int len_int);
-              B.bloc_str = "";
+              B.bloc_str = Bytes.empty;
               B.bloc_begin = 0;
               B.bloc_len = 0; 
             }
@@ -87,7 +87,7 @@ module NewUpload = struct
         let slen = String.length s in
         let upload_buffer = String.create (slen + len_int) in
         String.blit s 0 upload_buffer 0 slen;
-        DonkeyProtoCom.new_string msg (Bytes.to_string upload_buffer);
+        DonkeyProtoCom.new_string msg upload_buffer;
         Unix32.read (file_fd file) begin_pos upload_buffer slen len_int;
         let uploaded = Int64.of_int len_int in
         count_upload c uploaded;

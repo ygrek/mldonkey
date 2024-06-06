@@ -52,6 +52,9 @@ let encode s =
   done;
   Bytes.sub res 0 !pos
 
+let encode_to_string s =
+  Bytes.to_string (encode s)
+
 (** decodes a sting according RFC 1738
 or x-www-form-urlencoded ('+' with ' ')
   @param raw true use RFC 1738
@@ -162,12 +165,12 @@ let put_args s args =
   let rec manage_args = function
     | [] -> assert false
     | [a, ""] ->
-        Buffer.add_string res (encode a)
+        Buffer.add_bytes res (encode a)
     | [a, b] ->
-        Buffer.add_string res (encode a); Buffer.add_char res '='; Buffer.add_string res 
+        Buffer.add_bytes res (encode a); Buffer.add_char res '='; Buffer.add_bytes res 
           (encode b)
     | (a,b)::l ->
-        Buffer.add_string res (encode a); Buffer.add_char res '='; Buffer.add_string res 
+        Buffer.add_bytes res (encode a); Buffer.add_char res '='; Buffer.add_bytes res 
           (encode b);
         Buffer.add_char res '&'; manage_args l in
 (*  lprintf "len args %d" (List.length args); lprint_newline ();*)

@@ -47,7 +47,7 @@ let gui_cut_messages f sock nread =
         begin
           let s = Bytes.sub b.buf (b.pos+4) msg_len in
           buf_used b (msg_len + 4);
-          let opcode = get_int16 s 0 in
+          let opcode = get_int16_bytes s 0 in
           (f opcode s : unit)
         end
       else raise Not_found

@@ -161,19 +161,19 @@ module Id3v2 = struct
     for i = 1 to n do ignore(input_byte ic) done
 
   let valid_header header =
-       Bytes.sub header 0 3 = "ID3"
-    && (Char.code header.[3] = 3 || Char.code header.[3] = 4)
-    && Char.code header.[5] land 0b00111111 = 0
-    && Char.code header.[6] land 0b10000000 = 0
-    && Char.code header.[7] land 0b10000000 = 0
-    && Char.code header.[8] land 0b10000000 = 0
-    && Char.code header.[9] land 0b10000000 = 0
+       Bytes.sub header 0 3 = Bytes.of_string "ID3"
+    && (Char.code (Bytes.get header 3) = 3 || Char.code (Bytes.get header 3) = 4)
+    && Char.code (Bytes.get header 5) land 0b00111111 = 0
+    && Char.code (Bytes.get header 6) land 0b10000000 = 0
+    && Char.code (Bytes.get header 7) land 0b10000000 = 0
+    && Char.code (Bytes.get header 8) land 0b10000000 = 0
+    && Char.code (Bytes.get header 9) land 0b10000000 = 0
 
   let length_header header =
-    ((Char.code header.[6] lsl 21) lor
-     (Char.code header.[7] lsl 14) lor
-     (Char.code header.[8] lsl 7) lor
-     (Char.code header.[9]))
+    ((Char.code (Bytes.get header 6) lsl 21) lor
+     (Char.code (Bytes.get header 7) lsl 14) lor
+     (Char.code (Bytes.get header 8) lsl 7) lor
+     (Char.code (Bytes.get header 9)))
 
   let decode_framedata id data =
     if id = "TXXX" then begin
@@ -194,10 +194,10 @@ module Id3v2 = struct
       let len = length_header header in
       let startpos = pos_in ic in
       (* Record use of unsynchronization *)
-      unsynchronization := ((Char.code header.[5] land 0b10000000) <> 0);
+      unsynchronization := ((Char.code (Bytes.get header 5) land 0b10000000) <> 0);
       last_byte_read := 0;
       (* Skip extended header if present *)
-      if Char.code header.[5] land 0b01000000 <> 0 then
+      if Char.code (Bytes.get header 5) land 0b01000000 <> 0 then
         skip_bytes ic (input_int4 ic);
       (* Collect frames *)
       let tags = ref [] in

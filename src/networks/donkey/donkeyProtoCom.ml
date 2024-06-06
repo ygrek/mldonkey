@@ -101,7 +101,7 @@ let client_handler2 c ff f =
             None -> emule_proto ();
           | Some c -> c.client_emule_proto
         in
-        let opcode = get_uint8 b.buf b.pos in
+        let opcode = get_uint8_bytes b.buf b.pos in
         let msg_len = get_int_bytes b.buf (b.pos+1) in
         if b.len >= 5 + msg_len then
           begin
@@ -198,8 +198,8 @@ let udp_basic_handler f sock event =
 
 
 let new_string msg s =
-  let len = String.length s - 5 in
-  str_int_bytes s 1 len
+  let len = Bytes.length s - 5 in
+  str_int s 1 len
 
 let empty_string = ""
 

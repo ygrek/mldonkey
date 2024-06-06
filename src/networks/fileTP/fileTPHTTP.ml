@@ -65,7 +65,7 @@ let http_send_range_request c range sock d =
   Printf.bprintf buf "Connection: Keep-Alive\r\n";
   if url.Url.user <> "" then begin
     let userpass = Printf.sprintf "%s:%s" url.Url.user url.Url.passwd in
-    let encoded = Base64.encode userpass in
+    let encoded = Bytes.to_string (Base64.encode userpass) in
     Printf.bprintf buf "Authorization: Basic %s\r\n" encoded
   end;
   Printf.bprintf buf "\r\n";
@@ -264,7 +264,7 @@ let rec client_parse_header c gconn sock header =
 
             let old_downloaded = CommonSwarming.downloaded swarmer in
 
-            CommonSwarming.received up !counter_pos (Bytes.to_string b.buf) b.pos to_read_int;
+            CommonSwarming.received up !counter_pos b.buf b.pos to_read_int;
             let new_downloaded = CommonSwarming.downloaded swarmer in
 
             c.client_total_downloaded <- c.client_total_downloaded ++ (new_downloaded -- old_downloaded);

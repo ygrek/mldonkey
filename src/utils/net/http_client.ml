@@ -124,22 +124,22 @@ let make_full_request r =
   end;
   begin match r.req_proxy with
   | Some (_,_,Some (login,password)) ->
-      Printf.bprintf res "Proxy-Authorization: Basic %s\n" (Base64.encode (login ^ ":" ^ password))
+      Printf.bprintf res "Proxy-Authorization: Basic %s\n" (Bytes.to_string (Base64.encode (login ^ ":" ^ password)))
   | _ -> ()
   end;
   if url.user <> "" then begin
     let userpass = Printf.sprintf "%s:%s" url.user url.passwd in
-    Printf.bprintf res "Authorization: Basic %s\r\n" (Base64.encode userpass)
+    Printf.bprintf res "Authorization: Basic %s\r\n" (Bytes.to_string (Base64.encode userpass))
   end;
   if is_real_post then begin
       let post = Buffer.create 80 in
       let rec make_post = function
           | [] -> assert false
         | [a, b] ->
-            Printf.bprintf post "%s%c%s" (Url.encode a) '=' (Url.encode b)
+            Printf.bprintf post "%s%c%s" (Url.encode_to_string a) '=' (Url.encode_to_string b)
         | (a,b)::l ->
             Printf.bprintf post "%s%c%s%c" 
-              (Url.encode a) '=' (Url.encode b) '&';
+              (Url.encode_to_string a) '=' (Url.encode_to_string b) '&';
             make_post l in
       make_post args;
       Printf.bprintf res "Content-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s"

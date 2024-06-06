@@ -89,7 +89,7 @@ X-KazaaTag: 6=Christina Aguliera(13)
 X-KazaaTag: 8=Stripped(13)
 X-KazaaTag: 14=Other(13)
 X-KazaaTag: 1=2002(13)
-X-KazaaTag: 26=© christinas_eyedol 2002(13)
+X-KazaaTag: 26=ï¿½ christinas_eyedol 2002(13)
 X-KazaaTag: 12=album version, stripped, fighter, real, christina, aguilera(13)
 X-KazaaTag: 10=en(13)
 X-KazaaTag: 18=Video Clip(13)
@@ -710,7 +710,7 @@ let read_trace () =
       let time = get_int_bytes s (pos+6) in
       let item_len = size + 14 in
       if item_len <= len then
-        let p = Bytes.sub s (pos+14) size in
+        let p = Bytes.sub_string s (pos+14) size in
         received ip port time p;
         iter_log (pos + item_len) (len - item_len)
       else iter_read pos len

@@ -100,7 +100,7 @@ let decode psrc =
   let dstlen = calcDecodedLength psrc srclen in
   let pdest = String.create dstlen in
   decodeData pdest psrc srclen;
-  pdest
+  (Bytes.to_string pdest)
   
 let encode psrc =
   let srclen = String.length psrc in 
@@ -261,15 +261,15 @@ let write_ggep buf put_magic last_block b =
       let id_len = String.length id in
       if put_magic then Buffer.add_char buf '\195';
       let cobs_encoded = String.contains data '\000' in
-      let data = if cobs_encoded then encode data else data in
+      let data = if cobs_encoded then encode data else (Bytes.of_string data) in
       let flags = id_len in
       let flags  = if cobs_encoded then flags lor (1 lsl 6) else flags in
       let flags  = if last_block then flags lor (1 lsl 7) else flags in
       buf_int8 buf flags;
       Buffer.add_string buf id;
-      let data_len = String.length data in
+      let data_len = Bytes.length data in
       put_len buf true data_len;
-      Buffer.add_string buf data
+      Buffer.add_bytes buf data
       
 let write_block buf list =
   let rec iter put_magic list =
@@ -354,15 +354,15 @@ let write buf list =
               if up land 0xffff = up then
                 let s = String.create 2 in
                 LittleEndian.str_int16 s 0 up;
-                s
+                (Bytes.to_string s)
               else if up land 0xffffff = up then
                 let s = String.create 3 in
                 LittleEndian.str_int24 s 0 up;
-                s
+                (Bytes.to_string s)
               else
               let s = String.create 4 in
               LittleEndian.str_int s 0 up;
-              s
+              (Bytes.to_string s)
             in
             GGEP.GGEP ("DU", s)
     ) list

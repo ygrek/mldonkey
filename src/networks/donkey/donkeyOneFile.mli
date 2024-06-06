@@ -23,7 +23,7 @@ val get_from_client : DonkeyTypes.client -> unit
 val request_slot : DonkeyTypes.client -> unit
 val check_files_downloaded : unit -> unit
   val block_received :
-    DonkeyTypes.client -> Md4.t -> int64 -> string -> int -> int -> unit
+    DonkeyTypes.client -> Md4.t -> int64 -> bytes -> int -> int -> unit
 val add_client_chunks : DonkeyTypes.client -> DonkeyTypes.file -> Bitv.t -> unit
 
 val unshare_file : DonkeyTypes.file -> unit

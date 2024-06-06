@@ -198,7 +198,7 @@ module Base6427 = struct
         done
       done;
       hash64.[!j-1] <- '=';
-      Bytes.sub hash64 0 !j
+      String.sub (Bytes.to_string hash64) 0 !j
     
     let base64tbl_inv = String.create 126
     let _ = 
@@ -207,7 +207,7 @@ module Base6427 = struct
       done
     
     let of_string _ hash64 =
-      let hashbin = Bytes.make 20 '\000' in
+      let hashbin = Bytes.create 20 in
       let hash64 n = 
         let c = hash64.[n] in
         int_of_char (Bytes.get base64tbl_inv (int_of_char c))
@@ -314,7 +314,7 @@ module Make(M: sig
 
     let string s =
       let len = String.length s in
-      let digest = Bytes.create hash_length in
+      let digest = String.make hash_length '\000' in
       unsafe_string digest s len;
       digest
 
@@ -334,30 +334,30 @@ module Make(M: sig
     external xor_c : t -> t -> t -> unit = "md4_xor" "noalloc"
     
     let xor m1 m2 =
-      let m3 = Bytes.create hash_length in
+      let m3 = String.make hash_length '\000' in
       xor_c m1 m2 m3;
       m3
     
     let file s =
-      let digest = Bytes.create hash_length in
+      let digest = String.make hash_length '\000' in
       let file_size = Unix32.getsize s in
       unsafe_file digest s file_size;
       digest
     
     let digest_subfile fd pos len =
-      let digest = Bytes.create hash_length in
+      let digest = String.make hash_length '\000' in
       Unix32.apply_on_chunk fd pos len 
         (fun fd pos ->
           digest_subfile digest fd pos len);
       digest
     
-    let create () =  Bytes.create hash_length
+    let create () =  String.make hash_length '\000'
     
     let direct_to_string s = s
     let direct_of_string s = s
     
     let random () =
-      let s = create () in
+      let s = (Bytes.of_string (create ())) in
       for i = 0 to hash_length - 1 do
         s.[i] <- char_of_int (Random.int 256)
       done;

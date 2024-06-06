@@ -1620,7 +1620,7 @@ is checked for the file.
         lprintf_nl "Decompressed: %d/%d" (Bytes.length s) comp.comp_len;
             
             DonkeyOneFile.block_received c comp.comp_md4
-              comp.comp_pos (Bytes.to_string s) 0 (Bytes.length s);
+              comp.comp_pos s 0 (Bytes.length s);
           
           c.client_comp <- None;
         end else
@@ -1931,7 +1931,7 @@ end else *)
       log_chat_message cip (client_num c) c.client_name s;
 
   | M.EmuleCaptchaReq t ->
-      let b64data = Base64.encode t in
+      let b64data = Bytes.to_string (Base64.encode t) in
       let cip = string_of_client_addr c in
       log_chat_message cip (client_num c) c.client_name ("data:image/bmp;base64," ^ b64data)
 

@@ -59,7 +59,7 @@ let handlers info gconn =
                         dump header; lprint_newline ();
 end; *)
 
-                    (try h gconn sock header with
+                    (try h gconn sock (Bytes.to_string header) with
                         e -> close sock (Closed_for_exception e));
                     if not (TcpBufferedSocket.closed sock) then begin
                         let nused = i - b.pos + 1 in

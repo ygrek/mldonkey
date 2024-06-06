@@ -1057,12 +1057,12 @@ let set_reader t f =
               let rstr_end = Bytes.index_from b.buf (rstr_pos+1) '\n' in
               let rstr = Bytes.sub b.buf (rstr_pos+1) (rstr_end-rstr_pos-1) in
               lprintf "From proxy for %s: %s %s\n"
-                (Ip.to_string sock.host) rcode rstr;
+                (Ip.to_string sock.host) (Bytes.unsafe_to_string rcode) (Bytes.unsafe_to_string rstr);
               rcode, rstr, rstr_end
             with _ ->
-                "", "", 0
+                Bytes.empty, Bytes.empty, 0
           in
-          (match rcode with
+          (match (Bytes.to_string rcode) with
               "200" -> (*lprintf "Connect to client via proxy ok\n";*)
                 let pos = Bytes.index_from b.buf (rstr_end+1) '\n' in
                 let used = pos + 1 - b.pos in
@@ -1349,7 +1349,7 @@ let connect token name host port handler =
         Printf.bprintf buf "Proxy-Connection: Keep-Alive\n";
         begin match proxy_auth with
         | Some (login,password) ->
-            Printf.bprintf buf "Proxy-Authorization: Basic %s\n" (Base64.encode (login ^ ":" ^ password))
+            Printf.bprintf buf "Proxy-Authorization: Basic %s\n" (Bytes.to_string (Base64.encode (login ^ ":" ^ password)))
         | None -> () 
         end;
         Printf.bprintf buf "User-Agent: MLdonkey/%s\n" Autoconf.current_version;
@@ -1479,11 +1479,11 @@ let value_handler f sock nread =
   let b = buf sock in
   try
     while b.len >= 5 do
-      let msg_len = get_int b.buf (b.pos+1) in
+      let msg_len = get_int_bytes b.buf (b.pos+1) in
       if b.len >= 5 + msg_len then
         begin
           let s = Bytes.sub b.buf (b.pos+5) msg_len in
-          let t = Marshal.from_string  s 0 in
+          let t = Marshal.from_bytes  s 0 in
           buf_used b  (msg_len + 5);
           f t sock;
           ()

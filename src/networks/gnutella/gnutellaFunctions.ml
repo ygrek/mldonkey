@@ -87,7 +87,7 @@ let default_handler gconn sock =
       let b = buf sock in
       if !verbose then
         lprintf "HttpReader: Handler not found for [%s]\n"
-          (String.escaped (String.sub b.buf b.pos b.len));
+          (String.escaped (Bytes.to_string (Bytes.sub b.buf b.pos b.len)));
       close sock (Closed_for_error "not recognized");
       failwith "Reply is not in the correct protocol"
   | Some f -> f gconn sock

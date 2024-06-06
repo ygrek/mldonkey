@@ -153,9 +153,9 @@ let rec really_input iz buf pos len =
   end
 
 let input_char iz =
-  if input iz (Bytes.of_string iz.char_buffer) 0 1 = 0
+  if input iz iz.char_buffer 0 1 = 0
   then raise End_of_file
-  else Bytes.get (Bytes.of_string iz.char_buffer) 0
+  else Bytes.get iz.char_buffer 0
 
 let input_byte iz =
   Char.code (input_char iz)
@@ -176,7 +176,7 @@ type 'a out_channel =
     out_stream: Zlib.stream;
     mutable out_size: int32;
     mutable out_crc: int32;
-    char_buffer: string }
+    char_buffer: bytes }
 
 let open_out ?(level = 6) oc =
   if level < 1 || level > 9 then invalid_arg "Gzip_stream.open_output: bad level";

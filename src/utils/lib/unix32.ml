@@ -1110,7 +1110,7 @@ type file = {
     mutable filename : string;
     mutable writable : bool;
     mutable error : exn option;
-    mutable buffers : (string * int * int * int64 * int64) list;
+    mutable buffers : (bytes * int * int * int64 * int64) list;
   }
   
 module H = Weak.Make(struct
@@ -1258,7 +1258,7 @@ let flush_fd t =
           | [] -> ()
           | (s, pos_s, len_s, offset, len) :: tail ->
               Buffer.reset buffer;
-              Buffer.add_substring buffer s pos_s len_s;
+              Buffer.add_subbytes buffer s pos_s len_s;
               t.buffers <- tail;
               iter_in offset len
 
@@ -1268,7 +1268,7 @@ let flush_fd t =
           | (s, pos_s, len_s, offset2, len2) :: tail ->
               let in_offset = offset ++ len -- offset2 in
               if in_offset = Int64.zero then begin
-                Buffer.add_substring buffer s pos_s len_s;
+                Buffer.add_subbytes buffer s pos_s len_s;
                 t.buffers <- tail;
                 iter_in offset (len ++ len2);
               end else
@@ -1284,7 +1284,7 @@ let flush_fd t =
                     iter_in offset len
                   end else begin
                     let new_pos = len2 -- keep_len in
-                    Buffer.add_substring buffer s
+                    Buffer.add_subbytes buffer s
                       (pos_s + Int64.to_int new_pos) (Int64.to_int keep_len);
                     buffered_bytes := !buffered_bytes -- new_pos;
                     iter_in offset (len ++ keep_len)
@@ -1343,7 +1343,7 @@ let buffered_write t offset s pos_s len_s =
       raise e
 
 let buffered_write_copy t offset s pos_s len_s =
-  buffered_write t offset (String.sub s pos_s len_s) 0 len_s
+  buffered_write t offset (Bytes.sub s pos_s len_s) 0 len_s
 
 let copy_chunk t1 t2 pos1 pos2 len =
   flush_fd t1;
