@@ -117,3 +117,6 @@ let archive_extract filename archive_type =
   | "bz2" -> Misc2.bz2_extract filename
   | "gz" -> gz_extract filename
   | _ -> failwith (Printf.sprintf "wrong archive type %s" archive_type)
+
+let bytes_equal_string (b : Bytes.t) (s : string) =
+  String.equal (Bytes.unsafe_to_string b) s

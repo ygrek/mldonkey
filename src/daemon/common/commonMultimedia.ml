@@ -223,15 +223,14 @@ let get_theora_cs n =
 (*                  page_seek                                                     *)
 (*                                                                                *)
 (**********************************************************************************)
-let ogg_bytes = Bytes.of_string "OggS"
-let is_ogg_header s = (s = ogg_bytes)
+
 let rec page_seek ic s pos =
   if (pos_in ic - pos) > 255
     then failwith "No more OGG Stream Header"
     else begin
       really_input ic s 0 4;
       seek_in ic (pos_in ic - 3);
-      if is_ogg_header s
+      if Misc.bytes_equal_string s "OggS"
         then seek_in ic (pos_in ic + 3)
         else page_seek ic s pos
   end
