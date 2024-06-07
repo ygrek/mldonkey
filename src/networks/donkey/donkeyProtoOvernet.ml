@@ -394,7 +394,7 @@ module Proto = struct
                   begin
                     if !verbose_unknown_messages then begin
                         lprintf_nl "Received unknown UDP packet";
-                        dump (Bytes.to_string pbuf);
+                        dump_bytes pbuf;
                       end
                   end
                 else
