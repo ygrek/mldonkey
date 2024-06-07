@@ -165,7 +165,7 @@
 void
 raise_error(void)
 {
-  static value * closure_f = NULL;
+  static const value * closure_f = NULL;
   if (closure_f == NULL) {
     /* First time around, look up by name */
     closure_f = caml_named_value("charset_error");
@@ -1204,7 +1204,8 @@ ml_iconv (iconv_t cd,
           char    **outbuf,
           size_t  *outbytes_left)
 {
-    return iconv (cd, inbuf, inbytes_left, outbuf, outbytes_left);
+  /* iconv should not modify the input, according to specs, but it is not marked const */
+  return iconv (cd, (char**)inbuf, inbytes_left, outbuf, outbytes_left);
 }
 
 #ifndef EILSEQ
@@ -1297,7 +1298,7 @@ ml_convert_with_iconv (const char *str,
 }
 
 char*
-ml_convert (const char *str,
+ml_convert (char *str,
             size_t     len,  
             const char *to_codeset,
             const char *from_codeset,
