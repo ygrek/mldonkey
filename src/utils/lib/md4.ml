@@ -291,12 +291,12 @@ module Make(M: sig
       val hash_name : string
       
 (* [unsafe_string digest string string_len] *)
-      val unsafe_string : string -> string -> int -> unit
+      val unsafe_string : bytes -> string -> int -> unit
           
 (* [unsafe_file digest filename filesize] *)
-        val unsafe_file : string -> string -> int64 -> unit
+        val unsafe_file : bytes -> string -> int64 -> unit
 (* [unsafe_string digest file_fd offset len] *)
-      val digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit 
+      val digest_subfile : bytes -> Unix.file_descr -> int64 -> int64 -> unit 
     
       module Base : Base
     end) = struct
@@ -314,9 +314,9 @@ module Make(M: sig
 
     let string s =
       let len = String.length s in
-      let digest = String.make hash_length '\000' in
+      let digest = Bytes.make hash_length '\000' in
       unsafe_string digest s len;
-      digest
+      Bytes.to_string digest
 
     let to_bits s =
       let len = String.length s in
@@ -331,25 +331,25 @@ module Make(M: sig
       done;
       (Bytes.to_string digest)
       
-    external xor_c : t -> t -> t -> unit = "md4_xor" "noalloc"
+    external xor_c : t -> t -> bytes -> unit = "md4_xor" "noalloc"
     
     let xor m1 m2 =
-      let m3 = String.make hash_length '\000' in
+      let m3 = Bytes.make hash_length '\000' in
       xor_c m1 m2 m3;
-      m3
+      Bytes.to_string m3
     
     let file s =
-      let digest = String.make hash_length '\000' in
+      let digest = Bytes.make hash_length '\000' in
       let file_size = Unix32.getsize s in
       unsafe_file digest s file_size;
       digest
     
     let digest_subfile fd pos len =
-      let digest = String.make hash_length '\000' in
+      let digest = Bytes.make hash_length '\000' in
       Unix32.apply_on_chunk fd pos len 
         (fun fd pos ->
           digest_subfile digest fd pos len);
-      digest
+      Bytes.to_string digest
     
     let create () =  String.make hash_length '\000'
     
@@ -397,9 +397,9 @@ module Md4 = Make(struct
       let hash_length = 16
       let hash_name = "Md4"        
       
-      external unsafe_string : string -> string -> int -> unit = "md4_unsafe_string"
-      external unsafe_file : string -> string -> int64 -> unit = "md4_unsafe_file"
-      external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
+      external unsafe_string : bytes -> string -> int -> unit = "md4_unsafe_string"
+      external unsafe_file : bytes -> string -> int64 -> unit = "md4_unsafe_file"
+      external digest_subfile : bytes -> Unix.file_descr -> int64 -> int64 -> unit =
         "md4_unsafe64_fd"
   
       module Base = Base16
@@ -409,9 +409,9 @@ module Md5 = Make(struct
       let hash_length = 16
       let hash_name = "Md5"        
       
-      external unsafe_string : string -> string -> int -> unit = "md5_unsafe_string"
-      external unsafe_file : string -> string -> int64 -> unit = "md5_unsafe_file"
-      external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
+      external unsafe_string : bytes -> string -> int -> unit = "md5_unsafe_string"
+      external unsafe_file : bytes -> string -> int64 -> unit = "md5_unsafe_file"
+      external digest_subfile : bytes -> Unix.file_descr -> int64 -> int64 -> unit =
         "md5_unsafe64_fd"
     
       module Base = Base16
@@ -421,9 +421,9 @@ module PreSha1 = Make(struct
       let hash_length = 20
       let hash_name = "Sha1"        
       
-      external unsafe_string : string -> string -> int -> unit = "sha1_unsafe_string"
-      external unsafe_file : string -> string -> int64 -> unit = "sha1_unsafe_file"
-      external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
+      external unsafe_string : bytes -> string -> int -> unit = "sha1_unsafe_string"
+      external unsafe_file : bytes -> string -> int64 -> unit = "sha1_unsafe_file"
+      external digest_subfile : bytes -> Unix.file_descr -> int64 -> int64 -> unit =
         "sha1_unsafe64_fd"
       
       module Base = Base32
@@ -464,7 +464,7 @@ module Tiger = Make(struct
       let hash_length = 24
       let hash_name = "Tiger"        
       
-      external unsafe_string : string -> string -> int -> unit = 
+      external unsafe_string : bytes -> string -> int -> unit = 
         "tiger_unsafe_string"
         
       let unsafe_file digest filename = 
@@ -481,8 +481,8 @@ module PreTigerTree = Make(struct
       let hash_length = 24
       let hash_name = "TigerTree"        
       
-      external unsafe_string : string -> string -> int -> unit = "tigertree_unsafe_string"
-      external digest_subfile : string -> Unix.file_descr -> int64 -> int64 -> unit =
+      external unsafe_string : bytes -> string -> int -> unit = "tigertree_unsafe_string"
+      external digest_subfile : bytes -> Unix.file_descr -> int64 -> int64 -> unit =
         "tigertree_unsafe64_fd"
       
       let unsafe_file digest filename file_size = 
@@ -530,10 +530,10 @@ module PreMd5Ext = Make(struct
       let hash_length = 20
       let hash_name = "Md5Ext"        
 
-      external unsafe_string : string -> string -> int -> unit =
+      external unsafe_string : bytes -> string -> int -> unit =
         "fst_hash_string_ml"
         
-      external unsafe_file : string -> string -> int64 -> unit = "fst_hash_file_ml"
+      external unsafe_file : bytes -> string -> int64 -> unit = "fst_hash_file_ml"
       let digest_subfile _ _ _ _ = 
         failwith "Md5Ext.digest_subfile not implemented"
     
