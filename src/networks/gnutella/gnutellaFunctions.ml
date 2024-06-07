@@ -201,7 +201,7 @@ let handlers info gconn =
               (String.escaped (String.sub (Bytes.to_string b.buf) b.pos b.len)); 
           if nread > 0 then begin
 (*              AnyEndian.dump_sub b.buf (b.pos + b.len - nread) nread; *)
-              apply_cipher cipher (Bytes.to_string b.buf) (b.pos + b.len - nread) nread;
+              apply_cipher cipher b.buf (b.pos + b.len - nread) nread;
               
               log (LogReceive(peer_ip sock, peer_port sock,
                   String.sub  (Bytes.to_string b.buf) (b.pos + b.len - nread) nread));
