@@ -420,7 +420,7 @@ module Proto = struct
                 if !verbose_unknown_messages then begin
                   lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e);
-                  dump (Bytes.to_string p.UdpSocket.udp_content);
+                  dump_bytes p.UdpSocket.udp_content;
                   lprint_newline ()
                 end
           );
