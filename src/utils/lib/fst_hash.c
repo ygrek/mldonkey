@@ -182,7 +182,7 @@ static unsigned int fst_hash_small (unsigned char* data, unsigned int len, unsig
 #include "caml/mlvalues.h"
 
 /* returns checksum of fzhash */
-unsigned short fst_hash_checksum (unsigned char *hash)
+unsigned short fst_hash_checksum (const unsigned char *hash)
 {
         unsigned short sum = 0;
         int i;
@@ -272,7 +272,7 @@ int fst_hash_file (unsigned char *fth, const char *file, int64_t filesize)
 }
 
 
-void fst_hash_string (unsigned char *fth, unsigned char *file, int64_t filesize)
+void fst_hash_string (unsigned char *fth, const unsigned char *file, int64_t filesize)
 {
   unsigned char * buf = file;
   size_t len = filesize;
