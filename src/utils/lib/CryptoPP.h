@@ -4356,8 +4356,8 @@ public:
 		try
 #endif
 		{
-			//if (m_throwIfNotUsed && !m_used)
-			//	throw ParameterNotUsed(m_name);
+			if (m_throwIfNotUsed && !m_used)
+				throw ParameterNotUsed(m_name);
 		}
 #ifndef CRYPTOPP_UNCAUGHT_EXCEPTION_AVAILABLE
 		catch(...)
