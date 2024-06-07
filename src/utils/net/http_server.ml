@@ -80,7 +80,7 @@ let decode64 s =
     if s.[len-1] = '=' then
       if s.[len-2] = '=' then 2 else 1
     else 0 in
-  String.sub (Bytes.to_string res) 0 (len_res - nb_cut)
+  Bytes.sub res 0 (len_res - nb_cut)
 
 
 let debug = ref false
@@ -282,7 +282,7 @@ let parse_head sock s =
                 "authorization" ->
                 let _, pass = String2.cut_at value ' ' in
                 let pass = decode64 pass in
-                let login, pswd = String2.cut_at pass ':' in
+                let login, pswd = String2.cut_at (Bytes.to_string pass) ':' in
                 { options with
                   login = login;
                   passwd = pswd }
