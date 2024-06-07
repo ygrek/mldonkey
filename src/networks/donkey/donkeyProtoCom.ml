@@ -186,7 +186,7 @@ let udp_basic_handler f sock event =
               int_of_char (Bytes.get pbuf 0) <> DonkeyOpenProtocol.udp_magic then begin
                 if !verbose_unknown_messages then begin
                     lprintf_nl "Received unknown UDP packet";
-                    dump (Bytes.to_string pbuf);
+                    dump_bytes pbuf;
                   end;
               end else begin
                 let t = Bytes.sub pbuf 1 (len-1) in

@@ -152,7 +152,7 @@ let dump_ascii s =
   let buf = Buffer.create 1000 in
   bdump_ascii buf s;
   lprintf "%s" (Buffer.contents buf)
-      
+
 let bdump_dec buf s = 
   let len = String.length s in
   Printf.bprintf buf "dec: [";
@@ -199,3 +199,6 @@ let sdump s =
 
 let dump s =
   lprintf "%s" (sdump s)
+
+let dump_bytes s =
+  lprintf "%s" (sdump (Bytes.unsafe_to_string s))
