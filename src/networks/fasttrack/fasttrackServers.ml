@@ -251,14 +251,13 @@ let connect_server h =
                     s.[3] <- '\043';
                 | Some f -> f s);
 
-              let ss = Bytes.to_string s in
-              cipher_packet_set out_cipher ss 4;
+              cipher_packet_set out_cipher s 4;
 
               if !verbose_msg_raw then begin
-                  lprintf "SENDING %s\n" (String.escaped ss);
-                  AnyEndian.dump ss;
+                  lprintf "SENDING %s\n" (Bytes.to_string (Bytes.escaped s));
+                  AnyEndian.dump_bytes s;
                 end;
-              write_string sock ss;
+              write sock s 0 (Bytes.length s);
             with _ ->
                 disconnect_from_server nservers s Closed_connect_failed
         )

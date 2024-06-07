@@ -87,7 +87,7 @@ external get_cipher_from_packet : string -> int -> cipher -> unit
 external xor_ciphers : cipher -> cipher -> unit = "ml_xor_ciphers"
 external xor_ciphers2 : cipher -> cipher -> unit = "ml_xor_ciphers2"
 
-external cipher_packet_set : cipher -> string -> int -> unit
+external cipher_packet_set : cipher -> bytes -> int -> unit
   = "ml_cipher_packet_set"
 external cipher_packet_set_xored : cipher -> string -> int -> cipher -> unit
   = "ml_cipher_packet_set_xored"

@@ -242,15 +242,15 @@ let parse (s_out : string) (s_in : string) =
           ;
 
           begin
-            let s = String.make 8 '\000' in
+            let s = Bytes.make 8 '\000' in
             cipher_packet_set ciphers.out_cipher s 0;
-            lprintf "OUT CIPHER: [%s]\n" (String.escaped s);
+            lprintf "OUT CIPHER: [%s]\n" (Bytes.to_string (Bytes.escaped s));
           end;
 
           begin
-            let s = String.make 8 '\000' in
+            let s = Bytes.make 8 '\000' in
             cipher_packet_set ciphers.in_cipher s 0;
-            lprintf "IN CIPHER: [%s]\n" (String.escaped s);
+            lprintf "IN CIPHER: [%s]\n" (Bytes.to_string (Bytes.escaped s));
           end;
 
           (

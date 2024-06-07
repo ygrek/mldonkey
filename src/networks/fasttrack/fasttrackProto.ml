@@ -1889,9 +1889,9 @@ let check_primitives () =
       let cipher = create_cipher () in
       set_cipher cipher 123456789l 0x29;
       init_cipher cipher;
-      let s = String.make 12 '0' in
+      let s = Bytes.make 12 '0' in
       cipher_packet_set cipher s 0;
-      assert (s = "\007\091\205\021\110\233\135\1870000"); 
+      assert (s = Bytes.of_string "\007\091\205\021\110\233\135\1870000"); 
       (* lprintf "cipher_packet_set s = \"%s\"\n" (String.escaped s); *)
       let s = "123456789abcdefghijklm\233\234\235" in
       apply_cipher cipher s 0 (String.length s);
