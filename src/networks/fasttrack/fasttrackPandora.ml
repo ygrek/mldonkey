@@ -157,7 +157,7 @@ let parse_netname start_pos s ciphers =
     if pos < len then
       if (Bytes.get s pos) = '\000' then begin
           let netname = Bytes.sub s start_pos (pos-start_pos) in
-          lprintf "netname: [%s]\n" (String.escaped (Bytes.to_string netname));
+          lprintf "netname: [%s]\n" (Bytes.unsafe_to_string (Bytes.escaped netname));
 
 (*          test_xinu s (pos+1) len 0x51L; *)
           parse_packets (pos+1) s ciphers
