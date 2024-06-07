@@ -115,13 +115,13 @@ module Base32 = struct
         let c = int5_of_char r.[i] in
         if bit < 3 then 
           let x = c lsl (3-bit) in
-          s.[byte] <- char_of_int (int_of_char (Bytes.to_string s).[byte] lor x);
+          s.[byte] <- char_of_int (int_of_char (Bytes.get s byte) lor x);
         else
         let x = (c lsr (bit - 3)) land 0xff in
-        s.[byte] <- char_of_int (int_of_char (Bytes.to_string s).[byte] lor x);
+        s.[byte] <- char_of_int (int_of_char (Bytes.get s byte) lor x);
         if byte+1 < hash_length then
           let y = (c lsl (11 - bit)) land 0xff in
-          s.[byte+1] <- char_of_int (int_of_char (Bytes.to_string s).[byte+1] lor y);
+          s.[byte+1] <- char_of_int (int_of_char (Bytes.get s (byte+1)) lor y);
       done;
       (Bytes.to_string s)    
     
