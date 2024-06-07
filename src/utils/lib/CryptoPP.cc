@@ -695,13 +695,13 @@ BufferedTransformation * PK_Encryptor::CreateEncryptionFilter(RandomNumberGenera
 
 unsigned int PK_Signer::Sign(RandomNumberGenerator &rng, PK_MessageAccumulator *messageAccumulator, byte *signature) const
 {
-	std::auto_ptr<PK_MessageAccumulator> m(messageAccumulator);
+	std::unique_ptr<PK_MessageAccumulator> m(messageAccumulator);
 	return SignAndRestart(rng, *m, signature, false);
 }
 
 unsigned int PK_Signer::SignMessage(RandomNumberGenerator &rng, const byte *message, unsigned int messageLen, byte *signature) const
 {
-	std::auto_ptr<PK_MessageAccumulator> m(NewSignatureAccumulator(rng));
+	std::unique_ptr<PK_MessageAccumulator> m(NewSignatureAccumulator(rng));
 	m->Update(message, messageLen);
 	return SignAndRestart(rng, *m, signature, false);
 }
@@ -709,7 +709,7 @@ unsigned int PK_Signer::SignMessage(RandomNumberGenerator &rng, const byte *mess
 unsigned int PK_Signer::SignMessageWithRecovery(RandomNumberGenerator &rng, const byte *recoverableMessage, unsigned int recoverableMessageLength, 
 	const byte *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, byte *signature) const
 {
-	std::auto_ptr<PK_MessageAccumulator> m(NewSignatureAccumulator(rng));
+	std::unique_ptr<PK_MessageAccumulator> m(NewSignatureAccumulator(rng));
 	InputRecoverableMessage(*m, recoverableMessage, recoverableMessageLength);
 	m->Update(nonrecoverableMessage, nonrecoverableMessageLength);
 	return SignAndRestart(rng, *m, signature, false);
@@ -717,13 +717,13 @@ unsigned int PK_Signer::SignMessageWithRecovery(RandomNumberGenerator &rng, cons
 
 bool PK_Verifier::Verify(PK_MessageAccumulator *messageAccumulator) const
 {
-	std::auto_ptr<PK_MessageAccumulator> m(messageAccumulator);
+	std::unique_ptr<PK_MessageAccumulator> m(messageAccumulator);
 	return VerifyAndRestart(*m);
 }
 
 bool PK_Verifier::VerifyMessage(const byte *message, unsigned int messageLen, const byte *signature, unsigned int signatureLength) const
 {
-	std::auto_ptr<PK_MessageAccumulator> m(NewVerificationAccumulator());
+	std::unique_ptr<PK_MessageAccumulator> m(NewVerificationAccumulator());
 	InputSignature(*m, signature, signatureLength);
 	m->Update(message, messageLen);
 	return VerifyAndRestart(*m);
@@ -731,7 +731,7 @@ bool PK_Verifier::VerifyMessage(const byte *message, unsigned int messageLen, co
 
 DecodingResult PK_Verifier::Recover(byte *recoveredMessage, PK_MessageAccumulator *messageAccumulator) const
 {
-	std::auto_ptr<PK_MessageAccumulator> m(messageAccumulator);
+	std::unique_ptr<PK_MessageAccumulator> m(messageAccumulator);
 	return RecoverAndRestart(recoveredMessage, *m);
 }
 
@@ -739,7 +739,7 @@ DecodingResult PK_Verifier::RecoverMessage(byte *recoveredMessage,
 	const byte *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, 
 	const byte *signature, unsigned int signatureLength) const
 {
-	std::auto_ptr<PK_MessageAccumulator> m(NewVerificationAccumulator());
+	std::unique_ptr<PK_MessageAccumulator> m(NewVerificationAccumulator());
 	InputSignature(*m, signature, signatureLength);
 	m->Update(nonrecoverableMessage, nonrecoverableMessageLength);
 	return RecoverAndRestart(recoveredMessage, *m);
@@ -1044,7 +1044,7 @@ struct NewPrimeTable
 	{
 		const unsigned int maxPrimeTableSize = 3511;
 
-		std::auto_ptr<std::vector<word16> > pPrimeTable(new std::vector<word16>);
+		std::unique_ptr<std::vector<word16> > pPrimeTable(new std::vector<word16>);
 		std::vector<word16> &primeTable = *pPrimeTable;
 		primeTable.reserve(maxPrimeTableSize);
 
@@ -4523,23 +4523,20 @@ std::ostream& operator<<(std::ostream& out, const Integer &a)
 {
 	// Get relevant conversion specifications from ostream.
 	long f = out.flags() & std::ios::basefield; // Get base digits.
-	int base, block;
+	int base;
 	char suffix;
 	switch(f)
 	{
 	case std::ios::oct :
 		base = 8;
-		block = 8;
 		suffix = 'o';
 		break;
 	case std::ios::hex :
 		base = 16;
-		block = 4;
 		suffix = 'h';
 		break;
 	default :
 		base = 10;
-		block = 3;
 		suffix = '.';
 	}
 
@@ -6484,6 +6481,7 @@ bool Filter::Flush(bool hardFlush, int propagation, bool blocking)
 	case 0:
 		if (IsolatedFlush(hardFlush, blocking))
 			return true;
+		[[fallthrough]];
 	case 1:
 		if (OutputFlush(1, hardFlush, propagation, blocking))
 			return true;
@@ -6498,6 +6496,7 @@ bool Filter::MessageSeriesEnd(int propagation, bool blocking)
 	case 0:
 		if (IsolatedMessageSeriesEnd(blocking))
 			return true;
+		[[fallthrough]];
 	case 1:
 		if (ShouldPropagateMessageSeriesEnd() && OutputMessageSeriesEnd(1, propagation, blocking))
 			return true;
@@ -6785,7 +6784,7 @@ void ProxyFilter::SetFilter(Filter *filter)
 	if (filter)
 	{
 		OutputProxy *proxy;
-		std::auto_ptr<OutputProxy> temp(proxy = new OutputProxy(*this, false));
+		std::unique_ptr<OutputProxy> temp(proxy = new OutputProxy(*this, false));
 		m_filter->TransferAllTo(*proxy);
 		m_filter->Attach(temp.release());
 	}

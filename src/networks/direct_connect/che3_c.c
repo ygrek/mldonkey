@@ -1,5 +1,5 @@
 /* rewrite in C and caml stubs by b8_bavard (2002) */
-/* rewrite to class without glib by Mathias Küster (2002) */
+/* rewrite to class without glib by Mathias Kï¿½ster (2002) */
 
 /* DCTC - a Direct Connect text clone for Linux
  * Copyright (C) 2001 Eric Prevoteau
@@ -71,7 +71,7 @@ directory name \xD\xA
 /******************************************************/
 /*get 1 bit from the current bit position inside data */
 /******************************************************/
-unsigned long get_bit(unsigned char *data, unsigned long *cur_pos)
+unsigned long get_bit(const unsigned char *data, unsigned long *cur_pos)
 {
  unsigned long out;
 
@@ -85,7 +85,7 @@ out=((unsigned long)(data[(*cur_pos)/8]>>((*cur_pos)&7)))&1;
 /*********************************************************/
 /* get nb_bits from the current bit position inside data */
 /*********************************************************/
-unsigned long get_bits(unsigned char *data, unsigned long *cur_pos, int nb_bit)
+unsigned long get_bits(const unsigned char *data, unsigned long *cur_pos, int nb_bit)
 {
  int i;
  unsigned long res=0;
@@ -103,7 +103,7 @@ unsigned long get_bits(unsigned char *data, unsigned long *cur_pos, int nb_bit)
 /* input: a GByteArray containing HE3 compressed data */
 /* output: a GString containing uncompressed data or NULL */
 /**********************************************************/
-char *decode_he3_data(char *data_string, int data_len, int* final_len)
+char *decode_he3_data(const char *data_string, int data_len, int* final_len)
 {
   char *output_string = NULL;
   int output_len = 0;
@@ -368,7 +368,7 @@ HUFNODE *remove_node()
   return pre_tree[pre_tree_len];
 }
 
-char *encode_he3_data(char *str, int len, int* final_len)
+char *encode_he3_data(const char *str, int len, int* final_len)
 {
   unsigned long occur[256];
   HUFENCODE tbl_enc[256];
@@ -524,34 +524,26 @@ char *encode_he3_data(char *str, int len, int* final_len)
 
 value ml_che3_decompress(value s_v)
 {
-  char *s = String_val(s_v);
+  const char *s = String_val(s_v);
   int len = string_length(s_v);
   char *result;
   int final_len;
-  value res;
   
   result = decode_he3_data(s, len, &final_len);
 
-  res = alloc_string(final_len);
-  memmove(String_val(res), result, final_len);
-
-  return res;
+  return caml_alloc_initialized_string(final_len, result);
 }
 
 value ml_che3_compress(value s_v)
 {
-  char *s = String_val(s_v);
+  const char *s = String_val(s_v);
   int len = string_length(s_v);
   char *result;
   int final_len;
-  value res;
   
   result = encode_he3_data(s, len, &final_len);
 
-  res = alloc_string(final_len);
-  memmove(String_val(res), result, final_len);
-
-  return res;
+  return caml_alloc_initialized_string(final_len, result);
 }
 
 #if 0

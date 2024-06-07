@@ -317,8 +317,12 @@ value ml_image_charu(value *argv, int argc) {
 
 value ml_image_str_native(value gdw, value font, value x, value y, value s,
                            value color) {
+  const char* _s = String_val(s);
+  const size_t length = strlen(_s);
+  char tmp[length + 1];
+  strcpy(tmp, _s);
   gdImageString(IM_VAL(gdw), FONT_VAL(font), Int_val(x), Int_val(y),
-                String_val(s), Int_val(color));
+                tmp, Int_val(color));
   return Val_unit;
 }
 
@@ -329,8 +333,12 @@ value ml_image_str(value *argv, int argc) {
 
 value ml_image_stru_native(value gdw, value font, value x, value y, value s,
                             value color) {
+  const char* _s = String_val(s);
+  const size_t length = strlen(_s);
+  char tmp[length + 1];
+  strcpy(tmp, _s);
   gdImageStringUp(IM_VAL(gdw), FONT_VAL(font), Int_val(x), Int_val(y),
-                  String_val(s), Int_val(color));
+                  tmp, Int_val(color));
   return Val_unit;
 }
 

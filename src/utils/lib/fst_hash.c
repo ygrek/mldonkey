@@ -198,7 +198,7 @@ unsigned short fst_hash_checksum (unsigned char *hash)
 /*****************************************************************************/
 
 // hash file
-int fst_hash_file (unsigned char *fth, char *file, int64_t filesize)
+int fst_hash_file (unsigned char *fth, const char *file, int64_t filesize)
 {
   FILE *fp;
   unsigned char *buf;
