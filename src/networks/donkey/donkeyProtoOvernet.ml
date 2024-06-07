@@ -441,13 +441,13 @@ module Proto = struct
         Buffer.reset udp_buf;
         buf_int8 udp_buf 227;
         write udp_buf msg;
-        let s = Buffer.contents udp_buf in
+        let s = Buffer.to_bytes udp_buf in
         if !verbose_overnet then
           begin
             lprintf_nl "UDP to %s:%d op 0x%02X len %d type %s"
-              (Ip.to_string ip) port (get_uint8 s 1) (String.length s) (message_to_string msg);
+              (Ip.to_string ip) port (get_uint8_bytes s 1) (Bytes.length s) (message_to_string msg);
           end;
-        UdpSocket.write sock ping (Bytes.of_string s) ip port
+        UdpSocket.write sock ping s ip port
       with e ->
           lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
 
