@@ -156,7 +156,7 @@ extern void os_ftruncate(OS_FD fd, OFF_T len, int sparse);
 extern ssize_t os_read(OS_FD fd, char *buf, size_t len);
 extern int os_getdtablesize();
 extern int64_t os_getfdsize(OS_FD fd);
-extern int64_t os_getfilesize(char *path);
+extern int64_t os_getfilesize(const char *path);
 extern void os_set_nonblock(OS_SOCKET fd);
 extern void os_uname(char buf[]);
 extern int os_os_supported();

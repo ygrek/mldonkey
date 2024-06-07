@@ -38,10 +38,10 @@ let to_ints t =
 let get_hi16 t = t.hi
 let get_lo16 t = t.lo
 
-external ints_of_string : string -> (int*int*int*int)  = "ml_ints_of_string"
+external ints_of_string : bytes -> (int*int*int*int)  = "ml_ints_of_string"
 
 let of_string s =
-  of_ints (ints_of_string s)
+  of_ints (ints_of_string (Bytes.of_string s))
 
 let to_string t =
   let (a4, a3, a2, a1) = to_ints t in

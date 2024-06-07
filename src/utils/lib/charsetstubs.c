@@ -1298,7 +1298,7 @@ ml_convert_with_iconv (const char *str,
 }
 
 char*
-ml_convert (char *str,
+ml_convert (const char *str,
             size_t     len,  
             const char *to_codeset,
             const char *from_codeset,
@@ -1337,8 +1337,8 @@ ml_copy_string_len_and_free (char *str, size_t len)
   if (!str)
     raise_error ();
 
-  v = alloc_string (len);
-  memcpy (String_val(v), str, len);
+  v = caml_alloc_initialized_string(len, str);
+
   free (str);
   return v;
 }

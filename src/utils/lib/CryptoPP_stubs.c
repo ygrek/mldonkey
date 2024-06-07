@@ -32,21 +32,16 @@ ml_createKey() {
 // return public key
 value 
 ml_loadKey(value privatekey) {
-  char *s = String_val(privatekey);
-	char buf[4096];
-	unsigned long len =	loadKey(s, buf);
-
-  value res;
-  res = caml_alloc_string(len);
-  memmove(String_val(res), buf, len);
-
-	return res;
+  const char *s = String_val(privatekey);
+  char buf[4096];
+  unsigned long len = loadKey(s, buf);
+  return caml_alloc_initialized_string(len, buf);
 }
 
 value
 ml_createSignature(value m_key, value m_keyLen, value m_cInt, value m_ipType, value m_ip) {
 
-	byte *key = (byte*) String_val(m_key);
+	const byte *key = (byte*) String_val(m_key);
 	int keyLen = Int_val(m_keyLen);
 	uint32_t cInt = Int64_val(m_cInt);
 	int ipType = Int_val(m_ipType);
@@ -56,11 +51,7 @@ ml_createSignature(value m_key, value m_keyLen, value m_cInt, value m_ipType, va
 
 	int len = createSignature(buf, 200, key, keyLen, cInt, ipType, ip);
 
-  value res;
-  res = caml_alloc_string(len);
-  memmove(String_val(res), buf, len);
-
-	return res;
+	return caml_alloc_initialized_string(len, buf);
 }
 
 value 
@@ -86,8 +77,8 @@ ml_verifySignature_bytecode(value *argv, int argn) {
 
 void cc_lprintf_nl(const char * msg, int verb)
 {
-  static value * caml_func = NULL;
-  if (caml_func == NULL) caml_func = caml_named_value("ml_lprintf_nl");
+  static const value * caml_func = NULL;
+  if (!caml_func) caml_func = caml_named_value("ml_lprintf_nl");
   caml_callback2(*caml_func, caml_copy_string(msg), Val_int(verb));
 }
 

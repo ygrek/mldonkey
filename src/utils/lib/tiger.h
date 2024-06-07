@@ -30,6 +30,6 @@ typedef unsigned char byte;
 #define TREE_DEPTH 10
 
 
-void tiger_hash(char prefix, char *s, OFF_T len, unsigned char *digest);
+void tiger_hash(char prefix, const char *s, OFF_T len, unsigned char *digest);
 OFF_T tiger_block_size(OFF_T len);
 #endif

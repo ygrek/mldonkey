@@ -9517,7 +9517,7 @@ void createKey(char buf[]) {
 
 }
 
-unsigned long loadKey(char privateKeyBase64[], char buf[]) {
+unsigned long loadKey(const char privateKeyBase64[], char buf[]) {
   using namespace CryptoPP;
 
 	unsigned long result = 0;
@@ -9554,7 +9554,7 @@ unsigned long loadKey(char privateKeyBase64[], char buf[]) {
 
 
 // return signatureSize (buf)
-int createSignature(byte *buf, int maxLen, byte *key, int keyLen, uint32_t cInt, uint8_t ipType, uint32_t ip) {
+int createSignature(byte *buf, int maxLen, const byte *key, int keyLen, uint32_t cInt, uint8_t ipType, uint32_t ip) {
 
 	int result = 0;
 
