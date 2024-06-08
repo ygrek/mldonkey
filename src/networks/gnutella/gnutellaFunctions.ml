@@ -87,7 +87,7 @@ let default_handler gconn sock =
       let b = buf sock in
       if !verbose then
         lprintf "HttpReader: Handler not found for [%s]\n"
-          (String.escaped (Bytes.to_string (Bytes.sub b.buf b.pos b.len)));
+          (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
       close sock (Closed_for_error "not recognized");
       failwith "Reply is not in the correct protocol"
   | Some f -> f gconn sock
@@ -104,7 +104,7 @@ let handlers info gconn =
     let b = TcpBufferedSocket.buf sock in 
     if monitored sock || !verbose_msg_raw then
       lprintf "iter_read %s :%d/%d\n%s\n" (Ip.to_string (peer_ip sock)) nread b.len
-        (String.escaped (String.sub (Bytes.to_string b.buf) b.pos b.len));
+        (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
     if b.len > 0 then
       match gconn.gconn_handler with
       | HttpReader (n, hs, default) ->
@@ -198,7 +198,7 @@ let handlers info gconn =
       | CipherReader (cipher, h) ->
           if monitored sock || !verbose_msg_raw then
             lprintf "CipherReader %d: [%s]\n" nread
-              (String.escaped (String.sub (Bytes.to_string b.buf) b.pos b.len)); 
+              (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
           if nread > 0 then begin
 (*              AnyEndian.dump_sub b.buf (b.pos + b.len - nread) nread; *)
               apply_cipher cipher b.buf (b.pos + b.len - nread) nread;
@@ -208,7 +208,7 @@ let handlers info gconn =
               
               if monitored sock || !verbose_msg_raw then
                 lprintf "   deciphered: [%s]\n"
-                  (String.escaped (String.sub (Bytes.to_string b.buf) b.pos b.len));
+                  (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
             end;
           let len = b.len in
           (try

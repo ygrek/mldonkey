@@ -1618,13 +1618,14 @@ let write t s pos len =
       _to_deflate t;
       buf_add t wbuf s pos len
 
+let write_string t s = write t (Bytes.of_string s) 0 (String.length s)
+let write_all_bytes t data = write t data 0 (Bytes.length data)
+
 (*************************************************************************)
 (*                                                                       *)
 (*                         MAIN                                          *)
 (*                                                                       *)
 (*************************************************************************)
-
-let write_string t s = write t (Bytes.of_string s) 0 (String.length s)
 
 let _ =
   add_bandwidth_second_timer (fun _ ->

@@ -244,13 +244,13 @@ let parse (s_out : bytes) (s_in : bytes) =
           begin
             let s = Bytes.make 8 '\000' in
             cipher_packet_set ciphers.out_cipher s 0;
-            lprintf "OUT CIPHER: [%s]\n" (Bytes.to_string (Bytes.escaped s));
+            lprintf "OUT CIPHER: [%s]\n" (Bytes.unsafe_to_string (Bytes.escaped s));
           end;
 
           begin
             let s = Bytes.make 8 '\000' in
             cipher_packet_set ciphers.in_cipher s 0;
-            lprintf "IN CIPHER: [%s]\n" (Bytes.to_string (Bytes.escaped s));
+            lprintf "IN CIPHER: [%s]\n" (Bytes.unsafe_to_string (Bytes.escaped s));
           end;
 
           (

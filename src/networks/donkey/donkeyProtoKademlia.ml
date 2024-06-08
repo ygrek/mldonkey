@@ -445,12 +445,10 @@ module P = struct
             Bytes.cat kademlia_packed_header s
         in
 
-        let ss = Bytes.to_string s in
-
         if !verbose_overnet then
           begin
             lprintf_nl "UDP to %s:%d op 0x%02X len %d type %s"
-              (Ip.to_string ip) port (get_uint8 ss 1) (String.length ss) (message_to_string msg);
+              (Ip.to_string ip) port (get_uint8_bytes s 1) (Bytes.length s) (message_to_string msg);
           end;
         (*
         let len = String.length s in

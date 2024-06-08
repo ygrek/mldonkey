@@ -182,7 +182,7 @@ let ssh_check_size file url start_download_file =
       close sock s);
   TcpBufferedSocket.set_reader sock (fun sock nread ->
       let b = TcpBufferedSocket.buf sock in
-      lprintf "SSH reader %d [%s]\n" nread (String.escaped (String.sub (Bytes.to_string b.buf) b.pos b.len));
+      lprintf "SSH reader %d [%s]\n" nread (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
       let rec iter i =
         if i < b.len then
           if (Bytes.get b.buf (b.pos + i)) = '\n' then begin

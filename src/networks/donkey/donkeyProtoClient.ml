@@ -25,7 +25,6 @@ open CommonTypes
 open LittleEndian
 open CommonGlobals
 open CommonOptions
-
 open DonkeyTypes
 open DonkeyMftp
 
@@ -1489,7 +1488,7 @@ and parse emule_version magic s =
     | 0xD4 -> (* 212 *)
 
           let s = Zlib2.uncompress_string2 (Bytes.of_string (String.sub s 1 (len-1))) in
-          let s = Printf.sprintf "%c%s" (char_of_int opcode) (Bytes.to_string s) in
+          let s = Printf.sprintf "%c%s" (char_of_int opcode) (Bytes.unsafe_to_string s) in
     begin try
             parse_emule_packet emule_version opcode (String.length s) s
           with

@@ -131,13 +131,13 @@ let server_parse_netname s gconn sock =
   let buf = b.buf in
   let net = Bytes.sub buf start_pos len in
   if !verbose_msg_raw then
-    lprintf "net:[%s]\n" (String.escaped (Bytes.to_string net));
+    lprintf "net:[%s]\n" (Bytes.unsafe_to_string (Bytes.escaped net));
   let rec iter pos =
     if pos < end_pos then
       if (Bytes.get buf pos) = '\000' then begin
           let netname = Bytes.sub buf start_pos (pos-start_pos) in
           if !verbose_msg_raw then
-            lprintf "netname: [%s]\n" (String.escaped (Bytes.to_string netname));
+            lprintf "netname: [%s]\n" (Bytes.unsafe_to_string (Bytes.escaped netname));
           buf_used b (pos-start_pos+1);
           match s.server_ciphers with
             None -> assert false
@@ -254,7 +254,7 @@ let connect_server h =
               cipher_packet_set out_cipher s 4;
 
               if !verbose_msg_raw then begin
-                  lprintf "SENDING %s\n" (Bytes.to_string (Bytes.escaped s));
+                  lprintf "SENDING %s\n" (Bytes.unsafe_to_string (Bytes.escaped s));
                   AnyEndian.dump_bytes s;
                 end;
               write sock s 0 (Bytes.length s);
