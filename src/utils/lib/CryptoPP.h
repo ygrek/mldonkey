@@ -86,6 +86,7 @@
 #define CRYPTOPP_H
 
 #include <inttypes.h>
+#define CAML_NAME_SPACE
 #include <caml/config.h>
 #include <stdio.h>
 
