@@ -215,7 +215,7 @@ save it on disk in the next version. *)
             end;
           let buf = Buffer.create 100 in
           let read_ttr counter_pos b to_read_int =
-            Buffer.add_substring buf b.buf b.pos to_read_int
+            Buffer.add_subbytes buf b.buf b.pos to_read_int
           in
           let read_more () =
             if !verbose_msg_clients then
@@ -266,7 +266,7 @@ and read_some d c counter_pos b to_read_int =
   begin
     try
       CommonSwarming.received up
-        counter_pos b.buf b.pos to_read_int;
+        counter_pos (Bytes.unsafe_to_string b.buf) b.pos to_read_int;
     with e -> 
         lprintf "FT: Exception %s in CommonSwarming.received\n"
           (Printexc2.to_string e);

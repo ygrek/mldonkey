@@ -975,7 +975,7 @@ let recover_bytes file =
     if pos = max then
       iter_file_out file_pos segments
     else
-    if s.[pos] = '\000' then
+    if Bytes.get s pos = '\000' then
       iter_string_out file_pos (pos+1) max segments
     else
     let begin_pos = file_pos -- (Int64.of_int (max - pos)) in
@@ -995,7 +995,7 @@ let recover_bytes file =
     if pos = max then
       iter_file_in file_pos begin_pos segments
     else
-    if s.[pos] = '\000' then
+    if Bytes.get s pos = '\000' then
       let end_pos = file_pos -- (Int64.of_int (max - pos)) in
 (*      lprintf "  0 byte at %Ld\n" end_pos; *)
       iter_string_out file_pos (pos+1) max 

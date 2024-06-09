@@ -192,12 +192,12 @@ let of_char c = String.make 1 c
   
   
 let resize s newlen =
-  let len = String.length s in
-  if len > newlen then String.sub s 0 newlen 
+  let len = Bytes.length s in
+  if len > newlen then Bytes.sub s 0 newlen 
   else
   let b = Bytes.create newlen in
-  String.blit s 0 b 0 len;
-  Bytes.unsafe_to_string b
+  Bytes.blit s 0 b 0 len;
+  b
   
 let is_space c = c = ' ' || c = '\n' || c = '\r' || c = '\t'
   

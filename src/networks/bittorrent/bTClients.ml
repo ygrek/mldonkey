@@ -114,6 +114,7 @@ let string_of_event = function
   Better create single global udp socket and use it for all 
   tracker requests and distinguish trackers by txn? FIXME?
   *)
+
 let talk_to_udp_tracker host port args file t need_sources =
   let interact ip =
     let socket = create (Ip.to_inet_addr !!client_bind_addr) 0 (fun sock event ->
@@ -137,10 +138,10 @@ let talk_to_udp_tracker host port args file t need_sources =
     BasicSocket.set_rtimeout (sock socket) 60.;
     let txn = Random.int32 Int32.max_int in
 (*     lprintf_nl "udpt txn %ld for %s" txn host; *)
-    write socket false (connect_request txn) ip port;
+    write socket false (Bytes.unsafe_of_string @@ connect_request txn) ip port;
     set_reader begin fun () ->
       let p = read socket in
-      let conn = connect_response p.udp_content txn in
+      let conn = connect_response (Bytes.unsafe_to_string p.udp_content) txn in
 (*       lprintf_nl "udpt connection_id %Ld for %s" conn host; *)
       let txn = Random.int32 Int32.max_int in
 (*       lprintf_nl "udpt txn' %ld for host %s" txn host; *)
@@ -159,7 +160,7 @@ let talk_to_udp_tracker host port args file t need_sources =
         ~numwant:(if need_sources then try Int32.of_string (List.assoc "numwant" args) with _ -> -1l else 0l)
         (int_of_string (List.assoc "port" args))
       in
-      write socket false req ip port;
+      write socket false (Bytes.unsafe_of_string req) ip port;
       set_reader (fun () ->
         let p = read socket in
 
@@ -169,7 +170,7 @@ let talk_to_udp_tracker host port args file t need_sources =
         t.tracker_min_interval <- 600;
         if need_sources then t.tracker_last_clients_num <- 0;
 
-        let (interval,clients) = announce_response p.udp_content txn in
+        let (interval,clients) = announce_response (Bytes.unsafe_to_string p.udp_content) txn in
         if !verbose_msg_servers then
           lprintf_nl "udpt got interval %ld clients %d for host %s" interval (List.length clients) host;
         if interval > 0l then
@@ -529,7 +530,7 @@ let is_bit_set s n =
 
 let set_bit s n =
   let i = n lsr 3 in
-  s.[i] <- Char.unsafe_chr (Char.code s.[i] lor bits.(n land 7))
+  s.[i] <- Char.unsafe_chr (Char.code (Bytes.get s i) lor bits.(n land 7))
 
 (* Official client seems to use max_range_request 5 and max_range_len 2^14 *)
 (* How much requests in the 'pipeline' *)
@@ -537,10 +538,10 @@ let max_range_requests = 5
 (* How much bytes we can request in one Piece *)
 
 let reserved () =
-  let s = String.make 8 '\x00' in
+  let s = Bytes.make 8 '\x00' in
   s.[7] <- (match !bt_dht with None -> '\x00' | Some _ -> '\x01');
   s.[5] <- '\x10'; (* TODO bep9, bep10, notify clients about extended*)
-  s
+  Bytes.unsafe_to_string s
 
 (** handshake *)
 let send_init client_uid file_id sock =
@@ -579,20 +580,20 @@ let send_bitfield c =
             lprintf_nl "Sending completed verified bitmap";
           let nchunks = Array.length c.client_file.file_chunks in
           let len = (nchunks+7)/8 in
-          let s = String.make len '\000' in
+          let s = Bytes.make len '\000' in
           for i = 0 to nchunks - 1 do
             set_bit s i
           done;
-          s
+          Bytes.unsafe_to_string s
       | Some swarmer ->
           let bitmap = CommonSwarming.chunks_verified_bitmap swarmer in
           if !verbose_download then 
             lprintf_nl "Sending verified bitmap: [%s]" (VB.to_string bitmap);
           let len = (VB.length bitmap + 7)/8 in
-          let s = String.make len '\000' in
+          let s = Bytes.make len '\000' in
           VB.iteri (fun i c ->
             if c = VB.State_verified then set_bit s i) bitmap;
-          s
+          Bytes.unsafe_to_string s
     ))
 
 let counter = ref 0
@@ -1920,7 +1921,7 @@ let rec iter_upload sock c =
                   end
           in
 (*          lprintf "sending piece\n"; *)
-          send_client c (Piece (num, pos, upload_buffer, 0, len));
+          send_client c (Piece (num, pos, Bytes.unsafe_to_string upload_buffer, 0, len));
           iter_upload sock c
         with exn -> 
           if !verbose then 

@@ -79,7 +79,7 @@ val subcontains : string -> string -> bool
 val of_char : char -> string
 (*d [of_char c] returns the string containing one [c]. *)
   
-val resize : string -> int ->  string
+val resize : bytes -> int ->  bytes
 (*d [resize s len] returns a string of length [len] starting with [s]. *)
   
 val init : int -> (int -> char) -> string
