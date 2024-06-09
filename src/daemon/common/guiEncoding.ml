@@ -1049,6 +1049,12 @@ let rec to_gui (proto : int array) buf t =
         buf_int buf num;
         buf_list2 proto buf buf_stat_info_list l
 
+    | SysInfo list ->
+      buf_opcode buf 60;
+      buf_list buf (fun buf (s1, s2) ->
+        buf_string buf s1; buf_string buf s2
+        ) list
+
   with e ->
       lprintf "GuiEncoding.to_gui: Exception %s\n"
         (Printexc2.to_string e)
@@ -1265,6 +1271,9 @@ protocol version. Do not send them ? *)
     | GetStats n ->
         buf_opcode buf 68;
         buf_int buf n
+
+    (* introduced with protocol 34 *)
+    | GetSysInfo -> buf_opcode buf 69
 
   with e ->
       lprintf "GuiEncoding.from_gui: Exception %s\n"
