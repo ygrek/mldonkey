@@ -140,7 +140,7 @@ and swarmer = {
     mutable s_strategy : swarming_strategy;
 
     mutable s_verified_bitmap : VerificationBitmap.t;
-    mutable s_priorities_bitmap : string;
+    mutable s_priorities_bitmap : bytes;
     mutable s_priorities_intervals : (int64 * int) list;
                                        (* beginning, priority *)
     mutable s_disk_allocated : Bitv.t;
@@ -579,7 +579,7 @@ let dummy_swarmer = {
     s_networks = [];
     s_strategy = AdvancedStrategy;
     s_verified_bitmap = VB.create 0 VB.State_missing;
-    s_priorities_bitmap = "";
+    s_priorities_bitmap = Bytes.empty;
     s_priorities_intervals = [(zero, 1)];
     s_disk_allocated = Bitv.create 0 false;
     s_blocks = [||];
@@ -639,7 +639,7 @@ let priority_zero = Char.chr 0
 
 let swarmer_recompute_priorities_bitmap s =
   String.fill s.s_priorities_bitmap 0
-    (String.length s.s_priorities_bitmap) priority_zero;
+    (Bytes.length s.s_priorities_bitmap) priority_zero;
   let mark interval_begin interval_end priority =
     if interval_end > interval_begin && s.s_size >= interval_end && interval_begin >= 0L then
       if priority = 0 then
@@ -704,7 +704,7 @@ let create_swarmer file_name file_size =
       s_strategy = AdvancedStrategy;
 
       s_verified_bitmap = VB.create nblocks VB.State_missing;
-      s_priorities_bitmap = String.make nblocks priority_zero;
+      s_priorities_bitmap = Bytes.make nblocks priority_zero;
       s_priorities_intervals = [(zero, 1)]; (* JAVE init all prios to 1, thus all chunks will be downloaded as usual *)
       s_disk_allocated = Bitv.create ndiskblocks false;
       s_blocks = Array.make nblocks EmptyBlock ;
@@ -837,7 +837,7 @@ let split_blocks s chunk_size =
 
   s.s_blocks <- Array.make nblocks EmptyBlock;
   s.s_verified_bitmap <- VB.create nblocks VB.State_missing;
-  s.s_priorities_bitmap <- String.make nblocks priority_zero;
+  s.s_priorities_bitmap <- Bytes.make nblocks priority_zero;
   s.s_block_pos <- Array.make nblocks zero;
   s.s_availability <- Array.make nblocks 0; (* not preserved ? *)
   s.s_nuploading <- Array.make nblocks 0; (* not preserved ? *)
@@ -2041,7 +2041,7 @@ let linear_select_blocks up =
     up.up_npartial <- n-1;
     let t = up.up_t in
     let s = t.t_s in
-    if s.s_priorities_bitmap.[b] = priority_zero then iter_partial up else
+    if (Bytes.get s.s_priorities_bitmap b) = priority_zero then iter_partial up else
     let chunk = t.t_chunk_of_block.(b) in
     match s.s_blocks.(b) with
     | CompleteBlock | VerifiedBlock ->
@@ -2067,7 +2067,7 @@ let linear_select_blocks up =
       up.up_ncomplete <- n-1;
       let t = up.up_t in
       let s = t.t_s in
-      if s.s_priorities_bitmap.[b] = priority_zero then iter_complete up else
+      if (Bytes.get s.s_priorities_bitmap b) = priority_zero then iter_complete up else
       let chunk = t.t_chunk_of_block.(b) in
       match s.s_blocks.(b) with
       | CompleteBlock | VerifiedBlock ->
@@ -2238,7 +2238,7 @@ let select_blocks up =
           {
             choice_num = n;
             choice_block = b;
-            choice_user_priority = Char.code s.s_priorities_bitmap.[b];
+            choice_user_priority = Char.code (Bytes.get s.s_priorities_bitmap b);
             choice_remaining = remaining;
             choice_preallocated = is_fully_preallocated t block_begin block_end;
             choice_unselected_remaining = unselected_remaining;
@@ -2387,7 +2387,7 @@ let select_blocks up =
           Array2.subarray_fold_lefti (fun 
             ((current_chunk_num, current_chunk_blocks_indexes, 
             best_choices, specimen) as acc) n b ->
-            if s.s_priorities_bitmap.[b] = priority_zero ||
+            if (Bytes.get s.s_priorities_bitmap b) = priority_zero ||
               not (should_download_block s b) then acc
             else
               let chunk_num = t.t_chunk_of_block.(b) in
@@ -2733,7 +2733,7 @@ let find_range up range_size =
           let block = up.up_complete_blocks.(i) in
           if not (List.exists (fun b -> b.up_block.block_num = block
                               ) up.up_blocks) then
-            if s.s_priorities_bitmap.[block] <> priority_zero && 
+            if (Bytes.get s.s_priorities_bitmap block) <> priority_zero && 
               should_download_block s block then
               let partial_found = match s.s_blocks.(block) with
                 | EmptyBlock -> true
@@ -2792,7 +2792,7 @@ let range_range r = (r.range_begin, r.range_end)
 let received up file_begin str string_begin string_len =
   assert (string_begin >= 0);
   assert (string_len >= 0);
-  assert (string_begin + string_len <= String.length str);
+  assert (string_begin + string_len <= Bytes.length str);
 
   let t = up.up_t in
   let s = t.t_s in
@@ -2909,7 +2909,7 @@ let received up file_begin str string_begin string_len =
                             (Printexc2.to_string e) 
                             r.range_begin file_end
                             (file_best_name t.t_file));
-                        file_write tprim.t_file
+                        file_write_bytes tprim.t_file
                           r.range_begin
                           str string_pos string_length;
                         range_received (Some t) r r.range_begin file_end;
