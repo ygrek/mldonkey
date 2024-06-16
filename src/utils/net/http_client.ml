@@ -199,17 +199,17 @@ let read_header header_handler sock nread =
   let rec iter i =
     let end_pos = b.pos + b.len in
     if i < end_pos then
-      if b.buf.[i] = '\n' && i <= end_pos - 2 then
-        let c = b.buf.[i+1] in
+      if Bytes.get b.buf i = '\n' && i <= end_pos - 2 then
+        let c = (Bytes.get b.buf (i+1)) in
         if c = '\n' then
           let len = i + 2 - b.pos in
-          let header = String.sub b.buf b.pos len in
+          let header = Bytes.sub_string b.buf b.pos len in
           buf_used b len;
           header_handler sock header
         else
-        if c = '\r' && i <= end_pos - 3 && b.buf.[i+2] = '\n' then
+        if c = '\r' && i <= end_pos - 3 && (Bytes.get b.buf (i+2)) = '\n' then
           let len = i + 3 - b.pos in
-          let header = String.sub b.buf b.pos len in
+          let header = Bytes.sub_string b.buf b.pos len in
           buf_used b len;
           header_handler sock header
         else 
@@ -416,7 +416,7 @@ let wget r f =
               min (Int64.to_int (maxlen -- !file_size)) nread
             else nread
           in
-          Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
+          Buffer.add_bytes file_buf (Bytes.sub buf.buf buf.pos left);
           buf_used buf left;
           file_size := !file_size ++ (Int64.of_int left);
           if nread > left then
@@ -501,7 +501,7 @@ let wget_string r f ?(ferr=def_ferr) progress =
                 min (Int64.to_int (maxlen -- !file_size)) nread
               else nread
           in
-          Buffer.add_string file_buf (String.sub buf.buf buf.pos left);
+          Buffer.add_bytes file_buf (Bytes.sub buf.buf buf.pos left);
           progress left maxlen;
           buf_used buf left;
           file_size := !file_size ++ (Int64.of_int left);
@@ -525,16 +525,21 @@ let wget_string r f ?(ferr=def_ferr) progress =
 
 
 let split_header header =
-  for i = 0 to String.length header - 1 do
-    if header.[i] = '\r' then header.[i] <- '\n';
+  let len = String.length header in
+  let header_bytes = Bytes.of_string header in
+  for i = 0 to len - 1 do
+    if Bytes.get header_bytes i = '\r' then
+      Bytes.set header_bytes i '\n'
   done;
-  for i = String.length header - 1 downto 1 do
-    if header.[i-1] = '\n' then 
-      if header.[i] = ' ' then (header.[i] <- ','; header.[i-1] <- ',')
-      else
-      if header.[i] = ',' then header.[i-1] <- ',';
+  for i = len - 1 downto 1 do
+    if Bytes.get header_bytes (i - 1) = '\n' then
+      if Bytes.get header_bytes i = ' ' then (
+        Bytes.set header_bytes i ',';
+        Bytes.set header_bytes (i - 1) ','
+      ) else if Bytes.get header_bytes i = ',' then
+        Bytes.set header_bytes (i - 1) ','
   done;
-  String2.split_simplify header '\n'
+  String2.split_simplify (Bytes.unsafe_to_string header_bytes) '\n'
 
 let cut_headers headers =
   try

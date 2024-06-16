@@ -432,9 +432,10 @@ FASTTRACK_SRCS= \
   $(SRC_FASTTRACK)/fasttrackClients.mlt \
   $(SRC_FASTTRACK)/fasttrackHandler.ml \
   $(SRC_FASTTRACK)/fasttrackServers.ml \
-  $(SRC_FASTTRACK)/fasttrackPandora.ml \
   $(SRC_FASTTRACK)/fasttrackInteractive.mlt \
   $(SRC_FASTTRACK)/fasttrackMain.mlt
+
+  #$(SRC_FASTTRACK)/fasttrackPandora.ml \
 
 $(BITSTRING)/bitstring_persistent.cmo: $(BITSTRING)/bitstring_persistent.ml $(BITSTRING)/bitstring_persistent.cmi build/bitstring.cma
 	$(OCAMLC) -I $(BITSTRING) -I +camlp4 camlp4lib.cma -c $<

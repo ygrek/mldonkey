@@ -205,9 +205,13 @@ let read_oldgnu_header header =
     t_realsize = extract_int32 header 483 12;
   }
 
+let really_input_string t size =
+  let buf = Bytes.create size in
+  t.chan#really_input buf 0 size;
+  Bytes.unsafe_to_string buf
+
 let read_gnu_header t =
-  let buf = String.create blocksize in
-    t.chan#really_input buf 0 blocksize;
+    let buf = really_input_string t blocksize in
     { t_atime = extract_int32 buf 0 12;
       t_ctime = extract_int32 buf 12 12;
       t_offset = extract_int32 buf 24 12;
@@ -215,9 +219,8 @@ let read_gnu_header t =
     }
 
 let read_header t =
-  align_at_header t;
-  let buf = String.create blocksize in
-    t.chan#really_input buf 0 blocksize;
+    align_at_header t;
+    let buf = really_input_string t blocksize in
     if buf = empty_block then raise End_of_file;
     let head1 = { t_name = c_string buf 0;
                  t_mode = extract_num buf 100 8;
@@ -264,14 +267,11 @@ let read_body t =
   let header = get_header t in
     t.last_header <- None;
     if header.t_size = 0 then "" 
-    else let buf = String.create header.t_size in
-      t.chan#really_input buf 0 header.t_size;
+    else
+      let buf = really_input_string t header.t_size in
       let align = blocksize - (header.t_size mod blocksize) in
-        if align <> blocksize then begin
-          let leftover = String.create blocksize in	    
-            t.chan#really_input leftover 0 align
-        end;
-        buf
+      if align <> blocksize then ignore (really_input_string t align : string);
+      buf
 
 let read_entry t =
   let head = read_header t in
@@ -390,7 +390,7 @@ let write_gnu_header t buf =
   
 let output t head body =
   let size = String.length body in
-  let buf = String.copy empty_block in
+  let buf = Bytes.of_string empty_block in
     write_str buf 0 100 head.t_name;
     write_num8 buf 100 head.t_mode;
     write_num8 buf 108 head.t_uid;
@@ -407,23 +407,23 @@ let output t head body =
     write_str buf 345 155 head.t_prefix;
     if head.t_format = OLDGNU_FORMAT then
       write_oldgnu_header head buf;
-    let chksum = compute_chksum buf in
+    let chksum = compute_chksum @@ Bytes.unsafe_to_string buf in
       write_padded_num buf 148 chksum;
       t.ochan#output buf 0 blocksize;
-      if head.t_format = GNU_FORMAT && isdigit buf.[156] then begin
-        let buf2 = String.copy empty_block in
+      if head.t_format = GNU_FORMAT && isdigit @@ Bytes.get buf 156 then begin
+        let buf2 = Bytes.of_string empty_block in
           write_gnu_header head buf2;
           t.ochan#output buf2 0 blocksize
       end;
       if size > 0 then begin
-    t.ochan#output body 0 size;
+          t.ochan#output (Bytes.unsafe_of_string body) 0 size;
           let align = blocksize - (size mod blocksize) in
             if align > 0 && align < blocksize then 
-              t.ochan#output empty_block 0 align
+              t.ochan#output (Bytes.unsafe_of_string empty_block) 0 align
       end
       
 let flush t =
-  t.ochan#output empty_block 0 blocksize;
+  t.ochan#output (Bytes.unsafe_of_string empty_block) 0 blocksize;
   t.ochan#flush ()
 
 let close_out t =

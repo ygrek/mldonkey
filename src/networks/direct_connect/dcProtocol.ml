@@ -584,12 +584,9 @@ module Search = struct
           let words =                                        (* strip TTH: from TTH-search or return search words *)
             if filetype = 9 then                             (* TTH *)
               dc_replace_str_to_str words s_tth empty_string (* Strip TTH: *)             
-            else begin                                       (* normal search words *)
-              let s = ref (String.copy words) in
-              String2.replace_char !s '$' ' ';
-              String.lowercase !s 
-            end
-          in 
+            else
+              String.lowercase (String2.replace_char words '$' ' ')
+          in
           let words = dc_to_utf words in 
           let size =
             (match has_size, size_kind with
@@ -625,11 +622,7 @@ module Search = struct
       t.filetype
       (let words =
          if t.filetype = 9 then s_tth ^ t.words_or_tth    (* if TTH search is wanted, send root hash *)
-         else begin
-           let s = ref (String.copy t.words_or_tth) in    (* otherwise send search words *) 
-           String2.replace_char !s char32 '$';
-           !s
-         end
+         else String2.replace_char t.words_or_tth char32 '$'; (* otherwise send search words *)
        in
        utf_to_dc words);
     (*if !verbose_msg_clients then lprintf_nl "Sending: (%s)" (Buffer.contents buf)*)
@@ -1129,10 +1122,10 @@ let dc_handler_server f sock nread =
   (try
     let rec iter nread =
       if nread > 0 then begin
-        let pos = String.index_from b.buf b.pos '|' in
+        let pos = Bytes.index_from b.buf b.pos '|' in
         if pos < (b.pos + b.len) then begin
           let len = pos - b.pos in
-          let s = String.sub b.buf b.pos len in
+          let s = Bytes.sub_string b.buf b.pos len in
           buf_used b (len+1);
           begin 
             try f (dc_parse true s) sock
@@ -1157,10 +1150,10 @@ let dc_handler_client c fm nm dm sock nread = (* fm = (read_first_message false)
         | Some c when c.client_receiving <> Int64.zero -> (* if we are downloading from client ...*)
             dm c sock nread 
         | _ ->                                            (* or message is a new connection ... *)
-            let pos = String.index_from b.buf b.pos '|' in
+            let pos = Bytes.index_from b.buf b.pos '|' in
             if pos < (b.pos + b.len) then begin
               let len = pos - b.pos in
-              let s = String.sub b.buf b.pos len in
+              let s = Bytes.sub_string b.buf b.pos len in
               let msg = dc_parse false s in
               buf_used b (len+1);
               begin try

@@ -467,9 +467,8 @@ let import_config dirname =
 
 let broadcast msg =
   let s = msg ^ "\n" in
-  let len = String.length s in
   List.iter (fun sock ->
-      TcpBufferedSocket.write sock s 0 len
+      TcpBufferedSocket.write_string sock s
   ) !user_socks
 
   (*

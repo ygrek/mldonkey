@@ -84,7 +84,7 @@ module P = struct
       ss.[14] <- s.[pos+13];
       ss.[15] <- s.[pos+12];
 
-      Md4.direct_of_string ss
+      Md4.direct_of_string @@ Bytes.unsafe_to_string ss
 
     let buf_md4 buf s =
       let s = Md4.direct_to_string s in
@@ -112,7 +112,7 @@ module P = struct
       ss.[14] <- s.[pos+13];
       ss.[15] <- s.[pos+12];
 
-      Buffer.add_string buf ss
+      Buffer.add_bytes buf ss
 
 
 (* Strange: why was the IP format changed for Kademlia ? *)
@@ -458,7 +458,7 @@ module P = struct
           end;
 *)
 
-        UdpSocket.write sock ping s ip port
+        UdpSocket.write sock ping (Bytes.unsafe_of_string s) ip port
       with
       | MessageNotImplemented -> ()
       | e -> lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
@@ -476,7 +476,7 @@ module P = struct
                       Ip.of_inet_addr inet, port
                   | _ -> assert false
                 in
-                let t = parse_message ip port pbuf in
+                let t = parse_message ip port (Bytes.unsafe_to_string pbuf) in
                 let is_not_banned ip =
                   match !Ip.banned (ip, None) with
                     None -> true
@@ -491,7 +491,7 @@ module P = struct
                 begin
                   lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e);
-                  dump p.UdpSocket.udp_content;
+                  dump (Bytes.unsafe_to_string p.UdpSocket.udp_content);
                   lprint_newline ()
                 end
           );

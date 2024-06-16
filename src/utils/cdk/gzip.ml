@@ -28,7 +28,7 @@ type in_channel =
     in_stream: Zlib.stream;
     mutable in_size: int32;
     mutable in_crc: int32;
-    char_buffer: string }
+    char_buffer: bytes }
 
 let open_in ic =
   (* Superficial parsing of header *)
@@ -73,7 +73,7 @@ let open_in ic =
     in_stream = Zlib.inflate_init false;
     in_size = Int32.zero;
     in_crc = Int32.zero;
-    char_buffer = String.create 1 }
+    char_buffer = Bytes.create 1 }
 
 let open_in_file filename =
   let ic = Pervasives.open_in_bin filename in
@@ -176,7 +176,7 @@ type 'a out_channel =
     out_stream: Zlib.stream;
     mutable out_size: int32;
     mutable out_crc: int32;
-    char_buffer: string }
+    char_buffer: bytes }
 
 let open_out ?(level = 6) oc =
   if level < 1 || level > 9 then invalid_arg "Gzip_stream.open_output: bad level";
@@ -195,7 +195,7 @@ let open_out ?(level = 6) oc =
     out_stream = Zlib.deflate_init level false;
     out_size = Int32.zero;
     out_crc = Int32.zero;
-    char_buffer = String.create 1 }
+    char_buffer = Bytes.create 1 }
 
 let open_out_file ?level filename =
   let oc = Pervasives.open_out_bin filename in

@@ -48,12 +48,12 @@ let handlers info gconn =
           let begin_pos =  b.pos in
           let rec iter i n_read =
             if i < end_pos then
-              if b.buf.[i] = '\r' then
+              if Bytes.get b.buf i = '\r' then
                 iter (i+1) n_read
               else
-              if b.buf.[i] = '\n' then
+              if Bytes.get b.buf i = '\n' then
                 if n_read then begin
-                    let header = String.sub b.buf b.pos (i - b.pos) in
+                    let header = Bytes.sub_string b.buf b.pos (i - b.pos) in
 (*                    if info then begin
                         lprintf "HEADER : ";
                         dump header; lprint_newline ();

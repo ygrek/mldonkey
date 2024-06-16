@@ -98,7 +98,7 @@ module NewUpload = struct
               impl.impl_shared_uploaded <- 
                 impl.impl_shared_uploaded ++ uploaded);
         
-        write_string sock upload_buffer;
+        write_bytes sock upload_buffer;
         check_end_upload c sock
       with
       | End_of_file -> lprintf_nl "Can not send file %s to %s, file removed?"

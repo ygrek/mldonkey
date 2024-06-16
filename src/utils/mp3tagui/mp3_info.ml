@@ -78,8 +78,7 @@ let get_xing_header ic header =
     then if mode <> 3 then 32 else 17
     else if mode <> 3 then 17 else 9 in
   seek_in ic (pos_in ic + offset);
-  let buf = String.create 4 in
-  really_input ic buf 0 4;
+  let buf = really_input_string ic 4 in
   if buf <> "Xing" then raise Not_found;
   let flags = read_i4 ic in
   (* 3 = FRAMES_FLAG | BYTES_FLAG *)
@@ -90,12 +89,13 @@ let get_xing_header ic header =
 
 let for_channel ic =
   seek_in ic 0;
-  let buf = String.create 4 in
+  let buf = Bytes.create 4 in
   really_input ic buf 0 4;
-  while not (check_head buf) do
-    String.blit buf 1 buf 0 3;
+  while not (check_head @@ Bytes.unsafe_to_string buf) do
+    Bytes.blit buf 1 buf 0 3;
     buf.[3] <- input_char ic
   done;
+  let buf = Bytes.unsafe_to_string buf in
   let header = 
     (Char.code buf.[1] lsl 16) lor
     (Char.code buf.[2] lsl 8) lor

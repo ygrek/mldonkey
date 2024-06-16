@@ -36,7 +36,7 @@ type url = {
 let encode s =
   let pos = ref 0 in
   let len = String.length s in
-  let res = String.create (3*len) in
+  let res = Bytes.create (3*len) in
   let hexa_digit x =
     if x >= 10 then Char.chr (Char.code 'A' + x - 10)
     else Char.chr (Char.code '0' + x) in
@@ -50,7 +50,7 @@ let encode s =
         res.[!pos+2] <- hexa_digit (Char.code c mod 16);
         pos := !pos + 3
   done;
-  String.sub res 0 !pos
+  Bytes.sub_string res 0 !pos
 
 (** decodes a sting according RFC 1738
 or x-www-form-urlencoded ('+' with ' ')

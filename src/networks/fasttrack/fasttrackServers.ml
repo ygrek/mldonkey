@@ -92,12 +92,12 @@ let server_parse_after s gconn sock =
        let rec iter () =
           let len = b.len in
           if len > 0 then
-            let size = TcpMessages.packet_size ciphers b.buf b.pos b.len in
+            let size = TcpMessages.packet_size ciphers (Bytes.unsafe_to_string b.buf) b.pos b.len in
             match size with
               None -> ()
             | Some size ->
                 if len >= size then
-                  let msg = String.sub b.buf b.pos size in
+                  let msg = Bytes.sub_string b.buf b.pos size in
                   buf_used b size;
                   let addr, t = TcpMessages.parse ciphers msg in
                   FasttrackHandler.server_msg_handler sock s addr t;
@@ -129,13 +129,13 @@ let server_parse_netname s gconn sock =
   let start_pos = b.pos in
   let end_pos = start_pos + len in
   let buf = b.buf in
-  let net = String.sub buf start_pos len in
+  let net = Bytes.sub_string buf start_pos len in
   if !verbose_msg_raw then
     lprintf "net:[%s]\n" (String.escaped net);
   let rec iter pos =
     if pos < end_pos then
-      if buf.[pos] = '\000' then begin
-          let netname = String.sub buf start_pos (pos-start_pos) in
+      if Bytes.get buf pos = '\000' then begin
+          let netname = Bytes.sub_string buf start_pos (pos-start_pos) in
           if !verbose_msg_raw then
             lprintf "netname: [%s]\n" (String.escaped netname);
           buf_used b (pos-start_pos+1);
@@ -159,7 +159,7 @@ let server_parse_cipher s gconn sock =
     | Some ciphers ->
         if !verbose_msg_raw then
           lprintf "Cipher received from server\n";
-        get_cipher_from_packet b.buf b.pos ciphers.in_cipher;
+        get_cipher_from_packet (Bytes.unsafe_to_string b.buf) b.pos ciphers.in_cipher;
         init_cipher ciphers.in_cipher;
 
         xor_ciphers ciphers.out_cipher ciphers.in_cipher;
@@ -241,7 +241,7 @@ let connect_server h =
               };
               set_cipher out_cipher (client_cipher_seed ()) 0x29;
 
-              let s = String.create 12 in
+              let s = Bytes.create 12 in
 
               (match !connection_header_hook with
                   None ->
@@ -252,6 +252,8 @@ let connect_server h =
                 | Some f -> f s);
 
               cipher_packet_set out_cipher s 4;
+
+              let s = Bytes.unsafe_to_string s in
 
               if !verbose_msg_raw then begin
                   lprintf "SENDING %s\n" (String.escaped s);

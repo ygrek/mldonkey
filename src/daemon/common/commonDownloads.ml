@@ -87,7 +87,7 @@ module Make(M: sig
           in
           let final_pos = Unix32.seek64 (file_fd file) d.download_pos
               Unix.SEEK_SET in *)
-        Unix32.write (file_fd file) d.download_pos b.buf b.pos b.len;
+        Unix32.write_bytes (file_fd file) d.download_pos b.buf b.pos b.len;
 (*        end; *)
 (*      lprintf "DIFF %d/%d\n" nread b.len; *)
         d.download_pos <- d.download_pos ++ (Int64.of_int b.len);

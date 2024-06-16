@@ -265,7 +265,7 @@ let _ =
               while true do
                 let nread = Unix.read pipe_out buffer 0 buffersize in
                 if nread = 0 then raise End_of_file;
-                Buffer.add_substring output buffer 0 nread
+                Buffer.add_subbytes output buffer 0 nread
               done
              with 
              | End_of_file -> ()
