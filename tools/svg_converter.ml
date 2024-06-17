@@ -19,7 +19,7 @@
 
 
 open Filename2
-open Zlib
+open Zlib2
 
 let load_svg file =
   Printf.printf "Converting file %s\n" file;
