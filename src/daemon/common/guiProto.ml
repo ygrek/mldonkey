@@ -29,8 +29,8 @@ type gift_command =
   
 let gui_extension_poll = 1
   
-let to_gui_last_opcode = 59
-let from_gui_last_opcode = 68
+let to_gui_last_opcode = 60
+let from_gui_last_opcode = 69
 let best_gui_version = 41
   
 (* I will try to report all changes to the protocol here: send me patches
@@ -66,6 +66,9 @@ Version 32:
 Version 33:
   CORE -> GUI: message 15 [CLIENT_INFO] encoding and decoding of the field client_release 
 
+Version 34:
+  GUI -> CORE: message GetSysInfo
+  CORE -> GUI: message SysInfo
   *)
   
   
@@ -168,6 +171,9 @@ the messages (it will use the version specified in CoreProtocol instead
 | ServerSetPreferred of (int * bool)
 | GetStats of int
 
+(* Understood by core protocol 34 *)
+| GetSysInfo
+
 type to_gui =
 (* This message is the first message sent by the core *)
 | CoreProtocol of int * int * int
@@ -235,7 +241,8 @@ type to_gui =
 | GiftServerAttach of string * string
 | GiftServerStats of (string * string * string * string) list
 | Stats of int * (string * int * network_stat_info list) list  
-  
+
+| SysInfo of (string * string) list
   
 let string_of_from_gui t = 
   match t with
@@ -315,6 +322,8 @@ let string_of_from_gui t =
   | ServerSetPreferred _ -> "ServerSetPreferred"
   | GetStats _ -> "GetStats"
 
+  | GetSysInfo -> "GetSysInfo"
+
 let string_of_to_gui t =
   match t with
   
@@ -384,6 +393,8 @@ let string_of_to_gui t =
   | GiftServerAttach _ -> "GiftServerAttach"
   | GiftServerStats _ -> "GiftServerStats"
   | Stats _ -> "Stats"
+
+  | SysInfo _ -> "SysInfo"
       
 type gui_record = {
     mutable gui_num : int;

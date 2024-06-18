@@ -1326,6 +1326,10 @@ let from_gui (proto : int array) opcode s =
          let num = get_int s 2 in
          GetStats num
 
+    (* introduced with protocol 34 *)
+    | 69 ->
+      GetSysInfo
+
     | _ -> 
         lprintf_nl "FROM GUI:Unknown message %d" opcode; 
         raise FromGuiMessageNotImplemented
