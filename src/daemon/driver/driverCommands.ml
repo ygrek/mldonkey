@@ -1389,7 +1389,7 @@ let _ =
                  (* can't close pipe_out in the already forked+executed process... *)
                  let output = Buffer.create 1024 in
                  let buffersize = 1024 in
-                 let buffer = String.create buffersize in
+                 let buffer = Bytes.create buffersize in
                  (try
                     while true do
                       let nread = Unix.read pipe_out buffer 0 buffersize in
@@ -1677,12 +1677,12 @@ let _ =
                 if use_html_mods o then
                   custom_commands := !custom_commands @ [ ( "bu bbig",
                   name,
-                  Printf.sprintf "mSub('output','custom=%s')" (Url.encode_to_string name),
+                  Printf.sprintf "mSub('output','custom=%s')" (Url.encode name),
                   name ) ; ]
                 else
                   Printf.bprintf buf
                     "\\<a href=\\\"submit\\?custom=%s\\\" $O\\> %s \\</a\\>\n"
-                    (Url.encode_to_string name) name;
+                    (Url.encode name) name;
               end
             else
 
@@ -2295,14 +2295,14 @@ action=\\\"javascript:submitHtmlModsStyle();\\\"\\>";
         onClick=\\\'javascript:{
         parent.fstatus.location.href=\\\"submit?q=urlremove+\\\\\\\"%s\\\\\\\"\\\"
         setTimeout(\\\"window.location.reload()\\\",1000);}'
-        class=\\\"srb\\\"\\>Remove\\</td\\>" (Url.encode_to_string w.url);
+        class=\\\"srb\\\"\\>Remove\\</td\\>" (Url.encode w.url);
                 Printf.bprintf buf "
         \\<td title=\\\"Download now\\\"
         onMouseOver=\\\"mOvr(this);\\\"
         onMouseOut=\\\"mOut(this);\\\"
         onClick=\\\'javascript:{
         parent.fstatus.location.href=\\\"submit?q=force_web_infos+\\\\\\\"%s\\\\\\\"\\\";}'
-        class=\\\"srb\\\"\\>DL\\</td\\>" (Url.encode_to_string w.url);
+        class=\\\"srb\\\"\\>DL\\</td\\>" (Url.encode w.url);
           Printf.bprintf buf "
               \\<td title=\\\"%s\\\" class=\\\"sr\\\"\\>%s\\</td\\>
               \\<td class=\\\"sr\\\"\\>%d\\</td\\>"  w.url w.kind w.period;
@@ -2563,7 +2563,7 @@ let _ =
         \\<td class=\\\"sr ar\\\"\\>%s\\</td\\>
         \\<td class=\\\"sr\\\"\\>%s\\</td\\>\\</tr\\>"
                 (html_mods_cntr ())
-                (Url.encode_to_string dir)
+                (Url.encode dir)
                 shared_dir.shdir_priority
                 dir
                 shared_dir.shdir_strategy
@@ -4158,15 +4158,15 @@ let _ =
                         (title, "sr", "\\<a href=\\\"" ^ link ^ "\\\"\\>" ^ title ^ "\\</a\\>");
                         (title, "sr", 
                           "\\<a href=\\\"submit?q=dllink+"
-                          ^ (Url.encode_to_string link)
+                          ^ (Url.encode link)
                           ^ "\\\"\\ title=\\\"\\dllink\\\"\\>dllink\\</a\\>"
                           ^
                           " \\<a href=\\\"submit?q=http+"
-                          ^ (Url.encode_to_string link)
+                          ^ (Url.encode link)
                           ^ "\\\"\\ title=\\\"\\http\\\"\\>http\\</a\\>"
                           ^
                           " \\<a href=\\\"submit?q=startbt+"
-                          ^ (Url.encode_to_string link)
+                          ^ (Url.encode link)
                           ^ "\\\"\\ title=\\\"\\startbt\\\"\\>startbt\\</a\\>"
                         )
                       ];

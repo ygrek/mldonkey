@@ -79,7 +79,7 @@ end_pos !counter_pos b.len to_read;
 
             let old_downloaded = CommonSwarming.downloaded swarmer in
 
-            CommonSwarming.received up !counter_pos b.buf b.pos to_read_int;
+            CommonSwarming.received up !counter_pos (Bytes.unsafe_to_string b.buf) b.pos to_read_int;
             let new_downloaded = CommonSwarming.downloaded swarmer in
 
             c.client_total_downloaded <- c.client_total_downloaded ++ (new_downloaded -- old_downloaded);

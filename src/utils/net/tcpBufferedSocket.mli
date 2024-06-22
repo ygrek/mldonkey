@@ -67,7 +67,7 @@ val set_refill : t -> (t -> unit) -> unit
 val set_rtimer : t ->  (t -> unit) -> unit
 val write: t -> bytes -> int -> int -> unit
 val write_string: t -> string -> unit
-val write_all_bytes: t -> bytes -> unit
+val write_bytes: t -> bytes -> unit
 val connect: token -> string -> Unix.inet_addr -> int -> handler -> t
 val close : t -> BasicSocket.close_reason -> unit
 val closed : t -> bool

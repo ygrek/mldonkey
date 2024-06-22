@@ -1603,7 +1603,7 @@ is checked for the file.
           if !verbose_download then
             lprintf_nl "Complete compressed block received!";
           
-          let s = String.create comp.comp_len in
+          let s = Bytes.create comp.comp_len in
           let rec iter list =
             match list with
               [] -> 0
@@ -1615,12 +1615,13 @@ is checked for the file.
           in
           let pos = iter comp.comp_blocs in
           assert (pos = comp.comp_len);
+          let s = Bytes.unsafe_to_string s in
             let s = Zlib2.uncompress_string2 s in
             if !verbose_download then
-        lprintf_nl "Decompressed: %d/%d" (Bytes.length s) comp.comp_len;
+        lprintf_nl "Decompressed: %d/%d" (String.length s) comp.comp_len;
             
             DonkeyOneFile.block_received c comp.comp_md4
-              comp.comp_pos s 0 (Bytes.length s);
+              comp.comp_pos s 0 (String.length s);
           
           c.client_comp <- None;
         end else

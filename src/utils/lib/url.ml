@@ -36,7 +36,7 @@ type url = {
 let encode s =
   let pos = ref 0 in
   let len = String.length s in
-  let res = String.create (3*len) in
+  let res = Bytes.create (3*len) in
   let hexa_digit x =
     if x >= 10 then Char.chr (Char.code 'A' + x - 10)
     else Char.chr (Char.code '0' + x) in
@@ -50,10 +50,7 @@ let encode s =
         res.[!pos+2] <- hexa_digit (Char.code c mod 16);
         pos := !pos + 3
   done;
-  Bytes.sub res 0 !pos
-
-let encode_to_string s =
-  Bytes.to_string (encode s)
+  Bytes.sub_string res 0 !pos
 
 (** decodes a sting according RFC 1738
 or x-www-form-urlencoded ('+' with ' ')
@@ -165,12 +162,12 @@ let put_args s args =
   let rec manage_args = function
     | [] -> assert false
     | [a, ""] ->
-        Buffer.add_bytes res (encode a)
+        Buffer.add_string res (encode a)
     | [a, b] ->
-        Buffer.add_bytes res (encode a); Buffer.add_char res '='; Buffer.add_bytes res 
+        Buffer.add_string res (encode a); Buffer.add_char res '='; Buffer.add_string res 
           (encode b)
     | (a,b)::l ->
-        Buffer.add_bytes res (encode a); Buffer.add_char res '='; Buffer.add_bytes res 
+        Buffer.add_string res (encode a); Buffer.add_char res '='; Buffer.add_string res 
           (encode b);
         Buffer.add_char res '&'; manage_args l in
 (*  lprintf "len args %d" (List.length args); lprint_newline ();*)

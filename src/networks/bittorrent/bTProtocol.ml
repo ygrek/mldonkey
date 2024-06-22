@@ -329,9 +329,9 @@ module TcpMessages = struct
         | DHT_Port n -> buf_int8 buf 9; buf_int16 buf n
         | Extended (n,msg) -> buf_int8 buf 20; buf_int8 buf n; Buffer.add_string buf msg
       end;
-      let s = Buffer.contents buf in
-      str_int s 0 (String.length s - 4);
-      s
+      let s = Buffer.to_bytes buf in
+      str_int s 0 (Bytes.length s - 4);
+      Bytes.unsafe_to_string s
   end
 
 (*************************************************************************)
@@ -456,7 +456,7 @@ let bt_handler parse_fun handler c sock =
            then drop the connection) *)
         if b.len >= 20 then
           begin
-            let payload = String.sub b.buf b.pos 20 in
+            let payload = Bytes.sub_string b.buf b.pos 20 in
             let p = parse_fun (-1) payload in
             buf_used b 20;
             c.client_received_peer_id <- true;
@@ -477,13 +477,13 @@ let bt_handler parse_fun handler c sock =
         raise (Wait_for_more "after_peer_id");
       end;
     while b.len >= 4 do
-        let msg_len = get_int b.buf b.pos in
+        let msg_len = get_int (Bytes.unsafe_to_string b.buf) b.pos in
         if msg_len < 0 then
           begin
             let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
             lprintf_nl "BT: Unknown message from %s:%d dropped!! peerid:%b data_len:%i msg_len:%i software: %s"
                 (Ip.to_string ip) port c.client_received_peer_id b.len msg_len (brand_to_string c.client_brand);
-            dump (String.sub b.buf b.pos (min b.len 30));
+            dump (Bytes.sub_string b.buf b.pos (min b.len 30));
             buf_used b b.len;
             close sock Closed_by_user;
           end
@@ -494,7 +494,7 @@ let bt_handler parse_fun handler c sock =
             let (ip,port) = (TcpBufferedSocket.peer_addr sock) in
             lprintf_nl "btprotocol.bt_handler: closed connection from %s:%d because of too much data!! data_len:%i msg_len:%i software: %s"
                 (Ip.to_string ip) port b.len msg_len (brand_to_string c.client_brand);
-            dump (String.sub b.buf b.pos (min b.len 30));
+            dump (Bytes.sub_string b.buf b.pos (min b.len 30));
             buf_used b b.len;
             close sock Closed_by_user
           end
@@ -503,9 +503,9 @@ let bt_handler parse_fun handler c sock =
             buf_used b 4;
             (* lprintf "Message complete: %d\n" msg_len;  *)
             if msg_len > 0 then
-                let opcode = get_int8 b.buf b.pos in
+                let opcode = get_int8 (Bytes.unsafe_to_string b.buf) b.pos in
                 (* FIXME sub *)
-                let payload = String.sub b.buf (b.pos+1) (msg_len-1) in
+                let payload = Bytes.sub_string b.buf (b.pos+1) (msg_len-1) in
                 buf_used b msg_len;
                 (* lprintf "Opcode %d\n" opcode; *)
                 try
@@ -543,7 +543,7 @@ let handlers info gconn =
       match gconn.gconn_handler with
       | BTHeader h ->
           (* dump (String.sub b.buf b.pos (min b.len 100)); *)
-          let slen = get_int8 b.buf b.pos in
+          let slen = get_int8 (Bytes.unsafe_to_string b.buf) b.pos in
           if slen + 29 <= b.len then
             begin
               (* get proto and file_id from handshake,
@@ -552,14 +552,14 @@ let handlers info gconn =
                  *)
 (*              let proto = String.sub b.buf (b.pos+1) slen in *)
               let file_id = Sha1.direct_of_string
-                (String.sub b.buf (b.pos+9+slen) 20) in
-              let proto,pos = get_string8 b.buf b.pos in
-              let rbits = (String.sub b.buf (b.pos+pos) 8) in
+                (Bytes.sub_string b.buf (b.pos+9+slen) 20) in
+              let proto,pos = get_string8 (Bytes.unsafe_to_string b.buf) b.pos in
+              let rbits = (Bytes.sub_string b.buf (b.pos+pos) 8) in
               buf_used b (slen+29);
               h gconn sock (proto, rbits, file_id);
             end
           else
-            if (String.sub b.buf b.pos (min b.len 100)) = "NATCHECK_HANDSHAKE" then
+            if (Bytes.sub_string b.buf b.pos (min b.len 100)) = "NATCHECK_HANDSHAKE" then
                 write_string sock (Printf.sprintf "azureus_rand_%d" !azureus_porttest_random)
           else if (TcpBufferedSocket.closed sock) then
               let (ip,port) = (TcpBufferedSocket.peer_addr sock) in

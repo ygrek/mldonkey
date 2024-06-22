@@ -136,10 +136,10 @@ let make_full_request r =
       let rec make_post = function
           | [] -> assert false
         | [a, b] ->
-            Printf.bprintf post "%s%c%s" (Url.encode_to_string a) '=' (Url.encode_to_string b)
+            Printf.bprintf post "%s%c%s" (Url.encode a) '=' (Url.encode b)
         | (a,b)::l ->
             Printf.bprintf post "%s%c%s%c" 
-              (Url.encode_to_string a) '=' (Url.encode_to_string b) '&';
+              (Url.encode a) '=' (Url.encode b) '&';
             make_post l in
       make_post args;
       Printf.bprintf res "Content-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s"

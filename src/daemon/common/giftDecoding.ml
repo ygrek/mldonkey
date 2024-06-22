@@ -11,11 +11,11 @@ let gui_cut_messages f sock nread =
   try
     let rec iter pos len =
       if len = 0 then raise Not_found;
-        if Bytes.get b.buf pos = ';' && (
+      if Bytes.get b.buf pos = ';' && (
           pos = b.pos || 
           (pos > b.pos && Bytes.get b.buf (pos-1) <> '\\')) then begin
           let len = pos - b.pos+1 in
-          let s = Bytes.sub b.buf b.pos len in
+          let s = Bytes.sub_string b.buf b.pos len in
           buf_used b len;
           f s;
           iter b.pos b.len

@@ -47,7 +47,7 @@ let gui_send writer sock t =
     let s = Buffer.to_bytes buf in
     let len = Bytes.length s - 4 in
     str_int s 0 len;
-    write_all_bytes sock s;
+    write_bytes sock s
   with UnsupportedGuiMessage -> ()
       
 (***************

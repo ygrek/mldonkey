@@ -87,19 +87,19 @@ let gzip_string ?(level = 6) instr =
 let uncompress_string2 inbuf =
   let zs = inflate_init true in
   let rec uncompr inpos outbuf outpos =
-    let inavail = Bytes.length inbuf - inpos in
+    let inavail = String.length inbuf - inpos in
     let outavail = Bytes.length outbuf - outpos in
     if outavail = 0
     then uncompr inpos (grow_buffer outbuf) outpos
     else begin
       let (finished, used_in, used_out) =
-        inflate zs inbuf inpos inavail outbuf outpos outavail Z_SYNC_FLUSH in
+        inflate_string zs inbuf inpos inavail outbuf outpos outavail Z_SYNC_FLUSH in
       if finished then 
-        Bytes.sub outbuf 0 (outpos + used_out)
+        Bytes.sub_string outbuf 0 (outpos + used_out)
       else
         uncompr (inpos + used_in) outbuf (outpos + used_out)
     end in
-  let res = uncompr 0 (String.create (2 * Bytes.length inbuf)) 0 in
+  let res = uncompr 0 (Bytes.create (2 * String.length inbuf)) 0 in
   inflate_end zs;
   res
 

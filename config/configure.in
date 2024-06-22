@@ -690,10 +690,6 @@ if test "$OCAMLVERSION" \< "$MINIMUM_OCAML"; then
   exit 1
 fi
 
-if test ! "$OCAMLVERSION" \< "4.03.0"; then
-  OCAMLC="$OCAMLC"
-fi
-
 if test "$OCAMLOPT" = "no"; then
   TARGET_TYPE=byte
   OCAMLLIB_EXT=cma
@@ -707,11 +703,6 @@ else
     echo "******** Expected ocamlopt version $OCAMLVERSION , but got $OCAMLOPTVERSION *********" 1>&2;
     echo "*******  Check http://ocaml.org/  ********" 1>&2;
     exit 1; }
-
-  if test ! "$OCAMLVERSION" \< "4.03.0"; then
-    OCAMLOPT="$OCAMLOPT"
-  fi
-
 fi
 
 echo "-------------------------------------------"

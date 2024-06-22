@@ -328,11 +328,12 @@ let decode_torrent s =
 let encode_torrent torrent =
 
   let npieces = Array.length torrent.torrent_pieces in
-  let pieces = String.create (20 * npieces) in
+  let pieces = Bytes.create (20 * npieces) in
   for i = 0 to npieces - 1 do
     String.blit (Sha1.direct_to_string torrent.torrent_pieces.(i)) 0
       pieces (i*20) 20
   done;
+  let pieces = Bytes.unsafe_to_string pieces in
 
   let encode_file (filename, size) =
     Dictionary [

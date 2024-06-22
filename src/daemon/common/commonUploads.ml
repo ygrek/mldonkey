@@ -290,7 +290,7 @@ let shared_tree = new_shared_dir ""
 
 let md4_of_list md4s =
   let len = List.length md4s in
-  let s = String.create (len * 16) in
+  let s = Bytes.create (len * 16) in
   let rec iter list i =
     match list with
       [] -> ()
@@ -300,7 +300,7 @@ let md4_of_list md4s =
         iter tail (i+16)
   in
   iter md4s 0;
-  Md4.string (Bytes.to_string s)
+  Md4.string @@ Bytes.unsafe_to_string s
 
 let rec tiger_of_array array pos block =
   if block = 1 then
@@ -312,11 +312,11 @@ let rec tiger_of_array array pos block =
   else
   let d1 = tiger_of_array array pos (block/2) in
   let d2 = tiger_of_array array (pos+block/2) (block/2) in
-  let s = String.create (1 + Tiger.length * 2) in
+  let s = Bytes.create (1 + Tiger.length * 2) in
   s.[0] <- '\001';
   String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
   String.blit (TigerTree.direct_to_string d2) 0 s (1+Tiger.length) Tiger.length;
-  let t = Tiger.string (Bytes.to_string s) in
+  let t = Tiger.string @@ Bytes.unsafe_to_string s in
   let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
   t
 
@@ -345,11 +345,11 @@ let rec tiger_pos2 nblocks =
   pos, list
 
 let tiger_node d1 d2 =
-  let s = String.create (1 + Tiger.length * 2) in
+  let s = Bytes.create (1 + Tiger.length * 2) in
   s.[0] <- '\001';
   String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
   String.blit (TigerTree.direct_to_string d2) 0 s (1+Tiger.length) Tiger.length;
-  let t = Tiger.string (Bytes.to_string s) in
+  let t = Tiger.string @@ Bytes.unsafe_to_string s in
   let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
   t
 
@@ -386,12 +386,12 @@ let rec fill_tiger_tree s list =
 
 let flatten_tiger_array array =
   let len = Array.length array in
-  let s = String.create ( len * TigerTree.length) in
+  let s = Bytes.create ( len * TigerTree.length) in
   for i = 0 to len - 1 do
     String.blit (TigerTree.direct_to_string array.(i)) 0
       s (i * TigerTree.length) TigerTree.length
   done;
-  s
+  Bytes.unsafe_to_string s
 
 let unflatten_tiger_array s =
   let len = String.length s / TigerTree.length in
@@ -416,7 +416,7 @@ let build_tiger_tree_file uid ttr =
   let s = make_tiger_tree ttr in
   Unix2.safe_mkdir "ttr";
   Unix2.can_write_to_directory "ttr";
-  File.from_string (Filename.concat "ttr" (Uid.to_file_string uid)) (Bytes.to_string s)
+  File.from_string (Filename.concat "ttr" (Uid.to_file_string uid)) s
 
 let rec start_job_for sh (wanted_id, handler) =
   let info = IndexedSharedFiles.get_result sh.shared_info in
@@ -504,9 +504,9 @@ computation ??? *)
             let file_size = Unix32.getsize64 fd in
             let len64 = min 307200L file_size in
             let len = Int64.to_int len64 in
-            let s = String.create len in
+            let s = Bytes.create len in
             Unix32.read fd zero s 0 len;
-            Md5Ext.string (Bytes.to_string s)
+            Md5Ext.string @@ Bytes.unsafe_to_string s
           with e ->
               current_job := None;
               raise e

@@ -356,7 +356,7 @@ let mail_for_completed_file file =
         incoming.shdir_dirname
         (if (file_owner file).user_commit_dir = "" then ""
          else Printf.sprintf "/%s" (file_owner file).user_commit_dir)
-        (Url.encode_to_string (file_best_name file))
+        (Url.encode (file_best_name file))
     in
 
     let line5 = if !!auto_commit then "" else

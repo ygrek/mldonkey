@@ -2792,7 +2792,7 @@ let range_range r = (r.range_begin, r.range_end)
 let received up file_begin str string_begin string_len =
   assert (string_begin >= 0);
   assert (string_len >= 0);
-  assert (string_begin + string_len <= Bytes.length str);
+  assert (string_begin + string_len <= String.length str);
 
   let t = up.up_t in
   let s = t.t_s in
@@ -2909,7 +2909,7 @@ let received up file_begin str string_begin string_len =
                             (Printexc2.to_string e) 
                             r.range_begin file_end
                             (file_best_name t.t_file));
-                        file_write_bytes tprim.t_file
+                        file_write_string tprim.t_file
                           r.range_begin
                           str string_pos string_length;
                         range_received (Some t) r r.range_begin file_end;

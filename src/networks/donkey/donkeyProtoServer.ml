@@ -1124,8 +1124,8 @@ let rec parse magic s =
               raise Not_found
         end
     | 0xD4 -> (* 212 *)
-          let s = Zlib2.uncompress_string2 (Bytes.of_string (String.sub s 1 (len-1))) in
-          let s = Printf.sprintf "%c%s" (char_of_int opcode) (Bytes.unsafe_to_string s) in
+          let s = Zlib2.uncompress_string2 (String.sub s 1 (len-1)) in
+          let s = Printf.sprintf "%c%s" (char_of_int opcode) s in
           parse 227 s
 
     | _ ->

@@ -72,14 +72,14 @@ let cmp id1 id2 =
 let inside node hash = not (cmp hash node.lo = LT || cmp hash node.hi = GT)
 
 let middle =
-  let s = String.make 20 (Char.chr 0xFF) in
+  let s = Bytes.make 20 (Char.chr 0xFF) in
   s.[0] <- Char.chr 0x7F;
-  H.direct_of_string s
+  H.direct_of_string @@ Bytes.unsafe_to_string s
 
 let middle' =
-  let s = String.make 20 (Char.chr 0x00) in
+  let s = Bytes.make 20 (Char.chr 0x00) in
   s.[0] <- Char.chr 0x80;
-  H.direct_of_string s
+  H.direct_of_string @@ Bytes.unsafe_to_string s
 
 let last =
   H.direct_of_string (String.make 20 (Char.chr 0xFF))
@@ -95,16 +95,16 @@ let big_int_of_hash h =
   !n
 
 let hash_of_big_int n =
-  let s = String.create H.length in
+  let s = Bytes.create H.length in
   let n = ref n in
   let div = big_int_of_int 256 in
-  for i = String.length s - 1 downto 0 do
+  for i = Bytes.length s - 1 downto 0 do
     let (d,m) = quomod_big_int !n div in
     s.[i] <- Char.chr (int_of_big_int m);
     n := d
   done;
   assert (eq_big_int zero_big_int !n);
-  H.direct_of_string s
+  H.direct_of_string @@ Bytes.unsafe_to_string s
 
 let big_int_2 = big_int_of_int 2
 (* hash <-> number *)

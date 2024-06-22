@@ -766,9 +766,7 @@ let read_theme_page page =
   let theme_page = get_theme_page page in
   Unix2.tryopen_read theme_page (fun file ->
     let size = (Unix.stat theme_page).Unix.st_size in
-    let s = Bytes.make size ' ' in
-    really_input file s 0 size;
-    (Bytes.to_string s))
+    really_input_string file size)
 
 let http_add_gen_header r =
   add_reply_header r "Server" ("MLdonkey/"^Autoconf.current_version);
@@ -927,7 +925,7 @@ let send_preview r file fd size filename exten =
 
   add_reply_header r "Content-Disposition"
   (Printf.sprintf "inline;filename=\"%s\"" (Filename.basename filename)); 
-  let s = String.create 200000 in
+  let s = Bytes.create 200000 in
   set_max_output_buffer r.sock (Bytes.length s);
   set_rtimeout r.sock 10000.;
   let rec stream_file file pos sock =
@@ -1565,7 +1563,7 @@ let http_handler o t r =
   in
   r.reply_content <- 
     if !http_file_type <> BIN && !!html_use_gzip then 
-      Bytes.to_string (Zlib2.gzip_string s)
+      Bytes.unsafe_to_string (Zlib2.gzip_string s)
     else s
 
 let http_options = {

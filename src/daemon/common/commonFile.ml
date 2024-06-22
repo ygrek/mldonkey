@@ -895,7 +895,7 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
 let file_print_ed2k_link filename filesize md4hash =
   if md4hash = Md4.null then "" else
   Printf.sprintf "ed2k://|file|%s|%s|%s|/"
-    (Url.encode_to_string filename) (Int64.to_string filesize) (Md4.to_string md4hash)
+    (Url.encode filename) (Int64.to_string filesize) (Md4.to_string md4hash)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1137,7 +1137,7 @@ let file_write_bytes file offset s pos len =
   else
     Unix32.write  (file_fd file) offset s pos len
 
-let file_write_string file offset s pos len = file_write_bytes  file offset (Bytes.of_string s) pos len
+let file_write_string file offset s pos len = file_write_bytes  file offset (Bytes.unsafe_of_string s) pos len
 
 let file_verify file key begin_pos end_pos =
   Unix32.flush_fd (file_fd file);

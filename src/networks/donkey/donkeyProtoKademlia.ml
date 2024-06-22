@@ -419,7 +419,7 @@ module P = struct
       else
       let magic = Bytes.get pbuf 0 in
       let opcode = int_of_char (Bytes.get pbuf 1) in
-      let msg = Bytes.sub pbuf 2 (len-2) in
+      let msg = Bytes.sub_string pbuf 2 (len-2) in
       let msg = if magic = kademlia_packed_header_code then
           let s = Zlib2.uncompress_string2 msg in
 (*          lprintf "Uncompressed:\n";
@@ -427,7 +427,7 @@ module P = struct
           s
         else msg
       in
-      let t = parse ip port opcode (Bytes.to_string msg) in
+      let t = parse ip port opcode msg in
       t
 
     let udp_send sock ip port ping msg =

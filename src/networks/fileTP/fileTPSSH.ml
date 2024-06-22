@@ -56,7 +56,7 @@ let shell_command hostname =
 (*************************************************************************)
 
 let segment_received c num s pos =
-  if Bytes.length s > 0 then
+  if String.length s > 0 then
     let d =
       match c.client_downloads with
         [] -> disconnect_client c Closed_by_user; raise Exit
@@ -85,7 +85,7 @@ let segment_received c num s pos =
               CommonSwarming.downloaded swarmer in
 
             CommonSwarming.received up
-              pos s 0 (Bytes.length s);
+              pos s 0 (String.length s);
 
             let new_downloaded =
               CommonSwarming.downloaded swarmer in
@@ -182,14 +182,14 @@ let ssh_check_size file url start_download_file =
       close sock s);
   TcpBufferedSocket.set_reader sock (fun sock nread ->
       let b = TcpBufferedSocket.buf sock in
-      lprintf "SSH reader %d [%s]\n" nread (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
+      lprintf "SSH reader %d [%s]\n" nread (String.escaped (Bytes.sub_string b.buf b.pos b.len));
       let rec iter i =
         if i < b.len then
-          if (Bytes.get b.buf (b.pos + i)) = '\n' then begin
-              let slen = if i > 0 && (Bytes.get b.buf (b.pos + i - 1)) = '\r' then
+          if Bytes.get b.buf (b.pos + i) = '\n' then begin
+              let slen = if i > 0 && Bytes.get b.buf (b.pos + i - 1) = '\r' then
                   i - 1
                 else i in
-              let line = String.sub (Bytes.to_string b.buf) b.pos slen in
+              let line = Bytes.sub_string b.buf b.pos slen in
               lprintf "SSH LINE [%s]\n" line;
               buf_used b (i+1);
               if String2.starts_with line "[SIZE " then begin
@@ -245,7 +245,7 @@ let ssh_connect token c f =
 
             if b.len >= elen then begin
                 segment := SegmentX (file_num, pos, len, elen,
-                  String.sub (Bytes.to_string b.buf) b.pos elen);
+                  Bytes.sub_string b.buf b.pos elen);
                 buf_used b elen;
                 iter0 0
               end
@@ -255,11 +255,11 @@ let ssh_connect token c f =
 
       and iter0 i =
         if i < b.len then
-          if (Bytes.get b.buf (b.pos + i)) = '\n' then begin
-              let slen = if i > 0 && (Bytes.get b.buf (b.pos + i - 1)) = '\r' then
+          if Bytes.get b.buf (b.pos + i) = '\n' then begin
+              let slen = if i > 0 && Bytes.get b.buf (b.pos + i - 1) = '\r' then
                   i - 1
                 else i in
-              let line = String.sub (Bytes.to_string b.buf) b.pos slen in
+              let line = Bytes.sub_string b.buf b.pos slen in
 (*              lprintf "SSH LINE [%s]\n" line; *)
               buf_used b (i+1);
 
@@ -296,7 +296,7 @@ let ssh_connect token c f =
 (*
                     lprintf "Received/expected: %d/%d\n" (String.length s) elen;
 *)
-                    let ss = Base64.decode s in
+                    let ss = Bytes.unsafe_to_string (Base64.decode s) in
 (*
                     lprintf "Decoded/expected: %d/%d\n" (String.length ss) len;
 *)
@@ -306,7 +306,7 @@ let ssh_connect token c f =
 
                 | SegmentX (file_num, pos, len, elen, ss) ->
                     lprintf "******* SEGMENT RECEIVED *******\n";
-                    segment_received c file_num (Bytes.of_string ss) pos;
+                    segment_received c file_num ss pos;
                     segment := Nothing;
                     iter0 0
                 | _ ->

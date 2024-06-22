@@ -78,7 +78,7 @@ module NewUpload = struct
               B.usesixtyfour = (begin_pos ++ (Int64.of_int len_int)) > old_max_emule_file_size;
               B.start_pos = begin_pos;
               B.end_pos = begin_pos ++ (Int64.of_int len_int);
-              B.bloc_str = Bytes.empty;
+              B.bloc_str = "";
               B.bloc_begin = 0;
               B.bloc_len = 0; 
             }

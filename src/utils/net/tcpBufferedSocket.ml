@@ -1618,8 +1618,8 @@ let write t s pos len =
       _to_deflate t;
       buf_add t wbuf s pos len
 
-let write_string t s = write t (Bytes.of_string s) 0 (String.length s)
-let write_all_bytes t data = write t data 0 (Bytes.length data)
+let write_bytes t s = write t s 0 (Bytes.length s)
+let write_string t s = write_bytes t (Bytes.unsafe_of_string s)
 
 (*************************************************************************)
 (*                                                                       *)

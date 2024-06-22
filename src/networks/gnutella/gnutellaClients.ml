@@ -266,7 +266,7 @@ and read_some d c counter_pos b to_read_int =
   begin
     try
       CommonSwarming.received up
-        counter_pos b.buf b.pos to_read_int;
+        counter_pos (Bytes.unsafe_to_string b.buf) b.pos to_read_int;
     with e -> 
         lprintf "FT: Exception %s in CommonSwarming.received\n"
           (Printexc2.to_string e);
