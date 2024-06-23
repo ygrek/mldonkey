@@ -1,0 +1,106 @@
+# appimage-builder recipe see https://appimage-builder.readthedocs.io for details
+version: 1
+
+script:
+  # Download, configure and make
+#  - git clone https://github.com/ygrek/mldonkey.git
+#  - cd mldonkey
+#  - ./configure --enable-batch --enable-upnp-natpmp --disable-directconnect --disable-fasttrack --disable-gnutella --disable-gnutella2 --enable-gui=newgui2 -->
+#  - make
+  # Remove any previous build
+  - rm -rf AppDir | true
+  # Get application version
+#  - ./mlnet+gui -v 2>&1 | sed -ne "s#^.*Starting MLDonkey \([^ ]\+\) .*#APP_VERSION=\1#p" >> $BUILDER_ENV
+#  - cat "$BUILDER_ENV"
+#  - APP_VERSION=$("$SOURCE_DIR"/mlnet+gui -v 2>&1 | sed -ne "s#^.*Starting MLDonkey \([^ ]\+\) .*#\1#p")
+#  - echo "$APP_VERSION"
+  # Make some needed dirs
+  - mkdir -p "$TARGET_APPDIR"/usr/bin
+  - mkdir -p "$TARGET_APPDIR"/usr/share/icons/default
+  - mkdir -p "$TARGET_APPDIR"/usr/share/applications
+  # Copy the application data into the AppDir
+  - cp "$SOURCE_DIR"/mlnet+gui                         "$TARGET_APPDIR"/usr/bin/
+  - cp "$SOURCE_DIR"/distrib/mldonkey.desktop          "$TARGET_APPDIR"/usr/share/applications
+  - cp "$SOURCE_DIR"/icons/rsvg/type_source_normal.svg "$TARGET_APPDIR"/usr/share/icons/default/mldonkey.svg
+  # Relocatable by bruteforce patching
+  - sed -i -e 's#/usr#././#g' "$TARGET_APPDIR"/usr/bin/mlnet+gui
+  # Create symlink
+  - ln -s ./usr/bin/mlnet+gui "$TARGET_APPDIR"/mldonkey_gui
+
+AppDir:
+  path: ./AppDir
+  app_info:
+    id: mldonkey
+    name: mldonkey
+    icon: mldonkey
+#    version: {{APP_VERSION}}
+#    version: ${APP_VERSION}
+#    version: $APP_VERSION
+    version: 3.1.7.git
+    exec: mldonkey_gui
+    exec_args: $@
+  apt:
+    arch:
+      - amd64
+#    allow_unauthenticated: true
+    sources:
+      - sourceline: 'deb http://archive.ubuntu.com/ubuntu focal main restricted universe multiverse'
+        key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3b4fe6acc0b21f32'
+      - sourceline: 'deb http://archive.ubuntu.com/ubuntu focal-updates main restricted universe multiverse'
+      - sourceline: 'deb http://archive.ubuntu.com/ubuntu focal-backports main restricted universe multiverse'
+      - sourceline: 'deb http://security.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse'
+      - sourceline: 'deb http://archive.canonical.com/ubuntu/ focal partner'
+    include:
+      - ca-certificates
+      - libc6
+      - bzip2
+      - librsvg2-2
+      - libmagic1
+      - libmagic-mgc
+      - libminiupnpc17
+      - libnatpmp1
+      - libgtk2.0-0
+      - libatk-adaptor
+      - libgail-common
+      - libgd3
+      - perl-base
+      - dash
+      - make
+  files:
+    include:
+      - lib64/ld-linux-x86-64.so.2
+      - /usr/lib/file/libmagic-mgc
+    exclude:
+      - usr/share/man
+      - usr/share/doc/*/ANNOUNCE*
+      - usr/share/doc/*/AUTHORS*
+      - usr/share/doc/*/FAQ*
+      - usr/share/doc/*/HOWTO*
+      - usr/share/doc/*/NEWS*
+      - usr/share/doc/*/README*
+      - usr/share/doc/*/THANKS*
+      - usr/share/doc/*/TODO*
+      - usr/share/doc/*/changelog*
+      - usr/share/doc/*/copyright*
+      - usr/share/doc/*/examples/*
+  test:
+    fedora-30:
+      image: appimagecrafters/tests-env:fedora-30
+      command: ./AppRun
+    debian-stable:
+      image: appimagecrafters/tests-env:debian-stable
+      command: ./AppRun
+    archlinux-latest:
+      image: appimagecrafters/tests-env:archlinux-latest
+      command: ./AppRun
+    centos-7:
+      image: appimagecrafters/tests-env:centos-7
+      command: ./AppRun
+    ubuntu-xenial:
+      image: appimagecrafters/tests-env:ubuntu-xenial
+      command: ./AppRun
+AppImage:
+  arch: x86_64
+  update-information: None
+#  sign-key: None
+
