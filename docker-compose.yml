@@ -1,0 +1,20 @@
+version: '3.3'
+
+services:
+  mldonkey:
+    image: mldonkey
+    command: "--ED2K-port 4662 --BT-dht_port 3615"
+    container_name: mldonkey
+    restart: unless-stopped
+    ports:
+      - "4000:4000"       # Telnet
+      - "4001:4001"       # GUI
+      - "4080:4080"       # Web GUI
+      - "3615:3615/udp"   # BitTorrent DHT
+      - "4662:4662"       # eDonkey TCP
+      - "4666:4666/udp"   # eDonkey UDP (TCP+4)
+      - "6881:6881"       # BitTorrent
+      - "6882:6882"       # BitTorrent
+    volumes:
+      - "/srv/mlnet:/home/mlnet/.mldonkey"
+
