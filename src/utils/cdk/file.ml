@@ -19,25 +19,25 @@
 
 (* read a whole file *)
 let to_string name =
-  Bytes.to_string (Unix2.tryopen_read_bin name (fun chan ->
+  Unix2.tryopen_read_bin name (fun chan ->
   let buf_size = 1024 in
-  let buf = String.create buf_size in
+  let buf = Bytes.create buf_size in
   let rec iter buf nb_read =
     let buf_size = Bytes.length buf in
     let to_read = min (buf_size - nb_read) 8192 in
     let tmp = input chan buf nb_read to_read in
     if tmp = 0 then
-      Bytes.sub buf 0 nb_read
+      Bytes.sub_string buf 0 nb_read
     else
     let nb_read = nb_read + tmp in
     let buf =
       if nb_read = buf_size then
-        String2.resize_bytes buf (2 * buf_size)
+        String2.resize buf (2 * buf_size)
       else buf
     in
     iter buf nb_read
   in
-  iter buf 0))
+  iter buf 0)
 
 let read_whole_chan chan =
   let buf = Buffer.create 1024 in

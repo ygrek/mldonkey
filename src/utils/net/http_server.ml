@@ -80,7 +80,7 @@ let decode64 s =
     if s.[len-1] = '=' then
       if s.[len-2] = '=' then 2 else 1
     else 0 in
-  Bytes.sub res 0 (len_res - nb_cut)
+  Bytes.sub_string res 0 (len_res - nb_cut)
 
 
 let debug = ref false
@@ -282,7 +282,7 @@ let parse_head sock s =
                 "authorization" ->
                 let _, pass = String2.cut_at value ' ' in
                 let pass = decode64 pass in
-                let login, pswd = String2.cut_at (Bytes.to_string pass) ':' in
+                let login, pswd = String2.cut_at pass ':' in
                 { options with
                   login = login;
                   passwd = pswd }
@@ -794,16 +794,16 @@ let request_handler config sock nread =
     let end_pos = b.pos + b.len in
     if i < end_pos then
       if Bytes.get b.buf i = '\n' && i <= end_pos - 2 then
-        let c = (Bytes.get b.buf (i+1)) in
+        let c = Bytes.get b.buf (i+1) in
         if c = '\n' then
           let len = i + 2 - b.pos in
-          let header = Bytes.to_string (Bytes.sub b.buf b.pos len) in
+          let header = Bytes.sub_string b.buf b.pos len in
           buf_used b len;
           manage config sock header
         else
         if c = '\r' && i <= end_pos - 3 && Bytes.get b.buf (i+2) = '\n' then
           let len = i + 3 - b.pos in
-          let header = Bytes.to_string (Bytes.sub b.buf b.pos len) in
+          let header = Bytes.sub_string b.buf b.pos len in
           buf_used b len;
           manage config sock header
         else

@@ -124,12 +124,12 @@ let make_full_request r =
   end;
   begin match r.req_proxy with
   | Some (_,_,Some (login,password)) ->
-      Printf.bprintf res "Proxy-Authorization: Basic %s\n" (Base64.encode_to_string (login ^ ":" ^ password))
+      Printf.bprintf res "Proxy-Authorization: Basic %s\n" (Base64.encode (login ^ ":" ^ password))
   | _ -> ()
   end;
   if url.user <> "" then begin
     let userpass = Printf.sprintf "%s:%s" url.user url.passwd in
-    Printf.bprintf res "Authorization: Basic %s\r\n" (Base64.encode_to_string userpass)
+    Printf.bprintf res "Authorization: Basic %s\r\n" (Base64.encode userpass)
   end;
   if is_real_post then begin
       let post = Buffer.create 80 in
@@ -203,13 +203,13 @@ let read_header header_handler sock nread =
         let c = (Bytes.get b.buf (i+1)) in
         if c = '\n' then
           let len = i + 2 - b.pos in
-          let header = Bytes.sub b.buf b.pos len |> Bytes.to_string in
+          let header = Bytes.sub_string b.buf b.pos len in
           buf_used b len;
           header_handler sock header
         else
         if c = '\r' && i <= end_pos - 3 && (Bytes.get b.buf (i+2)) = '\n' then
           let len = i + 3 - b.pos in
-          let header = Bytes.sub b.buf b.pos len |> Bytes.to_string in
+          let header = Bytes.sub_string b.buf b.pos len in
           buf_used b len;
           header_handler sock header
         else 
@@ -539,8 +539,7 @@ let split_header header =
       ) else if Bytes.get header_bytes i = ',' then
         Bytes.set header_bytes (i - 1) ','
   done;
-  let modified_header = Bytes.to_string header_bytes in
-  String2.split_simplify modified_header '\n'
+  String2.split_simplify (Bytes.unsafe_to_string header_bytes) '\n'
 
 let cut_headers headers =
   try

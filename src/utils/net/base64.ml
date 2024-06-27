@@ -75,10 +75,10 @@ let encode_with_options b64 equal s pos len linelen crlf =
         (Char.code (String.unsafe_get s (p+2))) in
 (* Obviously, 'bits' is a 24 bit entity (i.e. bits < 2**24) *)
     assert(!j + 3 < l_t');
-    String.unsafe_set t !j     (Array.unsafe_get b64 ( bits lsr 18));
-    String.unsafe_set t (!j+1) (Array.unsafe_get b64 ((bits lsr 12) land 63));
-    String.unsafe_set t (!j+2) (Array.unsafe_get b64 ((bits lsr  6) land 63));
-    String.unsafe_set t (!j+3) (Array.unsafe_get b64 ( bits         land 63));
+    Bytes.unsafe_set t !j     (Array.unsafe_get b64 ( bits lsr 18));
+    Bytes.unsafe_set t (!j+1) (Array.unsafe_get b64 ((bits lsr 12) land 63));
+    Bytes.unsafe_set t (!j+2) (Array.unsafe_get b64 ((bits lsr  6) land 63));
+    Bytes.unsafe_set t (!j+3) (Array.unsafe_get b64 ( bits         land 63));
     j := !j + 4;
     if linelen > 3 then begin
         q := !q + 4;
@@ -135,15 +135,13 @@ let encode_with_options b64 equal s pos len linelen crlf =
         end;	
     end;
   
-  t ;;
+  Bytes.unsafe_to_string t
 
 
 
 let encode s =
   encode_with_options rfc_pattern '=' s 0 (String.length s) 0 false;;
 
-let encode_to_string s =
-  Bytes.to_string (encode s)
 
 let encode_substring s pos len =
   encode_with_options rfc_pattern '=' s pos len 0 false;;
@@ -209,7 +207,7 @@ let decode_substring t ~pos ~len ~url_variant:p_url ~accept_spaces:p_spaces =
   in
   
   let l_s = (l_t / 4) * 3 - pad_chars in       (* sic! *)
-  let s = String.create l_s in
+  let s = Bytes.create l_s in
   
   let decode_char c =
     match c with
@@ -250,9 +248,9 @@ let decode_substring t ~pos ~len ~url_variant:p_url ~accept_spaces:p_spaces =
         let x0 = (n0 lsl 2) lor (n1 lsr 4) in
         let x1 = ((n1 lsl 4) land 0xf0) lor (n2 lsr 2) in
         let x2 = ((n2 lsl 6) land 0xc0) lor n3 in
-        String.unsafe_set s q     (Char.chr x0);
-        String.unsafe_set s (q+1) (Char.chr x1);
-        String.unsafe_set s (q+2) (Char.chr x2);
+        Bytes.unsafe_set s q     (Char.chr x0);
+        Bytes.unsafe_set s (q+1) (Char.chr x1);
+        Bytes.unsafe_set s (q+2) (Char.chr x2);
       done;
     end
   else begin
@@ -271,9 +269,9 @@ let decode_substring t ~pos ~len ~url_variant:p_url ~accept_spaces:p_spaces =
         let x0 = (n0 lsl 2) lor (n1 lsr 4) in
         let x1 = ((n1 lsl 4) land 0xf0) lor (n2 lsr 2) in
         let x2 = ((n2 lsl 6) land 0xc0) lor n3 in
-        String.unsafe_set s q     (Char.chr x0);
-        String.unsafe_set s (q+1) (Char.chr x1);
-        String.unsafe_set s (q+2) (Char.chr x2);
+        Bytes.unsafe_set s q     (Char.chr x0);
+        Bytes.unsafe_set s (q+1) (Char.chr x1);
+        Bytes.unsafe_set s (q+2) (Char.chr x2);
       done;
       cursor := pos + l_t - 4;
     end;
@@ -318,7 +316,7 @@ let decode_substring t ~pos ~len ~url_variant:p_url ~accept_spaces:p_spaces =
     
     end;
   
-  s ;;
+  Bytes.unsafe_to_string s ;;
 
 
 

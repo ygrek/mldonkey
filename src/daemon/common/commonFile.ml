@@ -1133,9 +1133,9 @@ let file_write_bytes file offset s pos len =
 *)
 
   if !!CommonOptions.buffer_writes then 
-    Unix32.buffered_write_copy (file_fd file) offset s pos len
+    Unix32.buffered_write_copy (file_fd file) offset (Bytes.unsafe_to_string s) pos len
   else
-    Unix32.write  (file_fd file) offset s pos len
+    Unix32.write_bytes  (file_fd file) offset s pos len
 
 let file_write_string file offset s pos len = file_write_bytes  file offset (Bytes.unsafe_of_string s) pos len
 

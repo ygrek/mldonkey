@@ -130,7 +130,7 @@ let rec really_write fd s pos len =
 (*      lprintf "really_write 0 BYTES !!!!!!!!!\n";  *)
       raise End_of_file
     end else
-  let nwrite = Unix.write fd s pos len in
+  let nwrite = Unix.write_substring fd s pos len in
   if nwrite = 0 then raise End_of_file else
   if nwrite < len then 
     really_write fd s (pos + nwrite) (len - nwrite)
@@ -205,18 +205,18 @@ let rec remove_all_directory dirname =
   Unix.rmdir dirname
 
 let random () =
-  let s = Bytes.create 7 in
+  let s = String.create 7 in
   for i = 0 to 6 do
     s.[i] <- char_of_int (97 + Random.int 26)
   done;
-  (Bytes.to_string s)
+  Bytes.unsafe_to_string s
 
 let can_write_to_directory dirname =
   let temp_file = Filename.concat dirname "tmp_" ^ random () ^ "_mld.tmp" in
   let check () = with_remove temp_file (fun _ ->
     tryopen_openfile temp_file [O_WRONLY; O_CREAT] 0o600 (fun fd ->
       let test_string = "mldonkey accesstest - this file can be deleted\n" in
-      really_write fd (Bytes.of_string test_string) 0 (String.length test_string)))
+      really_write fd test_string 0 (String.length test_string)))
   in
   try
     check ()

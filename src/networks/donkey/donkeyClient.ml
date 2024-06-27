@@ -1932,7 +1932,7 @@ end else *)
       log_chat_message cip (client_num c) c.client_name s;
 
   | M.EmuleCaptchaReq t ->
-      let b64data = Base64.encode_to_string t in
+      let b64data = Base64.encode t in
       let cip = string_of_client_addr c in
       log_chat_message cip (client_num c) c.client_name ("data:image/bmp;base64," ^ b64data)
 
@@ -2376,8 +2376,7 @@ let read_first_message overnet server cc m sock =
       porttest_sock := Some sock;
       set_closer sock (fun _ _ -> porttest_sock := None);
       set_lifetime sock 30.;
-      let buff = client_msg_to_string (emule_proto ()) m in
-      write sock buff 0 (Bytes.length buff);
+      write_string sock (client_msg_to_string (emule_proto ()) m);
       None
 
   | _ -> 

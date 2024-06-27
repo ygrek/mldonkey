@@ -199,6 +199,3 @@ let sdump s =
 
 let dump s =
   lprintf "%s" (sdump s)
-
-let dump_bytes s =
-  lprintf "%s" (sdump (Bytes.unsafe_to_string s))

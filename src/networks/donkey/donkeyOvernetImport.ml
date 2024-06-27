@@ -24,7 +24,7 @@ open LittleEndian
 
 let dump_file filename =
   Unix2.tryopen_read_bin filename (fun ic ->
-  let s = String.create 20 in
+  let s = Bytes.create 20 in
   try
     lprintf "file: %s\n" filename; 
     let pos = ref 0 in
@@ -32,7 +32,7 @@ let dump_file filename =
       let n = input ic s 0 20 in
       lprintf "pos = %d\n" !pos; 
       if n = 0 then raise Exit;
-      dump_bytes (Bytes.sub s 0 n);
+      dump (Bytes.sub_string s 0 n);
       pos := !pos + n;
     done
   with End_of_file -> ())

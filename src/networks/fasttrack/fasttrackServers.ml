@@ -159,7 +159,7 @@ let server_parse_cipher s gconn sock =
     | Some ciphers ->
         if !verbose_msg_raw then
           lprintf "Cipher received from server\n";
-        get_cipher_from_packet (Bytes.to_string b.buf) b.pos ciphers.in_cipher;
+        get_cipher_from_packet (Bytes.unsafe_to_string b.buf) b.pos ciphers.in_cipher;
         init_cipher ciphers.in_cipher;
 
         xor_ciphers ciphers.out_cipher ciphers.in_cipher;
@@ -253,11 +253,13 @@ let connect_server h =
 
               cipher_packet_set out_cipher s 4;
 
+              let s = Bytes.unsafe_to_string s in
+
               if !verbose_msg_raw then begin
-                  lprintf "SENDING %s\n" (Bytes.unsafe_to_string (Bytes.escaped s));
-                  AnyEndian.dump_bytes s;
+                  lprintf "SENDING %s\n" (String.escaped s);
+                  AnyEndian.dump s;
                 end;
-              write sock s 0 (Bytes.length s);
+              write_string sock s;
             with _ ->
                 disconnect_from_server nservers s Closed_connect_failed
         )

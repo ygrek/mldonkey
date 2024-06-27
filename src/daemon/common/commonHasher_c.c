@@ -292,7 +292,7 @@ value ml_job_done(value job_v)
 {
   if(job_done){
     value result_v = Field(job_v, JOB_RESULT);
-    char *result = Bytes_val(result_v);
+    char *result = String_val(result_v);
     int result_len = string_length(result_v);
 
 /*    printf("job len done: %d\n", result_len);     */

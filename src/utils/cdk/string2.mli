@@ -79,12 +79,9 @@ val subcontains : string -> string -> bool
 val of_char : char -> string
 (*d [of_char c] returns the string containing one [c]. *)
   
-val resize : string -> int ->  string
+val resize : bytes -> int ->  bytes
 (*d [resize s len] returns a string of length [len] starting with [s]. *)
-
-val resize_bytes: bytes -> int -> bytes
-(*d [resize s len] returns a byffer of length [len] starting with [s]. *)
-
+  
 val init : int -> (int -> char) -> string
 
 val tokens: string -> string list
@@ -96,7 +93,7 @@ external contains : string -> string -> bool = "ml_strstr"
 val starts_with : (* string *) string -> (* start *) string -> bool
 
 (* [replace_char s c1 c2] replaces char [c1] by char [c2] in [s] *)
-val replace_char : string -> char -> char -> unit
+val replace_char : string -> char -> char -> string
 
 (* [stem s] cuts the string [s] in small words, for indexation eg *)
 val stem : string -> string list

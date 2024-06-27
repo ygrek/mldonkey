@@ -98,7 +98,7 @@ let file_to_che3_to_string filename =
     let rec read pos =
       let rlen = int64_min_int (flen -- pos) slen in
       let npos = Int64.add pos (Int64.of_int rlen) in
-      let str = String.create slen in
+      let str = Bytes.create slen in
       Unix32.read file_fd pos str 0 rlen;
       Buffer.add_bytes buf str;
       if npos < flen then read npos
@@ -125,7 +125,7 @@ let string_to_che3_to_file str filename =
         else wlen
       in
       let npos = pos + len in
-      Unix32.write file_fd (Int64.of_int pos) (Bytes.of_string s) pos len;
+      Unix32.write file_fd (Int64.of_int pos) s pos len;
       if npos < slen then write npos
     in 
     write 0;
@@ -146,12 +146,12 @@ let file_to_bz2_to_buffer filename =
       getchar ()
     in getchar ();*)
     let rec decompress () =
-      let str = String.create 4096 in 
+      let str = Bytes.create 4096 in 
       let n = Bzip2.input ic str 0 (Bytes.length str) in
       if n = 0 then ()
       else begin 
         (*let ss = (String.sub str 0 n) in*)
-        Buffer.add_bytes buf (Bytes.sub str 0 n);
+        Buffer.add_string buf (Bytes.sub_string str 0 n);
         (*lprintf_nl "(%s)" ss;*)
         decompress ()
       end
@@ -180,7 +180,7 @@ let buffer_to_bz2_to_file buf filename =
         else slen
       in
       let npos = pos + len in
-      let str = Bytes.of_string (Buffer.sub buf pos len) in
+      let str = Bytes.unsafe_of_string @@ Buffer.sub buf pos len in      
       Bzip2.output oc str 0 len;
       if npos < blen then compress npos 
     in compress 0;
@@ -313,7 +313,7 @@ let () =
     let codedname =
       match Filename2.slash with
       | '/' -> codedname
-      | c -> let s = String.copy codedname in String2.replace_char s c '/'; s
+      | c -> String2.replace_char codedname c '/'
     in
     (try
       let dcsh = Hashtbl.find dc_shared_files_by_fullname fullname in

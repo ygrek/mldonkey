@@ -65,7 +65,7 @@ let http_send_range_request c range sock d =
   Printf.bprintf buf "Connection: Keep-Alive\r\n";
   if url.Url.user <> "" then begin
     let userpass = Printf.sprintf "%s:%s" url.Url.user url.Url.passwd in
-    let encoded = Base64.encode_to_string userpass in
+    let encoded = Base64.encode userpass in
     Printf.bprintf buf "Authorization: Basic %s\r\n" encoded
   end;
   Printf.bprintf buf "\r\n";

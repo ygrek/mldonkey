@@ -73,10 +73,8 @@ let rfc2047_encode h encoding s =
   copy ending;
   Buffer.contents buf
 
-let send_bytes oc s = Printf.fprintf oc "%a\r\n" output_bytes s; flush oc
-let send_string oc s = Printf.fprintf oc "%s\r\n" s; flush oc
-let send1_bytes oc s p = Printf.fprintf oc "%a %a\r\n" output_bytes s output_bytes p; flush oc
-let send1_string oc s p = Printf.fprintf oc "%s %s\r\n" s p; flush oc
+let send oc s = Printf.fprintf oc "%s\r\n" s; flush oc
+let send1 oc s p = Printf.fprintf oc "%s %s\r\n" s p; flush oc
  
 let simple_connect hostname port =
   let s = socket PF_INET SOCK_STREAM 0 in
@@ -145,23 +143,24 @@ let canon_addr s =
   iter_end s (len - 1)
 
 let string_xor s1 s2 =
-  assert (Bytes.length s1 = Bytes.length s2);
-  let s = Bytes.create (Bytes.length s1) in
+  assert (String.length s1 = String.length s2);
+  let s = Bytes.create (String.length s1) in
   for i = 0 to Bytes.length s - 1 do
-    s.[i] <- Char.chr (Char.code (Bytes.get s1 i) lxor Char.code (Bytes.get s2 i));
+    s.[i] <- Char.chr (Char.code s1.[i] lxor Char.code s2.[i]);
   done;
-  s
+  Bytes.unsafe_to_string s
 
 (* HMAC-MD5, RFC 2104 *)
 let hmac_md5 =
-  let ipad = Bytes.make 64 '\x36' in
-  let opad = Bytes.make 64 '\x5C' in
+  let ipad = String.make 64 '\x36' in
+  let opad = String.make 64 '\x5C' in
   let md5 s = Md5.direct_to_string (Md5.string s) in
   fun secret challenge ->
     let secret = if String.length secret > 64 then md5 secret else secret in
     let k = Bytes.make 64 '\x00' in
     String.blit secret 0 k 0 (String.length secret);
-    md5 (Bytes.to_string (string_xor k opad) ^ md5 (Bytes.to_string(string_xor k ipad) ^ challenge))
+    let k = Bytes.unsafe_to_string k in
+    md5 (string_xor k opad ^ md5 (string_xor k ipad ^ challenge))
 
 let sendmail smtp_server smtp_port new_style mail =
 (* a completely synchronous function (BUG) *)
@@ -194,63 +193,63 @@ let sendmail smtp_server smtp_port new_style mail =
     try
       if read_response ic <> 220 then bad_response ();
 
-      send1_string oc "EHLO" (gethostname ());
+      send1 oc "EHLO" (gethostname ());
       if read_response_auth ic <> 250 then bad_response ();
 
       if mail.smtp_login <> "" then
       begin
         if !auth_cram_enabled then (* prefer CRAM-MD5 *)
         begin
-          send_string oc "AUTH CRAM-MD5";
+          send oc "AUTH CRAM-MD5";
           match get_response ic with
           | (334,true,s) ->
             (* RFC 2195 *)
-            let digest = hmac_md5 mail.smtp_password (Bytes.to_string (Base64.decode s)) in
-            send_bytes oc (Base64.encode (Printf.sprintf "%s %s" mail.smtp_login digest));
+            let digest = hmac_md5 mail.smtp_password (Base64.decode s) in
+            send oc (Base64.encode (Printf.sprintf "%s %s" mail.smtp_login digest));
             if read_response ic <> 235 then bad_response ()
           | _ -> bad_response ()
         end
         else if !auth_login_enabled then
         begin
-          send_string oc "AUTH LOGIN";
+          send oc "AUTH LOGIN";
           if read_response ic <> 334 then bad_response (); 
 
-          send_bytes oc (Base64.encode mail.smtp_login);
+          send oc (Base64.encode mail.smtp_login);
           if read_response ic <> 334 then bad_response (); 
 
-          send_bytes oc (Base64.encode mail.smtp_password);
+          send oc (Base64.encode mail.smtp_password);
           if read_response ic <> 235 then bad_response ()
         end
         else if !auth_plain_enabled then
         begin
           let auth = Printf.sprintf "\x00%s\x00%s" mail.smtp_login mail.smtp_password in
-          send1_bytes oc (Bytes.of_string "AUTH PLAIN") (Base64.encode auth);
+          send1 oc "AUTH PLAIN" (Base64.encode auth);
           if read_response ic <> 235 then bad_response ()
         end
       end;
 
-      send1_string oc "MAIL FROM:" (mail_address new_style (canon_addr mail.mail_from));
+      send1 oc "MAIL FROM:" (mail_address new_style (canon_addr mail.mail_from));
       if read_response ic <> 250 then bad_response ();
 
       List.iter begin fun address ->
-        send1_string oc "RCPT TO:" (mail_address new_style (canon_addr address));
+        send1 oc "RCPT TO:" (mail_address new_style (canon_addr address));
         if read_response ic <> 250 then bad_response ();
       end mail.mail_to;
 
-      send_string oc "DATA";
+      send oc "DATA";
       if read_response ic <> 354 then bad_response ();
 
       let body = make_mail mail new_style in
-      send_string oc body;
-      send_string oc ".";
+      send oc body;
+      send oc ".";
       if read_response ic <> 250 then bad_response ();
 
-      send_string oc "QUIT";
+      send oc "QUIT";
       if read_response ic <> 221 then bad_response ();
 
       close_out oc;
     with e ->
-        send_string oc "QUIT";
+        send oc "QUIT";
         if read_response ic <> 221 then bad_response ();
         close_out oc;
         raise e

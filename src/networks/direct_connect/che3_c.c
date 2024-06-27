@@ -1,5 +1,5 @@
 /* rewrite in C and caml stubs by b8_bavard (2002) */
-/* rewrite to class without glib by Mathias K�ster (2002) */
+/* rewrite to class without glib by Mathias Küster (2002) */
 
 /* DCTC - a Direct Connect text clone for Linux
  * Copyright (C) 2001 Eric Prevoteau

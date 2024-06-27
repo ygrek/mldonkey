@@ -116,20 +116,19 @@ let to_string filename =
   List.fold_left (fun file f -> f file) filename !to_strings
 
 let path_of_filename filename =
+  let len = String.length filename in
   let filename = Bytes.of_string filename in
-  let len = Bytes.length filename in
   for i = 0 to len - 1 do
-    if Bytes.get filename i = '\\' then Bytes.set filename i '/'
+    if Bytes.get filename i = '\\' then Bytes.set filename i '/';
   done;
-  let filename = Bytes.to_string filename in
-  let filename =
-    if len > 2 && filename.[1] = ':' &&
-      (match filename.[0] with 
-      | 'a' .. 'z' | 'A' .. 'Z' -> true
-      | _ -> false) then
-      Printf.sprintf "%s/%s" (String.sub filename 0 2) 
-      (String.sub filename 2 (len-2))
-    else filename
+  let filename = 
+    if len > 2 && Bytes.get filename 1 = ':' &&
+      match Bytes.get filename 0 with 
+        'a' .. 'z' | 'A' .. 'Z' -> true
+      | _ -> false then
+      Printf.sprintf "%s/%s" (Bytes.sub_string filename 0 2) 
+      (Bytes.sub_string filename 2 (len-2))
+    else Bytes.unsafe_to_string filename
   in
   split_simplify filename '/'
 
@@ -143,11 +142,12 @@ let filesystem_compliant name fstype namemax =
   (* replace all illegal characters with a valid one.
      assumes all filesystems accept '_'s in filenames *)
   let escape_chars p filename =
-  let s = Bytes.of_string filename in
-  for i = 0 to Bytes.length s - 1 do
-    if p (Bytes.get s i) then Bytes.set s i '_'
-  done;
-  Bytes.to_string s in
+    let s = Bytes.of_string filename in
+    for i = 0 to String.length filename - 1 do
+      if p (Bytes.get s i) then Bytes.set s i '_'
+    done;
+    Bytes.unsafe_to_string s
+  in
 
   (* remove all illegal characters at the beginning of filename *)
   let trim_left p filename =

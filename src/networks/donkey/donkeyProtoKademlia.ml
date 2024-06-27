@@ -84,7 +84,7 @@ module P = struct
       ss.[14] <- s.[pos+13];
       ss.[15] <- s.[pos+12];
 
-      Md4.direct_of_string (Bytes.to_string ss)
+      Md4.direct_of_string @@ Bytes.unsafe_to_string ss
 
     let buf_md4 buf s =
       let s = Md4.direct_to_string s in
@@ -400,26 +400,26 @@ module P = struct
     let kademlia_header_code = char_of_int 0xE4
     let kademlia_packed_header_code = char_of_int 0xE5
     let kademlia_header = String.make 1 kademlia_header_code
-    let kademlia_packed_header = Bytes.make 1 kademlia_packed_header_code
+    let kademlia_packed_header = String.make 1 kademlia_packed_header_code
 
     let parse_message ip port pbuf =
-      let len = Bytes.length pbuf in
+      let len = String.length pbuf in
       if len < 2 ||
-        (let magic = Bytes.get pbuf 0 in
+        (let magic = pbuf.[0] in
           magic <> kademlia_header_code &&
           magic <> kademlia_packed_header_code) then
         begin
           if !CommonOptions.verbose_unknown_messages then begin
               lprintf_nl "Received unknown UDP packet";
-              dump_bytes pbuf;
+              dump pbuf;
             end;
           raise Not_found
 
         end
       else
-      let magic = Bytes.get pbuf 0 in
-      let opcode = int_of_char (Bytes.get pbuf 1) in
-      let msg = Bytes.sub_string pbuf 2 (len-2) in
+      let magic = pbuf.[0] in
+      let opcode = int_of_char pbuf.[1] in
+      let msg = String.sub pbuf 2 (len-2) in
       let msg = if magic = kademlia_packed_header_code then
           let s = Zlib2.uncompress_string2 msg in
 (*          lprintf "Uncompressed:\n";
@@ -434,21 +434,21 @@ module P = struct
       try
         Buffer.reset udp_buf;
         write udp_buf msg;
-        let s = Buffer.to_bytes udp_buf in
+        let s = Buffer.contents udp_buf in
 
         let s =
-          if Bytes.length s > 200 then
-            let opcode = Bytes.sub s 0 1 in
-            let args = Bytes.sub s 1 (Bytes.length s - 1) in
-            Bytes.cat kademlia_packed_header (Bytes.cat opcode (Zlib2.compress_string args))
+          if String.length s > 200 then
+            let opcode = String.sub s 0 1 in
+            let args = String.sub s 1 (String.length s - 1) in
+            kademlia_packed_header ^ opcode ^ (Zlib2.compress_string args)
           else
-            Bytes.cat kademlia_packed_header s
+            kademlia_header ^ s
         in
 
         if !verbose_overnet then
           begin
             lprintf_nl "UDP to %s:%d op 0x%02X len %d type %s"
-              (Ip.to_string ip) port (get_uint8_bytes s 1) (Bytes.length s) (message_to_string msg);
+              (Ip.to_string ip) port (get_uint8 s 1) (String.length s) (message_to_string msg);
           end;
         (*
         let len = String.length s in
@@ -458,7 +458,7 @@ module P = struct
           end;
 *)
 
-        UdpSocket.write sock ping s ip port
+        UdpSocket.write sock ping (Bytes.unsafe_of_string s) ip port
       with
       | MessageNotImplemented -> ()
       | e -> lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
@@ -476,7 +476,7 @@ module P = struct
                       Ip.of_inet_addr inet, port
                   | _ -> assert false
                 in
-                let t = parse_message ip port pbuf in
+                let t = parse_message ip port (Bytes.unsafe_to_string pbuf) in
                 let is_not_banned ip =
                   match !Ip.banned (ip, None) with
                     None -> true
@@ -491,7 +491,7 @@ module P = struct
                 begin
                   lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e);
-                  dump_bytes p.UdpSocket.udp_content;
+                  dump (Bytes.unsafe_to_string p.UdpSocket.udp_content);
                   lprint_newline ()
                 end
           );

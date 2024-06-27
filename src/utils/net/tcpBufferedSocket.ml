@@ -1349,7 +1349,7 @@ let connect token name host port handler =
         Printf.bprintf buf "Proxy-Connection: Keep-Alive\n";
         begin match proxy_auth with
         | Some (login,password) ->
-            Printf.bprintf buf "Proxy-Authorization: Basic %s\n" (Base64.encode_to_string (login ^ ":" ^ password))
+            Printf.bprintf buf "Proxy-Authorization: Basic %s\n" (Base64.encode (login ^ ":" ^ password))
         | None -> () 
         end;
         Printf.bprintf buf "User-Agent: MLdonkey/%s\n" Autoconf.current_version;
