@@ -92,7 +92,7 @@ let zip_create zipfile files =
 let gz_extract filename =
   let file = ref "" in
   try
-    let buffer = String.create 4096 in
+    let buffer = Bytes.create 4096 in
     let file_out = Filename2.temp_file "arch_" ".tmp" in
     file := file_out;
     Unix2.tryopen_read_gzip filename (fun ic ->

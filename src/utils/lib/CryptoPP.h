@@ -86,8 +86,6 @@
 #define CRYPTOPP_H
 
 #include <inttypes.h>
-#define CAML_NAME_SPACE
-#include <caml/config.h>
 #include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -101,9 +99,6 @@
 #ifndef ARCH_BIG_ENDIAN
 #	define IS_LITTLE_ENDIAN
 #endif
-
-// override #define in caml/compatibility.h
-#undef flush 
 
 // define this if you want to disable all OS-dependent features,
 // such as sockets and OS-provided random number generators

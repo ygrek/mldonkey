@@ -69,13 +69,13 @@ let escape_colon s =
   let n = ref 0 in
   for i = 0 to len - 1 do if s.[i] = ':' then incr n done;
   if !n = 0 then s else
-    let s' = String.create (len + !n) in
+    let s' = Bytes.create (len + !n) in
     let j = ref 0 in
     for i = 0 to len - 1 do
       if s.[i] = ':' then (s'.[!j] <- '\\'; incr j);
       s'.[!j] <- s.[i]; incr j
     done;
-    Bytes.to_string s'
+    Bytes.unsafe_to_string s'
 
 (* Concatenate the filenames with ":".  If ":" is present in a
    filename, escape it. *)

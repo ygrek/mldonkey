@@ -25,7 +25,7 @@ val input_byte: in_channel -> int
 val input: in_channel -> bytes -> int -> int -> int
         (* [input ic buf pos len] uncompresses up to [len] characters
            from the given channel [ic],
-           storing them in string [buf], starting at character number [pos].
+           storing them in buffer [buf], starting at character number [pos].
            It returns the actual number of characters read, between 0 and
            [len] (inclusive).
            A return value of 0 means that the end of file was reached.
@@ -41,7 +41,7 @@ val input: in_channel -> bytes -> int -> int -> int
 val really_input: in_channel -> bytes -> int -> int -> unit
         (* [really_input ic buf pos len] uncompresses [len] characters
            from the given channel, storing them in
-           string [buf], starting at character number [pos].
+           buffer [buf], starting at character number [pos].
            Raise [End_of_file] if fewer than [len] characters can be read.
            Raise [Invalid_argument "Bzip2.input"] if
            [pos] and [len] do not designate a valid substring of [buf]. *)

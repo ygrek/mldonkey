@@ -459,7 +459,7 @@ let to_string v =
   for i = 0 to n - 1 do
     if unsafe_get v i then s.[i] <- '1'
   done;
-  (Bytes.to_string s)
+  Bytes.unsafe_to_string s
 
 let print fmt v = Format.pp_print_string fmt (to_string v)
 

@@ -88,7 +88,7 @@ let rec really_input iz buf pos len =
     really_input iz buf (pos + n) (len - n)
   end
 
-let char_buffer = String.create 1
+let char_buffer = Bytes.create 1
 
 let input_char iz =
   if input iz char_buffer 0 1 = 0 then raise End_of_file else Bytes.get char_buffer 0
@@ -115,7 +115,7 @@ type out_channel =
 let open_out_chan ?(level = 6) oc =
   if level < 1 || level > 9 then invalid_arg "Bzip2.open_out: bad level";
   { out_chan = oc;
-    out_buffer = String.create buffer_size;
+    out_buffer = Bytes.create buffer_size;
     out_pos = 0;
     out_avail = buffer_size;
     out_stream = Bzlib.compress_init level 0 0;
