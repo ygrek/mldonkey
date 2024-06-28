@@ -323,7 +323,7 @@ let find_header s pos =
   String.sub s pos (pos2 - pos)
 
 let hescaped s =
-  String2.replace_char s '\r' ' ';s
+  String2.replace_char s '\r' ' ';
 
 let is_http_stream s =
   String2.starts_with s "GET" ||
