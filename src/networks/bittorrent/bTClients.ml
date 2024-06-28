@@ -1385,7 +1385,7 @@ and client_to_client c sock msg =
                             (* regexp ee is a fugly way to find the end of the 1st dict before the real payload *)
                               let metaindex = (2 + (Str.search_forward  (Str.regexp_string "ee") chunk 0 )) in
                               let chunklength = ((String.length chunk) - metaindex) in
-                              Unix32.write fd !fileindex (Bytes.unsafe_of_string chunk)
+                              Unix32.write fd !fileindex chunk
                                 metaindex
                                 chunklength;
                               fileindex := Int64.add !fileindex  (Int64.of_int chunklength);
