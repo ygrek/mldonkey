@@ -146,9 +146,6 @@ let extract_int32 raw pos len =
     Int32.of_string ("0o" ^ trim_spaces raw pos len)
   with Failure x ->  raise (Error "Invalid number in header")
 
-let extract_int32_bytes raw pos len =
-  extract_int32 (Bytes.unsafe_to_string raw) pos len
-
 let typeflag = function
   | '0' | '\000' -> REGULAR
   | '1' -> LINK
@@ -181,15 +178,14 @@ let align_at_header t =
           t.last_header <- None
 
 let empty_block = String.make blocksize '\000'
-let empty_bytes = Bytes.create blocksize
 
 let compute_chksum buf = 
   let chksum = ref 256 in (* 256 is the sum of 8 ' ' characters for the chksum field *)
     for i = 0 to 147 do
-      chksum := !chksum + Char.code (Bytes.get buf i)
+      chksum := !chksum + Char.code buf.[i]
     done;
     for i = 156 to 511 do
-      chksum := !chksum + Char.code (Bytes.get buf i)
+      chksum := !chksum + Char.code buf.[i]
     done;
     !chksum
 
@@ -209,36 +205,38 @@ let read_oldgnu_header header =
     t_realsize = extract_int32 header 483 12;
   }
 
+let really_input_string t size =
+  let buf = Bytes.create size in
+  t.chan#really_input buf 0 size;
+  Bytes.unsafe_to_string buf
+
 let read_gnu_header t =
-  let buf = String.create blocksize in
-    t.chan#really_input buf 0 blocksize;
-    { t_atime = extract_int32_bytes buf 0 12;
-      t_ctime = extract_int32_bytes buf 12 12;
-      t_offset = extract_int32_bytes buf 24 12;
-      t_realsize = extract_int32_bytes buf 36 12;
+    let buf = really_input_string t blocksize in
+    { t_atime = extract_int32 buf 0 12;
+      t_ctime = extract_int32 buf 12 12;
+      t_offset = extract_int32 buf 24 12;
+      t_realsize = extract_int32 buf 36 12;
     }
 
 let read_header t =
-  align_at_header t;
-  let buf = String.create blocksize in
-    t.chan#really_input buf 0 blocksize;
-    if buf = empty_bytes then raise End_of_file;
-    let sbuf = Bytes.to_string buf in
-    let head1 = { t_name = c_string sbuf 0;
-                 t_mode = extract_num sbuf 100 8;
-                 t_uid = extract_num sbuf 108 8;
-                 t_gid = extract_num sbuf 116 8;
-                 t_size = extract_num sbuf 124 12;
-                 t_mtime = extract_int32 sbuf 136 12;
-                 t_chksum = extract_num sbuf 148 8;
-                 t_typeflag = typeflag sbuf.[156];
-                 t_linkname = c_string sbuf 157;
-                 t_format = read_magic sbuf sbuf.[156];
-                 t_uname = c_string sbuf 265;
-                 t_gname = c_string sbuf 297;
-                 t_devmajor = extract_num sbuf 329 8;
-                 t_devminor = extract_num sbuf 337 8;
-                 t_prefix = String.sub sbuf 345 155;
+    align_at_header t;
+    let buf = really_input_string t blocksize in
+    if buf = empty_block then raise End_of_file;
+    let head1 = { t_name = c_string buf 0;
+                 t_mode = extract_num buf 100 8;
+                 t_uid = extract_num buf 108 8;
+                 t_gid = extract_num buf 116 8;
+                 t_size = extract_num buf 124 12;
+                 t_mtime = extract_int32 buf 136 12;
+                 t_chksum = extract_num buf 148 8;
+                 t_typeflag = typeflag buf.[156];
+                 t_linkname = c_string buf 157;
+                 t_format = read_magic buf buf.[156];
+                 t_uname = c_string buf 265;
+                 t_gname = c_string buf 297;
+                 t_devmajor = extract_num buf 329 8;
+                 t_devminor = extract_num buf 337 8;
+                 t_prefix = String.sub buf 345 155;
                  t_gnu = None;
                } in
     let chksum = compute_chksum buf in
@@ -246,7 +244,7 @@ let read_header t =
         raise (Error (Printf.sprintf "Invalid checksum in tar header. Calculated %d, expected %d" chksum head1.t_chksum));
       let head =
         if head1.t_format = OLDGNU_FORMAT then
-          {head1 with t_gnu = Some (read_oldgnu_header sbuf) }
+          {head1 with t_gnu = Some (read_oldgnu_header buf) }
         else if head1.t_format = GNU_FORMAT then
           {head1 with t_gnu = Some (read_gnu_header t) }
         else
@@ -269,14 +267,11 @@ let read_body t =
   let header = get_header t in
     t.last_header <- None;
     if header.t_size = 0 then "" 
-    else let buf = String.create header.t_size in
-      t.chan#really_input buf 0 header.t_size;
+    else
+      let buf = really_input_string t header.t_size in
       let align = blocksize - (header.t_size mod blocksize) in
-        if align <> blocksize then begin
-          let leftover = String.create blocksize in	    
-            t.chan#really_input leftover 0 align
-        end;
-        (Bytes.to_string buf)
+      if align <> blocksize then ignore (really_input_string t align : string);
+      buf
 
 let read_entry t =
   let head = read_header t in
@@ -394,8 +389,8 @@ let write_gnu_header t buf =
     write_int32 buf 36 ext.t_realsize
   
 let output t head body =
-  let size = Bytes.length body in
-  let buf = Bytes.copy empty_bytes in
+  let size = String.length body in
+  let buf = Bytes.of_string empty_block in
     write_str buf 0 100 head.t_name;
     write_num8 buf 100 head.t_mode;
     write_num8 buf 108 head.t_uid;
@@ -412,23 +407,23 @@ let output t head body =
     write_str buf 345 155 head.t_prefix;
     if head.t_format = OLDGNU_FORMAT then
       write_oldgnu_header head buf;
-    let chksum = compute_chksum buf in
+    let chksum = compute_chksum @@ Bytes.unsafe_to_string buf in
       write_padded_num buf 148 chksum;
       t.ochan#output buf 0 blocksize;
-      if head.t_format = GNU_FORMAT && isdigit (Bytes.get buf 156) then begin
-        let buf2 = Bytes.copy empty_bytes in
+      if head.t_format = GNU_FORMAT && isdigit @@ Bytes.get buf 156 then begin
+        let buf2 = Bytes.of_string empty_block in
           write_gnu_header head buf2;
           t.ochan#output buf2 0 blocksize
       end;
       if size > 0 then begin
-    t.ochan#output body 0 size;
+          t.ochan#output (Bytes.unsafe_of_string body) 0 size;
           let align = blocksize - (size mod blocksize) in
             if align > 0 && align < blocksize then 
-              t.ochan#output empty_bytes 0 align
+              t.ochan#output (Bytes.unsafe_of_string empty_block) 0 align
       end
       
 let flush t =
-  t.ochan#output empty_bytes 0 blocksize;
+  t.ochan#output (Bytes.unsafe_of_string empty_block) 0 blocksize;
   t.ochan#flush ()
 
 let close_out t =

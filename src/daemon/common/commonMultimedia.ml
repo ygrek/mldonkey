@@ -41,10 +41,7 @@ let input_int ic =
   let i1 = input_int16 ic in
   i0 lor (i1 lsl 16)
 
-let input_string4 ic =
-  let s = String.create 4 in
-  really_input ic s 0 4;
-  s
+let input_string4 ic = really_input_string ic 4
 
 let print_string4 v s =
   lprintf "%s :" v;
@@ -242,7 +239,7 @@ let rec page_seek ic s pos =
 (**********************************************************************************)
 
 let normalize_stream_type s ct =
-  let s = Bytes.sub_string s 0 6 in
+  let s = String.sub s 0 6 in
   if s = "vorbis" && ct = 0x1
     then OGG_VORBIS_STREAM
     else if s = "theora" && ct = 0x80
@@ -278,12 +275,10 @@ let rec next_ogg_stream ic ogg_infos str stream_number =
   lprintf "Stream Serial Number: %0.f\n" stream_number;
 *)
   seek_in ic (pos+24);
-  let content_type = String.create 1 in
-  really_input ic content_type 0 1;
-  let content_type = int_of_char (Bytes.get content_type 0) in
+  let content_type = really_input_string ic 1 in
+  let content_type = int_of_char content_type.[0] in
   seek_in ic (pos+25);
-  let stream_type = String.create 8 in
-  really_input ic stream_type 0 8;
+  let stream_type = really_input_string ic 8 in
   let stream_type = normalize_stream_type stream_type content_type in
   incr stream_number;
   let pos = pos_in ic in
@@ -299,19 +294,18 @@ let rec next_ogg_stream ic ogg_infos str stream_number =
     | OGG_THEORA_STREAM -> get_ogg_theora_info ic ogg_infos str stream_number
 
 and get_ogg_video_info  ic ogg_infos str sizeof_packet stream_number =
-  let s = String.create sizeof_packet in
-  really_input ic s 0 sizeof_packet;
-  let codec = String.lowercase (Bytes.sub_string s 0 4) in
-  let time_unit = read64 (Bytes.sub_string s 8 8) in
+  let s = really_input_string ic sizeof_packet in
+  let codec = String.lowercase (String.sub s 0 4) in
+  let time_unit = read64 (String.sub s 8 8) in
   let video_width =
     if sizeof_packet >= sizeof_old_ogm_packet
-      then read32 (Bytes.sub_string s 36 4)
-      else read32 (Bytes.sub_string s 34 4)
+      then read32 (String.sub s 36 4)
+      else read32 (String.sub s 34 4)
   in
   let video_height =
     if sizeof_packet >= sizeof_old_ogm_packet
-      then read32 (Bytes.sub_string s 40 4)
-      else read32 (Bytes.sub_string s 38 4)
+      then read32 (String.sub s 40 4)
+      else read32 (String.sub s 38 4)
   in
   let sample_rate = 10000000. /. time_unit in
   ogg_infos := {
@@ -326,24 +320,23 @@ and get_ogg_video_info  ic ogg_infos str sizeof_packet stream_number =
   next_ogg_stream ic ogg_infos str stream_number
 
 and get_ogg_audio_info  ic ogg_infos str sizeof_packet stream_number =
-  let s = String.create sizeof_packet in
-  really_input ic s 0 sizeof_packet;
-  let codec = get_audio_codec (Bytes.sub_string s 0 4) in
-  let sample_per_unit = read64 (Bytes.sub_string s 16 8) in
+  let s = really_input_string ic sizeof_packet in
+  let codec = get_audio_codec (String.sub s 0 4) in
+  let sample_per_unit = read64 (String.sub s 16 8) in
   let channels =
     if sizeof_packet >= sizeof_old_ogm_packet
-      then read16 (Bytes.sub_string s 36 2)
-      else read16 (Bytes.sub_string s 34 2)
+      then read16 (String.sub s 36 2)
+      else read16 (String.sub s 34 2)
   in
   let blockalign =
     if sizeof_packet >= sizeof_old_ogm_packet
-      then read16 (Bytes.sub_string s 38 2)
-      else read16 (Bytes.sub_string s 36 2)
+      then read16 (String.sub s 38 2)
+      else read16 (String.sub s 36 2)
   in
   let avgbytespersec =
     if sizeof_packet >= sizeof_old_ogm_packet
-      then read32 (Bytes.sub_string s 40 4)
-      else read32 (Bytes.sub_string s 38 4)
+      then read32 (String.sub s 40 4)
+      else read32 (String.sub s 38 4)
   in
   ogg_infos := {
     stream_no   = !stream_number;
@@ -359,16 +352,15 @@ and get_ogg_audio_info  ic ogg_infos str sizeof_packet stream_number =
 
 and get_ogg_vorbis_info  ic ogg_infos str stream_number =
   seek_in ic (pos_in ic - 2); (* ogm sets 8 octets in the common header as vorbis uses 6 octects for 'vorbis' *)
-  let s = String.create 22 in
-  really_input ic s 0 22;
-  let version = read32 (Bytes.sub_string s 0 4) in
-  let audio_channels = int_of_char (Bytes.get s 4) in
-  let sample_rate = read32 (Bytes.sub_string s 5 4) in
-  let br_max = read32 (Bytes.sub_string s 9 4) in
-  let br_nom = read32 (Bytes.sub_string s 13 4) in
-  let br_min = read32 (Bytes.sub_string s 17 4) in
-  let blocksize_1 = ((int_of_char (Bytes.get s 21)) asr 4) land 15 in
-  let blocksize_0 = (int_of_char (Bytes.get s 21)) land 15 in
+  let s = really_input_string ic 22 in
+  let version = read32 (String.sub s 0 4) in
+  let audio_channels = int_of_char s.[4] in
+  let sample_rate = read32 (String.sub s 5 4) in
+  let br_max = read32 (String.sub s 9 4) in
+  let br_nom = read32 (String.sub s 13 4) in
+  let br_min = read32 (String.sub s 17 4) in
+  let blocksize_1 = ((int_of_char s.[21]) asr 4) land 15 in
+  let blocksize_0 = (int_of_char s.[21]) land 15 in
   let l = ref [] in
   (if br_max > 0. then l := (Maximum_br br_max) :: !l);
   (if br_nom > 0. then l := (Nominal_br br_nom) :: !l);
@@ -389,29 +381,28 @@ and get_ogg_vorbis_info  ic ogg_infos str stream_number =
 
 and get_ogg_theora_info  ic ogg_infos str stream_number =
   seek_in ic (pos_in ic - 2); (* ogm sets 8 octets in the common header as theora uses 6 octects for 'theora' *)
-  let s = String.create 34 in
-  really_input ic s 0 34;
-  let vmaj = int_of_char (Bytes.get s 0) in
-  let vmin = int_of_char (Bytes.get s 1) in
-  let vrev = int_of_char (Bytes.get s 2) in
+  let s = really_input_string ic 34 in
+  let vmaj = int_of_char s.[0] in
+  let vmin = int_of_char s.[1] in
+  let vrev = int_of_char s.[2] in
   let codec = Printf.sprintf "theora-%d.%d.%d" vmaj vmin vrev in
   (* multiply by 16 to get the actual frame width in pixels *)
   (* multiply by 16 to get the actual frame height in pixels *)
-  let picw = read24B (Bytes.sub_string s 7 3)  in
-  let pich = read24B (Bytes.sub_string s 10 3) in
-  let frn = read32B (Bytes.sub_string s 15 4) in
-  let frd = read32B (Bytes.sub_string s 19 4) in
+  let picw = read24B (String.sub s 7 3)  in
+  let pich = read24B (String.sub s 10 3) in
+  let frn = read32B (String.sub s 15 4) in
+  let frd = read32B (String.sub s 19 4) in
   let sample_rate = frn /. frd in
-  let parn = read24B (Bytes.sub_string s 23 3) in
-  let pard = read24B (Bytes.sub_string s 26 3) in
+  let parn = read24B (String.sub s 23 3) in
+  let pard = read24B (String.sub s 26 3) in
   let parn, pard =
     if parn = 0
       then (1, 1)
       else (parn, pard)
   in
-  let cs = int_of_char (Bytes.get s 29) in
-  let nombr = read24B (Bytes.sub_string s 30 3) in
-  let qual = (int_of_char (Bytes.get s 33) asr 2) land 63 in
+  let cs = int_of_char s.[29] in
+  let nombr = read24B (String.sub s 30 3) in
+  let qual = (int_of_char s.[33] asr 2) land 63 in
   ogg_infos := {
     stream_no   = !stream_number;
     stream_type = OGG_THEORA_STREAM;
@@ -451,7 +442,7 @@ and get_ogg_index_info ic ogg_infos str stream_number =
 
 let search_info_ogg ic =
     let stream_number = ref 0 in
-    let str = String.create 4 in
+    let str = Bytes.create 4 in
     let ogg_infos = ref [] in
     (* make sure the current reading position is at the file beginning *)
     seek_in ic 0;
@@ -474,7 +465,7 @@ let search_info_avi ic =
   try
 (* pos: 0 *)
     let s = input_string4 ic in
-    if not (Misc.bytes_equal_string s "RIFF") then failwith "Not an AVI file (RIFF absent)";
+    if s <> "RIFF" then failwith "Not an AVI file (RIFF absent)";
 
 (* pos: 4 *)
     let size = input_int32 ic in
@@ -484,11 +475,11 @@ let search_info_avi ic =
 
 (* pos: 8 *)
     let s = input_string4 ic in
-    if not (Misc.bytes_equal_string s "AVI ") then failwith  "Not an AVI file (AVI absent)";
+    if s <> "AVI " then failwith  "Not an AVI file (AVI absent)";
 
 (* pos: 12 *)
     let s = input_string4 ic in
-    if not (Misc.bytes_equal_string s "LIST") then failwith  "Not an AVI file (LIST absent)";
+    if s <> "LIST" then failwith  "Not an AVI file (LIST absent)";
 
 (* position 16 *)
     let rec iter_list pos end_pos =
@@ -508,12 +499,12 @@ let search_info_avi ic =
 (*        lprint_string4 "header\n" header_name;  *)
 (* pos: pos + 8 *)       
           begin
-            match Bytes.to_string header_name with
+            match header_name with
               "hdrl" ->
 (*              lprintf "HEADER\n";  *)
                 
                 let s = input_string4 ic in
-                if not (Misc.bytes_equal_string s "avih") then failwith "Bad AVI file (avih absent)";
+                if s <> "avih" then failwith "Bad AVI file (avih absent)";
 
 (* pos: pos + 12 *)
                 let main_header_len = 52 in             
@@ -545,7 +536,7 @@ let search_info_avi ic =
                 ignore (input_string4 ic);
                 
                 let fccType = input_string4 ic in
-                let fccHandler = Bytes.to_string (input_string4 ic) in
+                let fccHandler = input_string4 ic in
                 let _dwFlags = input_int32 ic in (* Contains AVITF_* flags *)
                 let _wPriority = input_int16 ic in
                 let _wLanguage = input_int16 ic in
@@ -562,7 +553,7 @@ let search_info_avi ic =
                 let rcFrame_dx = input_int16 ic in
                 let rcFrame_dy = input_int16 ic in
                 
-                if Misc.bytes_equal_string fccType "vids" then
+                if fccType = "vids" then                
                   raise (FormatFound (AVI {
                         avi_codec = fccHandler;
                         avi_width = rcFrame_dx;

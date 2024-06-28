@@ -2909,7 +2909,7 @@ let received up file_begin str string_begin string_len =
                             (Printexc2.to_string e) 
                             r.range_begin file_end
                             (file_best_name t.t_file));
-                        file_write_string tprim.t_file
+                        file_write tprim.t_file
                           r.range_begin
                           str string_pos string_length;
                         range_received (Some t) r r.range_begin file_end;

@@ -158,7 +158,7 @@ value ml_cipher_packet_set_xored(value cipher_v, value s_v, value pos_v, value x
 {
   FSTCipher* cipher = (FSTCipher*) cipher_v;
   FSTCipher* xor_cipher = (FSTCipher*) xor_cipher_v;
-  const char *s = String_val(s_v);
+  char *s = Bytes_val(s_v);
   int pos = Int_val(pos_v);
   unsigned int seed = cipher->seed;
 

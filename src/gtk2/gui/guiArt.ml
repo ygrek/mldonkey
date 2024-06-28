@@ -241,7 +241,7 @@ open Zlib
 
 (* Return a pixbuf for a given svg data *)
 let pixb icon_name pixel_size =
-  let svg = Zlib2.uncompress_string icon_name in
+  let svg = uncompress_string icon_name in
   let z = float_of_int pixel_size /. 48. in
   let size_cb = (Rsvg.at_zoom z z) in
   let pb = Rsvg.render_from_string ~size_cb svg in
