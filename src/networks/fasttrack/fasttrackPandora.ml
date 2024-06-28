@@ -89,7 +89,7 @@ X-KazaaTag: 6=Christina Aguliera(13)
 X-KazaaTag: 8=Stripped(13)
 X-KazaaTag: 14=Other(13)
 X-KazaaTag: 1=2002(13)
-X-KazaaTag: 26=� christinas_eyedol 2002(13)
+X-KazaaTag: 26=© christinas_eyedol 2002(13)
 X-KazaaTag: 12=album version, stripped, fighter, real, christina, aguilera(13)
 X-KazaaTag: 10=en(13)
 X-KazaaTag: 18=Video Clip(13)
@@ -322,8 +322,10 @@ let find_header s pos =
   let pos2 = iter s pos in
   String.sub s pos (pos2 - pos)
 
+(*
 let hescaped s =
-  String2.replace_char s '\r' ' ';
+  String2.replace_char s '\r' ' ';s
+*)
 
 let is_http_stream s =
   String2.starts_with s "GET" ||
