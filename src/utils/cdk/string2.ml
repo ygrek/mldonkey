@@ -162,12 +162,7 @@ let check_suffix s suffix =
   let slen = String.length suffix in
   len >= slen && String.sub s (len - slen) slen = suffix
   
-let upp_initial s =
-  if String.length s > 0 then
-    let s = String.copy s in
-    s.[0] <- Char.uppercase s.[0]; s
-  else
-    s
+let upp_initial = String.capitalize_ascii
     
 (* not optimal !*)
 let subequal s1 pos1 s2 pos2 len =
@@ -197,20 +192,13 @@ let of_char c = String.make 1 c
   
   
 let resize s newlen =
-  let len = String.length s in
-  if len > newlen then String.sub s 0 newlen 
+  let len = Bytes.length s in
+  if len > newlen then Bytes.sub s 0 newlen 
   else
-  let str = String.create newlen in
-  String.blit s 0 str 0 len;
-  str
+  let b = Bytes.create newlen in
+  Bytes.blit s 0 b 0 len;
+  b
   
-let init len f =
-  let s = String.create len in
-  for i = 0 to len - 1 do
-    s.[i] <- f i
-  done;
-  s
-
 let is_space c = c = ' ' || c = '\n' || c = '\r' || c = '\t'
   
 let tokens s =
@@ -267,19 +255,21 @@ let starts_with s1 s2 =
   len2 <= len1 && strneql s1 s2 len2
 
 let replace_char s c1 c2 =
-  for i = 0 to String.length s - 1 do
-    if s.[i] == c1 then s.[i] <- c2
-  done
+  let s = Bytes.of_string s in
+  for i = 0 to Bytes.length s - 1 do
+    if Bytes.get s i = c1 then Bytes.set s i c2
+  done;
+  Bytes.unsafe_to_string s
 
 let stem s =
-  let s = String.lowercase (String.copy s) in
-  for i = 0 to String.length s - 1 do
-    let c = s.[i] in
+  let s = Bytes.of_string (String.lowercase_ascii s) in
+  for i = 0 to Bytes.length s - 1 do
+    let c = Bytes.get s i in
     match c with
       'a'..'z' | '0' .. '9' -> ()
-    | _ -> s.[i] <- ' ';
+    | _ -> Bytes.set s i ' ';
   done;
-  split_simplify s ' '
+  split_simplify (Bytes.unsafe_to_string s) ' '
   
 let map f s =
   let len = String.length s in
@@ -297,12 +287,7 @@ let iteri f s =
     f i s.[i]
   done
   
-let init n f =
-  let s = String.create n in
-  for i = 0 to n - 1 do
-    s.[i] <- f i 
-  done;
-  s
+let init = String.init
 
 let exists p s =
   let l = String.length s in

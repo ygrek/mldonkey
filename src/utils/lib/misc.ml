@@ -92,13 +92,13 @@ let zip_create zipfile files =
 let gz_extract filename =
   let file = ref "" in
   try
-    let buffer = String.create 4096 in
+    let buffer = Bytes.create 4096 in
     let file_out = Filename2.temp_file "arch_" ".tmp" in
     file := file_out;
     Unix2.tryopen_read_gzip filename (fun ic ->
       Unix2.tryopen_write_bin file_out (fun oc ->
         let rec decompress () =
-          let n = Gzip.input ic buffer 0 (String.length buffer) in
+          let n = Gzip.input ic buffer 0 (Bytes.length buffer) in
           if n = 0 then ()
           else
             begin
@@ -117,3 +117,6 @@ let archive_extract filename archive_type =
   | "bz2" -> Misc2.bz2_extract filename
   | "gz" -> gz_extract filename
   | _ -> failwith (Printf.sprintf "wrong archive type %s" archive_type)
+
+let bytes_equal_string (b : Bytes.t) (s : string) =
+  String.equal (Bytes.unsafe_to_string b) s

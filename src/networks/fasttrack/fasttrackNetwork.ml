@@ -78,7 +78,7 @@ type file_uid = Md5Ext.t
 type file_uri = string
 
 external create_cipher : unit -> cipher = "ml_create_cipher"
-external apply_cipher : cipher -> string -> int -> int -> unit
+external apply_cipher : cipher -> bytes -> int -> int -> unit
   = "ml_apply_cipher"
 external init_cipher : cipher -> unit = "ml_init_cipher"
 external set_cipher : cipher -> int32 -> int -> unit = "ml_set_cipher"
@@ -87,7 +87,7 @@ external get_cipher_from_packet : string -> int -> cipher -> unit
 external xor_ciphers : cipher -> cipher -> unit = "ml_xor_ciphers"
 external xor_ciphers2 : cipher -> cipher -> unit = "ml_xor_ciphers2"
 
-external cipher_packet_set : cipher -> string -> int -> unit
+external cipher_packet_set : cipher -> bytes -> int -> unit
   = "ml_cipher_packet_set"
 external cipher_packet_set_xored : cipher -> string -> int -> cipher -> unit
   = "ml_cipher_packet_set_xored"

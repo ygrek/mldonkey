@@ -58,7 +58,10 @@ let get_int16 s pos =
   let c1 = int_of_char s.[pos] in
   let c2 = int_of_char s.[pos+1] in
   c1 lor (c2 lsl 8)
-  
+
+let get_int16_bytes s pos =
+  get_int16 (Bytes.unsafe_to_string s) pos
+
 let str_int24 s pos i =
   s.[pos] <- char_of_int (i land 255);
   s.[pos+1] <- char_of_int ((i lsr 8) land 255);
@@ -92,6 +95,9 @@ let get_int s pos =
   let c4 = get_uint8 s (pos+3) in
   let x =   c1 lor (c2 lsl 8) lor (c3 lsl 16) lor (c4 lsl 24) in
   x
+
+let get_int_bytes s pos =
+  get_int (Bytes.unsafe_to_string s) pos
 
 (******** Operations on 32 bits integers *******
   
@@ -161,6 +167,9 @@ let get_ip s pos =
   let c3 = int_of_char s.[pos+2] in
   let c4 = int_of_char s.[pos+3] in
   Ip.of_ints (c1, c2, c3, c4)
+
+let get_ip_bytes s pos =
+  get_ip (Bytes.unsafe_to_string s) pos
 
 let buf_ip buf ip =
   let (ip0,ip1,ip2,ip3) = Ip.to_ints ip in

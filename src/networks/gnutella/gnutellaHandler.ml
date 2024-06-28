@@ -356,7 +356,7 @@ let init s sock gconn =
   
 let udp_client_handler ip port buf =
   if !verbose then
-    lprintf "Unexpected UDP packet: \n%s\n" (String.escaped buf)
+    lprintf "Unexpected UDP packet: \n%s\n" (Bytes.undafe_to_string (Bytes.escaped (Bytes.to_string buf)))
   
   
 let update_shared_files () = ()

@@ -175,7 +175,7 @@ let named_to_channel chan n = Marshal.to_channel chan n []
 
 let named_to_string n = Marshal.to_string n []
 
-let named_to_buffer str ofs len n = Marshal.to_buffer str ofs len n []
+let named_to_buffer str ofs len n = Marshal.to_buffer (Bytes.of_string str) ofs len n []
 
 let named_from_channel = Marshal.from_channel
 

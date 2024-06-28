@@ -38,9 +38,9 @@ type t =
   }
 
 let check_head h =
-  let h0 = Char.code h.[0]
-  and h1 = Char.code h.[1]
-  and h2 = Char.code h.[2] in
+  let h0 = Char.code (Bytes.get h 0)
+  and h1 = Char.code (Bytes.get h 1)
+  and h2 = Char.code (Bytes.get h 2) in
   h0 = 0xFF &&
   h1 land 0xE0 = 0xE0 &&
   h1 land 0x18 <> 0x08 &&
@@ -80,7 +80,7 @@ let get_xing_header ic header =
   seek_in ic (pos_in ic + offset);
   let buf = String.create 4 in
   really_input ic buf 0 4;
-  if buf <> "Xing" then raise Not_found;
+  if not (Misc.bytes_equal_string buf "Xing") then raise Not_found;
   let flags = read_i4 ic in
   (* 3 = FRAMES_FLAG | BYTES_FLAG *)
   if flags land 3 <> 3 then raise Not_found;
@@ -93,13 +93,13 @@ let for_channel ic =
   let buf = String.create 4 in
   really_input ic buf 0 4;
   while not (check_head buf) do
-    String.blit buf 1 buf 0 3;
+    Bytes.blit buf 1 buf 0 3;
     buf.[3] <- input_char ic
   done;
   let header = 
-    (Char.code buf.[1] lsl 16) lor
-    (Char.code buf.[2] lsl 8) lor
-    (Char.code buf.[3]) in
+    (Char.code (Bytes.get buf 1) lsl 16) lor
+    (Char.code (Bytes.get buf 2) lsl 8) lor
+    (Char.code (Bytes.get buf 3)) in
   let (lsf, mpeg25) =
     if header land 0x100000 <> 0
     then ((if header land 0x80000 = 0 then 1 else 0), false)

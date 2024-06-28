@@ -1321,16 +1321,16 @@ let client_downloaded c sock nread = (* TODO check tth while loading, abort if e
         let downloaded =
           if c.client_preread_bytes_left > 0 then begin                (* if precheck not yet done *)
             let check_bytes = min nread c.client_preread_bytes_left in (* which is smaller... *) 
-            let check_buffer = String.create check_bytes in
+            let check_buffer = Bytes.create check_bytes in
             Unix32.read (file_fd file) (c.client_pos -- (Int64.of_int c.client_preread_bytes_left))
               check_buffer 0 check_bytes;
-            let str2 = String.sub b.buf b.pos check_bytes in
-            if (String.compare check_buffer str2) = 0 then begin      (* if downloaded is ok *) 
+            let str2 = Bytes.sub b.buf b.pos check_bytes in
+            if (Bytes.compare check_buffer str2) = 0 then begin      (* if downloaded is ok *) 
               c.client_preread_bytes_left <- c.client_preread_bytes_left - check_bytes;
               if c.client_preread_bytes_left = 0 then begin            (* if checked all preread bytes *)
                 let downloaded = b.len - check_bytes in
                 if downloaded > 0 then begin                           (* check if buffer has bytes to write to file *) 
-                  Unix32.write (file_fd file) c.client_pos b.buf (b.pos+check_bytes) downloaded
+                  Unix32.write_bytes (file_fd file) c.client_pos b.buf (b.pos+check_bytes) downloaded
                 end;
                 Int64.of_int downloaded           
               end else Int64.zero
@@ -1342,7 +1342,7 @@ let client_downloaded c sock nread = (* TODO check tth while loading, abort if e
               Int64.zero
             end
           end else begin (* precheck done, normal flow *)
-        Unix32.write (file_fd file) c.client_pos  b.buf b.pos b.len;
+        Unix32.write_bytes (file_fd file) c.client_pos b.buf b.pos b.len;
             Int64.of_int b.len
           end
           in
@@ -1370,7 +1370,7 @@ let client_downloaded c sock nread = (* TODO check tth while loading, abort if e
     | DcDownloadList filelist_fd ->                   (* downloading file list *)
         let b = TcpBufferedSocket.buf sock in        
         let len = Int64.of_int b.len in
-        Unix32.write filelist_fd c.client_pos b.buf b.pos b.len;
+        Unix32.write_bytes filelist_fd c.client_pos b.buf b.pos b.len;
         c.client_pos <- c.client_pos ++ len;
         (match c.client_user with
         | Some u -> u.user_downloaded <- u.user_downloaded ++ len
@@ -1456,7 +1456,7 @@ let udp_send ip port m =
     Buffer.reset buf;
     dc_write buf m; 
     Buffer.add_char buf '|';
-    let s = Buffer.contents buf in
+    let s = Buffer.to_bytes buf in
     (match !dc_udp_sock with
     | Some sock -> 
         (*if !verbose_udp || !verbose_msg_clients then lprintf_nl "UDP Send: (%s)" s;*)
@@ -1473,9 +1473,9 @@ let udp_handler sock event =
       UdpSocket.read_packets sock (fun p ->
         (try
           let pbuf = p.UdpSocket.udp_content in
-          let len = String.length pbuf in
+          let len = Bytes.length pbuf in
           if len > 0 then
-            udp_parse pbuf sock
+            udp_parse (Bytes.unsafe_to_string pbuf) sock
         with e -> () ) 
       ) 
           | _ -> ()

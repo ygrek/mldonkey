@@ -530,9 +530,9 @@ let client_name () =
   let name = !!global_login in
   if name != !old_client_name then  begin
       let len = String.length name in
-      ft_client_name := String.sub name 0 (min 32 len);
       old_client_name := name;
-      String2.replace_char !ft_client_name ' ' '_';
+      let name' = String.sub name 0 (min 32 len) in
+      ft_client_name := String2.replace_char name' ' ' '_';
     end;
   !ft_client_name
 

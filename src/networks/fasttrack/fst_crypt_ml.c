@@ -47,7 +47,7 @@ value ml_create_cipher(value unit)
 value ml_apply_cipher(value cipher_v, value s_v, value pos_v, value len_v)
 {
   FSTCipher* cipher = (FSTCipher*) cipher_v;
-  char *s = String_val(s_v);
+  char *s = Bytes_val(s_v);
   int pos = Int_val(pos_v);
   int len = Int_val(len_v);
 
@@ -83,7 +83,7 @@ value ml_set_cipher(value cipher_v, value seed_v, value encode_v)
 value ml_cipher_packet_get(value s_v, value pos_v, value in_cipher_v)
 {
   FSTCipher* in_cipher = (FSTCipher*) in_cipher_v;
-  char *s = String_val(s_v);
+  const char *s = String_val(s_v);
   int pos = Int_val(pos_v);
   unsigned int seed;
   unsigned int enc_type;
@@ -137,7 +137,7 @@ value ml_xor_ciphers2(value out_cipher_v, value in_cipher_v){
 value ml_cipher_packet_set(value cipher_v, value s_v, value pos_v)
 {
   FSTCipher* cipher = (FSTCipher*) cipher_v;
-  char *s = String_val(s_v);
+  char *s = Bytes_val(s_v);
   int pos = Int_val(pos_v);
 
   ((unsigned int*)(s+pos))[0] = htonl(cipher->seed);
@@ -158,7 +158,7 @@ value ml_cipher_packet_set_xored(value cipher_v, value s_v, value pos_v, value x
 {
   FSTCipher* cipher = (FSTCipher*) cipher_v;
   FSTCipher* xor_cipher = (FSTCipher*) xor_cipher_v;
-  char *s = String_val(s_v);
+  char *s = Bytes_val(s_v);
   int pos = Int_val(pos_v);
   unsigned int seed = cipher->seed;
 

@@ -89,7 +89,7 @@ X-KazaaTag: 6=Christina Aguliera(13)
 X-KazaaTag: 8=Stripped(13)
 X-KazaaTag: 14=Other(13)
 X-KazaaTag: 1=2002(13)
-X-KazaaTag: 26=© christinas_eyedol 2002(13)
+X-KazaaTag: 26=Â© christinas_eyedol 2002(13)
 X-KazaaTag: 12=album version, stripped, fighter, real, christina, aguilera(13)
 X-KazaaTag: 10=en(13)
 X-KazaaTag: 18=Video Clip(13)
@@ -135,15 +135,15 @@ type cnx = {
 let connections = Hashtbl.create 13
 
 let rec parse_packets pos s ciphers =
-  let len = String.length s - pos in
+  let len = Bytes.length s - pos in
   if len > 0 then
     let size = TcpMessages.packet_size ciphers s pos len in
     match size with
       None -> ()
     | Some size ->
         if len >= size then
-          let msg = String.sub s pos size in
-          let addr, t = TcpMessages.parse ciphers msg in
+          let msg = Bytes.sub s pos size in
+          let addr, t = TcpMessages.parse ciphers (Bytes.to_string msg) in
           lprintf "MESSAGE: %s\n    %s\n"
             (TcpMessages.string_of_path addr)
           (TcpMessages.to_string t);
@@ -152,12 +152,12 @@ let rec parse_packets pos s ciphers =
           lprintf "Packet too short\n"
 
 let parse_netname start_pos s ciphers =
-  let len = String.length s in
+  let len = Bytes.length s in
   let rec iter pos =
     if pos < len then
-      if s.[pos] = '\000' then begin
-          let netname = String.sub s start_pos (pos-start_pos) in
-          lprintf "netname: [%s]\n" (String.escaped netname);
+      if (Bytes.get s pos) = '\000' then begin
+          let netname = Bytes.sub s start_pos (pos-start_pos) in
+          lprintf "netname: [%s]\n" (Bytes.unsafe_to_string (Bytes.escaped netname));
 
 (*          test_xinu s (pos+1) len 0x51L; *)
           parse_packets (pos+1) s ciphers
@@ -208,9 +208,9 @@ let rec check_xinu s pos len depth =
       else depth
   | _ -> -10
 
-let parse (s_out : string) (s_in : string) =
+let parse (s_out : bytes) (s_in : bytes) =
   let parsed = ref false in
-  if String.length s_in > 12 && String.length s_out > 12 then begin
+  if Bytes.length s_in > 12 && Bytes.length s_out > 12 then begin
       let ciphers = {
           in_cipher = create_cipher ();
           out_cipher = create_cipher ();
@@ -220,41 +220,41 @@ let parse (s_out : string) (s_in : string) =
       begin
         try
 
-          get_cipher_from_packet s_out 4 ciphers.out_cipher;
+          get_cipher_from_packet (Bytes.to_string s_out) 4 ciphers.out_cipher;
           init_cipher ciphers.out_cipher;
 
-          get_cipher_from_packet s_in 0 ciphers.in_cipher;
+          get_cipher_from_packet (Bytes.to_string s_in) 0 ciphers.in_cipher;
           init_cipher ciphers.in_cipher;
 
           xor_ciphers ciphers.out_cipher ciphers.in_cipher;
           init_cipher ciphers.out_cipher;
 
           lprintf "HEADER OF CONNECTION: %02x.%02x.%02x.%02x - %02x.%02x.%02x.%02x\n"
-            (int_of_char s_out.[0])
-          (int_of_char s_out.[1])
-          (int_of_char s_out.[2])
-          (int_of_char s_out.[3])
+            (int_of_char (Bytes.get s_out 0))
+          (int_of_char (Bytes.get s_out 1))
+          (int_of_char (Bytes.get s_out 2))
+          (int_of_char (Bytes.get s_out 3))
 
-          (int_of_char s_out.[4])
-          (int_of_char s_out.[5])
-          (int_of_char s_out.[6])
-          (int_of_char s_out.[7])
+          (int_of_char (Bytes.get s_out 4))
+          (int_of_char (Bytes.get s_out 5))
+          (int_of_char (Bytes.get s_out 6))
+          (int_of_char (Bytes.get s_out 7))
           ;
 
           begin
-            let s = String.create 8 in
+            let s = Bytes.make 8 '\000' in
             cipher_packet_set ciphers.out_cipher s 0;
-            lprintf "OUT CIPHER: [%s]\n" (String.escaped s);
+            lprintf "OUT CIPHER: [%s]\n" (Bytes.unsafe_to_string (Bytes.escaped s));
           end;
 
           begin
-            let s = String.create 8 in
+            let s = Bytes.make 8 '\000' in
             cipher_packet_set ciphers.in_cipher s 0;
-            lprintf "IN CIPHER: [%s]\n" (String.escaped s);
+            lprintf "IN CIPHER: [%s]\n" (Bytes.unsafe_to_string (Bytes.escaped s));
           end;
 
           (
-            let len = String.length s_out in
+            let len = Bytes.length s_out in
             let start_pos = 12 in
             apply_cipher ciphers.out_cipher s_out start_pos (len-start_pos);
 (*
@@ -263,7 +263,7 @@ let parse (s_out : string) (s_in : string) =
   *)
           );
           (
-            let len = String.length s_in in
+            let len = Bytes.length s_in in
             let start_pos = 8 in
             apply_cipher ciphers.in_cipher s_in start_pos (len-start_pos);
 (*
@@ -273,7 +273,7 @@ let parse (s_out : string) (s_in : string) =
           );
 
           lprintf "---------------------------------------------->\n";
-          lprintf "  HEADER[%s]\n" (String.escaped (String.sub s_out 0 4));
+          lprintf "  HEADER[%s]\n" (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub s_out 0 4)));
           parse_netname 12 s_out { ciphers with
             in_xinu = ciphers.out_xinu; in_cipher = ciphers.out_cipher };
           lprintf "<----------------------------------------------\n";
@@ -289,8 +289,8 @@ dump_sub s (start_pos) (len - start_pos);
     with e ->
         lprintf "exception %s while parsing stream\n"
           (Printexc2.to_string e) ;
-        lprintf "  [%s]\n" (String.escaped
-            (String.sub s_in 0 (min 50 (String.length s_in))))
+        lprintf "  [%s]\n" (Bytes.unsafe_to_string (Bytes.escaped
+            (Bytes.sub s_in 0 (min 50 (Bytes.length s_in)))))
   end;
   cipher_free ciphers.in_cipher;
     cipher_free ciphers.out_cipher;
@@ -322,8 +322,10 @@ let find_header s pos =
   let pos2 = iter s pos in
   String.sub s pos (pos2 - pos)
 
+(*
 let hescaped s =
   String2.replace_char s '\r' ' ';s
+*)
 
 let is_http_stream s =
   String2.starts_with s "GET" ||
@@ -376,13 +378,13 @@ let print_packets () =
 
                     lprintf "First direction....\n";
                     let parsed = parse
-                        (Buffer.contents cnx.packets_out)
-                      (Buffer.contents cnx.packets_in) in
+                        (Buffer.to_bytes cnx.packets_out)
+                      (Buffer.to_bytes cnx.packets_in) in
                     if not parsed then begin
                         lprintf "Second direction....\n";
                         let _ = parse
-                            (Buffer.contents cnx.packets_in)
-                          (Buffer.contents cnx.packets_out) in
+                            (Buffer.to_bytes cnx.packets_in)
+                          (Buffer.to_bytes cnx.packets_out) in
                         ()
                       end
                   end
@@ -616,7 +618,7 @@ let rec parse_packets c =
   let len = String.length s - pos in
   if len > 0 then
     try
-      let size = TcpMessages.packet_size c.c_ciphers s pos len in
+      let size = TcpMessages.packet_size c.c_ciphers (Bytes.of_string s) pos len in
       match size with
         None -> ()
       | Some size ->
@@ -704,13 +706,13 @@ let read_trace () =
 
   and iter_log pos len =
     if len > 13 then
-      let size = get_int s (pos + 10) in
-      let ip = LittleEndian.get_ip s pos in
-      let port = get_int16 s (pos+4) in
-      let time = get_int s (pos+6) in
+      let size = get_int_bytes s (pos + 10) in
+      let ip = LittleEndian.get_ip_bytes s pos in
+      let port = get_int16_bytes s (pos+4) in
+      let time = get_int_bytes s (pos+6) in
       let item_len = size + 14 in
       if item_len <= len then
-        let p = String.sub s (pos+14) size in
+        let p = Bytes.sub_string s (pos+14) size in
         received ip port time p;
         iter_log (pos + item_len) (len - item_len)
       else iter_read pos len
@@ -720,7 +722,7 @@ let read_trace () =
     if pos = 0 then iter len
     else
       begin
-        String.blit s pos s 0 len;
+        Bytes.blit s pos s 0 len;
         iter len
       end
   in

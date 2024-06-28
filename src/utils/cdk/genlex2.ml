@@ -28,7 +28,7 @@ type token =
 
 (* The string buffering machinery *)
 
-let initial_buffer = String.create 32
+let initial_buffer = Buffer.create 32
 
 let buffer = ref initial_buffer
 let bufpos = ref 0
@@ -36,16 +36,14 @@ let bufpos = ref 0
 let reset_buffer () = buffer := initial_buffer; bufpos := 0
 
 let store c =
-  if !bufpos >= String.length !buffer then
-    begin
-      let newbuffer = String.create (2 * !bufpos) in
-      String.blit !buffer 0 newbuffer 0 !bufpos; buffer := newbuffer
-    end;
-  String.set !buffer !bufpos c;
+  Buffer.add_char !buffer c;
   incr bufpos
 
 let get_string () =
-  let s = String.sub !buffer 0 !bufpos in buffer := initial_buffer; s
+  let s = Buffer.sub !buffer 0 !bufpos in
+  Buffer.clear !buffer;
+  bufpos := 0;
+  s
 
 (* The lexer *)
 

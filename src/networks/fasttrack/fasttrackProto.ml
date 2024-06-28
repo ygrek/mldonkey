@@ -65,11 +65,11 @@ let ip_to_string ip = Ip.to_string ip
 let crypt_and_send sock out_cipher str =
   if !verbose_msg_raw || monitored sock then
     lprintf "crypt_and_send: to send [%s]\n" (String.escaped str);
-  let str = String.copy str in
-  apply_cipher out_cipher str 0 (String.length str);
+  let str = Bytes.of_string str in
+  apply_cipher out_cipher str 0 (Bytes.length str);
   if !verbose_msg_raw || monitored sock then
-    lprintf "crypt_and_send: [%s] sent\n" (String.escaped str);
-  write_string sock str
+    lprintf "crypt_and_send: [%s] sent\n" (Bytes.unsafe_to_string (Bytes.escaped str));
+  write sock str 0 (Bytes.length str)
 
 (*************************************************************************)
 (*                                                                       *)
@@ -1360,15 +1360,16 @@ dec: [(0)(35)(31)(147)(72)(36)(60)(179)(137)(93)(0)(40)(0)(184)(102)(10)(138)(31
 (*************************************************************************)
 
     let packet_size ciphers s pos len =
+      let ss = Bytes.to_string s in
       if len > 0 then
-        match int_of_char s.[pos] with
+        match int_of_char (Bytes.get s pos) with
           0x50 -> Some 1
         | 0x52 -> Some 1
         | 0x4b ->
 (*          lprintf "We have got a real packet\n"; *)
             if len > 4 then
 (*                dump_sub s b.pos b.len; *)
-              let msg_type, size = parse_head ciphers s pos in
+              let msg_type, size = parse_head ciphers ss pos in
               Some (size + 5)
             else None
 
@@ -1377,7 +1378,7 @@ dec: [(0)(35)(31)(147)(72)(36)(60)(179)(137)(93)(0)(40)(0)(184)(102)(10)(138)(31
             if len > 4 then begin
 (*                dump_sub s b.pos b.len; *)
                 lprintf "Trying to continue...\n";
-                let msg_type, size = parse_head ciphers s pos in
+                let msg_type, size = parse_head ciphers ss pos in
                 Some (size + 5)
               end
             else None
@@ -1800,7 +1801,7 @@ module UdpMessages = struct
 
       try
         let s = write msg in
-        UdpSocket.write t ping s ip port
+        UdpSocket.write t ping (Bytes.of_string s) ip port
       with e ->
           lprintf "FT: Exception %s in udp_send\n" (Printexc2.to_string e)
 
@@ -1888,13 +1889,13 @@ let check_primitives () =
       let cipher = create_cipher () in
       set_cipher cipher 123456789l 0x29;
       init_cipher cipher;
-      let s = String.make 12 '0' in
+      let s = Bytes.make 12 '0' in
       cipher_packet_set cipher s 0;
-      assert (s = "\007\091\205\021\110\233\135\1870000"); 
+      assert (s = Bytes.of_string "\007\091\205\021\110\233\135\1870000"); 
       (* lprintf "cipher_packet_set s = \"%s\"\n" (String.escaped s); *)
-      let s = "123456789abcdefghijklm\233\234\235" in
-      apply_cipher cipher s 0 (String.length s);
-      assert (s = "\016\210\245\241\144Ug\028Z\229\1928\176\167\192\008\139\019\018Z\1937\226\250i"); 
+      let s = Bytes.of_string "123456789abcdefghijklm\233\234\235" in
+      apply_cipher cipher s 0 (Bytes.length s);
+      assert (s = Bytes.of_string "\016\210\245\241\144Ug\028Z\229\1928\176\167\192\008\139\019\018Z\1937\226\250i"); 
       (* lprintf "apply_cipher s = \"%s\"\n" (String.escaped s); *)
       cipher_free cipher;
     with _ ->

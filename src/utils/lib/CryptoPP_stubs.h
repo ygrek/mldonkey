@@ -36,6 +36,6 @@ typedef unsigned char byte;
 
 void crypto_exit();
 void createKey(char buf[]);
-unsigned long loadKey(char privateKeyBase64[], char buf[]);
-int createSignature(byte *buf, int maxLen, byte *key, int keyLen, uint32_t cInt, uint8_t ipType, uint32_t ip);
+unsigned long loadKey(const char privateKeyBase64[], char buf[]);
+int createSignature(byte *buf, int maxLen, const byte *key, int keyLen, uint32_t cInt, uint8_t ipType, uint32_t ip);
 int verifySignature(byte *key, int keyLen, byte *sig, int sigLen, uint32_t cInt, uint8_t ipType, uint32_t ip);

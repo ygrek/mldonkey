@@ -87,7 +87,7 @@ let default_handler gconn sock =
       let b = buf sock in
       if !verbose then
         lprintf "HttpReader: Handler not found for [%s]\n"
-          (String.escaped (String.sub b.buf b.pos b.len));
+          (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
       close sock (Closed_for_error "not recognized");
       failwith "Reply is not in the correct protocol"
   | Some f -> f gconn sock
@@ -104,12 +104,13 @@ let handlers info gconn =
     let b = TcpBufferedSocket.buf sock in 
     if monitored sock || !verbose_msg_raw then
       lprintf "iter_read %s :%d/%d\n%s\n" (Ip.to_string (peer_ip sock)) nread b.len
-        (String.escaped (String.sub b.buf b.pos b.len));
+        (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
     if b.len > 0 then
       match gconn.gconn_handler with
       | HttpReader (n, hs, default) ->
           if b.len >= n then
-            let head = String.sub b.buf b.pos n in
+            let head = Bytes.sub b.buf b.pos n in
+            let head = Bytes.to_string head in
             (try                 
                 let rec iter hs =
                   match hs with
@@ -133,9 +134,9 @@ let handlers info gconn =
                   
                   | (proto, h) :: tail ->
                       if String2.starts_with head proto then begin
-                          let i = find_header_end b.buf b.pos b.len in
+                          let i = find_header_end (Bytes.to_string b.buf) b.pos b.len in
                           if i <> 0 then
-                            let header = String.sub b.buf b.pos (i - b.pos) in
+                            let header = Bytes.to_string (Bytes.sub b.buf b.pos (i - b.pos)) in
                             let first_line, headers =        
                               match  Http_client.split_header header  with
                                 [] -> "", []
@@ -197,17 +198,17 @@ let handlers info gconn =
       | CipherReader (cipher, h) ->
           if monitored sock || !verbose_msg_raw then
             lprintf "CipherReader %d: [%s]\n" nread
-              (String.escaped (String.sub b.buf b.pos b.len)); 
+              (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
           if nread > 0 then begin
 (*              AnyEndian.dump_sub b.buf (b.pos + b.len - nread) nread; *)
               apply_cipher cipher b.buf (b.pos + b.len - nread) nread;
               
               log (LogReceive(peer_ip sock, peer_port sock,
-                  String.sub  b.buf (b.pos + b.len - nread) nread));
+                  String.sub  (Bytes.to_string b.buf) (b.pos + b.len - nread) nread));
               
               if monitored sock || !verbose_msg_raw then
                 lprintf "   deciphered: [%s]\n"
-                  (String.escaped (String.sub b.buf b.pos b.len));
+                  (Bytes.unsafe_to_string (Bytes.escaped (Bytes.sub b.buf b.pos b.len)));
             end;
           let len = b.len in
           (try

@@ -10,27 +10,27 @@ let zlib_version_num () =
   end
 
 let grow_buffer s =
-  let s' = String.create (2 * String.length s) in
-  String.blit s 0 s' 0 (String.length s);
+  let s' = Bytes.create (2 * Bytes.length s) in
+  Bytes.blit s 0 s' 0 (Bytes.length s);
   s'
 
 let compress_string ?(level = 6) inbuf =
   let zs = deflate_init level true in
   let rec compr inpos outbuf outpos =
     let inavail = String.length inbuf - inpos in
-    let outavail = String.length outbuf - outpos in
+    let outavail = Bytes.length outbuf - outpos in
     if outavail = 0
     then compr inpos (grow_buffer outbuf) outpos
     else begin
       let (finished, used_in, used_out) =
-        deflate zs inbuf inpos inavail outbuf outpos outavail
+        deflate_string zs inbuf inpos inavail outbuf outpos outavail
                    (if inavail = 0 then Z_FINISH else Z_NO_FLUSH) in
       if finished then 
-        String.sub outbuf 0 (outpos + used_out)
+        Bytes.sub_string outbuf 0 (outpos + used_out)
       else
         compr (inpos + used_in) outbuf (outpos + used_out)
     end in
-  let res = compr 0 (String.create (String.length inbuf)) 0 in
+  let res = compr 0 (Bytes.create (String.length inbuf)) 0 in
   deflate_end zs;
   res
 
@@ -42,20 +42,20 @@ let gzip_string ?(level = 6) inbuf =
   let out_crc = ref Int32.zero in
   let rec compr inpos outbuf outpos =
     let inavail = String.length inbuf - inpos in
-    let outavail = String.length outbuf - outpos in
+    let outavail = Bytes.length outbuf - outpos in
     if outavail = 0
     then compr inpos (grow_buffer outbuf) outpos
     else begin 
       let (finished, used_in, used_out) =
-        deflate zs inbuf inpos inavail outbuf outpos outavail
+        deflate_string zs inbuf inpos inavail outbuf outpos outavail
                    (if inavail = 0 then Z_FINISH else Z_NO_FLUSH) in
-         out_crc := update_crc !out_crc inbuf inpos used_in;
+         out_crc := update_crc_string !out_crc inbuf inpos used_in;
       if finished then 
-        String.sub outbuf 0 (outpos + used_out)
+        Bytes.sub_string outbuf 0 (outpos + used_out)
       else
         compr (inpos + used_in) outbuf (outpos + used_out)
     end in
-  let res = compr 0 (String.create (String.length inbuf)) 0 in
+  let res = compr 0 (Bytes.create (String.length inbuf)) 0 in
   deflate_end zs; 
   let buf = Buffer.create (18 + String.length res) in
   let write_int wbuf n =
@@ -85,18 +85,18 @@ let uncompress_string2 inbuf =
   let zs = inflate_init true in
   let rec uncompr inpos outbuf outpos =
     let inavail = String.length inbuf - inpos in
-    let outavail = String.length outbuf - outpos in
+    let outavail = Bytes.length outbuf - outpos in
     if outavail = 0
     then uncompr inpos (grow_buffer outbuf) outpos
     else begin
       let (finished, used_in, used_out) =
-        inflate zs inbuf inpos inavail outbuf outpos outavail Z_SYNC_FLUSH in
+        inflate_string zs inbuf inpos inavail outbuf outpos outavail Z_SYNC_FLUSH in
       if finished then 
-        String.sub outbuf 0 (outpos + used_out)
+        Bytes.sub_string outbuf 0 (outpos + used_out)
       else
         uncompr (inpos + used_in) outbuf (outpos + used_out)
     end in
-  let res = uncompr 0 (String.create (2 * String.length inbuf)) 0 in
+  let res = uncompr 0 (Bytes.create (2 * String.length inbuf)) 0 in
   inflate_end zs;
   res
 
@@ -105,12 +105,12 @@ let uncompress_string s =
   let pos = ref 0 in
   let len = String.length s in
   uncompress ~header: true (fun b ->
-      let n = min (String.length b) (len - !pos) in
+      let n = min (Bytes.length b) (len - !pos) in
       if n < 1 then 0 else begin
       String.blit s !pos b 0 n;
       pos := !pos + n;
       n end
-  ) (fun s len -> Buffer.add_string buf (String.sub s 0 len));
+  ) (fun s len -> Buffer.add_string buf (Bytes.sub_string s 0 len));
   Buffer.contents buf
   
 

@@ -168,7 +168,7 @@ void FSTUpdate (FST_CTX*context, unsigned char*buffer, unsigned int len)
 
 // updates 4 byte small hash that is concatenated to the md5 of the first
 // 307200 bytes of the file. set hash to 0xffffffff for first run
-static unsigned int fst_hash_small (unsigned char* data, unsigned int len, unsigned int smallhash)
+static unsigned int fst_hash_small (const unsigned char* data, unsigned int len, unsigned int smallhash)
 {
   unsigned int i;
   
@@ -182,7 +182,7 @@ static unsigned int fst_hash_small (unsigned char* data, unsigned int len, unsig
 #include "caml/mlvalues.h"
 
 /* returns checksum of fzhash */
-unsigned short fst_hash_checksum (unsigned char *hash)
+unsigned short fst_hash_checksum (const unsigned char *hash)
 {
         unsigned short sum = 0;
         int i;
@@ -198,7 +198,7 @@ unsigned short fst_hash_checksum (unsigned char *hash)
 /*****************************************************************************/
 
 // hash file
-int fst_hash_file (unsigned char *fth, char *file, int64_t filesize)
+int fst_hash_file (unsigned char *fth, const char *file, int64_t filesize)
 {
   FILE *fp;
   unsigned char *buf;
@@ -272,9 +272,9 @@ int fst_hash_file (unsigned char *fth, char *file, int64_t filesize)
 }
 
 
-void fst_hash_string (unsigned char *fth, unsigned char *file, int64_t filesize)
+void fst_hash_string (unsigned char *fth, const unsigned char *file, int64_t filesize)
 {
-  unsigned char * buf = file;
+  const unsigned char * buf = file;
   size_t len = filesize;
   ml_MD5Context md5_ctx;
   unsigned int smallhash;
@@ -324,14 +324,14 @@ void fst_hash_string (unsigned char *fth, unsigned char *file, int64_t filesize)
 
 value fst_hash_file_ml(value digest, value filename, value filesize)
 {
-  if(fst_hash_file(String_val(digest), String_val(filename), 
+  if(fst_hash_file(Bytes_val(digest), String_val(filename), 
         Int64_val(filesize))) return Val_unit;
   failwith("Exception during FST computation");
 }
 
 value fst_hash_string_ml(value digest, value s, value size)
 {
-  fst_hash_string(String_val(digest), String_val(s), Int_val(size));
+  fst_hash_string(Bytes_val(digest), String_val(s), Int_val(size));
   return Val_unit;
 }
 

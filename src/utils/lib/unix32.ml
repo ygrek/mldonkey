@@ -327,13 +327,13 @@ module FDCache = struct
       check_destroyed t2;
       let buffer_len = 128 * 1024 in
       let buffer_len64 = Int64.of_int buffer_len in
-      let buffer = String.make buffer_len '\001' in
+      let buffer = Bytes.make buffer_len '\001' in
       let rec iter remaining pos1 pos2 =
         let len64 = min remaining buffer_len64 in
         let len = Int64.to_int len64 in
         if len > 0 then begin
             read t1 pos1 buffer 0 len;
-            write t2 pos2 buffer 0 len;
+            write t2 pos2 (Bytes.unsafe_to_string buffer) 0 len;
             iter (remaining -- len64) (pos1 ++ len64) (pos2 ++ len64)
           end
       in
@@ -363,7 +363,7 @@ module type File =   sig
     val mtime64 : t -> float
     val exists : t -> bool
     val remove : t -> unit
-    val read : t -> int64 -> string -> int -> int -> unit
+    val read : t -> int64 -> bytes -> int -> int -> unit
     val write : t -> int64 -> string -> int -> int -> unit
     val destroy : t -> unit
     val is_closed : t -> bool
@@ -1216,6 +1216,8 @@ let write file file_pos string string_pos len =
       | Destroyed -> failwith "Unix32.write on destroyed FD"
   else
     lprintf_nl "Unix32.write: error, invalid argument len = 0"
+
+let write_bytes f fpos b bpos len = write f fpos (Bytes.unsafe_to_string b) bpos len
         
 let buffer = Buffer.create 65000
 
@@ -1349,12 +1351,12 @@ let copy_chunk t1 t2 pos1 pos2 len =
   flush_fd t1;
   flush_fd t2;
   let buffer_size = 128 * 1024 in
-  let buffer = String.make buffer_size '\001' in
+  let buffer = Bytes.make buffer_size '\001' in
   let rec iter remaining pos1 pos2 =
     let len = mini remaining buffer_size in
     if len > 0 then begin
       read t1 pos1 buffer 0 len;
-      write t2 pos2 buffer 0 len;
+      write t2 pos2 (Bytes.unsafe_to_string buffer) 0 len;
       let len64 = Int64.of_int len in
       iter (remaining - len) (pos1 ++ len64) (pos2 ++ len64)
     end

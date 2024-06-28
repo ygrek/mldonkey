@@ -45,8 +45,8 @@
 
 static void raise_magic_failure(const char * msg)
 {
-  static value * exn = NULL;
-  if (exn == NULL) exn = caml_named_value("Magiclib.Failure");
+  static const value* exn = NULL;
+  if (!exn) caml_named_value("Magiclib.Failure");
   raise_with_string(*exn, (char *) msg);
 }
 

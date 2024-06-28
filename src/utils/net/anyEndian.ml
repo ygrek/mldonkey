@@ -37,7 +37,9 @@ let buf_int8 buf i =
 let get_uint8 s pos = 
   check_string s pos;
   int_of_char s.[pos]
-  
+
+let get_uint8_bytes b pos =
+  int_of_char (Bytes.get b pos)
   (*
 let buf_int32_8 buf i =
   Buffer.add_char buf (char_of_int (Int32.to_int (
@@ -150,7 +152,7 @@ let dump_ascii s =
   let buf = Buffer.create 1000 in
   bdump_ascii buf s;
   lprintf "%s" (Buffer.contents buf)
-      
+
 let bdump_dec buf s = 
   let len = String.length s in
   Printf.bprintf buf "dec: [";

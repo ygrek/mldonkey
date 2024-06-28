@@ -23,7 +23,7 @@ type action = BZ_RUN | BZ_FLUSH | BZ_FINISH
 
 external compress_init: int -> int -> int -> stream = "camlzip_bzCompressInit"
 external compress:
-  stream -> string -> int -> int -> string -> int -> int -> action
+  stream -> bytes -> int -> int -> bytes -> int -> int -> action
          -> bool * int * int
   = "camlzip_bzCompress_bytecode" "camlzip_bzCompress"
 external compress_end: stream -> unit = "camlzip_bzCompressEnd"
@@ -31,7 +31,7 @@ external compress_end: stream -> unit = "camlzip_bzCompressEnd"
 
 external decompress_init: int -> bool -> stream = "camlzip_bzDecompressInit"
 external decompress:
-  stream -> string -> int -> int -> string -> int -> int -> bool * int * int
+  stream -> bytes -> int -> int -> bytes -> int -> int -> bool * int * int
   = "camlzip_bzDecompress_bytecode" "camlzip_bzDecompress"
 external decompress_end: stream -> unit = "camlzip_bzDecompressEnd"
 

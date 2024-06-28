@@ -1015,7 +1015,7 @@ value
 ml_upnpAddMap(value m_enabled, value m_intPort, value m_extPort, value m_type, value m_notes)
 {
 	ml_upnpmp_t map;
-	char *s = NULL;
+	const char *s = String_val(m_notes);
 
 	memset(&map, 0, sizeof(ml_upnpmp_t));
 
@@ -1023,7 +1023,6 @@ ml_upnpAddMap(value m_enabled, value m_intPort, value m_extPort, value m_type, v
 	map.intPort = Int_val(m_intPort);
 	map.extPort = Int_val(m_extPort);
 	map.isTcp   = Int_val(m_type);
-	s = String_val(m_notes);
 	if (s && *s){
 		strncpy(map.notes, s, 32-1);
 	}else{
@@ -1040,7 +1039,7 @@ value
 ml_upnpRemoveMap(value m_enabled, value m_intPort, value m_extPort, value m_type, value m_notes)
 {
 	ml_upnpmp_t map;
-	char *s = NULL;
+	const char *s = String_val(m_notes);
 
 	memset(&map, 0, sizeof(ml_upnpmp_t));
 
@@ -1048,7 +1047,6 @@ ml_upnpRemoveMap(value m_enabled, value m_intPort, value m_extPort, value m_type
 	map.intPort = Int_val(m_intPort);
 	map.extPort = Int_val(m_extPort);
 	map.isTcp   = Int_val(m_type);
-	s =  String_val(m_notes);
 	if (s && *s){
 		strncpy(map.notes, s, 32-1);
 	}else{

@@ -420,8 +420,8 @@ value mld_ftruncate_64(value fd_v, value len_v, value sparse)
 
 value ml_strstr(value s_v, value sub_v)
 {
-  char *s = String_val(s_v);
-  char *sub = String_val(sub_v);
+  const char *s = String_val(s_v);
+  const char *sub = String_val(sub_v);
 
   if(strstr(s, sub) == NULL) {
     return Val_false;
@@ -440,7 +440,7 @@ value ml_strstr(value s_v, value sub_v)
 
 value ml_ints_of_string(value s_v)
 {
-  char *s = String_val(s_v);
+  char *s = Bytes_val(s_v);
   uint a1,a2,a3,a4;
   value res;
   char *curs = s;
@@ -509,7 +509,7 @@ value HASH_NAME##_unsafe64_fd (value digest_v, value fd_v, value pos_v, value le
   OS_FD fd = Fd_val(fd_v); \
   OFF_T pos = Int64_val(pos_v); \
   OFF_T len = Int64_val(len_v); \
-  unsigned char *digest = String_val(digest_v); \
+  unsigned char *digest = Bytes_val(digest_v); \
   HASH_CONTEXT context; \
   ssize_t nread; \
  \
@@ -541,8 +541,8 @@ value HASH_NAME##_unsafe64_fd (value digest_v, value fd_v, value pos_v, value le
 \
 value HASH_NAME##_unsafe_string(value digest_v, value string_v, value len_v) \
 { \
-  unsigned char *digest = String_val(digest_v); \
-  unsigned char *string = String_val(string_v); \
+  unsigned char *digest = Bytes_val(digest_v); \
+  const unsigned char *string = String_val(string_v); \
   long len = Long_val(len_v); \
   HASH_CONTEXT context; \
  \
@@ -555,8 +555,8 @@ value HASH_NAME##_unsafe_string(value digest_v, value string_v, value len_v) \
  \
 value HASH_NAME##_unsafe_file (value digest_v, value filename_v, value file_size) \
 { \
-  char *filename  = String_val(filename_v); \
-  unsigned char *digest = String_val(digest_v); \
+  const char *filename  = String_val(filename_v); \
+  unsigned char *digest = Bytes_val(digest_v); \
   FILE *file; \
   HASH_CONTEXT context; \
   size_t len; \
@@ -633,7 +633,7 @@ value tigertree_unsafe64_fd (value digest_v, value fd_v, value pos_v, value len_
   OS_FD fd = Fd_val(fd_v);
   OFF_T pos = Int64_val(pos_v);
   OFF_T len = Int64_val(len_v);
-  unsigned char *digest = String_val(digest_v);
+  unsigned char *digest = Bytes_val(digest_v);
 /*  int nread; */
 
   os_lseek(fd, pos, SEEK_SET);

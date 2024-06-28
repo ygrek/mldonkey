@@ -127,7 +127,7 @@ int64_t os_getfdsize(OS_FD fd)
 
 *******************************************************************/
 
-int64_t os_getfilesize(char *path)
+int64_t os_getfilesize(const char *path)
 {
   struct stat buf;
 

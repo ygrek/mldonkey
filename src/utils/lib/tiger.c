@@ -775,7 +775,7 @@ char hexa(int i)
 #define MAX_TIGER_CHUNK_SIZE 1024
 static word64 tiger_buffer[MAX_TIGER_CHUNK_SIZE];
 
-void tiger_hash(char prefix, char *s, OFF_T len, unsigned char *digest)
+void tiger_hash(char prefix, const char *s, OFF_T len, unsigned char *digest)
 {
   char *buffer = (char*) tiger_buffer;
   word64 ndigest[3];
@@ -790,7 +790,7 @@ void tiger_hash(char prefix, char *s, OFF_T len, unsigned char *digest)
   swap_digest(digest);
 }
 
-void tiger_tree_string(char *s, size_t len, size_t pos, size_t block_size, char *digest)
+void tiger_tree_string(const char *s, size_t len, size_t pos, size_t block_size, char *digest)
 {
   if(block_size == BLOCK_SIZE){
     size_t length = (len - pos > BLOCK_SIZE) ? BLOCK_SIZE : len - pos;
@@ -827,8 +827,8 @@ OFF_T tiger_block_size(OFF_T len)
 
 value tigertree_unsafe_string(value digest_v, value string_v, value len_v)
 {
-  unsigned char *digest = String_val(digest_v);
-  unsigned char *string = String_val(string_v);
+  unsigned char *digest = Bytes_val(digest_v);
+  const unsigned char *string = String_val(string_v);
   long len = Long_val(len_v);
 
   tiger_tree_string (string, len, 0, tiger_block_size(len), digest);
@@ -838,8 +838,8 @@ value tigertree_unsafe_string(value digest_v, value string_v, value len_v)
 
 value tiger_unsafe_string(value digest_v, value string_v, value len_v)
 {
-  unsigned char *digest = String_val(digest_v);
-  unsigned char *string = String_val(string_v);
+  unsigned char *digest = Bytes_val(digest_v);
+  const unsigned char *string = String_val(string_v);
   long len = Long_val(len_v);
 
   static_tiger ((word64*)string, len, (word64*) digest);  

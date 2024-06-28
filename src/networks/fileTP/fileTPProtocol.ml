@@ -48,18 +48,18 @@ let handlers info gconn =
           let begin_pos =  b.pos in
           let rec iter i n_read =
             if i < end_pos then
-              if b.buf.[i] = '\r' then
+              if (Bytes.get b.buf i) = '\r' then
                 iter (i+1) n_read
               else
-              if b.buf.[i] = '\n' then
+              if (Bytes.get b.buf i) = '\n' then
                 if n_read then begin
-                    let header = String.sub b.buf b.pos (i - b.pos) in
+                    let header = Bytes.sub b.buf b.pos (i - b.pos) in
 (*                    if info then begin
                         lprintf "HEADER : ";
                         dump header; lprint_newline ();
 end; *)
 
-                    (try h gconn sock header with
+                    (try h gconn sock (Bytes.to_string header) with
                         e -> close sock (Closed_for_exception e));
                     if not (TcpBufferedSocket.closed sock) then begin
                         let nused = i - b.pos + 1 in
