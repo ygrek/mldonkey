@@ -251,9 +251,7 @@ if test ! -z "$SUB_VERSION3"; then
   MLDONKEY_VERSION=$MLDONKEY_VERSION.$SUB_VERSION3
 fi
 
-MINIMUM_OCAML=4.00.0
-DEFAULT_OCAML=4.01.0
-REQUIRED_OCAML=$DEFAULT_OCAML
+MINIMUM_OCAML=4.03.0
 
 REQUIRED_LABLGTK=1.2.7
 
@@ -301,7 +299,6 @@ UPNP_NATPMP_FORCE=no
 # **********
 
 BATCH=no
-FORCE_OCAML=no
 FORCE_MINGW=no
 PROFILE=no
 DEBUG=no
@@ -375,12 +372,6 @@ AC_ARG_ENABLE(fasttrack,
 AC_ARG_ENABLE(batch,
   AS_HELP_STRING([--enable-batch], [reply YES to all queries in this script]),
   [BATCH="$enableval"])
-AC_ARG_ENABLE(force-ocaml,
-  AS_HELP_STRING([--enable-force-ocaml], [force usage of self-compiled OCaml]),
-  [FORCE_OCAML="$enableval"])
-AC_ARG_ENABLE(ocamlver,
-  AS_HELP_STRING([--enable-ocamlver=VER], [force usage of specific OCaml version]),
-  [REQUIRED_OCAML="$enableval"])
 AC_ARG_ENABLE(mingw,
   AS_HELP_STRING([--enable-mingw], [force compilation with MINGW on Cygwin]),
   [FORCE_MINGW="$enableval"])
@@ -519,155 +510,31 @@ AC_ARG_ENABLE(local-prefix,
   AS_HELP_STRING([--enable-local-prefix=DIR], [specify path for temporary tools installation (DIR must be absolute)]),
   [LOCAL_DIR="$enableval"])
 
-LOCAL=$LOCAL_DIR
-LOCAL_OCAML=$LOCAL_DIR/bin
-
-AC_PATH_PROG(OCAMLC,ocamlc.opt,"",[$LOCAL_DIR/bin:$PATH])
+AC_PATH_PROG(OCAMLC,ocamlc.opt,"",[$PATH])
 AC_CHECK_TOOL(OCAMLC,ocamlc,ocamlrun ocamlc)
-AC_PATH_PROG(CAMLP4, camlp4,"",[$LOCAL_DIR/bin:$PATH])
+AC_PATH_PROG(CAMLP4, camlp4,"",[$PATH])
 
-BUILD_OCAML=no
 if [ test -z "$OCAMLC" ] || [ test -z "$CAMLP4" ]; then
-   BUILD_OCAML=yes
+   echo "OCaml or Camlp4 missing, local build of OCaml is not supported anymore"
+   exit 1
 else
   OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
   if test "$OCAMLVERSION" \< "$MINIMUM_OCAML"; then
-    echo "Detected OCaml $OCAMLVERSION, required at least $MINIMUM_OCAML, need build"
-    BUILD_OCAML=yes
-  fi
-fi
-if test "$REQUIRED_OCAML" \< "$MINIMUM_OCAML"; then
-  echo "OCaml $REQUIRED_OCAML is too old, need build"
-  REQUIRED_OCAML=$DEFAULT_OCAML
-  BUILD_OCAML=yes
-fi
-if [ test "$BUILD_OCAML" = "yes" ] || [ test "$FORCE_OCAML" = "yes" ]; then
-
-  if [ test "$SYSTEM" = "mingw" ]; then
-    echo "********     No valid OCaml compiler found on your system.       *********" 1>&2;
-    echo "********    OCaml version >= $MINIMUM_OCAML is required.        *********" 1>&2;
-    echo "********   On MinGW there is no possibility to let configure     *********" 1>&2;
-    echo "********   build the OCaml compiler with the included script     *********" 1>&2;
-    echo "********    check http://mldonkey.sourceforge.net/Windows        *********" 1>&2;
-    echo "********   for instuctions how to compile OCaml under MinGW      *********" 1>&2;
-    exit 1
-  else
-
-  echo "********  OCaml (and camlp4) version >= $MINIMUM_OCAML required  *********" 1>&2;
-  if [ test "$WGET" = "" ]; then
-    echo "********          wget is missing          *********" 1>&2;
-    echo "********       cannot download OCaml       *********" 1>&2;
+    echo "Detected OCaml $OCAMLVERSION, required at least $MINIMUM_OCAML, local build of OCaml is not supported anymore"
     exit 1
   fi
-  echo "*******  Check http://ocaml.org/  ********" 1>&2;
-  echo "Do you want this script to try to download and install ocaml $REQUIRED_OCAML"
-  echo "LOCALLY in mldonkey directory ?"
-  if test "$BATCH" = "no"; then read i <&1; else i=yes; fi
-  case "$i" in
-   y* | Y*)
-      cd $PATCH_DIR
-      DOWNLOAD_OCAML_MAJOR=`echo $REQUIRED_OCAML | sed -n -e 's/^\([[0-9]]*\.[[0-9]]*\).*/\1/p'`
-      if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
-        echo Downloading ...
-        $WGET http://caml.inria.fr/pub/distrib/ocaml-"$DOWNLOAD_OCAML_MAJOR"/ocaml-"$REQUIRED_OCAML".tar.gz
-      fi
-      if test ! -f ocaml-"$REQUIRED_OCAML".tar.gz; then
-        echo "********        download OCaml $REQUIRED_OCAML not successful, try do download it manually       *********" 1>&2;
-        echo "********        from http://caml.inria.fr/pub/distrib/                                   *********" 1>&2;
-        echo "********        and copy the tar.gz into $PATCH_DIR              *********" 1>&2;
-        exit 1
-      fi
-
-      echo Uncompressing ...
-      mkdir -p $BUILD_DIR
-      cd $BUILD_DIR
-      rm -rf ocaml-"$REQUIRED_OCAML"
-      gzip -cd $PATCH_DIR/ocaml-"$REQUIRED_OCAML".tar.gz | tar vxf -
-      cd ocaml-"$REQUIRED_OCAML"
-      if test -f $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch; then
-        echo Patching ...
-        patch -p1 < $PATCH_DIR/ocaml-"$REQUIRED_OCAML".patch
-      fi
-      echo Configuring ...
-      if test "$REQUIRED_OCAML" \< "4.08.0"; then
-        ./configure -prefix "$LOCAL_DIR" -host "$host" -cc "$CC"
-      else
-        ./configure CC="$CC" -prefix "$LOCAL_DIR" -host "$host"
-      fi
-      cd config
-      cp -f Makefile Makefile.old
-      sed "s/OTHERLIBRARIES=.*/OTHERLIBRARIES=unix dynlink num str bigarray threads/" Makefile.old > Makefile
-      cd ..
-      cp -f $PATCH_DIR/Makefile.ocamldoc ocamldoc/Makefile
-      echo Compiling ...
-      $GNU_MAKE world opt opt.opt
-      echo Installing ...
-      $GNU_MAKE install
-      if ! test -f $LOCAL_DIR/lib/ocaml/threads; then
-        if ! test -f $LOCAL_DIR/lib/ocaml/vmthreads; then
-          ln -s vmthreads  $LOCAL_DIR/lib/ocaml/threads
-        fi
-      fi
-      cd $BUILD_DIR
-      rm -rf ocaml-"$REQUIRED_OCAML"
-      cd $CONFIG_DIR
-      echo OCaml locally installed for mldonkey
-
-      if test -f "$LOCAL_OCAML"/ocamlc.opt; then
-         OCAMLC=$LOCAL_OCAML/ocamlc.opt
-         ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc.opt
-      else
-      if test -f "$LOCAL_OCAML"/ocamlc; then
-         OCAMLC=$LOCAL_OCAML/ocamlc
-         ac_cv_prog_OCAMLC=$LOCAL_OCAML/ocamlc
-      else
-        echo "OCaml installation failed"; exit 1
-      fi
-      fi
-      ;;
-   *)  exit 1;;
-  esac
-  fi
 fi
 
-if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc.opt ; then
-  OCAML_PATH="$LOCAL_OCAML"/
-  OCAMLOPT=$LOCAL_OCAML/ocamlopt.opt
-  OCAMLDOC=$LOCAL_OCAML/ocamldoc
-  OCAMLMKTOP=$LOCAL_OCAML/ocamlmktop
-  OCAMLDEP=$LOCAL_OCAML/ocamldep
-  OCAMLLEX=$LOCAL_OCAML/ocamllex.opt
-  OCAMLYACC=$LOCAL_OCAML/ocamlyacc
-  CAMLP4=$LOCAL_OCAML/camlp4
-  CAMLP4OF=$LOCAL_OCAML/camlp4of
-else
-  if test "$OCAMLC" = "$LOCAL_OCAML"/ocamlc ; then
-    OCAML_PATH="$LOCAL_OCAML"/
-    if test -f "$LOCAL_OCAML/ocamlopt"; then
-      OCAMLOPT=$LOCAL_OCAML/ocamlopt
-    else
-      OCAMLOPT=no
-    fi
-    OCAMLDOC=$LOCAL_OCAML/ocamldoc
-    OCAMLMKTOP=$LOCAL_OCAML/ocamlmktop
-    OCAMLDEP=$LOCAL_OCAML/ocamldep
-    OCAMLLEX=$LOCAL_OCAML/ocamllex
-    OCAMLYACC=$LOCAL_OCAML/ocamlyacc
-    CAMLP4=$LOCAL_OCAML/camlp4
-    CAMLP4OF=$LOCAL_OCAML/camlp4of
-  else
-    AC_PATH_PROG(OCAMLOPT, ocamlopt.opt, ,[$PATH])
-    AC_PATH_PROG(OCAMLOPT, ocamlopt, no, [$PATH])
-    AC_PATH_PROG(OCAMLDEP, ocamldep, ocamldep, [$PATH])
-    AC_PATH_PROG(OCAMLLEX, ocamllex.opt, , [$PATH])
-    AC_PATH_PROG(OCAMLLEX, ocamllex, ocamllex, [$PATH])
-    AC_PATH_PROG(OCAMLYACC, ocamlyacc, ocamlyacc, [$PATH])
-    AC_PATH_PROG(OCAMLDOC, ocamldoc, ocamldoc, [$PATH])
-    AC_PATH_PROG(OCAMLMKTOP, ocamlmktop, ocamlmktop, [$PATH])
-    AC_PATH_PROG(CAMLP4, camlp4, camlp4, [$PATH])
-    AC_PATH_PROG(CAMLP4OF, camlp4of, $CAMLP4 pa_o.cmo pr_o.cmo Camlp4QuotationExpander.cmo Camlp4GrammarParser.cmo, [$PATH])
-  fi
-fi
+AC_PATH_PROG(OCAMLOPT, ocamlopt.opt, ,[$PATH])
+AC_PATH_PROG(OCAMLOPT, ocamlopt, no, [$PATH])
+AC_PATH_PROG(OCAMLDEP, ocamldep, ocamldep, [$PATH])
+AC_PATH_PROG(OCAMLLEX, ocamllex.opt, , [$PATH])
+AC_PATH_PROG(OCAMLLEX, ocamllex, ocamllex, [$PATH])
+AC_PATH_PROG(OCAMLYACC, ocamlyacc, ocamlyacc, [$PATH])
+AC_PATH_PROG(OCAMLDOC, ocamldoc, ocamldoc, [$PATH])
+AC_PATH_PROG(OCAMLMKTOP, ocamlmktop, ocamlmktop, [$PATH])
+AC_PATH_PROG(CAMLP4, camlp4, camlp4, [$PATH])
+AC_PATH_PROG(CAMLP4OF, camlp4of, $CAMLP4 pa_o.cmo pr_o.cmo Camlp4QuotationExpander.cmo Camlp4GrammarParser.cmo, [$PATH])
 
 OCAMLVERSION=`$OCAMLC -v | sed -n -e 's|.*version* *\(.*\)$|\1|p' `
 OCAMLVERSION_MAJOR=`echo $OCAMLVERSION | sed -n -e 's/^\([[0-9]]*\.[[0-9]]*\).*/\1/' -e 's/\.//gp'`
@@ -1529,7 +1396,6 @@ AC_SUBST(CRYPTOPPFLAGS)
 AC_SUBST(DONKEY_SUI_FILE)
 AC_SUBST(DONKEY_SERVER)
 AC_SUBST(GUI)
-AC_SUBST(REQUIRED_OCAML)
 AC_SUBST(REQUIRED_LABLGTK)
 AC_SUBST(ARCH)
 AC_SUBST(COMPRESS)
