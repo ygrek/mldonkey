@@ -41,7 +41,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <byteswap.h>
+#if defined(HAVE_BYTESWAP_H)
+#  include <byteswap.h>
+#else
+#  include "byteswap.h"
+#endif
+
 #include <string.h>
 
 #include <caml/mlvalues.h>
