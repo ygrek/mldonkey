@@ -235,7 +235,7 @@ let table = [
 (*                                                                                *)
 (**********************************************************************************)
 
-open Zlib
+open Zlib2
 
 (* Convenient function to load an icon set to customize the GUI *)
 

@@ -25,9 +25,9 @@
 #include <gtk/gtktooltips.h>
 
 #include <stdio.h>
-#include <lablgtk2/wrappers.h>
-#include <lablgtk2/ml_gdkpixbuf.h>
-#include <lablgtk2/ml_gobject.h>
+#include <../lablgtk2/wrappers.h>
+#include <../lablgtk2/ml_gdkpixbuf.h>
+#include <../lablgtk2/ml_gobject.h>
 
 #include <caml/mlvalues.h>
 #include <caml/alloc.h>

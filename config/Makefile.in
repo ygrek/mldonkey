@@ -93,7 +93,9 @@ SRC_FILETP=src/networks/fileTP
 SUBDIRS=$(EXTLIB) $(CDK) $(BITSTRING) $(LIB) $(RSS) $(XML) $(NET) tools \
    $(COMMON) $(DRIVER) $(MP3) src/config/$(OS_FILES)
 
-INCLUDES += $(foreach file, $(SUBDIRS), -I $(file)) -I +camlp4 $(NUMS_INCLUDE)
+INT_INCLUDES = $(foreach file, $(SUBDIRS), -I $(file))
+EXT_INCLUDES = -I +camlp4 $(NUMS_INCLUDE)
+INCLUDES = $(INT_INCLUDES) $(EXT_INCLUDES)
 
 CFLAGS:=$(CFLAGS) $(CONFIG_INCLUDES) $(GTKCFLAGS) $(GD_CFLAGS)
 
@@ -658,10 +660,12 @@ install:: opt
 
 ifneq ("$(GUI)" , "no")
   ifeq ("$(GUI)", "newgui2")
-    SUBDIRS += $(SRC_GUI) $(SRC_GUI)/x11 $(SRC_GUI)/win32 $(ICONS_CHOICE) +lablgtk2
-    GTK_LIBS_byte=-ccopt "$(GTKLLIBS)" -cclib "$(GTKLFLAGS)" -I +lablgtk2 $(LABLGL_CMA) lablgtk.cma gtkInit.cmo lablrsvg.cma
-    GTK_LIBS_opt=-ccopt "$(GTKLLIBS)" -cclib "$(GTKLFLAGS)" -I +lablgtk2 $(LABLGL_CMXA) lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
-    GTK_STATIC_LIBS_opt=-ccopt "$(GTKLLIBS)" -cclib "$(GTKLFLAGS)" -I +lablgtk2 lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
+    LABLGTK2_FLAGS:=$(shell ocamlfind query -i-format lablgtk2)
+    EXT_INCLUDES += $(LABLGTK2_FLAGS)
+    SUBDIRS += $(SRC_GUI) $(SRC_GUI)/x11 $(SRC_GUI)/win32 $(ICONS_CHOICE)
+    GTK_LIBS_byte=-ccopt "$(GTKLLIBS)" -cclib "$(GTKLFLAGS)" $(LABLGTK2_FLAGS) $(LABLGL_CMA) lablgtk.cma gtkInit.cmo lablrsvg.cma
+    GTK_LIBS_opt=-ccopt "$(GTKLLIBS)" -cclib "$(GTKLFLAGS)" $(LABLGTK2_FLAGS) $(LABLGL_CMXA) lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
+    GTK_STATIC_LIBS_opt=-ccopt "$(GTKLLIBS)" -cclib "$(GTKLFLAGS)" $(LABLGTK2_FLAGS) lablgtk.cmxa gtkInit.cmx lablrsvg.cmxa
   else
     SUBDIRS += $(SRC_GUI) $(CONFIGWIN) $(OKEY) $(GPATTERN) $(ICONS_CHOICE) +lablgtk $(SRC_PROGRESS)
     GTK_LIBS_byte=-I +lablgtk $(LABLGL_CMA) lablgtk.cma
@@ -1564,9 +1568,9 @@ resfile.o:
 
 depend:   $(RESFILE) \
 	$(PA_ZOG) $(LIB)/http_lexer.ml $(TMPSOURCES)
-	@$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) *.ml *.mli > .depend
+	@$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(INT_INCLUDES) *.ml *.mli > .depend
 	@(for i in $(SUBDIRS); do \
-		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(patsubst -I +labl$(GTK),,$(INCLUDES)) $$i/*.ml $$i/*.mli  >> .depend; \
+		$(OCAMLDEP) $(OCAMLDEP_OPTIONS) $(INT_INCLUDES) $$i/*.ml $$i/*.mli  >> .depend; \
 		$(OCAMLPP) $$i/*.mlt  >> .depend; \
 	done)
 	@if test "$(GUI)" = "newgui2"; then \
