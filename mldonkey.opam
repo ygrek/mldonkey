@@ -12,11 +12,11 @@ interfaces : telnet, web, and binary protocol for third party GUIs."""
 maintainer: "ygrek@autistici.org"
 authors: "mldonkey team"
 license: "GPL-2.0-only"
-homepage: "http://mldonkey.sourceforge.net/"
+homepage: "http://github.com/ygrek/mldonkey"
 dev-repo: "git+https://github.com/ygrek/mldonkey.git"
 bug-reports: "https://github.com/ygrek/mldonkey/issues"
 depends: [
-  "ocaml" {>= "4.00.0"}
+  "ocaml" {>= "4.03.0"}
   "camlp4"
   "conf-zlib"
   "num"
