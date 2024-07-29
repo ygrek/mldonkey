@@ -1168,8 +1168,7 @@ echo "--------------------------------------"
 	  DONKEY_SUI=no
 	else
 	  AC_MSG_RESULT(yes)
-	  ACX_CHECK_CXX_FLAGS(-std=c++14,cv_stdcxx14, CRYPTOPPFLAGS="-std=c++14")
-	  ACX_CHECK_CXX_FLAGS(-fno-omit-frame-pointer,cv_no_omit_frame_pointer, CRYPTOPPFLAGS="$CRYPTOPPFLAGS -fno-omit-frame-pointer")
+	  ACX_CHECK_CXX_FLAGS(-fno-omit-frame-pointer,cv_no_omit_frame_pointer, CRYPTOPPFLAGS="-fno-omit-frame-pointer")
 	  ACX_CHECK_CXX_FLAGS(-mno-omit-leaf-frame-pointer,cv_no_omit_leaf_frame_pointer, CRYPTOPPFLAGS="$CRYPTOPPFLAGS -mno-omit-leaf-frame-pointer")
 	  CXX=$NEWCXX
 	  CXX_VERSION=`$CXX -dumpversion`
