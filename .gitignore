@@ -12,6 +12,9 @@
 /config/configure
 /config/mldonkey.rc
 
+/icons/rsvg/*.ml
+/icons/rsvg/*.ml_icons
+
 /packages/rpm/Makefile
 /packages/rpm/mldonkey.spec
 /packages/slackware/mldonkey.options
