@@ -8,7 +8,7 @@ script:
 #  - ./configure --enable-batch --enable-upnp-natpmp --disable-directconnect --disable-fasttrack --disable-gnutella --disable-gnutella2 --enable-gui=newgui2 -->
 #  - make
   # Remove any previous build
-  - rm -rf AppDir | true
+  - rm -rf AppDir
   # Get application version
 #  - ./mlnet+gui -v 2>&1 | sed -ne "s#^.*Starting MLDonkey \([^ ]\+\) .*#APP_VERSION=\1#p" >> $BUILDER_ENV
 #  - cat "$BUILDER_ENV"
