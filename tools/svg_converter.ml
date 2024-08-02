@@ -25,8 +25,7 @@ let load_svg file =
   flush stdout;
   let ic = open_in_bin file in
   let len = in_channel_length ic in
-  let buf = String.create len in
-  really_input ic buf 0 len;
+  let buf = really_input_string ic len in
   close_in ic;
   let bufz = Zlib2.compress_string buf in
   let basename = basename file in
