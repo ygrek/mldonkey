@@ -84,7 +84,7 @@ module P = struct
       ss.[14] <- s.[pos+13];
       ss.[15] <- s.[pos+12];
 
-      Md4.direct_of_string ss
+      Md4.direct_of_string @@ Bytes.unsafe_to_string ss
 
     let buf_md4 buf s =
       let s = Md4.direct_to_string s in
@@ -112,7 +112,7 @@ module P = struct
       ss.[14] <- s.[pos+13];
       ss.[15] <- s.[pos+12];
 
-      Buffer.add_string buf ss
+      Buffer.add_bytes buf ss
 
 
 (* Strange: why was the IP format changed for Kademlia ? *)
@@ -421,7 +421,7 @@ module P = struct
       let opcode = int_of_char pbuf.[1] in
       let msg = String.sub pbuf 2 (len-2) in
       let msg = if magic = kademlia_packed_header_code then
-          let s = Zlib.uncompress_string2 msg in
+          let s = Zlib2.uncompress_string2 msg in
 (*          lprintf "Uncompressed:\n";
           dump s; *)
           s
@@ -440,7 +440,7 @@ module P = struct
           if String.length s > 200 then
             let opcode = String.sub s 0 1 in
             let args = String.sub s 1 (String.length s - 1) in
-            kademlia_packed_header ^ opcode ^ (Zlib.compress_string args)
+            kademlia_packed_header ^ opcode ^ (Zlib2.compress_string args)
           else
             kademlia_header ^ s
         in
@@ -458,7 +458,7 @@ module P = struct
           end;
 *)
 
-        UdpSocket.write sock ping s ip port
+        UdpSocket.write sock ping (Bytes.unsafe_of_string s) ip port
       with
       | MessageNotImplemented -> ()
       | e -> lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
@@ -476,7 +476,7 @@ module P = struct
                       Ip.of_inet_addr inet, port
                   | _ -> assert false
                 in
-                let t = parse_message ip port pbuf in
+                let t = parse_message ip port (Bytes.unsafe_to_string pbuf) in
                 let is_not_banned ip =
                   match !Ip.banned (ip, None) with
                     None -> true
@@ -491,7 +491,7 @@ module P = struct
                 begin
                   lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e);
-                  dump p.UdpSocket.udp_content;
+                  dump (Bytes.unsafe_to_string p.UdpSocket.udp_content);
                   lprint_newline ()
                 end
           );

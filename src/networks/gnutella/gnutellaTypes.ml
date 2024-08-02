@@ -100,7 +100,7 @@ and client = {
 and upload_client = {
     uc_sock : TcpBufferedSocket.t;
     uc_partial : bool;
-    uc_reader : (int64 -> string -> int -> int -> unit);
+    uc_reader : (int64 -> bytes -> int -> int -> unit);
     mutable uc_chunk_pos : int64;
     uc_chunk_len : int64;
     uc_chunk_end : int64;

@@ -1389,12 +1389,12 @@ let _ =
                  (* can't close pipe_out in the already forked+executed process... *)
                  let output = Buffer.create 1024 in
                  let buffersize = 1024 in
-                 let buffer = String.create buffersize in
+                 let buffer = Bytes.create buffersize in
                  (try
                     while true do
                       let nread = Unix.read pipe_out buffer 0 buffersize in
                       if nread = 0 then raise End_of_file;
-                      Buffer.add_substring output buffer 0 nread
+                      Buffer.add_subbytes output buffer 0 nread
                     done
                   with 
                   | End_of_file -> ()
@@ -3893,7 +3893,7 @@ let _ =
            let num = int_of_string arg in
            let file = file_find num in
            let swarmer = CommonSwarming.file_swarmer file in
-           let prio = CommonSwarming.get_swarmer_block_priorities swarmer in
+           let prio = Bytes.unsafe_to_string @@ CommonSwarming.get_swarmer_block_priorities swarmer in
            let downloaded = CommonSwarming.get_swarmer_block_verified swarmer in
            pr "\\<code\\>";
            pr "priorities: ";

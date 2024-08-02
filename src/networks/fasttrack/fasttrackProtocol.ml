@@ -87,13 +87,13 @@ let rec iter len n =
     s.[len] <- char_of_int (0x80 lor (Int64.to_int (Int64.logand n int64_7f)));
     s
   else
-  let s = String.create (len+1) in
+  let s = Bytes.create (len+1) in
   s.[len] <- char_of_int (Int64.to_int n);
   s
 
 let buf_dynint b data =
   let data = Int64.logand bits32 data in
-  Buffer.add_string b (iter 0 data)
+  Buffer.add_bytes b (iter 0 data)
 
 let buf_dynint b data =
   let data = Int64.logand bits32 data in
@@ -116,7 +116,7 @@ let buf_dynint b data =
           (Int64.logand !data int64_7f)));
     data := Int64.shift_right_logical !data  7;
   done;
-  Buffer.add_string b (String.sub buf 0 len)
+  Buffer.add_string b (Bytes.sub_string buf 0 len)
 
 let dynint v =
   let b = Buffer.create 10 in

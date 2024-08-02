@@ -75,7 +75,7 @@ val client_send_files :
 val client_send_dir :
     TcpBufferedSocket.t -> string -> file list -> unit
 
-val new_string :  DonkeyProtoClient.t -> string -> unit
+val new_string :  DonkeyProtoClient.t -> bytes -> unit
 
 val tag_file : file -> CommonTypes.tag list
 

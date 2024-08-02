@@ -11,9 +11,6 @@ jobs:
       fail-fast: false
       matrix:
         ocaml-version:
-          - 4.00.1
-          - 4.01.0
-          - 4.02.3
           - 4.03.0
           - 4.04.2
           - 4.05.0
@@ -21,18 +18,23 @@ jobs:
           - 4.07.1
           - 4.08.1
           - 4.09.1
+          - 4.10.0
+          - 4.11.1
+          - 4.12.1
+          - 4.13.1
+          - 4.14.1
         required:
           - true
         os:
           - ubuntu-latest
         include:
-          - ocaml-version: 4.09.1
+          - ocaml-version: 4.14.1
             required: true
             os: macos-latest
-          - ocaml-version: 4.09.1
+          - ocaml-version: 4.14.1
             required: false
             os: windows-latest
-          - ocaml-version: 4.10.0
+          - ocaml-version: 5.2.0
             required: false
             os: ubuntu-latest
 
@@ -40,19 +42,29 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Use OCaml ${{ matrix.ocaml-version }}
-        uses: avsm/setup-ocaml@v1
+        uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-version: ${{ matrix.ocaml-version }}
+          ocaml-compiler: ${{ matrix.ocaml-version }}
 
       - run: opam pin add mldonkey.dev . --no-action
 
       - run: opam depext mldonkey --yes --with-doc --with-test
+
+      # required for source builds
+      - run: opam install conf-autoconf conf-m4
 
       - run: opam install . --deps-only --with-doc --with-test
 
       - run: opam exec -- ./configure --enable-debug
 
       - run: opam exec -- make
+
+      - name: Upload the build artifact
+        if: ${{ matrix.ocaml-version == '4.14.1' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlnet-${{ matrix.os }}.exe
+          path: mlnet

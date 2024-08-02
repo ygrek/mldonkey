@@ -98,16 +98,16 @@ let encodeData pdest psrc srclen =
 let decode psrc =
   let srclen = String.length psrc in 
   let dstlen = calcDecodedLength psrc srclen in
-  let pdest = String.create dstlen in
+  let pdest = Bytes.create dstlen in
   decodeData pdest psrc srclen;
-  pdest
+  Bytes.unsafe_to_string pdest
   
 let encode psrc =
   let srclen = String.length psrc in 
   let dstlen = calcEncodedLength psrc srclen in
-  let pdest = String.create dstlen in
+  let pdest = Bytes.create dstlen in
   encodeData pdest psrc srclen;
-  pdest
+  Bytes.unsafe_to_string pdest
 
 (*
 ggep:
@@ -352,17 +352,17 @@ let write buf list =
                 String.make 1 (char_of_int up)
               else
               if up land 0xffff = up then
-                let s = String.create 2 in
+                let s = Bytes.create 2 in
                 LittleEndian.str_int16 s 0 up;
-                s
+                Bytes.unsafe_to_string s
               else if up land 0xffffff = up then
-                let s = String.create 3 in
+                let s = Bytes.create 3 in
                 LittleEndian.str_int24 s 0 up;
-                s
+                Bytes.unsafe_to_string s
               else
-              let s = String.create 4 in
+              let s = Bytes.create 4 in
               LittleEndian.str_int s 0 up;
-              s
+              Bytes.unsafe_to_string s
             in
             GGEP.GGEP ("DU", s)
     ) list

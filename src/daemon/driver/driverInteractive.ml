@@ -1912,7 +1912,7 @@ let buildinfo html buf =
     (
       "Features:\t",
       (if BasicSocket.has_threads () then " threads" else " no-threads") ^
-      (let s = Zlib.zlib_version_num () in 
+      (let s = Zlib2.zlib_version_num () in 
          Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else "")) ^
       (if Autoconf.bzip2 then
         let s, _ = String2.cut_at (Misc2.bzlib_version_num ()) ',' in

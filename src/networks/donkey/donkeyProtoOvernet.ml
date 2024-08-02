@@ -387,7 +387,7 @@ module Proto = struct
         UdpSocket.READ_DONE ->
           UdpSocket.read_packets sock (fun p ->
               try
-                let pbuf = p.UdpSocket.udp_content in
+                let pbuf = Bytes.unsafe_to_string p.UdpSocket.udp_content in
                 let len = String.length pbuf in
                 if len < 2 ||
                   int_of_char pbuf.[0] <> 227 then
@@ -420,7 +420,7 @@ module Proto = struct
                 if !verbose_unknown_messages then begin
                   lprintf_nl "Error %s in udp_handler, dump of packet:"
                     (Printexc2.to_string e);
-                  dump p.UdpSocket.udp_content;
+                  dump (Bytes.unsafe_to_string p.UdpSocket.udp_content);
                   lprint_newline ()
                 end
           );
@@ -447,7 +447,7 @@ module Proto = struct
             lprintf_nl "UDP to %s:%d op 0x%02X len %d type %s"
               (Ip.to_string ip) port (get_uint8 s 1) (String.length s) (message_to_string msg);
           end;
-        UdpSocket.write sock ping s ip port
+        UdpSocket.write sock ping (Bytes.unsafe_of_string s) ip port
       with e ->
           lprintf_nl "Exception %s in udp_send" (Printexc2.to_string e)
 

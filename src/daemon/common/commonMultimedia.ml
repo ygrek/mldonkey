@@ -41,10 +41,7 @@ let input_int ic =
   let i1 = input_int16 ic in
   i0 lor (i1 lsl 16)
 
-let input_string4 ic =
-  let s = String.create 4 in
-  really_input ic s 0 4;
-  s
+let input_string4 ic = really_input_string ic 4
 
 let print_string4 v s =
   lprintf "%s :" v;
@@ -230,7 +227,7 @@ let rec page_seek ic s pos =
     else begin
       really_input ic s 0 4;
       seek_in ic (pos_in ic - 3);
-      if s = "OggS"
+      if Bytes.unsafe_to_string s = "OggS"
         then seek_in ic (pos_in ic + 3)
         else page_seek ic s pos
   end
@@ -278,12 +275,10 @@ let rec next_ogg_stream ic ogg_infos str stream_number =
   lprintf "Stream Serial Number: %0.f\n" stream_number;
 *)
   seek_in ic (pos+24);
-  let content_type = String.create 1 in
-  really_input ic content_type 0 1;
+  let content_type = really_input_string ic 1 in
   let content_type = int_of_char content_type.[0] in
   seek_in ic (pos+25);
-  let stream_type = String.create 8 in
-  really_input ic stream_type 0 8;
+  let stream_type = really_input_string ic 8 in
   let stream_type = normalize_stream_type stream_type content_type in
   incr stream_number;
   let pos = pos_in ic in
@@ -299,8 +294,7 @@ let rec next_ogg_stream ic ogg_infos str stream_number =
     | OGG_THEORA_STREAM -> get_ogg_theora_info ic ogg_infos str stream_number
 
 and get_ogg_video_info  ic ogg_infos str sizeof_packet stream_number =
-  let s = String.create sizeof_packet in
-  really_input ic s 0 sizeof_packet;
+  let s = really_input_string ic sizeof_packet in
   let codec = String.lowercase (String.sub s 0 4) in
   let time_unit = read64 (String.sub s 8 8) in
   let video_width =
@@ -326,8 +320,7 @@ and get_ogg_video_info  ic ogg_infos str sizeof_packet stream_number =
   next_ogg_stream ic ogg_infos str stream_number
 
 and get_ogg_audio_info  ic ogg_infos str sizeof_packet stream_number =
-  let s = String.create sizeof_packet in
-  really_input ic s 0 sizeof_packet;
+  let s = really_input_string ic sizeof_packet in
   let codec = get_audio_codec (String.sub s 0 4) in
   let sample_per_unit = read64 (String.sub s 16 8) in
   let channels =
@@ -359,8 +352,7 @@ and get_ogg_audio_info  ic ogg_infos str sizeof_packet stream_number =
 
 and get_ogg_vorbis_info  ic ogg_infos str stream_number =
   seek_in ic (pos_in ic - 2); (* ogm sets 8 octets in the common header as vorbis uses 6 octects for 'vorbis' *)
-  let s = String.create 22 in
-  really_input ic s 0 22;
+  let s = really_input_string ic 22 in
   let version = read32 (String.sub s 0 4) in
   let audio_channels = int_of_char s.[4] in
   let sample_rate = read32 (String.sub s 5 4) in
@@ -389,8 +381,7 @@ and get_ogg_vorbis_info  ic ogg_infos str stream_number =
 
 and get_ogg_theora_info  ic ogg_infos str stream_number =
   seek_in ic (pos_in ic - 2); (* ogm sets 8 octets in the common header as theora uses 6 octects for 'theora' *)
-  let s = String.create 34 in
-  really_input ic s 0 34;
+  let s = really_input_string ic 34 in
   let vmaj = int_of_char s.[0] in
   let vmin = int_of_char s.[1] in
   let vrev = int_of_char s.[2] in
@@ -451,7 +442,7 @@ and get_ogg_index_info ic ogg_infos str stream_number =
 
 let search_info_ogg ic =
     let stream_number = ref 0 in
-    let str = String.create 4 in
+    let str = Bytes.create 4 in
     let ogg_infos = ref [] in
     (* make sure the current reading position is at the file beginning *)
     seek_in ic 0;

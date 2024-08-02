@@ -94,7 +94,8 @@ let client_uid = define_option gnutella_section ["client_uid"]
   
   let _  =
   option_hook client_uid (fun _ ->
-     let s = Md4.direct_to_string !!client_uid in
+     (* wut? *)
+     let s = Bytes.unsafe_of_string @@ Md4.direct_to_string !!client_uid in
      s.[8] <- '\255';
      s.[15] <- '\000';
   )

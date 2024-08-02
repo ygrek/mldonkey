@@ -130,7 +130,7 @@ let rec really_write fd s pos len =
 (*      lprintf "really_write 0 BYTES !!!!!!!!!\n";  *)
       raise End_of_file
     end else
-  let nwrite = Unix.write fd s pos len in
+  let nwrite = Unix.write_substring fd s pos len in
   if nwrite = 0 then raise End_of_file else
   if nwrite < len then 
     really_write fd s (pos + nwrite) (len - nwrite)
@@ -209,7 +209,7 @@ let random () =
   for i = 0 to 6 do
     s.[i] <- char_of_int (97 + Random.int 26)
   done;
-  s
+  Bytes.unsafe_to_string s
 
 let can_write_to_directory dirname =
   let temp_file = Filename.concat dirname "tmp_" ^ random () ^ "_mld.tmp" in

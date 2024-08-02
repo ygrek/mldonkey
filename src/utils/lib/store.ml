@@ -33,7 +33,7 @@ type 'a file = {
     mutable file_all_pos : int array;
     mutable file_cache : 'a Weak.t;
     mutable file_next_pos : int;
-    file_chunk : string;
+    file_chunk : bytes;
   }
 
 type index = int
@@ -56,7 +56,7 @@ let rec iter_write fd s pos len =
     iter_write fd s (pos+nwrite) (len-nwrite)
     
 let really_write fd pos s =
-  let len = String.length s in
+  let len = Bytes.length s in
   if verbose then begin
       lprintf_nl "write %d %d" pos len;
     end;
@@ -151,8 +151,8 @@ let uncombine comb =
   pos, chunk_size, attr
     
 let save t doc v attr =  
-  let str = Marshal.to_string v [] in
-  let len = String.length str in
+  let str = Marshal.to_bytes v [] in
+  let len = Bytes.length str in
   let chunk_size = chunk_size len in
   let file = try
       List.assoc chunk_size t.store_files
@@ -207,7 +207,7 @@ let get t doc =
       let str = file_retrieve file pos in
       begin
         try
-          Marshal.from_string str 0
+          Marshal.from_bytes str 0
         with e ->
             lprintf_nl "Marshal.from_string error"; 
             raise e

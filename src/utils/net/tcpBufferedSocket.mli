@@ -26,7 +26,7 @@ type event =
 
   
 and buf = {
-  mutable buf : string;
+  mutable buf : bytes;
   mutable pos : int;
   mutable len : int;
   mutable max_buf_size : int;
@@ -61,12 +61,13 @@ val set_reader : t -> (t -> int -> unit) -> unit
 val sock_used : t -> int -> unit
 val buf_create : int -> buf
 val buf_used : buf -> int -> unit
-val buf_add : t -> buf -> string -> int -> int -> unit
+val buf_add : t -> buf -> bytes -> int -> int -> unit
 val set_handler : t -> event -> (t -> unit) -> unit
 val set_refill : t -> (t -> unit) -> unit
 val set_rtimer : t ->  (t -> unit) -> unit
-val write: t -> string -> int -> int -> unit
+val write: t -> bytes -> int -> int -> unit
 val write_string: t -> string -> unit
+val write_bytes: t -> bytes -> unit
 val connect: token -> string -> Unix.inet_addr -> int -> handler -> t
 val close : t -> BasicSocket.close_reason -> unit
 val closed : t -> bool
