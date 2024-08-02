@@ -86,7 +86,6 @@
 #define CRYPTOPP_H
 
 #include <inttypes.h>
-#include <caml/config.h>
 #include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -100,9 +99,6 @@
 #ifndef ARCH_BIG_ENDIAN
 #	define IS_LITTLE_ENDIAN
 #endif
-
-// override #define in caml/compatibility.h
-#undef flush 
 
 // define this if you want to disable all OS-dependent features,
 // such as sockets and OS-provided random number generators
@@ -181,10 +177,9 @@
 #	define __USE_W32_SOCKETS
 #endif
 
-typedef unsigned char byte;		// put in global namespace to avoid ambiguity with other byte typedefs
-
 NAMESPACE_BEGIN(CryptoPP)
 
+typedef unsigned char byte;		// put in global namespace to avoid ambiguity with other byte typedefs
 typedef unsigned short word16;
 typedef unsigned int word32;
 

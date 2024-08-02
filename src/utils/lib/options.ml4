@@ -208,7 +208,7 @@ and parse_option = parser
 | [< 'Int i >] -> IntValue i
 | [< 'Float f >] -> FloatValue  f
 | [< 'Kwd "@"; 'Int i; v = parse_once_value i >] -> OnceValue v
-| [< 'Char c >] -> StringValue (let s = String.create 1 in s.[0] <- c; s)    
+| [< 'Char c >] -> StringValue (String.make 1 c)
 | [< 'Kwd "["; v = parse_list [] >] -> List v
 | [< 'Kwd "("; v = parse_list [] >] -> List v
 
@@ -1156,7 +1156,12 @@ let simple_args prefix opfile =
        Arg.String
          (fun s ->
             lprintf_nl "Setting option %s" oi.M.option_name;
-            set_simple_option opfile oi.M.option_name s),
+            let name =
+              match String2.split oi.M.option_name '-' with
+              | [ _ (* ^ "-" = prefix *); name ] -> name (* opfile is corresponding to prefix *)
+              | _ -> oi.M.option_name
+            in
+            set_simple_option opfile name s),
        Printf.sprintf "<string> : \t%s (current: %s)"
          oi.M.option_help oi.M.option_value)
     (simple_options prefix opfile true)

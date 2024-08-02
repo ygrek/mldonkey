@@ -125,7 +125,7 @@ let send sock stats (ip,port as addr) txnmsg =
   if !debug then lprintf_nl "KRPC to %s : %S" (show_addr addr) s;
   stats_add stats `Sent 1;
   stats_add stats `SentBytes (String.length s);
-  write sock false s ip port
+  write sock false (Bytes.unsafe_of_string s) ip port
 
 type stats_key = [ `Timeout | `Sent | `SentBytes | `Recv | `RecvBytes | `Decoded | `Handled | `NoTxn ]
 type t =
@@ -197,16 +197,16 @@ let create port enabler bw_control answer : t =
       let addr = (Ip.of_inet_addr inet_addr, port) in
       let ret = ref None in
       try
-        stats_add stats `RecvBytes (String.length p.udp_content);
+        stats_add stats `RecvBytes (Bytes.length p.udp_content);
         stats_add stats `Recv 1;
-        let r = decode_exn p.udp_content in
+        let r = decode_exn @@ Bytes.unsafe_to_string p.udp_content in
         stats_add stats `Decoded 1;
         ret := Some r;
         handle addr r;
         stats_add stats `Handled 1;
       with exn ->
         let version = match !ret with Some (_,Some s,_) -> sprintf " client %S" s | _ -> "" in
-        if !verb then lprintf_nl ~exn "handle packet from %s%s : %S" (show_addr addr) version p.udp_content;
+        if !verb then lprintf_nl ~exn "handle packet from %s%s : %S" (show_addr addr) version (Bytes.unsafe_to_string p.udp_content);
         let error txn code str = send socket stats addr (txn,(Error (Int64.of_int code,str))) in
         match exn,!ret with
         | Malformed_packet x, Some (txn, _, _)
@@ -308,20 +308,20 @@ let make_peer (ip,port) =
   assert (port <= 0xffff);
   let (a,b,c,d) = Ip.to_ints ip in
   let e = port lsr 8 and f = port land 0xff in
-  let s = String.create 6 in
+  let s = Bytes.create 6 in
   let set i c = s.[i] <- char_of_int c in
   set 0 a; set 1 b; set 2 c; set 3 d; set 4 e; set 5 f;
-  s
+  Bytes.unsafe_to_string s
 
 let make_nodes nodes =
-  let s = String.create (26 * List.length nodes) in
+  let s = Bytes.create (26 * List.length nodes) in
   let i = ref 0 in
   List.iter (fun (id,addr) ->
-    String.blit (H.direct_to_string id) 0 s (!i*26) 20;
-    String.blit (make_peer addr) 0 s (!i*26+20) 6;
+    Bytes.blit_string (H.direct_to_string id) 0 s (!i*26) 20;
+    Bytes.blit_string (make_peer addr) 0 s (!i*26+20) 6;
     incr i
     ) nodes;
-  s
+  Bytes.unsafe_to_string s
 
 let parse_response_exn q dict =
   let get k = List.assoc k dict in

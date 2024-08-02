@@ -26,14 +26,14 @@ let bz2_extract filename =
   else begin
     let file = ref "" in
     try
-      let buffer = String.create 4096 in
+      let buffer = Bytes.create 4096 in
       let file_out = Filename2.temp_file "arch_" ".tmp" in
       file := file_out;
       let ic = Bzip2.open_in filename
       in
       let oc = open_out_bin file_out in
         let rec decompress () =
-          let n = Bzip2.input ic buffer 0 (String.length buffer) in
+          let n = Bzip2.input ic buffer 0 (Bytes.length buffer) in
             if n = 0 then ()
             else
               begin

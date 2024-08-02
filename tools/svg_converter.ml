@@ -19,7 +19,6 @@
 
 
 open Filename2
-open Zlib
 
 let load_svg file =
   Printf.printf "Converting file %s\n" file;
@@ -29,7 +28,7 @@ let load_svg file =
   let buf = String.create len in
   really_input ic buf 0 len;
   close_in ic;
-  let bufz = compress_string buf in
+  let bufz = Zlib2.compress_string buf in
   let basename = basename file in
   let extension = last_extension basename in
   let dirname = String.sub file 0 (String.length file - String.length basename) in

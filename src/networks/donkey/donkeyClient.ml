@@ -1603,7 +1603,7 @@ is checked for the file.
           if !verbose_download then
             lprintf_nl "Complete compressed block received!";
           
-          let s = String.create comp.comp_len in
+          let s = Bytes.create comp.comp_len in
           let rec iter list =
             match list with
               [] -> 0
@@ -1615,7 +1615,8 @@ is checked for the file.
           in
           let pos = iter comp.comp_blocs in
           assert (pos = comp.comp_len);
-            let s = Zlib.uncompress_string2 s in
+          let s = Bytes.unsafe_to_string s in
+            let s = Zlib2.uncompress_string2 s in
             if !verbose_download then
         lprintf_nl "Decompressed: %d/%d" (String.length s) comp.comp_len;
             

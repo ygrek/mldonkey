@@ -742,7 +742,7 @@ let g2_decode_payload names be s =
           if p.QrtPatch.compressor = 1 then
             (try
 (*                lprintf "Decompressing\n"; *)
-                let s = Zlib.uncompress_string2 p.QrtPatch.table in
+                let s = Zlib2.uncompress_string2 p.QrtPatch.table in
 (*                lprintf "Size %d: %s\n" (String.length s)
 (String.escaped (String.sub s 0 40)); *)
                 ()
@@ -908,7 +908,7 @@ let udp_send ip port msg =
         let s = g2_encode msg in
         let compress = String.length s > max_uncompress_packet in
         let s = if compress then
-            (udp_header true) ^ (Zlib.compress_string s)
+            (udp_header true) ^ (Zlib2.compress_string s)
           else
             (udp_header false) ^ s
         in
@@ -1121,7 +1121,7 @@ let parse_udp_packet ip port buf =
     let trailer = String.sub buf 8 (len - 8) in
     let buf = 
       if nFlags land 1 <> 0 then 
-        Zlib.uncompress_string2 trailer
+        Zlib2.uncompress_string2 trailer
       else trailer
     in
     
@@ -1234,7 +1234,7 @@ let parse_udp_packet ip port buf =
     lprintf "g2_udp_handler not implemented\n";
   let buf,pos = if nFlags land 1 <> 0 then
       let trailer = String.sub buf 8 (len - 8) in
-      Zlib.uncompress_string2 trailer, 0
+      Zlib2.uncompress_string2 trailer, 0
     else buf, 8
   in
   if nFlags land 2 <> 0 then begin
@@ -1537,7 +1537,7 @@ let send_qrt_sequence s update_table =
   let table = !cached_qrt_table in
   
   let compressor, table =
-      1, Zlib.compress_string table
+      1, Zlib2.compress_string table
   in
   
   server_send_qrt_patch s {
@@ -1581,7 +1581,7 @@ let print_string s buf =
     let buf,pos = if nFlags land 1 <> 0 then
         let trailer = String.sub buf 8 (len - 8) in
         lprintf "Uncompress\n";
-        Zlib.uncompress_string2 trailer, 0
+        Zlib2.uncompress_string2 trailer, 0
       else buf, 8
     in
     try
