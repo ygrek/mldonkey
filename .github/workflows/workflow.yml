@@ -62,6 +62,8 @@ jobs:
 
       - run: opam exec -- make
 
+      - run: opam exec -- make utils
+
       - name: Upload the build artifact
         if: ${{ matrix.ocaml-version == '4.14.1' }}
         uses: actions/upload-artifact@v4

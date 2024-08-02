@@ -56,11 +56,11 @@ let rec tiger_of_array array pos block =
   else
   let d1 = tiger_of_array array pos (block/2) in
   let d2 = tiger_of_array array (pos+block/2) (block/2) in
-  let s = String.create (1 + Tiger.length * 2) in
+  let s = Bytes.create (1 + Tiger.length * 2) in
   s.[0] <- '\001';
   String.blit (TigerTree.direct_to_string d1) 0 s 1 Tiger.length;
   String.blit (TigerTree.direct_to_string d2) 0 s (1+Tiger.length) Tiger.length;
-  let t = Tiger.string s in
+  let t = Tiger.string @@ Bytes.unsafe_to_string s in
   let t = TigerTree.direct_of_string (Tiger.direct_to_string t) in
   t
 
@@ -142,7 +142,7 @@ let ed2k_hash_file fd file_size =
   let md4 = if nchunk_hashes = 0 then
       Md4.digest_subfile fd zero file_size        
     else
-    let chunks = String.create (nchunks*16) in
+    let chunks = Bytes.create (nchunks*16) in
     for i = 0 to nchunks - 1 do
       let begin_pos = edk_block_size ** (Int64.of_int i) in
       let end_pos = begin_pos ++ edk_block_size in
@@ -154,7 +154,7 @@ let ed2k_hash_file fd file_size =
       let md4 = Md4.direct_to_string md4 in
       String.blit md4 0 chunks (i*16) 16;
     done;
-    Md4.string chunks
+    Md4.string @@ Bytes.unsafe_to_string chunks
   in
   md4
 
@@ -272,9 +272,9 @@ let sig2dat_hash_filename filename =
   let file_size = Unix32.getsize64 fd in
   let len64 = min 307200L file_size in
   let len = Int64.to_int len64 in
-  let s = String.create len in
+  let s = Bytes.create len in
   Unix32.read fd zero s 0 len;
-  let md5ext = Md5Ext.string s in
+  let md5ext = Md5Ext.string @@ Bytes.unsafe_to_string s in
   lprintf "sig2dat://|File: %s|Length: %Ld Bytes|UUHash: %s|/\n"
     (Url.encode (Filename.basename filename)) file_size (Md5Ext.to_string md5ext);
   lprintf "    Hash: %s\n" (Md5Ext.to_hexa_case false md5ext);
@@ -324,12 +324,12 @@ let check_external_functions file_size =
     
     ] in
   
-  let test_string = String.create test_string_len in
+  let test_string = Bytes.create test_string_len in
   let rec iter pos =
     if pos < test_string_len then
       let end_pos = min test_string_len (2*pos) in
       let len = end_pos - pos in        
-      String.blit test_string 0 test_string pos len;
+      Bytes.blit test_string 0 test_string pos len;
       iter end_pos
   in
   
@@ -369,7 +369,7 @@ let check_external_functions file_size =
 
         lprintf "Filling file\n";
         List.iter (fun (pos, len) ->
-            Unix32.write file pos test_string 0 len;                
+            Unix32.write_bytes file pos test_string 0 len;                
         ) waves;
         
         lprintf "Computing ed2k hash\n";
@@ -414,12 +414,15 @@ let diff_chunk args =
   if end_pos -- begin_pos > max_diff_size then
     failwith (Printf.sprintf "Cannot diff chunk > %Ld bytes" max_diff_size);
   let len = Int64.to_int (end_pos -- begin_pos) in
-  let s1 = String.create len in
-  let s2 = String.create len in
+  let read_string fd pos len =
+    let s = Bytes.create len in
+    Unix32.read fd pos s 0 len;
+    Bytes.unsafe_to_string s
+  in
   let fd1 = Unix32.create_ro filename1 in
   let fd2 = Unix32.create_ro filename2 in
-  Unix32.read fd1 begin_pos s1 0 len;
-  Unix32.read fd2 begin_pos s2 0 len;
+  let s1 = read_string fd1 begin_pos len in
+  let s2 = read_string fd2 begin_pos len in
   
   let rec iter_in old_pos pos =
     if pos < len then 
