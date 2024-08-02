@@ -835,11 +835,11 @@ let get_availability_bar_image avail chunks av_max is_file =
   (match chunks with
   | None -> 
       for i = 0 to String.length avail - 1 do
-        avail.[i] <- char_of_int (av_max - 1)
+        (Bytes.of_string avail).[i] <- char_of_int (av_max - 1)
       done
   | Some chunks ->
       for i = 0 to String.length avail - 1 do
-        avail.[i] <-
+        (Bytes.of_string avail).[i] <-
           char_of_int (match VB.get chunks i with
           | VB.State_complete | VB.State_verified ->
               av_max

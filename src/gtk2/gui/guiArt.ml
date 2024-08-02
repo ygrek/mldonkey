@@ -444,10 +444,10 @@ let normalize_availability avail =
   for i = 0 to (len - 1) do
     if !!O.gtk_misc_use_availability_height
       then if (int_of_char avail.[i]) > !!O.gtk_misc_availability_max
-        then avail.[i] <- (char_of_int !!O.gtk_misc_availability_max)
+        then (Bytes.of_string avail).[i] <- (char_of_int !!O.gtk_misc_availability_max)
         else ()
       else if (int_of_char avail.[i]) > 1
-        then avail.[i] <- (char_of_int 1)
+        then (Bytes.of_string avail).[i] <- (char_of_int 1)
         else ()
   done
 

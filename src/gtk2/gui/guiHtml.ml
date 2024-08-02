@@ -77,7 +77,7 @@ let file_from_url url =
     for i = 0 to String.length file - 1 do
       match file.[i] with
         '/'
-      | '?' | '*' | '&' | ':' -> file.[i] <- '_'
+      | '?' | '*' | '&' | ':' -> (Bytes.of_string file).[i] <- '_'
       | _ -> ()
     done;
     Filename.concat cache_dir file
@@ -523,7 +523,7 @@ let parse_hisohunt_desc stat s file_size found_title found_desc =
       let s = String.sub s pos (len - pos) in
       let pos = String2.search_from s 0 "<br>" in
       let size = String.sub s 0 pos in
-      size.[pos - 1] <- 'o';
+      (Bytes.of_string size).[pos - 1] <- 'o';
       let len = String.length s in
       let pos = String2.search_from s 0 "Seeds: " in
       let pos = pos + 7 in

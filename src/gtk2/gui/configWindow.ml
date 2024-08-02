@@ -400,7 +400,7 @@ let add_color_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label optio
     let s = Printf.sprintf "%02X%02X%02X" r g b in
     let _ =
       for i = 1 to (String.length s) - 1 do
-        if s.[i] = ' ' then s.[i] <- '0'
+        if s.[i] = ' ' then (Bytes.of_string s).[i] <- '0'
       done
     in
     colv := "#" ^ s; 
