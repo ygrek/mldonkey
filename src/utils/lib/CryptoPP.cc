@@ -151,7 +151,7 @@
 
 NAMESPACE_BEGIN(CryptoPP)
 
-CRYPTOPP_COMPILE_ASSERT_GLOBAL(sizeof(byte) == 1);
+CRYPTOPP_COMPILE_ASSERT_GLOBAL(sizeof(byte_u) == 1);
 CRYPTOPP_COMPILE_ASSERT_GLOBAL(sizeof(word16) == 2);
 CRYPTOPP_COMPILE_ASSERT_GLOBAL(sizeof(word32) == 4);
 #ifdef WORD64_AVAILABLE
@@ -174,12 +174,12 @@ Algorithm::Algorithm(bool /* checkSelfTestStatus */)
 {
 }
 
-void SimpleKeyingInterface::SetKeyWithRounds(const byte *key, unsigned int length, int rounds)
+void SimpleKeyingInterface::SetKeyWithRounds(const byte_u *key, unsigned int length, int rounds)
 {
 	SetKey(key, length, MakeParameters(Name::Rounds(), rounds));
 }
 
-void SimpleKeyingInterface::SetKeyWithIV(const byte *key, unsigned int length, const byte *iv)
+void SimpleKeyingInterface::SetKeyWithIV(const byte_u *key, unsigned int length, const byte_u *iv)
 {
 	SetKey(key, length, MakeParameters(Name::IV(), iv));
 }
@@ -196,15 +196,15 @@ void SimpleKeyingInterface::ThrowIfResynchronizable()
 		throw InvalidArgument("SimpleKeyingInterface: this object requires an IV");
 }
 
-void SimpleKeyingInterface::ThrowIfInvalidIV(const byte *iv)
+void SimpleKeyingInterface::ThrowIfInvalidIV(const byte_u *iv)
 {
 	if (!iv && !(IVRequirement() == INTERNALLY_GENERATED_IV || IVRequirement() == STRUCTURED_IV || !IsResynchronizable()))
 		throw InvalidArgument("SimpleKeyingInterface: this object cannot use a null IV");
 }
 
-const byte * SimpleKeyingInterface::GetIVAndThrowIfInvalid(const NameValuePairs &params)
+const byte_u * SimpleKeyingInterface::GetIVAndThrowIfInvalid(const NameValuePairs &params)
 {
-	const byte *iv;
+	const byte_u *iv;
 	if (params.GetValue(Name::IV(), iv))
 		ThrowIfInvalidIV(iv);
 	else
@@ -212,7 +212,7 @@ const byte * SimpleKeyingInterface::GetIVAndThrowIfInvalid(const NameValuePairs 
 	return iv;
 }
 
-void BlockTransformation::ProcessAndXorMultipleBlocks(const byte *inBlocks, const byte *xorBlocks, byte *outBlocks, unsigned int numberOfBlocks) const
+void BlockTransformation::ProcessAndXorMultipleBlocks(const byte_u *inBlocks, const byte_u *xorBlocks, byte_u *outBlocks, unsigned int numberOfBlocks) const
 {
 	unsigned int blockSize = BlockSize();
 	while (numberOfBlocks--)
@@ -225,7 +225,7 @@ void BlockTransformation::ProcessAndXorMultipleBlocks(const byte *inBlocks, cons
 	}
 }
 
-void StreamTransformation::ProcessLastBlock(byte *outString, const byte *inString, unsigned int length)
+void StreamTransformation::ProcessLastBlock(byte_u *outString, const byte_u *inString, unsigned int length)
 {
 	assert(MinLastBlockSize() == 0);	// this function should be overriden otherwise
 
@@ -240,7 +240,7 @@ unsigned int RandomNumberGenerator::GenerateBit()
 	return Parity(GenerateByte());
 }
 
-void RandomNumberGenerator::GenerateBlock(byte *output, unsigned int size)
+void RandomNumberGenerator::GenerateBlock(byte_u *output, unsigned int size)
 {
 	while (size--)
 		*output++ = GenerateByte();
@@ -277,7 +277,7 @@ class ClassNullRNG : public RandomNumberGenerator
 {
 public:
 	std::string AlgorithmName() const {return "NullRNG";}
-	byte GenerateByte() {throw NotImplemented("NullRNG: NullRNG should only be passed to functions that don't need to generate random bytes");}
+	byte_u GenerateByte() {throw NotImplemented("NullRNG: NullRNG should only be passed to functions that don't need to generate random byte_us");}
 };
 
 RandomNumberGenerator & NullRNG()
@@ -286,7 +286,7 @@ RandomNumberGenerator & NullRNG()
 	return s_nullRNG;
 }
 
-bool HashTransformation::TruncatedVerify(const byte *digestIn, unsigned int digestLength)
+bool HashTransformation::TruncatedVerify(const byte_u *digestIn, unsigned int digestLength)
 {
 	ThrowIfInvalidTruncatedSize(digestLength);
 	SecByteBlock digest(digestLength);
@@ -297,7 +297,7 @@ bool HashTransformation::TruncatedVerify(const byte *digestIn, unsigned int dige
 void HashTransformation::ThrowIfInvalidTruncatedSize(unsigned int size) const
 {
 	if (size > DigestSize())
-		throw InvalidArgument("HashTransformation: can't truncate a " + IntToString(DigestSize(), 10) + " byte digest to " + IntToString(size, 10) + " bytes");
+		throw InvalidArgument("HashTransformation: can't truncate a " + IntToString(DigestSize(), 10) + " byte_u digest to " + IntToString(size, 10) + " byte_us");
 }
 
 unsigned int BufferedTransformation::GetMaxWaitObjectCount() const
@@ -331,7 +331,7 @@ bool BufferedTransformation::MessageSeriesEnd(int /* propagation */, bool blocki
 	return IsolatedMessageSeriesEnd(blocking);
 }
 
-byte * BufferedTransformation::ChannelCreatePutSpace(const std::string &channel, unsigned int &size)
+byte_u * BufferedTransformation::ChannelCreatePutSpace(const std::string &channel, unsigned int &size)
 {
 	if (channel.empty())
 		return CreatePutSpace(size);
@@ -339,7 +339,7 @@ byte * BufferedTransformation::ChannelCreatePutSpace(const std::string &channel,
 		throw NoChannelSupport();
 }
 
-unsigned int BufferedTransformation::ChannelPut2(const std::string &channel, const byte *begin, unsigned int length, int messageEnd, bool blocking)
+unsigned int BufferedTransformation::ChannelPut2(const std::string &channel, const byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 {
 	if (channel.empty())
 		return Put2(begin, length, messageEnd, blocking);
@@ -347,7 +347,7 @@ unsigned int BufferedTransformation::ChannelPut2(const std::string &channel, con
 		throw NoChannelSupport();
 }
 
-unsigned int BufferedTransformation::ChannelPutModifiable2(const std::string &channel, byte *begin, unsigned int length, int messageEnd, bool blocking)
+unsigned int BufferedTransformation::ChannelPutModifiable2(const std::string &channel, byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 {
 	if (channel.empty())
 		return PutModifiable2(begin, length, messageEnd, blocking);
@@ -385,12 +385,12 @@ bool BufferedTransformation::AnyRetrievable() const
 		return AttachedTransformation()->AnyRetrievable();
 	else
 	{
-		byte b;
+		byte_u b;
 		return Peek(b) != 0;
 	}
 }
 
-unsigned int BufferedTransformation::Get(byte &outByte)
+unsigned int BufferedTransformation::Get(byte_u &outByte)
 {
 	if (AttachedTransformation())
 		return AttachedTransformation()->Get(outByte);
@@ -398,7 +398,7 @@ unsigned int BufferedTransformation::Get(byte &outByte)
 		return Get(&outByte, 1);
 }
 
-unsigned int BufferedTransformation::Get(byte *outString, unsigned int getMax)
+unsigned int BufferedTransformation::Get(byte_u *outString, unsigned int getMax)
 {
 	if (AttachedTransformation())
 		return AttachedTransformation()->Get(outString, getMax);
@@ -409,7 +409,7 @@ unsigned int BufferedTransformation::Get(byte *outString, unsigned int getMax)
 	}
 }
 
-unsigned int BufferedTransformation::Peek(byte &outByte) const
+unsigned int BufferedTransformation::Peek(byte_u &outByte) const
 {
 	if (AttachedTransformation())
 		return AttachedTransformation()->Peek(outByte);
@@ -417,7 +417,7 @@ unsigned int BufferedTransformation::Peek(byte &outByte) const
 		return Peek(&outByte, 1);
 }
 
-unsigned int BufferedTransformation::Peek(byte *outString, unsigned int peekMax) const
+unsigned int BufferedTransformation::Peek(byte_u *outString, unsigned int peekMax) const
 {
 	if (AttachedTransformation())
 		return AttachedTransformation()->Peek(outString, peekMax);
@@ -546,15 +546,15 @@ unsigned int BufferedTransformation::TransferAllTo2(BufferedTransformation &targ
 		}
 		while (messageCount != 0);
 
-		unsigned long byteCount;
+		unsigned long byte_uCount;
 		do
 		{
-			byteCount = ULONG_MAX;
-			unsigned int blockedBytes = TransferTo2(target, byteCount, channel, blocking);
+			byte_uCount = ULONG_MAX;
+			unsigned int blockedBytes = TransferTo2(target, byte_uCount, channel, blocking);
 			if (blockedBytes)
 				return blockedBytes;
 		}
-		while (byteCount != 0);
+		while (byte_uCount != 0);
 
 		return 0;
 	}
@@ -579,14 +579,14 @@ void BufferedTransformation::SetRetrievalChannel(const std::string &channel)
 
 unsigned int BufferedTransformation::ChannelPutWord16(const std::string &channel, word16 value, ByteOrder order, bool blocking)
 {
-	FixedSizeSecBlock<byte, 2> buf;
+	FixedSizeSecBlock<byte_u, 2> buf;
 	PutWord(false, order, buf, value);
 	return ChannelPut(channel, buf, 2, blocking);
 }
 
 unsigned int BufferedTransformation::ChannelPutWord32(const std::string &channel, word32 value, ByteOrder order, bool blocking)
 {
-	FixedSizeSecBlock<byte, 4> buf;
+	FixedSizeSecBlock<byte_u, 4> buf;
 	PutWord(false, order, buf, value);
 	return ChannelPut(channel, buf, 4, blocking);
 }
@@ -603,7 +603,7 @@ unsigned int BufferedTransformation::PutWord32(word32 value, ByteOrder order, bo
 
 unsigned int BufferedTransformation::PeekWord16(word16 &value, ByteOrder order)
 {
-	byte buf[2] = {0, 0};
+	byte_u buf[2] = {0, 0};
 	unsigned int len = Peek(buf, 2);
 
 	if (order)
@@ -616,7 +616,7 @@ unsigned int BufferedTransformation::PeekWord16(word16 &value, ByteOrder order)
 
 unsigned int BufferedTransformation::PeekWord32(word32 &value, ByteOrder order)
 {
-	byte buf[4] = {0, 0, 0, 0};
+	byte_u buf[4] = {0, 0, 0, 0};
 	unsigned int len = Peek(buf, 4);
 
 	if (order)
@@ -659,7 +659,7 @@ public:
 		Detach(attachment);
 	}
 
-	unsigned int Put2(const byte *inString, unsigned int length, int messageEnd, bool blocking)
+	unsigned int Put2(const byte_u *inString, unsigned int length, int messageEnd, bool blocking)
 	{
 		FILTER_BEGIN;
 		m_plaintextQueue.Put(inString, length);
@@ -693,21 +693,21 @@ BufferedTransformation * PK_Encryptor::CreateEncryptionFilter(RandomNumberGenera
 	return new PK_DefaultEncryptionFilter(rng, *this, attachment, parameters);
 }
 
-unsigned int PK_Signer::Sign(RandomNumberGenerator &rng, PK_MessageAccumulator *messageAccumulator, byte *signature) const
+unsigned int PK_Signer::Sign(RandomNumberGenerator &rng, PK_MessageAccumulator *messageAccumulator, byte_u *signature) const
 {
 	std::auto_ptr<PK_MessageAccumulator> m(messageAccumulator);
 	return SignAndRestart(rng, *m, signature, false);
 }
 
-unsigned int PK_Signer::SignMessage(RandomNumberGenerator &rng, const byte *message, unsigned int messageLen, byte *signature) const
+unsigned int PK_Signer::SignMessage(RandomNumberGenerator &rng, const byte_u *message, unsigned int messageLen, byte_u *signature) const
 {
 	std::auto_ptr<PK_MessageAccumulator> m(NewSignatureAccumulator(rng));
 	m->Update(message, messageLen);
 	return SignAndRestart(rng, *m, signature, false);
 }
 
-unsigned int PK_Signer::SignMessageWithRecovery(RandomNumberGenerator &rng, const byte *recoverableMessage, unsigned int recoverableMessageLength, 
-	const byte *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, byte *signature) const
+unsigned int PK_Signer::SignMessageWithRecovery(RandomNumberGenerator &rng, const byte_u *recoverableMessage, unsigned int recoverableMessageLength, 
+	const byte_u *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, byte_u *signature) const
 {
 	std::auto_ptr<PK_MessageAccumulator> m(NewSignatureAccumulator(rng));
 	InputRecoverableMessage(*m, recoverableMessage, recoverableMessageLength);
@@ -721,7 +721,7 @@ bool PK_Verifier::Verify(PK_MessageAccumulator *messageAccumulator) const
 	return VerifyAndRestart(*m);
 }
 
-bool PK_Verifier::VerifyMessage(const byte *message, unsigned int messageLen, const byte *signature, unsigned int signatureLength) const
+bool PK_Verifier::VerifyMessage(const byte_u *message, unsigned int messageLen, const byte_u *signature, unsigned int signatureLength) const
 {
 	std::auto_ptr<PK_MessageAccumulator> m(NewVerificationAccumulator());
 	InputSignature(*m, signature, signatureLength);
@@ -729,15 +729,15 @@ bool PK_Verifier::VerifyMessage(const byte *message, unsigned int messageLen, co
 	return VerifyAndRestart(*m);
 }
 
-DecodingResult PK_Verifier::Recover(byte *recoveredMessage, PK_MessageAccumulator *messageAccumulator) const
+DecodingResult PK_Verifier::Recover(byte_u *recoveredMessage, PK_MessageAccumulator *messageAccumulator) const
 {
 	std::auto_ptr<PK_MessageAccumulator> m(messageAccumulator);
 	return RecoverAndRestart(recoveredMessage, *m);
 }
 
-DecodingResult PK_Verifier::RecoverMessage(byte *recoveredMessage, 
-	const byte *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, 
-	const byte *signature, unsigned int signatureLength) const
+DecodingResult PK_Verifier::RecoverMessage(byte_u *recoveredMessage, 
+	const byte_u *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, 
+	const byte_u *signature, unsigned int signatureLength) const
 {
 	std::auto_ptr<PK_MessageAccumulator> m(NewVerificationAccumulator());
 	InputSignature(*m, signature, signatureLength);
@@ -861,7 +861,7 @@ NAMESPACE_END
 
 NAMESPACE_BEGIN(CryptoPP)
 
-void xorbuf(byte *buf, const byte *mask, unsigned int count)
+void xorbuf(byte_u *buf, const byte_u *mask, unsigned int count)
 {
 	if (((size_t)buf | (size_t)mask | count) % WORD_SIZE == 0)
 		XorWords((word *)buf, (const word *)mask, count/WORD_SIZE);
@@ -872,7 +872,7 @@ void xorbuf(byte *buf, const byte *mask, unsigned int count)
 	}
 }
 
-void xorbuf(byte *output, const byte *input, const byte *mask, unsigned int count)
+void xorbuf(byte_u *output, const byte_u *input, const byte_u *mask, unsigned int count)
 {
 	if (((size_t)output | (size_t)input | (size_t)mask | count) % WORD_SIZE == 0)
 		XorWords((word *)output, (const word *)input, (const word *)mask, count/WORD_SIZE);
@@ -1713,7 +1713,7 @@ CPP_TYPENAME AllocatorBase<T>::pointer AlignedAllocator<T>::allocate(size_type n
 	#elif defined(CRYPTOPP_MALLOC_ALIGNMENT_IS_16)
 		while (!(p = malloc(sizeof(T)*n)))
 	#else
-		while (!(p = (byte *)malloc(sizeof(T)*n + 8)))	// assume malloc alignment is at least 8
+		while (!(p = (byte_u *)malloc(sizeof(T)*n + 8)))	// assume malloc alignment is at least 8
 	#endif
 			CallNewHandler();
 
@@ -1723,7 +1723,7 @@ CPP_TYPENAME AllocatorBase<T>::pointer AlignedAllocator<T>::allocate(size_type n
 		if (!IsAlignedOn(p, 16))
 		{
 			assert(IsAlignedOn(p, 8));
-			p = (byte *)p + 8;
+			p = (byte_u *)p + 8;
 		}
 	#endif
 
@@ -1742,7 +1742,7 @@ void AlignedAllocator<T>::deallocate(void *p, size_type n)
 		#ifdef CRYPTOPP_MM_MALLOC_AVAILABLE
 			_mm_free(p);
 		#elif defined(CRYPTOPP_NO_ALIGNED_ALLOC)
-			assert(m_pBlock == p || (byte *)m_pBlock+8 == p);
+			assert(m_pBlock == p || (byte_u *)m_pBlock+8 == p);
 			free(m_pBlock);
 			m_pBlock = NULL;
 		#else
@@ -3961,14 +3961,14 @@ signed long Integer::ConvertToLong() const
 	return sign==POSITIVE ? value : -(signed long)value;
 }
 
-Integer::Integer(BufferedTransformation &encodedInteger, unsigned int byteCount, Signedness s)
+Integer::Integer(BufferedTransformation &encodedInteger, unsigned int byte_uCount, Signedness s)
 {
-	Decode(encodedInteger, byteCount, s);
+	Decode(encodedInteger, byte_uCount, s);
 }
 
-Integer::Integer(const byte *encodedInteger, unsigned int byteCount, Signedness s)
+Integer::Integer(const byte_u *encodedInteger, unsigned int byte_uCount, Signedness s)
 {
-	Decode(encodedInteger, byteCount, s);
+	Decode(encodedInteger, byte_uCount, s);
 }
 
 Integer::Integer(BufferedTransformation &bt)
@@ -4056,15 +4056,15 @@ void Integer::SetBit(unsigned int n, bool value)
 	}
 }
 
-byte Integer::GetByte(unsigned int n) const
+byte_u Integer::GetByte(unsigned int n) const
 {
 	if (n/WORD_SIZE >= reg.size())
 		return 0;
 	else
-		return byte(reg[n/WORD_SIZE] >> ((n%WORD_SIZE)*8));
+		return byte_u(reg[n/WORD_SIZE] >> ((n%WORD_SIZE)*8));
 }
 
-void Integer::SetByte(unsigned int n, byte value)
+void Integer::SetByte(unsigned int n, byte_u value)
 {
 	reg.CleanGrow(RoundupSize(BytesToWords(n+1)));
 	reg[n/WORD_SIZE] &= ~(word(0xff) << 8*(n%WORD_SIZE));
@@ -4204,7 +4204,7 @@ unsigned int Integer::BitCount() const
 		return 0;
 }
 
-void Integer::Decode(const byte *input, unsigned int inputLen, Signedness s)
+void Integer::Decode(const byte_u *input, unsigned int inputLen, Signedness s)
 {
 	StringStore store(input, inputLen);
 	Decode(store, inputLen, s);
@@ -4214,7 +4214,7 @@ void Integer::Decode(BufferedTransformation &bt, unsigned int inputLen, Signedne
 {
 	assert(bt.MaxRetrievable() >= inputLen);
 
-	byte b;
+	byte_u b;
 	bt.Peek(b);
 	sign = ((s==SIGNED) && (b & 0x80)) ? NEGATIVE : POSITIVE;
 
@@ -4253,7 +4253,7 @@ unsigned int Integer::MinEncodedSize(Signedness signedness) const
 	return outputLen;
 }
 
-unsigned int Integer::Encode(byte *output, unsigned int outputLen, Signedness signedness) const
+unsigned int Integer::Encode(byte_u *output, unsigned int outputLen, Signedness signedness) const
 {
 	ArraySink sink(output, outputLen);
 	return Encode(sink, outputLen, signedness);
@@ -4283,7 +4283,7 @@ void Integer::DEREncode(BufferedTransformation &bt) const
 	enc.MessageEnd();
 }
 
-void Integer::BERDecode(const byte *input, unsigned int len)
+void Integer::BERDecode(const byte_u *input, unsigned int len)
 {
 	StringStore store(input, len);
 	BERDecode(store);
@@ -4314,7 +4314,7 @@ void Integer::BERDecodeAsOctetString(BufferedTransformation &bt, unsigned int le
 	dec.MessageEnd();
 }
 
-unsigned int Integer::OpenPGPEncode(byte *output, unsigned int len) const
+unsigned int Integer::OpenPGPEncode(byte_u *output, unsigned int len) const
 {
 	ArraySink sink(output, len);
 	return OpenPGPEncode(sink);
@@ -4327,7 +4327,7 @@ unsigned int Integer::OpenPGPEncode(BufferedTransformation &bt) const
 	return 2 + Encode(bt, BitsToBytes(bitCount));
 }
 
-void Integer::OpenPGPDecode(const byte *input, unsigned int len)
+void Integer::OpenPGPDecode(const byte_u *input, unsigned int len)
 {
 	StringStore store(input, len);
 	OpenPGPDecode(store);
@@ -4343,12 +4343,12 @@ void Integer::OpenPGPDecode(BufferedTransformation &bt)
 
 void Integer::Randomize(RandomNumberGenerator &rng, unsigned int nbits)
 {
-	const unsigned int nbytes = nbits/8 + 1;
-	SecByteBlock buf(nbytes);
-	rng.GenerateBlock(buf, nbytes);
-	if (nbytes)
-		buf[0] = (byte)Crop(buf[0], nbits % 8);
-	Decode(buf, nbytes, UNSIGNED);
+	const unsigned int nbyte_us = nbits/8 + 1;
+	SecByteBlock buf(nbyte_us);
+	rng.GenerateBlock(buf, nbyte_us);
+	if (nbyte_us)
+		buf[0] = (byte_u)Crop(buf[0], nbits % 8);
+	Decode(buf, nbyte_us, UNSIGNED);
 }
 
 void Integer::Randomize(RandomNumberGenerator &rng, const Integer &min, const Integer &max)
@@ -4376,20 +4376,20 @@ bool Integer::Randomize(RandomNumberGenerator &rng, const Integer &min, const In
 class KDF2_RNG : public RandomNumberGenerator
 {
 public:
-	KDF2_RNG(const byte *seed, unsigned int seedSize)
+	KDF2_RNG(const byte_u *seed, unsigned int seedSize)
 		: m_counter(0), m_counterAndSeed(seedSize + 4)
 	{
 		memcpy(m_counterAndSeed + 4, seed, seedSize);
 	}
 
-	byte GenerateByte()
+	byte_u GenerateByte()
 	{
-		byte b;
+		byte_u b;
 		GenerateBlock(&b, 1);
 		return b;
 	}
 
-	void GenerateBlock(byte *output, unsigned int size)
+	void GenerateBlock(byte_u *output, unsigned int size)
 	{
 		UnalignedPutWord(BIG_ENDIAN_ORDER, m_counterAndSeed, m_counter);
 		++m_counter;
@@ -5677,7 +5677,7 @@ public:
 		m_head = m_tail = 0;
 	}
 
-	inline unsigned int Put(const byte *begin, unsigned int length)
+	inline unsigned int Put(const byte_u *begin, unsigned int length)
 	{
 		unsigned int l = STDMIN(length, MaxSize()-m_tail);
 		if (buf+m_tail != begin)
@@ -5686,7 +5686,7 @@ public:
 		return l;
 	}
 
-	inline unsigned int Peek(byte &outByte) const
+	inline unsigned int Peek(byte_u &outByte) const
 	{
 		if (m_tail==m_head)
 			return 0;
@@ -5695,7 +5695,7 @@ public:
 		return 1;
 	}
 
-	inline unsigned int Peek(byte *target, unsigned int copyMax) const
+	inline unsigned int Peek(byte_u *target, unsigned int copyMax) const
 	{
 		unsigned int len = STDMIN(copyMax, m_tail-m_head);
 		memcpy(target, buf+m_head, len);
@@ -5716,14 +5716,14 @@ public:
 		return len;
 	}
 
-	inline unsigned int Get(byte &outByte)
+	inline unsigned int Get(byte_u &outByte)
 	{
 		unsigned int len = Peek(outByte);
 		m_head += len;
 		return len;
 	}
 
-	inline unsigned int Get(byte *outString, unsigned int getMax)
+	inline unsigned int Get(byte_u *outString, unsigned int getMax)
 	{
 		unsigned int len = Peek(outString, getMax);
 		m_head += len;
@@ -5753,7 +5753,7 @@ public:
 		return len;
 	}
 
-	inline byte operator[](unsigned int i) const
+	inline byte_u operator[](unsigned int i) const
 	{
 		return buf[m_head+i];
 	}
@@ -5852,7 +5852,7 @@ void ByteQueue::Clear()
 	m_lazyLength = 0;
 }
 
-unsigned int ByteQueue::Put2(const byte *inString, unsigned int length, int /* messageEnd */, bool /* blocking */)
+unsigned int ByteQueue::Put2(const byte_u *inString, unsigned int length, int /* messageEnd */, bool /* blocking */)
 {
 	if (m_lazyLength > 0)
 		FinalizeLazyPut();
@@ -5888,7 +5888,7 @@ void ByteQueue::CleanupUsedNodes()
 		m_head->Clear();
 }
 
-void ByteQueue::LazyPut(const byte *inString, unsigned int size)
+void ByteQueue::LazyPut(const byte_u *inString, unsigned int size)
 {
 	if (m_lazyLength > 0)
 		FinalizeLazyPut();
@@ -5897,13 +5897,13 @@ void ByteQueue::LazyPut(const byte *inString, unsigned int size)
 		Put(inString, size);
 	else
 	{
-		m_lazyString = const_cast<byte *>(inString);
+		m_lazyString = const_cast<byte_u *>(inString);
 		m_lazyLength = size;
 		m_lazyStringModifiable = false;
 	}
 }
 
-void ByteQueue::LazyPutModifiable(byte *inString, unsigned int size)
+void ByteQueue::LazyPutModifiable(byte_u *inString, unsigned int size)
 {
 	if (m_lazyLength > 0)
 		FinalizeLazyPut();
@@ -5928,7 +5928,7 @@ void ByteQueue::FinalizeLazyPut()
 		Put(m_lazyString, len);
 }
 
-unsigned int ByteQueue::Get(byte &outByte)
+unsigned int ByteQueue::Get(byte_u &outByte)
 {
 	if (m_head->Get(outByte))
 	{
@@ -5946,13 +5946,13 @@ unsigned int ByteQueue::Get(byte &outByte)
 		return 0;
 }
 
-unsigned int ByteQueue::Get(byte *outString, unsigned int getMax)
+unsigned int ByteQueue::Get(byte_u *outString, unsigned int getMax)
 {
 	ArraySink sink(outString, getMax);
 	return TransferTo(sink, getMax);
 }
 
-unsigned int ByteQueue::Peek(byte &outByte) const
+unsigned int ByteQueue::Peek(byte_u &outByte) const
 {
 	if (m_head->Peek(outByte))
 		return 1;
@@ -5965,7 +5965,7 @@ unsigned int ByteQueue::Peek(byte &outByte) const
 		return 0;
 }
 
-unsigned int ByteQueue::Peek(byte *outString, unsigned int peekMax) const
+unsigned int ByteQueue::Peek(byte_u *outString, unsigned int peekMax) const
 {
 	ArraySink sink(outString, peekMax);
 	return CopyTo(sink, peekMax);
@@ -5975,12 +5975,12 @@ unsigned int ByteQueue::TransferTo2(BufferedTransformation &target, unsigned lon
 {
 	if (blocking)
 	{
-		unsigned long bytesLeft = transferBytes;
-		for (ByteQueueNode *current=m_head; bytesLeft && current; current=current->next)
-			bytesLeft -= current->TransferTo(target, bytesLeft, channel);
+		unsigned long byte_usLeft = transferBytes;
+		for (ByteQueueNode *current=m_head; byte_usLeft && current; current=current->next)
+			byte_usLeft -= current->TransferTo(target, byte_usLeft, channel);
 		CleanupUsedNodes();
 
-		unsigned int len = (unsigned int)STDMIN(bytesLeft, (unsigned long)m_lazyLength);
+		unsigned int len = (unsigned int)STDMIN(byte_usLeft, (unsigned long)m_lazyLength);
 		if (len)
 		{
 			if (m_lazyStringModifiable)
@@ -5989,9 +5989,9 @@ unsigned int ByteQueue::TransferTo2(BufferedTransformation &target, unsigned lon
 				target.ChannelPut(channel, m_lazyString, len);
 			m_lazyString += len;
 			m_lazyLength -= len;
-			bytesLeft -= len;
+			byte_usLeft -= len;
 		}
-		transferBytes -= bytesLeft;
+		transferBytes -= byte_usLeft;
 		return 0;
 	}
 	else
@@ -6013,12 +6013,12 @@ unsigned int ByteQueue::CopyRangeTo2(BufferedTransformation &target, unsigned lo
 	return blockedBytes;
 }
 
-void ByteQueue::Unget(byte inByte)
+void ByteQueue::Unget(byte_u inByte)
 {
 	Unget(&inByte, 1);
 }
 
-void ByteQueue::Unget(const byte *inString, unsigned int length)
+void ByteQueue::Unget(const byte_u *inString, unsigned int length)
 {
 	unsigned int len = STDMIN(length, m_head->m_head);
 	length -= len;
@@ -6034,7 +6034,7 @@ void ByteQueue::Unget(const byte *inString, unsigned int length)
 	}
 }
 
-const byte * ByteQueue::Spy(unsigned int &contiguousSize) const
+const byte_u * ByteQueue::Spy(unsigned int &contiguousSize) const
 {
 	contiguousSize = m_head->m_tail - m_head->m_head;
 	if (contiguousSize == 0 && m_lazyLength > 0)
@@ -6046,7 +6046,7 @@ const byte * ByteQueue::Spy(unsigned int &contiguousSize) const
 		return m_head->buf + m_head->m_head;
 }
 
-byte * ByteQueue::CreatePutSpace(unsigned int &size)
+byte_u * ByteQueue::CreatePutSpace(unsigned int &size)
 {
 	if (m_lazyLength > 0)
 		FinalizeLazyPut();
@@ -6076,7 +6076,7 @@ bool ByteQueue::operator==(const ByteQueue &rhs) const
 		return false;
 
 	Walker walker1(*this), walker2(rhs);
-	byte b1, b2;
+	byte_u b1, b2;
 
 	while (walker1.Get(b1) && walker2.Get(b2))
 		if (b1 != b2)
@@ -6085,7 +6085,7 @@ bool ByteQueue::operator==(const ByteQueue &rhs) const
 	return true;
 }
 
-byte ByteQueue::operator[](unsigned long i) const
+byte_u ByteQueue::operator[](unsigned long i) const
 {
 	for (ByteQueueNode *current=m_head; current; current=current->next)
 	{
@@ -6121,25 +6121,25 @@ void ByteQueue::Walker::IsolatedInitialize(const NameValuePairs& /* parameters *
 	m_lazyLength = m_queue.m_lazyLength;
 }
 
-unsigned int ByteQueue::Walker::Get(byte &outByte)
+unsigned int ByteQueue::Walker::Get(byte_u &outByte)
 {
 	ArraySink sink(&outByte, 1);
 	return TransferTo(sink, 1);
 }
 
-unsigned int ByteQueue::Walker::Get(byte *outString, unsigned int getMax)
+unsigned int ByteQueue::Walker::Get(byte_u *outString, unsigned int getMax)
 {
 	ArraySink sink(outString, getMax);
 	return TransferTo(sink, getMax);
 }
 
-unsigned int ByteQueue::Walker::Peek(byte &outByte) const
+unsigned int ByteQueue::Walker::Peek(byte_u &outByte) const
 {
 	ArraySink sink(&outByte, 1);
 	return CopyTo(sink, 1);
 }
 
-unsigned int ByteQueue::Walker::Peek(byte *outString, unsigned int peekMax) const
+unsigned int ByteQueue::Walker::Peek(byte_u *outString, unsigned int peekMax) const
 {
 	ArraySink sink(outString, peekMax);
 	return CopyTo(sink, peekMax);
@@ -6147,21 +6147,21 @@ unsigned int ByteQueue::Walker::Peek(byte *outString, unsigned int peekMax) cons
 
 unsigned int ByteQueue::Walker::TransferTo2(BufferedTransformation &target, unsigned long &transferBytes, const std::string &channel, bool blocking)
 {
-	unsigned long bytesLeft = transferBytes;
+	unsigned long byte_usLeft = transferBytes;
 	unsigned int blockedBytes = 0;
 
 	while (m_node)
 	{
-		unsigned int len = STDMIN(bytesLeft, (unsigned long)m_node->CurrentSize()-m_offset);
+		unsigned int len = STDMIN(byte_usLeft, (unsigned long)m_node->CurrentSize()-m_offset);
 		blockedBytes = target.ChannelPut2(channel, m_node->buf+m_node->m_head+m_offset, len, 0, blocking);
 
 		if (blockedBytes)
 			goto done;
 
 		m_position += len;
-		bytesLeft -= len;
+		byte_usLeft -= len;
 
-		if (!bytesLeft)
+		if (!byte_usLeft)
 		{
 			m_offset += len;
 			goto done;
@@ -6171,20 +6171,20 @@ unsigned int ByteQueue::Walker::TransferTo2(BufferedTransformation &target, unsi
 		m_offset = 0;
 	}
 
-	if (bytesLeft && m_lazyLength)
+	if (byte_usLeft && m_lazyLength)
 	{
-		unsigned int len = (unsigned int)STDMIN(bytesLeft, (unsigned long)m_lazyLength);
+		unsigned int len = (unsigned int)STDMIN(byte_usLeft, (unsigned long)m_lazyLength);
 		unsigned int BlockedBytes = target.ChannelPut2(channel, m_lazyString, len, 0, blocking);
 		if (BlockedBytes)
 			goto done;
 
 		m_lazyString += len;
 		m_lazyLength -= len;
-		bytesLeft -= len;
+		byte_usLeft -= len;
 	}
 
 done:
-	transferBytes -= bytesLeft;
+	transferBytes -= byte_usLeft;
 	return blockedBytes;
 }
 
@@ -6270,7 +6270,7 @@ public:
 
 	void IsolatedInitialize(const NameValuePairs &parameters)
 		{m_queue.IsolatedInitialize(parameters); m_lengths.assign(1, 0U); m_messageCounts.assign(1, 0U);}
-	unsigned int Put2(const byte *begin, unsigned int length, int messageEnd, bool /* blocking */)
+	unsigned int Put2(const byte_u *begin, unsigned int length, int messageEnd, bool /* blocking */)
 	{
 		m_queue.Put(begin, length);
 		m_lengths.back() += length;
@@ -6306,7 +6306,7 @@ public:
 
 	unsigned int CopyMessagesTo(BufferedTransformation &target, unsigned int count=UINT_MAX, const std::string &channel=NULL_CHANNEL) const;
 
-	const byte * Spy(unsigned int &contiguousSize) const;
+	const byte_u * Spy(unsigned int &contiguousSize) const;
 
 	void swap(MessageQueue &rhs);
 
@@ -6395,9 +6395,9 @@ void MessageQueue::swap(MessageQueue &rhs)
 	m_lengths.swap(rhs.m_lengths);
 }
 
-const byte * MessageQueue::Spy(unsigned int &contiguousSize) const
+const byte_u * MessageQueue::Spy(unsigned int &contiguousSize) const
 {
-	const byte *result = m_queue.Spy(contiguousSize);
+	const byte_u *result = m_queue.Spy(contiguousSize);
 	contiguousSize = (unsigned int)STDMIN((unsigned long)contiguousSize, MaxRetrievable());
 	return result;
 }
@@ -6511,7 +6511,7 @@ void Filter::PropagateInitialize(const NameValuePairs &parameters, int propagati
 		AttachedTransformation()->Initialize(parameters, propagation-1);
 }
 
-unsigned int Filter::OutputModifiable(int outputSite, byte *inString, unsigned int length, int messageEnd, bool blocking, const std::string& /* channel */)
+unsigned int Filter::OutputModifiable(int outputSite, byte_u *inString, unsigned int length, int messageEnd, bool blocking, const std::string& /* channel */)
 {
 	if (messageEnd)
 		messageEnd--;
@@ -6520,7 +6520,7 @@ unsigned int Filter::OutputModifiable(int outputSite, byte *inString, unsigned i
 	return result;
 }
 
-unsigned int Filter::Output(int outputSite, const byte *inString, unsigned int length, int messageEnd, bool blocking, const std::string& /* channel */)
+unsigned int Filter::Output(int outputSite, const byte_u *inString, unsigned int length, int messageEnd, bool blocking, const std::string& /* channel */)
 {
 	if (messageEnd)
 		messageEnd--;
@@ -6562,11 +6562,11 @@ void FilterWithBufferedInput::BlockQueue::ResetQueue(unsigned int blockSize, uns
 	m_begin = m_buffer;
 }
 
-byte *FilterWithBufferedInput::BlockQueue::GetBlock()
+byte_u *FilterWithBufferedInput::BlockQueue::GetBlock()
 {
 	if (m_size >= m_blockSize)
 	{
-		byte *ptr = m_begin;
+		byte_u *ptr = m_begin;
 		if ((m_begin+=m_blockSize) == m_buffer.end())
 			m_begin = m_buffer;
 		m_size -= m_blockSize;
@@ -6576,10 +6576,10 @@ byte *FilterWithBufferedInput::BlockQueue::GetBlock()
 		return NULL;
 }
 
-byte *FilterWithBufferedInput::BlockQueue::GetContigousBlocks(unsigned int &numberOfBytes)
+byte_u *FilterWithBufferedInput::BlockQueue::GetContigousBlocks(unsigned int &numberOfBytes)
 {
 	numberOfBytes = STDMIN(numberOfBytes, STDMIN((unsigned int)(m_buffer.end()-m_begin), m_size));
-	byte *ptr = m_begin;
+	byte_u *ptr = m_begin;
 	m_begin += numberOfBytes;
 	m_size -= numberOfBytes;
 	if (m_size == 0 || m_begin == m_buffer.end())
@@ -6587,21 +6587,21 @@ byte *FilterWithBufferedInput::BlockQueue::GetContigousBlocks(unsigned int &numb
 	return ptr;
 }
 
-unsigned int FilterWithBufferedInput::BlockQueue::GetAll(byte *outString)
+unsigned int FilterWithBufferedInput::BlockQueue::GetAll(byte_u *outString)
 {
 	unsigned int size = m_size;
 	unsigned int numberOfBytes = m_maxBlocks*m_blockSize;
-	const byte *ptr = GetContigousBlocks(numberOfBytes);
+	const byte_u *ptr = GetContigousBlocks(numberOfBytes);
 	memcpy(outString, ptr, numberOfBytes);
 	memcpy(outString+numberOfBytes, m_begin, m_size);
 	m_size = 0;
 	return size;
 }
 
-void FilterWithBufferedInput::BlockQueue::Put(const byte *inString, unsigned int length)
+void FilterWithBufferedInput::BlockQueue::Put(const byte_u *inString, unsigned int length)
 {
 	assert(m_size + length <= m_buffer.size());
-	byte *end = (m_size < (unsigned int)(m_buffer.end()-m_begin)) ? m_begin + m_size : m_begin + m_size - m_buffer.size();
+	byte_u *end = (m_size < (unsigned int)(m_buffer.end()-m_begin)) ? m_begin + m_size : m_begin + m_size - m_buffer.size();
 	unsigned int len = STDMIN(length, (unsigned int)(m_buffer.end()-end));
 	memcpy(end, inString, len);
 	if (len < length)
@@ -6645,7 +6645,7 @@ bool FilterWithBufferedInput::IsolatedFlush(bool hardFlush, bool blocking)
 	return false;
 }
 
-unsigned int FilterWithBufferedInput::PutMaybeModifiable(byte *inString, unsigned int length, int messageEnd, bool blocking, bool modifiable)
+unsigned int FilterWithBufferedInput::PutMaybeModifiable(byte_u *inString, unsigned int length, int messageEnd, bool blocking, bool modifiable)
 {
 	if (!blocking)
 		throw BlockingInputOnly("FilterWithBufferedInput");
@@ -6674,7 +6674,7 @@ unsigned int FilterWithBufferedInput::PutMaybeModifiable(byte *inString, unsigne
 				while (newLength > m_lastSize && m_queue.CurrentSize() > 0)
 				{
 					unsigned int len = newLength - m_lastSize;
-					byte *ptr = m_queue.GetContigousBlocks(len);
+					byte_u *ptr = m_queue.GetContigousBlocks(len);
 					NextPutModifiable(ptr, len);
 					newLength -= len;
 				}
@@ -6753,7 +6753,7 @@ void FilterWithBufferedInput::ForceNextPut()
 	}
 }
 
-void FilterWithBufferedInput::NextPutMultiple(const byte *inString, unsigned int length)
+void FilterWithBufferedInput::NextPutMultiple(const byte_u *inString, unsigned int length)
 {
 	assert(m_blockSize > 1);	// m_blockSize = 1 should always override this function
 	while (length > 0)
@@ -6791,13 +6791,13 @@ void ProxyFilter::SetFilter(Filter *filter)
 	}
 }
 
-void ProxyFilter::NextPutMultiple(const byte *s, unsigned int len)
+void ProxyFilter::NextPutMultiple(const byte_u *s, unsigned int len)
 {
 	if (m_filter.get())
 		m_filter->Put(s, len);
 }
 
-void ProxyFilter::NextPutModifiable(byte *s, unsigned int len)
+void ProxyFilter::NextPutModifiable(byte_u *s, unsigned int len)
 {
 	if (m_filter.get())
 		m_filter->PutModifiable(s, len);
@@ -6805,14 +6805,14 @@ void ProxyFilter::NextPutModifiable(byte *s, unsigned int len)
 
 // *************************************************************
 
-unsigned int ArraySink::Put2(const byte *begin, unsigned int length, int /* messageEnd */, bool /* blocking */)
+unsigned int ArraySink::Put2(const byte_u *begin, unsigned int length, int /* messageEnd */, bool /* blocking */)
 {
 	memcpy(m_buf+m_total, begin, STDMIN(length, SaturatingSubtract(m_size, m_total)));
 	m_total += length;
 	return 0;
 }
 
-byte * ArraySink::CreatePutSpace(unsigned int &size)
+byte_u * ArraySink::CreatePutSpace(unsigned int &size)
 {
 	size = m_size - m_total;
 	return m_buf + m_total;
@@ -6828,7 +6828,7 @@ void ArraySink::IsolatedInitialize(const NameValuePairs &parameters)
 	m_total = 0;
 }
 
-unsigned int ArrayXorSink::Put2(const byte *begin, unsigned int length, int /* messageEnd */, bool /* blocking */)
+unsigned int ArrayXorSink::Put2(const byte_u *begin, unsigned int length, int /* messageEnd */, bool /* blocking */)
 {
 	xorbuf(m_buf+m_total, begin, STDMIN(length, SaturatingSubtract(m_size, m_total)));
 	m_total += length;
@@ -6843,7 +6843,7 @@ void HashFilter::IsolatedInitialize(const NameValuePairs &parameters)
 	m_hashModule.Restart();
 }
 
-unsigned int HashFilter::Put2(const byte *inString, unsigned int length, int messageEnd, bool blocking)
+unsigned int HashFilter::Put2(const byte_u *inString, unsigned int length, int messageEnd, bool blocking)
 {
 	FILTER_BEGIN;
 	m_hashModule.Update(inString, length);
@@ -6944,7 +6944,7 @@ NAMESPACE_END
 
 NAMESPACE_BEGIN(CryptoPP)
 
-void P1363_MGF1KDF2_Common(HashTransformation &hash, byte *output, unsigned int outputLength, const byte *input, unsigned int inputLength, const byte *derivationParams, unsigned int derivationParamsLength, bool mask, unsigned int counterStart)
+void P1363_MGF1KDF2_Common(HashTransformation &hash, byte_u *output, unsigned int outputLength, const byte_u *input, unsigned int inputLength, const byte_u *derivationParams, unsigned int derivationParamsLength, bool mask, unsigned int counterStart)
 {
 	ArraySink *sink;
 	HashFilter filter(hash, sink = mask ? new ArrayXorSink(output, outputLength) : new ArraySink(output, outputLength));
@@ -6960,14 +6960,14 @@ void P1363_MGF1KDF2_Common(HashTransformation &hash, byte *output, unsigned int 
 
 bool PK_DeterministicSignatureMessageEncodingMethod::VerifyMessageRepresentative(
 	HashTransformation &hash, HashIdentifier hashIdentifier, bool messageEmpty,
-	byte *representative, unsigned int representativeBitLength) const
+	byte_u *representative, unsigned int representativeBitLength) const
 {
 	SecByteBlock computedRepresentative(BitsToBytes(representativeBitLength));
 	ComputeMessageRepresentative(NullRNG(), NULL, 0, hash, hashIdentifier, messageEmpty, computedRepresentative, representativeBitLength);
 	return memcmp(representative, computedRepresentative, computedRepresentative.size()) == 0;
 }
 
-void TF_SignerBase::InputRecoverableMessage(PK_MessageAccumulator &messageAccumulator, const byte *recoverableMessage, unsigned int recoverableMessageLength) const
+void TF_SignerBase::InputRecoverableMessage(PK_MessageAccumulator &messageAccumulator, const byte_u *recoverableMessage, unsigned int recoverableMessageLength) const
 {
 	PK_MessageAccumulatorBase &ma = static_cast<PK_MessageAccumulatorBase &>(messageAccumulator);
 	const MessageEncodingInterface &mei = GetMessageEncodingInterface();
@@ -6985,7 +6985,7 @@ void TF_SignerBase::InputRecoverableMessage(PK_MessageAccumulator &messageAccumu
 		NULL, 0, ma.m_semisignature);
 }
 
-unsigned int TF_SignerBase::SignAndRestart(RandomNumberGenerator &rng, PK_MessageAccumulator &messageAccumulator, byte *signature, bool /* restart */) const
+unsigned int TF_SignerBase::SignAndRestart(RandomNumberGenerator &rng, PK_MessageAccumulator &messageAccumulator, byte_u *signature, bool /* restart */) const
 {
 	PK_MessageAccumulatorBase &ma = static_cast<PK_MessageAccumulatorBase &>(messageAccumulator);
 	SecByteBlock representative(MessageRepresentativeLength());
@@ -7001,7 +7001,7 @@ unsigned int TF_SignerBase::SignAndRestart(RandomNumberGenerator &rng, PK_Messag
 	return signatureLength;
 }
 
-void TF_VerifierBase::InputSignature(PK_MessageAccumulator &messageAccumulator, const byte *signature, unsigned int signatureLength) const
+void TF_VerifierBase::InputSignature(PK_MessageAccumulator &messageAccumulator, const byte_u *signature, unsigned int signatureLength) const
 {
 	PK_MessageAccumulatorBase &ma = static_cast<PK_MessageAccumulatorBase &>(messageAccumulator);
 	ma.m_representative.New(MessageRepresentativeLength());
@@ -7020,7 +7020,7 @@ bool TF_VerifierBase::VerifyAndRestart(PK_MessageAccumulator &messageAccumulator
 	return result;
 }
 
-DecodingResult TF_VerifierBase::RecoverAndRestart(byte *recoveredMessage, PK_MessageAccumulator &messageAccumulator) const
+DecodingResult TF_VerifierBase::RecoverAndRestart(byte_u *recoveredMessage, PK_MessageAccumulator &messageAccumulator) const
 {
 	PK_MessageAccumulatorBase &ma = static_cast<PK_MessageAccumulatorBase &>(messageAccumulator);
 	DecodingResult result = GetMessageEncodingInterface().RecoverMessageFromRepresentative(
@@ -7045,7 +7045,7 @@ NAMESPACE_END
 
 NAMESPACE_BEGIN(CryptoPP)
 
-template <class T, class BASE> void IteratedHashBase<T, BASE>::Update(const byte *input, unsigned int len)
+template <class T, class BASE> void IteratedHashBase<T, BASE>::Update(const byte_u *input, unsigned int len)
 {
 	HashWordType tmp = m_countLo;
 	if ((m_countLo = tmp + len) < tmp)
@@ -7059,7 +7059,7 @@ template <class T, class BASE> void IteratedHashBase<T, BASE>::Update(const byte
 	{
 		if ((num+len) >= blockSize)
 		{
-			memcpy((byte *)m_data.begin()+num, input, blockSize-num);
+			memcpy((byte_u *)m_data.begin()+num, input, blockSize-num);
 			HashBlock(m_data);
 			input += (blockSize-num);
 			len-=(blockSize - num);
@@ -7068,15 +7068,15 @@ template <class T, class BASE> void IteratedHashBase<T, BASE>::Update(const byte
 		}
 		else
 		{
-			memcpy((byte *)m_data.begin()+num, input, len);
+			memcpy((byte_u *)m_data.begin()+num, input, len);
 			return;
 		}
 	}
 
-	// now process the input data in blocks of blockSize bytes and save the leftovers to m_data
+	// now process the input data in blocks of blockSize byte_us and save the leftovers to m_data
 	if (len >= blockSize)
 	{
-		if (input == (byte *)m_data.begin())
+		if (input == (byte_u *)m_data.begin())
 		{
 			assert(len == blockSize);
 			HashBlock(m_data);
@@ -7101,12 +7101,12 @@ template <class T, class BASE> void IteratedHashBase<T, BASE>::Update(const byte
 	memcpy(m_data, input, len);
 }
 
-template <class T, class BASE> byte * IteratedHashBase<T, BASE>::CreateUpdateSpace(unsigned int &size)
+template <class T, class BASE> byte_u * IteratedHashBase<T, BASE>::CreateUpdateSpace(unsigned int &size)
 {
 	unsigned int blockSize = BlockSize();
 	unsigned int num = ModPowerOf2(m_countLo, blockSize);
 	size = blockSize - num;
-	return (byte *)m_data.begin() + num;
+	return (byte_u *)m_data.begin() + num;
 }
 
 template <class T, class BASE> unsigned int IteratedHashBase<T, BASE>::HashMultipleBlocks(const T *input, unsigned int length)
@@ -7122,16 +7122,16 @@ template <class T, class BASE> unsigned int IteratedHashBase<T, BASE>::HashMulti
 	return length;
 }
 
-template <class T, class BASE> void IteratedHashBase<T, BASE>::PadLastBlock(unsigned int lastBlockSize, byte padFirst)
+template <class T, class BASE> void IteratedHashBase<T, BASE>::PadLastBlock(unsigned int lastBlockSize, byte_u padFirst)
 {
 	unsigned int blockSize = BlockSize();
 	unsigned int num = ModPowerOf2(m_countLo, blockSize);
-	((byte *)m_data.begin())[num++]=padFirst;
+	((byte_u *)m_data.begin())[num++]=padFirst;
 	if (num <= lastBlockSize)
-		memset((byte *)m_data.begin()+num, 0, lastBlockSize-num);
+		memset((byte_u *)m_data.begin()+num, 0, lastBlockSize-num);
 	else
 	{
-		memset((byte *)m_data.begin()+num, 0, blockSize-num);
+		memset((byte_u *)m_data.begin()+num, 0, blockSize-num);
 		HashBlock(m_data);
 		memset(m_data, 0, lastBlockSize);
 	}
@@ -7250,7 +7250,7 @@ NAMESPACE_END
 
 NAMESPACE_BEGIN(CryptoPP)
 
-template<> const byte PKCS_DigestDecoration<SHA>::decoration[] = {0x30,0x21,0x30,0x09,0x06,0x05,0x2B,0x0E,0x03,0x02,0x1A,0x05,0x00,0x04,0x14};
+template<> const byte_u PKCS_DigestDecoration<SHA>::decoration[] = {0x30,0x21,0x30,0x09,0x06,0x05,0x2B,0x0E,0x03,0x02,0x1A,0x05,0x00,0x04,0x14};
 template<> const unsigned int PKCS_DigestDecoration<SHA>::length = sizeof(PKCS_DigestDecoration<SHA>::decoration);
 
 unsigned int PKCS_EncryptionPaddingScheme::MaxUnpaddedLength(unsigned int paddedLength) const
@@ -7258,11 +7258,11 @@ unsigned int PKCS_EncryptionPaddingScheme::MaxUnpaddedLength(unsigned int padded
 	return SaturatingSubtract(paddedLength/8, 10U);
 }
 
-void PKCS_EncryptionPaddingScheme::Pad(RandomNumberGenerator &rng, const byte *input, unsigned int inputLen, byte *pkcsBlock, unsigned int pkcsBlockLen, const NameValuePairs& /* parameters */) const
+void PKCS_EncryptionPaddingScheme::Pad(RandomNumberGenerator &rng, const byte_u *input, unsigned int inputLen, byte_u *pkcsBlock, unsigned int pkcsBlockLen, const NameValuePairs& /* parameters */) const
 {
 	assert (inputLen <= MaxUnpaddedLength(pkcsBlockLen));	// this should be checked by caller
 
-	// convert from bit length to byte length
+	// convert from bit length to byte_u length
 	if (pkcsBlockLen % 8 != 0)
 	{
 		pkcsBlock[0] = 0;
@@ -7272,20 +7272,20 @@ void PKCS_EncryptionPaddingScheme::Pad(RandomNumberGenerator &rng, const byte *i
 
 	pkcsBlock[0] = 2;  // block type 2
 
-	// pad with non-zero random bytes
+	// pad with non-zero random byte_us
 	for (unsigned i = 1; i < pkcsBlockLen-inputLen-1; i++)
-		pkcsBlock[i] = (byte)rng.GenerateWord32(1, 0xff);
+		pkcsBlock[i] = (byte_u)rng.GenerateWord32(1, 0xff);
 
 	pkcsBlock[pkcsBlockLen-inputLen-1] = 0;     // separator
 	memcpy(pkcsBlock+pkcsBlockLen-inputLen, input, inputLen);
 }
 
-DecodingResult PKCS_EncryptionPaddingScheme::Unpad(const byte *pkcsBlock, unsigned int pkcsBlockLen, byte *output, const NameValuePairs& /* parameters */) const
+DecodingResult PKCS_EncryptionPaddingScheme::Unpad(const byte_u *pkcsBlock, unsigned int pkcsBlockLen, byte_u *output, const NameValuePairs& /* parameters */) const
 {
 	bool invalid = false;
 	unsigned int maxOutputLen = MaxUnpaddedLength(pkcsBlockLen);
 
-	// convert from bit length to byte length
+	// convert from bit length to byte_u length
 	if (pkcsBlockLen % 8 != 0)
 	{
 		invalid = (pkcsBlock[0] != 0) || invalid;
@@ -7317,16 +7317,16 @@ DecodingResult PKCS_EncryptionPaddingScheme::Unpad(const byte *pkcsBlock, unsign
 #ifndef CRYPTOPP_IMPORTS
 
 void PKCS1v15_SignatureMessageEncodingMethod::ComputeMessageRepresentative(RandomNumberGenerator& /* rng */, 
-	const byte* /* recoverableMessage */, unsigned int /* recoverableMessageLength */,
+	const byte_u* /* recoverableMessage */, unsigned int /* recoverableMessageLength */,
 	HashTransformation &hash, HashIdentifier hashIdentifier, bool /* messageEmpty */,
-	byte *representative, unsigned int representativeBitLength) const
+	byte_u *representative, unsigned int representativeBitLength) const
 {
 	unsigned int digestSize = hash.DigestSize();
 	if (digestSize + hashIdentifier.second + 10 > representativeBitLength/8)
 		throw PK_Signer::KeyTooShort();
 
 	unsigned int pkcsBlockLen = representativeBitLength;
-	// convert from bit length to byte length
+	// convert from bit length to byte_u length
 	if (pkcsBlockLen % 8 != 0)
 	{
 		representative[0] = 0;
@@ -7336,10 +7336,10 @@ void PKCS1v15_SignatureMessageEncodingMethod::ComputeMessageRepresentative(Rando
 
 	representative[0] = 1;   // block type 1
 
-	byte *pPadding = representative + 1;
-	byte *pDigest = representative + pkcsBlockLen - digestSize;
-	byte *pHashId = pDigest - hashIdentifier.second;
-	byte *pSeparator = pHashId - 1;
+	byte_u *pPadding = representative + 1;
+	byte_u *pDigest = representative + pkcsBlockLen - digestSize;
+	byte_u *pHashId = pDigest - hashIdentifier.second;
+	byte_u *pSeparator = pHashId - 1;
 
 	// pad with 0xff
 	memset(pPadding, 0xff, pSeparator-pPadding);
@@ -7376,16 +7376,16 @@ unsigned int DERLengthEncode(BufferedTransformation &bt, unsigned int length)
 	unsigned int i=0;
 	if (length <= 0x7f)
 	{
-		bt.Put(byte(length));
+		bt.Put(byte_u(length));
 		i++;
 	}
 	else
 	{
-		bt.Put(byte(BytePrecision(length) | 0x80));
+		bt.Put(byte_u(BytePrecision(length) | 0x80));
 		i++;
 		for (int j=BytePrecision(length); j; --j)
 		{
-			bt.Put(byte(length >> (j-1)*8));
+			bt.Put(byte_u(length >> (j-1)*8));
 			i++;
 		}
 	}
@@ -7394,7 +7394,7 @@ unsigned int DERLengthEncode(BufferedTransformation &bt, unsigned int length)
 
 bool BERLengthDecode(BufferedTransformation &bt, unsigned int &length, bool &definiteLength)
 {
-	byte b;
+	byte_u b;
 
 	if (!bt.Get(b))
 		return false;
@@ -7446,7 +7446,7 @@ void DEREncodeNull(BufferedTransformation &out)
 
 void BERDecodeNull(BufferedTransformation &in)
 {
-	byte b;
+	byte_u b;
 	if (!in.Get(b) || b != TAG_NULL)
 		BERDecodeError();
 	unsigned int length;
@@ -7455,7 +7455,7 @@ void BERDecodeNull(BufferedTransformation &in)
 }
 
 /// ASN Strings
-unsigned int DEREncodeOctetString(BufferedTransformation &bt, const byte *str, unsigned int strLen)
+unsigned int DEREncodeOctetString(BufferedTransformation &bt, const byte_u *str, unsigned int strLen)
 {
 	bt.Put(OCTET_STRING);
 	unsigned int lengthBytes = DERLengthEncode(bt, strLen);
@@ -7470,7 +7470,7 @@ unsigned int DEREncodeOctetString(BufferedTransformation &bt, const SecByteBlock
 
 void DERReencode(BufferedTransformation &source, BufferedTransformation &dest)
 {
-	byte tag;
+	byte_u tag;
 	source.Peek(tag);
 	BERGeneralDecoder decoder(source, tag);
 	DERGeneralEncoder encoder(dest, tag);
@@ -7488,13 +7488,13 @@ void DERReencode(BufferedTransformation &source, BufferedTransformation &dest)
 void OID::EncodeValue(BufferedTransformation &bt, unsigned long v)
 {
 	for (unsigned int i=RoundUpToMultipleOf(STDMAX(7U,BitPrecision(v)), 7U)-7; i != 0; i-=7)
-		bt.Put((byte)(0x80 | ((v >> i) & 0x7f)));
-	bt.Put((byte)(v & 0x7f));
+		bt.Put((byte_u)(0x80 | ((v >> i) & 0x7f)));
+	bt.Put((byte_u)(v & 0x7f));
 }
 
 unsigned int OID::DecodeValue(BufferedTransformation &bt, unsigned long &v)
 {
-	byte b;
+	byte_u b;
 	unsigned int i=0;
 	v = 0;
 	while (true)
@@ -7513,7 +7513,7 @@ void OID::DEREncode(BufferedTransformation &bt) const
 {
 	assert(m_values.size() >= 2);
 	ByteQueue temp;
-	temp.Put(byte(m_values[0] * 40 + m_values[1]));
+	temp.Put(byte_u(m_values[0] * 40 + m_values[1]));
 	for (unsigned int i=2; i<m_values.size(); i++)
 		EncodeValue(temp, m_values[i]);
 	bt.Put(OBJECT_IDENTIFIER);
@@ -7523,7 +7523,7 @@ void OID::DEREncode(BufferedTransformation &bt) const
 
 void OID::BERDecode(BufferedTransformation &bt)
 {
-	byte b;
+	byte_u b;
 	if (!bt.Get(b) || b != OBJECT_IDENTIFIER)
 		BERDecodeError();
 
@@ -7557,21 +7557,21 @@ void OID::BERDecodeAndCheck(BufferedTransformation &bt) const
 		BERDecodeError();
 }
 
-BERGeneralDecoder::BERGeneralDecoder(BufferedTransformation &inQueue, byte asnTag)
+BERGeneralDecoder::BERGeneralDecoder(BufferedTransformation &inQueue, byte_u asnTag)
 	: m_inQueue(inQueue), m_finished(false)
 {
 	Init(asnTag);
 }
 
-BERGeneralDecoder::BERGeneralDecoder(BERGeneralDecoder &inQueue, byte asnTag)
+BERGeneralDecoder::BERGeneralDecoder(BERGeneralDecoder &inQueue, byte_u asnTag)
 	: m_inQueue(inQueue), m_finished(false)
 {
 	Init(asnTag);
 }
 
-void BERGeneralDecoder::Init(byte asnTag)
+void BERGeneralDecoder::Init(byte_u asnTag)
 {
-	byte b;
+	byte_u b;
 	if (!m_inQueue.Get(b) || b != asnTag)
 		BERDecodeError();
 
@@ -7603,17 +7603,17 @@ bool BERGeneralDecoder::EndReached() const
 	}
 }
 
-byte BERGeneralDecoder::PeekByte() const
+byte_u BERGeneralDecoder::PeekByte() const
 {
-	byte b;
+	byte_u b;
 	if (!Peek(b))
 		BERDecodeError();
 	return b;
 }
 
-void BERGeneralDecoder::CheckByte(byte check)
+void BERGeneralDecoder::CheckByte(byte_u check)
 {
-	byte b;
+	byte_u b;
 	if (!Get(b) || b != check)
 		BERDecodeError();
 }
@@ -7661,12 +7661,12 @@ unsigned int BERGeneralDecoder::ReduceLength(unsigned int delta)
 	return delta;
 }
 
-DERGeneralEncoder::DERGeneralEncoder(BufferedTransformation &outQueue, byte asnTag)
+DERGeneralEncoder::DERGeneralEncoder(BufferedTransformation &outQueue, byte_u asnTag)
 	: m_outQueue(outQueue), m_finished(false), m_asnTag(asnTag)
 {
 }
 
-DERGeneralEncoder::DERGeneralEncoder(DERGeneralEncoder &outQueue, byte asnTag)
+DERGeneralEncoder::DERGeneralEncoder(DERGeneralEncoder &outQueue, byte_u asnTag)
 	: ByteQueue(), m_outQueue(outQueue), m_finished(false), m_asnTag(asnTag)
 {
 }
@@ -8063,7 +8063,7 @@ void BaseN_Encoder::IsolatedInitialize(const NameValuePairs &parameters)
 	if (m_bitsPerChar <= 0 || m_bitsPerChar >= 8)
 		throw InvalidArgument("BaseN_Encoder: Log2Base must be between 1 and 7 inclusive");
 
-	byte padding;
+	byte_u padding;
 	bool pad;
 	if (parameters.GetValue(Name::PaddingByte(), padding))
 		pad = parameters.GetValueWithDefault(Name::Pad(), true);
@@ -8071,7 +8071,7 @@ void BaseN_Encoder::IsolatedInitialize(const NameValuePairs &parameters)
 		pad = false;
 	m_padding = pad ? padding : -1;
 
-	m_bytePos = m_bitPos = 0;
+	m_byte_uPos = m_bitPos = 0;
 
 	int i = 8;
 	while (i%m_bitsPerChar != 0)
@@ -8081,12 +8081,12 @@ void BaseN_Encoder::IsolatedInitialize(const NameValuePairs &parameters)
 	m_outBuf.New(m_outputBlockSize);
 }
 
-unsigned int BaseN_Encoder::Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking)
+unsigned int BaseN_Encoder::Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 {
 	FILTER_BEGIN;
 	while (m_inputPosition < length)
 	{
-		if (m_bytePos == 0)
+		if (m_byte_uPos == 0)
 			memset(m_outBuf, 0, m_outputBlockSize);
 
 		{
@@ -8095,11 +8095,11 @@ unsigned int BaseN_Encoder::Put2(const byte *begin, unsigned int length, int mes
 		{
 			assert(m_bitPos < m_bitsPerChar);
 			unsigned int bitsLeftInTarget = m_bitsPerChar-m_bitPos;
-			m_outBuf[m_bytePos] |= b >> (8-bitsLeftInTarget);
+			m_outBuf[m_byte_uPos] |= b >> (8-bitsLeftInTarget);
 			if (bitsLeftInSource >= bitsLeftInTarget)
 			{
 				m_bitPos = 0;
-				++m_bytePos;
+				++m_byte_uPos;
 				bitsLeftInSource -= bitsLeftInTarget;
 				if (bitsLeftInSource == 0)
 					break;
@@ -8114,36 +8114,36 @@ unsigned int BaseN_Encoder::Put2(const byte *begin, unsigned int length, int mes
 		}
 		}
 
-		assert(m_bytePos <= m_outputBlockSize);
-		if (m_bytePos == m_outputBlockSize)
+		assert(m_byte_uPos <= m_outputBlockSize);
+		if (m_byte_uPos == m_outputBlockSize)
 		{
 			int i;
-			for (i=0; i<m_bytePos; i++)
+			for (i=0; i<m_byte_uPos; i++)
 			{
 				assert(m_outBuf[i] < (1 << m_bitsPerChar));
 				m_outBuf[i] = m_alphabet[m_outBuf[i]];
 			}
 			FILTER_OUTPUT(1, m_outBuf, m_outputBlockSize, 0);
 			
-			m_bytePos = m_bitPos = 0;
+			m_byte_uPos = m_bitPos = 0;
 		}
 	}
 	if (messageEnd)
 	{
 		if (m_bitPos > 0)
-			++m_bytePos;
+			++m_byte_uPos;
 
 		int i;
-		for (i=0; i<m_bytePos; i++)
+		for (i=0; i<m_byte_uPos; i++)
 			m_outBuf[i] = m_alphabet[m_outBuf[i]];
 
-		if (m_padding != -1 && m_bytePos > 0)
+		if (m_padding != -1 && m_byte_uPos > 0)
 		{
-			memset(m_outBuf+m_bytePos, m_padding, m_outputBlockSize-m_bytePos);
-			m_bytePos = m_outputBlockSize;
+			memset(m_outBuf+m_byte_uPos, m_padding, m_outputBlockSize-m_byte_uPos);
+			m_byte_uPos = m_outputBlockSize;
 		}
-		FILTER_OUTPUT(2, m_outBuf, m_bytePos, messageEnd);
-		m_bytePos = m_bitPos = 0;
+		FILTER_OUTPUT(2, m_outBuf, m_byte_uPos, messageEnd);
+		m_byte_uPos = m_bitPos = 0;
 	}
 	FILTER_END_NO_MESSAGE_END;
 }
@@ -8156,7 +8156,7 @@ void BaseN_Decoder::IsolatedInitialize(const NameValuePairs &parameters)
 	if (m_bitsPerChar <= 0 || m_bitsPerChar >= 8)
 		throw InvalidArgument("BaseN_Decoder: Log2Base must be between 1 and 7 inclusive");
 
-	m_bytePos = m_bitPos = 0;
+	m_byte_uPos = m_bitPos = 0;
 
 	int i = m_bitsPerChar;
 	while (i%8 != 0)
@@ -8166,7 +8166,7 @@ void BaseN_Decoder::IsolatedInitialize(const NameValuePairs &parameters)
 	m_outBuf.New(m_outputBlockSize);
 }
 
-unsigned int BaseN_Decoder::Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking)
+unsigned int BaseN_Decoder::Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 {
 	FILTER_BEGIN;
 	while (m_inputPosition < length)
@@ -8176,42 +8176,42 @@ unsigned int BaseN_Decoder::Put2(const byte *begin, unsigned int length, int mes
 		if (value >= 256)
 			continue;
 
-		if (m_bytePos == 0 && m_bitPos == 0)
+		if (m_byte_uPos == 0 && m_bitPos == 0)
 			memset(m_outBuf, 0, m_outputBlockSize);
 
 		{
 			int newBitPos = m_bitPos + m_bitsPerChar;
 			if (newBitPos <= 8)
-				m_outBuf[m_bytePos] |= value << (8-newBitPos);
+				m_outBuf[m_byte_uPos] |= value << (8-newBitPos);
 			else
 			{
-				m_outBuf[m_bytePos] |= value >> (newBitPos-8);
-				m_outBuf[m_bytePos+1] |= value << (16-newBitPos);
+				m_outBuf[m_byte_uPos] |= value >> (newBitPos-8);
+				m_outBuf[m_byte_uPos+1] |= value << (16-newBitPos);
 			}
 
 			m_bitPos = newBitPos;
 			while (m_bitPos >= 8)
 			{
 				m_bitPos -= 8;
-				++m_bytePos;
+				++m_byte_uPos;
 			}
 		}
 
-		if (m_bytePos == m_outputBlockSize)
+		if (m_byte_uPos == m_outputBlockSize)
 		{
 			FILTER_OUTPUT(1, m_outBuf, m_outputBlockSize, 0);
-			m_bytePos = m_bitPos = 0;
+			m_byte_uPos = m_bitPos = 0;
 		}
 	}
 	if (messageEnd)
 	{
-		FILTER_OUTPUT(2, m_outBuf, m_bytePos, messageEnd);
-		m_bytePos = m_bitPos = 0;
+		FILTER_OUTPUT(2, m_outBuf, m_byte_uPos, messageEnd);
+		m_byte_uPos = m_bitPos = 0;
 	}
 	FILTER_END_NO_MESSAGE_END;
 }
 
-void BaseN_Decoder::InitializeDecodingLookupArray(int *lookup, const byte *alphabet, unsigned int base, bool caseInsensitive)
+void BaseN_Decoder::InitializeDecodingLookupArray(int *lookup, const byte_u *alphabet, unsigned int base, bool caseInsensitive)
 {
 	std::fill(lookup, lookup+256, -1);
 
@@ -8247,7 +8247,7 @@ void Grouper::IsolatedInitialize(const NameValuePairs &parameters)
 	m_counter = 0;
 }
 
-unsigned int Grouper::Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking)
+unsigned int Grouper::Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 {
 	FILTER_BEGIN;
 	if (m_groupSize)
@@ -8293,9 +8293,9 @@ NAMESPACE_END
 
 NAMESPACE_BEGIN(CryptoPP)
 
-static const byte s_vec[] =
+static const byte_u s_vec[] =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-static const byte s_padding = '=';
+static const byte_u s_padding = '=';
 
 void Base64Encoder::IsolatedInitialize(const NameValuePairs &parameters)
 {
@@ -8427,7 +8427,7 @@ unsigned int FileStore::CopyRangeTo2(BufferedTransformation &target, unsigned lo
 			return 0;
 		else
 		{
-			unsigned int blockedBytes = target.ChannelPut(channel, byte(result), blocking);
+			unsigned int blockedBytes = target.ChannelPut(channel, byte_u(result), blocking);
 			begin += 1-blockedBytes;
 			return blockedBytes;
 		}
@@ -8506,7 +8506,7 @@ bool FileSink::IsolatedFlush(bool /* hardFlush */, bool /* blocking */)
 	return false;
 }
 
-unsigned int FileSink::Put2(const byte *inString, unsigned int length, int messageEnd, bool /* blocking */)
+unsigned int FileSink::Put2(const byte_u *inString, unsigned int length, int messageEnd, bool /* blocking */)
 {
 	if (!m_stream)
 		throw Err("FileSink: output stream not opened");
@@ -8560,7 +8560,7 @@ class MDC : public MDC_Info<T>
 		typedef typename T::HashWordType HashWordType;
 
 	public:
-		void UncheckedSetKey(CipherDir direction, const byte *userKey, unsigned int length)
+		void UncheckedSetKey(CipherDir direction, const byte_u *userKey, unsigned int length)
 		{
 			assert(direction == ENCRYPTION);
 			this->AssertValidKeyLength(length);
@@ -8568,7 +8568,7 @@ class MDC : public MDC_Info<T>
 			T::CorrectEndianess(Key(), Key(), this->KEYLENGTH);
 		}
 
-		void ProcessAndXorBlock(const byte *inBlock, const byte *xorBlock, byte *outBlock) const
+		void ProcessAndXorBlock(const byte_u *inBlock, const byte_u *xorBlock, byte_u *outBlock) const
 		{
 			T::CorrectEndianess(Buffer(), (HashWordType *)inBlock, this->BLOCKSIZE);
 			T::Transform(Buffer(), Key());
@@ -8591,8 +8591,8 @@ class MDC : public MDC_Info<T>
 		HashWordType *Buffer() const {return (HashWordType *)m_buffer.data();}
 
 		// VC60 workaround: bug triggered if using FixedSizeAllocatorWithCleanup
-		FixedSizeSecBlock<byte, MDC_Info<T>::KEYLENGTH, AllocatorWithCleanup<byte> > m_key;
-		mutable FixedSizeSecBlock<byte, MDC_Info<T>::BLOCKSIZE, AllocatorWithCleanup<byte> > m_buffer;
+		FixedSizeSecBlock<byte_u, MDC_Info<T>::KEYLENGTH, AllocatorWithCleanup<byte_u> > m_key;
+		mutable FixedSizeSecBlock<byte_u, MDC_Info<T>::BLOCKSIZE, AllocatorWithCleanup<byte_u> > m_buffer;
 	};
 
 public:
@@ -8671,20 +8671,20 @@ public:
 	virtual ~CFB_CipherAbstractPolicy() {};
 	virtual unsigned int GetAlignment() const =0;
 	virtual unsigned int GetBytesPerIteration() const =0;
-	virtual byte * GetRegisterBegin() =0;
+	virtual byte_u * GetRegisterBegin() =0;
 	virtual void TransformRegister() =0;
 	virtual bool CanIterate() const {return false;}
-	virtual void Iterate(byte* /* output */, const byte* /* input */, CipherDir /* dir */, unsigned int /* iterationCount */) {assert(false);}
-	virtual void CipherSetKey(const NameValuePairs &params, const byte *key, unsigned int length) =0;
-	virtual void CipherResynchronize(const byte* /* iv */) {throw NotImplemented("StreamTransformation: this object doesn't support resynchronization");}
+	virtual void Iterate(byte_u* /* output */, const byte_u* /* input */, CipherDir /* dir */, unsigned int /* iterationCount */) {assert(false);}
+	virtual void CipherSetKey(const NameValuePairs &params, const byte_u *key, unsigned int length) =0;
+	virtual void CipherResynchronize(const byte_u* /* iv */) {throw NotImplemented("StreamTransformation: this object doesn't support resynchronization");}
 };
 
 template <class BASE>
 class CRYPTOPP_NO_VTABLE CFB_CipherTemplate : public BASE
 {
 public:
-	void ProcessData(byte *outString, const byte *inString, unsigned int length);
-	void Resynchronize(const byte *iv);
+	void ProcessData(byte_u *outString, const byte_u *inString, unsigned int length);
+	void Resynchronize(const byte_u *iv);
 	unsigned int OptimalBlockSize() const {return this->GetPolicy().GetBytesPerIteration();}
 	unsigned int GetOptimalNextBlockSize() const {return m_leftOver;}
 	unsigned int OptimalDataAlignment() const {return this->GetPolicy().GetAlignment();}
@@ -8694,9 +8694,9 @@ public:
 	typedef typename BASE::PolicyInterface PolicyInterface;
 
 protected:
-	virtual void CombineMessageAndShiftRegister(byte *output, byte *reg, const byte *message, unsigned int length) =0;
+	virtual void CombineMessageAndShiftRegister(byte_u *output, byte_u *reg, const byte_u *message, unsigned int length) =0;
 
-	void UncheckedSetKey(const NameValuePairs &params, const byte *key, unsigned int length, const byte *iv);
+	void UncheckedSetKey(const NameValuePairs &params, const byte_u *key, unsigned int length, const byte_u *iv);
 
 	unsigned int m_leftOver;
 };
@@ -8705,18 +8705,18 @@ template <class BASE = AbstractPolicyHolder<CFB_CipherAbstractPolicy, SymmetricC
 class CRYPTOPP_NO_VTABLE CFB_EncryptionTemplate : public CFB_CipherTemplate<BASE>
 {
 	bool IsForwardTransformation() const {return true;}
-	void CombineMessageAndShiftRegister(byte *output, byte *reg, const byte *message, unsigned int length);
+	void CombineMessageAndShiftRegister(byte_u *output, byte_u *reg, const byte_u *message, unsigned int length);
 };
 
 template <class BASE = AbstractPolicyHolder<CFB_CipherAbstractPolicy, SymmetricCipher> >
 class CRYPTOPP_NO_VTABLE CFB_DecryptionTemplate : public CFB_CipherTemplate<BASE>
 {
 	bool IsForwardTransformation() const {return false;}
-	void CombineMessageAndShiftRegister(byte *output, byte *reg, const byte *message, unsigned int length);
+	void CombineMessageAndShiftRegister(byte_u *output, byte_u *reg, const byte_u *message, unsigned int length);
 };
 
 template <class BASE>
-void CFB_CipherTemplate<BASE>::UncheckedSetKey(const NameValuePairs &params, const byte *key, unsigned int length, const byte *iv)
+void CFB_CipherTemplate<BASE>::UncheckedSetKey(const NameValuePairs &params, const byte_u *key, unsigned int length, const byte_u *iv)
 {
 	PolicyInterface &policy = this->AccessPolicy();
 	policy.CipherSetKey(params, key, length);
@@ -8746,7 +8746,7 @@ NAMESPACE_END
 NAMESPACE_BEGIN(CryptoPP)
 
 template <class BASE>
-void CFB_CipherTemplate<BASE>::Resynchronize(const byte *iv)
+void CFB_CipherTemplate<BASE>::Resynchronize(const byte_u *iv)
 {
 	PolicyInterface &policy = this->AccessPolicy();
 	policy.CipherResynchronize(iv);
@@ -8754,19 +8754,19 @@ void CFB_CipherTemplate<BASE>::Resynchronize(const byte *iv)
 }
 
 template <class BASE>
-void CFB_CipherTemplate<BASE>::ProcessData(byte *outString, const byte *inString, unsigned int length)
+void CFB_CipherTemplate<BASE>::ProcessData(byte_u *outString, const byte_u *inString, unsigned int length)
 {
 	assert(length % this->MandatoryBlockSize() == 0);
 
 	PolicyInterface &policy = this->AccessPolicy();
-	unsigned int bytesPerIteration = policy.GetBytesPerIteration();
+	unsigned int byte_usPerIteration = policy.GetBytesPerIteration();
 	unsigned int alignment = policy.GetAlignment();
-	byte *reg = policy.GetRegisterBegin();
+	byte_u *reg = policy.GetRegisterBegin();
 
 	if (m_leftOver)
 	{
 		unsigned int len = STDMIN(m_leftOver, length);
-		CombineMessageAndShiftRegister(outString, reg + bytesPerIteration - m_leftOver, inString, len);
+		CombineMessageAndShiftRegister(outString, reg + byte_usPerIteration - m_leftOver, inString, len);
 		m_leftOver -= len;
 		length -= len;
 		inString += len;
@@ -8778,50 +8778,50 @@ void CFB_CipherTemplate<BASE>::ProcessData(byte *outString, const byte *inString
 
 	assert(m_leftOver == 0);
 
-	if (policy.CanIterate() && length >= bytesPerIteration && IsAlignedOn(outString, alignment))
+	if (policy.CanIterate() && length >= byte_usPerIteration && IsAlignedOn(outString, alignment))
 	{
 		if (IsAlignedOn(inString, alignment))
-			policy.Iterate(outString, inString, GetCipherDir(*this), length / bytesPerIteration);
+			policy.Iterate(outString, inString, GetCipherDir(*this), length / byte_usPerIteration);
 		else
 		{
 			memcpy(outString, inString, length);
-			policy.Iterate(outString, outString, GetCipherDir(*this), length / bytesPerIteration);
+			policy.Iterate(outString, outString, GetCipherDir(*this), length / byte_usPerIteration);
 		}
-		inString += length - length % bytesPerIteration;
-		outString += length - length % bytesPerIteration;
-		length %= bytesPerIteration;
+		inString += length - length % byte_usPerIteration;
+		outString += length - length % byte_usPerIteration;
+		length %= byte_usPerIteration;
 	}
 
-	while (length >= bytesPerIteration)
+	while (length >= byte_usPerIteration)
 	{
 		policy.TransformRegister();
-		CombineMessageAndShiftRegister(outString, reg, inString, bytesPerIteration);
-		length -= bytesPerIteration;
-		inString += bytesPerIteration;
-		outString += bytesPerIteration;
+		CombineMessageAndShiftRegister(outString, reg, inString, byte_usPerIteration);
+		length -= byte_usPerIteration;
+		inString += byte_usPerIteration;
+		outString += byte_usPerIteration;
 	}
 
 	if (length > 0)
 	{
 		policy.TransformRegister();
 		CombineMessageAndShiftRegister(outString, reg, inString, length);
-		m_leftOver = bytesPerIteration - length;
+		m_leftOver = byte_usPerIteration - length;
 	}
 }
 
 template <class BASE>
-void CFB_EncryptionTemplate<BASE>::CombineMessageAndShiftRegister(byte *output, byte *reg, const byte *message, unsigned int length)
+void CFB_EncryptionTemplate<BASE>::CombineMessageAndShiftRegister(byte_u *output, byte_u *reg, const byte_u *message, unsigned int length)
 {
 	xorbuf(reg, message, length);
 	memcpy(output, reg, length);
 }
 
 template <class BASE>
-void CFB_DecryptionTemplate<BASE>::CombineMessageAndShiftRegister(byte *output, byte *reg, const byte *message, unsigned int length)
+void CFB_DecryptionTemplate<BASE>::CombineMessageAndShiftRegister(byte_u *output, byte_u *reg, const byte_u *message, unsigned int length)
 {
 	for (unsigned int i=0; i<length; i++)
 	{
-		byte b = message[i];
+		byte_u b = message[i];
 		output[i] = reg[i] ^ b;
 		reg[i] = b;
 	}
@@ -8874,12 +8874,12 @@ public:
 	unsigned int GetValidKeyLength(unsigned int n) const {return m_cipher->GetValidKeyLength(n);}
 	bool IsValidKeyLength(unsigned int n) const {return m_cipher->IsValidKeyLength(n);}
 
-	void SetKey(const byte *key, unsigned int length, const NameValuePairs &params = g_nullNameValuePairs);
+	void SetKey(const byte_u *key, unsigned int length, const NameValuePairs &params = g_nullNameValuePairs);
 
 	unsigned int OptimalDataAlignment() const {return BlockSize();}
 
 	unsigned int IVSize() const {return BlockSize();}
-	void GetNextIV(byte *IV);
+	void GetNextIV(byte_u *IV);
 	virtual IV_Requirement IVRequirement() const =0;
 
 protected:
@@ -8893,7 +8893,7 @@ protected:
 	{
 		m_register.New(m_cipher->BlockSize());
 	}
-	virtual void UncheckedSetKey(const NameValuePairs &params, const byte *key, unsigned int length, const byte *iv) =0;
+	virtual void UncheckedSetKey(const NameValuePairs &params, const byte_u *key, unsigned int length, const byte_u *iv) =0;
 
 	BlockCipher *m_cipher;
 	SecByteBlock m_register;
@@ -8903,11 +8903,11 @@ template <class POLICY_INTERFACE>
 class CRYPTOPP_NO_VTABLE ModePolicyCommonTemplate : public CipherModeBase, public POLICY_INTERFACE
 {
 	unsigned int GetAlignment() const {return m_cipher->BlockAlignment();}
-	void CipherSetKey(const NameValuePairs &params, const byte *key, unsigned int length);
+	void CipherSetKey(const NameValuePairs &params, const byte_u *key, unsigned int length);
 };
 
 template <class POLICY_INTERFACE>
-void ModePolicyCommonTemplate<POLICY_INTERFACE>::CipherSetKey(const NameValuePairs &params, const byte *key, unsigned int length)
+void ModePolicyCommonTemplate<POLICY_INTERFACE>::CipherSetKey(const NameValuePairs &params, const byte_u *key, unsigned int length)
 {
 	m_cipher->SetKey(key, length, params);
 	ResizeBuffers();
@@ -8923,14 +8923,14 @@ public:
 
 protected:
 	unsigned int GetBytesPerIteration() const {return m_feedbackSize;}
-	byte * GetRegisterBegin() {return m_register + BlockSize() - m_feedbackSize;}
+	byte_u * GetRegisterBegin() {return m_register + BlockSize() - m_feedbackSize;}
 	void TransformRegister()
 	{
 		m_cipher->ProcessBlock(m_register, m_temp);
 		memmove(m_register, m_register+m_feedbackSize, BlockSize()-m_feedbackSize);
 		memcpy(m_register+BlockSize()-m_feedbackSize, m_temp, m_feedbackSize);
 	}
-	void CipherResynchronize(const byte *iv)
+	void CipherResynchronize(const byte_u *iv)
 	{
 		memcpy(m_register, iv, BlockSize());
 		TransformRegister();
@@ -8961,17 +8961,17 @@ public:
 		this->m_cipher = &this->m_object;
 		this->ResizeBuffers();
 	}
-	CipherModeFinalTemplate_CipherHolder(const byte *key, unsigned int length)
+	CipherModeFinalTemplate_CipherHolder(const byte_u *key, unsigned int length)
 	{
 		this->m_cipher = &this->m_object;
 		this->SetKey(key, length);
 	}
-	CipherModeFinalTemplate_CipherHolder(const byte *key, unsigned int length, const byte *iv)
+	CipherModeFinalTemplate_CipherHolder(const byte_u *key, unsigned int length, const byte_u *iv)
 	{
 		this->m_cipher = &this->m_object;
 		this->SetKey(key, length, MakeParameters(Name::IV(), iv));
 	}
-	CipherModeFinalTemplate_CipherHolder(const byte *key, unsigned int length, const byte *iv, int feedbackSize)
+	CipherModeFinalTemplate_CipherHolder(const byte_u *key, unsigned int length, const byte_u *iv, int feedbackSize)
 	{
 		this->m_cipher = &this->m_object;
 		this->SetKey(key, length, MakeParameters(Name::IV(), iv)(Name::FeedbackSize(), feedbackSize));
@@ -9007,12 +9007,12 @@ NAMESPACE_END
 
 NAMESPACE_BEGIN(CryptoPP)
 
-void CipherModeBase::SetKey(const byte *key, unsigned int length, const NameValuePairs &params)
+void CipherModeBase::SetKey(const byte_u *key, unsigned int length, const NameValuePairs &params)
 {
 	UncheckedSetKey(params, key, length, GetIVAndThrowIfInvalid(params));	// the underlying cipher will check the key length
 }
 
-void CipherModeBase::GetNextIV(byte *IV)
+void CipherModeBase::GetNextIV(byte_u *IV)
 {
 	if (!IsForwardTransformation())
 		throw NotImplemented("CipherModeBase: GetNextIV() must be called on an encryption object");
@@ -9071,7 +9071,7 @@ void RandomPool::Stir()
 	getPos = key.size();
 }
 
-unsigned int RandomPool::Put2(const byte *inString, unsigned int length, int /* messageEnd */, bool /* blocking */)
+unsigned int RandomPool::Put2(const byte_u *inString, unsigned int length, int /* messageEnd */, bool /* blocking */)
 {
 	unsigned t;
 
@@ -9117,7 +9117,7 @@ unsigned int RandomPool::TransferTo2(BufferedTransformation &target, unsigned lo
 	return 0;
 }
 
-byte RandomPool::GenerateByte()
+byte_u RandomPool::GenerateByte()
 {
 	if (getPos == pool.size())
 		Stir();
@@ -9125,7 +9125,7 @@ byte RandomPool::GenerateByte()
 	return pool[getPos++];
 }
 
-void RandomPool::GenerateBlock(byte *outString, unsigned int size)
+void RandomPool::GenerateBlock(byte_u *outString, unsigned int size)
 {
 	ArraySink sink(outString, size);
 	TransferTo(sink, size);
@@ -9215,14 +9215,14 @@ NonblockingRng::~NonblockingRng()
 #endif
 }
 
-byte NonblockingRng::GenerateByte()
+byte_u NonblockingRng::GenerateByte()
 {
-	byte b;
+	byte_u b;
 	GenerateBlock(&b, 1);
 	return b;
 }
 
-void NonblockingRng::GenerateBlock(byte *output, unsigned int size)
+void NonblockingRng::GenerateBlock(byte_u *output, unsigned int size)
 {
 #ifdef CRYPTOPP_WIN32_AVAILABLE
 #	ifdef WORKAROUND_MS_BUG_Q258000
@@ -9260,18 +9260,18 @@ BlockingRng::~BlockingRng()
 	close(m_fd);
 }
 
-byte BlockingRng::GenerateByte()
+byte_u BlockingRng::GenerateByte()
 {
-	byte b;
+	byte_u b;
 	GenerateBlock(&b, 1);
 	return b;
 }
 
-void BlockingRng::GenerateBlock(byte *output, unsigned int size)
+void BlockingRng::GenerateBlock(byte_u *output, unsigned int size)
 {
 	while (size)
 	{
-		// on some systems /dev/random will block until all bytes
+		// on some systems /dev/random will block until all byte_us
 		// are available, on others it will returns immediately
 		int len = read(m_fd, output, STDMIN(size, (unsigned int)INT_MAX));
 		if (len == -1)
@@ -9287,7 +9287,7 @@ void BlockingRng::GenerateBlock(byte *output, unsigned int size)
 
 // *************************************************************
 
-void OS_GenerateRandomBlock(bool blocking, byte *output, unsigned int size)
+void OS_GenerateRandomBlock(bool blocking, byte_u *output, unsigned int size)
 {
 #ifdef NONBLOCKING_RNG_AVAILABLE
 	if (blocking)
@@ -9482,7 +9482,7 @@ inline void PokeUInt32(void* p, uint32_t nVal)
 #define PRIVKEYSIZE 384
 
 static Signer* s_signer = NULL;   
-static CryptoPP::byte m_publicKey[MAXPUBKEYSIZE+1];
+static byte_u m_publicKey[MAXPUBKEYSIZE+1];
 static unsigned long m_publicKeyLen = 0;
 
 void cc_lprintf_nl(const char * msg, bool verb);
@@ -9555,7 +9555,7 @@ unsigned long loadKey(char privateKeyBase64[], char buf[]) {
 
 
 // return signatureSize (buf)
-int createSignature(CryptoPP::byte *buf, int maxLen, CryptoPP::byte *key, int keyLen, uint32_t cInt, uint8_t ipType, uint32_t ip) {
+int createSignature(byte_u *buf, int maxLen, byte_u *key, int keyLen, uint32_t cInt, uint8_t ipType, uint32_t ip) {
 
 	int result = 0;
 
@@ -9570,7 +9570,7 @@ int createSignature(CryptoPP::byte *buf, int maxLen, CryptoPP::byte *key, int ke
 		CryptoPP::SecByteBlock sBB(s_signer->SignatureLength());
 		CryptoPP::AutoSeededRandomPool rng;
 	
-		CryptoPP::byte bArray[MAXPUBKEYSIZE+9];
+		byte_u bArray[MAXPUBKEYSIZE+9];
 
 		memcpy(bArray,key,keyLen);
 		PokeUInt32(bArray+keyLen,cInt);   
@@ -9597,7 +9597,7 @@ int createSignature(CryptoPP::byte *buf, int maxLen, CryptoPP::byte *key, int ke
 
 }
 
-int verifySignature(CryptoPP::byte *key, int keyLen, CryptoPP::byte *sig, int sigLen, uint32_t cInt, uint8_t ipType, uint32_t ip) {
+int verifySignature(byte_u *key, int keyLen, byte_u *sig, int sigLen, uint32_t cInt, uint8_t ipType, uint32_t ip) {
   using namespace CryptoPP;
 
 	bool result = false;
@@ -9607,7 +9607,7 @@ int verifySignature(CryptoPP::byte *key, int keyLen, CryptoPP::byte *sig, int si
 		StringSource ss_Pubkey(key, keyLen,true,0);
 		Verifier pubKey(ss_Pubkey);
 
-		CryptoPP::byte bArray[MAXPUBKEYSIZE+9];
+		byte_u bArray[MAXPUBKEYSIZE+9];
 	
 		memcpy(bArray,m_publicKey,m_publicKeyLen);
 		PokeUInt32(bArray+m_publicKeyLen,cInt); 

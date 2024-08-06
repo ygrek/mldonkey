@@ -86,6 +86,7 @@
 #define CRYPTOPP_H
 
 #include <inttypes.h>
+#include <caml/config.h>
 #include <stdio.h>
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -99,6 +100,9 @@
 #ifndef ARCH_BIG_ENDIAN
 #	define IS_LITTLE_ENDIAN
 #endif
+
+// override #define in caml/compatibility.h
+#undef flush 
 
 // define this if you want to disable all OS-dependent features,
 // such as sockets and OS-provided random number generators
@@ -177,9 +181,10 @@
 #	define __USE_W32_SOCKETS
 #endif
 
+typedef unsigned char byte_u;		// put in global namespace to avoid ambiguity with other byte_u typedefs
+
 NAMESPACE_BEGIN(CryptoPP)
 
-typedef unsigned char byte;		// put in global namespace to avoid ambiguity with other byte typedefs
 typedef unsigned short word16;
 typedef unsigned int word32;
 
@@ -719,21 +724,21 @@ public:
 	virtual std::string AlgorithmName() const {return "unknown";}
 };
 
-//! keying interface for crypto algorithms that take byte strings as keys
+//! keying interface for crypto algorithms that take byte_u strings as keys
 
 class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE SimpleKeyingInterface
 {
 public:
 	virtual ~SimpleKeyingInterface() {};
 	
-	//! returns smallest valid key length in bytes */
+	//! returns smallest valid key length in byte_us */
 	virtual unsigned int MinKeyLength() const =0;
-	//! returns largest valid key length in bytes */
+	//! returns largest valid key length in byte_us */
 	virtual unsigned int MaxKeyLength() const =0;
-	//! returns default (recommended) key length in bytes */
+	//! returns default (recommended) key length in byte_us */
 	virtual unsigned int DefaultKeyLength() const =0;
 
-	//! returns the smallest valid key length in bytes that is >= min(n, GetMaxKeyLength())
+	//! returns the smallest valid key length in byte_us that is >= min(n, GetMaxKeyLength())
 	virtual unsigned int GetValidKeyLength(unsigned int n) const =0;
 
 	//! returns whether n is a valid key length
@@ -742,13 +747,13 @@ public:
 
 	//! set or reset the key of this object
 	/*! \param params is used to specify Rounds, BlockSize, etc */
-	virtual void SetKey(const byte *key, unsigned int length, const NameValuePairs &params = g_nullNameValuePairs) =0;
+	virtual void SetKey(const byte_u *key, unsigned int length, const NameValuePairs &params = g_nullNameValuePairs) =0;
 
 	//! calls SetKey() with an NameValuePairs object that just specifies "Rounds"
-	void SetKeyWithRounds(const byte *key, unsigned int length, int rounds);
+	void SetKeyWithRounds(const byte_u *key, unsigned int length, int rounds);
 
 	//! calls SetKey() with an NameValuePairs object that just specifies "IV"
-	void SetKeyWithIV(const byte *key, unsigned int length, const byte *iv);
+	void SetKeyWithIV(const byte_u *key, unsigned int length, const byte_u *iv);
 
 	enum IV_Requirement {STRUCTURED_IV = 0, RANDOM_IV, UNPREDICTABLE_RANDOM_IV, INTERNALLY_GENERATED_IV, NOT_RESYNCHRONIZABLE};
 	//! returns the minimal requirement for secure IVs
@@ -767,18 +772,18 @@ public:
 	//! returns size of IVs used by this object
 	virtual unsigned int IVSize() const {throw NotImplemented("SimpleKeyingInterface: this object doesn't support resynchronization");}
 	//! resynchronize with an IV
-	virtual void Resynchronize(const byte* /* IV */) {throw NotImplemented("SimpleKeyingInterface: this object doesn't support resynchronization");}
+	virtual void Resynchronize(const byte_u* /* IV */) {throw NotImplemented("SimpleKeyingInterface: this object doesn't support resynchronization");}
 	//! get a secure IV for the next message
 	/*! This method should be called after you finish encrypting one message and are ready to start the next one.
 		After calling it, you must call SetKey() or Resynchronize() before using this object again. 
 		This method is not implemented on decryption objects. */
-	virtual void GetNextIV(byte* /* IV */) {throw NotImplemented("SimpleKeyingInterface: this object doesn't support GetNextIV()");}
+	virtual void GetNextIV(byte_u* /* IV */) {throw NotImplemented("SimpleKeyingInterface: this object doesn't support GetNextIV()");}
 
 protected:
 	void ThrowIfInvalidKeyLength(const Algorithm &algorithm, unsigned int length);
 	void ThrowIfResynchronizable();			// to be called when no IV is passed
-	void ThrowIfInvalidIV(const byte *iv);	// check for NULL IV if it can't be used
-	const byte * GetIVAndThrowIfInvalid(const NameValuePairs &params);
+	void ThrowIfInvalidIV(const byte_u *iv);	// check for NULL IV if it can't be used
+	const byte_u * GetIVAndThrowIfInvalid(const NameValuePairs &params);
 
 	inline void AssertValidKeyLength(unsigned int length) const
 	{
@@ -798,18 +803,18 @@ class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE BlockTransformation : public Algorithm
 {
 public:
 	//! encrypt or decrypt inBlock, xor with xorBlock, and write to outBlock
-	virtual void ProcessAndXorBlock(const byte *inBlock, const byte *xorBlock, byte *outBlock) const =0;
+	virtual void ProcessAndXorBlock(const byte_u *inBlock, const byte_u *xorBlock, byte_u *outBlock) const =0;
 
 	//! encrypt or decrypt one block
 	/*! \pre size of inBlock and outBlock == BlockSize() */
-	void ProcessBlock(const byte *inBlock, byte *outBlock) const
+	void ProcessBlock(const byte_u *inBlock, byte_u *outBlock) const
 		{ProcessAndXorBlock(inBlock, NULL, outBlock);}
 
 	//! encrypt or decrypt one block in place
-	void ProcessBlock(byte *inoutBlock) const
+	void ProcessBlock(byte_u *inoutBlock) const
 		{ProcessAndXorBlock(inoutBlock, NULL, inoutBlock);}
 
-	//! block size of the cipher in bytes
+	//! block size of the cipher in byte_us
 	virtual unsigned int BlockSize() const =0;
 
 	//! block pointers must be divisible by this
@@ -825,7 +830,7 @@ public:
 	virtual unsigned int OptimalNumberOfParallelBlocks() const {return 1;}
 
 	//! encrypt or decrypt multiple blocks, for bit-slicing implementations
-	virtual void ProcessAndXorMultipleBlocks(const byte *inBlocks, const byte *xorBlocks, byte *outBlocks, unsigned int numberOfBlocks) const;
+	virtual void ProcessAndXorMultipleBlocks(const byte_u *inBlocks, const byte_u *xorBlocks, byte_u *outBlocks, unsigned int numberOfBlocks) const;
 };
 
 //! interface for the data processing part of stream ciphers
@@ -850,24 +855,24 @@ public:
 	//! returns how input should be aligned for optimal performance
 	virtual unsigned int OptimalDataAlignment() const {return 1;}
 
-	//! encrypt or decrypt an array of bytes of specified length
+	//! encrypt or decrypt an array of byte_us of specified length
 	/*! \note either inString == outString, or they don't overlap */
-	virtual void ProcessData(byte *outString, const byte *inString, unsigned int length) =0;
+	virtual void ProcessData(byte_u *outString, const byte_u *inString, unsigned int length) =0;
 
 	//! for ciphers where the last block of data is special, encrypt or decrypt the last block of data
 	/*! For now the only use of this function is for CBC-CTS mode. */
-	virtual void ProcessLastBlock(byte *outString, const byte *inString, unsigned int length);
+	virtual void ProcessLastBlock(byte_u *outString, const byte_u *inString, unsigned int length);
 	//! returns the minimum size of the last block, 0 indicating the last block is not special
 	virtual unsigned int MinLastBlockSize() const {return 0;}
 
 	//! same as ProcessData(inoutString, inoutString, length)
-	inline void ProcessString(byte *inoutString, unsigned int length)
+	inline void ProcessString(byte_u *inoutString, unsigned int length)
 		{ProcessData(inoutString, inoutString, length);}
 	//! same as ProcessData(outString, inString, length)
-	inline void ProcessString(byte *outString, const byte *inString, unsigned int length)
+	inline void ProcessString(byte_u *outString, const byte_u *inString, unsigned int length)
 		{ProcessData(outString, inString, length);}
 	//! implemented as {ProcessData(&input, &input, 1); return input;}
-	inline byte ProcessByte(byte input)
+	inline byte_u ProcessByte(byte_u input)
 		{ProcessData(&input, &input, 1); return input;}
 
 	//! returns whether this cipher supports random access
@@ -897,14 +902,14 @@ class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE HashTransformation : public Algorithm
 {
 public:
 	//! process more input
-	virtual void Update(const byte *input, unsigned int length) =0;
+	virtual void Update(const byte_u *input, unsigned int length) =0;
 
 	//! request space to write input into
-	virtual byte * CreateUpdateSpace(unsigned int &size) {size=0; return NULL;}
+	virtual byte_u * CreateUpdateSpace(unsigned int &size) {size=0; return NULL;}
 
 	//! compute hash for current message, then restart for a new message
 	/*!	\pre size of digest == DigestSize(). */
-	virtual void Final(byte *digest)
+	virtual void Final(byte_u *digest)
 		{TruncatedFinal(digest, DigestSize());}
 
 	//! discard the current state, and restart with a new message
@@ -924,31 +929,31 @@ public:
 	virtual unsigned int OptimalDataAlignment() const {return 1;}
 
 	//! use this if your input is in one piece and you don't want to call Update() and Final() separately
-	virtual void CalculateDigest(byte *digest, const byte *input, unsigned int length)
+	virtual void CalculateDigest(byte_u *digest, const byte_u *input, unsigned int length)
 		{Update(input, length); Final(digest);}
 
 	//! verify that digest is a valid digest for the current message, then reinitialize the object
 	/*! Default implementation is to call Final() and do a bitwise comparison
 		between its output and digest. */
-	virtual bool Verify(const byte *digest)
+	virtual bool Verify(const byte_u *digest)
 		{return TruncatedVerify(digest, DigestSize());}
 
 	//! use this if your input is in one piece and you don't want to call Update() and Verify() separately
-	virtual bool VerifyDigest(const byte *digest, const byte *input, unsigned int length)
+	virtual bool VerifyDigest(const byte_u *digest, const byte_u *input, unsigned int length)
 		{Update(input, length); return Verify(digest);}
 
 	//! truncated version of Final()
-	virtual void TruncatedFinal(byte *digest, unsigned int digestSize) =0;
+	virtual void TruncatedFinal(byte_u *digest, unsigned int digestSize) =0;
 
 	//! truncated version of CalculateDigest()
-	virtual void CalculateTruncatedDigest(byte *digest, unsigned int digestSize, const byte *input, unsigned int length)
+	virtual void CalculateTruncatedDigest(byte_u *digest, unsigned int digestSize, const byte_u *input, unsigned int length)
 		{Update(input, length); TruncatedFinal(digest, digestSize);}
 
 	//! truncated version of Verify()
-	virtual bool TruncatedVerify(const byte *digest, unsigned int digestLength);
+	virtual bool TruncatedVerify(const byte_u *digest, unsigned int digestLength);
 
 	//! truncated version of VerifyDigest()
-	virtual bool VerifyTruncatedDigest(const byte *digest, unsigned int digestLength, const byte *input, unsigned int length)
+	virtual bool VerifyTruncatedDigest(const byte_u *digest, unsigned int digestLength, const byte_u *input, unsigned int length)
 		{Update(input, length); return TruncatedVerify(digest, digestLength);}
 
 protected:
@@ -975,8 +980,8 @@ typedef SimpleKeyedTransformation<HashTransformation> MessageAuthenticationCode;
 class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE RandomNumberGenerator : public Algorithm
 {
 public:
-	//! generate new random byte and return it
-	virtual byte GenerateByte() =0;
+	//! generate new random byte_u and return it
+	virtual byte_u GenerateByte() =0;
 
 	//! generate new random bit and return it
 	/*! Default implementation is to call GenerateByte() and return its parity. */
@@ -985,11 +990,11 @@ public:
 	//! generate a random 32 bit word in the range min to max, inclusive
 	virtual word32 GenerateWord32(word32 a=0, word32 b=0xffffffffL);
 
-	//! generate random array of bytes
+	//! generate random array of byte_us
 	/*! Default implementation is to call GenerateByte() size times. */
-	virtual void GenerateBlock(byte *output, unsigned int size);
+	virtual void GenerateBlock(byte_u *output, unsigned int size);
 
-	//! generate and discard n bytes
+	//! generate and discard n byte_us
 	/*! Default implementation is to call GenerateByte() n times. */
 	virtual void DiscardBytes(unsigned int n);
 
@@ -1028,7 +1033,7 @@ public:
 /*! BufferedTransformation is a generalization of BlockTransformation,
 	StreamTransformation, and HashTransformation.
 
-	A buffered transformation is an object that takes a stream of bytes
+	A buffered transformation is an object that takes a stream of byte_us
 	as input (this may be done in stages), does some computation on them, and
 	then places the result into an internal buffer for later retrieval.  Any
 	partial result already in the output buffer is not modified by further
@@ -1041,7 +1046,7 @@ public:
 	or a non-zero integer value. When this happens you must continue to call the method with the same
 	parameters until it returns false or zero, before calling any other method on it or
 	attached BufferedTransformation. The integer return value in this case is approximately
-	the number of bytes left to be processed, and can be used to implement a progress bar.
+	the number of byte_us left to be processed, and can be used to implement a progress bar.
 
 	For functions that take a "propagation" parameter, propagation != 0 means pass on the signal to attached
 	BufferedTransformation objects, with propagation decremented at each step until it reaches 0.
@@ -1064,11 +1069,11 @@ public:
 
 	//!	\name INPUT
 	//@{
-		//! input a byte for processing
-		unsigned int Put(byte inByte, bool blocking=true)
+		//! input a byte_u for processing
+		unsigned int Put(byte_u inByte, bool blocking=true)
 			{return Put(&inByte, 1, blocking);}
-		//! input multiple bytes
-		unsigned int Put(const byte *inString, unsigned int length, bool blocking=true)
+		//! input multiple byte_us
+		unsigned int Put(const byte_u *inString, unsigned int length, bool blocking=true)
 			{return Put2(inString, length, 0, blocking);}
 
 		//! input a 16-bit word
@@ -1079,25 +1084,25 @@ public:
 		//! request space which can be written into by the caller, and then used as input to Put()
 		/*! \param size is requested size (as a hint) for input, and size of the returned space for output */
 		/*! \note The purpose of this method is to help avoid doing extra memory allocations. */
-		virtual byte * CreatePutSpace(unsigned int &size) {size=0; return NULL;}
+		virtual byte_u * CreatePutSpace(unsigned int &size) {size=0; return NULL;}
 
 		virtual bool CanModifyInput() const {return false;}
 
-		//! input multiple bytes that may be modified by callee
-		unsigned int PutModifiable(byte *inString, unsigned int length, bool blocking=true)
+		//! input multiple byte_us that may be modified by callee
+		unsigned int PutModifiable(byte_u *inString, unsigned int length, bool blocking=true)
 			{return PutModifiable2(inString, length, 0, blocking);}
 
 		bool MessageEnd(int propagation=-1, bool blocking=true)
 			{return !!Put2(NULL, 0, propagation < 0 ? -1 : propagation+1, blocking);}
-		unsigned int PutMessageEnd(const byte *inString, unsigned int length, int propagation=-1, bool blocking=true)
+		unsigned int PutMessageEnd(const byte_u *inString, unsigned int length, int propagation=-1, bool blocking=true)
 			{return Put2(inString, length, propagation < 0 ? -1 : propagation+1, blocking);}
 
-		//! input multiple bytes for blocking or non-blocking processing
+		//! input multiple byte_us for blocking or non-blocking processing
 		/*! \param messageEnd means how many filters to signal MessageEnd to, including this one */
-		virtual unsigned int Put2(const byte *inString, unsigned int length, int messageEnd, bool blocking) =0;
-		//! input multiple bytes that may be modified by callee for blocking or non-blocking processing
+		virtual unsigned int Put2(const byte_u *inString, unsigned int length, int messageEnd, bool blocking) =0;
+		//! input multiple byte_us that may be modified by callee for blocking or non-blocking processing
 		/*! \param messageEnd means how many filters to signal MessageEnd to, including this one */
-		virtual unsigned int PutModifiable2(byte *inString, unsigned int length, int messageEnd, bool blocking)
+		virtual unsigned int PutModifiable2(byte_u *inString, unsigned int length, int messageEnd, bool blocking)
 			{return Put2(inString, length, messageEnd, blocking);}
 
 		//! thrown by objects that have not implemented nonblocking input processing
@@ -1147,24 +1152,24 @@ public:
 
 	//!	\name RETRIEVAL OF ONE MESSAGE
 	//@{
-		//! returns number of bytes that is currently ready for retrieval
-		/*! All retrieval functions return the actual number of bytes
+		//! returns number of byte_us that is currently ready for retrieval
+		/*! All retrieval functions return the actual number of byte_us
 			retrieved, which is the lesser of the request number and
 			MaxRetrievable(). */
 		virtual unsigned long MaxRetrievable() const;
 
-		//! returns whether any bytes are currently ready for retrieval
+		//! returns whether any byte_us are currently ready for retrieval
 		virtual bool AnyRetrievable() const;
 
-		//! try to retrieve a single byte
-		virtual unsigned int Get(byte &outByte);
-		//! try to retrieve multiple bytes
-		virtual unsigned int Get(byte *outString, unsigned int getMax);
+		//! try to retrieve a single byte_u
+		virtual unsigned int Get(byte_u &outByte);
+		//! try to retrieve multiple byte_us
+		virtual unsigned int Get(byte_u *outString, unsigned int getMax);
 
-		//! peek at the next byte without removing it from the output buffer
-		virtual unsigned int Peek(byte &outByte) const;
-		//! peek at multiple bytes without removing them from the output buffer
-		virtual unsigned int Peek(byte *outString, unsigned int peekMax) const;
+		//! peek at the next byte_u without removing it from the output buffer
+		virtual unsigned int Peek(byte_u &outByte) const;
+		//! peek at multiple byte_us without removing them from the output buffer
+		virtual unsigned int Peek(byte_u *outString, unsigned int peekMax) const;
 
 		//! try to retrieve a 16-bit word
 		unsigned int GetWord16(word16 &value, ByteOrder order=BIG_ENDIAN_ORDER);
@@ -1176,18 +1181,18 @@ public:
 		//! try to peek at a 32-bit word
 		unsigned int PeekWord32(word32 &value, ByteOrder order=BIG_ENDIAN_ORDER);
 
-		//! move transferMax bytes of the buffered output to target as input
+		//! move transferMax byte_us of the buffered output to target as input
 		unsigned long TransferTo(BufferedTransformation &target, unsigned long transferMax=ULONG_MAX, const std::string &channel=NULL_CHANNEL)
 			{TransferTo2(target, transferMax, channel); return transferMax;}
 
-		//! discard skipMax bytes from the output buffer
+		//! discard skipMax byte_us from the output buffer
 		virtual unsigned long Skip(unsigned long skipMax=ULONG_MAX);
 
-		//! copy copyMax bytes of the buffered output to target as input
+		//! copy copyMax byte_us of the buffered output to target as input
 		unsigned long CopyTo(BufferedTransformation &target, unsigned long copyMax=ULONG_MAX, const std::string &channel=NULL_CHANNEL) const
 			{return CopyRangeTo(target, 0, copyMax, channel);}
 
-		//! copy copyMax bytes of the buffered output, starting at position (relative to current position), to target as input
+		//! copy copyMax byte_us of the buffered output, starting at position (relative to current position), to target as input
 		unsigned long CopyRangeTo(BufferedTransformation &target, unsigned long position, unsigned long copyMax=ULONG_MAX, const std::string &channel=NULL_CHANNEL) const
 			{unsigned long i = position; CopyRangeTo2(target, i, i+copyMax, channel); return i-position;}
 
@@ -1230,7 +1235,7 @@ public:
 
 	//!	\name NON-BLOCKING TRANSFER OF OUTPUT
 	//@{
-		virtual unsigned int TransferTo2(BufferedTransformation &target, unsigned long &byteCount, const std::string &channel=NULL_CHANNEL, bool blocking=true) =0;
+		virtual unsigned int TransferTo2(BufferedTransformation &target, unsigned long &byte_uCount, const std::string &channel=NULL_CHANNEL, bool blocking=true) =0;
 		virtual unsigned int CopyRangeTo2(BufferedTransformation &target, unsigned long &begin, unsigned long end=ULONG_MAX, const std::string &channel=NULL_CHANNEL, bool blocking=true) const =0;
 		unsigned int TransferMessagesTo2(BufferedTransformation &target, unsigned int &messageCount, const std::string &channel=NULL_CHANNEL, bool blocking=true);
 		unsigned int TransferAllTo2(BufferedTransformation &target, const std::string &channel=NULL_CHANNEL, bool blocking=true);
@@ -1241,12 +1246,12 @@ public:
 		struct NoChannelSupport : public NotImplemented
 			{NoChannelSupport() : NotImplemented("BufferedTransformation: this object doesn't support multiple channels") {}};
 
-		unsigned int ChannelPut(const std::string &channel, byte inByte, bool blocking=true)
+		unsigned int ChannelPut(const std::string &channel, byte_u inByte, bool blocking=true)
 			{return ChannelPut(channel, &inByte, 1, blocking);}
-		unsigned int ChannelPut(const std::string &channel, const byte *inString, unsigned int length, bool blocking=true)
+		unsigned int ChannelPut(const std::string &channel, const byte_u *inString, unsigned int length, bool blocking=true)
 			{return ChannelPut2(channel, inString, length, 0, blocking);}
 
-		unsigned int ChannelPutModifiable(const std::string &channel, byte *inString, unsigned int length, bool blocking=true)
+		unsigned int ChannelPutModifiable(const std::string &channel, byte_u *inString, unsigned int length, bool blocking=true)
 			{return ChannelPutModifiable2(channel, inString, length, 0, blocking);}
 
 		unsigned int ChannelPutWord16(const std::string &channel, word16 value, ByteOrder order=BIG_ENDIAN_ORDER, bool blocking=true);
@@ -1254,13 +1259,13 @@ public:
 
 		bool ChannelMessageEnd(const std::string &channel, int propagation=-1, bool blocking=true)
 			{return !!ChannelPut2(channel, NULL, 0, propagation < 0 ? -1 : propagation+1, blocking);}
-		unsigned int ChannelPutMessageEnd(const std::string &channel, const byte *inString, unsigned int length, int propagation=-1, bool blocking=true)
+		unsigned int ChannelPutMessageEnd(const std::string &channel, const byte_u *inString, unsigned int length, int propagation=-1, bool blocking=true)
 			{return ChannelPut2(channel, inString, length, propagation < 0 ? -1 : propagation+1, blocking);}
 
-		virtual byte * ChannelCreatePutSpace(const std::string &channel, unsigned int &size);
+		virtual byte_u * ChannelCreatePutSpace(const std::string &channel, unsigned int &size);
 
-		virtual unsigned int ChannelPut2(const std::string &channel, const byte *begin, unsigned int length, int messageEnd, bool blocking);
-		virtual unsigned int ChannelPutModifiable2(const std::string &channel, byte *begin, unsigned int length, int messageEnd, bool blocking);
+		virtual unsigned int ChannelPut2(const std::string &channel, const byte_u *begin, unsigned int length, int messageEnd, bool blocking);
+		virtual unsigned int ChannelPutModifiable2(const std::string &channel, byte_u *begin, unsigned int length, int messageEnd, bool blocking);
 
 		virtual bool ChannelFlush(const std::string &channel, bool hardFlush, int propagation=-1, bool blocking=true);
 		virtual bool ChannelMessageSeriesEnd(const std::string &channel, int propagation=-1, bool blocking=true);
@@ -1470,13 +1475,13 @@ public:
 		InvalidPlaintextLength() : Exception(OTHER_ERROR, "PK_Encryptor: invalid plaintext length") {}
 	};
 
-	//! encrypt a byte string
+	//! encrypt a byte_u string
 	/*! \pre CiphertextLength(plaintextLength) != 0 (i.e., plaintext isn't too long)
 		\pre size of ciphertext == CiphertextLength(plaintextLength)
 	*/
 	virtual void Encrypt(RandomNumberGenerator &rng, 
-		const byte *plaintext, unsigned int plaintextLength, 
-		byte *ciphertext, const NameValuePairs &parameters = g_nullNameValuePairs) const =0;
+		const byte_u *plaintext, unsigned int plaintextLength, 
+		byte_u *ciphertext, const NameValuePairs &parameters = g_nullNameValuePairs) const =0;
 
 	//! create a new encryption filter
 	/*! \note The caller is responsible for deleting the returned pointer.
@@ -1547,7 +1552,7 @@ public:
 	unsigned int DigestSize() const
 		{throw NotImplemented("PK_MessageAccumulator: DigestSize() should not be called");}
 	//! should not be called on PK_MessageAccumulator
-	void TruncatedFinal(byte* /* digest */, unsigned int /* digestSize */) 
+	void TruncatedFinal(byte_u* /* digest */, unsigned int /* digestSize */) 
 		{throw NotImplemented("PK_MessageAccumulator: TruncatedFinal() should not be called");}
 };
 
@@ -1559,32 +1564,32 @@ public:
 	//! create a new HashTransformation to accumulate the message to be signed
 	virtual PK_MessageAccumulator * NewSignatureAccumulator(RandomNumberGenerator &rng) const =0;
 
-	virtual void InputRecoverableMessage(PK_MessageAccumulator &messageAccumulator, const byte *recoverableMessage, unsigned int recoverableMessageLength) const =0;
+	virtual void InputRecoverableMessage(PK_MessageAccumulator &messageAccumulator, const byte_u *recoverableMessage, unsigned int recoverableMessageLength) const =0;
 
 	//! sign and delete messageAccumulator (even in case of exception thrown)
 	/*! \pre size of signature == MaxSignatureLength()
 		\return actual signature length
 	*/
-	virtual unsigned int Sign(RandomNumberGenerator &rng, PK_MessageAccumulator *messageAccumulator, byte *signature) const;
+	virtual unsigned int Sign(RandomNumberGenerator &rng, PK_MessageAccumulator *messageAccumulator, byte_u *signature) const;
 
 	//! sign and restart messageAccumulator
 	/*! \pre size of signature == MaxSignatureLength()
 		\return actual signature length
 	*/
-	virtual unsigned int SignAndRestart(RandomNumberGenerator &rng, PK_MessageAccumulator &messageAccumulator, byte *signature, bool restart=true) const =0;
+	virtual unsigned int SignAndRestart(RandomNumberGenerator &rng, PK_MessageAccumulator &messageAccumulator, byte_u *signature, bool restart=true) const =0;
 
 	//! sign a message
 	/*! \pre size of signature == MaxSignatureLength()
 		\return actual signature length
 	*/
-	virtual unsigned int SignMessage(RandomNumberGenerator &rng, const byte *message, unsigned int messageLen, byte *signature) const;
+	virtual unsigned int SignMessage(RandomNumberGenerator &rng, const byte_u *message, unsigned int messageLen, byte_u *signature) const;
 
 	//! sign a recoverable message
 	/*! \pre size of signature == MaxSignatureLength(recoverableMessageLength)
 		\return actual signature length
 	*/
-	virtual unsigned int SignMessageWithRecovery(RandomNumberGenerator &rng, const byte *recoverableMessage, unsigned int recoverableMessageLength, 
-		const byte *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, byte *signature) const;
+	virtual unsigned int SignMessageWithRecovery(RandomNumberGenerator &rng, const byte_u *recoverableMessage, unsigned int recoverableMessageLength, 
+		const byte_u *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, byte_u *signature) const;
 };
 
 //! interface for public-key signature verifiers
@@ -1601,7 +1606,7 @@ public:
 	virtual PK_MessageAccumulator * NewVerificationAccumulator() const =0;
 
 	//! input signature into a message accumulator
-	virtual void InputSignature(PK_MessageAccumulator &messageAccumulator, const byte *signature, unsigned int signatureLength) const =0;
+	virtual void InputSignature(PK_MessageAccumulator &messageAccumulator, const byte_u *signature, unsigned int signatureLength) const =0;
 
 	//! check whether messageAccumulator contains a valid signature and message, and delete messageAccumulator (even in case of exception thrown)
 	virtual bool Verify(PK_MessageAccumulator *messageAccumulator) const;
@@ -1610,25 +1615,25 @@ public:
 	virtual bool VerifyAndRestart(PK_MessageAccumulator &messageAccumulator) const =0;
 
 	//! check whether input signature is a valid signature for input message
-	virtual bool VerifyMessage(const byte *message, unsigned int messageLen, 
-		const byte *signature, unsigned int signatureLength) const;
+	virtual bool VerifyMessage(const byte_u *message, unsigned int messageLen, 
+		const byte_u *signature, unsigned int signatureLength) const;
 
 	//! recover a message from its signature
 	/*! \pre size of recoveredMessage == MaxRecoverableLengthFromSignatureLength(signatureLength)
 	*/
-	virtual DecodingResult Recover(byte *recoveredMessage, PK_MessageAccumulator *messageAccumulator) const;
+	virtual DecodingResult Recover(byte_u *recoveredMessage, PK_MessageAccumulator *messageAccumulator) const;
 
 	//! recover a message from its signature
 	/*! \pre size of recoveredMessage == MaxRecoverableLengthFromSignatureLength(signatureLength)
 	*/
-	virtual DecodingResult RecoverAndRestart(byte *recoveredMessage, PK_MessageAccumulator &messageAccumulator) const =0;
+	virtual DecodingResult RecoverAndRestart(byte_u *recoveredMessage, PK_MessageAccumulator &messageAccumulator) const =0;
 
 	//! recover a message from its signature
 	/*! \pre size of recoveredMessage == MaxRecoverableLengthFromSignatureLength(signatureLength)
 	*/
-	virtual DecodingResult RecoverMessage(byte *recoveredMessage, 
-		const byte *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, 
-		const byte *signature, unsigned int signatureLength) const;
+	virtual DecodingResult RecoverMessage(byte_u *recoveredMessage, 
+		const byte_u *nonrecoverableMessage, unsigned int nonrecoverableMessageLength, 
+		const byte_u *signature, unsigned int signatureLength) const;
 };
 
 //! interface for domains of authenticated key agreement protocols
@@ -1859,10 +1864,10 @@ template <class T> inline const T& STDMAX(const T& a, const T& b)
 #define RETURN_IF_NONZERO(x) unsigned int returnedValue = x; if (returnedValue) return returnedValue
 
 // this version of the macro is fastest on Pentium 3 and Pentium 4 with MSVC 6 SP5 w/ Processor Pack
-#define GETBYTE(x, y) (unsigned int)byte((x)>>(8*(y)))
+#define GETBYTE(x, y) (unsigned int)byte_u((x)>>(8*(y)))
 // these may be faster on other CPUs/compilers
 // #define GETBYTE(x, y) (unsigned int)(((x)>>(8*(y)))&255)
-// #define GETBYTE(x, y) (((byte *)&(x))[y])
+// #define GETBYTE(x, y) (((byte_u *)&(x))[y])
 
 CRYPTOPP_DLL unsigned int Parity(unsigned long);
 CRYPTOPP_DLL unsigned long Crop(unsigned long, unsigned int size);
@@ -1903,9 +1908,9 @@ inline unsigned int BitsToBytes(unsigned int bitCount)
 	return ((bitCount+7)/(8));
 }
 
-inline unsigned int BytesToWords(unsigned int byteCount)
+inline unsigned int BytesToWords(unsigned int byte_uCount)
 {
-	return ((byteCount+WORD_SIZE-1)/WORD_SIZE);
+	return ((byte_uCount+WORD_SIZE-1)/WORD_SIZE);
 }
 
 inline unsigned int BitsToWords(unsigned int bitCount)
@@ -1918,8 +1923,8 @@ inline unsigned int BitsToDwords(unsigned int bitCount)
 	return ((bitCount+2*WORD_BITS-1)/(2*WORD_BITS));
 }
 
-CRYPTOPP_DLL void xorbuf(byte *buf, const byte *mask, unsigned int count);
-CRYPTOPP_DLL void xorbuf(byte *output, const byte *input, const byte *mask, unsigned int count);
+CRYPTOPP_DLL void xorbuf(byte_u *buf, const byte_u *mask, unsigned int count);
+CRYPTOPP_DLL void xorbuf(byte_u *output, const byte_u *input, const byte_u *mask, unsigned int count);
 
 template <class T>
 inline bool IsPowerOf2(T n)
@@ -2167,7 +2172,7 @@ inline unsigned int GetByte(ByteOrder order, T value, unsigned int index)
 		return GETBYTE(value, sizeof(T)-index-1);
 }
 
-inline byte ByteReverse(byte value)
+inline byte_u ByteReverse(byte_u value)
 {
 	return value;
 }
@@ -2205,7 +2210,7 @@ inline word64 ByteReverse(word64 value)
 }
 #endif
 
-inline byte BitReverse(byte value)
+inline byte_u BitReverse(byte_u value)
 {
 	value = ((value & 0xAA) >> 1) | ((value & 0x55) << 1);
 	value = ((value & 0xCC) >> 2) | ((value & 0x33) << 2);
@@ -2246,7 +2251,7 @@ template <class T>
 inline T BitReverse(T value)
 {
 	if (sizeof(T) == 1)
-		return (T)BitReverse((byte)value);
+		return (T)BitReverse((byte_u)value);
 	else if (sizeof(T) == 2)
 		return (T)BitReverse((word16)value);
 	else if (sizeof(T) == 4)
@@ -2270,46 +2275,46 @@ inline T ConditionalByteReverse(ByteOrder order, T value)
 }
 
 template <class T>
-void ByteReverse(T *out, const T *in, unsigned int byteCount)
+void ByteReverse(T *out, const T *in, unsigned int byte_uCount)
 {
-	assert(byteCount % sizeof(T) == 0);
-	unsigned int count = byteCount/sizeof(T);
+	assert(byte_uCount % sizeof(T) == 0);
+	unsigned int count = byte_uCount/sizeof(T);
 	for (unsigned int i=0; i<count; i++)
 		out[i] = ByteReverse(in[i]);
 }
 
 template <class T>
-inline void ConditionalByteReverse(ByteOrder order, T *out, const T *in, unsigned int byteCount)
+inline void ConditionalByteReverse(ByteOrder order, T *out, const T *in, unsigned int byte_uCount)
 {
 	if (!NativeByteOrderIs(order))
-		ByteReverse(out, in, byteCount);
+		ByteReverse(out, in, byte_uCount);
 	else if (in != out)
-		memcpy(out, in, byteCount);
+		memcpy(out, in, byte_uCount);
 }
 
 template <class T>
-inline void GetUserKey(ByteOrder order, T *out, unsigned int outlen, const byte *in, unsigned int inlen)
+inline void GetUserKey(ByteOrder order, T *out, unsigned int outlen, const byte_u *in, unsigned int inlen)
 {
 	const unsigned int U = sizeof(T);
 	assert(inlen <= outlen*U);
 	memcpy(out, in, inlen);
-	memset((byte *)out+inlen, 0, outlen*U-inlen);
+	memset((byte_u *)out+inlen, 0, outlen*U-inlen);
 	ConditionalByteReverse(order, out, out, RoundUpToMultipleOf(inlen, U));
 }
 
-inline byte UnalignedGetWordNonTemplate(ByteOrder /*order*/, const byte *block, byte*)
+inline byte_u UnalignedGetWordNonTemplate(ByteOrder /*order*/, const byte_u *block, byte_u*)
 {
 	return block[0];
 }
 
-inline word16 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, word16*)
+inline word16 UnalignedGetWordNonTemplate(ByteOrder order, const byte_u *block, word16*)
 {
 	return (order == BIG_ENDIAN_ORDER)
 		? block[1] | (block[0] << 8)
 		: block[0] | (block[1] << 8);
 }
 
-inline word32 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, word32*)
+inline word32 UnalignedGetWordNonTemplate(ByteOrder order, const byte_u *block, word32*)
 {
 	return (order == BIG_ENDIAN_ORDER)
 		? word32(block[3]) | (word32(block[2]) << 8) | (word32(block[1]) << 16) | (word32(block[0]) << 24)
@@ -2317,7 +2322,7 @@ inline word32 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, wo
 }
 
 #ifdef WORD64_AVAILABLE
-inline word64 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, word64*)
+inline word64 UnalignedGetWordNonTemplate(ByteOrder order, const byte_u *block, word64*)
 {
 	return (order == BIG_ENDIAN_ORDER)
 		?
@@ -2342,17 +2347,17 @@ inline word64 UnalignedGetWordNonTemplate(ByteOrder order, const byte *block, wo
 #endif
 
 template <class T>
-inline T UnalignedGetWord(ByteOrder order, const byte *block, T*dummy=NULL)
+inline T UnalignedGetWord(ByteOrder order, const byte_u *block, T*dummy=NULL)
 {
 	return UnalignedGetWordNonTemplate(order, block, dummy);
 }
 
-inline void UnalignedPutWord(ByteOrder /*order*/, byte *block, byte value, const byte *xorBlock = NULL)
+inline void UnalignedPutWord(ByteOrder /*order*/, byte_u *block, byte_u value, const byte_u *xorBlock = NULL)
 {
 	block[0] = xorBlock ? (value ^ xorBlock[0]) : value;
 }
 
-inline void UnalignedPutWord(ByteOrder order, byte *block, word16 value, const byte *xorBlock = NULL)
+inline void UnalignedPutWord(ByteOrder order, byte_u *block, word16 value, const byte_u *xorBlock = NULL)
 {
 	if (order == BIG_ENDIAN_ORDER)
 	{
@@ -2372,7 +2377,7 @@ inline void UnalignedPutWord(ByteOrder order, byte *block, word16 value, const b
 	}
 }
 
-inline void UnalignedPutWord(ByteOrder order, byte *block, word32 value, const byte *xorBlock = NULL)
+inline void UnalignedPutWord(ByteOrder order, byte_u *block, word32 value, const byte_u *xorBlock = NULL)
 {
 	if (order == BIG_ENDIAN_ORDER)
 	{
@@ -2399,7 +2404,7 @@ inline void UnalignedPutWord(ByteOrder order, byte *block, word32 value, const b
 }
 
 #ifdef WORD64_AVAILABLE
-inline void UnalignedPutWord(ByteOrder order, byte *block, word64 value, const byte *xorBlock = NULL)
+inline void UnalignedPutWord(ByteOrder order, byte_u *block, word64 value, const byte_u *xorBlock = NULL)
 {
 	if (order == BIG_ENDIAN_ORDER)
 	{
@@ -2439,7 +2444,7 @@ inline void UnalignedPutWord(ByteOrder order, byte *block, word64 value, const b
 #endif
 
 template <class T>
-inline T GetWord(bool assumeAligned, ByteOrder order, const byte *block)
+inline T GetWord(bool assumeAligned, ByteOrder order, const byte_u *block)
 {
 	if (assumeAligned)
 	{
@@ -2451,13 +2456,13 @@ inline T GetWord(bool assumeAligned, ByteOrder order, const byte *block)
 }
 
 template <class T>
-inline void GetWord(bool assumeAligned, ByteOrder order, T &result, const byte *block)
+inline void GetWord(bool assumeAligned, ByteOrder order, T &result, const byte_u *block)
 {
 	result = GetWord<T>(assumeAligned, order, block);
 }
 
 template <class T>
-inline void PutWord(bool assumeAligned, ByteOrder order, byte *block, T value, const byte *xorBlock = NULL)
+inline void PutWord(bool assumeAligned, ByteOrder order, byte_u *block, T value, const byte_u *xorBlock = NULL)
 {
 	if (assumeAligned)
 	{
@@ -2476,7 +2481,7 @@ class GetBlock
 {
 public:
 	GetBlock(const void *block)
-		: m_block((const byte *)block) {}
+		: m_block((const byte_u *)block) {}
 
 	template <class U>
 	inline GetBlock<T, B, A> & operator()(U &x)
@@ -2488,7 +2493,7 @@ public:
 	}
 
 private:
-	const byte *m_block;
+	const byte_u *m_block;
 };
 
 // ************** help remove warning on g++ ***************
@@ -2895,7 +2900,7 @@ public:
 	T *m_ptr;
 };
 
-typedef SecBlock<byte> SecByteBlock;
+typedef SecBlock<byte_u> SecByteBlock;
 typedef SecBlock<word> SecWordBlock;
 
 template <class T, unsigned int S, class A = FixedSizeAllocatorWithCleanup<T, S> >
@@ -3068,13 +3073,13 @@ public:
 		explicit Integer(const char *str);
 		explicit Integer(const wchar_t *str);
 
-		//! convert from big-endian byte array
-		Integer(const byte *encodedInteger, unsigned int byteCount, Signedness s=UNSIGNED);
+		//! convert from big-endian byte_u array
+		Integer(const byte_u *encodedInteger, unsigned int byte_uCount, Signedness s=UNSIGNED);
 
 		//! convert from big-endian form stored in a BufferedTransformation
-		Integer(BufferedTransformation &bt, unsigned int byteCount, Signedness s=UNSIGNED);
+		Integer(BufferedTransformation &bt, unsigned int byte_uCount, Signedness s=UNSIGNED);
 
-		//! convert from BER encoded byte array stored in a BufferedTransformation object
+		//! convert from BER encoded byte_u array stored in a BufferedTransformation object
 		explicit Integer(BufferedTransformation &bt);
 
 		//! create a random integer
@@ -3107,15 +3112,15 @@ public:
 
 	//! \name ENCODE/DECODE
 	//@{
-		//! minimum number of bytes to encode this integer
+		//! minimum number of byte_us to encode this integer
 		/*! MinEncodedSize of 0 is 1 */
 		unsigned int MinEncodedSize(Signedness=UNSIGNED) const;
 		//! encode in big-endian format
 		/*! unsigned means encode absolute value, signed means encode two's complement if negative.
-			if outputLen < MinEncodedSize, the most significant bytes will be dropped
-			if outputLen > MinEncodedSize, the most significant bytes will be padded
+			if outputLen < MinEncodedSize, the most significant byte_us will be dropped
+			if outputLen > MinEncodedSize, the most significant byte_us will be padded
 		*/
-		unsigned int Encode(byte *output, unsigned int outputLen, Signedness=UNSIGNED) const;
+		unsigned int Encode(byte_u *output, unsigned int outputLen, Signedness=UNSIGNED) const;
 		//!
 		unsigned int Encode(BufferedTransformation &bt, unsigned int outputLen, Signedness=UNSIGNED) const;
 
@@ -3126,18 +3131,18 @@ public:
 		void DEREncodeAsOctetString(BufferedTransformation &bt, unsigned int length) const;
 
 		//! encode absolute value in OpenPGP format, return length of output
-		unsigned int OpenPGPEncode(byte *output, unsigned int bufferSize) const;
+		unsigned int OpenPGPEncode(byte_u *output, unsigned int bufferSize) const;
 		//! encode absolute value in OpenPGP format, put result into a BufferedTransformation object
 		unsigned int OpenPGPEncode(BufferedTransformation &bt) const;
 
 		//!
-		void Decode(const byte *input, unsigned int inputLen, Signedness=UNSIGNED);
+		void Decode(const byte_u *input, unsigned int inputLen, Signedness=UNSIGNED);
 		//! 
 		//* Precondition: bt.MaxRetrievable() >= inputLen
 		void Decode(BufferedTransformation &bt, unsigned int inputLen, Signedness=UNSIGNED);
 
 		//!
-		void BERDecode(const byte *input, unsigned int inputLen);
+		void BERDecode(const byte_u *input, unsigned int inputLen);
 		//!
 		void BERDecode(BufferedTransformation &bt);
 
@@ -3151,7 +3156,7 @@ public:
 		};
 
 		//!
-		void OpenPGPDecode(const byte *input, unsigned int inputLen);
+		void OpenPGPDecode(const byte_u *input, unsigned int inputLen);
 		//!
 		void OpenPGPDecode(BufferedTransformation &bt);
 	//@}
@@ -3165,15 +3170,15 @@ public:
 
 		//! number of significant bits = floor(log2(abs(*this))) + 1
 		unsigned int BitCount() const;
-		//! number of significant bytes = ceiling(BitCount()/8)
+		//! number of significant byte_us = ceiling(BitCount()/8)
 		unsigned int ByteCount() const;
 		//! number of significant words = ceiling(ByteCount()/sizeof(word))
 		unsigned int WordCount() const;
 
 		//! return the i-th bit, i=0 being the least significant bit
 		bool GetBit(unsigned int i) const;
-		//! return the i-th byte
-		byte GetByte(unsigned int i) const;
+		//! return the i-th byte_u
+		byte_u GetByte(unsigned int i) const;
 		//! return n lowest bits of *this >> i
 		unsigned long GetBits(unsigned int i, unsigned int n) const;
 
@@ -3237,8 +3242,8 @@ public:
 
 		//! set the n-th bit to value
 		void SetBit(unsigned int n, bool value=1);
-		//! set the n-th byte to value
-		void SetByte(unsigned int n, byte value);
+		//! set the n-th byte_u to value
+		void SetByte(unsigned int n, byte_u value);
 
 		//!
 		void Negate();
@@ -3858,12 +3863,12 @@ public:
 		{InputRejected() : NotImplemented("BufferedTransformation: this object doesn't allow input") {}};
 
 	// shouldn't be calling these functions on this class
-	unsigned int Put2(const byte* /* begin */, unsigned int /* length */, int /* messageEnd */, bool /* blocking */)
+	unsigned int Put2(const byte_u* /* begin */, unsigned int /* length */, int /* messageEnd */, bool /* blocking */)
 		{throw InputRejected();}
 	bool IsolatedFlush(bool, bool) {return false;}
 	bool IsolatedMessageSeriesEnd(bool) {throw InputRejected();}
 
-	unsigned int ChannelPut2(const std::string& /* channel */, const byte* /* begin */, unsigned int /* length */, int /* messageEnd */, bool /* blocking */)
+	unsigned int ChannelPut2(const std::string& /* channel */, const byte_u* /* begin */, unsigned int /* length */, int /* messageEnd */, bool /* blocking */)
 		{throw InputRejected();}
 	bool ChannelMessageSeriesEnd(const std::string &, int, bool) {throw InputRejected();}
 };
@@ -3953,7 +3958,7 @@ class CRYPTOPP_DLL BitBucket : public Bufferless<Sink>
 public:
 	std::string AlgorithmName() const {return "BitBucket";}
 	void IsolatedInitialize(const NameValuePairs& /* parameters */) {}
-	unsigned int Put2(const byte* /* begin */, unsigned int /* length */, int /* messageEnd */, bool /* blocking */)
+	unsigned int Put2(const byte_u* /* begin */, unsigned int /* length */, int /* messageEnd */, bool /* blocking */)
 		{return 0;}
 };
 
@@ -3964,7 +3969,7 @@ NAMESPACE_END
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// specification file for an unlimited queue for storing bytes
+// specification file for an unlimited queue for storing byte_us
 
 #ifndef CRYPTOPP_QUEUE_H
 #define CRYPTOPP_QUEUE_H
@@ -3974,7 +3979,7 @@ NAMESPACE_END
 
 NAMESPACE_BEGIN(CryptoPP)
 
-/** The queue is implemented as a linked list of byte arrays, but you don't need to
+/** The queue is implemented as a linked list of byte_u arrays, but you don't need to
     know about that.  So just ignore this next line. :) */
 class ByteQueueNode;
 
@@ -3992,14 +3997,14 @@ public:
 		{return !IsEmpty();}
 
 	void IsolatedInitialize(const NameValuePairs &parameters);
-	byte * CreatePutSpace(unsigned int &size);
-	unsigned int Put2(const byte *inString, unsigned int length, int messageEnd, bool blocking);
+	byte_u * CreatePutSpace(unsigned int &size);
+	unsigned int Put2(const byte_u *inString, unsigned int length, int messageEnd, bool blocking);
 
-	unsigned int Get(byte &outByte);
-	unsigned int Get(byte *outString, unsigned int getMax);
+	unsigned int Get(byte_u &outByte);
+	unsigned int Get(byte_u *outString, unsigned int getMax);
 
-	unsigned int Peek(byte &outByte) const;
-	unsigned int Peek(byte *outString, unsigned int peekMax) const;
+	unsigned int Peek(byte_u &outByte) const;
+	unsigned int Peek(byte_u *outString, unsigned int peekMax) const;
 
 	unsigned int TransferTo2(BufferedTransformation &target, unsigned long &transferBytes, const std::string &channel=NULL_CHANNEL, bool blocking=true);
 	unsigned int CopyRangeTo2(BufferedTransformation &target, unsigned long &begin, unsigned long end=ULONG_MAX, const std::string &channel=NULL_CHANNEL, bool blocking=true) const;
@@ -4012,19 +4017,19 @@ public:
 
 	void Clear();
 
-	void Unget(byte inByte);
-	void Unget(const byte *inString, unsigned int length);
+	void Unget(byte_u inByte);
+	void Unget(const byte_u *inString, unsigned int length);
 
-	const byte * Spy(unsigned int &contiguousSize) const;
+	const byte_u * Spy(unsigned int &contiguousSize) const;
 
-	void LazyPut(const byte *inString, unsigned int size);
-	void LazyPutModifiable(byte *inString, unsigned int size);
+	void LazyPut(const byte_u *inString, unsigned int size);
+	void LazyPutModifiable(byte_u *inString, unsigned int size);
 	void UndoLazyPut(unsigned int size);
 	void FinalizeLazyPut();
 
 	ByteQueue & operator=(const ByteQueue &rhs);
 	bool operator==(const ByteQueue &rhs) const;
-	byte operator[](unsigned long i) const;
+	byte_u operator[](unsigned long i) const;
 	void swap(ByteQueue &rhs);
 
 	class Walker : public InputRejecting<BufferedTransformation>
@@ -4040,11 +4045,11 @@ public:
 
 		void IsolatedInitialize(const NameValuePairs &parameters);
 
-		unsigned int Get(byte &outByte);
-		unsigned int Get(byte *outString, unsigned int getMax);
+		unsigned int Get(byte_u &outByte);
+		unsigned int Get(byte_u *outString, unsigned int getMax);
 
-		unsigned int Peek(byte &outByte) const;
-		unsigned int Peek(byte *outString, unsigned int peekMax) const;
+		unsigned int Peek(byte_u &outByte) const;
+		unsigned int Peek(byte_u *outString, unsigned int peekMax) const;
 
 		unsigned int TransferTo2(BufferedTransformation &target, unsigned long &transferBytes, const std::string &channel=NULL_CHANNEL, bool blocking=true);
 		unsigned int CopyRangeTo2(BufferedTransformation &target, unsigned long &begin, unsigned long end=ULONG_MAX, const std::string &channel=NULL_CHANNEL, bool blocking=true) const;
@@ -4054,7 +4059,7 @@ public:
 		const ByteQueueNode *m_node;
 		unsigned long m_position;
 		unsigned int m_offset;
-		const byte *m_lazyString;
+		const byte_u *m_lazyString;
 		unsigned int m_lazyLength;
 	};
 
@@ -4068,7 +4073,7 @@ private:
 	bool m_autoNodeSize;
 	unsigned int m_nodeSize;
 	ByteQueueNode *m_head, *m_tail;
-	byte *m_lazyString;
+	byte_u *m_lazyString;
 	unsigned int m_lazyLength;
 	bool m_lazyStringModifiable;
 };
@@ -4096,7 +4101,7 @@ NAMESPACE_END
 
 NAMESPACE_BEGIN(CryptoPP)
 
-//! used to pass byte array input as part of a NameValuePairs object
+//! used to pass byte_u array input as part of a NameValuePairs object
 /*! the deepCopy option is used when the NameValuePairs object can't
 	keep a copy of the data available */
 class ConstByteArrayParameter
@@ -4104,19 +4109,19 @@ class ConstByteArrayParameter
 public:
 	ConstByteArrayParameter(const char *data = NULL, bool deepCopy = false)
 	{
-		Assign((const byte *)data, data ? strlen(data) : 0, deepCopy);
+		Assign((const byte_u *)data, data ? strlen(data) : 0, deepCopy);
 	}
-	ConstByteArrayParameter(const byte *data, unsigned int datasize, bool deepCopy = false)
+	ConstByteArrayParameter(const byte_u *data, unsigned int datasize, bool deepCopy = false)
 	{
 		Assign(data, datasize, deepCopy);
 	}
 	template <class T> ConstByteArrayParameter(const T &string, bool deepCopy = false)
 	{
         CRYPTOPP_COMPILE_ASSERT(sizeof(CPP_TYPENAME T::value_type) == 1);
-		Assign((const byte *)string.data(), string.size(), deepCopy);
+		Assign((const byte_u *)string.data(), string.size(), deepCopy);
 	}
 
-	void Assign(const byte *data, unsigned int datasize, bool deepCopy)
+	void Assign(const byte_u *data, unsigned int datasize, bool deepCopy)
 	{
 		if (deepCopy)
 			m_block.Assign(data, datasize);
@@ -4128,13 +4133,13 @@ public:
 		m_deepCopy = deepCopy;
 	}
 
-	const byte *begin() const {return m_deepCopy ? m_block.begin() : m_data;}
-	const byte *end() const {return m_deepCopy ? m_block.end() : m_data + m_size;}
+	const byte_u *begin() const {return m_deepCopy ? m_block.begin() : m_data;}
+	const byte_u *end() const {return m_deepCopy ? m_block.end() : m_data + m_size;}
 	unsigned int size() const {return m_deepCopy ? m_block.size() : m_size;}
 
 private:
 	bool m_deepCopy;
-	const byte *m_data;
+	const byte_u *m_data;
 	unsigned int m_size;
 	SecByteBlock m_block;
 };
@@ -4142,17 +4147,17 @@ private:
 class ByteArrayParameter
 {
 public:
-	ByteArrayParameter(byte *data = NULL, unsigned int datasize = 0)
+	ByteArrayParameter(byte_u *data = NULL, unsigned int datasize = 0)
 		: m_data(data), m_size(datasize) {}
 	ByteArrayParameter(SecByteBlock &block)
 		: m_data(block.begin()), m_size(block.size()) {}
 
-	byte *begin() const {return m_data;}
-	byte *end() const {return m_data + m_size;}
+	byte_u *begin() const {return m_data;}
+	byte_u *end() const {return m_data + m_size;}
 	unsigned int size() const {return m_size;}
 
 private:
-	byte *m_data;
+	byte_u *m_data;
 	unsigned int m_size;
 };
 
@@ -4487,8 +4492,8 @@ protected:
 
 	void PropagateInitialize(const NameValuePairs &parameters, int propagation);
 
-	unsigned int Output(int outputSite, const byte *inString, unsigned int length, int messageEnd, bool blocking, const std::string &channel=NULL_CHANNEL);
-	unsigned int OutputModifiable(int outputSite, byte *inString, unsigned int length, int messageEnd, bool blocking, const std::string &channel=NULL_CHANNEL);
+	unsigned int Output(int outputSite, const byte_u *inString, unsigned int length, int messageEnd, bool blocking, const std::string &channel=NULL_CHANNEL);
+	unsigned int OutputModifiable(int outputSite, byte_u *inString, unsigned int length, int messageEnd, bool blocking, const std::string &channel=NULL_CHANNEL);
 	bool OutputMessageEnd(int outputSite, int propagation, bool blocking, const std::string &channel=NULL_CHANNEL);
 	bool OutputFlush(int outputSite, bool hardFlush, int propagation, bool blocking, const std::string &channel=NULL_CHANNEL);
 	bool OutputMessageSeriesEnd(int outputSite, int propagation, bool blocking, const std::string &channel=NULL_CHANNEL);
@@ -4504,12 +4509,12 @@ protected:
 struct CRYPTOPP_DLL FilterPutSpaceHelper
 {
 	// desiredSize is how much to ask target, bufferSize is how much to allocate in m_tempSpace
-	byte *HelpCreatePutSpace(BufferedTransformation &target, const std::string &channel, unsigned int minSize, unsigned int desiredSize, unsigned int &bufferSize)
+	byte_u *HelpCreatePutSpace(BufferedTransformation &target, const std::string &channel, unsigned int minSize, unsigned int desiredSize, unsigned int &bufferSize)
 	{
 		assert(desiredSize >= minSize && bufferSize >= minSize);
 		if (m_tempSpace.size() < minSize)
 		{
-			byte *result = target.ChannelCreatePutSpace(channel, desiredSize);
+			byte_u *result = target.ChannelCreatePutSpace(channel, desiredSize);
 			if (desiredSize >= minSize)
 			{
 				bufferSize = desiredSize;
@@ -4521,9 +4526,9 @@ struct CRYPTOPP_DLL FilterPutSpaceHelper
 		bufferSize = m_tempSpace.size();
 		return m_tempSpace.begin();
 	}
-	byte *HelpCreatePutSpace(BufferedTransformation &target, const std::string &channel, unsigned int minSize)
+	byte_u *HelpCreatePutSpace(BufferedTransformation &target, const std::string &channel, unsigned int minSize)
 		{return HelpCreatePutSpace(target, channel, minSize, minSize, minSize);}
-	byte *HelpCreatePutSpace(BufferedTransformation &target, const std::string &channel, unsigned int minSize, unsigned int bufferSize)
+	byte_u *HelpCreatePutSpace(BufferedTransformation &target, const std::string &channel, unsigned int minSize, unsigned int bufferSize)
 		{return HelpCreatePutSpace(target, channel, minSize, minSize, bufferSize);}
 	SecByteBlock m_tempSpace;
 };
@@ -4541,18 +4546,18 @@ public:
 	FilterWithBufferedInput(unsigned int firstSize, unsigned int blockSize, unsigned int lastSize, BufferedTransformation *attachment);
 
 	void IsolatedInitialize(const NameValuePairs &parameters);
-	unsigned int Put2(const byte *inString, unsigned int length, int messageEnd, bool blocking)
+	unsigned int Put2(const byte_u *inString, unsigned int length, int messageEnd, bool blocking)
 	{
-		return PutMaybeModifiable(const_cast<byte *>(inString), length, messageEnd, blocking, false);
+		return PutMaybeModifiable(const_cast<byte_u *>(inString), length, messageEnd, blocking, false);
 	}
-	unsigned int PutModifiable2(byte *inString, unsigned int length, int messageEnd, bool blocking)
+	unsigned int PutModifiable2(byte_u *inString, unsigned int length, int messageEnd, bool blocking)
 	{
 		return PutMaybeModifiable(inString, length, messageEnd, blocking, true);
 	}
 	/*! calls ForceNextPut() if hardFlush is true */
 	bool IsolatedFlush(bool hardFlush, bool blocking);
 
-	/*! The input buffer may contain more than blockSize bytes if lastSize != 0.
+	/*! The input buffer may contain more than blockSize byte_us if lastSize != 0.
 		ForceNextPut() forces a call to NextPut() if this is the case.
 	*/
 	void ForceNextPut();
@@ -4565,25 +4570,25 @@ protected:
 	virtual void InitializeDerived(const NameValuePairs& /* parameters */) {}
 	// FirstPut() is called if (firstSize != 0 and totalLength >= firstSize)
 	// or (firstSize == 0 and (totalLength > 0 or a MessageEnd() is received))
-	virtual void FirstPut(const byte *inString) =0;
+	virtual void FirstPut(const byte_u *inString) =0;
 	// NextPut() is called if totalLength >= firstSize+blockSize+lastSize
-	virtual void NextPutSingle(const byte* /* inString */) {assert(false);}
+	virtual void NextPutSingle(const byte_u* /* inString */) {assert(false);}
 	// Same as NextPut() except length can be a multiple of blockSize
 	// Either NextPut() or NextPutMultiple() must be overriden
-	virtual void NextPutMultiple(const byte *inString, unsigned int length);
+	virtual void NextPutMultiple(const byte_u *inString, unsigned int length);
 	// Same as NextPutMultiple(), but inString can be modified
-	virtual void NextPutModifiable(byte *inString, unsigned int length)
+	virtual void NextPutModifiable(byte_u *inString, unsigned int length)
 		{NextPutMultiple(inString, length);}
 	// LastPut() is always called
 	// if totalLength < firstSize then length == totalLength
 	// else if totalLength <= firstSize+lastSize then length == totalLength-firstSize
 	// else lastSize <= length < lastSize+blockSize
-	virtual void LastPut(const byte *inString, unsigned int length) =0;
+	virtual void LastPut(const byte_u *inString, unsigned int length) =0;
 	virtual void FlushDerived() {}
 
 private:
-	unsigned int PutMaybeModifiable(byte *begin, unsigned int length, int messageEnd, bool blocking, bool modifiable);
-	void NextPutMaybeModifiable(byte *inString, unsigned int length, bool modifiable)
+	unsigned int PutMaybeModifiable(byte_u *begin, unsigned int length, int messageEnd, bool blocking, bool modifiable);
+	void NextPutMaybeModifiable(byte_u *inString, unsigned int length, bool modifiable)
 	{
 		if (modifiable) NextPutModifiable(inString, length);
 		else NextPutMultiple(inString, length);
@@ -4591,23 +4596,23 @@ private:
 
 	// This function should no longer be used, put this here to cause a compiler error
 	// if someone tries to override NextPut().
-	virtual int NextPut(const byte* /* inString */, unsigned int /* length */) {assert(false); return 0;}
+	virtual int NextPut(const byte_u* /* inString */, unsigned int /* length */) {assert(false); return 0;}
 
 	class BlockQueue
 	{
 	public:
 		void ResetQueue(unsigned int blockSize, unsigned int maxBlocks);
-		byte *GetBlock();
-		byte *GetContigousBlocks(unsigned int &numberOfBytes);
-		unsigned int GetAll(byte *outString);
-		void Put(const byte *inString, unsigned int length);
+		byte_u *GetBlock();
+		byte_u *GetContigousBlocks(unsigned int &numberOfBytes);
+		unsigned int GetAll(byte_u *outString);
+		void Put(const byte_u *inString, unsigned int length);
 		unsigned int CurrentSize() const {return m_size;}
 		unsigned int MaxSize() const {return m_buffer.size();}
 
 	private:
 		SecByteBlock m_buffer;
 		unsigned int m_blockSize, m_maxBlocks, m_size;
-		byte *m_begin;
+		byte_u *m_begin;
 	};
 
 	unsigned int m_firstSize, m_blockSize, m_lastSize;
@@ -4623,14 +4628,14 @@ public:
 		: m_hashModule(hm), m_putMessage(putMessage) {Detach(attachment);}
 
 	void IsolatedInitialize(const NameValuePairs &parameters);
-	unsigned int Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking);
+	unsigned int Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking);
 
-	byte * CreatePutSpace(unsigned int &size) {return m_hashModule.CreateUpdateSpace(size);}
+	byte_u * CreatePutSpace(unsigned int &size) {return m_hashModule.CreateUpdateSpace(size);}
 
 private:
 	HashTransformation &m_hashModule;
 	bool m_putMessage;
-	byte *m_space;
+	byte_u *m_space;
 };
 
 // Used By ProxyFilter
@@ -4642,11 +4647,11 @@ public:
 	bool GetPassSignal() const {return m_passSignal;}
 	void SetPassSignal(bool passSignal) {m_passSignal = passSignal;}
 
-	byte * CreatePutSpace(unsigned int &size)
+	byte_u * CreatePutSpace(unsigned int &size)
 		{return m_owner.AttachedTransformation()->CreatePutSpace(size);}
-	unsigned int Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking)
+	unsigned int Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 		{return m_owner.AttachedTransformation()->Put2(begin, length, m_passSignal ? messageEnd : 0, blocking);}
-	unsigned int PutModifiable2(byte *begin, unsigned int length, int messageEnd, bool blocking)
+	unsigned int PutModifiable2(byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 		{return m_owner.AttachedTransformation()->PutModifiable2(begin, length, m_passSignal ? messageEnd : 0, blocking);}
 	void Initialize(const NameValuePairs &parameters=g_nullNameValuePairs, int propagation=-1)
 		{if (m_passSignal) m_owner.AttachedTransformation()->Initialize(parameters, propagation);}
@@ -4655,9 +4660,9 @@ public:
 	bool MessageSeriesEnd(int propagation=-1, bool blocking=true)
 		{return m_passSignal ? m_owner.AttachedTransformation()->MessageSeriesEnd(propagation, blocking) : false;}
 
-	unsigned int ChannelPut2(const std::string &channel, const byte *begin, unsigned int length, int messageEnd, bool blocking)
+	unsigned int ChannelPut2(const std::string &channel, const byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 		{return m_owner.AttachedTransformation()->ChannelPut2(channel, begin, length, m_passSignal ? messageEnd : 0, blocking);}
-	unsigned int ChannelPutModifiable2(const std::string &channel, byte *begin, unsigned int length, int messageEnd, bool blocking)
+	unsigned int ChannelPutModifiable2(const std::string &channel, byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 		{return m_owner.AttachedTransformation()->ChannelPutModifiable2(channel, begin, length, m_passSignal ? messageEnd : 0, blocking);}
 	bool ChannelFlush(const std::string &channel, bool completeFlush, int propagation=-1, bool blocking=true)
 		{return m_passSignal ? m_owner.AttachedTransformation()->ChannelFlush(channel, completeFlush, propagation, blocking) : false;}
@@ -4678,8 +4683,8 @@ public:
 	bool IsolatedFlush(bool hardFlush, bool blocking);
 
 	void SetFilter(Filter *filter);
-	void NextPutMultiple(const byte *s, unsigned int len);
-	void NextPutModifiable(byte *inString, unsigned int length);
+	void NextPutMultiple(const byte_u *s, unsigned int len);
+	void NextPutModifiable(byte_u *inString, unsigned int length);
 
 protected:
 	member_ptr<BufferedTransformation> m_filter;
@@ -4692,8 +4697,8 @@ public:
 	SimpleProxyFilter(BufferedTransformation *filter, BufferedTransformation *attachment)
 		: ProxyFilter(filter, 0, 0, attachment) {}
 
-	void FirstPut(const byte *) {}
-	void LastPut(const byte *, unsigned int) {m_filter->MessageEnd();}
+	void FirstPut(const byte_u *) {}
+	void LastPut(const byte_u *, unsigned int) {m_filter->MessageEnd();}
 };
 
 //! Append input to a string object
@@ -4710,7 +4715,7 @@ public:
 	void IsolatedInitialize(const NameValuePairs &parameters)
 		{if (!parameters.GetValue("OutputStringPointer", m_output)) throw InvalidArgument("StringSink: OutputStringPointer not specified");}
 
-	unsigned int Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking)
+	unsigned int Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking)
 	{
 		if (length > 0)
 		{
@@ -4734,17 +4739,17 @@ class CRYPTOPP_DLL ArraySink : public Bufferless<Sink>
 {
 public:
 	ArraySink(const NameValuePairs &parameters = g_nullNameValuePairs) {IsolatedInitialize(parameters);}
-	ArraySink(byte *buf, unsigned int size) : m_buf(buf), m_size(size), m_total(0) {}
+	ArraySink(byte_u *buf, unsigned int size) : m_buf(buf), m_size(size), m_total(0) {}
 
 	unsigned int AvailableSize() {return m_size - STDMIN(m_total, (unsigned long)m_size);}
 	unsigned long TotalPutLength() {return m_total;}
 
 	void IsolatedInitialize(const NameValuePairs &parameters);
-	byte * CreatePutSpace(unsigned int &size);
-	unsigned int Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking);
+	byte_u * CreatePutSpace(unsigned int &size);
+	unsigned int Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking);
 
 protected:
-	byte *m_buf;
+	byte_u *m_buf;
 	unsigned int m_size;
 	unsigned long m_total;
 };
@@ -4753,11 +4758,11 @@ protected:
 class CRYPTOPP_DLL ArrayXorSink : public ArraySink
 {
 public:
-	ArrayXorSink(byte *buf, unsigned int size)
+	ArrayXorSink(byte_u *buf, unsigned int size)
 		: ArraySink(buf, size) {}
 
-	unsigned int Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking);
-	byte * CreatePutSpace(unsigned int &size) {return BufferedTransformation::CreatePutSpace(size);}
+	unsigned int Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking);
+	byte_u * CreatePutSpace(unsigned int &size) {return BufferedTransformation::CreatePutSpace(size);}
 };
 
 //! string-based implementation of Store interface
@@ -4766,7 +4771,7 @@ class StringStore : public Store
 public:
 	StringStore(const char *string = NULL)
 		{StoreInitialize(MakeParameters("InputBuffer", ConstByteArrayParameter(string)));}
-	StringStore(const byte *string, unsigned int length)
+	StringStore(const byte_u *string, unsigned int length)
 		{StoreInitialize(MakeParameters("InputBuffer", ConstByteArrayParameter(string, length)));}
 	template <class T> StringStore(const T &string)
 		{StoreInitialize(MakeParameters("InputBuffer", ConstByteArrayParameter(string)));}
@@ -4777,7 +4782,7 @@ public:
 private:
 	CRYPTOPP_DLL void StoreInitialize(const NameValuePairs &parameters);
 
-	const byte *m_store;
+	const byte_u *m_store;
 	unsigned int m_length, m_count;
 };
 
@@ -4794,7 +4799,7 @@ public:
 		{PumpMessages2(count); return count;}
 	void PumpAll()
 		{PumpAll2();}
-	virtual unsigned int Pump2(unsigned long &byteCount, bool blocking=true) =0;
+	virtual unsigned int Pump2(unsigned long &byte_uCount, bool blocking=true) =0;
 	virtual unsigned int PumpMessages2(unsigned int &messageCount, bool blocking=true) =0;
 	virtual unsigned int PumpAll2(bool blocking=true);
 	virtual bool SourceExhausted() const =0;
@@ -4817,8 +4822,8 @@ public:
 		: Source(attachment) {}
 	void IsolatedInitialize(const NameValuePairs &parameters)
 		{m_store.IsolatedInitialize(parameters);}
-	unsigned int Pump2(unsigned long &byteCount, bool blocking=true)
-		{return m_store.TransferTo2(*AttachedTransformation(), byteCount, NULL_CHANNEL, blocking);}
+	unsigned int Pump2(unsigned long &byte_uCount, bool blocking=true)
+		{return m_store.TransferTo2(*AttachedTransformation(), byte_uCount, NULL_CHANNEL, blocking);}
 	unsigned int PumpMessages2(unsigned int &messageCount, bool blocking=true)
 		{return m_store.TransferMessagesTo2(*AttachedTransformation(), messageCount, NULL_CHANNEL, blocking);}
 	unsigned int PumpAll2(bool blocking=true)
@@ -4842,7 +4847,7 @@ public:
 		: SourceTemplate<StringStore>(attachment) {}
 	StringSource(const char *string, bool pumpAll, BufferedTransformation *attachment = NULL)
 		: SourceTemplate<StringStore>(attachment) {SourceInitialize(pumpAll, MakeParameters("InputBuffer", ConstByteArrayParameter(string)));}
-	StringSource(const byte *string, unsigned int length, bool pumpAll, BufferedTransformation *attachment = NULL)
+	StringSource(const byte_u *string, unsigned int length, bool pumpAll, BufferedTransformation *attachment = NULL)
 		: SourceTemplate<StringStore>(attachment) {SourceInitialize(pumpAll, MakeParameters("InputBuffer", ConstByteArrayParameter(string, length)));}
 	StringSource(const std::string &string, bool pumpAll, BufferedTransformation *attachment = NULL)
 		: SourceTemplate<StringStore>(attachment) {SourceInitialize(pumpAll, MakeParameters("InputBuffer", ConstByteArrayParameter(string)));}
@@ -4871,12 +4876,12 @@ CRYPTOPP_DEFINE_NAME_STRING(ValueNames)			//!< string, a list of value names wit
 CRYPTOPP_DEFINE_NAME_STRING(Version)			//!< int
 CRYPTOPP_DEFINE_NAME_STRING(Seed)				//!< ConstByteArrayParameter
 CRYPTOPP_DEFINE_NAME_STRING(Key)				//!< ConstByteArrayParameter
-CRYPTOPP_DEFINE_NAME_STRING(IV)					//!< const byte *
-CRYPTOPP_DEFINE_NAME_STRING(StolenIV)			//!< byte *
+CRYPTOPP_DEFINE_NAME_STRING(IV)					//!< const byte_u *
+CRYPTOPP_DEFINE_NAME_STRING(StolenIV)			//!< byte_u *
 CRYPTOPP_DEFINE_NAME_STRING(Rounds)				//!< int
 CRYPTOPP_DEFINE_NAME_STRING(FeedbackSize)		//!< int
-CRYPTOPP_DEFINE_NAME_STRING(WordSize)			//!< int, in bytes
-CRYPTOPP_DEFINE_NAME_STRING(BlockSize)			//!< int, in bytes
+CRYPTOPP_DEFINE_NAME_STRING(WordSize)			//!< int, in byte_us
+CRYPTOPP_DEFINE_NAME_STRING(BlockSize)			//!< int, in byte_us
 CRYPTOPP_DEFINE_NAME_STRING(EffectiveKeyLength)	//!< int, in bits
 CRYPTOPP_DEFINE_NAME_STRING(KeySize)			//!< int, in bits
 CRYPTOPP_DEFINE_NAME_STRING(ModulusSize)		//!< int, in bits
@@ -4918,10 +4923,10 @@ CRYPTOPP_DEFINE_NAME_STRING(Terminator)			//< ConstByteArrayParameter
 CRYPTOPP_DEFINE_NAME_STRING(Uppercase)			//< bool
 CRYPTOPP_DEFINE_NAME_STRING(GroupSize)			//< int
 CRYPTOPP_DEFINE_NAME_STRING(Pad)				//< bool
-CRYPTOPP_DEFINE_NAME_STRING(PaddingByte)		//< byte
+CRYPTOPP_DEFINE_NAME_STRING(PaddingByte)		//< byte_u
 CRYPTOPP_DEFINE_NAME_STRING(Log2Base)			//< int
-CRYPTOPP_DEFINE_NAME_STRING(EncodingLookupArray)	//< const byte *
-CRYPTOPP_DEFINE_NAME_STRING(DecodingLookupArray)	//< const byte *
+CRYPTOPP_DEFINE_NAME_STRING(EncodingLookupArray)	//< const byte_u *
+CRYPTOPP_DEFINE_NAME_STRING(DecodingLookupArray)	//< const byte_u *
 CRYPTOPP_DEFINE_NAME_STRING(InsertLineBreaks)	//< bool
 CRYPTOPP_DEFINE_NAME_STRING(MaxLineLength)		//< int
 
@@ -5044,12 +5049,12 @@ public:
 
 	virtual bool ParameterSupported(const char* /* name */) const {return false;}
 
-	//! max size of unpadded message in bytes, given max size of padded message in bits (1 less than size of modulus)
+	//! max size of unpadded message in byte_us, given max size of padded message in bits (1 less than size of modulus)
 	virtual unsigned int MaxUnpaddedLength(unsigned int paddedLength) const =0;
 
-	virtual void Pad(RandomNumberGenerator &rng, const byte *raw, unsigned int inputLength, byte *padded, unsigned int paddedBitLength, const NameValuePairs &parameters) const =0;
+	virtual void Pad(RandomNumberGenerator &rng, const byte_u *raw, unsigned int inputLength, byte_u *padded, unsigned int paddedBitLength, const NameValuePairs &parameters) const =0;
 
-	virtual DecodingResult Unpad(const byte *padded, unsigned int paddedBitLength, byte *raw, const NameValuePairs &parameters) const =0;
+	virtual DecodingResult Unpad(const byte_u *padded, unsigned int paddedBitLength, byte_u *raw, const NameValuePairs &parameters) const =0;
 };
 
 // ********************************************************
@@ -5072,7 +5077,7 @@ protected:
 
 // ********************************************************
 
-typedef std::pair<const byte *, unsigned int> HashIdentifier;
+typedef std::pair<const byte_u *, unsigned int> HashIdentifier;
 
 //! interface for message encoding method for public key signature schemes
 class CRYPTOPP_NO_VTABLE PK_SignatureMessageEncodingMethod
@@ -5091,12 +5096,12 @@ public:
 		{throw NotImplemented("PK_MessageEncodingMethod: this signature scheme does not support message recovery");}
 
 	// for verification, DL
-	virtual void ProcessSemisignature(HashTransformation& /* hash */, const byte* /* semisignature */, unsigned int /* semisignatureLength */) const {}
+	virtual void ProcessSemisignature(HashTransformation& /* hash */, const byte_u* /* semisignature */, unsigned int /* semisignatureLength */) const {}
 
 	// for signature
 	virtual void ProcessRecoverableMessage(HashTransformation& /* hash */, 
-		const byte* /* recoverableMessage */, unsigned int /* recoverableMessageLength */, 
-		const byte* /* presignature */, unsigned int /* presignatureLength */,
+		const byte_u* /* recoverableMessage */, unsigned int /* recoverableMessageLength */, 
+		const byte_u* /* presignature */, unsigned int /* presignatureLength */,
 		SecByteBlock& /* semisignature */) const
 	{
 		if (RecoverablePartFirst())
@@ -5104,25 +5109,25 @@ public:
 	}
 
 	virtual void ComputeMessageRepresentative(RandomNumberGenerator &rng, 
-		const byte *recoverableMessage, unsigned int recoverableMessageLength,
+		const byte_u *recoverableMessage, unsigned int recoverableMessageLength,
 		HashTransformation &hash, HashIdentifier hashIdentifier, bool messageEmpty,
-		byte *representative, unsigned int representativeBitLength) const =0;
+		byte_u *representative, unsigned int representativeBitLength) const =0;
 
 	virtual bool VerifyMessageRepresentative(
 		HashTransformation &hash, HashIdentifier hashIdentifier, bool messageEmpty,
-		byte *representative, unsigned int representativeBitLength) const =0;
+		byte_u *representative, unsigned int representativeBitLength) const =0;
 
 	virtual DecodingResult RecoverMessageFromRepresentative(	// for TF
 		HashTransformation& /* hash */, HashIdentifier /* hashIdentifier */, bool /* messageEmpty */,
-		byte* /* representative */, unsigned int /* representativeBitLength */,
-		byte* /* recoveredMessage */) const
+		byte_u* /* representative */, unsigned int /* representativeBitLength */,
+		byte_u* /* recoveredMessage */) const
 		{throw NotImplemented("PK_MessageEncodingMethod: this signature scheme does not support message recovery");}
 
 	virtual DecodingResult RecoverMessageFromSemisignature(		// for DL
 		HashTransformation& /* hash */, HashIdentifier /* hashIdentifier */,
-		const byte* /* presignature */, unsigned int /* presignatureLength */,
-		const byte* /* semisignature */, unsigned int /* semisignatureLength */,
-		byte* /* recoveredMessage */) const
+		const byte_u* /* presignature */, unsigned int /* presignatureLength */,
+		const byte_u* /* semisignature */, unsigned int /* semisignatureLength */,
+		byte_u* /* recoveredMessage */) const
 		{throw NotImplemented("PK_MessageEncodingMethod: this signature scheme does not support message recovery");}
 
 	// VC60 workaround
@@ -5143,7 +5148,7 @@ class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE PK_DeterministicSignatureMessageEncodingMe
 public:
 	bool VerifyMessageRepresentative(
 		HashTransformation &hash, HashIdentifier hashIdentifier, bool messageEmpty,
-		byte *representative, unsigned int representativeBitLength) const;
+		byte_u *representative, unsigned int representativeBitLength) const;
 };
 
 class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE PK_MessageAccumulatorBase : public PK_MessageAccumulator
@@ -5153,7 +5158,7 @@ public:
 
 	virtual HashTransformation & AccessHash() =0;
 
-	void Update(const byte *input, unsigned int length)
+	void Update(const byte_u *input, unsigned int length)
 	{
 		AccessHash().Update(input, length);
 		m_empty = m_empty && length == 0;
@@ -5201,17 +5206,17 @@ protected:
 class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE TF_SignerBase : public TF_SignatureSchemeBase<PK_Signer, TF_Base<RandomizedTrapdoorFunctionInverse, PK_SignatureMessageEncodingMethod> >
 {
 public:
-	void InputRecoverableMessage(PK_MessageAccumulator &messageAccumulator, const byte *recoverableMessage, unsigned int recoverableMessageLength) const;
-	unsigned int SignAndRestart(RandomNumberGenerator &rng, PK_MessageAccumulator &messageAccumulator, byte *signature, bool restart=true) const;
+	void InputRecoverableMessage(PK_MessageAccumulator &messageAccumulator, const byte_u *recoverableMessage, unsigned int recoverableMessageLength) const;
+	unsigned int SignAndRestart(RandomNumberGenerator &rng, PK_MessageAccumulator &messageAccumulator, byte_u *signature, bool restart=true) const;
 };
 
 //! _
 class CRYPTOPP_DLL CRYPTOPP_NO_VTABLE TF_VerifierBase : public TF_SignatureSchemeBase<PK_Verifier, TF_Base<TrapdoorFunction, PK_SignatureMessageEncodingMethod> >
 {
 public:
-	void InputSignature(PK_MessageAccumulator &messageAccumulator, const byte *signature, unsigned int signatureLength) const;
+	void InputSignature(PK_MessageAccumulator &messageAccumulator, const byte_u *signature, unsigned int signatureLength) const;
 	bool VerifyAndRestart(PK_MessageAccumulator &messageAccumulator) const;
-	DecodingResult RecoverAndRestart(byte *recoveredMessage, PK_MessageAccumulator &recoveryAccumulator) const;
+	DecodingResult RecoverAndRestart(byte_u *recoveredMessage, PK_MessageAccumulator &recoveryAccumulator) const;
 };
 
 // ********************************************************
@@ -5337,7 +5342,7 @@ class TF_VerifierImpl : public TF_ObjectImpl<TF_VerifierBase, SCHEME_OPTIONS, Pu
 
 // ********************************************************
 
-CRYPTOPP_DLL void P1363_MGF1KDF2_Common(HashTransformation &hash, byte *output, unsigned int outputLength, const byte *input, unsigned int inputLength, const byte *derivationParams, unsigned int derivationParamsLength, bool mask, unsigned int counterStart);
+CRYPTOPP_DLL void P1363_MGF1KDF2_Common(HashTransformation &hash, byte_u *output, unsigned int outputLength, const byte_u *input, unsigned int inputLength, const byte_u *derivationParams, unsigned int derivationParamsLength, bool mask, unsigned int counterStart);
 
 // ********************************************************
 
@@ -5346,7 +5351,7 @@ template <class H>
 class P1363_KDF2
 {
 public:
-	static void DeriveKey(byte *output, unsigned int outputLength, const byte *input, unsigned int inputLength, const byte *derivationParams, unsigned int derivationParamsLength)
+	static void DeriveKey(byte_u *output, unsigned int outputLength, const byte_u *input, unsigned int inputLength, const byte_u *derivationParams, unsigned int derivationParamsLength)
 	{
 		H h;
 		P1363_MGF1KDF2_Common(h, output, outputLength, input, inputLength, derivationParams, derivationParamsLength, false, 1);
@@ -5524,8 +5529,8 @@ public:
 	unsigned int BlockSize() const {return m_data.size() * sizeof(T);}
 	unsigned int OptimalBlockSize() const {return BlockSize();}
 	unsigned int OptimalDataAlignment() const {return sizeof(T);}
-	void Update(const byte *input, unsigned int length);
-	byte * CreateUpdateSpace(unsigned int &size);
+	void Update(const byte_u *input, unsigned int length);
+	byte_u * CreateUpdateSpace(unsigned int &size);
 	void Restart();
 
 protected:
@@ -5536,7 +5541,7 @@ protected:
 	T GetBitCountLo() const {return m_countLo << 3;}
 
 	virtual unsigned int HashMultipleBlocks(const T *input, unsigned int length);
-	void PadLastBlock(unsigned int lastBlockSize, byte padFirst=0x80);
+	void PadLastBlock(unsigned int lastBlockSize, byte_u padFirst=0x80);
 	virtual void Init() =0;
 	virtual void HashBlock(const T *input) =0;
 
@@ -5556,12 +5561,12 @@ public:
 	typedef B ByteOrderClass;
 	typedef typename IteratedHashBase<T, BASE>::HashWordType HashWordType;
 
-	inline static void CorrectEndianess(HashWordType *out, const HashWordType *in, unsigned int byteCount)
+	inline static void CorrectEndianess(HashWordType *out, const HashWordType *in, unsigned int byte_uCount)
 	{
-		ConditionalByteReverse(B::ToEnum(), out, in, byteCount);
+		ConditionalByteReverse(B::ToEnum(), out, in, byte_uCount);
 	}
 
-	void TruncatedFinal(byte *digest, unsigned int size);
+	void TruncatedFinal(byte_u *digest, unsigned int size);
 
 protected:
 	void HashBlock(const HashWordType *input);
@@ -5603,7 +5608,7 @@ protected:
 
 // *************************************************************
 
-template <class T, class B, class BASE> void IteratedHashBase2<T, B, BASE>::TruncatedFinal(byte *digest, unsigned int size)
+template <class T, class B, class BASE> void IteratedHashBase2<T, B, BASE>::TruncatedFinal(byte_u *digest, unsigned int size)
 {
 	this->ThrowIfInvalidTruncatedSize(size);
 
@@ -5684,14 +5689,14 @@ public:
 	static const char * StaticAlgorithmName() {return "EME-PKCS1-v1_5";}
 
 	unsigned int MaxUnpaddedLength(unsigned int paddedLength) const;
-	void Pad(RandomNumberGenerator &rng, const byte *raw, unsigned int inputLength, byte *padded, unsigned int paddedLength, const NameValuePairs &parameters) const;
-	DecodingResult Unpad(const byte *padded, unsigned int paddedLength, byte *raw, const NameValuePairs &parameters) const;
+	void Pad(RandomNumberGenerator &rng, const byte_u *raw, unsigned int inputLength, byte_u *padded, unsigned int paddedLength, const NameValuePairs &parameters) const;
+	DecodingResult Unpad(const byte_u *padded, unsigned int paddedLength, byte_u *raw, const NameValuePairs &parameters) const;
 };
 
 template <class H> class PKCS_DigestDecoration
 {
 public:
-	static const byte decoration[];
+	static const byte_u decoration[];
 	static const unsigned int length;
 };
 
@@ -5707,9 +5712,9 @@ public:
 	static const char * StaticAlgorithmName() {return "EMSA-PKCS1-v1_5";}
 
 	void ComputeMessageRepresentative(RandomNumberGenerator &rng, 
-		const byte *recoverableMessage, unsigned int recoverableMessageLength,
+		const byte_u *recoverableMessage, unsigned int recoverableMessageLength,
 		HashTransformation &hash, HashIdentifier hashIdentifier, bool messageEmpty,
-		byte *representative, unsigned int representativeBitLength) const;
+		byte_u *representative, unsigned int representativeBitLength) const;
 
 	struct HashIdentifierLookup
 	{
@@ -5793,7 +5798,7 @@ enum ASNIdFlag
 
 inline void BERDecodeError() {throw BERDecodeErr();}
 
-// unsigned int DERLengthEncode(unsigned int length, byte *output=0);
+// unsigned int DERLengthEncode(unsigned int length, byte_u *output=0);
 CRYPTOPP_DLL unsigned int DERLengthEncode(BufferedTransformation &out, unsigned int length);
 // returns false if indefinite length
 CRYPTOPP_DLL bool BERLengthDecode(BufferedTransformation &in, unsigned int &length);
@@ -5801,7 +5806,7 @@ CRYPTOPP_DLL bool BERLengthDecode(BufferedTransformation &in, unsigned int &leng
 CRYPTOPP_DLL void DEREncodeNull(BufferedTransformation &out);
 CRYPTOPP_DLL void BERDecodeNull(BufferedTransformation &in);
 
-CRYPTOPP_DLL unsigned int DEREncodeOctetString(BufferedTransformation &out, const byte *str, unsigned int strLen);
+CRYPTOPP_DLL unsigned int DEREncodeOctetString(BufferedTransformation &out, const byte_u *str, unsigned int strLen);
 CRYPTOPP_DLL unsigned int DEREncodeOctetString(BufferedTransformation &out, const SecByteBlock &str);
 
 // BER decode from source and DER reencode into dest
@@ -5834,15 +5839,15 @@ private:
 class CRYPTOPP_DLL BERGeneralDecoder : public Store
 {
 public:
-	explicit BERGeneralDecoder(BufferedTransformation &inQueue, byte asnTag);
-	explicit BERGeneralDecoder(BERGeneralDecoder &inQueue, byte asnTag);
+	explicit BERGeneralDecoder(BufferedTransformation &inQueue, byte_u asnTag);
+	explicit BERGeneralDecoder(BERGeneralDecoder &inQueue, byte_u asnTag);
 	~BERGeneralDecoder();
 
 	bool IsDefiniteLength() const {return m_definiteLength;}
 	unsigned int RemainingLength() const {assert(m_definiteLength); return m_length;}
 	bool EndReached() const;
-	byte PeekByte() const;
-	void CheckByte(byte b);
+	byte_u PeekByte() const;
+	void CheckByte(byte_u b);
 
 	unsigned int TransferTo2(BufferedTransformation &target, unsigned long &transferBytes, const std::string &channel=NULL_CHANNEL, bool blocking=true);
 	unsigned int CopyRangeTo2(BufferedTransformation &target, unsigned long &begin, unsigned long end=ULONG_MAX, const std::string &channel=NULL_CHANNEL, bool blocking=true) const;
@@ -5856,7 +5861,7 @@ protected:
 	unsigned int m_length;
 
 private:
-	void Init(byte asnTag);
+	void Init(byte_u asnTag);
 	void StoreInitialize(const NameValuePairs& /* parameters */) {assert(false);}
 	unsigned int ReduceLength(unsigned int delta);
 };
@@ -5865,8 +5870,8 @@ private:
 class CRYPTOPP_DLL DERGeneralEncoder : public ByteQueue
 {
 public:
-	explicit DERGeneralEncoder(BufferedTransformation &outQueue, byte asnTag = SEQUENCE | CONSTRUCTED);
-	explicit DERGeneralEncoder(DERGeneralEncoder &outQueue, byte asnTag = SEQUENCE | CONSTRUCTED);
+	explicit DERGeneralEncoder(BufferedTransformation &outQueue, byte_u asnTag = SEQUENCE | CONSTRUCTED);
+	explicit DERGeneralEncoder(DERGeneralEncoder &outQueue, byte_u asnTag = SEQUENCE | CONSTRUCTED);
 	~DERGeneralEncoder();
 
 	// call this to denote end of sequence
@@ -5876,16 +5881,16 @@ private:
 	BufferedTransformation &m_outQueue;
 	bool m_finished;
 
-	byte m_asnTag;
+	byte_u m_asnTag;
 };
 
 //! BER Sequence Decoder
 class CRYPTOPP_DLL BERSequenceDecoder : public BERGeneralDecoder
 {
 public:
-	explicit BERSequenceDecoder(BufferedTransformation &inQueue, byte asnTag = SEQUENCE | CONSTRUCTED)
+	explicit BERSequenceDecoder(BufferedTransformation &inQueue, byte_u asnTag = SEQUENCE | CONSTRUCTED)
 		: BERGeneralDecoder(inQueue, asnTag) {}
-	explicit BERSequenceDecoder(BERSequenceDecoder &inQueue, byte asnTag = SEQUENCE | CONSTRUCTED)
+	explicit BERSequenceDecoder(BERSequenceDecoder &inQueue, byte_u asnTag = SEQUENCE | CONSTRUCTED)
 		: BERGeneralDecoder(inQueue, asnTag) {}
 };
 
@@ -5893,9 +5898,9 @@ public:
 class CRYPTOPP_DLL DERSequenceEncoder : public DERGeneralEncoder
 {
 public:
-	explicit DERSequenceEncoder(BufferedTransformation &outQueue, byte asnTag = SEQUENCE | CONSTRUCTED)
+	explicit DERSequenceEncoder(BufferedTransformation &outQueue, byte_u asnTag = SEQUENCE | CONSTRUCTED)
 		: DERGeneralEncoder(outQueue, asnTag) {}
-	explicit DERSequenceEncoder(DERSequenceEncoder &outQueue, byte asnTag = SEQUENCE | CONSTRUCTED)
+	explicit DERSequenceEncoder(DERSequenceEncoder &outQueue, byte_u asnTag = SEQUENCE | CONSTRUCTED)
 		: DERGeneralEncoder(outQueue, asnTag) {}
 };
 
@@ -5947,9 +5952,9 @@ private:
 //! DER Encode Unsigned
 /*! for INTEGER, BOOLEAN, and ENUM */
 template <class T>
-unsigned int DEREncodeUnsigned(BufferedTransformation &out, T w, byte asnTag = INTEGER)
+unsigned int DEREncodeUnsigned(BufferedTransformation &out, T w, byte_u asnTag = INTEGER)
 {
-	byte buf[sizeof(w)+1];
+	byte_u buf[sizeof(w)+1];
 	unsigned int bc;
 	if (asnTag == BOOLEAN)
 	{
@@ -5960,7 +5965,7 @@ unsigned int DEREncodeUnsigned(BufferedTransformation &out, T w, byte asnTag = I
 	{
 		buf[0] = 0;
 		for (unsigned int i=0; i<sizeof(w); i++)
-			buf[i+1] = byte(w >> (sizeof(w)-1-i)*8);
+			buf[i+1] = byte_u(w >> (sizeof(w)-1-i)*8);
 		bc = sizeof(w);
 		while (bc > 1 && buf[sizeof(w)+1-bc] == 0)
 			--bc;
@@ -5977,10 +5982,10 @@ unsigned int DEREncodeUnsigned(BufferedTransformation &out, T w, byte asnTag = I
 // VC60 workaround: std::numeric_limits<T>::max conflicts with MFC max macro
 // CW41 workaround: std::numeric_limits<T>::max causes a template error
 template <class T>
-void BERDecodeUnsigned(BufferedTransformation &in, T &w, byte asnTag = INTEGER,
+void BERDecodeUnsigned(BufferedTransformation &in, T &w, byte_u asnTag = INTEGER,
 					   T minValue = 0, T maxValue = 0xffffffff)
 {
-	byte b;
+	byte_u b;
 	if (!in.Get(b) || b != asnTag)
 		BERDecodeError();
 
@@ -5992,7 +5997,7 @@ void BERDecodeUnsigned(BufferedTransformation &in, T &w, byte asnTag = INTEGER,
 	if (bc != in.Get(buf, bc))
 		BERDecodeError();
 
-	const byte *ptr = buf;
+	const byte_u *ptr = buf;
 	while (bc > sizeof(w) && *ptr == 0)
 	{
 		bc--;
@@ -6168,22 +6173,22 @@ public:
 	BaseN_Encoder(BufferedTransformation *attachment=NULL)
 		{Detach(attachment);}
 
-	BaseN_Encoder(const byte *alphabet, int log2base, BufferedTransformation *attachment=NULL, int padding=-1)
+	BaseN_Encoder(const byte_u *alphabet, int log2base, BufferedTransformation *attachment=NULL, int padding=-1)
 	{
 		Detach(attachment);
 		IsolatedInitialize(MakeParameters(Name::EncodingLookupArray(), alphabet)
 			(Name::Log2Base(), log2base)
 			(Name::Pad(), padding != -1)
-			(Name::PaddingByte(), byte(padding)));
+			(Name::PaddingByte(), byte_u(padding)));
 	}
 
 	void IsolatedInitialize(const NameValuePairs &parameters);
-	unsigned int Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking);
+	unsigned int Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking);
 
 private:
-	const byte *m_alphabet;
+	const byte_u *m_alphabet;
 	int m_padding, m_bitsPerChar, m_outputBlockSize;
-	int m_bytePos, m_bitPos;
+	int m_byte_uPos, m_bitPos;
 	SecByteBlock m_outBuf;
 };
 
@@ -6201,14 +6206,14 @@ public:
 	}
 
 	void IsolatedInitialize(const NameValuePairs &parameters);
-	unsigned int Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking);
+	unsigned int Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking);
 
-	static void InitializeDecodingLookupArray(int *lookup, const byte *alphabet, unsigned int base, bool caseInsensitive);
+	static void InitializeDecodingLookupArray(int *lookup, const byte_u *alphabet, unsigned int base, bool caseInsensitive);
 
 private:
 	const int *m_lookup;
 	int m_padding, m_bitsPerChar, m_outputBlockSize;
-	int m_bytePos, m_bitPos;
+	int m_byte_uPos, m_bitPos;
 	SecByteBlock m_outBuf;
 };
 
@@ -6228,7 +6233,7 @@ public:
 	}
 
 	void IsolatedInitialize(const NameValuePairs &parameters);
-	unsigned int Put2(const byte *begin, unsigned int length, int messageEnd, bool blocking);
+	unsigned int Put2(const byte_u *begin, unsigned int length, int messageEnd, bool blocking);
 
 private:
 	SecByteBlock m_separator, m_terminator;
@@ -6326,7 +6331,7 @@ private:
 	
 	member_ptr<std::ifstream> m_file;
 	std::istream *m_stream;
-	byte *m_space;
+	byte_u *m_space;
 	unsigned int m_len;
 	bool m_waiting;
 };
@@ -6370,7 +6375,7 @@ public:
 	std::ostream* GetStream() {return m_stream;}
 
 	void IsolatedInitialize(const NameValuePairs &parameters);
-	unsigned int Put2(const byte *inString, unsigned int length, int messageEnd, bool blocking);
+	unsigned int Put2(const byte_u *inString, unsigned int length, int messageEnd, bool blocking);
 	bool IsolatedFlush(bool hardFlush, bool blocking);
 
 private:
@@ -6396,7 +6401,7 @@ NAMESPACE_BEGIN(CryptoPP)
 
 //! Randomness Pool
 /*! This class can be used to generate
-	pseudorandom bytes after seeding the pool with
+	pseudorandom byte_us after seeding the pool with
 	the Put() methods */
 class CRYPTOPP_DLL RandomPool : public RandomNumberGenerator,
 				   public Bufferless<BufferedTransformation>
@@ -6405,7 +6410,7 @@ public:
 	//! poolSize must be greater than 16
 	RandomPool(unsigned int poolSize=384);
 
-	unsigned int Put2(const byte *begin, unsigned int, int messageEnd, bool blocking);
+	unsigned int Put2(const byte_u *begin, unsigned int, int messageEnd, bool blocking);
 
 	bool AnyRetrievable() const {return true;}
 	unsigned long MaxRetrievable() const {return ULONG_MAX;}
@@ -6416,8 +6421,8 @@ public:
 		throw NotImplemented("RandomPool: CopyRangeTo2() is not supported by this store");
 	}
 
-	byte GenerateByte();
-	void GenerateBlock(byte *output, unsigned int size);
+	byte_u GenerateByte();
+	void GenerateBlock(byte_u *output, unsigned int size);
 
 	void IsolatedInitialize(const NameValuePairs& /* parameters */) {}
 
@@ -6473,14 +6478,14 @@ public:
 // ************** implementation helper for SimpledKeyed ***************
 
 template <class T>
-static inline void CheckedSetKey(T *obj, Empty empty, const byte *key, unsigned int length, const NameValuePairs &param)
+static inline void CheckedSetKey(T *obj, Empty empty, const byte_u *key, unsigned int length, const NameValuePairs &param)
 {
 	obj->ThrowIfInvalidKeyLength(length);
 	obj->UncheckedSetKey(key, length);
 }
 
 template <class T>
-static inline void CheckedSetKey(T *obj, CipherDir dir, const byte *key, unsigned int length, const NameValuePairs& /* param */)
+static inline void CheckedSetKey(T *obj, CipherDir dir, const byte_u *key, unsigned int length, const NameValuePairs& /* param */)
 {
 	obj->ThrowIfInvalidKeyLength(length);
 	obj->UncheckedSetKey(dir, key, length);
@@ -6514,16 +6519,16 @@ class BlockCipherFinal : public ClonableImpl<BlockCipherFinal<DIR, BASE>, BASE>
 {
 public:
  	BlockCipherFinal() {}
-	BlockCipherFinal(const byte *key)
+	BlockCipherFinal(const byte_u *key)
 		{SetKey(key, this->DEFAULT_KEYLENGTH);}
-	BlockCipherFinal(const byte *key, unsigned int length)
+	BlockCipherFinal(const byte_u *key, unsigned int length)
 		{SetKey(key, length);}
-	BlockCipherFinal(const byte *key, unsigned int length, unsigned int rounds)
+	BlockCipherFinal(const byte_u *key, unsigned int length, unsigned int rounds)
 		{this->SetKeyWithRounds(key, length, rounds);}
 
 	bool IsForwardTransformation() const {return DIR == ENCRYPTION;}
 
-	void SetKey(const byte *key, unsigned int length, const NameValuePairs &param = g_nullNameValuePairs)
+	void SetKey(const byte_u *key, unsigned int length, const NameValuePairs &param = g_nullNameValuePairs)
 	{
 		CheckedSetKey(this, DIR, key, length, param);
 	}
@@ -6600,8 +6605,8 @@ class CRYPTOPP_DLL NonblockingRng : public RandomNumberGenerator
 public:
 	NonblockingRng();
 	~NonblockingRng();
-	byte GenerateByte();
-	void GenerateBlock(byte *output, unsigned int size);
+	byte_u GenerateByte();
+	void GenerateBlock(byte_u *output, unsigned int size);
 
 protected:
 #ifdef CRYPTOPP_WIN32_AVAILABLE
@@ -6623,8 +6628,8 @@ class CRYPTOPP_DLL BlockingRng : public RandomNumberGenerator
 public:
 	BlockingRng();
 	~BlockingRng();
-	byte GenerateByte();
-	void GenerateBlock(byte *output, unsigned int size);
+	byte_u GenerateByte();
+	void GenerateBlock(byte_u *output, unsigned int size);
 
 protected:
 	int m_fd;
@@ -6632,7 +6637,7 @@ protected:
 
 #endif
 
-CRYPTOPP_DLL void OS_GenerateRandomBlock(bool blocking, byte *output, unsigned int size);
+CRYPTOPP_DLL void OS_GenerateRandomBlock(bool blocking, byte_u *output, unsigned int size);
 
 //! Automaticly Seeded Randomness Pool
 /*! This class seeds itself using an operating system provided RNG. */
