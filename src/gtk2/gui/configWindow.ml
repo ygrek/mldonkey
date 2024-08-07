@@ -397,11 +397,13 @@ let add_color_param ~p ~top ~(table : GPack.table) ?(h_label : GMisc.label optio
     let r = (Gdk.Color.red color) / 256 in
     let g = (Gdk.Color.green color) / 256 in
     let b = (Gdk.Color.blue color) / 256 in
-    let s = Printf.sprintf "%02X%02X%02X" r g b in
-    let _ =
-      for i = 1 to (String.length s) - 1 do
-        if s.[i] = ' ' then s.[i] <- '0'
-      done
+    let s =
+      let s = Bytes.unsafe_of_string @@ Printf.sprintf "%02X%02X%02X" r g b in
+      (* FIXME why start from 1 not 0? also seems this code is not needed, %02X takes care *)
+      for i = 1 to (Bytes.length s) - 1 do
+        if Bytes.get s i = ' ' then Bytes.set s i '0'
+      done;
+      Bytes.unsafe_to_string s
     in
     colv := "#" ^ s; 
     ("0x" ^ s ^ "FF")

@@ -440,16 +440,18 @@ let _ =
   done
 
 let normalize_availability avail =
-  let len = String.length avail in
+  let avail = Bytes.of_string avail in
+  let len = Bytes.length avail in
   for i = 0 to (len - 1) do
     if !!O.gtk_misc_use_availability_height
-      then if (int_of_char avail.[i]) > !!O.gtk_misc_availability_max
-        then avail.[i] <- (char_of_int !!O.gtk_misc_availability_max)
+      then if (int_of_char @@ Bytes.get avail i) > !!O.gtk_misc_availability_max
+        then Bytes.set avail i (char_of_int !!O.gtk_misc_availability_max)
         else ()
-      else if (int_of_char avail.[i]) > 1
-        then avail.[i] <- (char_of_int 1)
+      else if (int_of_char @@ Bytes.get avail i) > 1
+        then Bytes.set avail i (char_of_int 1)
         else ()
-  done
+  done;
+  Bytes.unsafe_to_string avail
 
 let get_availability_of availability chunks is_file =
   let height = 16 in
@@ -458,11 +460,8 @@ let get_availability_of availability chunks is_file =
     | Some chunks -> max 1 (VB.length chunks) in
   let avail =
     if is_file
-      then begin
-        let s = String.copy availability in
-        normalize_availability s;
-        s
-      end else availability
+      then normalize_availability availability
+      else availability
   in
   let key = (avail, chunks, is_file) in
   try
@@ -533,8 +532,7 @@ let clean_avail_bars list =
            List.map (fun (avail, chunks, is_file) ->
              if is_file
                then begin
-                 let s = String.copy avail in
-                 normalize_availability s;
+                 let s = normalize_availability avail in
                  (s, chunks, is_file)
              end else (avail, chunks, is_file)
            ) list

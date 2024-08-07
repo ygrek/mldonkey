@@ -73,14 +73,14 @@ let make_request url =
 let file_from_url url =
   try
     if not (Sys.file_exists cache_dir) then Unix.mkdir cache_dir 0o755;
-    let file = String.copy url in
-    for i = 0 to String.length file - 1 do
-      match file.[i] with
+    let file = Bytes.of_string url in
+    for i = 0 to Bytes.length file - 1 do
+      match Bytes.get file i with
         '/'
-      | '?' | '*' | '&' | ':' -> file.[i] <- '_'
+      | '?' | '*' | '&' | ':' -> Bytes.set file i '_'
       | _ -> ()
     done;
-    Filename.concat cache_dir file
+    Filename.concat cache_dir (Bytes.unsafe_to_string file)
   with _ -> ""
 
 (*************************************************************************)
@@ -522,8 +522,9 @@ let parse_hisohunt_desc stat s file_size found_title found_desc =
       let pos = pos + 6 in
       let s = String.sub s pos (len - pos) in
       let pos = String2.search_from s 0 "<br>" in
-      let size = String.sub s 0 pos in
-      size.[pos - 1] <- 'o';
+      let size = Bytes.unsafe_of_string @@ String.sub s 0 pos in
+      Bytes.set size (pos - 1) 'o';
+      let size = Bytes.unsafe_to_string size in
       let len = String.length s in
       let pos = String2.search_from s 0 "Seeds: " in
       let pos = pos + 7 in
