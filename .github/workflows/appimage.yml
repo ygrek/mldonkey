@@ -1,0 +1,116 @@
+# Manually triggered build of mlnet, mlgui and utils binaries and appimage with mlnet+gui
+
+name: Build AppImage
+
+on:
+  workflow_dispatch
+
+env:
+  APPIMAGEBUILDER_VERSION: 1.1.0
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run:  sudo apt-get install -y --no-install-recommends autoconf ocaml ocaml-findlib liblablgtk2-ocaml-dev camlp4 libnum-ocaml-dev libminiupnpc-dev libnatpmp-dev libbz2-dev librsvg2-dev libmagic-dev libgtk2.0-dev liblablgtk2-ocaml-dev liblablgtk2-gl-ocaml-dev liblablgtk2-gnome-ocaml-dev libgd-dev
+
+      - name: Configure options
+        run:  ./configure --enable-batch --enable-upnp-natpmp --disable-directconnect --disable-fasttrack --disable-gnutella --disable-gnutella2 --enable-gui=newgui2
+
+      - name: Build binaries
+        run:  make
+
+      - name: Build utils
+        run:  make utils
+
+      - name: Save version file
+        run:  |
+              ./mlnet -v 2>&1 | sed -ne "1s#^.*Starting MLDonkey \([^ ]\+\) .*#\1#p" > VERSION
+              echo "VERSION=$(cat VERSION)"
+
+      - name: Upload mlnet and mlgui binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlnet and mlgui
+          path: |
+                mlnet
+                mlgui
+                VERSION
+
+      - name: Upload utils
+        uses: actions/upload-artifact@v4
+        with:
+          name: Utils
+          path: |
+                bt_dht_node
+                copysources
+                get_range
+                make_torrent
+                mld_hash
+                subconv
+                svg_converter
+                VERSION
+          if-no-files-found: warn
+
+      - name: Upload mlnet+gui binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlnet+gui
+          path: |
+                mlnet+gui
+                VERSION
+          if-no-files-found: warn
+
+  appimage:
+    needs:   build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download mlnet+gui binary
+        uses: actions/download-artifact@v4
+        with:
+          name: mlnet+gui
+
+      - name: Install dependencies
+        run:  sudo apt-get install -y --no-install-recommends libfuse2
+
+      # env SOURCE_DIR=. doesn't work with --recipe packages/appimage/AppImageBuilder.yml
+      - name: Link recipe
+        run:  ln -s packages/appimage/AppImageBuilder.yml AppImageBuilder.yml
+
+      - name: Restore mlnet+gui executable permisions
+        run:  |
+              chmod +x mlnet+gui
+              ls -l
+
+      - name: Build AppImage
+        run:  |
+              # Get application version
+              APP_VERSION="$(cat VERSION)"
+              echo "APP_VERSION=$APP_VERSION"
+              export APP_VERSION
+              # Download appimage-builder
+              APPIMAGEBUILDER_FILE="appimage-builder-${APPIMAGEBUILDER_VERSION}-x86_64.AppImage"
+              APPIMAGEBUILDER_URL="https://github.com/AppImageCrafters/appimage-builder/releases/download/v${APPIMAGEBUILDER_VERSION}/${APPIMAGEBUILDER_FILE}"
+              wget "${APPIMAGEBUILDER_URL}"
+              ## Check the hash to verify that it was correctly downloaded
+              #echo "Checking hash"
+              #curl -L "${APPIMAGEBUILDER_URL}.zsync" \
+              #| sed -ne "1,9s/^sha-1:\s*\([[:xdigit:]]\{40\}\)/\1 *${APPIMAGEBUILDER_FILE}/ip" \
+              #| sha1sum --warn --check -
+              chmod +x "${APPIMAGEBUILDER_FILE}"
+              ./"${APPIMAGEBUILDER_FILE}" --skip-tests
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: mldonkey_AppImage
+          path: mldonkey-*.AppImage
+
