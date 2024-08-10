@@ -10,7 +10,10 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
 
     steps:
       - name: Checkout code
@@ -30,22 +33,25 @@ jobs:
 
       - name: Save version file
         run:  |
-              ./mlnet -v 2>&1 | sed -ne "1s#^.*Starting MLDonkey \([^ ]\+\) .*#\1#p" > VERSION
-              echo "VERSION=$(cat VERSION)"
+              VERSION=$(./mlnet -v 2>&1 | sed -ne "1s#^.*Starting MLDonkey \([^ ]\+\) .*#\1#p")
+              {
+              echo "APP_VERSION=$VERSION"
+              echo "HOST_TYPE=$HOSTTYPE"
+              echo "OS_TYPE=${{matrix.os}}"
+              } | tee -a $GITHUB_ENV
 
       - name: Upload mlnet and mlgui binaries
         uses: actions/upload-artifact@v4
         with:
-          name: mlnet and mlgui
+          name: mlnet-and-mlgui-${{env.APP_VERSION}}-${{env.HOST_TYPE}}-${{env.OS_TYPE}}
           path: |
                 mlnet
                 mlgui
-                VERSION
 
       - name: Upload utils
         uses: actions/upload-artifact@v4
         with:
-          name: Utils
+          name: mldonkey-utils-${{env.APP_VERSION}}-${{env.HOST_TYPE}}-${{env.OS_TYPE}}
           path: |
                 bt_dht_node
                 copysources
@@ -54,19 +60,22 @@ jobs:
                 mld_hash
                 subconv
                 svg_converter
-                VERSION
           if-no-files-found: warn
 
       - name: Upload mlnet+gui binary
         uses: actions/upload-artifact@v4
         with:
-          name: mlnet+gui
-          path: |
-                mlnet+gui
-                VERSION
+          name: mlnet+gui-${{env.APP_VERSION}}-${{env.HOST_TYPE}}-${{env.OS_TYPE}}
+          path: mlnet+gui
           if-no-files-found: warn
 
+    outputs:
+      APP_VERSION: ${{env.APP_VERSION}}
+      HOST_TYPE:   ${{env.HOST_TYPE}}
+      OS_TYPE:     ${{env.OS_TYPE}}
+
   appimage:
+    if: ${{ needs.build.outputs.OS_TYPE == 'ubuntu-22.04' }}
     needs:   build
     runs-on: ubuntu-22.04
     steps:
@@ -76,7 +85,7 @@ jobs:
       - name: Download mlnet+gui binary
         uses: actions/download-artifact@v4
         with:
-          name: mlnet+gui
+          name: mlnet+gui-${{needs.build.outputs.APP_VERSION}}-${{needs.build.outputs.HOST_TYPE}}-${{needs.build.outputs.OS_TYPE}}
 
       - name: Install dependencies
         run:  sudo apt-get install -y --no-install-recommends libfuse2
@@ -93,7 +102,7 @@ jobs:
       - name: Build AppImage
         run:  |
               # Get application version
-              APP_VERSION="$(cat VERSION)"
+              APP_VERSION="${{needs.build.outputs.APP_VERSION}}"
               echo "APP_VERSION=$APP_VERSION"
               export APP_VERSION
               # Download appimage-builder
@@ -111,6 +120,6 @@ jobs:
       - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: mldonkey_AppImage
+          name: mldonkey-${{needs.build.outputs.APP_VERSION}}-${{needs.build.outputs.HOST_TYPE}}.AppImage
           path: mldonkey-*.AppImage
 
