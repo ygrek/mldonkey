@@ -75,7 +75,7 @@ jobs:
       OS_TYPE:     ${{env.OS_TYPE}}
 
   appimage:
-    if: ${{ needs.build.outputs.OS_TYPE == 'ubuntu-22.04' }}
+    if: ${{ needs.build.outputs.OS_TYPE == 'ubuntu-22.04' && needs.build.outputs.HOST_TYPE == 'x86_64' }}
     needs:   build
     runs-on: ubuntu-22.04
     steps:
@@ -106,7 +106,7 @@ jobs:
               echo "APP_VERSION=$APP_VERSION"
               export APP_VERSION
               # Download appimage-builder
-              APPIMAGEBUILDER_FILE="appimage-builder-${APPIMAGEBUILDER_VERSION}-x86_64.AppImage"
+              APPIMAGEBUILDER_FILE="appimage-builder-${APPIMAGEBUILDER_VERSION}-${{needs.build.outputs.HOST_TYPE}}.AppImage"
               APPIMAGEBUILDER_URL="https://github.com/AppImageCrafters/appimage-builder/releases/download/v${APPIMAGEBUILDER_VERSION}/${APPIMAGEBUILDER_FILE}"
               wget "${APPIMAGEBUILDER_URL}"
               ## Check the hash to verify that it was correctly downloaded
