@@ -656,8 +656,13 @@ upnpPulse( ml_upnpmp_t * map )
             dbg_printf( "upnpDiscover failed (errno %d - %s)\n", errno,  str_errno( errno ) );
         }
         errno = 0;
+#if MINIUPNPC_API_VERSION <= 17
         if( UPNP_IGD_VALID_CONNECTED == UPNP_GetValidIGD( devlist, &map->upnpUrls, &map->upnpData,
         		map->lanaddr, sizeof( map->lanaddr ) ) )
+#else
+        if( UPNP_IGD_VALID_CONNECTED == UPNP_GetValidIGD( devlist, &map->upnpUrls, &map->upnpData,
+        		map->lanaddr, sizeof( map->lanaddr ), NULL, 0 ) )
+#endif
         {
             dbg_printf( "Found Internet Gateway Device \"%s\" \n", map->upnpUrls.controlURL );
             dbg_printf( "Local Address is \"%s\" \n", map->lanaddr );
