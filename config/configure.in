@@ -1269,12 +1269,14 @@ else
         y* | Y*)
 
          cd $PATCH_DIR
+         LABLGTK_DIST=lablgtk-"$REQUIRED_LABLGTK".tar.gz
          rm -rf lablgtk-"$REQUIRED_LABLGTK"
-         if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then
+         if test ! -f "$LABLGTK_DIST"; then
            echo Downloading ...
-           $WGET http://www.math.nagoya-u.ac.jp/~garrigue/soft/olabl/dist/lablgtk-"$REQUIRED_LABLGTK".tar.gz
+           $WGET -O "$LABLGTK_DIST".tmp http://www.math.nagoya-u.ac.jp/~garrigue/soft/olabl/dist/"$LABLGTK_DIST" && mv "$LABLGTK_DIST".tmp "$LABLGTK_DIST"
+           rm -f "$LABLGTK_DIST".tmp
          fi
-         if test ! -f lablgtk-"$REQUIRED_LABLGTK".tar.gz; then exit 1; fi
+         if test ! -f "$LABLGTK_DIST"; then exit 1; fi
 
          mkdir -p $BUILD_DIR
          cd $BUILD_DIR
