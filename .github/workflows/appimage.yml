@@ -7,6 +7,7 @@ on:
 
 env:
   APPIMAGEBUILDER_VERSION: 1.1.0
+  APPIMAGEBUILDER_SHA1SUM: 6f83a789f6c47a745b97d1b0b3f1df2e7eea7a09
 
 jobs:
   build:
@@ -31,7 +32,7 @@ jobs:
       - name: Build utils
         run:  make utils
 
-      - name: Save version file
+      - name: Save version
         run:  |
               VERSION=$(./mlnet -v 2>&1 | sed -ne "1s#^.*Starting MLDonkey \([^ ]\+\) .*#\1#p")
               {
@@ -109,11 +110,8 @@ jobs:
               APPIMAGEBUILDER_FILE="appimage-builder-${APPIMAGEBUILDER_VERSION}-${{needs.build.outputs.HOST_TYPE}}.AppImage"
               APPIMAGEBUILDER_URL="https://github.com/AppImageCrafters/appimage-builder/releases/download/v${APPIMAGEBUILDER_VERSION}/${APPIMAGEBUILDER_FILE}"
               wget "${APPIMAGEBUILDER_URL}"
-              ## Check the hash to verify that it was correctly downloaded
-              #echo "Checking hash"
-              #curl -L "${APPIMAGEBUILDER_URL}.zsync" \
-              #| sed -ne "1,9s/^sha-1:\s*\([[:xdigit:]]\{40\}\)/\1 *${APPIMAGEBUILDER_FILE}/ip" \
-              #| sha1sum --warn --check -
+              # Check the hash to verify that it was correctly downloaded
+              echo "${APPIMAGEBUILDER_SHA1SUM} *${APPIMAGEBUILDER_FILE}" | sha1sum --check --strict
               chmod +x "${APPIMAGEBUILDER_FILE}"
               ./"${APPIMAGEBUILDER_FILE}" --skip-tests
 
