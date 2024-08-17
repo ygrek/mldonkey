@@ -831,42 +831,41 @@ let availability_bar availability chunks b =
       Some pixb
     end else None
 
-let get_availability_bar_image avail chunks av_max is_file =
+let get_availability_bar_image (avail,chunks) av_max is_file =
+  let avail = Bytes.of_string avail in
   (match chunks with
-  | None -> 
-      for i = 0 to String.length avail - 1 do
-        avail.[i] <- char_of_int (av_max - 1)
+  | None ->
+      for i = 0 to Bytes.length avail - 1 do
+        Bytes.set avail i (char_of_int (av_max - 1))
       done
   | Some chunks ->
-      for i = 0 to String.length avail - 1 do
-        avail.[i] <-
-          char_of_int (match VB.get chunks i with
+      for i = 0 to Bytes.length avail - 1 do
+        Bytes.set avail i
+          (char_of_int (match VB.get chunks i with
           | VB.State_complete | VB.State_verified ->
               av_max
           | VB.State_missing ->
               let avail_int =
-                if is_file then int_of_char avail.[i]
-                else if int_of_char avail.[i] > 48 then 1 else 0
+                if is_file then int_of_char @@ Bytes.get avail i
+                else if int_of_char @@ Bytes.get avail i > 48 then 1 else 0
               in
               min (av_max - 2) avail_int
           | VB.State_partial ->
-              av_max - 1)
+              av_max - 1))
       done);
-  avail
+  Bytes.unsafe_to_string avail
 
-let sort_availability_bar (av1, chunks1) (av2, chunks2) is_file =
-  let s1 = String.copy av1 in
-  let s2 = String.copy av2 in
+let sort_availability_bar a1 a2 is_file =
   if !!O.gtk_misc_use_availability_height && is_file
     then begin
       let av_max = !!O.gtk_misc_availability_max + 2 in
-      let avail1 = get_availability_bar_image s1 chunks1 av_max is_file in
-      let avail2 = get_availability_bar_image s2 chunks2 av_max is_file in
+      let avail1 = get_availability_bar_image a1 av_max is_file in
+      let avail2 = get_availability_bar_image a2 av_max is_file in
       compare avail1 avail2
     end else begin
       let av_max = 3 in
-      let avail1 = get_availability_bar_image s1 chunks1 av_max is_file in
-      let avail2 = get_availability_bar_image s2 chunks2 av_max is_file in
+      let avail1 = get_availability_bar_image a1 av_max is_file in
+      let avail2 = get_availability_bar_image a2 av_max is_file in
       compare avail1 avail2
     end
 
