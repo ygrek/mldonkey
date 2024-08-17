@@ -1,0 +1,35 @@
+diff -ur lablgtk-2.14.2/src/ml_glib.c build/lablgtk-2.14.2/src/ml_glib.c
+--- src/ml_glib.c	2009-02-09 12:13:00.000000000 -0500
++++ src/ml_glib.c	2024-08-17 00:05:14.104452169 -0400
+@@ -162,6 +162,7 @@
+ static void ml_raise_gerror_exn(GError *, value *) Noreturn;
+ static void ml_raise_gerror_exn(GError *err, value *exn)
+ {
++  CAMLparam0();
+   CAMLlocal2(b, msg);
+   g_assert (err && exn);
+   msg = copy_string(err->message);
+diff -ur lablgtk-2.14.2/src/ml_rsvg.c build/lablgtk-2.14.2/src/ml_rsvg.c
+--- src/ml_rsvg.c	2007-06-20 03:40:34.000000000 -0400
++++ src/ml_rsvg.c	2024-08-17 00:05:25.827451573 -0400
+@@ -25,7 +25,7 @@
+ 
+ #include <gdk-pixbuf/gdk-pixbuf.h>
+ #include <librsvg/rsvg.h>
+-#include <librsvg/librsvg-features.h>
++#include <librsvg/rsvg-features.h>
+ #include <caml/mlvalues.h>
+ #include <caml/alloc.h>
+ #include <caml/memory.h>
+diff -ur lablgtk-2.14.2/src/Makefile build/lablgtk-2.14.2/src/Makefile
+--- src/Makefile	2010-06-25 05:23:44.000000000 -0400
++++ src/Makefile	2024-08-17 00:25:43.872389587 -0400
+@@ -336,7 +336,7 @@
+ 
+ install:
+ 	mkdir -p "$(INSTALLDIR)" "$(BINDIR)" "$(DLLDIR)"
+-	cp $(ALLOBJS:.cmo=.cmi) $(EXTRA_OBJS:.cmo=.cmi) "$(INSTALLDIR)"
++	cp $(ALLOBJS:.cmo=.cmi) $(EXTRA_OBJS:.cmo=.cmi) $(PROPOBJS:.cmo=.cmi) "$(INSTALLDIR)"
+ 	cp -p *.mli "$(INSTALLDIR)"
+ 	cp -p $(ALLOBJS:.cmo=.ml) $(ALLTHOBJS:.cmo=.ml) $(EXTRA_OBJS:.cmo=.ml) "$(INSTALLDIR)"
+ 	cp $(EXTRA_MLLIBS) $(MLLIBS) $(THOBJS) $(INITOBJS) $(THINITOBJS) "$(INSTALLDIR)"
