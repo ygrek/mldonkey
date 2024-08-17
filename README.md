@@ -7,15 +7,17 @@ see [issue #90](https://github.com/ygrek/mldonkey/issues/90) for the details and
 
 [GitHub Discussions](https://github.com/ygrek/mldonkey/discussions) serves as a replacement for the forum for the time being.
 
-Known issues
-============
+Build
+=====
 
-GTK2 GUI (./configure --enable-gui=newgui2) builds only in specific configuration when lablgtk2 packages are installed in $(ocamlc -where)/lablgtk2
-This happens to be true on Debian when building with packaged (system) ocaml :
+Supported OCaml versions are >= 4.03 and < 5.0, see mldonkey.opam for canonical information.
 
-  sudo apt install ocaml camlp4 libnum-ocaml-dev liblablgtk2-gnome-ocaml-dev
+GTK2 GUI (`./configure --enable-gui=newgui2`) builds only in specific configuration when lablgtk2 packages
+are installed in `$(ocamlc -where)/lablgtk2`. This happens to be true on Debian when building with packaged (system) ocaml :
 
-It doesn't work with opam - this is the goal for the next release.
+    sudo apt install ocaml camlp4 libnum-ocaml-dev liblablgtk2-gnome-ocaml-dev
 
-`./configure --enable-batch --enable-gui=newgui2` (ie download and build lablgtk2 locally) only works with old OCaml versions (unsafe-string)
-because it is using very old lablgtk2.  Upgrading to newer lablgtk2 is the goal for the next release
+It is known to not work with opam - this is the goal for the next release (only gui is affected, core itself builds fine in opam).
+
+`./configure --enable-batch --enable-gui=newgui2` (ie download and build lablgtk2 locally) only works with old OCaml versions (e.g. 4.05.0)
+because it is using very old lablgtk2.  Upgrading to the newer lablgtk2 is the goal for the next release
