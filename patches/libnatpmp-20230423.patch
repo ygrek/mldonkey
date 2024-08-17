@@ -1,0 +1,12 @@
+diff -ur libnatpmp-20230423/Makefile build/libnatpmp-20230423/Makefile
+--- libnatpmp-20230423/Makefile	2013-12-09 15:52:28.000000000 -0500
++++ build/libnatpmp-20230423/Makefile	2024-08-17 01:01:12.098281283 -0400
+@@ -56,7 +56,7 @@
+ endif
+ endif
+ 
+-HEADERS = natpmp.h
++HEADERS = natpmp.h natpmp_declspec.h
+ 
+ EXECUTABLES = testgetgateway natpmpc-shared natpmpc-static
+ 
