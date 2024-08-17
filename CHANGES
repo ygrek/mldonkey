@@ -4,6 +4,23 @@ at https://github.com/ygrek/mldonkey/issues
 Changelog
 =========
 
+3.2.0 - 2024/08/17
+------------------
+
+NB
+* supported OCaml versions now are from 4.03 up to 4.14
+* local (in-the-tree) build of OCaml is not supported anymore, you must have OCaml installed to build
+* newgui2 build is finicky, see README.md for details (tl;dr system packaged OCaml and lablgtk2 or --enable-batch with OCaml 4.05)
+
+* fix duplicated Content-Length header (#82)
+* Support miniupnpc 2.2.8 (#101, Sergey Fedorov)
+* upgrade upnp/natpmp libraries versions for in-the-tree build (--enable-force-upnp-natpmp)
+* fix setting network-specific options from command-line (#34)
+* fix build with newer (safe-string) OCaml (#98, #99, Luca Carlon)
+* some internal code and build system cleanup
+* CryptoPP build fixes (#62, #63, #66, Hin-Tak Leung, Jesús Pérez Rey (Chuso))
+* dark theme for the web interface (Luca Carlon)
+
 3.1.7-2 - 2020/07/05
 --------------------
 
