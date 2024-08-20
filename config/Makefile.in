@@ -273,17 +273,14 @@ COMMON_CLIENT_SRCS= \
 
 all: Makefile config/Makefile.config $(TARGET_TYPE)
 
-config/configure: config/configure.in
-	cd config; autoconf
-
 ifeq ("$(CONFIGURE_RUN)" , "yes")
 
-config/Makefile.config: config/configure config/Makefile.config.in $(LIB)/autoconf.ml.new.in packages/rpm/Makefile.in
+config/Makefile.config: config/Makefile.config.in $(LIB)/autoconf.ml.new.in packages/rpm/Makefile.in
 	./configure $(CONFIGURE_ARGUMENTS)
 
 else
 
-config/Makefile.config: Makefile config/configure config/Makefile.config.in
+config/Makefile.config: Makefile config/Makefile.config.in
 	@echo '******************************************'
 	@echo 
 	@echo 
@@ -1531,7 +1528,6 @@ distclean: releaseclean
 
 maintainerclean: distclean
 	echo rm -f $(GUI_CODE)/gui.ml $(GUI_CODE)/gui_zog.ml
-	rm -f config/configure
 	rm -f Makefile
 
 .PHONY: TAGS clean tmpclean moreclean releaseclean distclean maintainerclean ocamldoc_html
