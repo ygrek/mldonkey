@@ -53,9 +53,6 @@ jobs:
 
       - run: opam depext mldonkey --yes --with-doc --with-test
 
-      # required for source builds
-      - run: opam install conf-autoconf conf-m4
-
       - run: opam install . --deps-only --with-doc --with-test
 
       - run: opam exec -- ./configure --enable-debug

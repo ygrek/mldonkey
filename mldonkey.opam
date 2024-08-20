@@ -18,6 +18,7 @@ bug-reports: "https://github.com/ygrek/mldonkey/issues"
 depends: [
   "ocaml" {>= "4.03.0"}
   "camlp4"
+  "conf-m4"
   "conf-zlib"
   "num"
 ]

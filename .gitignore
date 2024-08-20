@@ -9,7 +9,6 @@
 /config/config.h
 /config/config.log
 /config/config.status
-/config/configure
 /config/mldonkey.rc
 
 /icons/rsvg/*.ml
