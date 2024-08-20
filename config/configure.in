@@ -8,6 +8,7 @@ AC_PREREQ([2.69])
 AC_INIT
 AC_CONFIG_SRCDIR([Makefile.config.in])
 AC_CONFIG_HEADER(config.h)
+AC_CONFIG_MACRO_DIR([m4])
 
 CONFIGURE_RUN=yes
 CONFIGURE_ARGUMENTS=$ac_configure_args
@@ -681,7 +682,7 @@ echo "-----------------------------------"
 echo "----- checking zlib (required)"
 AC_CHECK_LIB(z,inflate,,[echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1])
 AC_CHECK_HEADERS(zlib.h,,[echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1])
-AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1,)])
+AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1, zlib)])
 
 if test "$BZIP2" != "no"; then
   echo "----- checking bzlib (optional)"
@@ -689,7 +690,7 @@ if test "$BZIP2" != "no"; then
 fi
 
 if test "$BZIP2" = "yes"; then
-  AC_CHECK_LIB(bz2,BZ2_bzlibVersion,[AC_DEFINE(HAVE_BZLIBVERSION, 1,)])
+  AC_CHECK_LIB(bz2,BZ2_bzlibVersion,[AC_DEFINE(HAVE_BZLIBVERSION, 1, bzip2)])
   AC_DEFINE(USE_BZIP2, 1, [Define to 1 if you have bzip2 support.])
 else
   AC_MSG_NOTICE(bzlib not available)
@@ -867,7 +868,7 @@ if test "$GD" != "no"; then
 	GD_PNG=yes
         GD_LIBS="$GD_LIBS $PNG_LIBS"
         AC_MSG_RESULT(yes)
-	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1,)])
+	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1, libpng)])
         AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
       else
         AC_MSG_RESULT(no)
@@ -942,7 +943,7 @@ if test "$USE_PTHREAD" = "no"; then
  echo "You disabled thread support, this will hurt MLDonkey performance!"
 else
   echo "----- checking thread support (optional, strongly advised)"
-  ACX_PTHREAD
+  AX_PTHREAD
 fi
 
 # On linux plaforms, we will have to check that includes from kernel are
@@ -1031,12 +1032,14 @@ echo "--------------------------------------"
 	  DONKEY_SUI=no
 	else
 	  AC_MSG_RESULT(yes)
-	  ACX_CHECK_CXX_FLAGS(-fno-omit-frame-pointer,cv_no_omit_frame_pointer, CRYPTOPPFLAGS="-fno-omit-frame-pointer")
-	  ACX_CHECK_CXX_FLAGS(-mno-omit-leaf-frame-pointer,cv_no_omit_leaf_frame_pointer, CRYPTOPPFLAGS="$CRYPTOPPFLAGS -mno-omit-leaf-frame-pointer")
+    AC_LANG_PUSH([C++])
+	  AX_CHECK_COMPILE_FLAG(-fno-omit-frame-pointer,CRYPTOPPFLAGS="-fno-omit-frame-pointer",,,)
+	  AX_CHECK_COMPILE_FLAG(-mno-omit-leaf-frame-pointer,CRYPTOPPFLAGS="$CRYPTOPPFLAGS -mno-omit-leaf-frame-pointer",,,)
+    AC_LANG_POP([C++])
 	  CXX=$NEWCXX
 	  CXX_VERSION=`$CXX -dumpversion`
 	  DONKEY_SUI_FILE=DonkeySui1
-	  AC_DEFINE(HAVE_CRYPTOPP, 1,)
+	  AC_DEFINE(HAVE_CRYPTOPP, 1, cryptopp)
 	fi
       fi
 #      AC_MSG_CHECKING(eDonkey server)
