@@ -4539,8 +4539,6 @@ MINIMUM_OCAML=4.03.0
 
 REQUIRED_LABLGTK=1.2.7
 
-touch install-sh
-
 LABLGTK_NAME=lablgtk
 
 # **********                                                                                  **********
