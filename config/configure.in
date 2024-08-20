@@ -4,8 +4,9 @@
 # **********                                                                                  **********
 
 AC_REVISION(norev)
-AC_PREREQ(2.53)
-AC_INIT(Makefile.config.in)
+AC_PREREQ([2.69])
+AC_INIT
+AC_CONFIG_SRCDIR([Makefile.config.in])
 AC_CONFIG_HEADER(config.h)
 
 CONFIGURE_RUN=yes
@@ -813,9 +814,7 @@ if test "$GD" != "no"; then
 
   if test "$LIBGD" = "yes"; then
     AC_MSG_CHECKING(for gdImageCreate in -lgd)
-    AC_TRY_LINK([#include <gd.h>],
-    [gdImageCreate (0,0);],
-    [LIBGD=yes], [LIBGD=no])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <gd.h>]], [[gdImageCreate (0,0);]])],[LIBGD=yes],[LIBGD=no])
     AC_MSG_RESULT($LIBGD)
     LIBS=$SAVE_LIBS
 
@@ -853,9 +852,7 @@ if test "$GD" != "no"; then
       LIBGD_PNG=no
       LIBS=$GD_LIBS2
       AC_MSG_CHECKING(for gdImagePng in -lgd)
-      AC_TRY_LINK([#include <gd.h>],
-      [gdImagePng (0,0);],
-      [LIBGD_PNG=yes], [LIBGD_PNG=no])
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <gd.h>]], [[gdImagePng (0,0);]])],[LIBGD_PNG=yes],[LIBGD_PNG=no])
       AC_MSG_RESULT($LIBGD_PNG)
       LIBS=$SAVE_LIBS
 
@@ -886,9 +883,7 @@ if test "$GD" != "no"; then
       LIBGD_JPG=no
       LIBS=$GD_LIBS2
       AC_MSG_CHECKING(for gdImageJpeg in -lgd)
-      AC_TRY_LINK([#include <gd.h>],
-      [gdImageJpeg (0,0,0);],
-      [LIBGD_JPG=yes], [LIBGD_JPG=no])
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <gd.h>]], [[gdImageJpeg (0,0,0);]])],[LIBGD_JPG=yes],[LIBGD_JPG=no])
       AC_MSG_RESULT($LIBGD_JPG)
       LIBS=$SAVE_LIBS
 
@@ -931,10 +926,7 @@ if test "$ICONV" = "yes"; then
   else
   LIBS="$LIBS $LIBICONV"
   AC_CHECK_FUNCS([locale_charset],,
-  AC_TRY_LINK([#include <langinfo.h>],
-  [char* cs = nl_langinfo(CODESET);],
-  AC_MSG_NOTICE(found nl_langinfo(CODESET)),
-  [echo "Your iconv implementation is incomplete"; exit 1]))
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <langinfo.h>]], [[char* cs = nl_langinfo(CODESET);]])],[AC_MSG_NOTICE(found nl_langinfo(CODESET))],[echo "Your iconv implementation is incomplete"; exit 1]))
   AC_CHECK_LIB(charset,locale_charset)
   AC_CHECK_HEADERS([libcharset.h])
   AC_CHECK_HEADERS([langinfo.h])
@@ -1447,7 +1439,7 @@ AC_SUBST(NUMS_INCLUDE)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
-AC_OUTPUT(\
+AC_CONFIG_FILES([\
   Makefile.config \
   mldonkey.rc \
   $AUTOCONF.new $GTK_AUTOCONF.new \
@@ -1457,7 +1449,8 @@ AC_OUTPUT(\
    ../src/daemon/driver/driverGraphics.ml \
    ../packages/rpm/mldonkey.spec \
    ../packages/rpm/Makefile \
-   ../packages/slackware/mldonkey.options)
+   ../packages/slackware/mldonkey.options])
+AC_OUTPUT
 diff $AUTOCONF.new $AUTOCONF 2> /dev/null > /dev/null || cp -f $AUTOCONF.new $AUTOCONF
 diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTOCONF.new $GTK_AUTOCONF
 
