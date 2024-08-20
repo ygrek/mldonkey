@@ -24,7 +24,7 @@ cd config
 
 MAJOR_VERSION=3
 MINOR_VERSION=2
-SUB_VERSION=0   # range 0-7 due to eMule limitations
+SUB_VERSION=1   # range 0-7 due to eMule limitations
 
 # **********                                                                                  **********
 # **********                                  check for C compiler                            **********

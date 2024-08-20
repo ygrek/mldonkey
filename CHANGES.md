@@ -4,13 +4,19 @@ at https://github.com/ygrek/mldonkey/issues
 Changelog
 =========
 
+3.2.1 - 2024/08/19
+------------------
+
+* upgrade autoconf build system files
+* commit configure to git so that source archive is identical to the tag checkout
+* disable automatic invocation of autoconf
+
 3.2.0 - 2024/08/17
 ------------------
 
-NB
-* supported OCaml versions now are from 4.03 up to 4.14
-* local (in-the-tree) build of OCaml is not supported anymore, you must have OCaml installed to build
-* newgui2 build is finicky, see README.md for details (tl;dr system packaged OCaml and lablgtk2 or --enable-batch with OCaml 4.05)
+Supported OCaml versions now are from 4.03 up to 4.14, as a consequence local (in-the-tree) build of OCaml is not supported anymore, you must have OCaml installed to build.
+
+NB newgui2 build is finicky, see README.md for details (tl;dr system packaged OCaml and lablgtk2 or --enable-batch with OCaml 4.05)
 
 * fix duplicated Content-Length header (#82)
 * Support miniupnpc 2.2.8 (#101, Sergey Fedorov)
