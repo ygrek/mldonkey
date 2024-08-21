@@ -51,11 +51,15 @@ jobs:
 
       - run: opam pin add mldonkey.dev . --no-action
 
-      - run: opam depext mldonkey --yes --with-doc --with-test
+      # not needed, opam install will do it automatically
+      # - run: opam depext mldonkey --yes --with-doc --with-test
 
       - run: opam install . --deps-only --with-doc --with-test
 
-      - run: opam exec -- ./configure --enable-debug
+      # https://github.com/ocaml/setup-ocaml/issues/815#issuecomment-2204838759
+      # SHELLOPTS workaround for windows
+      # setting SHELLOPTS via GITHUB_ENV didn't work for some reason
+      - run: opam exec -- env SHELLOPTS=igncr sh ./configure --enable-debug
 
       - run: opam exec -- make
 
