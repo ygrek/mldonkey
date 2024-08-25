@@ -826,8 +826,6 @@ enable_profile
 enable_debug
 enable_dev
 enable_gui
-enable_pthread
-enable_pthread_lib
 enable_iconv
 enable_gd
 enable_bzip2
@@ -1497,8 +1495,6 @@ Optional Features:
   --enable-gui=oldgui|newgui1|newgui2
                           enable GUI (newgui2 uses GTK2 (default), other GUIs
                           use GTK1)
-  --disable-pthread       disable the use of pthread, hurts performance!
-  --enable-pthread-lib    legacy option
   --disable-iconv         disable the use of iconv
   --disable-gd            disable the use of gd
   --disable-bzip2         disable the use of bzip2
@@ -4574,7 +4570,6 @@ GD=yes
 BZIP2=yes
 MAGIC=yes
 ICONV=yes
-USE_PTHREAD=yes
 UPNP_NATPMP=no
 UPNP_NATPMP_FORCE=no
 
@@ -4627,7 +4622,6 @@ if  test "$MINIMUM" = "yes"  ||  test "$MINIMUM" = "all" ; then
   MAGIC=no
 fi
 if  test "$MINIMUM" = "all" ; then
-  USE_PTHREAD=no
   ICONV=no
 fi
 
@@ -4751,18 +4745,6 @@ if test ! "$GUI" = "newgui2"; then
       GUI=no
     fi
   fi
-fi
-
-# Check whether --enable-pthread was given.
-if test ${enable_pthread+y}
-then :
-  enableval=$enable_pthread; USE_PTHREAD="$enableval"
-fi
-
-# Check whether --enable-pthread-lib was given.
-if test ${enable_pthread_lib+y}
-then :
-  enableval=$enable_pthread_lib; USE_PTHREAD="$enableval"
 fi
 
 # Check whether --enable-iconv was given.
@@ -9638,12 +9620,8 @@ printf "%s\n" "#define DISABLE_ICONV 1" >>confdefs.h
   ICONV=no
 fi
 
-if test "$USE_PTHREAD" = "no"; then
- PTHREAD_LIBS=""
- echo "You disabled thread support, this will hurt MLDonkey performance!"
-else
-  echo "----- checking thread support (optional, strongly advised)"
-  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for a sed that does not truncate output" >&5
+echo "----- checking pthread support"
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for a sed that does not truncate output" >&5
 printf %s "checking for a sed that does not truncate output... " >&6; }
 if test ${ac_cv_path_SED+y}
 then :
@@ -10481,7 +10459,6 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-fi
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available. glibc version test was shamelessly taken from
@@ -13044,13 +13021,6 @@ echo ""
 echo "Core features:"
 
 echo " - zlib (required)   enabled"
-
-printf " - threads           "
-if test "$USE_PTHREAD" = "yes"; then
-  echo "enabled"
-else
-  echo "        disabled"
-fi
 
 printf " - bzip2             "
 if test "$BZIP2" = "yes"; then

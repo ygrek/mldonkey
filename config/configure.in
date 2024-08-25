@@ -292,7 +292,6 @@ GD=yes
 BZIP2=yes
 MAGIC=yes
 ICONV=yes
-USE_PTHREAD=yes
 UPNP_NATPMP=no
 UPNP_NATPMP_FORCE=no
 
@@ -336,7 +335,6 @@ if [ test "$MINIMUM" = "yes" ] || [ test "$MINIMUM" = "all" ]; then
   MAGIC=no
 fi
 if [ test "$MINIMUM" = "all" ]; then
-  USE_PTHREAD=no
   ICONV=no
 fi
 
@@ -415,12 +413,6 @@ if test ! "$GUI" = "newgui2"; then
   fi
 fi
 
-AC_ARG_ENABLE(pthread,
-  AS_HELP_STRING([--disable-pthread], [disable the use of pthread, hurts performance!]),
-  [USE_PTHREAD="$enableval"])
-AC_ARG_ENABLE(pthread-lib,
-  AS_HELP_STRING([--enable-pthread-lib], [legacy option]),
-  [USE_PTHREAD="$enableval"])
 AC_ARG_ENABLE(iconv,
   AS_HELP_STRING([--disable-iconv], [disable the use of iconv]),
   [ICONV="$enableval"])
@@ -936,13 +928,8 @@ else
   ICONV=no
 fi
 
-if test "$USE_PTHREAD" = "no"; then
- PTHREAD_LIBS=""
- echo "You disabled thread support, this will hurt MLDonkey performance!"
-else
-  echo "----- checking thread support (optional, strongly advised)"
-  AX_PTHREAD
-fi
+echo "----- checking pthread support"
+AX_PTHREAD
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available. glibc version test was shamelessly taken from
@@ -1552,13 +1539,6 @@ echo ""
 echo "Core features:"
 
 echo " - zlib (required)   enabled"
-
-printf " - threads           "
-if test "$USE_PTHREAD" = "yes"; then
-  echo "enabled"
-else
-  echo "        disabled"
-fi
 
 printf " - bzip2             "
 if test "$BZIP2" = "yes"; then

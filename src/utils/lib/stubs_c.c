@@ -777,7 +777,7 @@ static value addr_list_of_job(void)
   CAMLreturn(v_addr_list);
 }
 
-#if !defined(HAVE_PTHREAD) || (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT))
+#if (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT))
 
 value ml_ip_job_start(value job_v)
 {
@@ -804,7 +804,7 @@ value ml_has_pthread(value unit)
   return Val_false; 
 }
 
-#else  /* !defined(HAVE_PTHREAD) || (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT)) */
+#else  /* (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT)) */
 
 #include <string.h>
 #include <pthread.h>
@@ -922,7 +922,7 @@ value ml_has_pthread(value unit)
   return Val_true; 
 }
 
-#endif  /* !defined(HAVE_PTHREAD) || (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT)) */
+#endif  /* (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT)) */
 
 /*******************************************************************
 
@@ -1196,7 +1196,7 @@ external_start (void)
   }
 #endif  /* defined(__MINGW32__) */
 
-#if defined(HAVE_PTHREAD) && defined(PTW32_STATIC_LIB)
+#if defined(PTW32_STATIC_LIB)
 	pthread_win32_process_attach_np();
 #endif
 	return Val_unit;
@@ -1220,7 +1220,7 @@ external_exit (void)
   }
 #endif  /* defined(__MINGW32__) */
 
-#if defined(HAVE_PTHREAD) && defined(PTW32_STATIC_LIB)
+#if defined(PTW32_STATIC_LIB)
 	pthread_win32_process_detach_np();
 #endif
 
