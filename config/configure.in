@@ -1449,11 +1449,12 @@ echo "Building dependencies (if it blocks, try '$GNU_MAKE depend' to see the pro
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
 
 echo ""
-printf "Configuring MLDonkey %s" "$MLDONKEY_VERSION"
+printf "Configuring MLDonkey %s completed." "$MLDONKEY_VERSION"
 if test ! -z "$SCM_VERSION"; then
-  printf " - SCM: %s" "$SCM_VERSION"
+  echo " - SCM     $SCM_VERSION"
 fi
-echo " completed."
+echo " - host    $host"
+echo " - system  $SYSTEM"
 
 echo ""
 echo "Network modules:"
@@ -1617,6 +1618,7 @@ echo " - $CC version       $CC_VERSION"
 if test "x$CXX" != "x"; then
   echo " - $CXX version       $CXX_VERSION"
 fi
+
 echo ""
 echo "\nNow execute '$GNU_MAKE' to start compiling. Good luck!"
 
