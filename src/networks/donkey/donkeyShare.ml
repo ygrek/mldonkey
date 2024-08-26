@@ -272,8 +272,7 @@ let rec check_shared_files () =
                   job_creater ();
                 (* only try back-to-back hashing if hashing is
                    handled by a separate thread *)
-                if BasicSocket.has_threads () then
-                  check_shared_files ()
+                check_shared_files ()
             )
           with
             Wrong_file_size (real,computed) -> 

@@ -21,7 +21,9 @@
 
 #include <string.h> 
 #include <ctype.h>
-
+#include <pthread.h>
+#include <signal.h>
+#include <sys/time.h>
 
 #ifdef __MORPHOS__
 #include <inttypes.h>
@@ -680,8 +682,7 @@ value ml_setlcnumeric(value no)
 
 #define NETDB_BUFFER_SIZE 10000
 
-#if defined(_WIN32) || ( defined(__FreeBSD_version) && ( ((__FreeBSD_version >= 504102) && (__FreeBSD_version < 600000)) || (__FreeBSD_version >= 600029) ) )
-#define GETHOSTBYADDR_IS_REENTRANT 1
+#if defined(_WIN32) || defined(__CYGWIN__) || ( defined(__FreeBSD_version) && (__FreeBSD_version >= 600029) )
 #define GETHOSTBYNAME_IS_REENTRANT 1
 #endif /* _WIN32 */
 
@@ -738,12 +739,12 @@ static int ml_gethostbyname(char *hostname)
 #else
 #ifdef GETHOSTBYNAME_IS_REENTRANT
   enter_blocking_section();
-#endif  /* GETHOSTBYNAME_IS_REENTRANT */
+#endif
   hp = gethostbyname(hostname);
 #ifdef GETHOSTBYNAME_IS_REENTRANT
   leave_blocking_section();
-#endif /* GETHOSTBYNAME_IS_REENTRANT */
-#endif /* HAS_GETHOSTBYNAME_R == 5 */
+#endif
+#endif
 
   if (hp == (struct hostent *) NULL) return 0;
 
@@ -776,40 +777,6 @@ static value addr_list_of_job(void)
   }
   CAMLreturn(v_addr_list);
 }
-
-#if (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT))
-
-value ml_ip_job_start(value job_v)
-{
-  CAMLparam1(job_v);
-
-  char *hostname = String_val(Field(job_v,0));
-  if(ml_gethostbyname(hostname)){
-    Store_field(job_v, 1, addr_list_of_job())
-    Store_field(job_v, 2, Val_false);
-  } else {
-    Store_field(job_v, 2, Val_true);
-  }
-  CAMLreturn(Val_unit);
-}
-
-value ml_ip_job_done(value job_v)
-{
-  return Val_true;
-}
-
-
-value ml_has_pthread(value unit)
-{ 
-  return Val_false; 
-}
-
-#else  /* (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT)) */
-
-#include <string.h>
-#include <pthread.h>
-#include <signal.h>
-#include <sys/time.h>
 
 static int thread_started = 0;
 static int volatile ip_job_done = 1;
@@ -916,13 +883,6 @@ value ml_ip_job_start(value job_v)
 
   return Val_unit;
 }
-
-value ml_has_pthread(value unit)
-{
-  return Val_true; 
-}
-
-#endif  /* (!(HAS_GETHOSTBYNAME_R || GETHOSTBYNAME_IS_REENTRANT) && !defined(HAS_SIGWAIT)) */
 
 /*******************************************************************
 

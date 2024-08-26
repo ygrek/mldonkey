@@ -1911,7 +1911,7 @@ let buildinfo html buf =
   tack list 
     (
       "Features:\t",
-      (if BasicSocket.has_threads () then " threads" else " no-threads") ^
+      " threads" ^
       (let s = Zlib2.zlib_version_num () in 
          Printf.sprintf " zlib%s" (if s <> "" then "-" ^ s else "")) ^
       (if Autoconf.bzip2 then

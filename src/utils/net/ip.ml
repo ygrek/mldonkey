@@ -329,8 +329,6 @@ let _ =
             exn_log "ip_fifo immediate" f ip
           with Not_found ->
 (*                  lprintf "resolving name...\n"; *)
-            if !BasicSocket.use_threads && 
-              BasicSocket.has_threads () then
                 let job = {
                   handler = exn_log "ip_fifo handler" f;
                   err_handler = exn_log "ip_fifo err_handler" ferr;
@@ -340,11 +338,6 @@ let _ =
                 } in
                 current_job := Some job;
                 job_start job
-            else begin
-(*                      lprintf "from_name ...\n"; *)
-              exn_log "ip_fifo no threads" f (from_name name)
-                
-            end
           )
       | Some job ->
           if job_done job then begin
