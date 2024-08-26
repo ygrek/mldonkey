@@ -10460,6 +10460,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
+case "$SYSTEM" in
+  cygwin)
+    PTHREAD_CFLAGS=""
+    ;;
+esac
+
 # On linux plaforms, we will have to check that includes from kernel are
 # available. glibc version test was shamelessly taken from
 # http://public.activestate.com/gsar/APC/perl-5.8.x/Configure
