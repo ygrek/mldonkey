@@ -1,7 +1,7 @@
-#include <crypto++/rsa.h>
-#include <crypto++/osrng.h>
-#include <crypto++/base64.h>
-#include <crypto++/cryptlib.h>
+#include <cryptopp/rsa.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/base64.h>
+#include <cryptopp/cryptlib.h>
 
 // Standard stuff from other gpl clients, external for mldonkey. 
 

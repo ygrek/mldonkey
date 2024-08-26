@@ -9,18 +9,21 @@ Supported networks include:
  * HTTP/FTP
 MLdonkey core runs as a background daemon and provides several control
 interfaces : telnet, web, and binary protocol for third party GUIs."""
-maintainer: "ygrek@autistici.org"
+maintainer: "root@ygrek.org"
 authors: "mldonkey team"
 license: "GPL-2.0-only"
 homepage: "http://github.com/ygrek/mldonkey"
 dev-repo: "git+https://github.com/ygrek/mldonkey.git"
 bug-reports: "https://github.com/ygrek/mldonkey/issues"
+# mldonkey has many optional components (most of which depend on system libraries),
+# this set of dependencies here represents one arbitrary selection
 depends: [
   "ocaml" {>= "4.03.0"}
   "camlp4"
+  "conf-gd" {optional} # graphical stats
   "conf-m4"
   "conf-zlib"
-  "num"
+  "num" # technically optional, enables bittorrent
 ]
 build: [
   ["./configure" "--enable-debug" "--prefix" prefix]

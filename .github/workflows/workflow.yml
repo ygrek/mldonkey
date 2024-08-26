@@ -49,6 +49,35 @@ jobs:
         with:
           ocaml-compiler: ${{ matrix.ocaml-version }}
 
+      - run: sudo apt install libcrypto++-dev libminiupnpc-dev libnatpmp-dev libgd-dev
+        if: matrix.os == 'ubuntu-latest'
+
+      - run: brew install cryptopp miniupnpc libnatpmp gd
+        if: matrix.os == 'macos-latest'
+
+      - run: |
+          echo "CPATH=$HOMEBREW_PREFIX/include:$CPATH" >> $GITHUB_ENV
+          echo "LIBRARY_PATH=$HOMEBREW_PREFIX/lib:$LIBRARY_PATH" >> $GITHUB_ENV
+        if: matrix.os == 'macos-latest'
+
+      # https://cygwin.com/packages/ doesn't have cryptopp and many other packages
+      # I guess should build with mingw?
+      - run: D:\\cygwin\\setup-x86_64.exe "--root" "D:\\cygwin" "--quiet-mode" "unattended" "--no-shortcuts" "--no-startmenu" "--no-desktop" "--no-admin" "--no-version-check" "--no-write-registry" "--packages" "mingw64-x86_64-gd"
+        if: matrix.os == 'windows-latest'
+
+      - run: |
+          echo $CPATH
+          echo $C_INCLUDE_PATH
+          echo $LIBRARY_PATH
+          which -a pkg-config
+          # ls -hlA $HOMEBREW_PREFIX/lib/pkgconfig
+          # pkg-config --list-all
+          pkg-config --cflags libcrypto++ || true # NB libcryptopp on linux :facepalm.jpg:
+          pkg-config --libs libcrypto++ || true
+          echo "" | cpp -v || true
+        name: show build environment
+        continue-on-error: true
+
       - run: opam pin add mldonkey.dev . --no-action
 
       # not needed, opam install will do it automatically
@@ -59,7 +88,7 @@ jobs:
       # https://github.com/ocaml/setup-ocaml/issues/815#issuecomment-2204838759
       # SHELLOPTS workaround for windows
       # setting SHELLOPTS via GITHUB_ENV didn't work for some reason
-      - run: opam exec -- env SHELLOPTS=igncr sh ./configure --enable-debug
+      - run: opam exec -- env SHELLOPTS=igncr sh ./configure --enable-debug --enable-upnp-natpmp
 
       - run: opam exec -- make
 
