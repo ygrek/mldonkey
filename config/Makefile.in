@@ -302,7 +302,7 @@ Makefile: config/Makefile.in
 MAIN_SRCS=$(COMMON)/commonMain.ml
 
 ifeq ("$(DONKEY_SUI)", "yes")
-  CRYPTOPP_LIBS_flags += -cc '$(CXX) $(CXXFLAGS)' -ccopt '$(CRYPTOPPFLAGS)'
+  CRYPTOPP_LIBS_flags += -cc '$(CXX) $(CXXFLAGS)' -cclib '-lcryptopp' -ccopt '$(CRYPTOPPFLAGS)'
   DONKEY_SRCS += $(LIB)/CryptoPP.cc $(LIB)/CryptoPP_stubs.c $(SRC_DONKEY)/donkeySui1.ml $(SRC_DONKEY)/donkeySui.ml
 else
   DONKEY_SRCS += $(SRC_DONKEY)/donkeySui2.ml $(SRC_DONKEY)/donkeySui.ml
