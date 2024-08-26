@@ -456,7 +456,7 @@ if test "x$GNU_MAKE" != "x"; then
   $GNU_MAKE --version > /dev/null 2>&1
   if test "$?" != "0"; then
     AC_MSG_RESULT([no])
-	AC_MSG_ERROR(GNU make not found)
+        AC_MSG_ERROR(GNU make not found)
   else
     AC_MSG_RESULT([yes])
   fi
@@ -687,29 +687,29 @@ else
 fi
 
 if test "$UPNP_NATPMP_FORCE" = "yes"; then
-	UPNP_NATPMP=yes
-	cd $PATCH_DIR
-	MINIUPNPC=miniupnpc-2.2.8
-	LIBNATPMP=libnatpmp-20230423
-	$WGET http://miniupnp.tuxfamily.org/files/$MINIUPNPC.tar.gz
-	$WGET http://miniupnp.tuxfamily.org/files/$LIBNATPMP.tar.gz
-	mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
-	cd $BUILD_DIR
-	rm -rf $LIBNATPMP $MINIUPNPC
-	tar -xzf $PATCH_DIR/$MINIUPNPC.tar.gz
-	tar -xzf $PATCH_DIR/$LIBNATPMP.tar.gz
-	if test -f $PATCH_DIR/$LIBNATPMP.patch; then
-	  echo Patching ...
-	  patch -p0 < $PATCH_DIR/$LIBNATPMP.patch
-	fi
-	cd $BUILD_DIR/$LIBNATPMP
-	$GNU_MAKE all install PREFIX=$LOCAL_DIR
-	cd $BUILD_DIR/$MINIUPNPC
-	$GNU_MAKE all install PREFIX=$LOCAL_DIR/usr
-	cd $CONFIG_DIR
-	rm -rf $BUILD_DIR/$LIBNATPMP $BUILD_DIR/$MINIUPNPC
-	CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
-	LDFLAGS="${LDFLAGS} -L$LOCAL_DIR/usr/lib"
+        UPNP_NATPMP=yes
+        cd $PATCH_DIR
+        MINIUPNPC=miniupnpc-2.2.8
+        LIBNATPMP=libnatpmp-20230423
+        $WGET http://miniupnp.tuxfamily.org/files/$MINIUPNPC.tar.gz
+        $WGET http://miniupnp.tuxfamily.org/files/$LIBNATPMP.tar.gz
+        mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
+        cd $BUILD_DIR
+        rm -rf $LIBNATPMP $MINIUPNPC
+        tar -xzf $PATCH_DIR/$MINIUPNPC.tar.gz
+        tar -xzf $PATCH_DIR/$LIBNATPMP.tar.gz
+        if test -f $PATCH_DIR/$LIBNATPMP.patch; then
+          echo Patching ...
+          patch -p0 < $PATCH_DIR/$LIBNATPMP.patch
+        fi
+        cd $BUILD_DIR/$LIBNATPMP
+        $GNU_MAKE all install PREFIX=$LOCAL_DIR
+        cd $BUILD_DIR/$MINIUPNPC
+        $GNU_MAKE all install PREFIX=$LOCAL_DIR/usr
+        cd $CONFIG_DIR
+        rm -rf $BUILD_DIR/$LIBNATPMP $BUILD_DIR/$MINIUPNPC
+        CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
+        LDFLAGS="${LDFLAGS} -L$LOCAL_DIR/usr/lib"
 fi
 
 if test "$UPNP_NATPMP" = "yes"; then
@@ -855,10 +855,10 @@ if test "$GD" != "no"; then
       AC_MSG_CHECKING(for png support in libgd)
       if test "$LIBGD_PNG" = "yes"; then
         GD=yes
-	GD_PNG=yes
+        GD_PNG=yes
         GD_LIBS="$GD_LIBS $PNG_LIBS"
         AC_MSG_RESULT(yes)
-	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1, libpng)])
+        AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1, libpng)])
         AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
       else
         AC_MSG_RESULT(no)
@@ -886,7 +886,7 @@ if test "$GD" != "no"; then
       AC_MSG_CHECKING(for jpeg support in libgd)
       if test "$LIBGD_JPG" = "yes"; then
         GD=yes
-	GD_JPG=yes
+        GD_JPG=yes
         GD_LIBS="$GD_LIBS -ljpeg"
         AC_DEFINE(HAVE_GD_JPG, 1, [Define to 1 if you have jpg support in libgd.])
         AC_MSG_RESULT(yes)
@@ -944,7 +944,7 @@ case $host in
              AC_CHECK_HEADER(linux/types.h,[CONFIG_INCLUDES="-I /usr/src/linux/include"])
              CPPFLAGS=$OLD_CPPFLAGS]
            )
-	   AC_CHECK_HEADERS(gnu/libc-version.h,[AC_MSG_CHECKING(for GNU C Library version)
+           AC_CHECK_HEADERS(gnu/libc-version.h,[AC_MSG_CHECKING(for GNU C Library version)
 
 cat >try.c <<'EOCP'
 /* Find out version of GNU C library.  __GLIBC__ and __GLIBC_MINOR__
@@ -997,35 +997,35 @@ echo "--------------------------------------"
     if test -d ../src/networks/donkey; then
       AC_MSG_RESULT(yes)
       if test "$DONKEY_SUI" = "yes"; then
-	AC_PROG_CXX
+        AC_PROG_CXX
 
 # GCC miscompiles cryptopp.cc with -O2 on armhf
 # http://mldonkey.sourceforge.net/phpBB2/viewtopic.php?p=32309#32309
 # https://bugs.launchpad.net/ubuntu/+source/mldonkey/+bug/1060007
-	case "$host" in
-		armv7l-*-linux-gnueabihf)
-			CXXFLAGS="-g -Os"
-			;;
-	esac
+        case "$host" in
+                armv7l-*-linux-gnueabihf)
+                        CXXFLAGS="-g -Os"
+                        ;;
+        esac
 
-	AC_CHECK_TOOL(NEWCXX, [$CXX], [no])
-	AC_MSG_CHECKING(eMule SUI)
-	if test x"$NEWCXX" = x"no"
-	then
-	  AC_MSG_RESULT(no)
-	  CXX=
-	  DONKEY_SUI=no
-	else
-	  AC_MSG_RESULT(yes)
-    AC_LANG_PUSH([C++])
-	  AX_CHECK_COMPILE_FLAG(-fno-omit-frame-pointer,CRYPTOPPFLAGS="-fno-omit-frame-pointer",,,)
-	  AX_CHECK_COMPILE_FLAG(-mno-omit-leaf-frame-pointer,CRYPTOPPFLAGS="$CRYPTOPPFLAGS -mno-omit-leaf-frame-pointer",,,)
-    AC_LANG_POP([C++])
-	  CXX=$NEWCXX
-	  CXX_VERSION=`$CXX -dumpversion`
-	  DONKEY_SUI_FILE=DonkeySui1
-	  AC_DEFINE(HAVE_CRYPTOPP, 1, cryptopp)
-	fi
+        AC_CHECK_TOOL(NEWCXX, [$CXX], [no])
+        AC_MSG_CHECKING(eMule SUI)
+        if test x"$NEWCXX" = x"no"
+        then
+          AC_MSG_RESULT(no)
+          CXX=
+          DONKEY_SUI=no
+        else
+          AC_MSG_RESULT(yes)
+          AC_LANG_PUSH([C++])
+          AX_CHECK_COMPILE_FLAG(-fno-omit-frame-pointer,CRYPTOPPFLAGS="-fno-omit-frame-pointer",,,)
+          AX_CHECK_COMPILE_FLAG(-mno-omit-leaf-frame-pointer,CRYPTOPPFLAGS="$CRYPTOPPFLAGS -mno-omit-leaf-frame-pointer",,,)
+          AC_LANG_POP([C++])
+          CXX=$NEWCXX
+          CXX_VERSION=`$CXX -dumpversion`
+          DONKEY_SUI_FILE=DonkeySui1
+          AC_DEFINE(HAVE_CRYPTOPP, 1, cryptopp)
+        fi
       fi
 #      AC_MSG_CHECKING(eDonkey server)
 #      if test -d ../src/networks/server; then
@@ -1449,7 +1449,7 @@ echo "Building dependencies (if it blocks, try '$GNU_MAKE depend' to see the pro
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
 
 echo ""
-printf "Configuring MLDonkey %s completed." "$MLDONKEY_VERSION"
+printf "Configuring MLDonkey %s completed.\n" "$MLDONKEY_VERSION"
 if test ! -z "$SCM_VERSION"; then
   echo " - SCM     $SCM_VERSION"
 fi

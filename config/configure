@@ -4993,7 +4993,7 @@ printf %s "checking if $GNU_MAKE is GNU make ... " >&6; }
   if test "$?" != "0"; then
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }
-	as_fn_error $? "GNU make not found" "$LINENO" 5
+        as_fn_error $? "GNU make not found" "$LINENO" 5
   else
     { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
@@ -7005,29 +7005,29 @@ printf "%s\n" "$as_me: bzlib not available" >&6;}
 fi
 
 if test "$UPNP_NATPMP_FORCE" = "yes"; then
-	UPNP_NATPMP=yes
-	cd $PATCH_DIR
-	MINIUPNPC=miniupnpc-2.2.8
-	LIBNATPMP=libnatpmp-20230423
-	$WGET http://miniupnp.tuxfamily.org/files/$MINIUPNPC.tar.gz
-	$WGET http://miniupnp.tuxfamily.org/files/$LIBNATPMP.tar.gz
-	mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
-	cd $BUILD_DIR
-	rm -rf $LIBNATPMP $MINIUPNPC
-	tar -xzf $PATCH_DIR/$MINIUPNPC.tar.gz
-	tar -xzf $PATCH_DIR/$LIBNATPMP.tar.gz
-	if test -f $PATCH_DIR/$LIBNATPMP.patch; then
-	  echo Patching ...
-	  patch -p0 < $PATCH_DIR/$LIBNATPMP.patch
-	fi
-	cd $BUILD_DIR/$LIBNATPMP
-	$GNU_MAKE all install PREFIX=$LOCAL_DIR
-	cd $BUILD_DIR/$MINIUPNPC
-	$GNU_MAKE all install PREFIX=$LOCAL_DIR/usr
-	cd $CONFIG_DIR
-	rm -rf $BUILD_DIR/$LIBNATPMP $BUILD_DIR/$MINIUPNPC
-	CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
-	LDFLAGS="${LDFLAGS} -L$LOCAL_DIR/usr/lib"
+        UPNP_NATPMP=yes
+        cd $PATCH_DIR
+        MINIUPNPC=miniupnpc-2.2.8
+        LIBNATPMP=libnatpmp-20230423
+        $WGET http://miniupnp.tuxfamily.org/files/$MINIUPNPC.tar.gz
+        $WGET http://miniupnp.tuxfamily.org/files/$LIBNATPMP.tar.gz
+        mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
+        cd $BUILD_DIR
+        rm -rf $LIBNATPMP $MINIUPNPC
+        tar -xzf $PATCH_DIR/$MINIUPNPC.tar.gz
+        tar -xzf $PATCH_DIR/$LIBNATPMP.tar.gz
+        if test -f $PATCH_DIR/$LIBNATPMP.patch; then
+          echo Patching ...
+          patch -p0 < $PATCH_DIR/$LIBNATPMP.patch
+        fi
+        cd $BUILD_DIR/$LIBNATPMP
+        $GNU_MAKE all install PREFIX=$LOCAL_DIR
+        cd $BUILD_DIR/$MINIUPNPC
+        $GNU_MAKE all install PREFIX=$LOCAL_DIR/usr
+        cd $CONFIG_DIR
+        rm -rf $BUILD_DIR/$LIBNATPMP $BUILD_DIR/$MINIUPNPC
+        CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
+        LDFLAGS="${LDFLAGS} -L$LOCAL_DIR/usr/lib"
 fi
 
 if test "$UPNP_NATPMP" = "yes"; then
@@ -7679,11 +7679,11 @@ fi
 printf %s "checking for png support in libgd... " >&6; }
       if test "$LIBGD_PNG" = "yes"; then
         GD=yes
-	GD_PNG=yes
+        GD_PNG=yes
         GD_LIBS="$GD_LIBS $PNG_LIBS"
         { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
-	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for png_access_version_number in -lpng" >&5
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for png_access_version_number in -lpng" >&5
 printf %s "checking for png_access_version_number in -lpng... " >&6; }
 if test ${ac_cv_lib_png_png_access_version_number+y}
 then :
@@ -7858,7 +7858,7 @@ fi
 printf %s "checking for jpeg support in libgd... " >&6; }
       if test "$LIBGD_JPG" = "yes"; then
         GD=yes
-	GD_JPG=yes
+        GD_JPG=yes
         GD_LIBS="$GD_LIBS -ljpeg"
 
 printf "%s\n" "#define HAVE_GD_JPG 1" >>confdefs.h
@@ -10489,7 +10489,7 @@ fi
 fi
 
 done
-	          for ac_header in gnu/libc-version.h
+                  for ac_header in gnu/libc-version.h
 do :
   ac_fn_c_check_header_compile "$LINENO" "gnu/libc-version.h" "ac_cv_header_gnu_libc_version_h" "$ac_includes_default"
 if test "x$ac_cv_header_gnu_libc_version_h" = xyes
@@ -10934,13 +10934,13 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 # GCC miscompiles cryptopp.cc with -O2 on armhf
 # http://mldonkey.sourceforge.net/phpBB2/viewtopic.php?p=32309#32309
 # https://bugs.launchpad.net/ubuntu/+source/mldonkey/+bug/1060007
-	case "$host" in
-		armv7l-*-linux-gnueabihf)
-			CXXFLAGS="-g -Os"
-			;;
-	esac
+        case "$host" in
+                armv7l-*-linux-gnueabihf)
+                        CXXFLAGS="-g -Os"
+                        ;;
+        esac
 
-	if test -n "$ac_tool_prefix"; then
+        if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}$CXX", so it can be a program name with args.
 set dummy ${ac_tool_prefix}$CXX; ac_word=$2
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -11042,18 +11042,18 @@ else
   NEWCXX="$ac_cv_prog_NEWCXX"
 fi
 
-	{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking eMule SUI" >&5
+        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking eMule SUI" >&5
 printf %s "checking eMule SUI... " >&6; }
-	if test x"$NEWCXX" = x"no"
-	then
-	  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+        if test x"$NEWCXX" = x"no"
+        then
+          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }
-	  CXX=
-	  DONKEY_SUI=no
-	else
-	  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+          CXX=
+          DONKEY_SUI=no
+        else
+          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }
-    ac_ext=cpp
+          ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
@@ -11098,7 +11098,7 @@ else $as_nop
   :
 fi
 
-	  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether C++ compiler accepts -mno-omit-leaf-frame-pointer" >&5
+          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether C++ compiler accepts -mno-omit-leaf-frame-pointer" >&5
 printf %s "checking whether C++ compiler accepts -mno-omit-leaf-frame-pointer... " >&6; }
 if test ${ax_cv_check_cxxflags___mno_omit_leaf_frame_pointer+y}
 then :
@@ -11136,19 +11136,19 @@ else $as_nop
   :
 fi
 
-    ac_ext=c
+          ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-	  CXX=$NEWCXX
-	  CXX_VERSION=`$CXX -dumpversion`
-	  DONKEY_SUI_FILE=DonkeySui1
+          CXX=$NEWCXX
+          CXX_VERSION=`$CXX -dumpversion`
+          DONKEY_SUI_FILE=DonkeySui1
 
 printf "%s\n" "#define HAVE_CRYPTOPP 1" >>confdefs.h
 
-	fi
+        fi
       fi
 #      AC_MSG_CHECKING(eDonkey server)
 #      if test -d ../src/networks/server; then
@@ -12931,7 +12931,7 @@ echo "Building dependencies (if it blocks, try '$GNU_MAKE depend' to see the pro
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
 
 echo ""
-printf "Configuring MLDonkey %s completed." "$MLDONKEY_VERSION"
+printf "Configuring MLDonkey %s completed.\n" "$MLDONKEY_VERSION"
 if test ! -z "$SCM_VERSION"; then
   echo " - SCM     $SCM_VERSION"
 fi
