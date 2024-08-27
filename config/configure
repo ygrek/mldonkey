@@ -691,7 +691,6 @@ REQUIRED_LABLGTK
 GUI
 DONKEY_SERVER
 DONKEY_SUI_FILE
-CRYPTOPPFLAGS
 DONKEY_SUI
 DONKEY
 FASTTRACK
@@ -1961,6 +1960,39 @@ fi
   as_fn_set_status $ac_retval
 
 } # ac_fn_cxx_try_compile
+
+# ac_fn_cxx_check_header_compile LINENO HEADER VAR INCLUDES
+# ---------------------------------------------------------
+# Tests whether HEADER exists and can be compiled using the include files in
+# INCLUDES, setting the cache variable VAR accordingly.
+ac_fn_cxx_check_header_compile ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+printf %s "checking for $2... " >&6; }
+if eval test \${$3+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$4
+#include <$2>
+_ACEOF
+if ac_fn_cxx_try_compile "$LINENO"
+then :
+  eval "$3=yes"
+else $as_nop
+  eval "$3=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+eval ac_res=\$$3
+	       { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+printf "%s\n" "$ac_res" >&6; }
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_cxx_check_header_compile
 ac_configure_args_raw=
 for ac_arg
 do
@@ -10543,7 +10575,6 @@ echo "---------------------------------------------"
 echo ""
 
 CXX_VERSION=
-CRYPTOPPFLAGS=
 echo "--------------------------------------"
 echo "     Checking activated networks."
 echo "--------------------------------------"
@@ -10930,16 +10961,6 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-
-# GCC miscompiles cryptopp.cc with -O2 on armhf
-# http://mldonkey.sourceforge.net/phpBB2/viewtopic.php?p=32309#32309
-# https://bugs.launchpad.net/ubuntu/+source/mldonkey/+bug/1060007
-        case "$host" in
-                armv7l-*-linux-gnueabihf)
-                        CXXFLAGS="-g -Os"
-                        ;;
-        esac
-
         if test -n "$ac_tool_prefix"; then
   # Extract the first word of "${ac_tool_prefix}$CXX", so it can be a program name with args.
 set dummy ${ac_tool_prefix}$CXX; ac_word=$2
@@ -11042,17 +11063,13 @@ else
   NEWCXX="$ac_cv_prog_NEWCXX"
 fi
 
-        { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking eMule SUI" >&5
-printf %s "checking eMule SUI... " >&6; }
         if test x"$NEWCXX" = x"no"
         then
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
-printf "%s\n" "no" >&6; }
           CXX=
           DONKEY_SUI=no
         else
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
-printf "%s\n" "yes" >&6; }
+          CXX=$NEWCXX
+          CXX_VERSION=`$CXX -dumpversion`
           ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -11060,104 +11077,32 @@ ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ex
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether C++ compiler accepts -fno-omit-frame-pointer" >&5
-printf %s "checking whether C++ compiler accepts -fno-omit-frame-pointer... " >&6; }
-if test ${ax_cv_check_cxxflags___fno_omit_frame_pointer+y}
+       for ac_header in cryptopp/rsa.h
+do :
+  ac_fn_cxx_check_header_compile "$LINENO" "cryptopp/rsa.h" "ac_cv_header_cryptopp_rsa_h" "$ac_includes_default"
+if test "x$ac_cv_header_cryptopp_rsa_h" = xyes
 then :
-  printf %s "(cached) " >&6
-else $as_nop
+  printf "%s\n" "#define HAVE_CRYPTOPP_RSA_H 1" >>confdefs.h
 
-  ax_check_save_flags=$CXXFLAGS
-  CXXFLAGS="$CXXFLAGS  -fno-omit-frame-pointer"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main (void)
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"
-then :
-  ax_cv_check_cxxflags___fno_omit_frame_pointer=yes
 else $as_nop
-  ax_cv_check_cxxflags___fno_omit_frame_pointer=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-  CXXFLAGS=$ax_check_save_flags
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ax_cv_check_cxxflags___fno_omit_frame_pointer" >&5
-printf "%s\n" "$ax_cv_check_cxxflags___fno_omit_frame_pointer" >&6; }
-if test "x$ax_cv_check_cxxflags___fno_omit_frame_pointer" = xyes
-then :
-  CRYPTOPPFLAGS="-fno-omit-frame-pointer"
-else $as_nop
-  :
+  DONKEY_SUI=no
 fi
 
-          { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking whether C++ compiler accepts -mno-omit-leaf-frame-pointer" >&5
-printf %s "checking whether C++ compiler accepts -mno-omit-leaf-frame-pointer... " >&6; }
-if test ${ax_cv_check_cxxflags___mno_omit_leaf_frame_pointer+y}
-then :
-  printf %s "(cached) " >&6
-else $as_nop
-
-  ax_check_save_flags=$CXXFLAGS
-  CXXFLAGS="$CXXFLAGS  -mno-omit-leaf-frame-pointer"
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-int
-main (void)
-{
-
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_cxx_try_compile "$LINENO"
-then :
-  ax_cv_check_cxxflags___mno_omit_leaf_frame_pointer=yes
-else $as_nop
-  ax_cv_check_cxxflags___mno_omit_leaf_frame_pointer=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.beam conftest.$ac_ext
-  CXXFLAGS=$ax_check_save_flags
-fi
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $ax_cv_check_cxxflags___mno_omit_leaf_frame_pointer" >&5
-printf "%s\n" "$ax_cv_check_cxxflags___mno_omit_leaf_frame_pointer" >&6; }
-if test "x$ax_cv_check_cxxflags___mno_omit_leaf_frame_pointer" = xyes
-then :
-  CRYPTOPPFLAGS="$CRYPTOPPFLAGS -mno-omit-leaf-frame-pointer"
-else $as_nop
-  :
-fi
-
+done
           ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-          CXX=$NEWCXX
-          CXX_VERSION=`$CXX -dumpversion`
-          DONKEY_SUI_FILE=DonkeySui1
+          if test "$DONKEY_SUI" = "yes"; then
+            DONKEY_SUI_FILE=DonkeySui1
 
 printf "%s\n" "#define HAVE_CRYPTOPP 1" >>confdefs.h
 
+          fi
         fi
       fi
-#      AC_MSG_CHECKING(eDonkey server)
-#      if test -d ../src/networks/server; then
-#        AC_MSG_RESULT(no)
-#        DONKEY_SERVER=no
-#      else
-#        AC_MSG_RESULT(no)
-#        DONKEY_SERVER=no
-#      fi
     else
       DONKEY=no
       DONKEY_SUI=no
@@ -11548,7 +11493,6 @@ fi
 if test "$OS_FILES" = "mingw"; then
    OCAMLDEP_OPTIONS="-slash"
 fi
-
 
 
 
