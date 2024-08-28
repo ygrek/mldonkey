@@ -993,134 +993,90 @@ echo "--------------------------------------"
 
   if test "$DONKEY" = "yes"; then
     AC_MSG_CHECKING(eDonkey)
-    if test -d ../src/networks/donkey; then
-      AC_MSG_RESULT(yes)
-      if test "$DONKEY_SUI" = "yes"; then
-        AC_PROG_CXX
-        AC_CHECK_TOOL(NEWCXX, [$CXX], [no])
-        if test x"$NEWCXX" = x"no"
-        then
-          CXX=
-          DONKEY_SUI=no
-        else
-          CXX=$NEWCXX
-          CXX_VERSION=`$CXX -dumpversion`
-          AC_LANG_PUSH([C++])
-          AC_CHECK_HEADERS([cryptopp/rsa.h],,[DONKEY_SUI=no])
-          AC_LANG_POP([C++])
-          if test "$DONKEY_SUI" = "yes"; then
-            DONKEY_SUI_FILE=DonkeySui1
-            AC_DEFINE(HAVE_CRYPTOPP, 1, cryptopp)
-          fi
-        fi
-      fi
-    else
-      DONKEY=no
-      DONKEY_SUI=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   else
     DONKEY_SUI=no
   fi
 
+  if test "$DONKEY_SUI" = "yes"; then
+    AC_PROG_CXX
+    AC_CHECK_TOOL(NEWCXX, [$CXX], [no])
+    if test x"$NEWCXX" = x"no"
+    then
+      CXX=
+      DONKEY_SUI=no
+      AC_MSG_CHECKING(eDonkey SUI)
+      AC_MSG_RESULT(no - C++ compiler missing)
+    else
+      CXX=$NEWCXX
+      CXX_VERSION=`$CXX -dumpversion`
+      AC_LANG_PUSH([C++])
+      AC_CHECK_HEADERS([cryptopp/rsa.h],,[DONKEY_SUI=no])
+      AC_LANG_POP([C++])
+      AC_MSG_CHECKING(eDonkey SUI)
+      if test "$DONKEY_SUI" = "yes"; then
+        AC_MSG_RESULT(yes)
+        DONKEY_SUI_FILE=DonkeySui1
+        AC_DEFINE(HAVE_CRYPTOPP, 1, cryptopp)
+      else
+        AC_MSG_RESULT(no - CryptoPP library missing)
+      fi
+    fi
+  fi
+
   if test "$BITTORRENT" = "yes"; then
     AC_MSG_CHECKING(BitTorrent)
-    if test -d ../src/networks/bittorrent; then
-      if test "$NUMS" != "no"; then
-        AC_MSG_RESULT(yes)
-      else
-        BITTORRENT=no
-        AC_MSG_RESULT([no (ocaml num library missing)])
-      fi
+    if test "$NUMS" != "no"; then
+      AC_MSG_RESULT(yes)
     else
       BITTORRENT=no
-      AC_MSG_RESULT(no)
+      AC_MSG_RESULT([no - ocaml num library missing])
     fi
   fi
 
   if test "$FILETP" = "yes"; then
     AC_MSG_CHECKING(FileTP)
-    if test -d ../src/networks/fileTP; then
-      AC_MSG_RESULT(yes)
-    else
-      FILETP=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$GNUTELLA" = "yes"; then
     AC_MSG_CHECKING(Gnutella)
-    if test -d ../src/networks/gnutella; then
-      AC_MSG_RESULT(yes)
-    else
-      GNUTELLA=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$GNUTELLA2" = "yes"; then
     AC_MSG_CHECKING(G2)
-    if test -d ../src/networks/gnutella2; then
-      AC_MSG_RESULT(yes)
-    else
-      GNUTELLA2=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$FASTTRACK" = "yes"; then
     AC_MSG_CHECKING(Fasttrack)
-    if test -d ../src/networks/fasttrack; then
-      AC_MSG_RESULT(yes)
-    else
-      FASTTRACK=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$DIRECT_CONNECT" = "yes"; then
     AC_MSG_CHECKING(DirectConnect)
     if test "$BZIP2" = "yes"; then
-      if test -d ../src/networks/direct_connect; then
-        AC_MSG_RESULT(yes)
-      else
-        DIRECT_CONNECT=no
-        AC_MSG_RESULT(no)
-      fi
+      AC_MSG_RESULT(yes)
     else
       DIRECT_CONNECT=no
-      AC_MSG_RESULT(no - bzip2 support missing)
+      AC_MSG_RESULT([no - bzip2 library missing])
     fi
   fi
 
   if test "$SOULSEEK" = "yes"; then
     AC_MSG_CHECKING(Soulseek)
-    if test -d ../src/networks/soulseek; then
-      AC_MSG_RESULT(yes)
-    else
-      SOULSEEK=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$OPEN_NAPSTER" = "yes"; then
     AC_MSG_CHECKING(OpenNapster)
-    if test -d ../src/networks/opennap; then
-      AC_MSG_RESULT(yes)
-    else
-      OPEN_NAPSTER=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$OPENFT" = "yes"; then
     AC_MSG_CHECKING(OpenFT)
-    if test -d ../src/networks/openFT; then
-      AC_MSG_RESULT(yes)
-    else
-      OPENFT=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 echo "-----------------------------------------------"
 echo "     Checking activated networks finished."
@@ -1598,13 +1554,8 @@ if test "x$CXX" != "x"; then
 fi
 
 echo ""
-echo "\nNow execute '$GNU_MAKE' to start compiling. Good luck!"
+echo "Now execute '$GNU_MAKE' to start compiling. Good luck!"
 
 echo ""
 echo "To compile a static code execute:     $GNU_MAKE mlnet$COMPILE_TARGET.static"
-echo "To produce a release tarball execute: $GNU_MAKE release.mlnet.static"
 echo "To clean the build directory execute: $GNU_MAKE maintainerclean"
-if test "$DONKEY_SUI" = "yes"; then
-  echo ""
-  echo "Compiling CryptoPP.cc can take several minutes, on slow machines up to half an hour."
-fi
