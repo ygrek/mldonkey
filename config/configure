@@ -686,7 +686,6 @@ SCM_VERSION
 MLDONKEY_VERSION
 CHECKBOUNDS
 COMPRESS_EXT
-ARCH
 REQUIRED_LABLGTK
 GUI
 DONKEY_SERVER
@@ -703,8 +702,6 @@ GNUTELLA
 DIRECT_CONNECT
 OPEN_NAPSTER
 ICONV
-MD4COMP
-MD4ARCH
 LABLGL_CMXA
 LABLGL_CMA
 MORE_SUBDIRS
@@ -4469,21 +4466,6 @@ case "$host" in
   arm*-*-linux*)                arch=arm; system=linux;;
   ia64-*-linux*)                arch=ia64; system=linux;;
 esac
-
-MD4ARCH=$arch
-case $host in
-  i386-pc-linux*|i386-*-*bsd*) MD4COMP=as; MD4ARCH=i386;;
-  i486-pc-linux*|i486-*-*bsd*) MD4COMP=as; MD4ARCH=i486;;
-  i586-pc-linux*|i586-*-*bsd*) MD4COMP=as; MD4ARCH=i586;;
-  i686-pc-linux*|i686-*-*bsd*) MD4COMP=as; MD4ARCH=i686;;
-  i386-pc-mingw32*) MD4COMP=cc; MD4ARCH=i386;;
-  i486-pc-mingw32*) MD4COMP=cc; MD4ARCH=i486;;
-  i586-pc-mingw32*) MD4COMP=cc; MD4ARCH=i586;;
-  i686-pc-mingw32*) MD4COMP=cc; MD4ARCH=i686;;
-  *) MD4COMP=cc;;
-esac
-
-ARCH=$arch
 
 # Parse git version if available
 
@@ -11444,9 +11426,6 @@ fi
 if test "$OS_FILES" = "mingw"; then
    OCAMLDEP_OPTIONS="-slash"
 fi
-
-
-
 
 
 

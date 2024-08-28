@@ -172,52 +172,6 @@ if test "x$SYSTEM" = "xunknown"; then
   exit 1
 fi
 
-case "$host" in
-  alpha*-*-osf*)                arch=alpha; system=digital;;
-  alpha*-*-linux*)              arch=alpha; system=linux;;
-  alpha*-*-freebsd*)            arch=alpha; system=freebsd;;
-  alpha*-*-netbsd*)             arch=alpha; system=netbsd;;
-  alpha*-*-openbsd*)            arch=alpha; system=openbsd;;
-  sparc-*-sunos4.*)             arch=sparc; system=sunos;;
-  sparc-*-solaris2.*)           arch=sparc; system=solaris;;
-  sparc-*-*bsd*)                arch=sparc; system=bsd;;
-  sparc-*-linux*)               arch=sparc; system=linux;;
-  i?86-*-linux*)           arch=i386; system=linux;;
-  i386-*-*bsd*)            arch=i386; system=bsd;;
-  i486-*-*bsd*)            arch=i486; system=bsd;;
-  i586-*-*bsd*)            arch=i586; system=bsd;;
-  i686-*-*bsd*)            arch=i686; system=bsd;;
-  i?86-*-nextstep*)        arch=i386; system=nextstep;;
-  i?86-*-solaris*)         arch=i386; system=solaris;;
-  i?86-*-beos*)            arch=i386; system=beos;;
-  i?86-*-cygwin*)          arch=i386; system=cygwin;;
-  mips-*-irix6*)                arch=mips; system=irix;;
-  hppa1.1-*-hpux*)              arch=hppa; system=hpux;;
-  hppa1.1-*-nextstep*)          arch=hppa; system=nextstep;;
-  rs6000-*-aix*)                arch=power; model=rs6000; system=aix;;
-  powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
-  powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
-  powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
-  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody;;
-  arm*-*-linux*)                arch=arm; system=linux;;
-  ia64-*-linux*)                arch=ia64; system=linux;;
-esac
-
-MD4ARCH=$arch
-case $host in
-  i386-pc-linux*|i386-*-*bsd*) MD4COMP=as; MD4ARCH=i386;;
-  i486-pc-linux*|i486-*-*bsd*) MD4COMP=as; MD4ARCH=i486;;
-  i586-pc-linux*|i586-*-*bsd*) MD4COMP=as; MD4ARCH=i586;;
-  i686-pc-linux*|i686-*-*bsd*) MD4COMP=as; MD4ARCH=i686;;
-  i386-pc-mingw32*) MD4COMP=cc; MD4ARCH=i386;;
-  i486-pc-mingw32*) MD4COMP=cc; MD4ARCH=i486;;
-  i586-pc-mingw32*) MD4COMP=cc; MD4ARCH=i586;;
-  i686-pc-mingw32*) MD4COMP=cc; MD4ARCH=i686;;
-  *) MD4COMP=cc;;
-esac
-
-ARCH=$arch
-
 # Parse git version if available
 
 if test -d ../.git; then
@@ -1299,8 +1253,6 @@ AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
 AC_SUBST(LABLGL_CMA)
 AC_SUBST(LABLGL_CMXA)
-AC_SUBST(MD4ARCH)
-AC_SUBST(MD4COMP)
 AC_SUBST(ICONV)
 AC_SUBST(OPEN_NAPSTER)
 AC_SUBST(DIRECT_CONNECT)
@@ -1317,7 +1269,6 @@ AC_SUBST(DONKEY_SUI_FILE)
 AC_SUBST(DONKEY_SERVER)
 AC_SUBST(GUI)
 AC_SUBST(REQUIRED_LABLGTK)
-AC_SUBST(ARCH)
 AC_SUBST(COMPRESS)
 AC_SUBST(COMPRESS_EXT)
 AC_SUBST(CHECKBOUNDS)
