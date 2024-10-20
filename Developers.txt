@@ -1,1 +1,3 @@
 See docs/developers/Developers.txt
+
+To regenerate `configure` (after `configure.in` changes) do `cd config && autoconf`

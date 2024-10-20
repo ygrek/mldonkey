@@ -9,8 +9,9 @@
 /config/config.h
 /config/config.log
 /config/config.status
-/config/configure
 /config/mldonkey.rc
+/config/autom4te.cache
+/config/*~
 
 /icons/rsvg/*.ml
 /icons/rsvg/*.ml_icons

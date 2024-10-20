@@ -792,16 +792,11 @@ let http_add_text_header r ext =
   add_reply_header  r "Content-Type" ((ext_to_mime_type ext) ^ ";" ^ default_charset);
   add_gzip_headers r
 
-let http_add_bin_info_header r clen =
-  add_reply_header r "Accept-Ranges" "bytes";
-  add_reply_header r "Content-Length" (Printf.sprintf "%d" clen)
-  (* FIXME Content-Length is duplicated *)
-
 let http_add_bin_header r ext clen =
   http_file_type := ext_to_file_type ext;
   http_add_gen_header r;
   add_reply_header r "Content-Type" (ext_to_mime_type ext);
-  http_add_bin_info_header r clen
+  add_reply_header r "Accept-Ranges" "bytes"
 
 let http_add_bin_stream_header r ext =
   http_file_type := BIN;

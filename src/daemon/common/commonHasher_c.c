@@ -18,6 +18,11 @@
 */
 
 #include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+#include <signal.h>
+#include <sys/time.h>
+
 #include "../../../config/config.h"
 #include "../../utils/lib/os_stubs.h"
 
@@ -121,153 +126,6 @@ static void tiger_tree_fd(OS_FD fd, size_t len, OFF_T pos,
     }
   }
 }
-
-
-#ifndef HAVE_PTHREAD
-
-#define MAX_CHUNK_SIZE 1000000
-static OS_FD job_fd;
-static OFF_T job_pos;
-static OFF_T job_len;
-static value job_finished = 1;
-
-
-/*
-   This computes incrementally a Hash on a given file chunk. The 'timer'
-variables forces computations to wait at least for 1 second between 
-computations of MAX_CHUNK_SIZE(1 Mo) bytes hashes.
-*/
-
-#define PARTIAL_HASH(HASH_NAME,HASH_CONTEXT,HASH_INIT,HASH_APPEND,HASH_FINISH) \
-value HASH_NAME##_step(value job_v) \
-{ \
-  ssize_t nread; \
-  size_t ndone = 0; \
-  static int timer = 0; \
-  static  HASH_CONTEXT context; \
-  if(job_v == Val_unit) { \
-    HASH_INIT(&context); \
-    return Val_false; \
-  } \
-  if(--timer > 0) return Val_false; \
-  while (job_len>0 && ndone< MAX_CHUNK_SIZE){ \
-    size_t max_nread = HASH_BUFFER_LEN > job_len ? job_len : HASH_BUFFER_LEN; \
-     \
-    nread = os_read (job_fd, local_hash_buffer, max_nread); \
-     \
-    if(nread <= 0) { \
-      unix_error(errno, "partial_hash: Read", Nothing); \
-    } \
-     \
-    if(nread == 0){ \
-      unsigned char *digest = String_val(Field(job_v, JOB_RESULT)); \
-      HASH_FINISH (&context, digest); \
-      job_finished = 1; \
-      timer = 10; \
-      return Val_true; \
-    } \
-     \
-    HASH_APPEND (&context, local_hash_buffer, nread); \
-    job_len -= nread; \
-    ndone += nread; \
-  } \
-   \
-  if(job_len <= 0){ \
-    unsigned char *digest = String_val(Field(job_v, JOB_RESULT));       \
-    HASH_FINISH (&context, digest); \
-    job_finished = 1; \
-    timer = 10; \
-    return Val_true; \
-  } \
-  return Val_false;   \
-}
-
-PARTIAL_HASH(sha1,SHA1_CTX,sha1_begin,sha1_hash, sha1_end)
-PARTIAL_HASH(md5,md5_state_t,md5_init,md5_append,md5_finish)
-PARTIAL_HASH(md4,MD4_CTX,MD4Init,MD4Update,md4_finish)
-
-value ml_job_start(value job_v, value fd_v)
-{
-  unsigned char *digest = String_val(Field(job_v, JOB_RESULT));
-  
-  job_fd = Fd_val(fd_v);
-  job_pos = Int64_val(Field(job_v, JOB_BEGIN_POS));
-  job_len = Int64_val(Field(job_v, JOB_LEN));
-
-  if(Field(job_v, JOB_METHOD) == METHOD_MD4)
-  {
-    if(job_len < MAX_CHUNK_SIZE){
-      md4_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
-    } else {
-      job_finished = 0;
-      md4_step(Val_unit);
-      os_lseek(job_fd, job_pos, SEEK_SET);
-    }
-    return Val_unit; 
-  }
-  
-  if(Field(job_v, JOB_METHOD) == METHOD_MD5)
-  {
-    if(job_len < MAX_CHUNK_SIZE){
-      md5_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
-    } else {
-      job_finished = 0;
-      md5_step(Val_unit);
-      os_lseek(job_fd, job_pos, SEEK_SET);
-    }
-    return Val_unit; 
-  }
-  
-  if(Field(job_v, JOB_METHOD) == METHOD_SHA1)
-  {
-    if(job_len < MAX_CHUNK_SIZE){
-      sha1_unsafe64_fd_direct(job_fd, job_pos, job_len, digest); 
-    } else {
-      job_finished = 0;
-      sha1_step(Val_unit);
-      os_lseek(job_fd, job_pos, SEEK_SET);
-    }
-    return Val_unit; 
-  }
-  
-  if(Field(job_v, JOB_METHOD) == METHOD_TIGER)
-  {
-/* This does a complete computation on the chunk */
-    os_lseek(job_fd, job_pos, SEEK_SET);
-    tiger_tree_fd(job_fd, job_len, 0, tiger_block_size(job_len), digest);
-    return Val_unit;
-  }
-  
-  printf("commonHasher_c.c: method not implemented\n");
-  exit(2);
-
-  return Val_unit;
-}
-
-value ml_job_done(value job_v)
-{
-  if(job_finished) return Val_true;
-  
-  if(Field(job_v, JOB_METHOD) == METHOD_SHA1){
-    return sha1_step(job_v);
-  }
-  if(Field(job_v, JOB_METHOD) == METHOD_MD5){
-    return md5_step(job_v);
-  }
-  if(Field(job_v, JOB_METHOD) == METHOD_MD4){
-    return md4_step(job_v);
-  }
-  printf("commonHasher_c: spliting of computation not available for md4/md5\n");
-  exit(2);
-  return Val_false;
-}
-
-#else
-
-#include <string.h>
-#include <pthread.h>
-#include <signal.h>
-#include <sys/time.h>
 
 /* We use this shared variable for thread synchronization... yes, mutexes
 and conditions would be better... wait for the patch */
@@ -403,6 +261,4 @@ value ml_job_start(value job_v, value fd_v)
 
   return Val_unit;
 }
-
-#endif
 

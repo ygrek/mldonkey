@@ -4,9 +4,11 @@
 # **********                                                                                  **********
 
 AC_REVISION(norev)
-AC_PREREQ(2.53)
-AC_INIT(Makefile.config.in)
+AC_PREREQ([2.69])
+AC_INIT
+AC_CONFIG_SRCDIR([Makefile.config.in])
 AC_CONFIG_HEADER(config.h)
+AC_CONFIG_MACRO_DIR([m4])
 
 CONFIGURE_RUN=yes
 CONFIGURE_ARGUMENTS=$ac_configure_args
@@ -21,8 +23,8 @@ cd config
 # **********                                                                                  **********
 
 MAJOR_VERSION=3
-MINOR_VERSION=1
-SUB_VERSION=7   # range 0-7 due to eMule limitations
+MINOR_VERSION=2
+SUB_VERSION=1   # range 0-7 due to eMule limitations
 
 # **********                                                                                  **********
 # **********                                  check for C compiler                            **********
@@ -170,52 +172,6 @@ if test "x$SYSTEM" = "xunknown"; then
   exit 1
 fi
 
-case "$host" in
-  alpha*-*-osf*)                arch=alpha; system=digital;;
-  alpha*-*-linux*)              arch=alpha; system=linux;;
-  alpha*-*-freebsd*)            arch=alpha; system=freebsd;;
-  alpha*-*-netbsd*)             arch=alpha; system=netbsd;;
-  alpha*-*-openbsd*)            arch=alpha; system=openbsd;;
-  sparc-*-sunos4.*)             arch=sparc; system=sunos;;
-  sparc-*-solaris2.*)           arch=sparc; system=solaris;;
-  sparc-*-*bsd*)                arch=sparc; system=bsd;;
-  sparc-*-linux*)               arch=sparc; system=linux;;
-  i?86-*-linux*)           arch=i386; system=linux;;
-  i386-*-*bsd*)            arch=i386; system=bsd;;
-  i486-*-*bsd*)            arch=i486; system=bsd;;
-  i586-*-*bsd*)            arch=i586; system=bsd;;
-  i686-*-*bsd*)            arch=i686; system=bsd;;
-  i?86-*-nextstep*)        arch=i386; system=nextstep;;
-  i?86-*-solaris*)         arch=i386; system=solaris;;
-  i?86-*-beos*)            arch=i386; system=beos;;
-  i?86-*-cygwin*)          arch=i386; system=cygwin;;
-  mips-*-irix6*)                arch=mips; system=irix;;
-  hppa1.1-*-hpux*)              arch=hppa; system=hpux;;
-  hppa1.1-*-nextstep*)          arch=hppa; system=nextstep;;
-  rs6000-*-aix*)                arch=power; model=rs6000; system=aix;;
-  powerpc-*-aix*)               arch=power; model=ppc; system=aix;;
-  powerpc-*-linux*)             arch=power; model=ppc; system=elf;;
-  powerpc-*-rhapsody*)          arch=power; model=ppc; system=rhapsody;;
-  powerpc-*-darwin*)            arch=power; model=ppc; system=rhapsody;;
-  arm*-*-linux*)                arch=arm; system=linux;;
-  ia64-*-linux*)                arch=ia64; system=linux;;
-esac
-
-MD4ARCH=$arch
-case $host in
-  i386-pc-linux*|i386-*-*bsd*) MD4COMP=as; MD4ARCH=i386;;
-  i486-pc-linux*|i486-*-*bsd*) MD4COMP=as; MD4ARCH=i486;;
-  i586-pc-linux*|i586-*-*bsd*) MD4COMP=as; MD4ARCH=i586;;
-  i686-pc-linux*|i686-*-*bsd*) MD4COMP=as; MD4ARCH=i686;;
-  i386-pc-mingw32*) MD4COMP=cc; MD4ARCH=i386;;
-  i486-pc-mingw32*) MD4COMP=cc; MD4ARCH=i486;;
-  i586-pc-mingw32*) MD4COMP=cc; MD4ARCH=i586;;
-  i686-pc-mingw32*) MD4COMP=cc; MD4ARCH=i686;;
-  *) MD4COMP=cc;;
-esac
-
-ARCH=$arch
-
 # Parse git version if available
 
 if test -d ../.git; then
@@ -255,8 +211,6 @@ MINIMUM_OCAML=4.03.0
 
 REQUIRED_LABLGTK=1.2.7
 
-touch install-sh
-
 LABLGTK_NAME=lablgtk
 
 # **********                                                                                  **********
@@ -292,7 +246,6 @@ GD=yes
 BZIP2=yes
 MAGIC=yes
 ICONV=yes
-USE_PTHREAD=yes
 UPNP_NATPMP=no
 UPNP_NATPMP_FORCE=no
 
@@ -336,7 +289,6 @@ if [ test "$MINIMUM" = "yes" ] || [ test "$MINIMUM" = "all" ]; then
   MAGIC=no
 fi
 if [ test "$MINIMUM" = "all" ]; then
-  USE_PTHREAD=no
   ICONV=no
 fi
 
@@ -415,12 +367,6 @@ if test ! "$GUI" = "newgui2"; then
   fi
 fi
 
-AC_ARG_ENABLE(pthread,
-  AS_HELP_STRING([--disable-pthread], [disable the use of pthread, hurts performance!]),
-  [USE_PTHREAD="$enableval"])
-AC_ARG_ENABLE(pthread-lib,
-  AS_HELP_STRING([--enable-pthread-lib], [legacy option]),
-  [USE_PTHREAD="$enableval"])
 AC_ARG_ENABLE(iconv,
   AS_HELP_STRING([--disable-iconv], [disable the use of iconv]),
   [ICONV="$enableval"])
@@ -464,7 +410,7 @@ if test "x$GNU_MAKE" != "x"; then
   $GNU_MAKE --version > /dev/null 2>&1
   if test "$?" != "0"; then
     AC_MSG_RESULT([no])
-	AC_MSG_ERROR(GNU make not found)
+        AC_MSG_ERROR(GNU make not found)
   else
     AC_MSG_RESULT([yes])
   fi
@@ -680,7 +626,7 @@ echo "-----------------------------------"
 echo "----- checking zlib (required)"
 AC_CHECK_LIB(z,inflate,,[echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1])
 AC_CHECK_HEADERS(zlib.h,,[echo "Zlib missing, did you install zlib and zlib-developer packages?"; exit 1])
-AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1,)])
+AC_CHECK_LIB(z,zlibVersion,[AC_DEFINE(HAVE_ZLIBVERSION, 1, zlib)])
 
 if test "$BZIP2" != "no"; then
   echo "----- checking bzlib (optional)"
@@ -688,36 +634,36 @@ if test "$BZIP2" != "no"; then
 fi
 
 if test "$BZIP2" = "yes"; then
-  AC_CHECK_LIB(bz2,BZ2_bzlibVersion,[AC_DEFINE(HAVE_BZLIBVERSION, 1,)])
+  AC_CHECK_LIB(bz2,BZ2_bzlibVersion,[AC_DEFINE(HAVE_BZLIBVERSION, 1, bzip2)])
   AC_DEFINE(USE_BZIP2, 1, [Define to 1 if you have bzip2 support.])
 else
   AC_MSG_NOTICE(bzlib not available)
 fi
 
 if test "$UPNP_NATPMP_FORCE" = "yes"; then
-	UPNP_NATPMP=yes
-	cd $PATCH_DIR
-	MINIUPNPC=miniupnpc-2.2.8
-	LIBNATPMP=libnatpmp-20230423
-	$WGET http://miniupnp.tuxfamily.org/files/$MINIUPNPC.tar.gz
-	$WGET http://miniupnp.tuxfamily.org/files/$LIBNATPMP.tar.gz
-	mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
-	cd $BUILD_DIR
-	rm -rf $LIBNATPMP $MINIUPNPC
-	tar -xzf $PATCH_DIR/$MINIUPNPC.tar.gz
-	tar -xzf $PATCH_DIR/$LIBNATPMP.tar.gz
-	if test -f $PATCH_DIR/$LIBNATPMP.patch; then
-	  echo Patching ...
-	  patch -p0 < $PATCH_DIR/$LIBNATPMP.patch
-	fi
-	cd $BUILD_DIR/$LIBNATPMP
-	$GNU_MAKE all install PREFIX=$LOCAL_DIR
-	cd $BUILD_DIR/$MINIUPNPC
-	$GNU_MAKE all install PREFIX=$LOCAL_DIR/usr
-	cd $CONFIG_DIR
-	rm -rf $BUILD_DIR/$LIBNATPMP $BUILD_DIR/$MINIUPNPC
-	CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
-	LDFLAGS="${LDFLAGS} -L$LOCAL_DIR/usr/lib"
+        UPNP_NATPMP=yes
+        cd $PATCH_DIR
+        MINIUPNPC=miniupnpc-2.2.8
+        LIBNATPMP=libnatpmp-20230423
+        $WGET http://miniupnp.tuxfamily.org/files/$MINIUPNPC.tar.gz
+        $WGET http://miniupnp.tuxfamily.org/files/$LIBNATPMP.tar.gz
+        mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
+        cd $BUILD_DIR
+        rm -rf $LIBNATPMP $MINIUPNPC
+        tar -xzf $PATCH_DIR/$MINIUPNPC.tar.gz
+        tar -xzf $PATCH_DIR/$LIBNATPMP.tar.gz
+        if test -f $PATCH_DIR/$LIBNATPMP.patch; then
+          echo Patching ...
+          patch -p0 < $PATCH_DIR/$LIBNATPMP.patch
+        fi
+        cd $BUILD_DIR/$LIBNATPMP
+        $GNU_MAKE all install PREFIX=$LOCAL_DIR
+        cd $BUILD_DIR/$MINIUPNPC
+        $GNU_MAKE all install PREFIX=$LOCAL_DIR/usr
+        cd $CONFIG_DIR
+        rm -rf $BUILD_DIR/$LIBNATPMP $BUILD_DIR/$MINIUPNPC
+        CPPFLAGS="${CPPFLAGS} -I$LOCAL_DIR/usr/include"
+        LDFLAGS="${LDFLAGS} -L$LOCAL_DIR/usr/lib"
 fi
 
 if test "$UPNP_NATPMP" = "yes"; then
@@ -813,9 +759,7 @@ if test "$GD" != "no"; then
 
   if test "$LIBGD" = "yes"; then
     AC_MSG_CHECKING(for gdImageCreate in -lgd)
-    AC_TRY_LINK([#include <gd.h>],
-    [gdImageCreate (0,0);],
-    [LIBGD=yes], [LIBGD=no])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <gd.h>]], [[gdImageCreate (0,0);]])],[LIBGD=yes],[LIBGD=no])
     AC_MSG_RESULT($LIBGD)
     LIBS=$SAVE_LIBS
 
@@ -853,9 +797,7 @@ if test "$GD" != "no"; then
       LIBGD_PNG=no
       LIBS=$GD_LIBS2
       AC_MSG_CHECKING(for gdImagePng in -lgd)
-      AC_TRY_LINK([#include <gd.h>],
-      [gdImagePng (0,0);],
-      [LIBGD_PNG=yes], [LIBGD_PNG=no])
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <gd.h>]], [[gdImagePng (0,0);]])],[LIBGD_PNG=yes],[LIBGD_PNG=no])
       AC_MSG_RESULT($LIBGD_PNG)
       LIBS=$SAVE_LIBS
 
@@ -867,10 +809,10 @@ if test "$GD" != "no"; then
       AC_MSG_CHECKING(for png support in libgd)
       if test "$LIBGD_PNG" = "yes"; then
         GD=yes
-	GD_PNG=yes
+        GD_PNG=yes
         GD_LIBS="$GD_LIBS $PNG_LIBS"
         AC_MSG_RESULT(yes)
-	AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1,)])
+        AC_CHECK_LIB(png, png_access_version_number,[AC_DEFINE(HAVE_PNGVERSION, 1, libpng)])
         AC_DEFINE(HAVE_GD_PNG, 1, [Define to 1 if you have png support in libgd.])
       else
         AC_MSG_RESULT(no)
@@ -886,9 +828,7 @@ if test "$GD" != "no"; then
       LIBGD_JPG=no
       LIBS=$GD_LIBS2
       AC_MSG_CHECKING(for gdImageJpeg in -lgd)
-      AC_TRY_LINK([#include <gd.h>],
-      [gdImageJpeg (0,0,0);],
-      [LIBGD_JPG=yes], [LIBGD_JPG=no])
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <gd.h>]], [[gdImageJpeg (0,0,0);]])],[LIBGD_JPG=yes],[LIBGD_JPG=no])
       AC_MSG_RESULT($LIBGD_JPG)
       LIBS=$SAVE_LIBS
 
@@ -900,7 +840,7 @@ if test "$GD" != "no"; then
       AC_MSG_CHECKING(for jpeg support in libgd)
       if test "$LIBGD_JPG" = "yes"; then
         GD=yes
-	GD_JPG=yes
+        GD_JPG=yes
         GD_LIBS="$GD_LIBS -ljpeg"
         AC_DEFINE(HAVE_GD_JPG, 1, [Define to 1 if you have jpg support in libgd.])
         AC_MSG_RESULT(yes)
@@ -931,10 +871,7 @@ if test "$ICONV" = "yes"; then
   else
   LIBS="$LIBS $LIBICONV"
   AC_CHECK_FUNCS([locale_charset],,
-  AC_TRY_LINK([#include <langinfo.h>],
-  [char* cs = nl_langinfo(CODESET);],
-  AC_MSG_NOTICE(found nl_langinfo(CODESET)),
-  [echo "Your iconv implementation is incomplete"; exit 1]))
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <langinfo.h>]], [[char* cs = nl_langinfo(CODESET);]])],[AC_MSG_NOTICE(found nl_langinfo(CODESET))],[echo "Your iconv implementation is incomplete"; exit 1]))
   AC_CHECK_LIB(charset,locale_charset)
   AC_CHECK_HEADERS([libcharset.h])
   AC_CHECK_HEADERS([langinfo.h])
@@ -945,13 +882,8 @@ else
   ICONV=no
 fi
 
-if test "$USE_PTHREAD" = "no"; then
- PTHREAD_LIBS=""
- echo "You disabled thread support, this will hurt MLDonkey performance!"
-else
-  echo "----- checking thread support (optional, strongly advised)"
-  ACX_PTHREAD
-fi
+echo "----- checking pthread support"
+AX_PTHREAD
 
 # On linux plaforms, we will have to check that includes from kernel are
 # available. glibc version test was shamelessly taken from
@@ -966,7 +898,7 @@ case $host in
              AC_CHECK_HEADER(linux/types.h,[CONFIG_INCLUDES="-I /usr/src/linux/include"])
              CPPFLAGS=$OLD_CPPFLAGS]
            )
-	   AC_CHECK_HEADERS(gnu/libc-version.h,[AC_MSG_CHECKING(for GNU C Library version)
+           AC_CHECK_HEADERS(gnu/libc-version.h,[AC_MSG_CHECKING(for GNU C Library version)
 
 cat >try.c <<'EOCP'
 /* Find out version of GNU C library.  __GLIBC__ and __GLIBC_MINOR__
@@ -1009,159 +941,96 @@ echo "---------------------------------------------"
 echo ""
 
 CXX_VERSION=
-CRYPTOPPFLAGS=
 echo "--------------------------------------"
 echo "     Checking activated networks."
 echo "--------------------------------------"
 
   if test "$DONKEY" = "yes"; then
     AC_MSG_CHECKING(eDonkey)
-    if test -d ../src/networks/donkey; then
-      AC_MSG_RESULT(yes)
-      if test "$DONKEY_SUI" = "yes"; then
-	AC_PROG_CXX
-
-# GCC miscompiles cryptopp.cc with -O2 on armhf
-# http://mldonkey.sourceforge.net/phpBB2/viewtopic.php?p=32309#32309
-# https://bugs.launchpad.net/ubuntu/+source/mldonkey/+bug/1060007
-	case "$host" in
-		armv7l-*-linux-gnueabihf)
-			CXXFLAGS="-g -Os"
-			;;
-	esac
-
-	AC_CHECK_TOOL(NEWCXX, [$CXX], [no])
-	AC_MSG_CHECKING(eMule SUI)
-	if test x"$NEWCXX" = x"no"
-	then
-	  AC_MSG_RESULT(no)
-	  CXX=
-	  DONKEY_SUI=no
-	else
-	  AC_MSG_RESULT(yes)
-	  ACX_CHECK_CXX_FLAGS(-fno-omit-frame-pointer,cv_no_omit_frame_pointer, CRYPTOPPFLAGS="-fno-omit-frame-pointer")
-	  ACX_CHECK_CXX_FLAGS(-mno-omit-leaf-frame-pointer,cv_no_omit_leaf_frame_pointer, CRYPTOPPFLAGS="$CRYPTOPPFLAGS -mno-omit-leaf-frame-pointer")
-	  CXX=$NEWCXX
-	  CXX_VERSION=`$CXX -dumpversion`
-	  DONKEY_SUI_FILE=DonkeySui1
-	  AC_DEFINE(HAVE_CRYPTOPP, 1,)
-	fi
-      fi
-#      AC_MSG_CHECKING(eDonkey server)
-#      if test -d ../src/networks/server; then
-#        AC_MSG_RESULT(no)
-#        DONKEY_SERVER=no
-#      else
-#        AC_MSG_RESULT(no)
-#        DONKEY_SERVER=no
-#      fi
-    else
-      DONKEY=no
-      DONKEY_SUI=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   else
     DONKEY_SUI=no
   fi
 
+  if test "$DONKEY_SUI" = "yes"; then
+    AC_PROG_CXX
+    AC_CHECK_TOOL(NEWCXX, [$CXX], [no])
+    if test x"$NEWCXX" = x"no"
+    then
+      CXX=
+      DONKEY_SUI=no
+      AC_MSG_CHECKING(eDonkey SUI)
+      AC_MSG_RESULT(no - C++ compiler missing)
+    else
+      CXX=$NEWCXX
+      CXX_VERSION=`$CXX -dumpversion`
+      AC_LANG_PUSH([C++])
+      AC_CHECK_HEADERS([cryptopp/rsa.h],,[DONKEY_SUI=no])
+      AC_LANG_POP([C++])
+      AC_MSG_CHECKING(eDonkey SUI)
+      if test "$DONKEY_SUI" = "yes"; then
+        AC_MSG_RESULT(yes)
+        DONKEY_SUI_FILE=DonkeySui1
+        AC_DEFINE(HAVE_CRYPTOPP, 1, cryptopp)
+      else
+        AC_MSG_RESULT(no - CryptoPP library missing)
+      fi
+    fi
+  fi
+
   if test "$BITTORRENT" = "yes"; then
     AC_MSG_CHECKING(BitTorrent)
-    if test -d ../src/networks/bittorrent; then
-      if test "$NUMS" != "no"; then
-        AC_MSG_RESULT(yes)
-      else
-        BITTORRENT=no
-        AC_MSG_RESULT([no (ocaml num library missing)])
-      fi
+    if test "$NUMS" != "no"; then
+      AC_MSG_RESULT(yes)
     else
       BITTORRENT=no
-      AC_MSG_RESULT(no)
+      AC_MSG_RESULT([no - ocaml num library missing])
     fi
   fi
 
   if test "$FILETP" = "yes"; then
     AC_MSG_CHECKING(FileTP)
-    if test -d ../src/networks/fileTP; then
-      AC_MSG_RESULT(yes)
-    else
-      FILETP=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$GNUTELLA" = "yes"; then
     AC_MSG_CHECKING(Gnutella)
-    if test -d ../src/networks/gnutella; then
-      AC_MSG_RESULT(yes)
-    else
-      GNUTELLA=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$GNUTELLA2" = "yes"; then
     AC_MSG_CHECKING(G2)
-    if test -d ../src/networks/gnutella2; then
-      AC_MSG_RESULT(yes)
-    else
-      GNUTELLA2=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$FASTTRACK" = "yes"; then
     AC_MSG_CHECKING(Fasttrack)
-    if test -d ../src/networks/fasttrack; then
-      AC_MSG_RESULT(yes)
-    else
-      FASTTRACK=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$DIRECT_CONNECT" = "yes"; then
     AC_MSG_CHECKING(DirectConnect)
     if test "$BZIP2" = "yes"; then
-      if test -d ../src/networks/direct_connect; then
-        AC_MSG_RESULT(yes)
-      else
-        DIRECT_CONNECT=no
-        AC_MSG_RESULT(no)
-      fi
+      AC_MSG_RESULT(yes)
     else
       DIRECT_CONNECT=no
-      AC_MSG_RESULT(no - bzip2 support missing)
+      AC_MSG_RESULT([no - bzip2 library missing])
     fi
   fi
 
   if test "$SOULSEEK" = "yes"; then
     AC_MSG_CHECKING(Soulseek)
-    if test -d ../src/networks/soulseek; then
-      AC_MSG_RESULT(yes)
-    else
-      SOULSEEK=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$OPEN_NAPSTER" = "yes"; then
     AC_MSG_CHECKING(OpenNapster)
-    if test -d ../src/networks/opennap; then
-      AC_MSG_RESULT(yes)
-    else
-      OPEN_NAPSTER=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 
   if test "$OPENFT" = "yes"; then
     AC_MSG_CHECKING(OpenFT)
-    if test -d ../src/networks/openFT; then
-      AC_MSG_RESULT(yes)
-    else
-      OPENFT=no
-      AC_MSG_RESULT(no)
-    fi
+    AC_MSG_RESULT(yes)
   fi
 echo "-----------------------------------------------"
 echo "     Checking activated networks finished."
@@ -1384,8 +1253,6 @@ AC_SUBST(MORE_TARGETS)
 AC_SUBST(MORE_SUBDIRS)
 AC_SUBST(LABLGL_CMA)
 AC_SUBST(LABLGL_CMXA)
-AC_SUBST(MD4ARCH)
-AC_SUBST(MD4COMP)
 AC_SUBST(ICONV)
 AC_SUBST(OPEN_NAPSTER)
 AC_SUBST(DIRECT_CONNECT)
@@ -1398,12 +1265,10 @@ AC_SUBST(OPENFT)
 AC_SUBST(FASTTRACK)
 AC_SUBST(DONKEY)
 AC_SUBST(DONKEY_SUI)
-AC_SUBST(CRYPTOPPFLAGS)
 AC_SUBST(DONKEY_SUI_FILE)
 AC_SUBST(DONKEY_SERVER)
 AC_SUBST(GUI)
 AC_SUBST(REQUIRED_LABLGTK)
-AC_SUBST(ARCH)
 AC_SUBST(COMPRESS)
 AC_SUBST(COMPRESS_EXT)
 AC_SUBST(CHECKBOUNDS)
@@ -1447,7 +1312,7 @@ AC_SUBST(NUMS_INCLUDE)
 
 AUTOCONF=../src/utils/lib/autoconf.ml
 GTK_AUTOCONF=../src/utils/lib/gAutoconf.ml
-AC_OUTPUT(\
+AC_CONFIG_FILES([\
   Makefile.config \
   mldonkey.rc \
   $AUTOCONF.new $GTK_AUTOCONF.new \
@@ -1457,7 +1322,8 @@ AC_OUTPUT(\
    ../src/daemon/driver/driverGraphics.ml \
    ../packages/rpm/mldonkey.spec \
    ../packages/rpm/Makefile \
-   ../packages/slackware/mldonkey.options)
+   ../packages/slackware/mldonkey.options])
+AC_OUTPUT
 diff $AUTOCONF.new $AUTOCONF 2> /dev/null > /dev/null || cp -f $AUTOCONF.new $AUTOCONF
 diff $GTK_AUTOCONF.new $GTK_AUTOCONF 2> /dev/null > /dev/null || cp -f $GTK_AUTOCONF.new $GTK_AUTOCONF
 
@@ -1468,11 +1334,12 @@ echo "Building dependencies (if it blocks, try '$GNU_MAKE depend' to see the pro
 $GNU_MAKE depend 2> /dev/null > /dev/null || echo "Building dependencies fails: try: '$GNU_MAKE depend'"
 
 echo ""
-printf "Configuring MLDonkey %s" "$MLDONKEY_VERSION"
+printf "Configuring MLDonkey %s completed.\n" "$MLDONKEY_VERSION"
 if test ! -z "$SCM_VERSION"; then
-  printf " - SCM: %s" "$SCM_VERSION"
+  echo " - SCM     $SCM_VERSION"
 fi
-echo " completed."
+echo " - host    $host"
+echo " - system  $SYSTEM"
 
 echo ""
 echo "Network modules:"
@@ -1559,13 +1426,6 @@ echo "Core features:"
 
 echo " - zlib (required)   enabled"
 
-printf " - threads           "
-if test "$USE_PTHREAD" = "yes"; then
-  echo "enabled"
-else
-  echo "        disabled"
-fi
-
 printf " - bzip2             "
 if test "$BZIP2" = "yes"; then
   echo "enabled"
@@ -1643,14 +1503,10 @@ echo " - $CC version       $CC_VERSION"
 if test "x$CXX" != "x"; then
   echo " - $CXX version       $CXX_VERSION"
 fi
+
 echo ""
-echo "\nNow execute '$GNU_MAKE' to start compiling. Good luck!"
+echo "Now execute '$GNU_MAKE' to start compiling. Good luck!"
 
 echo ""
 echo "To compile a static code execute:     $GNU_MAKE mlnet$COMPILE_TARGET.static"
-echo "To produce a release tarball execute: $GNU_MAKE release.mlnet.static"
 echo "To clean the build directory execute: $GNU_MAKE maintainerclean"
-if test "$DONKEY_SUI" = "yes"; then
-  echo ""
-  echo "Compiling CryptoPP.cc can take several minutes, on slow machines up to half an hour."
-fi

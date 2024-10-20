@@ -100,7 +100,6 @@ external get_fd_num : Unix.file_descr -> int = "ml_get_fd_num" "noalloc"
 
 external select: t list -> float -> unit = "ml_select"
 external use_poll : bool -> unit = "ml_use_poll"
-external has_threads : unit -> bool = "ml_has_pthread"
 
 external setsock_iptos_throughput: Unix.file_descr -> int = "ml_setsock_iptos_throughput"
 
@@ -135,7 +134,6 @@ let loop_delay = ref 0.005
 let socket_keepalive = ref false
 let verbose_bandwidth = ref 0
 let bandwidth_second_timers = ref []
-let use_threads = ref true
 
 
 (*************************************************************************)
