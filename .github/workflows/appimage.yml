@@ -35,8 +35,9 @@ jobs:
       - name: Save version
         run:  |
               VERSION=$(./mlnet -v 2>&1 | sed -ne "1s#^.*Starting MLDonkey \([^ ]\+\) .*#\1#p")
+              echo "$VERSION" | grep -i git && COMMIT="_$(git rev-parse --short HEAD)"
               {
-              echo "APP_VERSION=$VERSION"
+              echo "APP_VERSION=${VERSION}${COMMIT}"
               echo "HOST_TYPE=$HOSTTYPE"
               echo "OS_TYPE=${{matrix.os}}"
               } | tee -a $GITHUB_ENV
