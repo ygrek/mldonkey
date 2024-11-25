@@ -583,10 +583,10 @@ let server_msg_to_string pkt =
   a hops = 0 *)
   buf_int buf 0;
   write buf pkt.pkt_payload;
-  let s = Buffer.contents buf in
-  let len = String.length s - 23 in
+  let s = Bytes.unsafe_of_string @@ Buffer.contents buf in
+  let len = Bytes.length s - 23 in
   str_int s 19 len;
-  s 
+  Bytes.unsafe_to_string s
 
 let new_packet t =
   { 
@@ -623,7 +623,7 @@ let udp_send ip port msg =
               (Ip.to_string ip) port
             (String.escaped s);
           end;
-        UdpSocket.write sock false s ip port;
+        UdpSocket.write sock false (Bytes.unsafe_of_string s) ip port;
 (*        UdpSocket.write sock s Ip.localhost !!client_port *)
       with e ->
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
@@ -653,15 +653,16 @@ let server_send_new s t =
 
 let gnutella_handler parse f handler sock =
   let b = TcpBufferedSocket.buf sock in
+  let bbuf = Bytes.unsafe_to_string b.buf in
 (*  lprintf "GNUTELLA HANDLER\n"; 
   dump (String.sub b.buf b.pos b.len); *)
   try
     while b.len >= 23 do
-      let msg_len = get_int b.buf (b.pos+19) in
+      let msg_len = get_int bbuf (b.pos+19) in
       if b.len >= 23 + msg_len then
         begin
-          let pkt_uid = get_md4 b.buf b.pos in
-          let pkt_type = match get_uint8 b.buf (b.pos+16) with
+          let pkt_uid = get_md4 bbuf b.pos in
+          let pkt_type = match get_uint8 bbuf (b.pos+16) with
               0 -> PING
             | 1 -> PONG
             | 2 -> BYE
@@ -672,9 +673,9 @@ let gnutella_handler parse f handler sock =
             | 129 -> QUERY_REPLY
             | n -> UNKNOWN n
           in
-          let pkt_ttl = get_uint8 b.buf  (b.pos+17) in
-          let pkt_hops = get_uint8 b.buf  (b.pos+18) in
-          let data = String.sub b.buf (b.pos+23) msg_len in
+          let pkt_ttl = get_uint8 bbuf  (b.pos+17) in
+          let pkt_hops = get_uint8 bbuf  (b.pos+18) in
+          let data = String.sub bbuf (b.pos+23) msg_len in
           buf_used b (msg_len + 23);
           let pkt = {
               pkt_uid = pkt_uid;
@@ -831,7 +832,7 @@ let create_qrt_table words table_size =
         ((array.(i*2) - old_array.(i*2)) land 15) lsl 4) + 
       ((array.(i*2+1) - old_array.(i*2+1)) land 15))
   done;
-  table
+  Bytes.unsafe_to_string table
 
 let send_qrt_sequence s update_table =
 

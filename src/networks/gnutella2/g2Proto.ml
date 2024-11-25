@@ -884,7 +884,7 @@ let resend_udp_packets () =
                 Fifo.take udp_packet_waiting_for_ack in
               if not !acked then begin
                   if !verbose then lprintf_nl "resend_udp_packets %s %d: %d" (Ip.to_string ip) port seq;
-                  UdpSocket.write sock false s ip port;
+                  UdpSocket.write sock false (Bytes.unsafe_of_string s) ip port;
                   if times < 3 then 
                     Fifo.put udp_packet_waiting_for_ack (s, ip, port, seq, 
                       times+1, 
@@ -923,7 +923,7 @@ let udp_send ip port msg =
           end;
         Fifo.put udp_packet_waiting_for_ack 
           (s, ip, port, !udp_counter, 0, last_time () + 10, ref false);
-        UdpSocket.write sock false s ip port;
+        UdpSocket.write sock false (Bytes.unsafe_of_string s) ip port;
 (*        UdpSocket.write sock s Ip.localhost !!client_port *)
       with e ->
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
@@ -938,7 +938,7 @@ let udp_send_ack ip port counter =
           (char_of_int ((counter lsr 8) land 0xff))
         in
         (* if !verbose then lprintf_nl "udp_send_ack: %s %d" (Ip.to_string ip) port; *)
-        UdpSocket.write sock false s ip port
+        UdpSocket.write sock false (Bytes.unsafe_of_string s) ip port
       with e ->
           lprintf "Exception %s in udp_send\n" (Printexc2.to_string e)
 
@@ -963,12 +963,12 @@ let g2_handler f gconn sock  =
 
   if !verbose then begin
     lprintf_nl "g2_handler:";
-    AnyEndian.dump_hex (String.sub b.buf b.pos b.len);
+    AnyEndian.dump_hex (Bytes.sub_string b.buf b.pos b.len);
   end;
 
   try
     while b.len >= 2 do
-      let s = b.buf in
+      let s = Bytes.unsafe_to_string b.buf in
       (* if !verbose then lprintf_nl "g2_tcp_packet_handler"; *)
       let cb = get_uint8 s b.pos in
       let len_len = (cb lsr 6) land 3 in
@@ -993,8 +993,8 @@ let g2_handler f gconn sock  =
       if b.len < msg_len then raise Not_found;
       
       (* if !verbose then lprintf_nl "One gnutella2 packet received";  *)
-      let name = String.sub b.buf (b.pos + pos) name_len in
-      let packet = String.sub b.buf (b.pos + pos + name_len) len in
+      let name = String.sub s (b.pos + pos) name_len in
+      let packet = String.sub s (b.pos + pos + name_len) len in
       let has_children = cb land 4 <> 0 in
       TcpBufferedSocket.buf_used b msg_len;
       f gconn (g2_parse [name] has_children be packet)
@@ -1479,14 +1479,14 @@ let on_send_pings () =
 let server_send_push s uid uri = ()
 
 let bitv_to_string bitv =
-  let s = String.make ((Bitv.length bitv) / 8) '\000' in
+  let s = Bytes.make ((Bitv.length bitv) / 8) '\000' in
   Bitv.iteri_true (fun i ->
       let pos = i / 8 in
       let bit = 7 - (i mod 8) in
       let x = (1 lsl bit) in
-      s.[pos] <- char_of_int ( (int_of_char s.[pos]) lor x );
+      Bytes.set s pos (char_of_int ( (int_of_char @@ Bytes.get s pos) lor x ));
   ) bitv;
-  s
+  Bytes.unsafe_to_string s
     
 (* http://www.gnutella2.com/index.php/Query_Hash_Tables *)
 let create_qrt_table words table_size =
