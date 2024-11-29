@@ -23,6 +23,7 @@ depends: [
   "conf-gd" {optional} # graphical stats
   "conf-m4"
   "conf-zlib"
+  "ocamlfind"
   "num" # technically optional, enables bittorrent
 ]
 build: [
