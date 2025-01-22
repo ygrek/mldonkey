@@ -722,28 +722,18 @@ static int ml_gethostbyname(char *hostname)
     struct hostent h;
     char buffer[NETDB_BUFFER_SIZE];
     int h_errno;
-    enter_blocking_section();
     hp = gethostbyname_r(hostname, &h, buffer, sizeof(buffer), &h_errno);
-    leave_blocking_section();
   }
 #elif HAS_GETHOSTBYNAME_R == 6
   {
     struct hostent h;
     char buffer[NETDB_BUFFER_SIZE];
     int h_errno, rc;
-    enter_blocking_section();
     rc = gethostbyname_r(hostname, &h, buffer, sizeof(buffer), &hp, &h_errno);
-    leave_blocking_section();
     if (rc != 0) hp = NULL;
   }
 #else
-#ifdef GETHOSTBYNAME_IS_REENTRANT
-  enter_blocking_section();
-#endif
   hp = gethostbyname(hostname);
-#ifdef GETHOSTBYNAME_IS_REENTRANT
-  leave_blocking_section();
-#endif
 #endif
 
   if (hp == (struct hostent *) NULL) return 0;
