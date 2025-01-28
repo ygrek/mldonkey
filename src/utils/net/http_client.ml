@@ -436,7 +436,7 @@ let wget r f =
       
       let base = Filename.basename r.req_url.Url.short_file in
       (* Base could be "." for http://site.com/ *)
-      let base = if base = "." 
+      let base = if base = "." || base = "/"
         then begin
           let prng = Random.State.make_self_init () in
           let rnd = (Random.State.bits prng) land 0xFFFFFF in
