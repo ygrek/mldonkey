@@ -129,6 +129,10 @@ let min_connections = 50
 
 let () =
   lprintf_nl "Starting MLDonkey %s ... " Autoconf.current_version;
+
+  Curl.global_init Curl.CURLINIT_GLOBALALL;
+  lprintf_nl "Curl initialized. Version: %s" (Curl.version ());
+
   let ulof_old = Unix2.c_getdtablesize () in
   lprintf_nl "Language %s, locale %s, ulimit for open files %d"
     Charset.Locale.default_language Charset.Locale.locale_string ulof_old;

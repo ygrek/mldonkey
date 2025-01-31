@@ -650,6 +650,8 @@ ac_header_c_list=
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
 NUMS_INCLUDE
+CURL_INCLUDE
+CURL_PATH
 OCAMLVERSION_MAJOR
 DEVFLAGS
 CONFIGURE_RUN
@@ -6098,6 +6100,35 @@ printf "%s\n" "no" >&6; }
 else
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: found $NUMS_INCLUDE" >&5
 printf "%s\n" "found $NUMS_INCLUDE" >&6; }
+fi
+
+CURL_INCLUDE=
+CURL=yes
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking ocaml curl library" >&5
+printf %s "checking ocaml curl library... " >&6; }
+CURL_PATH="`ocamlfind query curl 2> /dev/null`"
+if test "$CURL_PATH" != ""; then
+  CURL_INCLUDE="-I $CURL_PATH"
+else
+  CURL=no
+fi 
+if ! test -f $OCAMLLIB/curl.$OCAMLLIB_EXT; then
+  if test -f $OCAMLLIB/curl/curl.$OCAMLLIB_EXT; then
+    CURL_INCLUDE="-I +curl"
+  fi
+fi
+if ! test -f "$CURL_PATH/curl.$OCAMLLIB_EXT"; then
+  CURL=no
+fi
+
+if test "$CURL" = "no"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+  echo "ERROR: ocurl is missing"
+  exit 1
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: found $CURL_INCLUDE" >&5
+printf "%s\n" "found $CURL_INCLUDE" >&6; }
 fi
 
 echo ""

@@ -563,6 +563,28 @@ else
   AC_MSG_RESULT([found $NUMS_INCLUDE])
 fi
 
+CURL_INCLUDE=
+CURL=yes
+AC_MSG_CHECKING([ocaml curl bindings])
+if ! test -f $OCAMLLIB/curl.$OCAMLLIB_EXT; then
+  if test -f $OCAMLLIB/curl/curl.$OCAMLLIB_EXT; then
+    CURL_INCLUDE="-I +curl"
+  else
+    CURL_PATH="`ocamlfind query curl 2> /dev/null`"
+    if test "$CURL_PATH" != ""; then
+      CURL_INCLUDE="-I $CURL_PATH"
+    else
+      CURL=no
+    fi
+  fi
+fi
+
+if test "$CURL" = "no"; then
+  AC_MSG_RESULT([no])
+else
+  AC_MSG_RESULT([found $CURL_INCLUDE])
+fi
+
 echo ""
 echo "----------------------------------"
 echo "     Checking system headers."
