@@ -327,7 +327,110 @@ let send_update_old gui =
           gui.gui_events.gui_old_events <- List.rev list;
           gui.gui_events.gui_new_events <- [];
           true
-          
+
+let startup_time = Unix.gettimeofday()
+let send_sysinfo_data gui =
+  let bool_to_string b = if b then "true" else "false" in
+  let pair_list = [
+    ("buildinfo_version_core", "MLNet Multi-Network p2p client version " ^ Autoconf.current_version);
+    ("buildinfo_version_scm", Autoconf.scm_version);
+    ("buildinfo_version_ocaml", Sys.ocaml_version);
+    ("buildinfo_version_cc", Autoconf.cc_version);
+    ("buildinfo_version_cxx", Autoconf.cxx_version);
+    ("buildinfo_version_build_machine", Autoconf.build_system);
+    ("buildinfo_version_build_machine_glibc", Autoconf.glibc_version);
+    ("buildinfo_version_runtime_glibc", MlUnix.glibc_version_num ());
+    ("buildinfo_version_zlib", Zlib2.zlib_version_num ());
+    ("buildinfo_version_bzip2", if Autoconf.bzip2 then Misc2.bzlib_version_num () else "");
+    ("buildinfo_net_donkey", bool_to_string (Autoconf.donkey = "yes"));
+    ("buildinfo_net_bt", bool_to_string (Autoconf.bittorrent = "yes"));
+    ("buildinfo_net_dc", bool_to_string (Autoconf.direct_connect = "yes"));
+    ("buildinfo_net_ft", bool_to_string (Autoconf.fasttrack = "yes"));
+    ("buildinfo_net_gt", bool_to_string (Autoconf.gnutella = "yes"));
+    ("buildinfo_net_gt2", bool_to_string (Autoconf.gnutella2 = "yes"));
+    ("buildinfo_net_filetp", bool_to_string (Autoconf.filetp = "yes"));
+    ("buildinfo_gd", bool_to_string Autoconf.has_gd);
+    ("buildinfo_gd_jpg", bool_to_string Autoconf.has_gd_jpg);
+    ("buildinfo_gd_png", bool_to_string Autoconf.has_gd_png);
+    ("buildinfo_iconv", bool_to_string Autoconf.has_iconv);
+    ("buildinfo_iconv_conversion", bool_to_string !Charset.Locale.conversion_enabled);
+    ("buildinfo_magic", bool_to_string Autoconf.magic);
+    ("buildinfo_magic_works", bool_to_string !Autoconf.magic_works);
+    ("buildinfo_upnp_natpmp", bool_to_string Autoconf.upnp_natpmp);
+    ("buildinfo_check_bounds", bool_to_string Autoconf.check_bounds);
+    ("buildinfo_machine_endianness", Unix2.endianness ());
+    ("buildinfo_configure_args", Autoconf.configure_arguments);
+    ("buildinfo_patches", !patches_string);
+    ("buildinfo_threads", bool_to_string (BasicSocket.has_threads ()));
+    ("runinfo_user", gui.gui_conn.conn_user.ui_user.user_name);
+    ("runinfo_user_emptypwd", bool_to_string (has_empty_password gui.gui_conn.conn_user.ui_user));
+    ("runinfo_core_start_time", string_of_int (int_of_float (floor (startup_time +. 0.5))));
+    ("runinfo_core_uptime", string_of_int (last_time () - start_time));
+    ("runinfo_core_user", try (Unix.getpwuid (Unix.getuid ())).Unix.pw_name with | _ -> "");
+    ("runinfo_core_group", try (Unix.getgrgid (Unix.getgid())).Unix.gr_name with | _ -> "");
+    ("runinfo_net_donkey", bool_to_string (Autoconf.donkey = "yes" && !!enable_donkey));
+    ("runinfo_net_overnet", bool_to_string (Autoconf.donkey = "yes" && !!enable_overnet));
+    ("runinfo_net_kademlia", bool_to_string (Autoconf.donkey = "yes" && !!enable_kademlia));
+    ("runinfo_net_bt", bool_to_string (Autoconf.bittorrent = "yes" && !!enable_bittorrent));
+    ("runinfo_net_dc", bool_to_string (Autoconf.direct_connect = "yes" && !!enable_directconnect));
+    ("runinfo_net_ft", bool_to_string (Autoconf.fasttrack = "yes" && !!enable_fasttrack));
+    ("runinfo_net_gt", bool_to_string (Autoconf.gnutella = "yes" && !!enable_gnutella));
+    ("runinfo_net_gt2", bool_to_string (Autoconf.gnutella2 = "yes" && !!enable_gnutella2));
+    ("runinfo_net_filetp", bool_to_string (Autoconf.filetp = "yes" && !!enable_fileTP));
+    ("runinfo_server_usage", bool_to_string !!enable_servers);
+    ("runinfo_geoip", bool_to_string (Geoip.active ()));
+    ("runinfo_bloc_local", string_of_int (Ip_set.bl_length !CommonBlocking.ip_blocking_list));
+    ("runinfo_bloc_web", string_of_int (Ip_set.bl_length !CommonBlocking.web_ip_blocking_list));
+    ("runinfo_dns", bool_to_string !DriverInteractive.dns_works);
+    ("runinfo_host_machine", Unix32.uname ());
+    ("runinfo_host_machine_supported", bool_to_string (Unix32.os_supported ()));
+    ("runinfo_lang", Charset.Locale.default_language);
+    ("runinfo_locale", Charset.Locale.locale_string);
+    ("runinfo_tz", Rss_date.mk_timezone (Unix.time ()));
+    ("runinfo_max_string", string_of_int Sys.max_string_length);
+    ("runinfo_word_size", string_of_int Sys.word_size);
+    ("runinfo_max_arr_size", string_of_int Sys.max_array_length);
+    ("runinfo_max_int_size", string_of_int Pervasives.max_int);
+    ("runinfo_max_fds", string_of_int (Unix2.c_getdtablesize ()));
+    ("runinfo_max_file_size", string_of_int (Unix2.c_sizeofoff_t ()))
+  ] in
+  let ref_pair_list = ref pair_list in
+  networks_iter (fun r ->
+    List.iter (fun (p, s) -> if p <> 0 then ref_pair_list := !ref_pair_list @ [
+      ("port_" ^ (string_of_int p), r.network_name ^ "|" ^ s);
+    ]) (network_ports r)
+  );
+  List.iter (fun (p, s) -> if p <> 0 then ref_pair_list := !ref_pair_list @ [
+    ("port_" ^ (string_of_int p) ^ "_net", "Core" ^ "|" ^ s);
+  ]) (network_ports (network_find_by_name "Global Shares"));
+  let ref_dir_list = ref [
+    (Filename2.temp_dir_name (), "$MLDONKEY_TEMP");
+    (!!temp_directory, "temp/downloading");
+    (Sys.getcwd (), "core/ini files");
+  ] in
+  List.iter (fun dir ->
+    ref_dir_list := (dir.shdir_dirname, (Printf.sprintf "shared (%s)" dir.shdir_strategy))
+    :: !ref_dir_list) !!shared_directories;
+  List.iter ( fun (dir, strategy) ->
+    let diskused = match Unix32.diskused dir with
+    | None -> ""
+    | Some du -> Int64.to_string du
+    in
+    let diskfree = match Unix32.diskfree dir with
+    | None -> ""
+    | Some df -> Int64.to_string df
+    in
+    let percentfree = match Unix32.percentfree dir with
+    | None -> ""
+    | Some p -> string_of_int p
+    in
+    let filesystem = Unix32.filesystem dir in
+    ref_pair_list := !ref_pair_list @ [
+      ("dir_" ^ dir, strategy ^ "|" ^ diskused ^ "|" ^ diskfree ^ "|" ^ percentfree ^ "|" ^ filesystem)
+    ];
+  ) !ref_dir_list;
+  gui_send gui (P.SysInfo !ref_pair_list)
+
 let connecting_writer gui _ =
   try
     let rec iter list =
@@ -1077,6 +1180,8 @@ let gui_reader (gui: gui_record) t _ =
               let n = network_find_by_num num in
               let l = network_stat_info_list n in
               gui_send gui (P.Stats (num, l))
+          | P.GetSysInfo ->
+            send_sysinfo_data gui
 
           | P.GiftAttach (profile, version, client) ->
               let user, pass =
