@@ -1,0 +1,124 @@
+# Manually triggered build of mlnet, mlgui and utils binaries and appimage with mlnet+gui
+
+name: Build AppImage
+
+on:
+  workflow_dispatch
+
+env:
+  APPIMAGEBUILDER_VERSION: 1.1.0
+  APPIMAGEBUILDER_SHA1SUM: 6f83a789f6c47a745b97d1b0b3f1df2e7eea7a09
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run:  sudo apt-get install -y --no-install-recommends autoconf ocaml ocaml-findlib liblablgtk2-ocaml-dev camlp4 libnum-ocaml-dev libminiupnpc-dev libnatpmp-dev libbz2-dev librsvg2-dev libmagic-dev libgtk2.0-dev liblablgtk2-ocaml-dev liblablgtk2-gl-ocaml-dev liblablgtk2-gnome-ocaml-dev libgd-dev
+
+      - name: Configure options
+        run:  ./configure --enable-batch --enable-upnp-natpmp --disable-directconnect --disable-fasttrack --disable-gnutella --disable-gnutella2 --enable-gui=newgui2
+
+      - name: Build binaries
+        run:  make
+
+      - name: Build utils
+        run:  make utils
+
+      - name: Save version
+        run:  |
+              VERSION=$(./mlnet -v 2>&1 | sed -ne "1s#^.*Starting MLDonkey \([^ ]\+\) .*#\1#p")
+              echo "$VERSION" | grep -i git && COMMIT="_$(git rev-parse --short HEAD)"
+              {
+              echo "APP_VERSION=${VERSION}${COMMIT}"
+              echo "HOST_TYPE=$HOSTTYPE"
+              echo "OS_TYPE=${{matrix.os}}"
+              } | tee -a $GITHUB_ENV
+
+      - name: Upload mlnet and mlgui binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlnet-and-mlgui-${{env.APP_VERSION}}-${{env.HOST_TYPE}}-${{env.OS_TYPE}}
+          path: |
+                mlnet
+                mlgui
+
+      - name: Upload utils
+        uses: actions/upload-artifact@v4
+        with:
+          name: mldonkey-utils-${{env.APP_VERSION}}-${{env.HOST_TYPE}}-${{env.OS_TYPE}}
+          path: |
+                bt_dht_node
+                copysources
+                get_range
+                make_torrent
+                mld_hash
+                subconv
+                svg_converter
+          if-no-files-found: warn
+
+      - name: Upload mlnet+gui binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlnet+gui-${{env.APP_VERSION}}-${{env.HOST_TYPE}}-${{env.OS_TYPE}}
+          path: mlnet+gui
+          if-no-files-found: warn
+
+    outputs:
+      APP_VERSION: ${{env.APP_VERSION}}
+      HOST_TYPE:   ${{env.HOST_TYPE}}
+      OS_TYPE:     ${{env.OS_TYPE}}
+
+  appimage:
+    if: ${{ needs.build.outputs.OS_TYPE == 'ubuntu-22.04' && needs.build.outputs.HOST_TYPE == 'x86_64' }}
+    needs:   build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download mlnet+gui binary
+        uses: actions/download-artifact@v4
+        with:
+          name: mlnet+gui-${{needs.build.outputs.APP_VERSION}}-${{needs.build.outputs.HOST_TYPE}}-${{needs.build.outputs.OS_TYPE}}
+
+      - name: Install dependencies
+        run:  sudo apt-get install -y --no-install-recommends libfuse2
+
+      # env SOURCE_DIR=. doesn't work with --recipe packages/appimage/AppImageBuilder.yml
+      - name: Link recipe
+        run:  ln -s packages/appimage/AppImageBuilder.yml AppImageBuilder.yml
+
+      - name: Restore mlnet+gui executable permisions
+        run:  |
+              chmod +x mlnet+gui
+              ls -l
+
+      - name: Build AppImage
+        run:  |
+              # Get application version
+              APP_VERSION="${{needs.build.outputs.APP_VERSION}}"
+              echo "APP_VERSION=$APP_VERSION"
+              export APP_VERSION
+              # Download appimage-builder
+              APPIMAGEBUILDER_FILE="appimage-builder-${APPIMAGEBUILDER_VERSION}-${{needs.build.outputs.HOST_TYPE}}.AppImage"
+              APPIMAGEBUILDER_URL="https://github.com/AppImageCrafters/appimage-builder/releases/download/v${APPIMAGEBUILDER_VERSION}/${APPIMAGEBUILDER_FILE}"
+              wget "${APPIMAGEBUILDER_URL}"
+              # Check the hash to verify that it was correctly downloaded
+              echo "${APPIMAGEBUILDER_SHA1SUM} *${APPIMAGEBUILDER_FILE}" | sha1sum --check --strict
+              chmod +x "${APPIMAGEBUILDER_FILE}"
+              ./"${APPIMAGEBUILDER_FILE}" --skip-tests
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: mldonkey-${{needs.build.outputs.APP_VERSION}}-${{needs.build.outputs.HOST_TYPE}}.AppImage
+          path: mldonkey-*.AppImage
+

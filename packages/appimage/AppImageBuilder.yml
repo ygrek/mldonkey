@@ -1,0 +1,88 @@
+# appimage-builder recipe see https://appimage-builder.readthedocs.io for details
+version: 1
+
+script:
+  # Remove any previous build
+  - rm -rf AppDir
+  # Make some needed dirs
+  - mkdir -p "$TARGET_APPDIR"/usr/bin
+  - mkdir -p "$TARGET_APPDIR"/usr/share/icons/default
+  - mkdir -p "$TARGET_APPDIR"/usr/share/applications
+  # Copy the application data into the AppDir
+  - cp "$SOURCE_DIR"/mlnet+gui                         "$TARGET_APPDIR"/usr/bin/
+  - cp "$SOURCE_DIR"/distrib/mldonkey.desktop          "$TARGET_APPDIR"/usr/share/applications
+  - cp "$SOURCE_DIR"/icons/rsvg/type_source_normal.svg "$TARGET_APPDIR"/usr/share/icons/default/mldonkey.svg
+
+AppDir:
+  path: ./AppDir
+  app_info:
+    id: mldonkey
+    name: mldonkey
+    icon: mldonkey
+    version: ${APP_VERSION}
+    exec: usr/bin/mlnet+gui
+    exec_args: $@
+  apt:
+    arch:
+      - amd64
+    sources:
+      - sourceline: 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy main restricted universe multiverse'
+        key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920d1991bc93c'
+      - sourceline: 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-updates main restricted universe multiverse'
+      - sourceline: 'deb [arch=amd64] http://archive.ubuntu.com/ubuntu jammy-backports main restricted universe multiverse'
+      - sourceline: 'deb [arch=amd64] http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse'
+      - sourceline: 'deb [arch=amd64] http://archive.canonical.com/ubuntu/ jammy partner'
+    include:
+      - ca-certificates
+      - libc6
+      - bzip2
+      - librsvg2-2
+      - libmagic1
+      - libmagic-mgc
+      - libminiupnpc17
+      - libnatpmp1
+      - libgtk2.0-0
+      - libatk-adaptor
+      - libgail-common
+      - libgd3
+      - perl-base
+      - dash
+      - make
+  files:
+    include:
+      - lib64/ld-linux-x86-64.so.2
+      - /usr/lib/file/libmagic-mgc
+    exclude:
+      - usr/share/man
+      - usr/share/doc/*/ANNOUNCE*
+      - usr/share/doc/*/AUTHORS*
+      - usr/share/doc/*/FAQ*
+      - usr/share/doc/*/HOWTO*
+      - usr/share/doc/*/NEWS*
+      - usr/share/doc/*/README*
+      - usr/share/doc/*/THANKS*
+      - usr/share/doc/*/TODO*
+      - usr/share/doc/*/changelog*
+      - usr/share/doc/*/copyright*
+      - usr/share/doc/*/examples/*
+  test:
+    fedora-30:
+      image: appimagecrafters/tests-env:fedora-30
+      command: ./AppRun
+    debian-stable:
+      image: appimagecrafters/tests-env:debian-stable
+      command: ./AppRun
+    archlinux-latest:
+      image: appimagecrafters/tests-env:archlinux-latest
+      command: ./AppRun
+    centos-7:
+      image: appimagecrafters/tests-env:centos-7
+      command: ./AppRun
+    ubuntu-xenial:
+      image: appimagecrafters/tests-env:ubuntu-xenial
+      command: ./AppRun
+AppImage:
+  arch: x86_64
+  update-information: None
+#  sign-key: None
+
