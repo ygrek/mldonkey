@@ -563,20 +563,20 @@ else
   AC_MSG_RESULT([found $NUMS_INCLUDE])
 fi
 
-CURL_INCLUDE=
 CURL=yes
-AC_MSG_CHECKING([ocaml curl bindings])
-if ! test -f $OCAMLLIB/curl.$OCAMLLIB_EXT; then
-  if test -f $OCAMLLIB/curl/curl.$OCAMLLIB_EXT; then
-    CURL_INCLUDE="-I +curl"
-  else
-    CURL_PATH="`ocamlfind query curl 2> /dev/null`"
-    if test "$CURL_PATH" != ""; then
-      CURL_INCLUDE="-I $CURL_PATH"
-    else
-      CURL=no
-    fi
-  fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking ocaml curl library" >&5
+printf %s "checking ocaml curl library... " >&6; }
+CURL_INCLUDE="`ocamlfind query -i-format curl 2> /dev/null`"
+if test "$CURL_INCLUDE" == ""; then
+  CURL=no
+fi
+CURL_LIB="`ocamlfind query -a-format -predicates native curl 2> /dev/null`"
+if test "$CURL_LIB" == ""; then
+  CURL=no
+fi
+CURL_CLIB="`ocamlfind query -l-format -predicates native curl 2> /dev/null`"
+if test "$CURL_CLIB" == ""; then
+  CURL=no
 fi
 
 if test "$CURL" = "no"; then

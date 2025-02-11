@@ -582,7 +582,7 @@ DRIVER_SRCS+= \
 ICONS_CMXA=icons.cmxa
 
 LIBS_opt += $(OCAMLLIB)/threads/threads.cmxa
-LIBS_opt += $(CURL_PATH)/curl.cmxa -cclib "-L$(CURL_PATH) -lcurl-helper"
+LIBS_opt += $(CURL_LIB) $(CURL_CLIB)
 
 CDK_CMXA=cdk.cmxa
 BITSTRING_CMXA=
