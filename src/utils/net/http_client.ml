@@ -123,11 +123,8 @@ let safe_call f write_log =
 (** Internal HTTP call implementation *)
 let rec http_call_internal r write_f fretry progress =
   fretry ();
-  let curl = Curl.init () in
   try
-    bracket curl (fun res ->
-      Curl.cleanup res
-    ) (fun _ ->
+    bracket (Curl.init ()) Curl.cleanup begin fun curl ->
       Curl.set_url curl (Url.to_string r.req_url);
       let headers = 
         ("User-Agent", r.req_user_agent) ::
@@ -191,7 +188,7 @@ let rec http_call_internal r write_f fretry progress =
       | _ ->
         lprintf_nl "HTTP error unknown: %s" (Url.to_string r.req_url);
         Error `UnknownError
-    )
+    end
   with
   | ScheduleRetry error ->
     lprintf_nl "exception";
