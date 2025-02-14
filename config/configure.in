@@ -566,23 +566,35 @@ fi
 CURL=yes
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking ocaml curl library" >&5
 printf %s "checking ocaml curl library... " >&6; }
-CURL_INCLUDE="`ocamlfind query -i-format curl 2> /dev/null`"
-if test "$CURL_INCLUDE" == ""; then
+CURL_INCLUDE=$(ocamlfind query -i-format curl 2> /dev/null)
+if [ $? -ne 0 ]; then
   CURL=no
 fi
-CURL_LIB="`ocamlfind query -a-format -predicates native curl 2> /dev/null`"
-if test "$CURL_LIB" == ""; then
+CURL_LIB=$(ocamlfind query -a-format -predicates native curl 2> /dev/null)
+if [ $? -ne 0 ]; then
   CURL=no
 fi
-CURL_CLIB="`ocamlfind query -l-format -predicates native curl 2> /dev/null`"
-if test "$CURL_CLIB" == ""; then
+CURL_CLIB=$(ocamlfind query -l-format -predicates native curl 2> /dev/null)
+if [ $? -ne 0 ]; then
   CURL=no
 fi
-
 if test "$CURL" = "no"; then
   AC_MSG_RESULT([no])
 else
   AC_MSG_RESULT([found $CURL_INCLUDE])
+fi
+
+THREADS=yes
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking ocaml posix thread module" >&5
+printf %s "checking ocaml posix thread module... " >&6; }
+THREADS_INCLUDE=$(ocamlfind query -i-format threads.posix 2> /dev/null)
+if [ $? -ne 0 ]; then
+  THREADS=no
+fi
+if test "$THREADS" = "no"; then
+  AC_MSG_RESULT([no])
+else
+  AC_MSG_RESULT([found $THREADS_INCLUDE])
 fi
 
 echo ""

@@ -651,6 +651,7 @@ ac_subst_vars='LTLIBOBJS
 LIBOBJS
 NUMS_INCLUDE
 CURL_INCLUDE
+THREADS_INCLUDE
 CURL_LIB
 CURL_CLIB
 OCAMLVERSION_MAJOR
@@ -6127,6 +6128,23 @@ printf "%s\n" "no" >&6; }
 else
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: found $CURL_INCLUDE" >&5
 printf "%s\n" "found $CURL_INCLUDE" >&6; }
+fi
+
+THREADS=yes
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking ocaml posix thread module" >&5
+printf %s "checking ocaml posix thread module... " >&6; }
+THREADS_INCLUDE="`ocamlfind query -i-format threads.posix 2> /dev/null`"
+if test "$THREADS_INCLUDE" == ""; then
+  THREADS=no
+fi
+if test "$THREADS" = "no"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+  echo "ERROR: thread module is missing"
+  exit 1
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: found $THREADS_INCLUDE" >&5
+printf "%s\n" "found $THREADS_INCLUDE" >&6; }
 fi
 
 echo ""
