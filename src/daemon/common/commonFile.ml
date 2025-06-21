@@ -732,8 +732,9 @@ let file_print file o =
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [
         ("Downloaded/Total size", "sr br", "DLed/Size");
-        ("", "sr", Printf.sprintf "%s bytes of %s bytes"
-            (Int64.to_string info.G.file_downloaded) (Int64.to_string info.G.file_size) ) ];
+        ("", "sr", Printf.sprintf "%s of %s bytes"
+            (if !!html_mods_human_readable then (size_of_int64 info.G.file_downloaded) else (Int64.to_string info.G.file_downloaded))
+            (if !!html_mods_human_readable then (size_of_int64 info.G.file_size) else (Int64.to_string info.G.file_size)) ) ];
 
       Printf.bprintf buf "\\</tr\\>\\<tr class=\\\"dl-%d\\\"\\>" (html_mods_cntr ());
       html_mods_td buf [
@@ -844,7 +845,8 @@ parent.fstatus.location.href='submit?q=chgrp+'+v+'+%d';
       html_mods_td buf [
         ("Chunk size", "sr br", "Chunk size");
         ("", "sr", (match info.G.file_chunk_size with
-          Some v -> String.concat " " (List.map (fun v -> Printf.sprintf "%Ld" v) v)
+          Some v -> String.concat " " (List.map (if !!html_mods_human_readable then
+            (fun v -> size_of_int64 v) else (fun v -> Int64.to_string v)) v)
         | None -> "unknown"))];
 
       (match file_magic file with

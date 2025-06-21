@@ -354,7 +354,8 @@ let op_file_print file o =
   emit (_s"Creation date") (Date.to_string (Int64.to_float file.file_creation_date));
   emit (_s"Modified by") (match file.file_modified_by with "" -> "-" | s -> auto_links s);
   emit (_s"Encoding") (match file.file_encoding with "" -> "-" | s -> s);
-  emit (_s"Piece size") (Int64.to_string file.file_piece_size);
+  emit (_s"Piece size") (if !!html_mods_human_readable then
+    (size_of_int64 file.file_piece_size) else (Int64.to_string file.file_piece_size));
   emit (_s"Private") ~desc:(_s"Private torrents get peers only via trackers")
     (if file.file_private then _s "yes" else _s "no");
   if !bt_dht <> None then
