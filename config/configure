@@ -7021,10 +7021,11 @@ fi
 if test "$UPNP_NATPMP_FORCE" = "yes"; then
         UPNP_NATPMP=yes
         cd $PATCH_DIR
-        MINIUPNPC=miniupnpc-2.2.8
+        MINIUPNPC=miniupnpc-2.3.3
         LIBNATPMP=libnatpmp-20230423
-        $WGET http://miniupnp.tuxfamily.org/files/$MINIUPNPC.tar.gz
-        $WGET http://miniupnp.tuxfamily.org/files/$LIBNATPMP.tar.gz
+        BASE_URL=http://miniupnp.free.fr/files/
+        $WGET $BASE_URL/$MINIUPNPC.tar.gz
+        $WGET $BASE_URL/$LIBNATPMP.tar.gz
         mkdir -p $BUILD_DIR $LOCAL_DIR/usr/bin $LOCAL_DIR/usr/lib $LOCAL_DIR/usr/include/miniupnpc
         cd $BUILD_DIR
         rm -rf $LIBNATPMP $MINIUPNPC
