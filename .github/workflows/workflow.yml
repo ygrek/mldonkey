@@ -25,8 +25,10 @@ jobs:
           - 4.14.1
         required:
           - true
+        # not 26.04: its GCC defaults to C23, which the older OCaml
+        # compilers built by setup-ocaml don't compile with
         os:
-          - ubuntu-latest
+          - ubuntu-24.04
         include:
           - ocaml-version: 4.14.1
             required: true
@@ -36,21 +38,36 @@ jobs:
             os: windows-latest
           - ocaml-version: 5.2.0
             required: false
-            os: ubuntu-latest
+            os: ubuntu-24.04
+          # C23 is the default in GCC >= 15: build in that mode explicitly,
+          # whatever the GCC version of the runner ("4.14" and not 4.14.1
+          # so this is a new job and not merged into the existing one).
+          # gnu2x and not gnu23: GCC < 14 only knows the former name
+          - ocaml-version: "4.14"
+            required: true
+            os: ubuntu-24.04
+            cflags: -O2 -std=gnu2x
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Use OCaml ${{ matrix.ocaml-version }}
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-version }}
+          # compilers < 4.11 were moved out of the main opam repository
+          opam-repositories: |
+            default: https://github.com/ocaml/opam-repository.git
+            archive: https://github.com/ocaml/opam-repository-archive.git
 
-      - run: sudo apt install libcrypto++-dev libminiupnpc-dev libnatpmp-dev libgd-dev
-        if: matrix.os == 'ubuntu-latest'
+      # refresh the package index first: a stale one gives 404s
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libcrypto++-dev libminiupnpc-dev libnatpmp-dev libgd-dev
+        if: matrix.os == 'ubuntu-24.04'
 
       - run: brew install cryptopp miniupnpc libnatpmp gd
         if: matrix.os == 'macos-latest'
@@ -62,7 +79,9 @@ jobs:
 
       # https://cygwin.com/packages/ doesn't have cryptopp and many other packages
       # I guess should build with mingw?
-      - run: D:\\cygwin\\setup-x86_64.exe "--root" "D:\\cygwin" "--quiet-mode" "unattended" "--no-shortcuts" "--no-startmenu" "--no-desktop" "--no-admin" "--no-version-check" "--no-write-registry" "--packages" "mingw64-x86_64-gd"
+      # setup-ocaml v3 lets opam install its own Cygwin under $OPAMROOT\.cygwin
+      - run: |
+          & "$env:OPAMROOT\.cygwin\setup-x86_64.exe" "--root" "$env:OPAMROOT\.cygwin\root" "--quiet-mode" "unattended" "--no-shortcuts" "--no-startmenu" "--no-desktop" "--no-admin" "--no-version-check" "--no-write-registry" "--packages" "mingw64-x86_64-gd"
         if: matrix.os == 'windows-latest'
 
       - run: |
@@ -89,14 +108,53 @@ jobs:
       # SHELLOPTS workaround for windows
       # setting SHELLOPTS via GITHUB_ENV didn't work for some reason
       - run: opam exec -- env SHELLOPTS=igncr sh ./configure --enable-debug --enable-upnp-natpmp
+        if: ${{ ! matrix.cflags }}
+
+      # CFLAGS only where set: an empty CFLAGS would drop configure's defaults
+      - run: opam exec -- sh ./configure --enable-debug --enable-upnp-natpmp CFLAGS="${{ matrix.cflags }}"
+        if: ${{ matrix.cflags }}
 
       - run: opam exec -- make
 
       - run: opam exec -- make utils
 
       - name: Upload the build artifact
-        if: ${{ matrix.ocaml-version == '4.14.1' }}
-        uses: actions/upload-artifact@v4
+        if: ${{ matrix.ocaml-version == '4.14.1' && ! matrix.cflags }}
+        uses: actions/upload-artifact@v5
         with:
           name: mlnet-${{ matrix.os }}.exe
           path: mlnet
+
+  # Build on Gentoo with its current toolchain (GCC 15, C23 by default) and
+  # without any workaround flags, as a distribution user would.
+  gentoo:
+    runs-on: ubuntu-24.04
+    container: gentoo/stage3:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Sync the Gentoo repository
+        run: emerge-webrsync --quiet
+
+      # OCaml 5 is not supported yet (Genlex, -unsafe-string): stay on 4.x
+      - name: Install build dependencies
+        run: |
+          mkdir -p /etc/portage/package.mask
+          echo '>=dev-lang/ocaml-5' > /etc/portage/package.mask/ocaml
+          emerge --quiet-build --getbinpkg --noreplace --jobs=4 \
+            dev-lang/ocaml dev-ml/camlp4 dev-ml/findlib dev-ml/num \
+            dev-libs/crypto++ net-libs/miniupnpc net-libs/libnatpmp
+
+      - name: show build environment
+        run: |
+          gcc --version
+          ocamlfind ocamlopt -version
+        continue-on-error: true
+
+      - run: ./configure --enable-debug --enable-upnp-natpmp
+
+      - run: make
+
+      - run: make utils
