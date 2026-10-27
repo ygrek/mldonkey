@@ -259,6 +259,9 @@ let enable () =
 (* Hum, maybe we should not remove all these descriptions, as they might
 be useful when users want to share files that they had already previously
   shared *)
+(* Entries written by older versions carry a rounded mtime; normalizing
+   it here makes them match again and merges the duplicates they produced *)
+          let file = { file with sh_mtime = CommonShared.shared_mtime_key file.sh_mtime } in
           let key = (file.sh_name, file.sh_size, file.sh_mtime) in
           (try
           if Unix32.file_exists file.sh_name &&

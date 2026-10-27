@@ -24,6 +24,10 @@ val as_shared : 'a shared_impl -> CommonTypes.shared
 val as_shared_impl : CommonTypes.shared -> 'a shared_impl
 val shared_num : CommonTypes.shared -> int
 val shared_calculate_total_bytes : unit -> unit
+(* mtime of a shared file rounded to whole seconds, as used in the
+   (name, size, mtime) key of the shared files cache *)
+val shared_mtime_key : float -> float
+val shared_file_mtime : string -> float
 val shared_counter : int ref
 val shared_must_update : CommonTypes.shared -> unit
 val shared_must_update_downloaded : CommonTypes.shared -> unit

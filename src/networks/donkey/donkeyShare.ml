@@ -259,7 +259,7 @@ let rec check_shared_files () =
                         sh_name = sh.shared_name;
                         sh_size = sh.shared_size;
                         sh_md4s = Array.of_list (List.rev sh.shared_list);
-                        sh_mtime = Unix32.mtime sh.shared_name;
+                        sh_mtime = shared_file_mtime sh.shared_name;
                     } in
                     lprintf_nl "New shared file %s" sh.shared_name;
                     Hashtbl.add shared_files_info
@@ -294,7 +294,7 @@ let _ =
 (*
 lprintf "Searching %s" fullname; lprint_newline ();
 *)
-        let mtime = Unix32.mtime fullname in
+        let mtime = shared_file_mtime fullname in
 
         let s = Hashtbl.find shared_files_info
             (fullname, size, mtime) in
@@ -355,12 +355,12 @@ let remember_shared_info file new_name =
       let mtime =
         try
           let disk_name = file_disk_name file in
-          Unix32.mtime disk_name
+          shared_file_mtime disk_name
         with _ ->
             if !verbose then
               lprintf_nl "Share: Trying mtime on new name %s, disk_name %s"
           new_name (file_disk_name file);
-            Unix32.mtime new_name
+            shared_file_mtime new_name
       in
 
       if !verbose_share then

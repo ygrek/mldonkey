@@ -155,7 +155,7 @@ module SharedFileOption = struct
           ) sh_uids;
 
           { shared_fullname = sh_name;
-            shared_mtime = sh_mtime;
+            shared_mtime = shared_mtime_key sh_mtime;
             shared_size = sh_size;
             shared_md4s = sh_md4s;
             shared_tiger = sh_ttr;
@@ -633,7 +633,7 @@ let rec add_shared_file node sh dir_list =
 let new_info full_name size =
   incr shareds_counter;
   let fd = Unix32.create_ro full_name in
-  let mtime = Unix32.mtime64 fd in
+  let mtime = shared_mtime_key (Unix32.mtime64 fd) in
   try
     let index = Hashtbl.find infos_by_name full_name in
     let info = IndexedSharedFiles.get_result index in
