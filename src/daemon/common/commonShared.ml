@@ -85,6 +85,19 @@ let log_prefix = "[cSha]"
 
 let lprintf_nl fmt =
   lprintf_nl2 log_prefix fmt
+
+(* The modification time of a shared file is used, together with its name
+   and size, as the key that lets a restart reuse the hashes saved in
+   shared_files.ini and shared_files_new.ini. It is persisted as a float
+   through string_of_float, which keeps 12 significant digits: a current
+   Unix timestamp survives with two decimals at most, while Unix.stat
+   reports it with nanosecond precision. Loaded and live values therefore
+   never compared equal and every file with a fractional mtime was hashed
+   again at each start. Round the mtime down to whole seconds wherever it is
+   used as a key, both for fresh stat results and for values read back from
+   the ini files, so that stored and fresh keys match. *)
+let shared_mtime_key (mtime : float) = floor mtime
+let shared_file_mtime name = shared_mtime_key (Unix32.mtime name)
     
 let shared_calculate_total_bytes () =
   nshared_bytes := Int64.zero;
